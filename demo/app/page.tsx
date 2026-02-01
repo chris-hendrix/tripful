@@ -35,9 +35,21 @@ export default function Home() {
     },
     {
       title: "Create Event",
-      description: "Add events with member assignment",
+      description: "Add travel, meals, and activities",
       href: "/create-event",
       emoji: "➕",
+    },
+    {
+      title: "Transportation",
+      description: "Add traveler arrivals/departures",
+      href: "/member-travel",
+      emoji: "🛫",
+    },
+    {
+      title: "Accommodation",
+      description: "Add hotels and lodging",
+      href: "/accommodation",
+      emoji: "🏨",
     },
   ];
 

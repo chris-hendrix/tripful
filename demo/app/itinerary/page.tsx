@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-type EventType = 'travel' | 'accommodation' | 'meal' | 'activity'
+type EventType = 'arrival' | 'departure' | 'travel' | 'accommodation' | 'meal' | 'activity'
 
 interface User {
   name: string
@@ -35,12 +35,23 @@ interface TripEvent {
   description?: string
   links?: string[]
   createdBy: User
-  assignedTo: 'all' | User[]
   isOptional?: boolean
   memberNoLongerAttending?: boolean
+  checkInTime?: string  // For accommodations
+  checkOutTime?: string  // For accommodations
 }
 
 const eventTypeConfig = {
+  arrival: {
+    label: 'Arrival',
+    color: 'bg-blue-100 text-blue-700 border-blue-200',
+    icon: '🛬'
+  },
+  departure: {
+    label: 'Departure',
+    color: 'bg-blue-100 text-blue-700 border-blue-200',
+    icon: '🛫'
+  },
   travel: {
     label: 'Travel',
     color: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -76,16 +87,37 @@ export default function ItineraryView() {
 
   const events: TripEvent[] = [
     {
-      id: '1',
-      type: 'travel',
-      title: 'Flight to Miami (AA 2451)',
+      id: '1a',
+      type: 'arrival',
+      title: 'AA 2451',
       date: 'Oct 12, 2026',
       time: '10:30 AM',
       location: 'JFK → MIA',
-      description: 'American Airlines flight. Gate info TBD - check 24hrs before.',
+      description: 'American Airlines flight. Gate B12, Terminal 4. Check in 24hrs before.',
       links: ['https://aa.com/checkin/123'],
       createdBy: mike,
-      assignedTo: [mike, sarah, alex] // Group flight
+    },
+    {
+      id: '1b',
+      type: 'arrival',
+      title: 'AA 2451',
+      date: 'Oct 12, 2026',
+      time: '10:30 AM',
+      location: 'JFK → MIA',
+      description: 'American Airlines flight. Gate B12, Terminal 4.',
+      links: ['https://aa.com/checkin/123'],
+      createdBy: sarah,
+    },
+    {
+      id: '1c',
+      type: 'arrival',
+      title: 'UA 1845',
+      date: 'Oct 12, 2026',
+      time: '2:15 PM',
+      location: 'ORD → MIA',
+      description: 'United Airlines flight from Chicago. Terminal 1.',
+      links: ['https://united.com/checkin/456'],
+      createdBy: alex,
     },
     {
       id: '2',
@@ -95,10 +127,11 @@ export default function ItineraryView() {
       endDate: 'Oct 13, 2026',
       allDay: true,
       location: '4441 Collins Ave, Miami Beach, FL',
-      description: 'Check-in at 3pm. Oceanview rooms on floors 8-10. Confirmation #MB-2847.',
+      description: 'Oceanview rooms on floors 8-10. Confirmation #MB-2847.',
       links: ['https://fontainebleau.com/booking/MB-2847'],
       createdBy: mike,
-      assignedTo: 'all' // Everyone
+      checkInTime: '3:00 PM',
+      checkOutTime: '11:00 AM',
     },
     {
       id: '3',
@@ -110,7 +143,6 @@ export default function ItineraryView() {
       description: 'Reservation for 8 people. Dress code: Smart casual.',
       links: ['https://joesstonecrab.com'],
       createdBy: sarah,
-      assignedTo: 'all' // Everyone
     },
     {
       id: '4',
@@ -123,7 +155,6 @@ export default function ItineraryView() {
       description: '4-hour private yacht cruise. Includes drinks, snacks, water toys. Bring sunscreen!',
       links: ['https://miamiyachts.com/charter/789'],
       createdBy: tom,
-      assignedTo: [mike, sarah, tom], // Tom's event, most people
       isOptional: true
     },
     {
@@ -135,7 +166,6 @@ export default function ItineraryView() {
       location: 'Nikki Beach',
       description: 'Alternative option for those not doing the yacht. Reserved daybed section.',
       createdBy: alex,
-      assignedTo: [alex], // Just Alex
       isOptional: true,
       memberNoLongerAttending: true
     },
@@ -149,7 +179,6 @@ export default function ItineraryView() {
       description: '3.5 hour scenic drive down the Overseas Highway. Bring snacks for the road!',
       links: ['https://maps.google.com'],
       createdBy: mike,
-      assignedTo: 'all' // Everyone
     },
     {
       id: '7',
@@ -159,10 +188,11 @@ export default function ItineraryView() {
       endDate: 'Oct 15, 2026',
       allDay: true,
       location: '200 William St, Key West, FL',
-      description: 'Check-in at 8pm. Waterfront hotel with pool. Confirmation #KW-9921.',
+      description: 'Waterfront hotel with pool. Confirmation #KW-9921.',
       links: ['https://themarkerkewest.com/booking'],
       createdBy: mike,
-      assignedTo: 'all' // Everyone
+      checkInTime: '8:00 PM',
+      checkOutTime: '10:00 AM',
     },
     {
       id: '8',
@@ -175,7 +205,6 @@ export default function ItineraryView() {
       description: 'Waterfront dining on a private island. Boat shuttle from marina included.',
       links: ['https://latitudeskeywest.com'],
       createdBy: sarah,
-      assignedTo: [mike, sarah, tom] // Most people - not Alex
     },
     {
       id: '9',
@@ -186,7 +215,6 @@ export default function ItineraryView() {
       location: 'Duval Street, Key West',
       description: 'Hit the famous bars: Sloppy Joe\'s, Captain Tony\'s, Irish Kevin\'s. Meeting at Sloppy Joe\'s.',
       createdBy: tom,
-      assignedTo: 'all' // Everyone
     },
     {
       id: '10',
@@ -197,31 +225,39 @@ export default function ItineraryView() {
       location: 'Key West → Miami',
       description: 'Head back to Miami for evening flights. Allow 4 hours with stops.',
       createdBy: mike,
-      assignedTo: [mike, sarah, tom] // Not Alex
     },
     {
       id: '11',
-      type: 'travel',
-      title: 'Tom\'s Flight Home (UA 1523)',
+      type: 'departure',
+      title: 'UA 1523',
       date: 'Oct 15, 2026',
       time: '6:00 PM',
       allDay: false,
       location: 'MIA → EWR',
-      description: 'United Airlines flight to Newark. Check-in opens 24hrs before.',
-      createdBy: mike,
-      assignedTo: [tom] // Just Tom - example of organizer adding someone's specific flight
+      description: 'United Airlines flight to Newark. Check-in opens 24hrs before. Terminal 2, Gate D8.',
+      createdBy: tom,
     },
     {
-      id: '12',
-      type: 'travel',
-      title: 'Mike & Sarah\'s Flight Home (AA 2452)',
+      id: '12a',
+      type: 'departure',
+      title: 'AA 2452',
       date: 'Oct 15, 2026',
       time: '7:15 PM',
       allDay: false,
       location: 'MIA → JFK',
-      description: 'American Airlines flight back to JFK. Same airline as arrival flight.',
+      description: 'American Airlines flight back to JFK. Same airline as arrival flight. Terminal 3.',
       createdBy: mike,
-      assignedTo: [mike, sarah] // Mike and Sarah on same flight
+    },
+    {
+      id: '12b',
+      type: 'departure',
+      title: 'AA 2452',
+      date: 'Oct 15, 2026',
+      time: '7:15 PM',
+      allDay: false,
+      location: 'MIA → JFK',
+      description: 'American Airlines flight back to JFK. Terminal 3.',
+      createdBy: sarah,
     }
   ]
 
@@ -234,13 +270,21 @@ export default function ItineraryView() {
         // Multi-day event - create entry for each day
         const start = new Date(event.date)
         const end = new Date(event.endDate)
+        const days: Date[] = []
 
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          days.push(new Date(d))
+        }
+
+        days.forEach((d, index) => {
           expanded.push({
             ...event,
-            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          })
-        }
+            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            // Track if this is first/last day for accommodations
+            isFirstDay: index === 0,
+            isLastDay: index === days.length - 1,
+          } as TripEvent & { isFirstDay?: boolean; isLastDay?: boolean })
+        })
       } else {
         // Single day event
         expanded.push(event)
@@ -307,6 +351,17 @@ export default function ItineraryView() {
     })
 
     return grouped
+  }
+
+  const separateEventsByType = (dayEvents: TripEvent[]) => {
+    const accommodations = dayEvents.filter(e => e.type === 'accommodation')
+    const arrivals = dayEvents.filter(e => e.type === 'arrival')
+    const departures = dayEvents.filter(e => e.type === 'departure')
+    const regularEvents = dayEvents.filter(e =>
+      e.type !== 'accommodation' && e.type !== 'arrival' && e.type !== 'departure'
+    )
+
+    return { accommodations, arrivals, departures, regularEvents }
   }
 
   const eventsByDay = groupByDay(events)
@@ -441,216 +496,577 @@ export default function ItineraryView() {
                   <h2 className="text-2xl font-semibold text-slate-900 mb-2">
                     {new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </h2>
-                  {/* Chips: event count + locations */}
-                  <div className="flex flex-wrap gap-2">
-                    {/* Event count chip */}
-                    <div className="inline-flex items-center gap-1.5 bg-slate-100 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
-                      <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      <span>{dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}</span>
-                    </div>
-
-                    {/* Location chips */}
-                    {Object.entries(groupEventsByLocation(dayEvents)).map(([location, locationEvents], locationIndex) => (
-                      <div key={`${date}-${location}`} className="inline-flex items-center gap-1.5 bg-slate-100 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
+                  {/* Event count chip */}
+                  {(() => {
+                    const regularEventCount = dayEvents.filter(e =>
+                      e.type !== 'arrival' && e.type !== 'departure' && e.type !== 'accommodation'
+                    ).length
+                    return regularEventCount > 0 ? (
+                      <div className="inline-flex items-center gap-1.5 bg-slate-100 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
                         <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        <span>{location}</span>
+                        <span>{regularEventCount} {regularEventCount === 1 ? 'event' : 'events'}</span>
                       </div>
-                    ))}
-                  </div>
+                    ) : null
+                  })()}
                 </div>
               </div>
 
               {/* Events for this day */}
               <div className="space-y-4 ml-4 pl-6 sm:ml-6 sm:pl-6 border-l-2 border-slate-200">
-                {dayEvents.map((event, eventIndex) => {
-                      const config = eventTypeConfig[event.type]
-                      const isExpanded = expandedEvent === event.id
+                {(() => {
+                  const { accommodations, arrivals, departures, regularEvents } = separateEventsByType(dayEvents)
 
-                      return (
-                    <div
-                      key={event.id}
-                      className="relative group animate-in fade-in slide-in-from-left-4 duration-500"
-                      style={{ animationDelay: `${(dayIndex * 100) + (eventIndex * 50)}ms` }}
-                    >
-                      {/* Timeline dot */}
-                      <div className="absolute -left-[29px] sm:-left-[33px] top-6 w-3 h-3 bg-white border-2 border-blue-500 rounded-full group-hover:scale-150 transition-transform" />
-
-                      {/* Event card */}
-                      <div
-                        className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden"
-                        onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
-                      >
-                        <div className="p-4">
-                          <div className="flex items-start gap-2 sm:gap-3">
-                            {/* Time */}
-                            <div className="flex-shrink-0 text-right min-w-[70px]">
-                              {event.allDay ? (
-                                <Badge variant="outline" className="text-xs text-slate-600 border-slate-300 whitespace-nowrap">
-                                  All day
-                                </Badge>
-                              ) : event.endTime ? (
-                                <div className="text-xs font-semibold text-slate-900 leading-tight">
-                                  <div>{event.time}</div>
-                                  <div>{event.endTime}</div>
-                                </div>
-                              ) : (
-                                <p className="text-xs font-semibold text-slate-900">
-                                  {event.time}
-                                </p>
-                              )}
+                  return (
+                    <>
+                      {/* Accommodation - Compact Format (shown first) */}
+                      {accommodations.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 overflow-hidden">
+                            <div className="px-4 py-2 bg-purple-100/50 border-b border-purple-200">
+                              <h3 className="text-xs font-semibold text-purple-900 uppercase tracking-wide">
+                                Accommodation
+                              </h3>
                             </div>
+                            <div className="divide-y divide-purple-100">
+                              {accommodations.map((event) => {
+                                const config = eventTypeConfig[event.type]
+                                const isExpanded = expandedEvent === event.id
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-3 mb-2">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <Badge
-                                      variant="outline"
-                                      className={`${config.color} border font-medium text-xs`}
-                                    >
-                                      {config.icon} {config.label}
-                                    </Badge>
-                                    {event.endDate && (
-                                      <Badge variant="outline" className="text-slate-600 border-slate-300 text-xs">
-                                        Multi-day
-                                      </Badge>
-                                    )}
-                                    {event.isOptional && (
-                                      <Badge variant="outline" className="text-slate-600 border-slate-300 text-xs">
-                                        Optional
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <h3 className="text-base font-semibold text-slate-900 mb-0.5">
-                                    {event.title}
-                                  </h3>
-                                  {event.location && (
-                                    <p className="text-xs text-slate-600 flex items-center gap-1">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      </svg>
-                                      {event.location}
-                                    </p>
-                                  )}
-
-                                  {/* Assigned to - Avatar stack or "Everyone" badge */}
-                                  <div className="flex items-center gap-1.5 mt-2">
-                                    {event.assignedTo === 'all' ? (
-                                      <Badge variant="outline" className="text-slate-600 border-slate-300 text-xs">
-                                        👥 Everyone
-                                      </Badge>
-                                    ) : (
-                                      <div className="flex -space-x-2">
-                                        {event.assignedTo.map((user, idx) => (
-                                          <div
-                                            key={idx}
-                                            className="relative group/avatar"
-                                            title={user.name}
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className="group hover:bg-purple-50/50 transition-colors cursor-pointer"
+                                    onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                                  >
+                                    {/* Collapsed: Compact view */}
+                                    <div className="px-4 py-2.5">
+                                      <div className="flex items-center justify-between gap-3 mb-1">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                          <span className="text-base flex-shrink-0">{config.icon}</span>
+                                          <span className="font-semibold text-sm text-slate-900">
+                                            {event.title}
+                                          </span>
+                                          {(event as any).isFirstDay && event.checkInTime && (
+                                            <>
+                                              <span className="text-slate-400 flex-shrink-0">•</span>
+                                              <span className="text-xs text-slate-600 flex-shrink-0">Check-in {event.checkInTime}</span>
+                                            </>
+                                          )}
+                                          {(event as any).isLastDay && event.checkOutTime && (
+                                            <>
+                                              <span className="text-slate-400 flex-shrink-0">•</span>
+                                              <span className="text-xs text-slate-600 flex-shrink-0">Check-out {event.checkOutTime}</span>
+                                            </>
+                                          )}
+                                        </div>
+                                        <svg
+                                          className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${
+                                            isExpanded ? 'rotate-180' : ''
+                                          }`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </div>
+                                      {event.location && (
+                                        <div className="pl-7">
+                                          <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            <img
-                                              src={user.avatar}
-                                              alt={user.name}
-                                              className="w-6 h-6 rounded-full ring-2 ring-white hover:scale-110 transition-transform cursor-pointer"
-                                            />
-                                            {/* Tooltip */}
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none z-10">
-                                              {user.name}
-                                            </div>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            {event.location}
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Expanded: Full details */}
+                                    {isExpanded && (
+                                      <div className="px-4 pb-3 pt-1 border-t border-purple-100 bg-white/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {event.description && (
+                                          <p className="text-sm text-slate-700 leading-relaxed">
+                                            {event.description}
+                                          </p>
+                                        )}
+
+                                        {event.links && event.links.length > 0 && (
+                                          <div className="space-y-1.5">
+                                            {event.links.map((link, i) => (
+                                              <a
+                                                key={i}
+                                                href={link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                                {link}
+                                              </a>
+                                            ))}
                                           </div>
-                                        ))}
+                                        )}
+
+                                        <div className="flex items-center justify-between pt-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={event.createdBy.avatar}
+                                              alt={event.createdBy.name}
+                                              className="w-5 h-5 rounded-full"
+                                            />
+                                            <span className="text-xs text-slate-600">
+                                              Added by <span className="font-medium text-slate-900">{event.createdBy.name}</span>
+                                            </span>
+                                          </div>
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-lg h-7 text-xs"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              // Handle edit
+                                            }}
+                                          >
+                                            Edit
+                                          </Button>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
-                                </div>
-
-                                {/* Expand icon */}
-                                <svg
-                                  className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${
-                                    isExpanded ? 'rotate-180' : ''
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </div>
-
-                              {/* Expanded content */}
-                              {isExpanded && (
-                                <div className="pt-4 border-t border-slate-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                  {event.description && (
-                                    <p className="text-slate-700 leading-relaxed">
-                                      {event.description}
-                                    </p>
-                                  )}
-
-                                  {event.links && event.links.length > 0 && (
-                                    <div className="space-y-2">
-                                      <p className="text-sm font-medium text-slate-900">Links</p>
-                                      {event.links.map((link, i) => (
-                                        <a
-                                          key={i}
-                                          href={link}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                          </svg>
-                                          {link}
-                                        </a>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center justify-between pt-2">
-                                    <div className="flex items-center gap-2">
-                                      <img
-                                        src={event.createdBy.avatar}
-                                        alt={event.createdBy.name}
-                                        className="w-6 h-6 rounded-full"
-                                      />
-                                      <span className="text-sm text-slate-600">
-                                        Added by <span className="font-medium text-slate-900">{event.createdBy.name}</span>
-                                        {event.memberNoLongerAttending && (
-                                          <Badge variant="outline" className="ml-2 text-xs text-amber-700 border-amber-300 bg-amber-50">
-                                            Member no longer attending
-                                          </Badge>
-                                        )}
-                                      </span>
-                                    </div>
-
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="rounded-lg"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        // Handle edit
-                                      }}
-                                    >
-                                      Edit
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
+                                )
+                              })}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
+                      )}
+
+                      {/* Arrivals - Compact Format */}
+                      {arrivals.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-200 overflow-hidden">
+                            <div className="px-4 py-2 bg-blue-100/50 border-b border-blue-200">
+                              <h3 className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                                Arrivals
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-blue-100">
+                              {arrivals.map((event) => {
+                                const config = eventTypeConfig[event.type]
+                                const isExpanded = expandedEvent === event.id
+                                // For arrivals/departures, show the member (in real app, from member_id field)
+                                const member = event.createdBy
+
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className="group hover:bg-blue-50/50 transition-colors cursor-pointer"
+                                    onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                                  >
+                                    {/* Collapsed: Single line strip - minimal info only */}
+                                    <div className="px-4 py-2.5 flex items-center justify-between">
+                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <span className="text-base flex-shrink-0">{config.icon}</span>
+                                        <span className="font-semibold text-sm text-slate-900 flex-shrink-0">
+                                          {member.name}
+                                        </span>
+                                        <span className="text-slate-400 flex-shrink-0">•</span>
+                                        {event.location && (
+                                          <>
+                                            <span className="text-xs text-slate-600 flex-shrink-0">
+                                              {event.location.includes('→')
+                                                ? event.location.split('→')[1].trim().split(' ')[0] // Extract destination airport
+                                                : event.location
+                                              }
+                                            </span>
+                                            <span className="text-slate-400 flex-shrink-0">•</span>
+                                          </>
+                                        )}
+                                        <span className="text-xs text-slate-600 flex-shrink-0">{event.time}</span>
+                                      </div>
+                                      <svg
+                                        className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${
+                                          isExpanded ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </div>
+
+                                    {/* Expanded: Full details */}
+                                    {isExpanded && (
+                                      <div className="px-4 pb-3 pt-1 border-t border-blue-100 bg-white/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {/* Flight/Travel details */}
+                                        {(event.title || event.location) && (
+                                          <div className="space-y-1">
+                                            {event.title && (
+                                              <p className="text-sm font-medium text-slate-900">
+                                                {event.title}
+                                              </p>
+                                            )}
+                                            {event.location && (
+                                              <p className="text-sm text-slate-600">
+                                                {event.location}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {event.description && (
+                                          <p className="text-sm text-slate-700 leading-relaxed">
+                                            {event.description}
+                                          </p>
+                                        )}
+
+                                        {event.links && event.links.length > 0 && (
+                                          <div className="space-y-1.5">
+                                            {event.links.map((link, i) => (
+                                              <a
+                                                key={i}
+                                                href={link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                                {link}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between pt-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={event.createdBy.avatar}
+                                              alt={event.createdBy.name}
+                                              className="w-5 h-5 rounded-full"
+                                            />
+                                            <span className="text-xs text-slate-600">
+                                              Added by <span className="font-medium text-slate-900">{event.createdBy.name}</span>
+                                            </span>
+                                          </div>
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-lg h-7 text-xs"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              // Handle edit
+                                            }}
+                                          >
+                                            Edit
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Itinerary - Regular events in compact format */}
+                      {regularEvents.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="bg-gradient-to-r from-slate-50 to-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                            <div className="px-4 py-2 bg-slate-100/50 border-b border-slate-200">
+                              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
+                                Itinerary
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-slate-100">
+                              {regularEvents.map((event) => {
+                                const config = eventTypeConfig[event.type]
+                                const isExpanded = expandedEvent === event.id
+
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className="group hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                    onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                                  >
+                                    {/* Collapsed: Compact view */}
+                                    <div className="px-4 py-3">
+                                      <div className="flex items-start gap-3">
+                                        <span className="text-base flex-shrink-0 mt-0.5">{config.icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                          {/* Time */}
+                                          <div className="mb-1">
+                                            {event.allDay ? (
+                                              <span className="text-xs text-slate-600">All day</span>
+                                            ) : event.endTime ? (
+                                              <span className="text-xs font-medium text-slate-700">
+                                                {event.time} - {event.endTime}
+                                              </span>
+                                            ) : (
+                                              <span className="text-xs font-medium text-slate-700">
+                                                {event.time}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {/* Title */}
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-semibold text-sm text-slate-900">
+                                              {event.title}
+                                            </span>
+                                            {event.isOptional && (
+                                              <Badge variant="outline" className="text-slate-600 border-slate-300 text-xs">
+                                                Optional
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          {/* Location */}
+                                          {event.location && (
+                                            <a
+                                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                              </svg>
+                                              {event.location}
+                                            </a>
+                                          )}
+                                        </div>
+                                        <svg
+                                          className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${
+                                            isExpanded ? 'rotate-180' : ''
+                                          }`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </div>
+                                    </div>
+
+                                    {/* Expanded: Full details */}
+                                    {isExpanded && (
+                                      <div className="px-4 pb-3 pt-1 border-t border-slate-200 bg-white/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {event.description && (
+                                          <p className="text-sm text-slate-700 leading-relaxed">
+                                            {event.description}
+                                          </p>
+                                        )}
+
+                                        {event.links && event.links.length > 0 && (
+                                          <div className="space-y-1.5">
+                                            {event.links.map((link, i) => (
+                                              <a
+                                                key={i}
+                                                href={link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                                {link}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between pt-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={event.createdBy.avatar}
+                                              alt={event.createdBy.name}
+                                              className="w-5 h-5 rounded-full"
+                                            />
+                                            <span className="text-xs text-slate-600">
+                                              Added by <span className="font-medium text-slate-900">{event.createdBy.name}</span>
+                                            </span>
+                                          </div>
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-lg h-7 text-xs"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              // Handle edit
+                                            }}
+                                          >
+                                            Edit
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Departures - Compact Format (shown at end of day) */}
+                      {departures.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-200 overflow-hidden">
+                            <div className="px-4 py-2 bg-blue-100/50 border-b border-blue-200">
+                              <h3 className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                                Departures
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-blue-100">
+                              {departures.map((event) => {
+                                const config = eventTypeConfig[event.type]
+                                const isExpanded = expandedEvent === event.id
+                                // For arrivals/departures, show the member (in real app, from member_id field)
+                                const member = event.createdBy
+
+                                return (
+                                  <div
+                                    key={event.id}
+                                    className="group hover:bg-blue-50/50 transition-colors cursor-pointer"
+                                    onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
+                                  >
+                                    {/* Collapsed: Single line strip - minimal info only */}
+                                    <div className="px-4 py-2.5 flex items-center justify-between">
+                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <span className="text-base flex-shrink-0">{config.icon}</span>
+                                        <span className="font-semibold text-sm text-slate-900 flex-shrink-0">
+                                          {member.name}
+                                        </span>
+                                        <span className="text-slate-400 flex-shrink-0">•</span>
+                                        {event.location && (
+                                          <>
+                                            <span className="text-xs text-slate-600 flex-shrink-0">
+                                              {event.location.includes('→')
+                                                ? event.location.split('→')[0].trim() // For departures, show origin (where they're leaving from)
+                                                : event.location
+                                              }
+                                            </span>
+                                            <span className="text-slate-400 flex-shrink-0">•</span>
+                                          </>
+                                        )}
+                                        <span className="text-xs text-slate-600 flex-shrink-0">{event.time}</span>
+                                      </div>
+                                      <svg
+                                        className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${
+                                          isExpanded ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </div>
+
+                                    {/* Expanded: Full details */}
+                                    {isExpanded && (
+                                      <div className="px-4 pb-3 pt-1 border-t border-blue-100 bg-white/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                        {/* Flight/Travel details */}
+                                        {(event.title || event.location) && (
+                                          <div className="space-y-1">
+                                            {event.title && (
+                                              <p className="text-sm font-medium text-slate-900">
+                                                {event.title}
+                                              </p>
+                                            )}
+                                            {event.location && (
+                                              <p className="text-sm text-slate-600">
+                                                {event.location}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {event.description && (
+                                          <p className="text-sm text-slate-700 leading-relaxed">
+                                            {event.description}
+                                          </p>
+                                        )}
+
+                                        {event.links && event.links.length > 0 && (
+                                          <div className="space-y-1.5">
+                                            {event.links.map((link, i) => (
+                                              <a
+                                                key={i}
+                                                href={link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                                {link}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between pt-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={event.createdBy.avatar}
+                                              alt={event.createdBy.name}
+                                              className="w-5 h-5 rounded-full"
+                                            />
+                                            <span className="text-xs text-slate-600">
+                                              Added by <span className="font-medium text-slate-900">{event.createdBy.name}</span>
+                                            </span>
+                                          </div>
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-lg h-7 text-xs"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              // Handle edit
+                                            }}
+                                          >
+                                            Edit
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )
-                })}
+                })()}
               </div>
             </div>
           ))}

@@ -14,13 +14,7 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-type EventType = 'travel' | 'accommodation' | 'meal' | 'activity'
-
-interface User {
-  id: string
-  name: string
-  avatar: string
-}
+type EventType = 'travel' | 'meal' | 'activity'
 
 const eventTypeConfig = {
   travel: {
@@ -28,16 +22,8 @@ const eventTypeConfig = {
     color: 'bg-blue-100 text-blue-700 border-blue-300',
     selectedBg: 'bg-blue-100',
     icon: '✈️',
-    placeholder: 'e.g., Flight to Miami',
-    locationPlaceholder: 'JFK → MIA'
-  },
-  accommodation: {
-    label: 'Accommodation',
-    color: 'bg-purple-100 text-purple-700 border-purple-300',
-    selectedBg: 'bg-purple-100',
-    icon: '🏨',
-    placeholder: 'e.g., Hilton Downtown',
-    locationPlaceholder: '123 Main St, Miami, FL'
+    placeholder: 'e.g., Drive to Key West',
+    locationPlaceholder: 'Miami → Key West'
   },
   meal: {
     label: 'Meal',
@@ -70,58 +56,10 @@ export default function CreateEventPage() {
   const [description, setDescription] = useState('')
   const [links, setLinks] = useState<string[]>([''])
   const [isOptional, setIsOptional] = useState(false)
-  const [assignedToAll, setAssignedToAll] = useState(false)
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([])
 
   // Update defaults when event type changes
   const handleEventTypeChange = (type: EventType) => {
     setEventType(type)
-
-    // Set defaults based on event type
-    if (type === 'travel') {
-      // Travel defaults to creator (Mike - id '1' in this demo)
-      setAssignedToAll(false)
-      setSelectedMembers(['1'])
-      setAllDay(false)
-    } else if (type === 'accommodation') {
-      // Accommodation defaults to "All" and all-day
-      setAssignedToAll(true)
-      setSelectedMembers([])
-      setAllDay(true)
-      setShowEndDate(true) // Accommodations usually span multiple days
-    } else {
-      // Other events default to "All"
-      setAssignedToAll(true)
-      setSelectedMembers([])
-      setAllDay(false)
-    }
-  }
-
-  // Demo trip members
-  const members: User[] = [
-    { id: '1', name: 'Mike Johnson', avatar: 'https://avatar.vercel.sh/mike' },
-    { id: '2', name: 'Sarah Chen', avatar: 'https://avatar.vercel.sh/sarah' },
-    { id: '3', name: 'Tom Rodriguez', avatar: 'https://avatar.vercel.sh/tom' },
-    { id: '4', name: 'Alex Kim', avatar: 'https://avatar.vercel.sh/alex' },
-  ]
-
-  const toggleAll = () => {
-    if (!assignedToAll) {
-      // Selecting "All" - deselect all individuals
-      setAssignedToAll(true)
-      setSelectedMembers([])
-    }
-  }
-
-  const toggleMember = (memberId: string) => {
-    // Selecting an individual deselects "All"
-    setAssignedToAll(false)
-
-    setSelectedMembers(prev =>
-      prev.includes(memberId)
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
-    )
   }
 
   const addLink = () => {
@@ -154,8 +92,7 @@ export default function CreateEventPage() {
       location,
       description,
       links: links.filter(l => l),
-      isOptional,
-      assignedTo: assignedToAll ? 'all' : selectedMembers
+      isOptional
     })
   }
 
@@ -183,7 +120,7 @@ export default function CreateEventPage() {
             <label className="block text-sm font-semibold text-slate-700 mb-3">
               Event Type <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {(Object.keys(eventTypeConfig) as EventType[]).map((type) => {
                 const config = eventTypeConfig[type]
                 const isSelected = eventType === type
@@ -349,7 +286,7 @@ export default function CreateEventPage() {
             {eventType === 'travel' && (
               <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                 <span>💡</span>
-                <span>For travel, use → to show route (e.g., JFK → MIA)</span>
+                <span>Use → to show route (e.g., JFK → MIA)</span>
               </p>
             )}
           </div>
@@ -421,95 +358,6 @@ export default function CreateEventPage() {
                 </button>
               )}
             </div>
-          </div>
-
-          {/* Who is this event for? */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
-              Who is this event for?
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* All option */}
-              <button
-                type="button"
-                onClick={toggleAll}
-                className={`
-                  relative p-3 rounded-xl border-2 transition-all
-                  ${assignedToAll
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
-                  }
-                `}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div className="relative">
-                    <div className={`
-                      w-12 h-12 rounded-full flex items-center justify-center text-xl
-                      ${assignedToAll ? 'bg-blue-100' : 'bg-slate-100'}
-                    `}>
-                      👥
-                    </div>
-                    {assignedToAll && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-slate-700 text-center leading-tight">
-                    All
-                  </span>
-                </div>
-              </button>
-
-              {/* Individual members */}
-              {members.map((member) => {
-                const isSelected = selectedMembers.includes(member.id)
-                return (
-                  <button
-                    key={member.id}
-                    type="button"
-                    onClick={() => toggleMember(member.id)}
-                    className={`
-                      relative p-3 rounded-xl border-2 transition-all
-                      ${isSelected
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                      }
-                    `}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="relative">
-                        <img
-                          src={member.avatar}
-                          alt={member.name}
-                          className={`w-12 h-12 rounded-full ${!isSelected && 'grayscale'}`}
-                        />
-                        {isSelected && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs font-medium text-slate-700 text-center leading-tight">
-                        {member.name.split(' ')[0]}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              {assignedToAll
-                ? 'Event is for everyone'
-                : selectedMembers.length === 0
-                ? 'Select "All" or specific members'
-                : `${selectedMembers.length} ${selectedMembers.length === 1 ? 'person' : 'people'} selected`
-              }
-            </p>
           </div>
 
           {/* Optional */}

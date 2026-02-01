@@ -30,7 +30,8 @@ A collaborative trip planning platform that makes group travel itineraries simpl
 | **Trip** | The overall group travel plan (equivalent to "Event" in Partiful) |
 | **Event** | Individual items in the trip itinerary (flights, dinners, activities, etc.) |
 | **Organizer** | Trip creator and co-organizers (equivalent to "Host" in Partiful) |
-| **Member** | People invited to/attending the trip (equivalent to "Guest" in Partiful) |
+| **Traveler** | People invited to/attending the trip (equivalent to "Guest" in Partiful) |
+| **Transportation** | Individual traveler arrivals and departures to/from the trip location |
 
 ## Design Considerations
 
@@ -87,7 +88,7 @@ This approach:
 - Invitees receive text: "[Organizer] invited you to [Trip]! [Link]"
 - Recipients can also receive link via share functionality
 
-### 4. Member RSVP & Preview
+### 4. Traveler RSVP & Preview
 - Invited member clicks trip link
 - If not logged in, prompted to authenticate with phone number
 - Member sees **partial preview**:
@@ -110,55 +111,101 @@ This approach:
 - User can toggle between viewing dates/times in:
   - **Trip timezone** (default): All dates/times shown in the trip's timezone
   - **Local timezone**: All dates/times converted to user's local timezone
-- Default view: **Day-by-day grouping** (events organized by date)
+- Default view: **Day-by-day grouping** organized by date
 - Alternative view: **Group by event type** (all Travel together, all Meals together, etc.)
+- Each day displays in compact sections:
+  - **Accommodation** (if applicable) - where the group is staying
+  - **Arrivals** (if any) - members arriving that day
+  - **Departures** (if any) - members leaving that day
+  - **Events** - activities, meals, and group travel for the day
 - Each event displays:
-  - Type badge (Travel/Accommodation/Meal/Activity)
+  - Type badge (Travel/Meal/Activity)
   - Event title
   - Date and time (or "All day")
   - Location (if specified)
   - Description
   - Links (if attached)
   - Created by (member name + profile pic)
-  - Optional badge (if marked as optional)
+  - "Optional" badge (if marked as optional)
   - "Member no longer attending" indicator (if creator has changed RSVP to Not Going/Maybe)
 
-### 6. Adding Events to Itinerary
+### 6. Adding Accommodation
+- **Only organizers** can add accommodations
+- Organizer clicks "Add Accommodation"
+- Enters accommodation details:
+  - Name (required) - e.g., "Fontainebleau Miami Beach"
+  - Address (optional) - full address, copyable in UI
+  - Check-in date (required)
+  - Check-out date (optional)
+  - Description (optional) - check-in time, room details, confirmation number
+  - Links (optional) - booking confirmation, hotel website
+- Accommodation is added to the trip
+- All accepted members see the accommodation in the day-by-day view
+- Accommodations appear in a compact, expandable section at the top of each day
+
+### 7. Adding Transportation (Individual Arrivals & Departures)
+- **Travelers** can add their own arrival/departure times
+- **Organizers** can add transportation for any traveler
+- Traveler clicks "Add Transportation" or "Add My Travel Dates"
+- **Selection behavior**:
+  - Form defaults to current logged-in traveler
+  - Regular travelers can only add their own transportation (traveler selector disabled)
+  - Organizers can select any traveler when adding transportation
+  - Helper text indicates organizer privilege: "As organizer, you can add transportation for any traveler"
+- Enters transportation details:
+  - Type: Arrival or Departure
+  - Who is traveling (defaults to current user; organizer can select any traveler)
+  - Date (required)
+  - **For Arrivals**:
+    - Departing from (location, optional) - e.g., "JFK", "New York"
+    - Departure time (optional)
+    - Arriving at (location, optional) - e.g., "MIA", "Miami"
+    - Arrival time (required for arrivals)
+  - **For Departures**:
+    - Departing from (location, optional) - e.g., "MIA", "Miami"
+    - Departure time (required for departures)
+    - Arriving at (location, optional) - e.g., "JFK", "New York"
+    - Arrival time (optional)
+  - Transportation method (optional) - flight number, bus line, "driving", etc.
+  - Details (optional) - gate, confirmation number, additional notes
+  - Links (optional) - check-in links, booking confirmations
+- Transportation is added to the trip
+- All accepted travelers see arrivals/departures in compact sections on each day
+- Travelers can have multiple arrivals/departures if joining/leaving at different points
+
+**Note**: The transportation form accommodates various modes (flights, buses, trains, driving). Not all fields need to be filled - e.g., for driving, only departure/arrival locations may be relevant.
+
+### 8. Adding Events to Itinerary
 - **Only accepted members** (Going status) can add events
 - Member clicks "Add Event"
 - Enters event details:
-  - Type (required): Travel / Accommodation / Meal / Activity & Other
-    - **Travel events** represent flights, trains, drives, and other transportation - they naturally indicate location changes
+  - Type (required): Travel / Meal / Activity & Other
+    - **Travel events** represent group transportation during the trip (e.g., "Drive to Key West", "Ferry to island")
+    - **Meal events** are dining reservations, group meals
+    - **Activity events** are tours, excursions, and other itinerary activities
   - Title/Name (required)
   - Date (required - can be start date only or start + end date for multi-day)
   - Time (optional - or check "All day")
     - Start time (required if not all day)
     - End time (optional - for time ranges like "7:30 PM - 9:30 PM")
   - Location (optional)
-    - For Travel events, use arrow notation to show transitions (e.g., "Miami → Key West" or "JFK → MIA")
+    - For Travel events, use arrow notation to show transitions (e.g., "Miami → Key West")
   - Description (optional - supports line breaks)
   - Links (optional - URLs for bookings, restaurants, etc.)
-  - Mark as "Optional" (checkbox - default is everyone)
-  - Who is this event for? (defaults based on event type)
-    - **Travel events**: Default to creator only (individual travel like flights)
-    - **Other event types**: Default to "All" (everyone attending)
-    - Can select "All" (everyone) or specific members
-    - Example: If organizer adds "Tom's flight to Miami", select Tom
-    - Example: If Sarah books a dinner reservation for everyone, use "All"
+  - Mark as "Optional" (checkbox - indicates this activity is skippable)
 - Event is added to itinerary
 - All accepted members see the new event
 - Event creator is displayed on the event
-- When assigned to specific members, their avatars are displayed on the event card (visible without expanding)
-- When assigned to "All", no specific avatars shown (or show "Everyone")
 
-### 7. Editing & Deleting Events
-- **Event creator** can edit or delete their own events
-- **Organizers** can edit, delete, or restore any event (including events from members who left)
-- Editing updates the event for all members
-- Deleting removes the event from the itinerary (soft delete - can be restored by organizers)
-- Deleted events are not visible to members (only organizers see them in a "Deleted Events" section)
+### 9. Editing & Deleting
+- **Accommodations**: Only organizers can edit or delete
+- **Member Travel**: Members can edit/delete their own; organizers can edit/delete any
+- **Events**: Event creator can edit or delete their own events; organizers can edit, delete, or restore any event (including events from members who left)
+- Editing updates the item for all members
+- Deleting removes the item from the itinerary (soft delete - can be restored by organizers)
+- Deleted items are not visible to members (only organizers see them in a "Deleted Items" section)
 
-### 8. Trip Management
+### 10. Trip Management
 - Organizers view member list with RSVP statuses
 - Organizers can edit trip details (including timezone)
 - Organizers can add/remove co-organizers
@@ -166,14 +213,16 @@ This approach:
 - Organizers can remove members from the trip
 - Organizers can cancel trip (notifies all members)
 
-### 9. Member Experience
+### 11. Member Experience
 - Members view upcoming trips they're invited to
 - Members see trips they've RSVP'd "Going" to with full itinerary
 - Members can update their RSVP status
+- Members can add their own arrival/departure times
+- Members can add events to the itinerary
 - Members receive notifications for trip invites and cancellations
 - Members can choose to view all dates/times in trip timezone or their local timezone
 
-### 10. Member Status Changes
+### 12. Member Status Changes
 - When a member changes from "Going" to "Maybe" or "Not Going":
   - Their events remain in the itinerary
   - Events show "Member no longer attending" indicator next to creator name
@@ -294,17 +343,106 @@ This approach:
 **And** they should be able to add new events again
 **And** they should be able to edit their existing events again
 
-### AC6: Adding Events to Itinerary
+### AC6: Adding Accommodations
+**Given** an organizer wants to add accommodation
+**When** they add an accommodation with:
+- Name (3-200 characters)
+- Address (optional, max 500 characters)
+- Check-in date (required)
+- Check-out date (optional)
+- Description (optional, max 2000 characters)
+- Links (optional, max 10 URLs)
+**Then** the accommodation should be added to the trip
+**And** all accepted members should see it in the day-by-day view
+**And** the accommodation should appear in a compact section on relevant days
+
+**Given** a non-organizer tries to add accommodation
+**When** they attempt to access the add accommodation form
+**Then** they should be prevented with message "Only organizers can add accommodations"
+
+**Given** an accommodation is displayed in collapsed view
+**When** a member views it
+**Then** it should show name and multi-day indicator (if applicable)
+**And** the address should NOT be visible in collapsed view
+
+**Given** an accommodation is expanded
+**When** a member clicks on it
+**Then** it should show full details including address as a Google Maps link
+**And** clicking the address should open Google Maps in a new tab
+
+**Given** a trip has 50 accommodations
+**When** an organizer tries to add the 51st accommodation
+**Then** they should see an error "Maximum 50 accommodations per trip reached."
+
+### AC7: Adding Transportation (Individual Arrivals & Departures)
+**Given** a traveler has RSVP'd "Going" to a trip
+**When** they access the add transportation form
+**Then** the "Who is traveling" field should default to themselves
+**And** only organizers should be able to select other travelers
+**And** regular travelers should see their own avatar selected and disabled
+
+**Given** an organizer accesses the add transportation form
+**When** they view the traveler selection
+**Then** they should be able to select any trip traveler
+**And** see helper text "As organizer, you can add transportation for any traveler"
+
+**Given** a traveler adds their transportation with:
+- Type (Arrival or Departure)
+- Who is traveling (defaults to self)
+- Date (required)
+- For Arrivals: Departing from (optional), Departure time (optional), Arriving at (optional), Arrival time (required)
+- For Departures: Departing from (optional), Departure time (required), Arriving at (optional), Arrival time (optional)
+- Transportation method (optional, max 200 characters) - e.g., "AA 2451", "Greyhound", "Driving"
+- Details (optional, max 500 characters) - gate, confirmation, notes
+- Links (optional, max 5 URLs)
+**Then** the transportation should be added to the trip
+**And** all accepted travelers should see it in the arrivals/departures section
+**And** it should appear in a compact, expandable format
+
+**Given** an organizer adds transportation for another traveler
+**When** they select the traveler and add transportation details
+**Then** the transportation should be associated with that traveler
+**And** show who added it ("Added by [organizer name]")
+
+**Given** a traveler has multiple arrivals and departures
+**When** viewing the itinerary
+**Then** all their transportation should be displayed on the appropriate days
+**And** show in chronological order within each day
+
+**Given** transportation is displayed in collapsed view
+**When** a traveler views it
+**Then** it should show icon, traveler name, time, and basic details in a single line
+
+**Given** transportation is expanded
+**When** a traveler clicks on it
+**Then** it should show full transportation details, links, and who added it
+
+**Given** a traveler tries to add arrival/departure with a date outside the trip date range
+**When** they submit the form
+**Then** they should see a warning "This date is outside the trip dates. Are you sure?"
+
+**Given** a traveler adds an arrival without specifying arrival time
+**When** they submit the form
+**Then** they should see validation error "Arrival time is required for arrivals"
+
+**Given** a traveler adds a departure without specifying departure time
+**When** they submit the form
+**Then** they should see validation error "Departure time is required for departures"
+
+### AC8: Adding Events to Itinerary
 **Given** a member has RSVP'd "Going" to a trip
 **When** they add an event to the itinerary with:
-- Type (Travel/Accommodation/Meal/Activity)
+- Type (Travel/Meal/Activity)
+  - Travel = group transportation during trip (e.g., "Drive to Key West")
+  - Meal = dining reservations, group meals
+  - Activity = tours, excursions, other activities
 - Title (3-200 characters)
 - Date (with optional end date for multi-day events)
 - Optional time or "All day" flag
 - Optional location (max 500 characters)
 - Optional description (max 2000 characters)
 - Optional links (max 10 URLs)
-- Optional "Optional" attendance flag
+- Optional "Optional" flag to mark as skippable
 **Then** the event should be added to the trip itinerary
 **And** all accepted members should see the new event
 **And** the event should show who created it
@@ -326,40 +464,18 @@ This approach:
 **When** displayed in the itinerary
 **Then** it should show only the start time (e.g., "7:30 PM")
 
-**Given** an event spans multiple days (accommodation, multi-day activity)
+**Given** an event spans multiple days (multi-day activity)
 **When** the event is created with start and end dates
 **Then** it should appear as a card under each day in the day-by-day view
 
-**Given** a member adds a Travel event representing a location change
+**Given** a member adds a Travel event for group transportation
 **When** they set the location field with arrow notation (e.g., "Miami → Key West")
 **Then** the event should display the full transition in the itinerary
 **And** clearly indicate the group is moving to a new location
 
-**Given** a member adds a Travel event without changing the default
-**When** they submit the form
-**Then** the event should be assigned to the creator only
-**And** the creator's avatar should be displayed on the event card
-
-**Given** a member adds a non-Travel event (Meal, Accommodation, Activity) without changing the default
-**When** they submit the form
-**Then** the event should be assigned to "All" (everyone)
-**And** no specific avatars should be displayed on the collapsed card (or show "Everyone" badge)
-
-**Given** a member adds an event and selects "All"
-**When** they submit the form
-**Then** the event should be marked as for everyone
-**And** the stored value should indicate "All" (not individual member IDs)
-
-**Given** an organizer adds an event for specific members (e.g., "Tom's flight")
-**When** they select Tom in the "Who is this event for?" field and submit
-**Then** the event should be assigned to Tom
-**And** Tom's avatar should be displayed on the event card
-**And** hovering over the avatar should show "Tom Rodriguez"
-
-**Given** a member adds an event for multiple specific members
-**When** they select multiple members in the "Who is this event for?" field
-**Then** all selected member avatars should be displayed on the event card
-**And** hovering over each avatar should show the respective member's name
+**Given** a member marks an event as "Optional"
+**When** the event is displayed
+**Then** it should show an "Optional" badge
 
 **Given** a member tries to add an event with a title shorter than 3 characters
 **When** they submit the form
@@ -369,7 +485,23 @@ This approach:
 **When** a member tries to add the 201st event
 **Then** they should see an error "Maximum 200 events per trip reached. Please consolidate or remove old events."
 
-### AC7: Event Permissions
+### AC9: Permissions
+**Given** an organizer views any accommodation
+**When** they access the accommodation options
+**Then** they should be able to edit or delete it
+
+**Given** a non-organizer views an accommodation
+**When** they access the accommodation
+**Then** they should NOT see edit or delete options (view only)
+
+**Given** a member views their own travel (arrival/departure)
+**When** they access the travel options
+**Then** they should be able to edit or delete it
+
+**Given** an organizer views any member's travel
+**When** they access the travel options
+**Then** they should be able to edit or delete it
+
 **Given** a member views an event they created (and has "Going" status)
 **When** they access the event options
 **Then** they should be able to edit or delete the event
@@ -387,32 +519,46 @@ This approach:
 **When** they access the event options
 **Then** they should be able to edit, delete, or restore the event (regardless of creator or creator's current RSVP status)
 
-**Given** an organizer deletes an event
+**Given** an organizer deletes an accommodation, travel, or event
 **When** the deletion is confirmed
-**Then** the event should be removed from the itinerary for all members
-**And** the event should appear in the organizer's "Deleted Events" section (soft delete)
+**Then** the item should be removed from the itinerary for all members
+**And** the item should appear in the organizer's "Deleted Items" section (soft delete)
 
-**Given** an organizer views a deleted event
-**When** they access the deleted event
-**Then** they should see a "Restore" option to bring the event back to the itinerary
+**Given** an organizer views a deleted item
+**When** they access the deleted item
+**Then** they should see a "Restore" option to bring it back to the itinerary
 
-### AC8: Itinerary View Modes
+### AC10: Itinerary View Modes
 **Given** an accepted member views a trip itinerary
 **When** the page loads (default view)
-**Then** events should be displayed in **day-by-day grouping**:
-- Events grouped under each date
-- Multi-day events appear as a card under each relevant day
+**Then** the itinerary should be displayed in **day-by-day grouping**:
+- Each day shows compact sections at the top:
+  - Accommodation (if applicable for that day)
+  - Arrivals (if any members arriving)
+  - Departures (if any members leaving)
+- Followed by regular events (meals, activities, group travel)
 - Events within each day sorted by time
-- "All day" events appear first within each day
+- "All day" events appear first within regular events
 - All dates/times displayed in trip timezone by default
+- Event count and location chips only reflect regular events (not accommodations, arrivals, departures)
+
+**Given** a member views an accommodation in the day-by-day view
+**When** it is displayed in collapsed state
+**Then** it should show name and multi-day indicator only
+**And** address should be hidden until expanded
+
+**Given** a member views arrivals or departures in the day-by-day view
+**When** they are displayed in collapsed state
+**Then** each should show as a single line: icon, member name, time, and basic details
 
 **Given** a member is viewing the day-by-day itinerary
 **When** they toggle to "Group by type" view
-**Then** events should be reorganized by type:
-- All Travel events together
-- All Accommodation events together
+**Then** items should be reorganized by type:
+- All Accommodations together
+- All Travel events together (group transportation only)
 - All Meal events together
 - All Activity & Other events together
+- Member travel (arrivals/departures) remain in day-by-day context (not grouped by type)
 - Within each type, sorted by date/time
 - All dates/times displayed in selected timezone (trip or local)
 
@@ -426,7 +572,7 @@ This approach:
 **Then** all dates and times should be displayed in the trip's timezone
 **And** timezone indicator should show "Showing times in trip timezone (EST)" or similar
 
-### AC9: Trip Dashboard
+### AC11: Trip Dashboard
 **Given** an authenticated user accesses their dashboard
 **When** the page loads
 **Then** they should see two sections:
@@ -444,7 +590,7 @@ This approach:
 - Event count (e.g., "12 events planned")
 - Click to view trip details
 
-### AC10: Trip Management
+### AC12: Trip Management
 **Given** an organizer views their trip
 **When** they access the trip management page
 **Then** they should see:
@@ -471,7 +617,7 @@ This approach:
 **When** they attempt the removal
 **Then** they should see an error "Cannot remove the last organizer. Please add a co-organizer first or cancel the trip."
 
-### AC11: Trip Updates & Cancellation
+### AC13: Trip Updates & Cancellation
 **Given** an organizer updates trip details (dates, destination, description, timezone)
 **When** they save the changes
 **Then** all invited members should receive a notification of the update
@@ -492,16 +638,47 @@ This approach:
 **Then** the user should see "Unable to save changes. Please check your connection and try again."
 **And** changes should not be lost (remain in the form)
 
-### AC12: Event Display Details
+### AC14: Display Details
+**Given** a member views an accommodation in collapsed state
+**When** displayed in the itinerary
+**Then** they should see:
+- Hotel/accommodation name
+- Multi-day indicator (if check-out date is set)
+- Expand icon
+
+**Given** a member expands an accommodation
+**When** the accommodation details are shown
+**Then** they should see:
+- Description with line breaks preserved
+- Address as a clickable Google Maps link with location icon (if provided)
+- Links as clickable URLs (if provided)
+- Creator name and profile picture ("Added by [name]")
+- Edit button (if permitted - organizers only)
+
+**Given** a member views arrivals or departures in collapsed state
+**When** displayed in the itinerary
+**Then** they should see in a single line:
+- Icon (🛬 for arrival, 🛫 for departure)
+- Member name
+- Time
+- Basic details (flight number, location)
+- Expand icon
+
+**Given** a member expands arrival/departure
+**When** the travel details are shown
+**Then** they should see:
+- Full flight/travel details with line breaks preserved
+- Links as clickable URLs (if provided)
+- Creator name and profile picture ("Added by [name]")
+- Edit button (if permitted - member themselves or organizers)
+
 **Given** a member views an event in the itinerary
 **When** the event is displayed (collapsed view)
 **Then** they should see:
-- Type badge with color coding (Travel/Accommodation/Meal/Activity)
+- Type badge with color coding (Travel/Meal/Activity)
 - Event title
 - Date and time in selected timezone (or "All day")
 - Location (if provided)
-- **If assigned to specific members**: Avatars (profile pictures) with hover tooltip showing names
-- **If assigned to "All"**: "👥 Everyone" badge
 - "Optional" badge if marked as optional
 - Expand icon to view full details
 
@@ -515,11 +692,7 @@ This approach:
 - "Member no longer attending" indicator if creator has changed RSVP status
 - Edit button (if permitted)
 
-**Given** an event has links attached
-**When** the event is displayed
-**Then** each link should be clickable and open in a new tab
-
-### AC13: Link Sharing
+### AC15: Link Sharing
 **Given** an organizer has created a trip
 **When** they access the share functionality
 **Then** they should be able to copy the trip link
@@ -533,9 +706,30 @@ This approach:
 - Destination: Required, max 500 characters
 - Description: Max 2000 characters
 - Cover image: Max 5MB, formats: JPG, PNG, WEBP
-- Maximum members per trip: 100
+- Maximum travelers per trip: 100
+- Maximum accommodations per trip: 50
+- Maximum transportation entries per traveler: 20
 - Maximum events per trip: 200
 - Trip timezone: Must be a valid IANA timezone identifier
+
+### Accommodation Constraints
+- Name: 3-200 characters
+- Address: Max 500 characters
+- Description: Max 2000 characters
+- Links: Max 10 URLs per accommodation, each must be valid HTTP/HTTPS URL
+- Check-in date: Required
+- Check-out date: Optional, must be >= check-in date if provided
+
+### Transportation Constraints
+- Date: Required
+- Departing from: Max 200 characters
+- Departure time: Optional for arrivals; required for departures
+- Arriving at: Max 200 characters
+- Arrival time: Required for arrivals; optional for departures
+- Transportation method: Max 200 characters
+- Details: Max 500 characters
+- Links: Max 5 URLs per transportation entry, each must be valid HTTP/HTTPS URL
+- Must belong to a valid trip traveler
 
 ### Event Constraints
 - Event title: 3-200 characters
@@ -546,6 +740,7 @@ This approach:
 - End date: Optional, must be >= start date if provided
 - Start time: Required if not "all day"
 - End time: Optional, must be > start time if provided
+- Event type: Must be one of: travel, meal, activity_other
 
 ### User Constraints
 - Display name: 3-50 characters
@@ -610,14 +805,54 @@ This approach:
 - status (going, not_going, maybe)
 - updated_at
 
-#### TripEvent (Itinerary Items)
+#### Accommodation
+- id (UUID)
+- trip_id
+- name (text) - e.g., "Fontainebleau Miami Beach"
+- address (text, optional) - full address for copying/navigation
+- check_in_date (date)
+- check_out_date (date, optional)
+- description (text, optional - preserves line breaks) - check-in time, room details, confirmation number, etc.
+- links (JSON array of URLs, optional, max 10) - booking links, hotel website, etc.
+- created_by (user_id)
+- deleted (boolean, default false - soft delete)
+- deleted_at (timestamp, optional)
+- deleted_by (user_id, optional)
+- created_at
+- updated_at
+
+**Note**: Accommodations are trip-level (not per-member). They represent where the group is staying. Only organizers can create/edit accommodations.
+
+#### Transportation (Individual Arrivals & Departures)
+- id (UUID)
+- trip_id
+- traveler_id (user_id) - the person arriving/departing
+- travel_type (enum: arrival, departure)
+- date (date)
+- departing_from (text, optional) - departure location, e.g., "JFK", "New York"
+- departure_time (time, optional for arrivals; required for departures)
+- arriving_at (text, optional) - arrival location, e.g., "MIA", "Miami"
+- arrival_time (time, required for arrivals; optional for departures)
+- transportation_method (text, optional, max 200 characters) - e.g., "AA 2451", "Greyhound Bus", "Driving"
+- details (text, optional, max 500 characters) - gate, confirmation number, additional notes
+- links (JSON array of URLs, optional, max 5) - check-in links, booking confirmations
+- created_by (user_id) - usually same as traveler_id, but organizers can add for others
+- deleted (boolean, default false - soft delete)
+- deleted_at (timestamp, optional)
+- deleted_by (user_id, optional)
+- created_at
+- updated_at
+
+**Note**: Transportation represents individual participation boundaries. A traveler can have multiple arrivals and departures if joining/leaving the trip at different points. The form accommodates various transportation modes (flights, buses, trains, driving) - not all fields need to be filled.
+
+#### TripEvent (Itinerary Activities)
 - id (UUID)
 - trip_id
 - created_by (user_id)
-- assigned_to (JSON: "all" or array of user_ids, defaults based on event_type)
-  - Travel events: defaults to [created_by]
-  - Other events: defaults to "all"
-- event_type (enum: travel, accommodation, meal, activity_other)
+- event_type (enum: travel, meal, activity_other)
+  - **travel**: Group transportation during the trip (e.g., "Drive to Key West", "Ferry to island")
+  - **meal**: Dining reservations, group meals
+  - **activity_other**: Activities, tours, excursions, or other itinerary items
 - title (text)
 - start_date (date)
 - end_date (date, optional - for multi-day events)
@@ -627,12 +862,14 @@ This approach:
 - location (text, optional)
 - description (text, optional - preserves line breaks)
 - links (JSON array of URLs, optional, max 10)
-- is_optional (boolean, default false - false means "everyone")
+- is_optional (boolean, default false - indicates event is optional/skippable)
 - deleted (boolean, default false - soft delete)
 - deleted_at (timestamp, optional)
 - deleted_by (user_id, optional)
 - created_at
 - updated_at
+
+**Note**: Events are visible to all trip members. Use the `is_optional` flag to indicate activities that members can choose to skip.
 
 **Note**: All dates and times are stored in UTC and converted to trip timezone or user's local timezone for display.
 
@@ -652,12 +889,14 @@ This approach:
 - Timezone management
 
 #### Itinerary Management
+- CRUD operations for accommodations (organizer-only)
+- CRUD operations for member travel (self or organizer)
 - CRUD operations for events (with creator permissions)
-- Day-by-day grouping view
+- Day-by-day grouping view with compact sections for accommodations, arrivals, departures
 - Group by type view
-- Multi-day event support
-- Event type categorization
-- Soft delete with restore capability
+- Multi-day accommodation and event support
+- Event type categorization (travel, meal, activity)
+- Soft delete with restore capability for all itinerary items
 
 #### Timezone Handling
 - Store all dates/times in UTC
@@ -678,10 +917,12 @@ This approach:
 - Rate limiting on SMS sends
 - Trip links use non-guessable slugs
 - Invited members can only view trip preview until RSVP "Going"
-- Only accepted members can add events
-- Only event creators (with Going status) or organizers can edit/delete events
+- Permission model:
+  - **Accommodations**: Only organizers can add/edit/delete
+  - **Member Travel**: Members can manage their own; organizers can manage any
+  - **Events**: Accepted members can add; creators (with Going status) or organizers can edit/delete
 - Co-organizers have same permissions as creators
-- Soft delete allows recovery of accidentally deleted events
+- Soft delete allows recovery of accidentally deleted items
 
 ### Performance
 - Trip page loads in <2 seconds
