@@ -518,14 +518,14 @@ export default function ItineraryView() {
               </div>
 
               {/* Events for this day */}
-              <div className="space-y-4 ml-4 pl-6 sm:ml-6 sm:pl-6 border-l-2 border-slate-200">
+              <div className="space-y-4 ml-2 pl-4 sm:ml-3 sm:pl-4 border-l-2 border-slate-200">
                 {(() => {
                   const { accommodations, arrivals, departures, regularEvents } = separateEventsByType(dayEvents)
 
                   return (
                     <>
-                      {/* Accommodation - Compact Format (shown first) */}
-                      {accommodations.length > 0 && (
+                      {/* Arrivals - Compact Format (shown first) */}
+                      {arrivals.length > 0 && (
                         <div className="space-y-2">
                           <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 overflow-hidden">
                             <div className="px-4 py-2 bg-purple-100/50 border-b border-purple-200">

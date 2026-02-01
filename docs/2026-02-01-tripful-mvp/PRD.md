@@ -63,6 +63,7 @@ This approach:
 ## Core User Flows
 
 ### 1. User Registration & Authentication
+- User selects country code from dropdown (defaults to US +1)
 - User enters phone number
 - Receives SMS verification code
 - Enters code to authenticate
@@ -89,9 +90,11 @@ This approach:
 - Recipients can also receive link via share functionality
 
 ### 4. Traveler RSVP & Preview
-- Invited member clicks trip link
-- If not logged in, prompted to authenticate with phone number
-- Member sees **partial preview**:
+- Invited traveler clicks trip link (format: `/t/{uuid}`)
+- System verifies user's phone number is in TripInvitation table
+- If not invited, shows "Trip not found" or "You haven't been invited to this trip"
+- If invited but not logged in, prompted to authenticate with phone number
+- After authentication, traveler sees **partial preview**:
   - Trip name
   - Destination
   - Date range (if set)
@@ -176,8 +179,9 @@ This approach:
 **Note**: The transportation form accommodates various modes (flights, buses, trains, driving). Not all fields need to be filled - e.g., for driving, only departure/arrival locations may be relevant.
 
 ### 8. Adding Events to Itinerary
-- **Only accepted members** (Going status) can add events
-- Member clicks "Add Event"
+- **Permission required**: Must have "Going" status AND trip setting "Allow travelers to add events" must be enabled
+- If setting is disabled, only organizers can add events
+- Travelers click "Add Event"
 - Enters event details:
   - Type (required): Travel / Meal / Activity & Other
     - **Travel events** represent group transportation during the trip (e.g., "Drive to Key West", "Ferry to island")
@@ -200,18 +204,24 @@ This approach:
 ### 9. Editing & Deleting
 - **Accommodations**: Only organizers can edit or delete
 - **Transportation**: Travelers can edit/delete their own; organizers can edit/delete any
-- **Events**: Event creator can edit or delete their own events; organizers can edit, delete, or restore any event (including events from members who left)
-- Editing updates the item for all members
+- **Events**: Event creator can edit or delete their own events; organizers can edit, delete, or restore any event (including events from travelers who left)
+- **Auto-lock**: Once a trip's end date has passed, no one (including organizers) can add new events
+- Editing updates the item for all travelers
 - Deleting removes the item from the itinerary (soft delete - can be restored by organizers)
-- Deleted items are not visible to members (only organizers see them in a "Deleted Items" section)
+- Deleted items are not visible to travelers (only organizers see them in a "Deleted Items" section)
+- Deleted items are retained forever (no automatic purging)
+- Organizers can restore deleted items from "Deleted Items" section at any time
 
 ### 10. Trip Management
-- Organizers view member list with RSVP statuses
+- Organizers view traveler list with RSVP statuses
 - Organizers can edit trip details (including timezone)
+- Organizers can toggle "Allow travelers to add events" setting (default: enabled)
+  - When enabled: Any "Going" traveler can add events
+  - When disabled: Only organizers can add events
 - Organizers can add/remove co-organizers
 - Co-organizers have same permissions as creator
-- Organizers can remove members from the trip
-- Organizers can cancel trip (notifies all members)
+- Organizers can remove travelers from the trip
+- Organizers can cancel trip (notifies all travelers)
 
 ### 11. Member Experience
 - Members view upcoming trips they're invited to
@@ -430,7 +440,8 @@ This approach:
 **Then** they should see validation error "Departure time is required for departures"
 
 ### AC8: Adding Events to Itinerary
-**Given** a member has RSVP'd "Going" to a trip
+**Given** a traveler has RSVP'd "Going" to a trip
+**And** the trip setting "Allow travelers to add events" is enabled
 **When** they add an event to the itinerary with:
 - Type (Travel/Meal/Activity)
   - Travel = group transportation during trip (e.g., "Drive to Key West")
@@ -449,10 +460,20 @@ This approach:
 **And** all accepted members should see the new event
 **And** the event should show who created it
 
-**Given** a member has RSVP'd "Maybe" or "Not Going"
+**Given** a traveler has RSVP'd "Maybe" or "Not Going"
 **When** they try to add an event
 **Then** they should be prevented from adding events
-**And** shown a message "Only members who are attending can add events to the itinerary"
+**And** shown a message "Only travelers who are attending can add events to the itinerary"
+
+**Given** a traveler has RSVP'd "Going" but the trip setting "Allow travelers to add events" is disabled
+**When** they try to add an event
+**Then** they should be prevented from adding events
+**And** shown a message "Only organizers can add events to this trip"
+
+**Given** a trip's end date has passed
+**When** anyone (including organizers) tries to add an event
+**Then** they should be prevented from adding events
+**And** shown a message "Cannot add events to past trips"
 
 **Given** an event is marked as "All day"
 **When** displayed in the itinerary
@@ -694,11 +715,20 @@ This approach:
 - "Member no longer attending" indicator if creator has changed RSVP status
 - Edit button (if permitted)
 
-### AC15: Link Sharing
+### AC15: Trip Privacy & Access
 **Given** an organizer has created a trip
-**When** they access the share functionality
-**Then** they should be able to copy the trip link
-**And** anyone with the link should be able to view the trip preview (after authentication)
+**When** they access the trip details
+**Then** they should see the trip URL in format `/t/{uuid}`
+
+**Given** a user accesses a trip URL
+**And** their phone number is NOT in the TripInvitation table for this trip
+**When** they try to view the trip
+**Then** they should see "Trip not found" or "You haven't been invited to this trip"
+
+**Given** an invited user accesses a trip URL
+**And** they are authenticated
+**When** they view the trip
+**Then** they should see the trip preview
 **And** after RSVP'ing "Going", see the full itinerary
 
 ## Data Validation Requirements
@@ -784,10 +814,12 @@ This approach:
 - description (text, optional - preserves line breaks)
 - cover_image_url (optional)
 - created_by (user_id)
+- allow_travelers_to_add_events (boolean, default true) - when false, only organizers can add events
 - created_at
 - updated_at
 - cancelled (boolean)
-- share_link (unique slug)
+
+**Note**: Trip URL format is `/t/{uuid}` where uuid is the trip ID. All trips are private - users must be invited to view.
 
 #### TripCoOrganizer
 - trip_id
@@ -921,14 +953,17 @@ This approach:
 ### Security & Privacy
 - Phone numbers stored securely (hashed)
 - Rate limiting on SMS sends
-- Trip links use non-guessable slugs
-- Invited members can only view trip preview until RSVP "Going"
+- All trips are private (not publicly discoverable)
+- Trip URL format: `/t/{uuid}` - must be invited to view
+- Access verification: Check user's phone number in TripInvitation table
+- Invited travelers can only view trip preview until RSVP "Going"
 - Permission model:
   - **Accommodations**: Only organizers can add/edit/delete
   - **Transportation**: Travelers can manage their own; organizers can manage any
-  - **Events**: Accepted members can add; creators (with Going status) or organizers can edit/delete
+  - **Events**: Requires "Going" status AND trip setting "Allow travelers to add events" enabled; organizers can always add/edit/delete
+  - **Past trips**: No one can add new events once trip end date has passed
 - Co-organizers have same permissions as creators
-- Soft delete allows recovery of accidentally deleted items
+- Soft delete allows recovery of accidentally deleted items (retained forever)
 
 ### Performance
 - Trip page loads in <2 seconds
@@ -1037,15 +1072,6 @@ This is an MVP scoped for 6-8 week development cycle with a single full-stack en
 **Phase 4 (Week 6-7)**: View modes (day-by-day, group by type), permissions, and member status handling
 **Phase 5 (Week 7-8)**: Testing, error handling, and deployment
 
-## Open Questions
-
-1. Should there be a limit on number of co-organizers per trip?
-2. Should members be able to suggest events (pending organizer approval)?
-3. What's the UX for handling international phone numbers?
-4. Should there be any trip privacy settings (public vs private links)?
-5. Should organizers be able to lock the itinerary (prevent new events)?
-6. How long should deleted events be retained before permanent deletion?
-7. Should there be an undo feature for recent deletions?
 
 ## Appendix: User Stories
 
