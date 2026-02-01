@@ -446,15 +446,18 @@ topic: Tripful - UI/UX Design Documentation
   - Badges row: Type (colored) + Multi-day (if applicable) + Optional (if applicable)
   - Title: base semibold
   - Location: xs with icon (if provided)
-  - Assigned to:
-    - If "all": "👥 Everyone" badge
-    - If specific members: Avatar stack (6×6 rounded-full) with hover tooltips
+  - Meetup info: xs blue-700 with group icon (if provided)
+    - Format: "Meetup: [time] • [location]"
+    - Shows time and/or location if either is set
 - **Expand icon**: Chevron, rotates 180° when expanded
 
 **Expanded Event**:
 - Border-top: slate-100
 - Padding-top: 16px
 - Description: Prose format
+- Meetup info box: Blue-50 bg with blue-200 border (if meetup location/time set)
+  - Group icon with "Meetup" label
+  - Shows time and location with formatting
 - Links: Clickable with external icon
 - Footer: Creator avatar (6×6) + edit button
 
@@ -486,7 +489,7 @@ topic: Tripful - UI/UX Design Documentation
 
 ### 7. Create Event (`/create-event`)
 
-**Purpose**: Add events to trip itinerary with member assignment
+**Purpose**: Add itinerary events (group activities, meals, travel)
 
 **Layout**:
 ```
@@ -494,36 +497,44 @@ topic: Tripful - UI/UX Design Documentation
 │ ← Add Event                         │
 ├─────────────────────────────────────┤
 │                                     │
-│ Event Type                          │
-│ [✈️ Travel] [🏨 Accommodation]      │
-│ [🍽️ Meal]   [🎉 Activity & Other]   │
+│ Event Type *                        │
+│ [✈️ Travel] [🍽️ Meal]               │
+│ [🎉 Activity & Other]               │
 │                                     │
 │ Event Name *                        │
-│ [Flight to Miami]                   │
+│ [Drive to Key West]                 │
+│ 3/200 characters                    │
 │                                     │
 │ Date *                              │
 │ [Oct 12, 2026]                      │
+│ [+ Add end date (for multi-day)]    │
 │                                     │
 │ Time                                │
 │ [10:30 AM] - [2:00 PM]              │
 │ Start time   End time (optional)    │
 │ ☐ All day                           │
 │                                     │
-│ Location                            │
-│ [JFK → MIA]                         │
-│ 💡 For travel, use → to show route │
+│ Location (optional)                 │
+│ [Miami → Key West]                  │
+│ 💡 Use → to show route             │
 │                                     │
-│ Description                         │
-│ [Multi-line textarea...]            │
+│ Meetup Location (optional)          │
+│ [Hotel lobby]                       │
+│ Where the group will meet           │
 │                                     │
-│ Links                               │
-│ [https://airline.com/booking]       │
+│ Meetup Time (optional)              │
+│ [10:30 AM]                          │
+│ When to meet                        │
+│                                     │
+│ Description (optional)              │
+│ [Add details, confirmation...]      │
+│                                     │
+│ Links (optional)                    │
+│ [https://example.com]               │
 │ [+ Add another link]                │
 │                                     │
-│ Who is this event for?              │
-│ [○ All] [👤 Mike] [👤 Sarah] [👤 Tom]│
-│                                     │
 │ ☐ Optional event                    │
+│   Members can choose to attend      │
 │                                     │
 │ [Cancel] [Add Event]                │
 │                                     │
@@ -533,17 +544,22 @@ topic: Tripful - UI/UX Design Documentation
 **Form Sections**:
 
 **Event Type** (required):
-- 4-up grid on mobile/tablet, 2×2
+- 3 types only: Travel, Meal, Activity & Other
+  - Travel: Group transportation (drives, ferries, etc.)
+  - Meal: Dining reservations, group meals
+  - Activity & Other: Tours, excursions, activities
+- 3-column grid layout
 - Large touch targets (min h-20)
 - Radio button behavior
 - Selected state: Colored background matching event type
   - Travel: bg-blue-100 border-blue-300
-  - Accommodation: bg-purple-100 border-purple-300
   - Meal: bg-amber-100 border-amber-300
   - Activity: bg-emerald-100 border-emerald-300
 - Unselected: bg-white border-slate-200
 - Emoji icon + label stacked
 - Smooth color transition (200ms)
+
+**Note**: Accommodation and individual traveler arrivals/departures use separate dedicated forms
 
 **Event Name** (required):
 - Large input (h-12)
@@ -586,6 +602,17 @@ topic: Tripful - UI/UX Design Documentation
   - Meal: "Restaurant name and address"
   - Activity: "Venue or meeting point"
 
+**Meetup Location** (optional):
+- Text input
+- Max 200 chars
+- Placeholder: "e.g., Hotel lobby, Coffee shop at 123 Main St"
+- Helper text: "Where the group will meet before the event"
+
+**Meetup Time** (optional):
+- Time input
+- Helper text: "When to meet (can be before the event start time)"
+- Displayed in blue info box in itinerary expanded view
+
 **Description** (optional):
 - Textarea, 4 rows min
 - Auto-expand as user types
@@ -601,24 +628,10 @@ topic: Tripful - UI/UX Design Documentation
 - Validation: Must be valid HTTP/HTTPS URL
 - Display as: [Icon] [Input] [× Remove]
 
-**Who is this event for?**:
-- First option: "All" (everyone) - shown as a chip/button
-- Then: Individual member selection chips
-- **Default behavior**:
-  - Travel events: Creator only (pre-selected)
-  - Other events: "All" (pre-selected)
-- "All" selected state: Blue border + checkmark
-- Member avatar selection:
-  - Selected state: Blue border + checkmark overlay on avatar
-  - Unselected state: Greyscale + border-slate-200
-- "All" and individual members are mutually exclusive
-  - Selecting "All" deselects all individuals
-  - Selecting any individual deselects "All"
-- Horizontal scrolling list if many members
-
 **Optional Event**:
 - Checkbox with label: "Optional event"
 - Helper text: "Members can choose whether to attend"
+- All events are visible to all accepted travelers (no per-traveler assignment)
 
 **Form Actions**:
 - Cancel: Outline button, left-aligned

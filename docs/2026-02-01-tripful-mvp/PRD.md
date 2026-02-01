@@ -199,7 +199,7 @@ This approach:
 
 ### 9. Editing & Deleting
 - **Accommodations**: Only organizers can edit or delete
-- **Member Travel**: Members can edit/delete their own; organizers can edit/delete any
+- **Transportation**: Travelers can edit/delete their own; organizers can edit/delete any
 - **Events**: Event creator can edit or delete their own events; organizers can edit, delete, or restore any event (including events from members who left)
 - Editing updates the item for all members
 - Deleting removes the item from the itinerary (soft delete - can be restored by organizers)
@@ -440,6 +440,8 @@ This approach:
 - Date (with optional end date for multi-day events)
 - Optional time or "All day" flag
 - Optional location (max 500 characters)
+- Optional meetup location (max 200 characters) - where the group meets before the event
+- Optional meetup time - when to meet (can be before the event start time)
 - Optional description (max 2000 characters)
 - Optional links (max 10 URLs)
 - Optional "Optional" flag to mark as skippable
@@ -558,7 +560,7 @@ This approach:
 - All Travel events together (group transportation only)
 - All Meal events together
 - All Activity & Other events together
-- Member travel (arrivals/departures) remain in day-by-day context (not grouped by type)
+- Transportation (arrivals/departures) remain in day-by-day context (not grouped by type)
 - Within each type, sorted by date/time
 - All dates/times displayed in selected timezone (trip or local)
 
@@ -735,6 +737,8 @@ This approach:
 - Event title: 3-200 characters
 - Event description: Max 2000 characters
 - Event location: Max 500 characters
+- Meetup location: Max 200 characters
+- Meetup time: Optional
 - Links: Max 10 URLs per event, each must be valid HTTP/HTTPS URL
 - Start date: Required
 - End date: Optional, must be >= start date if provided
@@ -799,7 +803,7 @@ This approach:
 - sent_at
 - responded_at (optional)
 
-#### TripRSVP
+#### TripRsvp
 - trip_id
 - user_id
 - status (going, not_going, maybe)
@@ -860,6 +864,8 @@ This approach:
 - end_time (time, optional)
 - all_day (boolean, default false)
 - location (text, optional)
+- meetup_location (text, optional, max 200 characters) - where the group meets before the event
+- meetup_time (time, optional) - when to meet (can be before event start time)
 - description (text, optional - preserves line breaks)
 - links (JSON array of URLs, optional, max 10)
 - is_optional (boolean, default false - indicates event is optional/skippable)
@@ -890,7 +896,7 @@ This approach:
 
 #### Itinerary Management
 - CRUD operations for accommodations (organizer-only)
-- CRUD operations for member travel (self or organizer)
+- CRUD operations for transportation (self or organizer)
 - CRUD operations for events (with creator permissions)
 - Day-by-day grouping view with compact sections for accommodations, arrivals, departures
 - Group by type view
@@ -919,7 +925,7 @@ This approach:
 - Invited members can only view trip preview until RSVP "Going"
 - Permission model:
   - **Accommodations**: Only organizers can add/edit/delete
-  - **Member Travel**: Members can manage their own; organizers can manage any
+  - **Transportation**: Travelers can manage their own; organizers can manage any
   - **Events**: Accepted members can add; creators (with Going status) or organizers can edit/delete
 - Co-organizers have same permissions as creators
 - Soft delete allows recovery of accidentally deleted items

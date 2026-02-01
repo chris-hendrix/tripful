@@ -53,6 +53,8 @@ export default function CreateEventPage() {
   const [allDay, setAllDay] = useState(false)
   const [showEndDate, setShowEndDate] = useState(false)
   const [location, setLocation] = useState('')
+  const [meetupLocation, setMeetupLocation] = useState('')
+  const [meetupTime, setMeetupTime] = useState('')
   const [description, setDescription] = useState('')
   const [links, setLinks] = useState<string[]>([''])
   const [isOptional, setIsOptional] = useState(false)
@@ -90,6 +92,8 @@ export default function CreateEventPage() {
       endTime: allDay ? null : (endTime || null),
       allDay,
       location,
+      meetupLocation,
+      meetupTime,
       description,
       links: links.filter(l => l),
       isOptional
@@ -289,6 +293,37 @@ export default function CreateEventPage() {
                 <span>Use → to show route (e.g., JFK → MIA)</span>
               </p>
             )}
+          </div>
+
+          {/* Meetup Location & Time */}
+          <div>
+            <label htmlFor="meetupLocation" className="block text-sm font-semibold text-slate-700 mb-2">
+              Meetup Location <span className="text-slate-500 font-normal">(optional)</span>
+            </label>
+            <input
+              id="meetupLocation"
+              type="text"
+              value={meetupLocation}
+              onChange={(e) => setMeetupLocation(e.target.value)}
+              placeholder="e.g., Hotel lobby, Coffee shop at 123 Main St"
+              className="w-full h-12 px-4 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              maxLength={200}
+            />
+            <p className="text-xs text-slate-500 mt-2">Where the group will meet before the event</p>
+          </div>
+
+          <div>
+            <label htmlFor="meetupTime" className="block text-sm font-semibold text-slate-700 mb-2">
+              Meetup Time <span className="text-slate-500 font-normal">(optional)</span>
+            </label>
+            <input
+              id="meetupTime"
+              type="time"
+              value={meetupTime}
+              onChange={(e) => setMeetupTime(e.target.value)}
+              className="w-full h-12 px-4 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="text-xs text-slate-500 mt-1">When to meet (can be before the event start time)</p>
           </div>
 
           {/* Description */}
