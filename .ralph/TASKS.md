@@ -37,7 +37,7 @@
   - Export singleton instance for use in AuthService
   - Write unit tests to verify console logging (spy on console.log)
 
-- [ ] Task 6: Authentication service with code management
+- [x] Task 6: Authentication service with code management
   - Create `src/services/auth.service.ts` with AuthService class
   - Implement generateCode() - returns 6-digit random numeric string
   - Implement storeCode() - inserts/updates verification_codes table with 5-min expiry

@@ -663,3 +663,172 @@ Task 6: Authentication service with code management
 - Implement updateProfile() - updates display name and timezone
 - Write unit tests for each method with in-memory database
 
+---
+
+## Iteration 6: Task 6 - Authentication Service with Code Management
+
+**Date:** 2026-02-02
+**Status:** ✅ COMPLETE
+**Agent Workflow:** 3x Researchers (parallel) → Coder → Verifier + Reviewer (parallel) → Fixes → Success
+
+### What Was Built
+
+**Files Created:**
+1. `/home/chend/git/tripful/apps/api/src/services/auth.service.ts` (209 lines)
+   - IAuthService interface with 6 method signatures
+   - AuthService class implementation
+   - Singleton export pattern
+
+2. `/home/chend/git/tripful/apps/api/tests/unit/auth.service.test.ts` (413 lines)
+   - 28 comprehensive unit tests
+   - Database integration tests
+   - 3 end-to-end workflow tests
+
+**Implementation Details:**
+
+**Service Methods:**
+1. `generateCode()` - Generates 6-digit random numeric code using `crypto.randomInt(100000, 1000000)`
+2. `storeCode(phoneNumber, code)` - Upserts verification code with 5-minute expiry using Drizzle's `onConflictDoUpdate`
+3. `verifyCode(phoneNumber, code)` - Validates code existence, match, and expiry in one query
+4. `deleteCode(phoneNumber)` - Safely removes verification code after successful verification
+5. `getOrCreateUser(phoneNumber)` - Implements get-or-create pattern with defaults (empty displayName, UTC timezone)
+6. `updateProfile(userId, data)` - Updates displayName and/or timezone, sets updatedAt timestamp
+
+**Key Technical Decisions:**
+- Used `crypto.randomInt()` instead of `Math.random()` for cryptographically secure random codes
+- Implemented upsert pattern for code storage (handles resend scenario automatically)
+- Reset `createdAt` on code update for accurate rate limiting
+- Used `.returning()` to fetch created/updated records efficiently
+- Added null checks with error throws for impossible database failures (type safety)
+- Empty string for displayName (not null) to indicate incomplete profiles
+
+### Verification Results
+
+**Initial Verification Attempt:**
+- ❌ Type checking: 3 errors (unused import, missing null checks)
+- ❌ Linting: 2 errors (unused imports)
+- ✅ Tests: 28/28 passing
+
+**Issues Fixed:**
+1. Removed unused `NewUser` import from auth.service.ts
+2. Removed unused `beforeEach` import from test file
+3. Added null check for `newUserResult[0]` in `getOrCreateUser()` with error throw
+4. Added null check for `result[0]` in `updateProfile()` with error throw
+
+**Final Verification:**
+- ✅ Type checking: PASS (0 errors)
+- ✅ Linting: PASS (0 errors)
+- ✅ Tests: 28/28 passing (186ms)
+- ✅ All backend unit tests: 62/62 passing (432ms)
+
+**Test Coverage Breakdown:**
+- `generateCode()`: 3 tests (format, randomness, range)
+- `storeCode()`: 4 tests (storage, expiry, upsert, timestamp reset)
+- `verifyCode()`: 6 tests (valid, missing, wrong, expired, near-expiry, isolation)
+- `deleteCode()`: 3 tests (deletion, safe non-existent, isolation)
+- `getOrCreateUser()`: 4 tests (creation, existing, duplicates, multi-phone)
+- `updateProfile()`: 5 tests (displayName, timezone, both, timestamp, preservation)
+- Integration flows: 3 tests (complete flow, retry, resend)
+
+### Code Review Summary
+
+**Reviewer Verdict:** APPROVED
+
+**Strengths:**
+- Excellent adherence to service pattern (interface + class + singleton)
+- Secure random code generation (crypto module)
+- Correct 5-minute expiry calculation
+- Proper Drizzle ORM query patterns
+- Comprehensive JSDoc documentation
+- Exceptional test coverage (28 tests covering all edge cases)
+- Integration tests validate complete workflows
+- Ready for Task 7 (JWT token methods)
+
+**Issues Found:** None after fixes
+
+### Learnings for Future Iterations
+
+1. **Type Safety with Database Returns:** Drizzle's `.returning()` returns arrays that could be empty. Always add null checks with meaningful error messages when the result should always exist (e.g., after INSERT). TypeScript strict mode catches these correctly.
+
+2. **Upsert Pattern for Single-Record Tables:** Using `onConflictDoUpdate` is perfect for tables like verification_codes where each phone should have only one active code. The upsert automatically handles the "resend code" scenario without additional logic.
+
+3. **Timestamp Reset on Update:** Resetting `createdAt` on code update (in upsert) is intentional for rate limiting. The rate limiter can check `createdAt` to count requests per hour. This is a subtle but important detail.
+
+4. **Get-or-Create Pattern:** The pattern of SELECT → check result → INSERT if missing is clean and handles race conditions well with database constraints (unique index on phoneNumber).
+
+5. **Test Database Integration:** Using actual PostgreSQL for unit tests (not in-memory) ensures tests match production behavior, especially for timestamp handling and database constraints.
+
+6. **Edge Case Testing:** Testing "code about to expire but still valid" (1 second before expiry) caught a potential off-by-one error in expiry logic. Comprehensive edge case testing is valuable.
+
+7. **Integration Tests in Unit Test Suite:** The 3 workflow tests in the unit test suite verify that methods work together correctly. This is valuable even before integration tests at the API level.
+
+8. **Crypto Module for Security:** Using `crypto.randomInt()` instead of `Math.random()` is critical for security-sensitive codes. The difference matters for verification codes that could be brute-forced.
+
+9. **Empty String vs Null for Optional Fields:** Using empty string for displayName (not null) makes it easier to check for incomplete profiles with simple truthy checks. The schema enforces NOT NULL, so this is the right pattern.
+
+10. **Parallel Agent Execution:** Running 3 researchers in parallel (LOCATING, ANALYZING, PATTERNS) gathered comprehensive context in one round, significantly speeding up the iteration.
+
+### Commands Executed
+
+```bash
+# Type checking (after fixes)
+pnpm --filter @tripful/api typecheck
+# Result: PASS (0 errors)
+
+# Linting (after fixes)
+pnpm --filter @tripful/api lint
+# Result: PASS (0 errors)
+
+# Auth service tests
+pnpm --filter @tripful/api test tests/unit/auth.service.test.ts
+# Result: 28/28 tests passing (186ms)
+
+# All backend unit tests
+pnpm --filter @tripful/api test tests/unit/
+# Result: 62/62 tests passing (432ms)
+```
+
+### Integration Notes
+
+**Ready for Integration:** YES
+
+**Next Task Dependencies:**
+- Task 7 will add JWT methods to this same AuthService class
+- Task 10 (Request code endpoint) will use `generateCode()`, `storeCode()`, and `smsService`
+- Task 11 (Verify code endpoint) will use `verifyCode()`, `deleteCode()`, and `getOrCreateUser()`
+- Task 12 (Complete profile endpoint) will use `updateProfile()`
+
+**Database State:**
+- `verification_codes` table ready for code storage
+- `users` table ready for user creation
+- Both tables have proper indexes and constraints
+
+**Service API:**
+```typescript
+// Available for use in controllers
+import { authService } from '@/services/auth.service.js';
+
+// Example usage
+const code = authService.generateCode(); // "123456"
+await authService.storeCode('+15551234567', code);
+const isValid = await authService.verifyCode('+15551234567', code); // true
+const user = await authService.getOrCreateUser('+15551234567');
+await authService.updateProfile(user.id, { displayName: 'John Doe' });
+await authService.deleteCode('+15551234567');
+```
+
+### Next Task
+
+Task 7: JWT token generation and verification
+- Add `generateToken(user)` method to AuthService
+- Add `verifyToken(token)` method to AuthService
+- Token payload: sub (user ID), phone, name, iat, exp
+- 7-day token expiry
+- Unit tests for token generation/verification/expiry
+
+**Preparation for Task 7:**
+- JWT plugin already registered in server.ts (Task 3)
+- JWT secret already configured (Task 3)
+- JWTPayload interface already defined (Task 3)
+- This task added User management methods needed for JWT payloads
+
