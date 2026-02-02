@@ -12,9 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "cp tsconfig.json tsconfig.json.bak && sed 's/\"ES2023\"/\"ES2022\"/' tsconfig.json.bak > tsconfig.json && drizzle-kit generate && mv tsconfig.json.bak tsconfig.json",
+    "db:migrate": "cp tsconfig.json tsconfig.json.bak && sed 's/\"ES2023\"/\"ES2022\"/' tsconfig.json.bak > tsconfig.json && drizzle-kit migrate && mv tsconfig.json.bak tsconfig.json",
+    "db:studio": "cp tsconfig.json tsconfig.json.bak && sed 's/\"ES2023\"/\"ES2022\"/' tsconfig.json.bak > tsconfig.json && drizzle-kit studio; mv tsconfig.json.bak tsconfig.json",
     "clean": "rm -rf dist"
   },
   "dependencies": {

@@ -2,7 +2,7 @@
 
 ## Task Breakdown
 
-- [ ] Task 1: Database schema and migrations for auth tables
+- [x] Task 1: Database schema and migrations for auth tables
   - Create Drizzle schema for `users` table with all fields (id, phone_number, display_name, profile_photo_url, timezone, timestamps)
   - Create Drizzle schema for `verification_codes` table (phone_number PK, code, expires_at, created_at)
   - Add indexes (users.phone_number unique, verification_codes.expires_at)
