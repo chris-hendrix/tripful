@@ -27,10 +27,6 @@ export function convertToUTC(dateTime: Date, timezone: string): Date {
  * // Format with custom pattern
  * formatInTimeZone(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd HH:mm:ss')
  */
-export function formatInTimeZone(
-  date: Date,
-  timezone: string,
-  format: string = 'h:mm a'
-): string {
+export function formatInTimeZone(date: Date, timezone: string, format: string = 'h:mm a'): string {
   return formatInTz(date, timezone, format);
 }

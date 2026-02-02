@@ -5,4 +5,4 @@
 // - trips table (Phase 3+)
 // - events table (Phase 3+)
 
-export {}
+export {};

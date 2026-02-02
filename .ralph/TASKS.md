@@ -12,7 +12,7 @@
 ## 1. Monorepo Foundation & Configuration
 
 - [x] **1.1 Initialize complete monorepo infrastructure**
-  - Create `pnpm-workspace.yaml` with apps/* and shared patterns
+  - Create `pnpm-workspace.yaml` with apps/\* and shared patterns
   - Create root `package.json` with workspace scripts (dev, build, lint, typecheck, test)
   - Install and configure Turbo with `turbo.json` (pipelines for all commands, caching)
   - Create `tsconfig.base.json` with strict mode (target: ES2023, module: nodenext)
@@ -21,6 +21,7 @@
   - Run `pnpm install` to verify workspace setup
 
 **Acceptance Criteria**:
+
 - ✅ `pnpm install` succeeds without errors
 - ✅ `pnpm lint` runs without configuration errors
 - ✅ `pnpm build` shows Turbo caching (empty build passes)
@@ -45,6 +46,7 @@
   - Write simple tests for schemas and utilities
 
 **Acceptance Criteria**:
+
 - ✅ `pnpm --filter @tripful/shared install` succeeds
 - ✅ All exports are properly typed (no TS errors)
 - ✅ Zod schemas validate correctly
@@ -63,7 +65,7 @@
     - Dependencies: fastify, drizzle-orm, pg, zod, dotenv
     - Fastify plugins: @fastify/cors, @fastify/jwt, @fastify/rate-limit
     - DevDependencies: vitest, @types/pg, tsx, typescript
-  - Create `apps/api/tsconfig.json` extending base with path aliases (@/, @shared/*)
+  - Create `apps/api/tsconfig.json` extending base with path aliases (@/, @shared/\*)
   - Set up environment variable validation:
     - Create `src/config/env.ts` with Zod schema validation
     - Create `.env` and `.env.example` files
@@ -80,6 +82,7 @@
     - Configure logger (level from env)
 
 **Acceptance Criteria**:
+
 - ✅ `pnpm --filter @tripful/api install` succeeds
 - ✅ Server starts on port 8000 without errors
 - ✅ Environment validation blocks startup with missing vars
@@ -103,6 +106,7 @@
     - `tests/integration/database.test.ts`: testConnection() works, can query SELECT 1
 
 **Acceptance Criteria**:
+
 - ✅ GET http://localhost:8000/api/health returns 200
 - ✅ Response: `{ "status": "ok", "timestamp": "...", "database": "connected" }`
 - ✅ `pnpm --filter @tripful/api test` runs all tests
@@ -122,7 +126,7 @@
   - Update `apps/web/package.json`:
     - Name: "@tripful/web"
     - Scripts: dev (port 3000), build, start, lint, typecheck
-  - Create `apps/web/tsconfig.json` extending base with path aliases (@/, @shared/*)
+  - Create `apps/web/tsconfig.json` extending base with path aliases (@/, @shared/\*)
   - Configure Tailwind CSS 4:
     - Update `tailwind.config.ts` with content paths and custom config
     - Create `postcss.config.mjs` for Tailwind processing
@@ -139,6 +143,7 @@
     - Set NEXT_PUBLIC_API_URL=http://localhost:8000/api
 
 **Acceptance Criteria**:
+
 - ✅ `pnpm --filter @tripful/web install` succeeds
 - ✅ `pnpm --filter @tripful/web dev` starts server on port 3000
 - ✅ Visit http://localhost:3000 shows welcome message styled with Tailwind
@@ -153,7 +158,7 @@
 
 ## 5. Database & Development Workflow
 
-- [ ] **5.1 Set up Docker Compose and parallel dev servers**
+- [x] **5.1 Set up Docker Compose and parallel dev servers**
   - Create `docker-compose.yml` in root:
     - PostgreSQL 16 service (image: postgres:16-alpine)
     - Container name: tripful-postgres
@@ -175,6 +180,7 @@
     - Confirm no CORS errors in browser console
 
 **Acceptance Criteria**:
+
 - ✅ `docker compose up -d` starts PostgreSQL successfully
 - ✅ Database is healthy (pg_isready passes)
 - ✅ API connects to database (health check shows "connected")
@@ -188,7 +194,7 @@
 
 ## 6. Code Quality & Git Hooks
 
-- [ ] **6.1 Set up Husky, lint-staged, and Prettier**
+- [x] **6.1 Set up Husky, lint-staged, and Prettier**
   - Install Husky and lint-staged as dev dependencies
   - Run `npx husky init` to create `.husky/` directory
   - Create `.husky/pre-commit` hook that runs lint-staged
@@ -204,6 +210,7 @@
     - Fix errors and commit → should succeed
 
 **Acceptance Criteria**:
+
 - ✅ Git pre-commit hook runs automatically
 - ✅ Hook blocks commits with linting errors
 - ✅ Hook allows commits with valid code
@@ -234,6 +241,7 @@
     - Verify no TypeScript errors
 
 **Acceptance Criteria**:
+
 - ✅ All workspace commands work without errors
 - ✅ Turbo caching works (second build faster)
 - ✅ All tests pass (backend integration tests)
@@ -263,6 +271,7 @@
     - Links to architecture docs
 
 **Acceptance Criteria**:
+
 - ✅ README is comprehensive (1000+ words)
 - ✅ Can follow README from scratch to working system
 - ✅ All environment variables are documented
@@ -278,6 +287,7 @@
 **Total consolidated tasks**: 10
 
 **By category**:
+
 1. Monorepo Foundation & Configuration: 1 task
 2. Shared Package: 1 task
 3. Backend (API): 2 tasks
@@ -293,6 +303,7 @@
 ## Completion Criteria
 
 Phase 1 is complete when:
+
 - [ ] All 10 tasks are checked off
 - [ ] `pnpm dev` starts both servers without errors (web:3000, api:8000)
 - [ ] `pnpm test` runs and passes all integration tests
@@ -311,6 +322,7 @@ Phase 1 is complete when:
 ## Next Steps (Phase 2)
 
 After Phase 1 completion:
+
 - Implement phone authentication flow
 - Create database schema and migrations (users, verification_codes tables)
 - Set up TanStack Query in frontend

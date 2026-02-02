@@ -36,6 +36,7 @@ pnpm install
 ```
 
 **Expected**:
+
 - All packages install without errors
 - No peer dependency warnings
 - Lock file is up to date
@@ -51,6 +52,7 @@ docker ps | grep tripful-postgres
 ```
 
 **Expected**:
+
 - Container starts successfully
 - Health check shows "healthy" status after ~10 seconds
 
@@ -69,6 +71,7 @@ docker exec tripful-postgres pg_isready -U tripful
 ```
 
 **Expected**:
+
 - psql connects successfully
 - Query returns `1`
 - pg_isready returns "accepting connections"
@@ -88,6 +91,7 @@ grep -E "DATABASE_URL|JWT_SECRET|PORT" apps/api/.env
 ```
 
 **Expected**:
+
 - `.env` file exists in `apps/api/`
 - All required variables are present
 - DATABASE_URL points to localhost:5432
@@ -100,6 +104,7 @@ pnpm --filter @tripful/api dev
 ```
 
 **Expected**:
+
 - Server starts on port 8000
 - No errors in console
 - Logger shows "Server listening at http://0.0.0.0:8000"
@@ -118,6 +123,7 @@ http GET http://localhost:8000/api/health
 ```
 
 **Expected JSON response**:
+
 ```json
 {
   "status": "ok",
@@ -136,6 +142,7 @@ pnpm --filter @tripful/api test
 ```
 
 **Expected**:
+
 - All tests pass (should be 2-4 tests)
 - Tests include:
   - Health check endpoint returns 200
@@ -155,6 +162,7 @@ pnpm --filter @tripful/api typecheck
 ```
 
 **Expected**:
+
 - Linting completes with 0 errors
 - Type checking completes with 0 errors
 - No warnings (or only minor warnings)
@@ -174,6 +182,7 @@ grep NEXT_PUBLIC_API_URL apps/web/.env.local
 ```
 
 **Expected**:
+
 - `.env.local` file exists in `apps/web/`
 - NEXT_PUBLIC_API_URL is set to http://localhost:8000/api
 
@@ -185,6 +194,7 @@ pnpm --filter @tripful/web dev
 ```
 
 **Expected**:
+
 - Next.js compiles successfully
 - Server starts on port 3000
 - No compilation errors
@@ -196,6 +206,7 @@ pnpm --filter @tripful/web dev
 Open http://localhost:3000 in a browser.
 
 **Expected**:
+
 - Page loads without errors
 - Welcome message is displayed: "Welcome to Tripful"
 - Page is styled with Tailwind CSS
@@ -212,6 +223,7 @@ ls -la apps/web/components/ui/
 ```
 
 **Expected**:
+
 - Directory contains: `button.tsx`, `input.tsx`, `form.tsx`
 - Each component imports from Radix UI and uses Tailwind classes
 - No TypeScript errors when importing components
@@ -227,6 +239,7 @@ pnpm --filter @tripful/web typecheck
 ```
 
 **Expected**:
+
 - Linting completes with 0 errors
 - Type checking completes with 0 errors
 - No warnings (or only minor Next.js warnings)
@@ -245,6 +258,7 @@ ls -la shared/utils/
 ```
 
 **Expected**:
+
 - Each directory has an `index.ts` file
 - Files export types, schemas, or utilities
 - No compilation errors
@@ -257,6 +271,7 @@ pnpm --filter @tripful/shared typecheck
 ```
 
 **Expected**:
+
 - Type checking passes with 0 errors
 - All exports are properly typed
 
@@ -266,8 +281,8 @@ Create a quick test import in the backend:
 
 ```typescript
 // Temporarily add to apps/api/src/server.ts
-import type { ApiResponse } from '@shared/types'
-import { phoneNumberSchema } from '@shared/schemas'
+import type { ApiResponse } from '@shared/types';
+import { phoneNumberSchema } from '@shared/schemas';
 ```
 
 Then run:
@@ -277,6 +292,7 @@ pnpm --filter @tripful/api typecheck
 ```
 
 **Expected**:
+
 - No TypeScript errors for shared imports
 - Path aliases resolve correctly
 
@@ -297,6 +313,7 @@ pnpm dev
 ```
 
 **Expected**:
+
 - Both servers start in parallel
 - Frontend on port 3000
 - Backend on port 8000
@@ -312,6 +329,7 @@ With both servers running:
 3. Visit http://localhost:8000/api/health in same browser
 
 **Expected**:
+
 - Frontend loads successfully
 - Backend API returns JSON response
 - CORS headers allow frontend origin
@@ -322,6 +340,7 @@ With both servers running:
 With both servers still running:
 
 **Backend test**:
+
 1. Edit `apps/api/src/routes/health.routes.ts`
 2. Add a comment or change response
 3. Save file
@@ -329,6 +348,7 @@ With both servers still running:
 **Expected**: Server reloads automatically, changes reflected in API response
 
 **Frontend test**:
+
 1. Edit `apps/web/app/page.tsx`
 2. Change the welcome message text
 3. Save file
@@ -347,6 +367,7 @@ pnpm test
 ```
 
 **Expected**:
+
 - Tests run for all packages
 - All tests pass (backend integration tests)
 - Total execution time < 10 seconds
@@ -359,6 +380,7 @@ pnpm lint
 ```
 
 **Expected**:
+
 - Linting runs for all packages
 - 0 errors across all packages
 - Consistent code style enforced
@@ -370,6 +392,7 @@ pnpm typecheck
 ```
 
 **Expected**:
+
 - Type checking runs for all packages (web, api, shared)
 - 0 TypeScript errors
 - Shared types resolve correctly in consuming packages
@@ -381,6 +404,7 @@ pnpm build
 ```
 
 **Expected**:
+
 - Turbo cache message appears
 - Backend builds to `apps/api/dist/`
 - Frontend builds to `apps/web/.next/`
@@ -398,6 +422,7 @@ pnpm build
 ```
 
 **Expected**:
+
 - First build compiles everything
 - Second build shows "FULL TURBO" or cache hits
 - Second build completes much faster (< 1 second)
@@ -418,12 +443,14 @@ git commit -m "Test commit"
 ```
 
 **Expected**:
+
 - Commit is blocked by pre-commit hook
 - Lint-staged runs
 - ESLint reports errors
 - Commit does not go through
 
 **Cleanup**:
+
 ```bash
 rm apps/api/src/test-lint.ts
 ```
@@ -440,11 +467,13 @@ git commit -m "Test commit"
 ```
 
 **Expected**:
+
 - Pre-commit hook runs
 - Linting and type checking pass
 - Commit goes through successfully
 
 **Cleanup**:
+
 ```bash
 git reset HEAD~1
 rm apps/api/src/test-lint.ts
@@ -462,6 +491,7 @@ cat README.md | head -50
 ```
 
 **Expected**:
+
 - README exists in root directory
 - Contains sections:
   - Project overview
@@ -487,6 +517,7 @@ cat apps/web/.env.local.example
 ```
 
 **Expected**:
+
 - Example files exist for both apps
 - All required environment variables are documented
 - Comments explain what each variable does
@@ -497,6 +528,7 @@ cat apps/web/.env.local.example
 ## Environment Variables Checklist
 
 ### Backend (.env)
+
 - [ ] `NODE_ENV=development`
 - [ ] `PORT=8000`
 - [ ] `FRONTEND_URL=http://localhost:3000`
@@ -506,6 +538,7 @@ cat apps/web/.env.local.example
 - [ ] `LOG_LEVEL=info`
 
 ### Frontend (.env.local)
+
 - [ ] `NEXT_PUBLIC_API_URL=http://localhost:8000/api`
 
 ---
@@ -513,12 +546,14 @@ cat apps/web/.env.local.example
 ## Manual Verification Checklist
 
 ### Infrastructure
+
 - [ ] pnpm install succeeds without errors
 - [ ] Docker Compose starts PostgreSQL successfully
 - [ ] Database is accessible via psql
 - [ ] Health check shows database connected
 
 ### Backend
+
 - [ ] Backend server starts on port 8000
 - [ ] GET /api/health returns 200 with correct JSON
 - [ ] Backend tests pass (2-4 integration tests)
@@ -527,6 +562,7 @@ cat apps/web/.env.local.example
 - [ ] Fastify plugins (CORS, JWT, rate-limit) are registered
 
 ### Frontend
+
 - [ ] Frontend server starts on port 3000
 - [ ] Home page loads with welcome message
 - [ ] shadcn/ui components are installed (Button, Input, Form)
@@ -535,11 +571,13 @@ cat apps/web/.env.local.example
 - [ ] Frontend type checking passes (0 errors)
 
 ### Shared Package
+
 - [ ] Shared package has types, schemas, utils
 - [ ] Cross-package imports work (no TS errors)
 - [ ] Zod schemas validate correctly
 
 ### Monorepo Workflow
+
 - [ ] `pnpm dev` starts both servers in parallel
 - [ ] Hot reload works for both apps
 - [ ] `pnpm test` runs all tests and passes
@@ -548,6 +586,7 @@ cat apps/web/.env.local.example
 - [ ] Git pre-commit hook enforces linting
 
 ### Documentation
+
 - [ ] README is comprehensive and accurate
 - [ ] .env.example files exist and are documented
 - [ ] All scripts are documented in README
@@ -609,22 +648,26 @@ Phase 1 verification is complete when:
 ✅ **All 45 tasks in TASKS.md are checked off**
 
 ✅ **Infrastructure**:
+
 - Docker Compose runs PostgreSQL successfully
 - Database connection test passes
 
 ✅ **Backend**:
+
 - Server starts on port 8000
 - Health check returns 200 with DB connected
 - All integration tests pass (health, database)
 - Linting and type checking pass
 
 ✅ **Frontend**:
+
 - Server starts on port 3000
 - Home page renders with welcome message
 - shadcn/ui components are installed
 - Linting and type checking pass
 
 ✅ **Monorepo**:
+
 - Shared package exports work correctly
 - Cross-package imports resolve
 - `pnpm dev` starts both servers
@@ -633,11 +676,13 @@ Phase 1 verification is complete when:
 - Turbo caching works
 
 ✅ **Code Quality**:
+
 - ESLint 9 flat config works
 - Pre-commit hooks enforce linting
 - TypeScript strict mode enabled
 
 ✅ **Documentation**:
+
 - README is comprehensive
 - .env.example files exist
 
@@ -659,9 +704,9 @@ Once all verification steps pass:
 
 ## Verification Sign-Off
 
-Date: _______________
+Date: **\*\***\_\_\_**\*\***
 
-Verified by: _______________
+Verified by: **\*\***\_\_\_**\*\***
 
 - [ ] All verification steps completed
 - [ ] All tests passing
@@ -725,6 +770,7 @@ echo "✅ Phase 1 verification complete!"
 ```
 
 Run with:
+
 ```bash
 chmod +x verify-phase1.sh
 ./verify-phase1.sh

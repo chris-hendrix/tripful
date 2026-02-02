@@ -7,6 +7,7 @@ Phase 1 establishes the foundational monorepo infrastructure for Tripful MVP. Th
 ## Technology Stack
 
 ### Core Versions (Latest Stable)
+
 - **Node.js**: 22.x LTS
 - **pnpm**: Latest (workspace support)
 - **Turbo**: Latest (monorepo caching)
@@ -14,6 +15,7 @@ Phase 1 establishes the foundational monorepo infrastructure for Tripful MVP. Th
 - **ESLint**: 9.x (flat config)
 
 ### Frontend (apps/web)
+
 - **Framework**: Next.js 16.x latest (App Router)
 - **UI Library**: React 19.x latest
 - **Styling**: Tailwind CSS 4.x latest
@@ -22,6 +24,7 @@ Phase 1 establishes the foundational monorepo infrastructure for Tripful MVP. Th
 - **State Management**: TanStack Query v5 (deferred to Phase 2)
 
 ### Backend (apps/api)
+
 - **Framework**: Fastify v5.x latest
 - **ORM**: Drizzle ORM v0.36+ latest
 - **Database**: PostgreSQL 16+ (Docker Compose)
@@ -33,11 +36,13 @@ Phase 1 establishes the foundational monorepo infrastructure for Tripful MVP. Th
   - `@fastify/swagger` - API documentation (optional)
 
 ### Shared (shared/)
+
 - **Validation**: Zod schemas
 - **Types**: TypeScript type definitions
 - **Utils**: Shared utility functions (date formatting, timezone handling)
 
 ### Development Tools
+
 - **Testing**: Vitest (unit + integration tests)
 - **Linting**: ESLint 9 flat config
 - **Type Checking**: TypeScript strict mode
@@ -123,6 +128,7 @@ tripful/
 ## Path Aliases
 
 ### apps/web
+
 ```json
 {
   "compilerOptions": {
@@ -137,6 +143,7 @@ tripful/
 ```
 
 ### apps/api
+
 ```json
 {
   "compilerOptions": {
@@ -201,11 +208,11 @@ services:
       POSTGRES_PASSWORD: tripful_dev
       POSTGRES_DB: tripful
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tripful"]
+      test: ['CMD-SHELL', 'pg_isready -U tripful']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -225,7 +232,7 @@ TEST_DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5432/tripful_test
 
 ```typescript
 // apps/api/drizzle.config.ts
-import { defineConfig } from 'drizzle-kit'
+import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
   schema: './src/db/schema',
@@ -236,7 +243,7 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
-})
+});
 ```
 
 ### Database Connection (Phase 1)
@@ -245,24 +252,24 @@ In Phase 1, we only verify the database connection works. No schema or migration
 
 ```typescript
 // apps/api/src/config/database.ts
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-})
+});
 
-export const db = drizzle(pool)
+export const db = drizzle(pool);
 
 // Test connection
 export async function testConnection() {
   try {
-    await pool.query('SELECT 1')
-    console.log('✓ Database connection successful')
-    return true
+    await pool.query('SELECT 1');
+    console.log('✓ Database connection successful');
+    return true;
   } catch (error) {
-    console.error('✗ Database connection failed:', error)
-    return false
+    console.error('✗ Database connection failed:', error);
+    return false;
   }
 }
 ```
@@ -273,93 +280,93 @@ export async function testConnection() {
 
 ```typescript
 // apps/api/src/server.ts
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
-import jwt from '@fastify/jwt'
-import rateLimit from '@fastify/rate-limit'
-import { healthRoutes } from './routes/health.routes'
-import { errorMiddleware } from './middleware/error.middleware'
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
+import rateLimit from '@fastify/rate-limit';
+import { healthRoutes } from './routes/health.routes';
+import { errorMiddleware } from './middleware/error.middleware';
 
 const fastify = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
   },
-})
+});
 
 // Plugins
 await fastify.register(cors, {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
-})
+});
 
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET!,
   sign: {
     expiresIn: '7d',
   },
-})
+});
 
 await fastify.register(rateLimit, {
   max: 100,
   timeWindow: '15 minutes',
-})
+});
 
 // Error handling
-fastify.setErrorHandler(errorMiddleware)
+fastify.setErrorHandler(errorMiddleware);
 
 // Routes
-await fastify.register(healthRoutes, { prefix: '/api/health' })
+await fastify.register(healthRoutes, { prefix: '/api/health' });
 
 const start = async () => {
   try {
     await fastify.listen({
       port: Number(process.env.PORT) || 8000,
       host: '0.0.0.0',
-    })
+    });
   } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    fastify.log.error(err);
+    process.exit(1);
   }
-}
+};
 
-start()
+start();
 ```
 
 ### Health Check Endpoint
 
 ```typescript
 // apps/api/src/routes/health.routes.ts
-import { FastifyInstance } from 'fastify'
-import { healthController } from '../controllers/health.controller'
+import { FastifyInstance } from 'fastify';
+import { healthController } from '../controllers/health.controller';
 
 export async function healthRoutes(fastify: FastifyInstance) {
-  fastify.get('/', healthController.check)
+  fastify.get('/', healthController.check);
 }
 
 // apps/api/src/controllers/health.controller.ts
-import { FastifyRequest, FastifyReply } from 'fastify'
-import { healthService } from '../services/health.service'
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { healthService } from '../services/health.service';
 
 export const healthController = {
   async check(request: FastifyRequest, reply: FastifyReply) {
-    const health = await healthService.getStatus()
-    return reply.status(200).send(health)
+    const health = await healthService.getStatus();
+    return reply.status(200).send(health);
   },
-}
+};
 
 // apps/api/src/services/health.service.ts
-import { testConnection } from '../config/database'
+import { testConnection } from '../config/database';
 
 export const healthService = {
   async getStatus() {
-    const dbConnected = await testConnection()
+    const dbConnected = await testConnection();
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
       database: dbConnected ? 'connected' : 'disconnected',
-    }
+    };
   },
-}
+};
 ```
 
 ## Frontend Structure
@@ -412,6 +419,7 @@ npx shadcn@latest add form
 ```
 
 Configuration (`apps/web/components.json`):
+
 ```json
 {
   "$schema": "https://ui.shadcn.com/schema.json",
@@ -439,8 +447,8 @@ Configuration (`apps/web/components.json`):
 
 ```typescript
 // apps/api/vitest.config.ts
-import { defineConfig } from 'vitest/config'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import path from 'path';
 
 export default defineConfig({
   test: {
@@ -456,65 +464,65 @@ export default defineConfig({
       '@shared/utils': path.resolve(__dirname, '../../shared/utils'),
     },
   },
-})
+});
 ```
 
 ### Test Database Setup
 
 ```typescript
 // apps/api/tests/setup.ts
-import { Pool } from 'pg'
-import { beforeAll, afterAll } from 'vitest'
+import { Pool } from 'pg';
+import { beforeAll, afterAll } from 'vitest';
 
 const testPool = new Pool({
   connectionString: process.env.TEST_DATABASE_URL,
-})
+});
 
 beforeAll(async () => {
   // Test database connection
-  await testPool.query('SELECT 1')
-})
+  await testPool.query('SELECT 1');
+});
 
 afterAll(async () => {
-  await testPool.end()
-})
+  await testPool.end();
+});
 ```
 
 ### Sample Tests
 
 ```typescript
 // apps/api/tests/integration/health.test.ts
-import { describe, it, expect } from 'vitest'
-import { build } from '../helpers'
+import { describe, it, expect } from 'vitest';
+import { build } from '../helpers';
 
 describe('Health Check', () => {
   it('GET /api/health returns 200', async () => {
-    const app = await build()
+    const app = await build();
     const response = await app.inject({
       method: 'GET',
       url: '/api/health',
-    })
+    });
 
-    expect(response.statusCode).toBe(200)
+    expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       status: 'ok',
       database: 'connected',
-    })
+    });
 
-    await app.close()
-  })
-})
+    await app.close();
+  });
+});
 
 // apps/api/tests/integration/database.test.ts
-import { describe, it, expect } from 'vitest'
-import { testConnection } from '@/config/database'
+import { describe, it, expect } from 'vitest';
+import { testConnection } from '@/config/database';
 
 describe('Database Connection', () => {
   it('connects to PostgreSQL successfully', async () => {
-    const connected = await testConnection()
-    expect(connected).toBe(true)
-  })
-})
+    const connected = await testConnection();
+    expect(connected).toBe(true);
+  });
+});
 ```
 
 ## Environment Variables
@@ -549,10 +557,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "tsconfig.base.json",
-    "eslint.config.js"
-  ],
+  "globalDependencies": ["tsconfig.base.json", "eslint.config.js"],
   "pipeline": {
     "dev": {
       "cache": false,
@@ -592,13 +597,8 @@ pnpm lint-staged
 
 ```json
 {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,md}": [
-    "prettier --write"
-  ]
+  "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+  "*.{json,md}": ["prettier --write"]
 }
 ```
 

@@ -56,11 +56,7 @@ describe('formatInTimeZone', () => {
   it('should format with custom format string', () => {
     const date = new Date('2024-01-15T15:30:00Z');
 
-    const formatted = formatInTimeZone(
-      date,
-      'America/Los_Angeles',
-      'yyyy-MM-dd HH:mm:ss'
-    );
+    const formatted = formatInTimeZone(date, 'America/Los_Angeles', 'yyyy-MM-dd HH:mm:ss');
     expect(formatted).toBe('2024-01-15 07:30:00');
   });
 

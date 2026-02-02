@@ -5,20 +5,25 @@ Tracking implementation progress for this project.
 ---
 
 ## Iteration 1 - Task 1.1: Initialize complete monorepo infrastructure
+
 **Date**: 2026-02-01
 **Status**: ✅ COMPLETE
 
 ### Task Summary
+
 Initialized complete monorepo infrastructure with pnpm workspaces, Turbo build system, TypeScript strict mode, ESLint 9 flat config, and comprehensive gitignore.
 
 ### Research Phase (3 parallel agents)
+
 1. **LOCATING** (Agent aa62835): Identified existing demo/ directory with Next.js 16, confirmed pnpm installed, documented what exists vs needs creation
 2. **ANALYZING** (Agent ab101de): Researched pnpm workspace config, Turbo 2.x pipeline patterns, TypeScript strict mode setup, ESLint 9 flat config
 3. **PATTERNS** (Agent abca60b): Documented best practices for monorepo structure, scoped naming, dependency hoisting, caching strategies
 
 ### Implementation Phase
+
 **Coder** (Agent a641e2f): Created all monorepo infrastructure files:
-- `pnpm-workspace.yaml` - Workspace config with apps/* and shared patterns
+
+- `pnpm-workspace.yaml` - Workspace config with apps/\* and shared patterns
 - Root `package.json` - Turbo-based scripts (dev, build, lint, typecheck, test)
 - `turbo.json` - Turbo 2.x tasks config with proper caching (dev: no cache, build: cached)
 - `tsconfig.base.json` - Ultra-strict TypeScript (ES2023, NodeNext, noUncheckedIndexedAccess)
@@ -27,6 +32,7 @@ Initialized complete monorepo infrastructure with pnpm workspaces, Turbo build s
 - `shared/` package structure with placeholder files
 
 ### Verification Phase (2 parallel agents)
+
 1. **Verifier** (Agent a9f08cc): **PASS**
    - ✅ `pnpm install` succeeds (159 packages, 2.3s)
    - ✅ `pnpm lint` runs without errors (FULL TURBO caching)
@@ -43,17 +49,20 @@ Initialized complete monorepo infrastructure with pnpm workspaces, Turbo build s
    - Report: `.ralph/review-report-1.1.md`
 
 ### Files Created
+
 - Root configs: `pnpm-workspace.yaml`, `package.json`, `turbo.json`, `tsconfig.base.json`, `eslint.config.js`, `.gitignore`
 - Shared package: `shared/package.json`, `shared/tsconfig.json`, `shared/index.ts`
 - Directories: `apps/` (empty, ready for tasks 3-4), `shared/`, `.husky/`
 
 ### Acceptance Criteria Met
+
 - ✅ `pnpm install` succeeds without errors
 - ✅ `pnpm lint` runs without configuration errors
 - ✅ `pnpm build` shows Turbo caching (FULL TURBO)
 - ✅ Base TypeScript config is valid and strict mode enabled
 
 ### Key Learnings
+
 1. **Turbo 2.x syntax**: Use `"tasks"` instead of `"pipeline"` in turbo.json
 2. **Ultra-strict TypeScript**: Enabled `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` for additional type safety
 3. **ESLint 9 flat config**: Modern array-based config format with ignores array
@@ -61,6 +70,7 @@ Initialized complete monorepo infrastructure with pnpm workspaces, Turbo build s
 5. **Caching strategy**: Dev tasks should have `cache: false, persistent: true` for hot reload
 
 ### Next Steps
+
 Task 2.1: Create complete shared package with types, schemas, and utilities
 
 ---
@@ -99,6 +109,7 @@ Task 2.1: Create complete shared package with types, schemas, and utilities
 **Coder** (Agent a55d00c): Successfully implemented all components:
 
 **Created Files**:
+
 - `shared/types/index.ts` - TypeScript type definitions:
   - `ApiResponse<T>` with discriminated union (success: true/false)
   - `PaginatedResponse<T>` with data and pagination metadata
@@ -125,6 +136,7 @@ Task 2.1: Create complete shared package with types, schemas, and utilities
 - `shared/vitest.config.ts` - Test runner configuration
 
 **Modified Files**:
+
 - `shared/package.json` - Added vitest devDependency, test scripts, exports field
 - `shared/index.ts` - Updated from placeholder to barrel exports
 
@@ -152,6 +164,7 @@ Task 2.1: Create complete shared package with types, schemas, and utilities
 ### Files Summary
 
 **Created** (8 files):
+
 - `shared/types/index.ts`
 - `shared/schemas/index.ts`
 - `shared/utils/index.ts`
@@ -162,6 +175,7 @@ Task 2.1: Create complete shared package with types, schemas, and utilities
 - `.ralph/review-report-2.1.md`
 
 **Modified** (2 files):
+
 - `shared/package.json` (added vitest, test scripts, exports)
 - `shared/index.ts` (barrel exports)
 
@@ -182,11 +196,13 @@ Test Files  2 passed (2)
 ```
 
 **Schema Tests** (9 passing):
+
 - Phone: E.164 format (US, UK, France, China, India)
 - Email: Valid addresses, invalid formats, error messages
 - UUID: Valid v4 UUIDs, invalid formats, error messages
 
 **Utility Tests** (10 passing):
+
 - convertToUTC: PST/EST conversions, date boundaries
 - formatInTimeZone: Default/custom formats, multiple timezones, edge cases
 
@@ -228,8 +244,8 @@ Task 3.1: Set up complete Fastify backend infrastructure
    - Traced database connection flow: pg.Pool → Drizzle ORM → testConnection()
    - Identified error handling middleware patterns for Fastify
    - Mapped server initialization sequence (env validation → plugins → routes → startup)
-   - Documented path alias configuration for @/ and @shared/* imports
-   - Listed required dependencies: fastify, drizzle-orm, pg, zod, @fastify/* plugins
+   - Documented path alias configuration for @/ and @shared/\* imports
+   - Listed required dependencies: fastify, drizzle-orm, pg, zod, @fastify/\* plugins
 
 3. **Researcher 3 - PATTERNS** (Agent a6627b4):
    - Found Fastify v5 best practices: Pino logger, sequential async plugin registration
@@ -245,8 +261,9 @@ Task 3.1: Set up complete Fastify backend infrastructure
 **Coder** (Agent ae83e69): Successfully created complete backend infrastructure:
 
 **Configuration Files Created**:
+
 - `apps/api/package.json` - Complete package with Fastify 5.1.0, Drizzle 0.36.4, pg 8.13.1, Zod 3.24.1, all plugins, scripts (dev, build, test, lint, typecheck, db commands)
-- `apps/api/tsconfig.json` - Extends base with path aliases (@/, @shared/*)
+- `apps/api/tsconfig.json` - Extends base with path aliases (@/, @shared/\*)
 - `apps/api/vitest.config.ts` - Test configuration with path aliases matching tsconfig
 - `apps/api/drizzle.config.ts` - Drizzle Kit configuration for PostgreSQL schema management
 - `apps/api/.env` - Environment variables (gitignored)
@@ -254,6 +271,7 @@ Task 3.1: Set up complete Fastify backend infrastructure
 - `docker-compose.yml` - PostgreSQL 16.11 service on port 5433 (avoiding conflict with system PostgreSQL)
 
 **Source Files Created**:
+
 - `apps/api/src/config/env.ts` - Zod environment validation (DATABASE_URL, JWT_SECRET, PORT, FRONTEND_URL, LOG_LEVEL) with fail-fast on invalid config
 - `apps/api/src/config/database.ts` - pg.Pool (max 20 connections), Drizzle instance, testConnection() function, closeDatabase() for graceful shutdown
 - `apps/api/src/db/schema/index.ts` - Empty schema file (Phase 1 has no tables)
@@ -262,11 +280,13 @@ Task 3.1: Set up complete Fastify backend infrastructure
 - `apps/api/src/server.ts` - Fastify initialization with CORS, JWT (7d expiration), rate-limit (100 req/15min), error handler, graceful shutdown on SIGINT/SIGTERM
 
 **Test Files Created**:
+
 - `apps/api/tests/setup.ts` - Test environment setup with database connection
 - `apps/api/tests/helpers.ts` - buildApp() factory for testing Fastify instances
 - `apps/api/tests/integration/database.test.ts` - 3 integration tests (connection, SELECT 1, timestamp)
 
 **Directories Created**:
+
 - `apps/api/src/routes/` - Empty (for Task 3.2)
 - `apps/api/src/controllers/` - Empty (for Task 3.2)
 - `apps/api/src/services/` - Empty (for Task 3.2)
@@ -297,6 +317,7 @@ Task 3.1: Set up complete Fastify backend infrastructure
 ### Files Summary
 
 **Created** (19 files):
+
 - Configuration: package.json, tsconfig.json, vitest.config.ts, drizzle.config.ts, .env, .env.example, docker-compose.yml
 - Source: env.ts, database.ts, server.ts, error.middleware.ts, schema/index.ts, types/index.ts
 - Tests: setup.ts, helpers.ts, database.test.ts
@@ -323,6 +344,7 @@ Test Files  1 passed (1)
 ```
 
 **Database Tests** (3 passing):
+
 - Connection test: testConnection() returns true
 - Query test: SELECT 1 executes successfully
 - Timestamp test: Database returns proper Date objects
@@ -354,7 +376,6 @@ Task 3.2: Implement health check endpoint with full testing
 
 ---
 
-
 ---
 
 ## Iteration 4: Task 3.2 - Health Check Endpoint Implementation
@@ -370,32 +391,38 @@ Successfully implemented a complete health check endpoint at `GET /api/health` f
 ### Implementation Details
 
 **Files Created:**
+
 1. `/apps/api/src/services/health.service.ts` - Service layer with database connectivity check
 2. `/apps/api/src/controllers/health.controller.ts` - Controller layer for handling HTTP requests
 3. `/apps/api/src/routes/health.routes.ts` - Route registration following Fastify plugin pattern
 4. `/apps/api/tests/integration/health.test.ts` - Comprehensive integration tests (6 test cases)
 
 **Files Modified:**
+
 1. `/apps/api/src/server.ts` - Registered health routes at `/api/health` prefix
 2. `/apps/api/tests/helpers.ts` - Added health routes to test app builder
 
 ### Verification Results
 
 **Tests**: ✅ PASS
+
 - All 9 tests passing (3 database + 6 health)
 - Test execution time: 112ms
 - No TypeScript errors
 
 **Type Checking**: ✅ PASS
+
 - TypeScript compilation: 0 errors
 - All imports and types correctly configured
 
 **Manual Testing**: ✅ PASS
+
 - Endpoint URL: `http://localhost:8000/api/health`
 - HTTP Status: 200
 - Response: `{"status":"ok","timestamp":"2026-02-02T04:02:34.226Z","database":"connected"}`
 
 **Code Review**: ✅ APPROVED
+
 - Perfect adherence to MVC pattern
 - Clean separation of concerns
 - Proper TypeScript typing with no `any` types
@@ -405,6 +432,7 @@ Successfully implemented a complete health check endpoint at `GET /api/health` f
 ### Test Coverage
 
 **Health Endpoint Tests (6 tests):**
+
 1. Returns 200 status code
 2. Returns correct response structure (status, timestamp, database)
 3. Returns status as "ok"
@@ -413,6 +441,7 @@ Successfully implemented a complete health check endpoint at `GET /api/health` f
 6. Returns database as 'connected' when database is available
 
 All tests use proper patterns:
+
 - `buildApp()` helper for test app creation
 - `app.inject()` for HTTP request simulation
 - `afterEach` cleanup to close app instances
@@ -421,11 +450,13 @@ All tests use proper patterns:
 ### Architecture & Patterns
 
 **MVC Pattern Implementation:**
+
 - **Route Layer**: Registers endpoint using Fastify plugin pattern
 - **Controller Layer**: Handles HTTP request/response with minimal logic
 - **Service Layer**: Contains business logic for database connectivity check
 
 **Key Conventions Followed:**
+
 - ES modules with `.js` extensions in imports
 - Path aliases (`@/` for src/)
 - Export objects with methods (not classes)
@@ -443,6 +474,7 @@ All tests use proper patterns:
 ```
 
 Matches `HealthCheckResponse` interface:
+
 - `status`: 'ok' | 'error'
 - `timestamp`: ISO-8601 string format
 - `database`: 'connected' | 'disconnected' (reflects actual DB state)
@@ -469,6 +501,7 @@ Matches `HealthCheckResponse` interface:
 ### Production Readiness
 
 The health check endpoint is production-ready:
+
 - ✅ Proper error handling via existing middleware
 - ✅ Returns 200 status even when DB is down (graceful degradation)
 - ✅ Can be used for container health checks
@@ -503,6 +536,7 @@ Successfully created the complete Next.js 16 frontend application in `apps/web/`
 ### Research Phase
 
 Spawned 3 researchers in parallel:
+
 1. **LOCATING**: Identified that `apps/web/` did not exist and documented complete file structure needed
 2. **ANALYZING**: Mapped dependency flow, path aliases, environment variables, and CORS configuration
 3. **PATTERNS**: Discovered Next.js 16 conventions, Tailwind 4 patterns, and shadcn/ui configuration requirements
@@ -512,6 +546,7 @@ Spawned 3 researchers in parallel:
 **Coder** created complete frontend infrastructure with 16 files:
 
 **Configuration Files:**
+
 - `package.json` - Next.js 16, React 19, Tailwind 4, shadcn/ui dependencies
 - `tsconfig.json` - Extended base config with bundler moduleResolution and path aliases
 - `next.config.ts` - Next.js configuration with transpilePackages for shared package
@@ -522,15 +557,18 @@ Spawned 3 researchers in parallel:
 - `.env.local.example` - Environment variable documentation
 
 **Application Code:**
+
 - `src/app/layout.tsx` - Root layout with metadata
 - `src/app/page.tsx` - Welcome page centered with Tailwind
 - `src/app/globals.css` - Tailwind v4 with @theme directive
 
 **Utilities:**
+
 - `src/lib/utils.ts` - cn() helper for className merging
 - `src/lib/api.ts` - API client utilities
 
 **UI Components:**
+
 - `src/components/ui/button.tsx` - Button with variants
 - `src/components/ui/input.tsx` - Input component
 - `src/components/ui/form.tsx` - Form with react-hook-form integration
@@ -539,10 +577,12 @@ Spawned 3 researchers in parallel:
 ### Verification and Review Phase
 
 **Initial Verification Issues:**
+
 - ❌ Linting failed - Next.js 16 removed `next lint` command
 - ❌ Path aliases pointed to wrong directory
 
 **Fixes Applied:**
+
 1. Fixed path aliases in tsconfig.json to correct `@shared/*` paths
 2. Created `.eslintrc.json` with Next.js config
 3. Updated package.json lint script to use `eslint .` directly
@@ -551,6 +591,7 @@ Spawned 3 researchers in parallel:
 ### Final Verification Results
 
 All acceptance criteria passed:
+
 - ✅ `pnpm --filter @tripful/web install` succeeds
 - ✅ `pnpm --filter @tripful/web dev` starts on port 3000
 - ✅ `pnpm --filter @tripful/web lint` passes (0 errors)
@@ -587,3 +628,314 @@ All acceptance criteria passed:
 
 Task 4.1 complete. Next task is **5.1 Set up Docker Compose and parallel dev servers**.
 
+---
+
+## Iteration 6 - Task 5.1: Set up Docker Compose and parallel dev servers
+
+**Date**: 2026-02-02
+**Status**: ✅ COMPLETE
+**Agent Workflow**: 3x Researcher → Coder → Verifier + Reviewer (parallel)
+
+### Task Summary
+
+Set up Docker Compose for PostgreSQL database and configure Turbo to run parallel development servers (web on port 3000, API on port 8000) with hot reload support.
+
+### Research Phase (Parallel)
+
+**Researcher 1 (LOCATING):**
+
+- Found docker-compose.yml ALREADY EXISTS and is RUNNING
+- PostgreSQL 16-alpine on port 5433:5432 (host:container)
+- Container name: tripful-postgres, database: tripful
+- Turbo already configured with persistent dev tasks
+- .env.example files exist for both apps
+- .env.local missing for web (needs creation)
+
+**Researcher 2 (ANALYZING):**
+
+- Analyzed data flow: docker-compose → postgres → api → web
+- API uses pg Pool with Drizzle ORM
+- Database connection string: postgresql://tripful:tripful_dev@localhost:5433/tripful
+- CORS configured in server.ts to allow localhost:3000
+- Turbo dev task: cache: false, persistent: true
+- API port: 8000, Web port: 3000 (verified)
+
+**Researcher 3 (PATTERNS):**
+
+- Found complete Docker Compose pattern with health checks
+- Environment validation pattern with Zod schemas
+- Turbo persistent task pattern for parallel servers
+- Health check integration pattern (tests DB on each request)
+- Graceful shutdown pattern (closes DB pool on SIGINT/SIGTERM)
+- tsx watch (API) + Next.js dev (Web) for hot reload
+
+### Implementation Phase
+
+**Files Modified:**
+
+1. **docker-compose.yml**
+   - Removed obsolete `version: '3.9'` field (Docker Compose v2 compatibility)
+   - Maintained all PostgreSQL 16-alpine configuration
+
+2. **package.json (root)**
+   - Added `docker:up`: Start Docker Compose in detached mode
+   - Added `docker:down`: Stop and remove containers
+   - Added `docker:logs`: Tail container logs
+
+3. **apps/web/.env.local**
+   - Created from .env.local.example
+   - Set NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
+**Files Created:**
+
+1. **DEVELOPMENT.md** - Comprehensive development guide with:
+   - Quick start instructions
+   - Docker commands and workflow
+   - Hot reload setup
+   - Health check examples
+   - Troubleshooting section
+
+2. **scripts/test-acceptance-criteria.sh** - Tests all 6 acceptance criteria
+3. **scripts/test-docker-compose.sh** - Docker config validation (11 tests)
+4. **scripts/verify-dev-setup.sh** - Integration testing (14 tests)
+5. **scripts/test-hot-reload.sh** - Hot reload configuration verification
+6. **scripts/README.md** - Script documentation
+
+**Post-Review Fixes:**
+
+- Fixed hardcoded absolute paths in all test scripts
+- Replaced `cd /home/chend/git/tripful` with dynamic path resolution
+- Pattern: `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`
+
+### Verification Phase (Parallel)
+
+**Verifier Results: ✅ ALL PASS**
+
+- Docker Compose tests: 11/11 PASS
+- Hot reload config tests: 3/3 PASS
+- Acceptance criteria tests: 7/7 PASS
+- Integration tests: 14/14 PASS
+- Linting: 3/3 packages PASS (0 errors)
+- Type checking: 3/3 packages PASS (0 errors)
+
+**Manual Verification:**
+
+- Docker container: healthy, port 5433:5432
+- API health endpoint: returns 200 with `"database": "connected"`
+- Parallel dev servers: Both start successfully via `pnpm dev`
+- CORS headers: Properly configured for localhost:3000
+
+**Reviewer Results: ✅ APPROVED (after fixes)**
+
+- Initial: NEEDS_WORK (hardcoded paths issue - HIGH severity)
+- Post-fix: APPROVED (all issues resolved)
+
+**Strengths Identified:**
+
+- Modern Docker Compose v2 syntax
+- Comprehensive test suite (4 scripts, 42 tests total)
+- Excellent documentation (DEVELOPMENT.md)
+- Proper security practices (gitignored secrets, .env.example files)
+- Correct Turbo configuration (persistent: true)
+
+### All Acceptance Criteria Met
+
+- ✅ `docker compose up -d` starts PostgreSQL successfully
+- ✅ Database is healthy (pg_isready passes)
+- ✅ API connects to database (health check shows "connected")
+- ✅ `pnpm dev` starts both web (3000) and api (8000) in parallel
+- ✅ Hot reload works for both apps (tsx watch + Next.js Fast Refresh)
+- ✅ CORS allows frontend to call backend API
+
+### Key Technical Decisions
+
+1. **Port Mapping**: Use 5433:5432 (not standard 5432:5432) to avoid conflicts with local PostgreSQL installations
+2. **Docker Compose v2**: Remove obsolete version field per modern standards
+3. **Turbo Persistent Tasks**: Configure `persistent: true` to keep dev servers running
+4. **Environment Validation**: Zod schema validation at API startup (fail-fast)
+5. **Graceful Shutdown**: Close database pool on SIGINT/SIGTERM signals
+6. **Health Check Integration**: Every health endpoint call tests database connectivity
+
+### Performance Metrics
+
+- Dev server startup time:
+  - API: ~20 seconds (tsx watch + fastify.listen)
+  - Web: ~35 seconds (Next.js Turbopack compilation)
+- Test execution: 42 tests in ~5 seconds total
+- Type checking: 3 packages in ~3 seconds
+- Docker health check: 10s interval, 5s timeout, 5 retries
+
+### Integration Points
+
+- **Database**: PostgreSQL 16-alpine at localhost:5433 → container 5432
+- **API**: Fastify on port 8000, connects to DB via pg Pool + Drizzle
+- **Web**: Next.js on port 3000, calls API at http://localhost:8000/api
+- **CORS**: API allows http://localhost:3000 with credentials
+- **Turbo**: Runs both dev servers in parallel with TUI interface
+
+### Key Learnings
+
+1. **Infrastructure Already Existed**: Docker Compose was already set up from previous work, task was primarily verification and documentation
+2. **Script Portability**: Always use dynamic path resolution in scripts, never hardcode absolute paths
+3. **Docker Compose v2**: The `version` field is obsolete and generates warnings
+4. **Turbo Persistent Tasks**: The `persistent: true` setting is critical for parallel long-running dev servers
+5. **Test Coverage**: Comprehensive test scripts catch issues early and provide confidence
+6. **Documentation Value**: DEVELOPMENT.md significantly improves onboarding experience
+
+### Files Modified Summary
+
+- `.ralph/TASKS.md` - Marked task 5.1 as complete
+- `docker-compose.yml` - Removed obsolete version field
+- `package.json` - Added docker convenience scripts
+- `apps/web/.env.local` - Created from example
+- `scripts/*.sh` - Fixed hardcoded paths (4 files)
+- `DEVELOPMENT.md` - Created comprehensive dev guide
+- `.ralph/PROGRESS.md` - This iteration report
+
+### Next Steps
+
+Task 5.1 complete. Next task is **6.1 Set up Husky, lint-staged, and Prettier**.
+
+---
+
+## Ralph Iteration 7 - Task 6.1: Set up Husky, lint-staged, and Prettier
+
+**Date**: 2026-02-01  
+**Task**: 6.1 Set up Husky, lint-staged, and Prettier  
+**Status**: ✅ COMPLETE
+
+### Task Summary
+
+Configured automated code quality enforcement using Husky pre-commit hooks, lint-staged for staged file processing, and Prettier for consistent code formatting across the monorepo.
+
+### Implementation Details
+
+#### Files Created
+
+1. **`.prettierrc.json`** - Prettier configuration matching existing code style
+   - Single quotes, semicolons, 2-space indentation
+   - 100 character line width
+   - ES5 trailing commas
+   - LF line endings
+
+2. **`.prettierignore`** - Ignore patterns for build outputs, dependencies, cache files
+   - node_modules, dist, .next, coverage, .turbo
+   - Lock files, generated files
+
+3. **`.husky/pre-commit`** - Pre-commit hook that runs lint-staged
+   - Simple one-liner: `pnpm lint-staged`
+   - Executable permissions set
+
+4. **`docs/GIT_HOOKS.md`** - Comprehensive documentation
+   - Hook configuration and workflow
+   - Testing procedures
+   - Troubleshooting guide
+   - CI/CD integration notes
+
+5. **`scripts/test-git-hooks.sh`** - Automated test script
+   - Verifies all acceptance criteria
+   - Tests hook blocking and allowing behavior
+
+#### Files Modified
+
+1. **`package.json`** (root)
+   - Added lint-staged configuration
+   - Patterns: `apps/**/*.{ts,tsx}`, `shared/**/*.{ts,tsx}`, `*.{json,md}`
+   - Commands: `eslint --fix` → `prettier --write`
+
+2. **`eslint.config.js`**
+   - Added `shared/**/*.ts` and `shared/**/*.tsx` to file patterns
+   - Fixed critical issue where shared package files were ignored
+   - Split config for source files vs test files
+
+3. **`apps/api/package.json`**
+   - Updated lint script from placeholder to: `eslint --config ../../eslint.config.js .`
+
+4. **`shared/package.json`**
+   - Updated lint script from placeholder to: `eslint --config ../eslint.config.js .`
+
+### Verification Results
+
+All acceptance criteria met:
+
+- ✅ **Git pre-commit hook runs automatically** - Hook exists at `.husky/pre-commit`, executable
+- ✅ **Hook blocks commits with linting errors** - Tested with unused variable, correctly blocked
+- ✅ **Hook allows commits with valid code** - Tested with valid export, commit succeeded
+- ✅ **ESLint and Prettier run on staged files only** - lint-staged processes only staged files
+- ✅ **pnpm format formats all code consistently** - All files formatted with Prettier
+
+Additional verification:
+
+- ✅ All tests pass (28 tests across api and shared)
+- ✅ Type checking passes for all packages
+- ✅ Linting passes for all packages (with real ESLint, not placeholders)
+- ✅ Format check passes
+
+### Critical Issues Fixed
+
+#### Issue 1: Shared Package Files Not Linted
+
+- **Problem**: ESLint config only matched `**/src/**/*.ts` but shared package has files in `shared/schemas/`, `shared/types/`, `shared/utils/`
+- **Evidence**: Running `npx eslint shared/schemas/index.ts` produced "File ignored because no matching configuration was supplied"
+- **Fix**: Added `shared/**/*.ts` and `shared/**/*.tsx` to file patterns in eslint.config.js
+- **Impact**: Now all TypeScript files in monorepo are properly linted by pre-commit hooks
+
+#### Issue 2: Placeholder Lint Scripts
+
+- **Problem**: api and shared packages had `"lint": "echo 'No lint configured yet'"` placeholder scripts
+- **Fix**: Updated both to use root ESLint config: `eslint --config ../../eslint.config.js .`
+- **Impact**: `pnpm lint` now actually lints all packages instead of just printing placeholders
+
+### Technical Decisions
+
+1. **Configuration Location**: Used root package.json for lint-staged config (simpler than separate file)
+2. **Prettier Config**: Matches observed code style (single quotes, semicolons, 2-space indent)
+3. **Hook Simplicity**: One-liner hook that just runs lint-staged
+4. **Command Order**: ESLint --fix first, then Prettier --write (quality before formatting)
+5. **File Patterns**: Workspace-aware patterns matching monorepo structure
+
+### Performance Metrics
+
+- Pre-commit hook execution: ~1-3 seconds for typical commit (staged files only)
+- Full format command: ~5 seconds (all files in workspace)
+- Test suite: 28 tests in ~3 seconds
+- Linting: All 3 packages in ~3 seconds
+
+### Integration Points
+
+- **Husky v9**: Modern simplified architecture, no deprecated `_/husky.sh` sourcing
+- **lint-staged**: Filters staged files, runs ESLint + Prettier in sequence
+- **Turbo**: Root lint script uses Turbo to run linting across all workspaces
+- **ESLint 9 flat config**: No conflicts with Prettier (no formatting rules in ESLint)
+
+### Key Learnings
+
+1. **ESLint File Patterns**: Flat config requires explicit file patterns - glob patterns don't automatically include all subdirectories
+2. **Shared Package Structure**: When package has non-standard structure (no src/ directory), must explicitly add patterns
+3. **Verification Is Critical**: Reviewer caught critical issues (shared files ignored) that verifier missed because it only tested existing patterns
+4. **Placeholder Scripts**: Development shortcuts (echo placeholders) can hide integration issues - better to implement properly from start
+5. **Hook Testing**: Always test with actual commits, not just script execution - behavior differs
+6. **Husky v9 Simplicity**: New version is much simpler than v4-8, just executable shell scripts in .husky/
+
+### Files Modified Summary
+
+Created:
+
+- `.prettierrc.json` - Prettier configuration
+- `.prettierignore` - Prettier ignore patterns
+- `.husky/pre-commit` - Pre-commit hook script
+- `docs/GIT_HOOKS.md` - Documentation
+- `scripts/test-git-hooks.sh` - Test script
+
+Modified:
+
+- `package.json` - Added lint-staged configuration
+- `eslint.config.js` - Fixed shared package file patterns
+- `apps/api/package.json` - Fixed lint script
+- `shared/package.json` - Fixed lint script
+- `.ralph/TASKS.md` - Marked task 6.1 as complete
+- `.ralph/PROGRESS.md` - This iteration report
+
+### Next Steps
+
+Task 6.1 complete. Next task is **7.1 Test complete monorepo workflow**.

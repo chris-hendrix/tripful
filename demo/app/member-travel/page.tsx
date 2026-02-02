@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 /**
  * Transportation Page - Arrivals & Departures
@@ -10,32 +10,32 @@
  * - Transportation details
  */
 
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
-type TravelDirection = 'arrival' | 'departure'
+type TravelDirection = 'arrival' | 'departure';
 
 interface Traveler {
-  id: string
-  name: string
-  avatar: string
+  id: string;
+  name: string;
+  avatar: string;
 }
 
 export default function TransportationPage() {
   // Demo: Current logged-in user is Mike Johnson (organizer)
-  const currentUserId = '1' // Mike Johnson
-  const isOrganizer = true // Mike is the organizer in this demo
+  const currentUserId = '1'; // Mike Johnson
+  const isOrganizer = true; // Mike is the organizer in this demo
 
-  const [direction, setDirection] = useState<TravelDirection>('arrival')
-  const [selectedTraveler, setSelectedTraveler] = useState<string>(currentUserId) // Default to current user
-  const [date, setDate] = useState('2026-10-12')
-  const [departingFrom, setDepartingFrom] = useState('')
-  const [departureTime, setDepartureTime] = useState('')
-  const [arrivingAt, setArrivingAt] = useState('')
-  const [arrivalTime, setArrivalTime] = useState('')
-  const [transportationMethod, setTransportationMethod] = useState('')
-  const [details, setDetails] = useState('')
-  const [links, setLinks] = useState<string[]>([''])
+  const [direction, setDirection] = useState<TravelDirection>('arrival');
+  const [selectedTraveler, setSelectedTraveler] = useState<string>(currentUserId); // Default to current user
+  const [date, setDate] = useState('2026-10-12');
+  const [departingFrom, setDepartingFrom] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
+  const [arrivingAt, setArrivingAt] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [transportationMethod, setTransportationMethod] = useState('');
+  const [details, setDetails] = useState('');
+  const [links, setLinks] = useState<string[]>(['']);
 
   // Demo trip travelers
   const travelers: Traveler[] = [
@@ -43,26 +43,26 @@ export default function TransportationPage() {
     { id: '2', name: 'Sarah Chen', avatar: 'https://avatar.vercel.sh/sarah' },
     { id: '3', name: 'Tom Rodriguez', avatar: 'https://avatar.vercel.sh/tom' },
     { id: '4', name: 'Alex Kim', avatar: 'https://avatar.vercel.sh/alex' },
-  ]
+  ];
 
   const addLink = () => {
     if (links.length < 10) {
-      setLinks([...links, ''])
+      setLinks([...links, '']);
     }
-  }
+  };
 
   const removeLink = (index: number) => {
-    setLinks(links.filter((_, i) => i !== index))
-  }
+    setLinks(links.filter((_, i) => i !== index));
+  };
 
   const updateLink = (index: number, value: string) => {
-    const newLinks = [...links]
-    newLinks[index] = value
-    setLinks(newLinks)
-  }
+    const newLinks = [...links];
+    newLinks[index] = value;
+    setLinks(newLinks);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     console.log({
       direction,
       selectedTraveler,
@@ -73,9 +73,9 @@ export default function TransportationPage() {
       arrivalTime,
       transportationMethod,
       details,
-      links: links.filter(l => l)
-    })
-  }
+      links: links.filter((l) => l),
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-amber-50/30">
@@ -84,8 +84,18 @@ export default function TransportationPage() {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
             <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors">
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-5 h-5 text-slate-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <h1 className="text-xl font-semibold text-slate-900">Add Transportation</h1>
@@ -108,14 +118,17 @@ export default function TransportationPage() {
                 className={`
                   h-20 rounded-xl border-2 transition-all duration-200
                   flex flex-col items-center justify-center gap-1
-                  ${direction === 'arrival'
-                    ? 'bg-blue-100 border-blue-300'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                  ${
+                    direction === 'arrival'
+                      ? 'bg-blue-100 border-blue-300'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
                   }
                 `}
               >
                 <span className="text-2xl">🛬</span>
-                <span className={`text-sm font-medium ${direction === 'arrival' ? 'text-blue-700' : 'text-slate-700'}`}>
+                <span
+                  className={`text-sm font-medium ${direction === 'arrival' ? 'text-blue-700' : 'text-slate-700'}`}
+                >
                   Arrival
                 </span>
               </button>
@@ -125,14 +138,17 @@ export default function TransportationPage() {
                 className={`
                   h-20 rounded-xl border-2 transition-all duration-200
                   flex flex-col items-center justify-center gap-1
-                  ${direction === 'departure'
-                    ? 'bg-blue-100 border-blue-300'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                  ${
+                    direction === 'departure'
+                      ? 'bg-blue-100 border-blue-300'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
                   }
                 `}
               >
                 <span className="text-2xl">🛫</span>
-                <span className={`text-sm font-medium ${direction === 'departure' ? 'text-blue-700' : 'text-slate-700'}`}>
+                <span
+                  className={`text-sm font-medium ${direction === 'departure' ? 'text-blue-700' : 'text-slate-700'}`}
+                >
                   Departure
                 </span>
               </button>
@@ -146,8 +162,8 @@ export default function TransportationPage() {
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {travelers.map((traveler) => {
-                const isSelected = selectedTraveler === traveler.id
-                const isDisabled = !isOrganizer && traveler.id !== currentUserId
+                const isSelected = selectedTraveler === traveler.id;
+                const isDisabled = !isOrganizer && traveler.id !== currentUserId;
                 return (
                   <button
                     key={traveler.id}
@@ -156,11 +172,12 @@ export default function TransportationPage() {
                     disabled={isDisabled}
                     className={`
                       relative p-3 rounded-xl border-2 transition-all
-                      ${isSelected
-                        ? 'border-blue-500 bg-blue-50'
-                        : isDisabled
-                        ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
-                        : 'border-slate-200 bg-white hover:border-slate-300 cursor-pointer'
+                      ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50'
+                          : isDisabled
+                            ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
+                            : 'border-slate-200 bg-white hover:border-slate-300 cursor-pointer'
                       }
                     `}
                   >
@@ -173,8 +190,18 @@ export default function TransportationPage() {
                         />
                         {isSelected && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           </div>
                         )}
@@ -187,7 +214,7 @@ export default function TransportationPage() {
                       </span>
                     </div>
                   </button>
-                )
+                );
               })}
             </div>
             {isOrganizer && (
@@ -214,7 +241,10 @@ export default function TransportationPage() {
           {/* Departing From & Time */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Departing From {direction === 'departure' && <span className="text-slate-500 font-normal">(optional)</span>}
+              Departing From{' '}
+              {direction === 'departure' && (
+                <span className="text-slate-500 font-normal">(optional)</span>
+              )}
             </label>
             <div className="space-y-3">
               <input
@@ -243,7 +273,10 @@ export default function TransportationPage() {
           {/* Arriving At & Time */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Arriving At {direction === 'arrival' && <span className="text-slate-500 font-normal">(optional)</span>}
+              Arriving At{' '}
+              {direction === 'arrival' && (
+                <span className="text-slate-500 font-normal">(optional)</span>
+              )}
             </label>
             <div className="space-y-3">
               <input
@@ -271,7 +304,10 @@ export default function TransportationPage() {
 
           {/* Transportation Method */}
           <div>
-            <label htmlFor="transportationMethod" className="block text-sm font-semibold text-slate-700 mb-2">
+            <label
+              htmlFor="transportationMethod"
+              className="block text-sm font-semibold text-slate-700 mb-2"
+            >
               Transportation Method <span className="text-slate-500 font-normal">(optional)</span>
             </label>
             <input
@@ -314,8 +350,18 @@ export default function TransportationPage() {
               {links.map((link, index) => (
                 <div key={index} className="flex gap-2">
                   <div className="relative flex-1">
-                    <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    <svg
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      />
                     </svg>
                     <input
                       type="url"
@@ -331,8 +377,18 @@ export default function TransportationPage() {
                       onClick={() => removeLink(index)}
                       className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   )}
@@ -345,7 +401,12 @@ export default function TransportationPage() {
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Add another link
                 </button>
@@ -381,5 +442,5 @@ export default function TransportationPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

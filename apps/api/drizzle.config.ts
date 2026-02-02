@@ -1,7 +1,7 @@
-import { defineConfig } from 'drizzle-kit'
-import { config } from 'dotenv'
+import { defineConfig } from 'drizzle-kit';
+import { config } from 'dotenv';
 
-config()
+config();
 
 export default defineConfig({
   schema: './src/db/schema/index.ts',
@@ -12,4 +12,4 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
-})
+});

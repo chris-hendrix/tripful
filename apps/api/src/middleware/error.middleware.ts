@@ -1,4 +1,4 @@
-import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 
 export async function errorHandler(
   error: FastifyError,
@@ -14,7 +14,7 @@ export async function errorHandler(
       params: request.params,
       query: request.query,
     },
-  })
+  });
 
   // Validation errors (Zod, Fastify schema)
   if (error.validation) {
@@ -25,7 +25,7 @@ export async function errorHandler(
         message: 'Invalid request data',
         details: error.validation,
       },
-    })
+    });
   }
 
   // Rate limit errors
@@ -36,7 +36,7 @@ export async function errorHandler(
         code: 'RATE_LIMIT_EXCEEDED',
         message: 'Too many requests. Please try again later.',
       },
-    })
+    });
   }
 
   // JWT errors
@@ -47,7 +47,7 @@ export async function errorHandler(
         code: 'UNAUTHORIZED',
         message: 'Invalid or expired token',
       },
-    })
+    });
   }
 
   // Database errors (PostgreSQL constraint violations)
@@ -58,11 +58,11 @@ export async function errorHandler(
         code: 'DATABASE_CONSTRAINT_VIOLATION',
         message: 'Database constraint violation',
       },
-    })
+    });
   }
 
   // Default error (hide internal details in production)
-  const isDevelopment = process.env.NODE_ENV === 'development'
+  const isDevelopment = process.env.NODE_ENV === 'development';
   return reply.status(error.statusCode || 500).send({
     success: false,
     error: {
@@ -70,5 +70,5 @@ export async function errorHandler(
       message: isDevelopment ? error.message : 'An unexpected error occurred',
       ...(isDevelopment && { stack: error.stack }),
     },
-  })
+  });
 }

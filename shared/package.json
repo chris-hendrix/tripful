@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "echo 'No lint configured yet'",
+    "lint": "eslint --config ../eslint.config.js .",
     "clean": "rm -rf dist"
   },
   "dependencies": {
