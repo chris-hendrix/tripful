@@ -1334,3 +1334,102 @@ Task 10: Request code endpoint with validation
 - Apply smsRateLimitConfig middleware
 - Return success response
 - Write integration tests (valid phone, invalid phone, rate limit exceeded)
+
+---
+
+## Iteration 10: Task 10 - Request Code Endpoint with Validation
+
+**Date:** 2026-02-02
+**Status:** ✅ COMPLETED
+**Task:** Implement POST /auth/request-code endpoint with validation
+
+### Implementation Summary
+
+**Files Created:**
+1. `/home/chend/git/tripful/apps/api/src/controllers/auth.controller.ts`
+   - Implemented requestCode handler with two-layer validation (Zod + libphonenumber-js)
+   - Phone number normalization to E.164 format
+   - Integration with AuthService (generateCode, storeCode) and SMSService
+   - Comprehensive error handling with appropriate HTTP status codes
+
+2. `/home/chend/git/tripful/apps/api/src/routes/auth.routes.ts`
+   - Registered POST /request-code route
+   - Applied SMS rate limit preHandler (5 requests per phone per hour)
+
+3. `/home/chend/git/tripful/apps/api/tests/integration/auth.request-code.test.ts`
+   - 14 comprehensive integration tests covering all scenarios
+   - All tests pass ✅
+
+**Files Modified:**
+1. `/home/chend/git/tripful/apps/api/src/server.ts`
+   - Added auth routes registration with /api/auth prefix
+
+2. `/home/chend/git/tripful/apps/api/tests/helpers.ts`
+   - Added rate limit plugin registration (global: false)
+   - Added auth routes to test app builder
+
+3. `/home/chend/git/tripful/apps/api/tsconfig.json`
+   - Updated rootDir to allow importing from shared package
+
+### Request Flow
+1. Rate limit middleware (5 per phone per hour)
+2. Zod schema validation (phoneNumber: 10-20 chars)
+3. Phone number format validation (libphonenumber-js)
+4. Generate 6-digit code (cryptographically secure)
+5. Store code in database with 5-minute expiry
+6. Send SMS notification (console logging in mock)
+7. Return success response
+
+### Test Coverage
+- ✅ Valid phone number returns 200
+- ✅ Code stored in database in E.164 format with correct expiry
+- ✅ Accepts various international phone formats (US, UK, Australia)
+- ✅ Updates existing code (upsert behavior)
+- ✅ Missing phoneNumber returns 400 VALIDATION_ERROR
+- ✅ Invalid phone formats return 400 VALIDATION_ERROR
+- ✅ Allows 5 requests per phone number
+- ✅ Rejects 6th request with 429 RATE_LIMIT_EXCEEDED
+- ✅ Tracks rate limits independently per phone number
+- ✅ Handles errors gracefully with 500 INTERNAL_SERVER_ERROR
+- ✅ SMS service called with E.164 formatted phone
+
+### Verification Results
+- ✅ All 115 tests pass (including 14 new tests)
+- ✅ TypeScript type checking passes (no errors)
+- ✅ ESLint passes (no errors or warnings)
+
+### Code Review
+- ✅ **APPROVED** by reviewer
+- Strengths: Excellent code organization, comprehensive testing, robust validation, security best practices, type safety
+- Minor issues noted: tsconfig rootDir change (justified), test randomness (acceptable)
+- Follows all ARCHITECTURE.md patterns
+- Production-ready implementation
+
+### Key Learnings
+
+1. **Two-Layer Validation Pattern:** Zod provides basic schema validation (string length), while libphonenumber-js provides domain-specific validation (actual phone number format). This pattern ensures robust input validation.
+
+2. **E.164 Normalization:** Always normalize phone numbers to E.164 format for storage and comparison. This ensures consistency across different input formats (+1 555 123 4567, +15551234567, etc.).
+
+3. **Route-Specific Rate Limiting:** When rate limit plugin is registered globally, route-specific configs can be applied via preHandler: `fastify.rateLimit(config)`. The keyGenerator function extracts phoneNumber from request.body for per-phone rate limiting.
+
+4. **Manual Zod Validation:** Without a Fastify-Zod plugin, use `schema.safeParse(request.body)` and manually return validation errors. This maintains consistency with centralized error handling.
+
+5. **Test Database Verification:** Integration tests should verify database state directly, not just API responses. This catches storage bugs and validates data persistence.
+
+6. **Upsert Behavior:** For verification codes, use upsert (INSERT ON CONFLICT UPDATE) to allow users to request new codes. This improves UX when codes expire or get lost.
+
+7. **SMS Mock Service:** Console logging with clear formatting makes development easier. Production SMS integration can be swapped in later without changing the interface.
+
+8. **TypeScript Monorepo Imports:** When importing from shared packages, tsconfig.json rootDir may need adjustment. Ensure this doesn't break build processes.
+
+### Next Steps
+Task 11: Verify code endpoint and user creation
+- Add verifyCode handler to auth.controller.ts
+- Register POST /auth/verify-code route
+- Call AuthService.verifyCode() and handle invalid/expired codes
+- Call AuthService.getOrCreateUser()
+- Generate JWT token and set httpOnly cookie
+- Return user with requiresProfile flag
+- Delete verification code after successful verification
+- Write integration tests

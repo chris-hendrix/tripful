@@ -69,7 +69,7 @@
   - Custom error response with RATE_LIMIT_EXCEEDED code
   - Write integration tests to verify rate limits work (6th request fails)
 
-- [ ] Task 10: Request code endpoint with validation
+- [x] Task 10: Request code endpoint with validation
   - Create `src/controllers/auth.controller.ts` with requestCode handler
   - Create `src/routes/auth.routes.ts` and register POST /auth/request-code
   - Validate phone number with libphonenumber-js

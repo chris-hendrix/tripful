@@ -6,7 +6,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../../",
     "paths": {
       "@/*": ["./src/*"],
       "@shared/types": ["../../shared/types"],
