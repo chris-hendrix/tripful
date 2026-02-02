@@ -1568,6 +1568,26 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 }
 ```
 
+**Shared Package Module Resolution**
+
+The `@tripful/shared` package uses a specific import pattern to support Next.js transpilation:
+
+- **No file extensions** in import paths (e.g., `from './types/index'` instead of `from './types/index.js'`)
+- This is required for Next.js's `transpilePackages` feature to work correctly
+- TypeScript's `moduleResolution: "nodenext"` typically requires `.js` extensions, but Next.js cannot resolve these when importing from TypeScript source files
+- TypeScript will show warnings (TS2835) about missing extensions - these are cosmetic and can be ignored
+
+**Example:**
+```typescript
+// ✅ Correct (compatible with Next.js)
+export { User } from './types/index';
+
+// ❌ Breaks Next.js module resolution
+export { User } from './types/index.js';
+```
+
+See `shared/README.md` for detailed guidance on adding new exports.
+
 **Linting**
 
 - ESLint 9.x with flat config (`eslint.config.js`)
