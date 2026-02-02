@@ -231,3 +231,160 @@ Task 3: JWT configuration and utilities
 - Define JWTPayload interface
 - Register plugins in server.ts
 
+---
+
+## Iteration 3 - Task 3: JWT configuration and utilities
+
+**Date:** 2026-02-02
+**Status:** ✅ COMPLETED
+**Task:** Task 3 - JWT configuration and utilities
+
+### Implementation Summary
+
+Successfully implemented JWT configuration with automatic secret generation, httpOnly cookie support, and full TypeScript type safety for the authentication system.
+
+**Files Created:**
+- `apps/api/src/config/jwt.ts` - JWT configuration utility with `ensureJWTSecret()` function implementing three-tier fallback strategy
+- `apps/api/tests/unit/jwt-config.test.ts` - Comprehensive unit tests (6 tests covering all code paths)
+
+**Files Modified:**
+- `apps/api/package.json` - Added `@fastify/cookie@^11.0.2` dependency
+- `apps/api/src/config/env.ts` - Updated dotenv config to load both `.env.local` and `.env` with proper precedence
+- `apps/api/src/types/index.ts` - Added JWTPayload interface and @fastify/jwt module augmentation for type safety
+- `apps/api/src/server.ts` - Registered cookie plugin and updated JWT configuration with cookie support
+- `apps/api/tests/helpers.ts` - Updated test helper to include cookie plugin registration
+
+**Implementation Details:**
+
+**ensureJWTSecret() Function:**
+- Three-tier fallback strategy:
+  1. Returns JWT_SECRET from process.env if present
+  2. Reads from .env.local file using regex parsing if file exists
+  3. Generates new cryptographically secure 64-byte (128 hex character) secret and appends to .env.local
+- Sets process.env.JWT_SECRET for environment validation
+- Logs success message when generating new secret
+
+**JWTPayload Interface:**
+```typescript
+export interface JWTPayload {
+  sub: string;        // User ID
+  phone: string;      // Phone number
+  name?: string;      // Display name (optional)
+  iat: number;        // Issued at
+  exp: number;        // Expires at
+}
+```
+
+**Module Augmentation:**
+- Extends @fastify/jwt types for full TypeScript safety
+- Provides type-safe access to `request.user` and JWT payload
+
+**Cookie Configuration:**
+- Cookie name: `auth_token`
+- Plugin registration order: cookie before JWT (required for cookie support)
+- Configuration ready for httpOnly cookies in future auth endpoints
+
+### Verification Results
+
+**Verifier Report:** ✅ PASS
+- Unit tests (JWT config): 6/6 passing
+  - Returns existing JWT_SECRET from environment variable
+  - Reads JWT_SECRET from .env.local file
+  - Generates new JWT_SECRET when not found
+  - Generates when .env.local exists but has no JWT_SECRET
+  - Proper file formatting with newlines
+  - Cryptographic randomness (unique secrets each time)
+- All backend unit tests: 25/25 passing (16 from existing, 6 new JWT, 3 from other)
+- Type checking: No errors
+- Linting: No errors or warnings
+- Dependency verification: @fastify/cookie@11.0.2 installed successfully
+
+**Reviewer Report:** ✅ APPROVED
+- Code quality: Excellent - production-ready implementation
+- Security: Enhanced beyond spec requirements (explicit HS256 algorithm, algorithm confusion prevention)
+- Edge case handling: Robust - handles all file I/O scenarios correctly
+- Test coverage: 100% code path coverage with 6 comprehensive test cases
+- TypeScript quality: Perfect - complete JWTPayload interface, proper module augmentation
+- Architecture alignment: Matches architecture specifications exactly
+- Plugin registration: Correct order (cookie before JWT)
+- Integration readiness: Well-positioned for future auth service work (Tasks 6-7)
+
+### Technical Notes
+
+1. **Security Enhancements:**
+   - Explicitly specifies JWT algorithms (HS256) in both sign and verify configurations to prevent algorithm confusion attacks
+   - Generates cryptographically secure 64-byte (128 hex character) secrets using Node.js crypto.randomBytes
+   - Validates JWT_SECRET minimum 32 characters via existing Zod schema
+
+2. **Execution Order:**
+   - ensureJWTSecret() called at module load time before env validation
+   - Ensures JWT_SECRET is always available before server starts
+   - process.env.JWT_SECRET set programmatically for env validation to pick up
+
+3. **Environment Loading Strategy:**
+   - Updated dotenv config to load both `.env.local` and `.env` files
+   - `.env.local` takes precedence over `.env` for local overrides
+   - Allows development without modifying committed `.env` file
+
+4. **Plugin Registration Order:**
+   - Cookie plugin must be registered BEFORE JWT plugin
+   - Enables JWT plugin to read tokens from cookies
+   - Future auth endpoints will use reply.setCookie() for httpOnly cookies
+
+5. **Module Augmentation:**
+   - @fastify/jwt module augmented with JWTPayload types
+   - Provides type-safe access to request.user throughout application
+   - payload and user properties correctly typed
+
+6. **Test Strategy:**
+   - Uses Vitest mocking for file system operations
+   - Avoids real file writes during test execution
+   - Tests verify exact 128-character length requirement
+   - Tests verify cryptographic randomness (different secrets each generation)
+
+### Commands Executed
+
+```bash
+# Install @fastify/cookie dependency
+pnpm --filter @tripful/api add @fastify/cookie
+
+# Run JWT config unit tests
+pnpm --filter @tripful/api test tests/unit/jwt-config.test.ts
+
+# Run all backend unit tests
+pnpm --filter @tripful/api test tests/unit/
+
+# Type checking
+pnpm --filter @tripful/api typecheck
+
+# Linting
+pnpm --filter @tripful/api lint
+
+# Verify dependency installation
+pnpm --filter @tripful/api list | grep @fastify/cookie
+```
+
+### Learnings for Future Iterations
+
+1. **Execution Order Matters:** When working with environment variables and validation, ensure utility functions that set env vars are called before validation modules load.
+
+2. **Plugin Dependencies:** @fastify/jwt requires @fastify/cookie to be registered first for cookie support. Always check plugin dependencies and registration order.
+
+3. **Environment File Precedence:** Using dotenv with multiple files (`path: ['.env.local', '.env']`) is a clean pattern for local overrides without modifying committed files.
+
+4. **Module Augmentation Pattern:** TypeScript module augmentation for third-party plugins provides excellent type safety throughout the application without runtime overhead.
+
+5. **Test Mocking Strategy:** Mocking file system operations (existsSync, readFileSync, writeFileSync) in tests prevents side effects and ensures consistent test execution across environments.
+
+6. **Security Best Practices:** Explicitly specifying JWT algorithms prevents algorithm confusion attacks. Generate secrets with sufficient entropy (64 bytes minimum for production).
+
+7. **Early Secret Generation:** Calling ensureJWTSecret() at module load time (before env validation) ensures secrets are available before any Fastify plugins initialize.
+
+### Next Task
+
+Task 4: Phone validation utilities
+- Install libphonenumber-js package in backend
+- Create src/utils/phone.ts with validatePhoneNumber() function
+- Handle all edge cases (invalid formats, missing country codes)
+- Write comprehensive unit tests with various phone formats
+

@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
 import { errorHandler } from '@/middleware/error.middleware.js';
 import { env } from '@/config/env.js';
@@ -20,6 +21,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     origin: env.FRONTEND_URL,
     credentials: true,
   });
+
+  await app.register(cookie);
 
   await app.register(jwt, {
     secret: env.JWT_SECRET,

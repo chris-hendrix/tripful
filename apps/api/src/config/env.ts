@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { config } from 'dotenv';
 
-// Load environment variables
-config();
+// Load environment variables (.env.local takes precedence over .env)
+config({ path: ['.env.local', '.env'] });
 
 const envSchema = z.object({
   // Server Configuration

@@ -16,7 +16,7 @@
   - Export all schemas and types from shared package
   - Write unit tests for schema validation (valid/invalid cases)
 
-- [ ] Task 3: JWT configuration and utilities
+- [x] Task 3: JWT configuration and utilities
   - Install `@fastify/cookie` package in backend
   - Create `src/config/jwt.ts` with ensureJWTSecret() function (auto-generates JWT_SECRET to .env.local if missing)
   - Define JWTPayload interface in src/types/index.ts
