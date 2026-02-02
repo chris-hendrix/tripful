@@ -23,7 +23,7 @@
   - Register @fastify/cookie and @fastify/jwt plugins in server.ts with correct configuration
   - Write unit tests for JWT secret generation and persistence
 
-- [ ] Task 4: Phone validation utilities
+- [x] Task 4: Phone validation utilities
   - Install `libphonenumber-js` package in backend
   - Create `src/utils/phone.ts` with validatePhoneNumber() function
   - Function should return { isValid, e164, error } format

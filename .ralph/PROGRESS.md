@@ -380,11 +380,153 @@ pnpm --filter @tripful/api list | grep @fastify/cookie
 
 7. **Early Secret Generation:** Calling ensureJWTSecret() at module load time (before env validation) ensures secrets are available before any Fastify plugins initialize.
 
+---
+
+## Iteration 4: Task 4 - Phone Validation Utilities
+**Date:** 2024-01-XX
+**Status:** ✅ COMPLETED
+**Researcher agents:** 3 (LOCATING, ANALYZING, PATTERNS)
+**Verifier result:** PASS
+**Reviewer verdict:** APPROVED
+
+### Implementation Summary
+
+Created phone validation utilities using `libphonenumber-js` library to validate and normalize phone numbers to E.164 international format.
+
+**Files Created:**
+1. `/home/chend/git/tripful/apps/api/src/utils/phone.ts` - Phone validation utility function
+2. `/home/chend/git/tripful/apps/api/tests/unit/phone.test.ts` - Comprehensive unit tests
+
+**Package Installed:**
+- `libphonenumber-js@1.12.36` - Phone number parsing and validation library
+
+### Implementation Details
+
+**validatePhoneNumber Function:**
+- Accepts phone number string as input
+- Returns `{ isValid: boolean, e164?: string, error?: string }` format
+- Uses `isValidPhoneNumber()` for initial validation
+- Uses `parsePhoneNumber()` to extract E.164 format
+- Properly handles errors with try-catch block
+- Returns consistent error message: "Invalid phone number format"
+
+**Key Features:**
+- Validates phone numbers in E.164 international format
+- Accepts common formatting (hyphens, spaces, parentheses) and normalizes to E.164
+- Handles all edge cases: empty strings, missing country codes, invalid characters
+- Rejects numbers that are too short or too long
+- Works with US and international numbers (UK, France, China, India, etc.)
+
+**JSDoc Documentation:**
+- Clear function description
+- @param and @returns annotations
+- Practical usage examples
+
+### Test Coverage
+
+**11 comprehensive test cases:**
+1. Valid US phone numbers (+14155552671, +12125551234)
+2. Valid international numbers (UK +442071838750, France +33123456789, China +861234567890, India +919876543210)
+3. Rejection of numbers missing country code (4155552671, 14155552671)
+4. Rejection of numbers that are too short (+1, +123)
+5. Rejection of numbers that are too long (+12345678901234567890)
+6. Acceptance and normalization of formatted numbers (+1-415-555-2671 → +14155552671)
+7. Rejection of numbers with invalid characters (+abc123, not-a-phone)
+8. Empty string handling
+9. Return structure validation for valid cases
+10. Return structure validation for invalid cases
+11. Various edge cases (double plus, starts with 0, trailing letters)
+
+**Test Results:**
+- All 11 tests passing
+- Test duration: 23ms
+- No regressions in other unit tests (27 total tests passing)
+
+### Verification Results
+
+**Unit Tests:** ✅ PASS
+- 11/11 tests passing in phone.test.ts
+- All edge cases covered
+- Both valid and invalid scenarios tested
+
+**All Backend Unit Tests:** ✅ PASS
+- 27 total tests passing across 3 test files
+- No regressions detected
+
+**Type Checking:** ✅ PASS
+- No TypeScript errors
+- Clean compilation with `tsc --noEmit`
+
+**Linting:** ✅ PASS
+- No ESLint errors or warnings
+- Code follows project style guidelines
+
+**Dependency Installation:** ✅ PASS
+- libphonenumber-js@1.12.36 successfully installed
+
+### Code Review Highlights
+
+**Strengths:**
+1. Perfect architecture alignment - matches specification exactly
+2. Robust error handling with try-catch and validation checks
+3. Excellent test coverage with 11 comprehensive test cases
+4. Clean, readable code with no unnecessary complexity
+5. Clear JSDoc documentation with examples
+6. Follows existing patterns from jwt-config.test.ts and shared/utils
+7. Proper TypeScript types and return format
+
+**Integration Readiness:**
+- Ready for Task 10 (Request code endpoint)
+- E.164 format works with verification_codes table schema
+- Return format compatible with auth endpoints
+- Error messages are user-friendly for API responses
+
+### Commands Executed
+
+```bash
+# Install libphonenumber-js dependency
+pnpm add libphonenumber-js --filter @tripful/api
+
+# Run phone validation unit tests
+pnpm --filter @tripful/api test tests/unit/phone.test.ts
+
+# Run all backend unit tests
+pnpm --filter @tripful/api test tests/unit/
+
+# Type checking
+pnpm --filter @tripful/api typecheck
+
+# Linting
+pnpm --filter @tripful/api lint
+
+# Verify dependency installation
+pnpm --filter @tripful/api list | grep libphonenumber-js
+```
+
+### Learnings for Future Iterations
+
+1. **E.164 Format Normalization:** The libphonenumber-js library handles formatting variations (hyphens, spaces, parentheses) automatically and normalizes to E.164, making it practical for real-world usage where users may input numbers in various formats.
+
+2. **Validation Before Parsing:** Using `isValidPhoneNumber()` before `parsePhoneNumber()` prevents unnecessary exceptions and provides cleaner error handling flow.
+
+3. **Test Organization:** Grouping tests by scenario (valid numbers, invalid formats, return structure) with descriptive test names makes test output easy to understand and maintain.
+
+4. **Country Code Requirement:** The implementation correctly assumes country codes are required in input, aligning with E.164 standard. This prevents ambiguity for international applications.
+
+5. **Pure Function Pattern:** The utility is a pure function with no side effects, making it easy to test and reason about. This pattern should be followed for other utilities.
+
+6. **Comprehensive Edge Case Testing:** Testing edge cases like empty strings, invalid characters, formatting variations, and various country codes ensures robustness for production use.
+
+7. **JSDoc Value:** Clear JSDoc with practical examples makes utilities self-documenting and easier to use without constantly referring to implementation details.
+
+8. **First Utils Directory:** This task established the `src/utils/` directory pattern for the API package, setting precedent for future backend-specific utilities.
+
 ### Next Task
 
-Task 4: Phone validation utilities
-- Install libphonenumber-js package in backend
-- Create src/utils/phone.ts with validatePhoneNumber() function
-- Handle all edge cases (invalid formats, missing country codes)
-- Write comprehensive unit tests with various phone formats
+Task 5: Mock SMS service implementation
+- Create src/services/sms.service.ts with ISMSService interface
+- Implement MockSMSService class that logs to console
+- Console output should show phone number, code, and expiry
+- Export singleton instance for use in AuthService
+- Write unit tests to verify console logging
 
