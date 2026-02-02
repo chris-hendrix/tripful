@@ -47,7 +47,7 @@
   - Implement updateProfile() - updates display name and timezone
   - Write unit tests for each method with in-memory database
 
-- [ ] Task 7: JWT token generation and verification
+- [x] Task 7: JWT token generation and verification
   - Add generateToken(user) method to AuthService - creates JWT with 7-day expiry
   - Add verifyToken(token) method to AuthService - validates and returns payload
   - Token payload should include sub (user ID), phone, name (optional), iat, exp

@@ -832,3 +832,206 @@ Task 7: JWT token generation and verification
 - JWTPayload interface already defined (Task 3)
 - This task added User management methods needed for JWT payloads
 
+---
+
+## Iteration 7 - Task 7: JWT Token Generation and Verification
+
+**Status:** ✅ COMPLETED
+
+**Date:** 2026-02-02
+
+### Implementation Summary
+
+Added JWT token generation and verification methods to AuthService:
+- `generateToken(user)` - Creates JWT with 7-day expiry, includes sub (user ID), phone, and optional name
+- `verifyToken(token)` - Validates JWT and returns decoded payload with error handling
+- Token payload structure: `{ sub, phone, name?, iat, exp }`
+- Uses Fastify JWT plugin (@fastify/jwt) already configured in server.ts
+
+### Research Phase (3 Parallel Researchers)
+
+**Researcher 1 (LOCATING):**
+- Located AuthService implementation file and test file
+- Found JWTPayload interface in types/index.ts (already defined in Task 3)
+- Identified JWT plugin registration in server.ts (configured in Task 3)
+- Mapped out where to add new methods (interface + class)
+
+**Researcher 2 (ANALYZING):**
+- Analyzed JWT plugin configuration (HS256, 7-day expiry, auth_token cookie)
+- Mapped data flow: User → JWTPayload → jwt.sign() → token string
+- Identified need to pass FastifyInstance to AuthService for JWT operations
+- Documented jwt.sign() and jwt.verify() API usage
+
+**Researcher 3 (PATTERNS):**
+- Found service method patterns (async with Promise returns, JSDoc documentation)
+- Identified test patterns (describe blocks, afterEach cleanup, mock time-sensitive data)
+- Documented error handling conventions (throw Error for critical failures)
+- Found naming conventions (verb-first method names, explicit return types)
+
+### Implementation Phase
+
+**Files Modified:**
+1. `/home/chend/git/tripful/apps/api/src/services/auth.service.ts` (+66 lines)
+   - Updated constructor to accept optional FastifyInstance parameter
+   - Added generateToken() method with JSDoc
+   - Added verifyToken() method with error handling
+   - Updated IAuthService interface with new method signatures
+
+2. `/home/chend/git/tripful/apps/api/tests/unit/auth.service.test.ts` (+426 lines)
+   - Added 6 tests for generateToken() (valid tokens, complete/incomplete profiles, expiry, error cases)
+   - Added 7 tests for verifyToken() (valid, expired, invalid, malformed tokens, error cases)
+   - Added 2 integration tests (round-trip verification, complete auth flow)
+   - Total: 15 new tests, all passing
+
+**Key Implementation Details:**
+- Constructor accepts `fastify?: FastifyInstance` for dependency injection
+- generateToken() maps User fields to JWTPayload (id→sub, phoneNumber→phone, displayName→name)
+- Conditional spread operator omits `name` field when displayName is empty
+- verifyToken() wraps jwt.verify() in try-catch for proper error handling
+- Both methods throw errors when FastifyInstance is unavailable
+
+### Verification Phase (Parallel Verifier + Reviewer)
+
+**Initial Verification Results:**
+- ❌ Tests: PASS (43/43 tests in auth.service.test.ts, 86/86 total)
+- ❌ TypeCheck: FAIL (3 TypeScript errors)
+- ❌ Lint: FAIL (1 linting error)
+
+**Issues Found:**
+1. TypeScript error: Constructor property declaration with exactOptionalPropertyTypes
+2. TypeScript error: Optional name property assignment (string | undefined not assignable)
+3. TypeScript error: JWT payload type mismatch with jwt.sign()
+4. Linting error: Unused variable `now` in test file
+
+**Reviewer Assessment:** NEEDS_WORK
+- Excellent implementation with comprehensive tests
+- Clean architecture and proper error handling
+- TypeScript errors blocking merge (strict optional property handling)
+
+### Fix Phase
+
+**TypeScript Fixes Applied:**
+1. Changed property declaration from `private fastify?: FastifyInstance` to `private fastify: FastifyInstance | undefined`
+2. Used conditional spread operator for optional name field: `...(user.displayName && { name: user.displayName })`
+3. Added type cast with eslint-disable for jwt.sign() parameter
+4. Removed unused `now` variable from test
+
+**Final Verification Results:**
+- ✅ Tests: PASS (43/43 tests in auth.service.test.ts, 86/86 total)
+- ✅ TypeCheck: PASS (0 errors)
+- ✅ Lint: PASS (0 errors)
+
+### Test Coverage
+
+**Unit Tests (13 tests):**
+- generateToken() with complete user profile
+- generateToken() with incomplete profile (no displayName)
+- Token payload structure verification
+- Token expiry verification (7 days)
+- Error handling when FastifyInstance unavailable
+- Name field omission when displayName empty
+- verifyToken() with valid token
+- verifyToken() with expired token
+- verifyToken() with invalid token format
+- verifyToken() with wrong signature
+- verifyToken() with malformed token
+- verifyToken() error when FastifyInstance unavailable
+- verifyToken() handling optional name field
+
+**Integration Tests (2 tests):**
+- Round-trip token generation and verification
+- Complete auth flow (code generation → user creation → token generation → token verification)
+
+### Learnings
+
+**1. TypeScript exactOptionalPropertyTypes Handling:**
+- With `exactOptionalPropertyTypes: true`, optional properties (`name?: string`) cannot be set to `undefined`
+- Solution: Use conditional spread operator to omit property entirely: `...(value && { key: value })`
+- Alternative: Change type to explicit union: `name?: string | undefined`
+
+**2. Fastify JWT Plugin Integration:**
+- @fastify/jwt expects payload without `iat` and `exp` (auto-added by library)
+- Type signature requires full JWTPayload but runtime doesn't need those fields
+- Use type cast or let TypeScript infer payload type to avoid mismatch
+
+**3. Dependency Injection for Services:**
+- AuthService needs FastifyInstance to access jwt.sign() and jwt.verify()
+- Constructor injection allows testing with mock Fastify instances
+- Singleton export remains compatible (FastifyInstance passed undefined initially)
+
+**4. Testing JWT Expiry:**
+- Use short expiry (1ms) with setTimeout to test expired tokens
+- Manual expiry verification uses time range (beforeStore to afterStore) to account for execution time
+- Integration tests use real Fastify instance with full JWT plugin
+
+**5. Optional Field Handling in JWT Payload:**
+- Empty displayName should omit `name` from token payload (not include undefined)
+- Conditional spread operator is cleaner than `|| undefined` for TypeScript strict mode
+- Keeps token payload minimal and type-safe
+
+### Integration Notes
+
+**Ready for Next Tasks:**
+- Task 8: Authentication middleware can now use verifyToken() to validate tokens
+- Task 11: Verify code endpoint can use generateToken() after successful verification
+- Task 12: Complete profile endpoint can regenerate tokens with updated displayName
+
+**Dependencies Satisfied:**
+- ✅ Fastify JWT plugin registered (Task 3)
+- ✅ JWT secret configured (Task 3)
+- ✅ JWTPayload interface defined (Task 3)
+- ✅ User type available from schema (Task 1)
+- ✅ AuthService has user management methods (Task 6)
+
+**Service API:**
+```typescript
+import { authService } from '@/services/auth.service.js';
+import { fastify } from './server.js'; // Need to pass Fastify instance
+
+// Initialize service with Fastify instance (do this in server.ts after JWT plugin registration)
+const authServiceWithJWT = new AuthService(fastify);
+
+// Generate token
+const token = authServiceWithJWT.generateToken(user); // Returns JWT string
+
+// Verify token
+const payload = authServiceWithJWT.verifyToken(token); // Returns JWTPayload or throws
+```
+
+### Next Task
+
+**Task 8: Authentication middleware**
+- Create `src/middleware/auth.middleware.ts` with authenticate() function
+- Extract token from auth_token cookie
+- Verify token using Fastify JWT plugin (request.server.jwt.verify)
+- Attach { id, phoneNumber } to request.user
+- Return 401 error for missing/invalid tokens
+- Create requireCompleteProfile() middleware for profile check
+- Write integration tests (valid/invalid/missing tokens)
+
+**Preparation for Task 8:**
+- JWT verification already available via AuthService.verifyToken() or directly via Fastify JWT
+- JWTPayload interface includes sub and phone for request.user
+- Error codes defined in ARCHITECTURE.md (UNAUTHORIZED, PROFILE_INCOMPLETE)
+- Cookie name configured: auth_token (from Task 3)
+
+### Statistics
+
+**Implementation:**
+- Files modified: 2
+- Lines added: 492 (66 implementation + 426 tests)
+- Methods added: 2 (generateToken, verifyToken)
+- Tests added: 15 (13 unit + 2 integration)
+
+**Verification:**
+- Initial verification: 3 TypeScript errors, 1 lint error
+- Fixes applied: 4
+- Final verification: All checks pass
+- Total test count: 86 tests passing
+
+**Time Breakdown:**
+- Research phase: 3 parallel researchers
+- Implementation phase: Initial code + tests
+- Verification phase: Parallel verifier + reviewer
+- Fix phase: TypeScript strict mode adjustments
+- Re-verification phase: Final checks

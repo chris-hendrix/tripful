@@ -1,8 +1,12 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import Fastify from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import jwt from '@fastify/jwt';
 import { db } from '@/config/database.js';
 import { users, verificationCodes } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
-import { authService } from '@/services/auth.service.js';
+import { authService, AuthService } from '@/services/auth.service.js';
+import { env } from '@/config/env.js';
 
 describe('auth.service', () => {
   const testPhoneNumber = '+15551234567';
@@ -456,6 +460,425 @@ describe('auth.service', () => {
         .where(eq(verificationCodes.phoneNumber, testPhoneNumber));
       expect(allCodes).toHaveLength(1);
       expect(allCodes[0].code).toBe(code2);
+    });
+  });
+
+  describe('generateToken', () => {
+    let app: FastifyInstance;
+    let testAuthService: AuthService;
+    const testUserId = '123e4567-e89b-12d3-a456-426614174000';
+
+    afterEach(async () => {
+      if (app) {
+        await app.close();
+      }
+    });
+
+    it('should generate a valid JWT token for user with complete profile', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create test user
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      await authService.updateProfile(user.id, {
+        displayName: 'Test User',
+        timezone: 'America/New_York',
+      });
+      const updatedUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      const token = testAuthService.generateToken(updatedUser[0]);
+
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+      expect(token.split('.')).toHaveLength(3); // JWT format: header.payload.signature
+    });
+
+    it('should generate a valid JWT token for user with incomplete profile', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create test user with default values (empty displayName)
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+
+      const token = testAuthService.generateToken(user);
+
+      expect(token).toBeDefined();
+      expect(typeof token).toBe('string');
+      expect(token.split('.')).toHaveLength(3);
+    });
+
+    it('should include correct payload in generated token', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create test user
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      await authService.updateProfile(user.id, { displayName: 'John Doe' });
+      const updatedUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      const token = testAuthService.generateToken(updatedUser[0]);
+      const decoded = app.jwt.verify(token);
+
+      expect(decoded.sub).toBe(updatedUser[0].id);
+      expect(decoded.phone).toBe(testPhoneNumber);
+      expect(decoded.name).toBe('John Doe');
+      expect(decoded.iat).toBeDefined();
+      expect(decoded.exp).toBeDefined();
+    });
+
+    it('should set token expiry to 7 days from now', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      const beforeGenerate = Math.floor(Date.now() / 1000);
+
+      const token = testAuthService.generateToken(user);
+      const decoded = app.jwt.verify(token);
+
+      const afterGenerate = Math.floor(Date.now() / 1000);
+      const expectedExpiry = beforeGenerate + 7 * 24 * 60 * 60; // 7 days in seconds
+      const expectedExpiryMax = afterGenerate + 7 * 24 * 60 * 60;
+
+      expect(decoded.exp).toBeGreaterThanOrEqual(expectedExpiry);
+      expect(decoded.exp).toBeLessThanOrEqual(expectedExpiryMax);
+    });
+
+    it('should throw error when FastifyInstance not available', () => {
+      const serviceWithoutFastify = new AuthService();
+      const mockUser = {
+        id: testUserId,
+        phoneNumber: testPhoneNumber,
+        displayName: 'Test User',
+        profilePhotoUrl: null,
+        timezone: 'UTC',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      expect(() => serviceWithoutFastify.generateToken(mockUser)).toThrow(
+        'FastifyInstance not available'
+      );
+    });
+
+    it('should omit name field when displayName is empty', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create user with empty displayName
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+
+      const token = testAuthService.generateToken(user);
+      const decoded = app.jwt.verify(token);
+
+      expect(decoded.name).toBeUndefined();
+      expect(decoded.sub).toBeDefined();
+      expect(decoded.phone).toBeDefined();
+    });
+  });
+
+  describe('verifyToken', () => {
+    let app: FastifyInstance;
+    let testAuthService: AuthService;
+
+    afterEach(async () => {
+      if (app) {
+        await app.close();
+      }
+    });
+
+    it('should verify a valid token and return payload', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create user and generate token
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      await authService.updateProfile(user.id, { displayName: 'Test User' });
+      const updatedUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      const token = testAuthService.generateToken(updatedUser[0]);
+
+      // Verify token
+      const payload = testAuthService.verifyToken(token);
+
+      expect(payload).toBeDefined();
+      expect(payload.sub).toBe(updatedUser[0].id);
+      expect(payload.phone).toBe(testPhoneNumber);
+      expect(payload.name).toBe('Test User');
+      expect(payload.iat).toBeDefined();
+      expect(payload.exp).toBeDefined();
+    });
+
+    it('should throw error for expired token', async () => {
+      // Setup Fastify with JWT for signing with short expiry
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '1ms', algorithm: 'HS256' }, // 1 millisecond
+        verify: { algorithms: ['HS256'] },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create user and generate token with 1ms expiry
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      const token = testAuthService.generateToken(user);
+
+      // Wait for token to expire
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Now verify should fail
+      expect(() => testAuthService.verifyToken(token)).toThrow('Token verification failed');
+    });
+
+    it('should throw error for invalid token format', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      const invalidToken = 'this.is.not.a.valid.jwt';
+
+      expect(() => testAuthService.verifyToken(invalidToken)).toThrow('Token verification failed');
+    });
+
+    it('should throw error for token with wrong signature', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create a token with different secret
+      const differentSecretApp = Fastify({ logger: false });
+      await differentSecretApp.register(jwt, {
+        secret: 'different-secret-key-for-testing-purposes-only',
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await differentSecretApp.ready();
+
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      const tokenWithWrongSignature = differentSecretApp.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      await differentSecretApp.close();
+
+      expect(() => testAuthService.verifyToken(tokenWithWrongSignature)).toThrow(
+        'Token verification failed'
+      );
+    });
+
+    it('should throw error for malformed token', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      const malformedToken = 'not-a-token';
+
+      expect(() => testAuthService.verifyToken(malformedToken)).toThrow('Token verification failed');
+    });
+
+    it('should throw error when FastifyInstance not available', () => {
+      const serviceWithoutFastify = new AuthService();
+
+      expect(() => serviceWithoutFastify.verifyToken('any-token')).toThrow(
+        'FastifyInstance not available'
+      );
+    });
+
+    it('should handle token without name field (optional field)', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create user with empty displayName
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+
+      const token = testAuthService.generateToken(user);
+      const payload = testAuthService.verifyToken(token);
+
+      expect(payload.sub).toBe(user.id);
+      expect(payload.phone).toBe(testPhoneNumber);
+      expect(payload.name).toBeUndefined();
+    });
+  });
+
+  describe('integration: token round-trip', () => {
+    let app: FastifyInstance;
+    let testAuthService: AuthService;
+
+    afterEach(async () => {
+      if (app) {
+        await app.close();
+      }
+    });
+
+    it('should successfully generate and verify a token round-trip', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        verify: { algorithms: ['HS256'] },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // Create user with full profile
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      await authService.updateProfile(user.id, {
+        displayName: 'Integration Test User',
+        timezone: 'Europe/London',
+      });
+      const updatedUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1);
+
+      // Generate token
+      const token = testAuthService.generateToken(updatedUser[0]);
+      expect(token).toBeDefined();
+
+      // Verify token
+      const payload = testAuthService.verifyToken(token);
+
+      // Verify all fields match
+      expect(payload.sub).toBe(updatedUser[0].id);
+      expect(payload.phone).toBe(updatedUser[0].phoneNumber);
+      expect(payload.name).toBe('Integration Test User');
+      expect(payload.iat).toBeDefined();
+      expect(payload.exp).toBeDefined();
+
+      // Verify expiry is approximately 7 days from now
+      const sevenDays = 7 * 24 * 60 * 60;
+      expect(payload.exp - payload.iat).toBeCloseTo(sevenDays, -2); // Within ~100 seconds
+    });
+
+    it('should handle complete auth flow with token generation', async () => {
+      // Setup Fastify with JWT
+      app = Fastify({ logger: false });
+      await app.register(jwt, {
+        secret: env.JWT_SECRET,
+        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        verify: { algorithms: ['HS256'] },
+      });
+      await app.ready();
+
+      testAuthService = new AuthService(app);
+
+      // 1. Generate and store verification code
+      const code = authService.generateCode();
+      await authService.storeCode(testPhoneNumber, code);
+
+      // 2. Verify code
+      const isValid = await authService.verifyCode(testPhoneNumber, code);
+      expect(isValid).toBe(true);
+
+      // 3. Get or create user
+      const user = await authService.getOrCreateUser(testPhoneNumber);
+      expect(user.phoneNumber).toBe(testPhoneNumber);
+
+      // 4. Delete verification code
+      await authService.deleteCode(testPhoneNumber);
+
+      // 5. Generate JWT token
+      const token = testAuthService.generateToken(user);
+      expect(token).toBeDefined();
+
+      // 6. Verify JWT token
+      const payload = testAuthService.verifyToken(token);
+      expect(payload.sub).toBe(user.id);
+      expect(payload.phone).toBe(testPhoneNumber);
+
+      // 7. Update profile
+      await authService.updateProfile(user.id, {
+        displayName: 'Complete Flow User',
+      });
+
+      // 8. Verify token still works after profile update
+      const payloadAfterUpdate = testAuthService.verifyToken(token);
+      expect(payloadAfterUpdate.sub).toBe(user.id);
     });
   });
 });

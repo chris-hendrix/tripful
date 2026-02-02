@@ -1,6 +1,8 @@
 import { randomInt } from 'node:crypto';
+import type { FastifyInstance } from 'fastify';
 import { db } from '@/config/database.js';
 import { users, verificationCodes, type User } from '@/db/schema/index.js';
+import type { JWTPayload } from '@/types/index.js';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -53,6 +55,21 @@ export interface IAuthService {
    * @returns Promise that resolves to the updated user record
    */
   updateProfile(userId: string, data: { displayName?: string; timezone?: string }): Promise<User>;
+
+  /**
+   * Generates a JWT token for a user
+   * @param user - The user to generate a token for
+   * @returns The signed JWT token string
+   */
+  generateToken(user: User): string;
+
+  /**
+   * Verifies a JWT token and returns the decoded payload
+   * @param token - The JWT token string to verify
+   * @returns The decoded JWT payload
+   * @throws Error if token is invalid or expired
+   */
+  verifyToken(token: string): JWTPayload;
 }
 
 /**
@@ -60,6 +77,11 @@ export interface IAuthService {
  * Handles verification code generation, storage, and user management
  */
 export class AuthService implements IAuthService {
+  private fastify: FastifyInstance | undefined;
+
+  constructor(fastify?: FastifyInstance) {
+    this.fastify = fastify;
+  }
   /**
    * Generates a random 6-digit numeric verification code
    * Uses crypto.randomInt for secure random number generation
@@ -203,6 +225,48 @@ export class AuthService implements IAuthService {
     }
 
     return result[0];
+  }
+
+  /**
+   * Generates a JWT token for a user with 7-day expiry
+   * Token payload includes user ID, phone number, and optional display name
+   * @param user - The user to generate a token for
+   * @returns The signed JWT token string
+   */
+  generateToken(user: User): string {
+    if (!this.fastify) {
+      throw new Error('FastifyInstance not available');
+    }
+
+    const payload = {
+      sub: user.id,
+      phone: user.phoneNumber,
+      ...(user.displayName && { name: user.displayName }),
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.fastify.jwt.sign(payload as any);
+  }
+
+  /**
+   * Verifies a JWT token and returns the decoded payload
+   * @param token - The JWT token string to verify
+   * @returns The decoded JWT payload
+   * @throws Error if token is invalid, expired, or malformed
+   */
+  verifyToken(token: string): JWTPayload {
+    if (!this.fastify) {
+      throw new Error('FastifyInstance not available');
+    }
+
+    try {
+      return this.fastify.jwt.verify<JWTPayload>(token);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Token verification failed: ${error.message}`);
+      }
+      throw new Error('Token verification failed');
+    }
   }
 }
 
