@@ -487,3 +487,103 @@ Task 3.2 is complete. The next task is **4.1 Create complete Next.js frontend wi
 - Linting configuration not yet set up (noted in project, will be added in Task 6.1)
 
 ---
+
+---
+
+## Ralph Iteration 5 - Task 4.1: Create complete Next.js frontend with UI components
+
+**Date**: 2026-02-01
+**Task**: 4.1 Create complete Next.js frontend with UI components
+**Status**: ✅ COMPLETE
+
+### Implementation Summary
+
+Successfully created the complete Next.js 16 frontend application in `apps/web/` with all required components and configurations.
+
+### Research Phase
+
+Spawned 3 researchers in parallel:
+1. **LOCATING**: Identified that `apps/web/` did not exist and documented complete file structure needed
+2. **ANALYZING**: Mapped dependency flow, path aliases, environment variables, and CORS configuration
+3. **PATTERNS**: Discovered Next.js 16 conventions, Tailwind 4 patterns, and shadcn/ui configuration requirements
+
+### Implementation Phase
+
+**Coder** created complete frontend infrastructure with 16 files:
+
+**Configuration Files:**
+- `package.json` - Next.js 16, React 19, Tailwind 4, shadcn/ui dependencies
+- `tsconfig.json` - Extended base config with bundler moduleResolution and path aliases
+- `next.config.ts` - Next.js configuration with transpilePackages for shared package
+- `postcss.config.mjs` - PostCSS with @tailwindcss/postcss plugin
+- `components.json` - shadcn/ui config (new-york style, slate baseColor, RSC enabled)
+- `.eslintrc.json` - ESLint configuration for Next.js
+- `.gitignore` - Git ignore rules
+- `.env.local.example` - Environment variable documentation
+
+**Application Code:**
+- `src/app/layout.tsx` - Root layout with metadata
+- `src/app/page.tsx` - Welcome page centered with Tailwind
+- `src/app/globals.css` - Tailwind v4 with @theme directive
+
+**Utilities:**
+- `src/lib/utils.ts` - cn() helper for className merging
+- `src/lib/api.ts` - API client utilities
+
+**UI Components:**
+- `src/components/ui/button.tsx` - Button with variants
+- `src/components/ui/input.tsx` - Input component
+- `src/components/ui/form.tsx` - Form with react-hook-form integration
+- `src/components/ui/label.tsx` - Label component
+
+### Verification and Review Phase
+
+**Initial Verification Issues:**
+- ❌ Linting failed - Next.js 16 removed `next lint` command
+- ❌ Path aliases pointed to wrong directory
+
+**Fixes Applied:**
+1. Fixed path aliases in tsconfig.json to correct `@shared/*` paths
+2. Created `.eslintrc.json` with Next.js config
+3. Updated package.json lint script to use `eslint .` directly
+4. Fixed React import in layout.tsx
+
+### Final Verification Results
+
+All acceptance criteria passed:
+- ✅ `pnpm --filter @tripful/web install` succeeds
+- ✅ `pnpm --filter @tripful/web dev` starts on port 3000
+- ✅ `pnpm --filter @tripful/web lint` passes (0 errors)
+- ✅ `pnpm --filter @tripful/web typecheck` passes (0 errors)
+- ✅ `pnpm --filter @tripful/web build` succeeds (~1.5s)
+- ✅ shadcn/ui components installed correctly
+- ✅ Welcome page renders with Tailwind styling
+- ✅ Hot reload works (Turbopack dev server)
+
+### Key Learnings
+
+1. **Next.js 16 Breaking Change**: The `next lint` command was removed; must use ESLint directly
+2. **Tailwind CSS 4 Syntax**: Uses `@import "tailwindcss"` and `@theme` directive instead of config files
+3. **Path Aliases**: Must specify exact subdirectory paths for shared package, not wildcards
+4. **React 19 Types**: Need explicit `ReactNode` import even though JSX doesn't require React import
+5. **Module Resolution**: Next.js uses "bundler" moduleResolution, not "NodeNext"
+6. **shadcn/ui Pattern**: Components are copied into project, not installed as dependencies
+
+### Performance Metrics
+
+- Type checking: < 1 second
+- Linting: < 1 second
+- Build time: 1.5 seconds (Turbopack)
+- Dev server startup: 477ms
+
+### Integration Points
+
+- Backend API: `NEXT_PUBLIC_API_URL=http://localhost:8000/api`
+- Shared Package: Successfully imports from `@tripful/shared`
+- CORS: Backend configured for http://localhost:3000
+- Turbo: Integrated with monorepo build pipeline
+
+### Next Steps
+
+Task 4.1 complete. Next task is **5.1 Set up Docker Compose and parallel dev servers**.
+

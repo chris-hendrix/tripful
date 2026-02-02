@@ -1,0 +1,27 @@
+# Next.js
+.next
+out
+next-env.d.ts
+
+# Environment
+.env
+.env*.local
+
+# Build outputs
+dist
+build
+.turbo
+
+# Dependencies
+node_modules
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -115,7 +115,7 @@
 
 ## 4. Frontend (Web) - Next.js with shadcn/ui
 
-- [ ] **4.1 Create complete Next.js frontend with UI components**
+- [x] **4.1 Create complete Next.js frontend with UI components**
   - Create `apps/web/` directory
   - Initialize Next.js 16 with create-next-app:
     - TypeScript: Yes, App Router: Yes, Tailwind CSS: Yes, ESLint: Yes
