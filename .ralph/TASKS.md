@@ -10,7 +10,7 @@
   - Add types exports to schema/index.ts
   - Write unit test to verify schema definitions are correct
 
-- [ ] Task 2: Shared validation schemas and types
+- [x] Task 2: Shared validation schemas and types
   - Create `shared/schemas/auth.ts` with Zod schemas (requestCodeSchema, verifyCodeSchema, completeProfileSchema)
   - Create `shared/types/user.ts` with User and AuthResponse interfaces
   - Export all schemas and types from shared package

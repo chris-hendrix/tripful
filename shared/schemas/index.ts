@@ -26,3 +26,13 @@ export const emailSchema = z.string().email({
 export const uuidSchema = z.string().uuid({
   message: 'Invalid UUID format',
 });
+
+// Re-export authentication schemas
+export {
+  requestCodeSchema,
+  verifyCodeSchema,
+  completeProfileSchema,
+  type RequestCodeInput,
+  type VerifyCodeInput,
+  type CompleteProfileInput,
+} from './auth.js';
