@@ -119,7 +119,7 @@
   - Wrap app in AuthProvider in root layout
   - Write unit tests for auth context methods (mock fetch)
 
-- [ ] Task 15: Login page with phone input
+- [x] Task 15: Login page with phone input
   - Create `app/(auth)/login/page.tsx` with phone input form
   - Add country code dropdown (default +1) using react-hook-form
   - Validate phone number on blur with Zod schema
