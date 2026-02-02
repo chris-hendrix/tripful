@@ -248,4 +248,89 @@ export const authController = {
       });
     }
   },
+
+  /**
+   * Get current user endpoint
+   * Returns the authenticated user's profile information
+   * Requires authentication via JWT token
+   *
+   * @route GET /api/auth/me
+   * @middleware authenticate
+   * @param request - Fastify request with authenticated user
+   * @param reply - Fastify reply object
+   * @returns Success response with user data
+   */
+  async getMe(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      // Get userId from authenticated user (populated by authenticate middleware)
+      const userId = request.user.sub;
+
+      // Query database to get full user record
+      const result = await authService.getUserById(userId);
+
+      if (!result) {
+        return reply.status(401).send({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not found',
+          },
+        });
+      }
+
+      // Return success response with user data
+      return reply.status(200).send({
+        success: true,
+        user: result,
+      });
+    } catch (error) {
+      // Log error for debugging
+      request.log.error({ error, userId: request.user.sub }, 'Failed to get current user');
+
+      // Return generic error response
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to get user',
+        },
+      });
+    }
+  },
+
+  /**
+   * Logout endpoint
+   * Clears the authentication token cookie to log out the user
+   * Requires authentication via JWT token
+   *
+   * @route POST /api/auth/logout
+   * @middleware authenticate
+   * @param request - Fastify request with authenticated user
+   * @param reply - Fastify reply object
+   * @returns Success response with logout message
+   */
+  async logout(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      // Clear the auth_token cookie
+      reply.clearCookie('auth_token', { path: '/' });
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        message: 'Logged out successfully',
+      });
+    } catch (error) {
+      // Log error for debugging
+      request.log.error({ error, userId: request.user.sub }, 'Failed to logout');
+
+      // Return generic error response
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to logout',
+        },
+      });
+    }
+  },
 };

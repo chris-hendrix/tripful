@@ -38,4 +38,22 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/complete-profile', {
     preHandler: authenticate
   }, authController.completeProfile);
+
+  /**
+   * GET /me
+   * Get current authenticated user's profile information
+   * Requires authentication via JWT token
+   */
+  fastify.get('/me', {
+    preHandler: authenticate
+  }, authController.getMe);
+
+  /**
+   * POST /logout
+   * Logout user by clearing authentication cookie
+   * Requires authentication via JWT token
+   */
+  fastify.post('/logout', {
+    preHandler: authenticate
+  }, authController.logout);
 }

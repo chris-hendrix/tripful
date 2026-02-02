@@ -102,7 +102,7 @@
   - Return updated user
   - Write integration tests (valid profile, invalid display name, unauthenticated request)
 
-- [ ] Task 13: Get current user and logout endpoints
+- [x] Task 13: Get current user and logout endpoints
   - Add getMe handler to auth.controller.ts - returns current user from request.user
   - Add logout handler - clears auth_token cookie
   - Register GET /auth/me and POST /auth/logout in routes

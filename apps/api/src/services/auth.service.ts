@@ -49,6 +49,13 @@ export interface IAuthService {
   getOrCreateUser(phoneNumber: string): Promise<User>;
 
   /**
+   * Gets a user by their ID
+   * @param userId - The UUID of the user to retrieve
+   * @returns Promise that resolves to the user record or null if not found
+   */
+  getUserById(userId: string): Promise<User | null>;
+
+  /**
    * Updates a user's profile information
    * @param userId - The UUID of the user to update
    * @param data - The profile data to update (displayName and/or timezone)
@@ -195,6 +202,21 @@ export class AuthService implements IAuthService {
     }
 
     return newUserResult[0];
+  }
+
+  /**
+   * Gets a user by their ID
+   * @param userId - The UUID of the user to retrieve
+   * @returns The user record or null if not found
+   */
+  async getUserById(userId: string): Promise<User | null> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    return result[0] || null;
   }
 
   /**
