@@ -11,7 +11,7 @@
 
 ## 1. Monorepo Foundation & Configuration
 
-- [ ] **1.1 Initialize complete monorepo infrastructure**
+- [x] **1.1 Initialize complete monorepo infrastructure**
   - Create `pnpm-workspace.yaml` with apps/* and shared patterns
   - Create root `package.json` with workspace scripts (dev, build, lint, typecheck, test)
   - Install and configure Turbo with `turbo.json` (pipelines for all commands, caching)
