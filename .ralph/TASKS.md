@@ -166,7 +166,7 @@
   - Throws APIError on non-2xx responses
   - Write unit tests for API client (mock fetch, test error handling)
 
-- [ ] Task 20: E2E test for complete auth flow
+- [x] Task 20: E2E test for complete auth flow
   - Write Playwright test that covers full authentication journey
   - Start at login page, enter phone number
   - Navigate to verify page, enter code (use fixed code 123456 in test env)

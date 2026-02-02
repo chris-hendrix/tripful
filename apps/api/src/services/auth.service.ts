@@ -92,9 +92,16 @@ export class AuthService implements IAuthService {
   /**
    * Generates a random 6-digit numeric verification code
    * Uses crypto.randomInt for secure random number generation
+   * In test mode, returns a fixed code for E2E testing
    * @returns A 6-digit string code (e.g., "123456")
    */
   generateCode(): string {
+    // Use fixed code for E2E tests only (not unit tests)
+    // Only check TEST_MODE to avoid breaking unit tests that run with NODE_ENV=test
+    if (process.env.TEST_MODE === 'true') {
+      return '123456';
+    }
+
     // Generate random number between 100000 and 999999 (inclusive)
     return randomInt(100000, 1000000).toString();
   }
