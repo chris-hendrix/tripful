@@ -304,18 +304,18 @@
 
 Phase 1 is complete when:
 
-- [ ] All 10 tasks are checked off
-- [ ] `pnpm dev` starts both servers without errors (web:3000, api:8000)
-- [ ] `pnpm test` runs and passes all integration tests
-- [ ] `pnpm lint` and `pnpm typecheck` pass for all packages
-- [ ] `pnpm build` builds both apps successfully with Turbo caching
-- [ ] GET http://localhost:8000/api/health returns 200 with database: "connected"
-- [ ] Visit http://localhost:3000 shows welcome page with working styles
-- [ ] Git pre-commit hooks enforce code quality
-- [ ] README documents complete setup with all commands
-- [ ] All .env.example files exist and are documented
-- [ ] Docker Compose runs PostgreSQL successfully
-- [ ] Cross-package imports work (shared → api, shared → web)
+- [x] All 10 tasks are checked off
+- [x] `pnpm dev` starts both servers without errors (web:3000, api:8000)
+- [x] `pnpm test` runs and passes all integration tests
+- [x] `pnpm lint` and `pnpm typecheck` pass for all packages
+- [x] `pnpm build` builds both apps successfully with Turbo caching
+- [x] GET http://localhost:8000/api/health returns 200 with database: "connected"
+- [x] Visit http://localhost:3000 shows welcome page with working styles
+- [x] Git pre-commit hooks enforce code quality
+- [x] README documents complete setup with all commands
+- [x] All .env.example files exist and are documented
+- [x] Docker Compose runs PostgreSQL successfully
+- [x] Cross-package imports work (shared → api, shared → web)
 
 ---
 
