@@ -1035,3 +1035,155 @@ const payload = authServiceWithJWT.verifyToken(token); // Returns JWTPayload or 
 - Verification phase: Parallel verifier + reviewer
 - Fix phase: TypeScript strict mode adjustments
 - Re-verification phase: Final checks
+
+---
+
+## Iteration 8: Authentication Middleware
+
+**Date:** 2026-02-02  
+**Task:** Task 8 - Authentication middleware  
+**Status:** ✅ COMPLETE
+
+### Implementation Summary
+
+Created authentication middleware system with two functions:
+1. `authenticate()` - Verifies JWT tokens and populates request.user
+2. `requireCompleteProfile()` - Ensures users have completed their profile setup
+
+**Files Created:**
+- `apps/api/src/middleware/auth.middleware.ts` - Middleware implementation (91 lines)
+- `apps/api/tests/integration/auth.middleware.test.ts` - Comprehensive test suite (440 lines, 10 tests)
+
+**Files Modified:**
+- `apps/api/src/types/index.ts` - Removed conflicting FastifyRequest augmentation
+
+### Research Phase
+
+Spawned 3 parallel researcher agents:
+
+1. **LOCATING Researcher:** Found existing middleware patterns, test locations, JWT plugin configuration, and database query patterns
+2. **ANALYZING Researcher:** Traced JWT flow, payload structure, error handling conventions, and type definitions
+3. **PATTERNS Researcher:** Identified middleware conventions, test patterns, and architecture specifications
+
+Key findings:
+- JWT plugin already registered in server.ts with auth_token cookie support
+- Fastify JWT exposes `request.jwtVerify()` for token verification
+- JWTPayload structure: `{ sub, phone, name?, iat, exp }`
+- Error format: `{ success: false, error: { code, message } }`
+
+### Implementation Details
+
+**authenticate() middleware:**
+- Uses `request.jwtVerify()` to automatically extract and verify tokens from:
+  - `auth_token` cookie (HttpOnly)
+  - `Authorization: Bearer <token>` header
+- Populates `request.user` with full JWTPayload (`sub`, `phone`, `name`, `iat`, `exp`)
+- Returns 401 UNAUTHORIZED for missing/invalid/expired tokens
+- Handles all JWT verification errors gracefully
+
+**requireCompleteProfile() middleware:**
+- Runs after authenticate() middleware
+- Queries database to fetch user by ID (using `request.user.sub`)
+- Validates displayName exists and is not empty/whitespace
+- Returns 403 PROFILE_INCOMPLETE if profile incomplete
+- Returns 401 if not authenticated
+
+### Test Coverage
+
+**10 integration tests written (all passing):**
+
+authenticate() middleware (6 tests):
+- ✅ Valid token in cookie - populates request.user
+- ✅ Valid token in Authorization header - populates request.user
+- ✅ Missing token - returns 401 UNAUTHORIZED
+- ✅ Invalid token format - returns 401 UNAUTHORIZED
+- ✅ Expired token - returns 401 UNAUTHORIZED
+- ✅ Wrong signature - returns 401 UNAUTHORIZED
+
+requireCompleteProfile() middleware (4 tests):
+- ✅ Complete profile - allows request
+- ✅ Empty displayName - returns 403 PROFILE_INCOMPLETE
+- ✅ Whitespace-only displayName - returns 403 PROFILE_INCOMPLETE
+- ✅ Unauthenticated request - returns 401 UNAUTHORIZED
+
+### Verification Results
+
+**Initial Verification:** FAIL
+- TypeScript errors: 4 (module augmentation conflicts)
+- Linting errors: 1 (unused variable)
+- Tests: 96/96 passing
+
+**Issues Found:**
+1. Module augmentation conflict between `@fastify/jwt` and `fastify` modules
+2. Both declared `user` property with different types
+3. Unused error variable in catch block
+
+**Fixes Applied:**
+1. Removed conflicting FastifyRequest augmentation from types/index.ts
+2. Updated middleware to use JWTPayload type directly (request.user.sub, request.user.phone)
+3. Removed unused error variable (changed `catch (error)` to `catch`)
+4. Updated test assertions to expect JWTPayload format
+
+**Final Verification:** ✅ PASS
+- TypeScript: 0 errors
+- Linting: 0 errors
+- Tests: 96/96 passing (including 10 new middleware tests)
+
+### Reviewer Assessment
+
+**Status:** APPROVED - Production ready
+
+**Strengths:**
+- Excellent pattern adherence (follows error.middleware.ts conventions)
+- Proper type safety with JWTPayload integration
+- Robust error handling with try-catch
+- Comprehensive test coverage with edge cases
+- Architecture alignment (matches ARCHITECTURE.md specs)
+- Clean, readable implementation
+
+**Code Quality:**
+- Clear descriptive comments
+- Edge case handling (whitespace-only names with .trim())
+- Defensive programming (checks if user exists in DB)
+- Proper database cleanup in tests
+
+### Statistics
+
+**Code Written:**
+- Implementation: 91 lines (auth.middleware.ts)
+- Tests: 440 lines (auth.middleware.test.ts)
+- Type definitions: Modified existing file
+- Total: 531 lines
+
+**Tests:**
+- New tests: 10 integration tests
+- Total passing: 96 tests
+- Test duration: ~1.26s
+
+**Time Breakdown:**
+- Research phase: 3 parallel researchers
+- Implementation phase: Initial code + tests
+- Verification phase: Parallel verifier + reviewer
+- Fix phase: Type system adjustments (module augmentation conflicts)
+- Re-verification phase: Final checks
+
+### Key Learnings
+
+1. **Module Augmentation Conflicts:** When multiple module augmentations declare the same property with different types, TypeScript requires exact type matches. Solution: Use the type from the primary plugin (@fastify/jwt) directly.
+
+2. **JWTPayload vs Simplified User:** Initially tried to transform JWTPayload to a simplified `{ id, phoneNumber }` format, but this created type conflicts. Better approach: Use JWTPayload directly throughout the application.
+
+3. **Test Setup Pattern:** Created custom `buildTestApp()` function to register routes before `app.ready()` - avoids "already listening" errors when registering test routes.
+
+4. **Expired Token Testing:** Use minimal expiry (1ms) with small wait (10ms) to test token expiration without slowing tests.
+
+5. **Database Cleanup:** Use try-finally blocks in tests to ensure cleanup even on failure, preventing test pollution.
+
+### Next Task
+
+Task 9: Rate limiting configuration
+- Create rate-limit.middleware.ts with smsRateLimitConfig
+- Configure @fastify/rate-limit with 5 max per hour
+- Use phone number as key (fallback to IP)
+- Custom error response with RATE_LIMIT_EXCEEDED code
+- Write integration tests (6th request fails)

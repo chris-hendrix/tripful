@@ -53,7 +53,7 @@
   - Token payload should include sub (user ID), phone, name (optional), iat, exp
   - Write unit tests for token generation and verification (valid/expired/invalid tokens)
 
-- [ ] Task 8: Authentication middleware
+- [x] Task 8: Authentication middleware
   - Create `src/middleware/auth.middleware.ts` with authenticate() function
   - Extract token from auth_token cookie
   - Verify token using Fastify JWT plugin
