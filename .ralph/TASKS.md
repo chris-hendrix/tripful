@@ -30,7 +30,7 @@
   - Handle all edge cases (invalid formats, missing country codes, etc.)
   - Write comprehensive unit tests with various phone formats (US, international, invalid)
 
-- [ ] Task 5: Mock SMS service implementation
+- [x] Task 5: Mock SMS service implementation
   - Create `src/services/sms.service.ts` with ISMSService interface
   - Implement MockSMSService class that logs to console with clear formatting
   - Console output should show phone number, code, and expiry (5 minutes)

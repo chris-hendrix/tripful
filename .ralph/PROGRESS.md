@@ -530,3 +530,136 @@ Task 5: Mock SMS service implementation
 - Export singleton instance for use in AuthService
 - Write unit tests to verify console logging
 
+---
+
+## Iteration 5: Task 5 - Mock SMS Service Implementation
+**Date:** 2026-02-02
+**Status:** ✅ COMPLETED
+**Task:** Mock SMS service implementation
+
+### Summary
+Successfully implemented the Mock SMS service for simulating SMS verification code delivery during development. The service logs verification codes to the console with clear, formatted output instead of actually sending SMS messages. This provides a cost-effective and practical solution for MVP development while maintaining the same interface that a real SMS provider would use.
+
+### Implementation Details
+
+**Files Created:**
+1. `/home/chend/git/tripful/apps/api/src/services/sms.service.ts` (41 lines)
+   - Defined `ISMSService` interface with `sendVerificationCode(phoneNumber: string, code: string): Promise<void>` method
+   - Implemented `MockSMSService` class that implements the interface
+   - Console output format matches specification exactly with Unicode box drawing characters (━) and SMS emoji (📱)
+   - Exported singleton instance `smsService` for application-wide use
+   - Comprehensive JSDoc documentation on interface and class
+
+2. `/home/chend/git/tripful/apps/api/tests/unit/sms.service.test.ts` (79 lines)
+   - 7 comprehensive test cases covering all requirements
+   - Proper Vitest spy pattern for console.log with cleanup
+   - Tests verify exact console output format (6 log calls)
+   - Tests verify all required elements: phone, code, expiry, borders, emoji
+   - Test data uses E.164 format: `+14155552671` with code `123456`
+
+**Console Output Format:**
+```
+\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 SMS Verification Code
+Phone: +14155552671
+Code: 123456
+Expires: 5 minutes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n
+```
+
+### Research Phase
+
+Spawned 3 researcher agents in parallel:
+1. **Researcher 1 (LOCATING):** Located services directory structure, identified target file paths, found existing service examples
+2. **Researcher 2 (ANALYZING):** Analyzed ARCHITECTURE.md requirements, interface structure, console output format specifications
+3. **Researcher 3 (PATTERNS):** Documented Vitest testing patterns, console.log spying patterns, TypeScript conventions, import patterns
+
+Key findings:
+- Services directory exists at `apps/api/src/services/`
+- Tests use Vitest with `vi.spyOn(console, 'log').mockImplementation()` pattern
+- Import paths require `.js` extensions (ES modules)
+- Use `@/` alias for internal imports
+- Console output requires 6 separate log calls for proper formatting
+
+### Verification Results
+
+**Unit Tests: PASS**
+- Command: `pnpm --filter @tripful/api test tests/unit/sms.service.test.ts`
+- Results: 7/7 tests passed (100%)
+- Duration: 15ms
+
+**All Backend Unit Tests: PASS**
+- 4 test files: sms.service, jwt-config, phone, schema
+- Total: 34 tests passed, 0 failures
+- Duration: 79ms
+
+**Type Checking: PASS**
+- Command: `pnpm --filter @tripful/api typecheck`
+- Result: No TypeScript errors
+
+**Linting: PASS**
+- Command: `pnpm --filter @tripful/api lint`
+- Result: No linting errors
+
+### Code Review Results
+
+**Status:** APPROVED (Production-ready)
+
+**Strengths:**
+- Perfect architecture compliance with ARCHITECTURE.md specification
+- High-quality implementation with proper TypeScript typing
+- Excellent test coverage (7 comprehensive test cases)
+- Follows all codebase conventions and patterns
+- Easy to swap with real SMS provider later (interface pattern)
+- Clean, readable code with no unnecessary complexity
+
+**Issues:** None
+
+**Ready for Integration:** Yes - AuthService (Task 6) can import and use `smsService.sendVerificationCode()` immediately
+
+### Commands Executed
+
+```bash
+# Run SMS service unit tests
+pnpm --filter @tripful/api test tests/unit/sms.service.test.ts
+
+# Run all backend unit tests
+pnpm --filter @tripful/api test tests/unit/
+
+# Type checking
+pnpm --filter @tripful/api typecheck
+
+# Linting
+pnpm --filter @tripful/api lint
+```
+
+### Learnings for Future Iterations
+
+1. **Interface Pattern for Flexibility:** Using an interface (ISMSService) makes it trivial to swap implementations later. The mock service can be replaced with a real SMS provider (Twilio, AWS SNS, etc.) by simply implementing the same interface and changing the singleton export.
+
+2. **Console Output Formatting:** The specification required 5 console.log calls initially, but the implementation uses 6 calls with newlines embedded in the first and last calls. This produces the exact visual output specified while maintaining clean separation of concerns.
+
+3. **Singleton Export Pattern:** Exporting a singleton instance (`export const smsService = new MockSMSService()`) makes the service ready for dependency injection and ensures consistent usage across the application.
+
+4. **Test Spy Pattern:** Using `vi.spyOn(console, 'log').mockImplementation(() => {})` suppresses console output during tests while still allowing verification of what would have been logged. This keeps test output clean.
+
+5. **E.164 Phone Format:** Tests use E.164 format (`+14155552671`) which is the international standard and matches the phone validation utility from Task 4. This ensures consistency across the authentication system.
+
+6. **Comprehensive Test Coverage:** The 7 test cases cover existence, call count, and specific output elements (phone, code, expiry, borders, emoji). This approach verifies behavior without being brittle to implementation changes.
+
+7. **JSDoc Value for Interfaces:** Clear JSDoc on both the interface and implementation class makes it self-documenting and easier for future developers to understand the contract and usage.
+
+8. **Mock Services for MVP:** Using mock services during MVP development (console logging instead of real SMS) reduces costs, simplifies testing, and speeds up development without compromising the final architecture.
+
+### Next Task
+
+Task 6: Authentication service with code management
+- Create src/services/auth.service.ts with AuthService class
+- Implement generateCode() - returns 6-digit random numeric string
+- Implement storeCode() - inserts/updates verification_codes table with 5-min expiry
+- Implement verifyCode() - checks code exists, matches, and not expired
+- Implement deleteCode() - removes code after successful verification
+- Implement getOrCreateUser() - finds or creates user by phone number
+- Implement updateProfile() - updates display name and timezone
+- Write unit tests for each method with in-memory database
+
