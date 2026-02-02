@@ -129,7 +129,7 @@
   - Apply auth layout styling from DESIGN.md (dark gradient background, white card)
   - Write E2E test with Playwright (submit valid phone, navigate to verify page)
 
-- [ ] Task 16: Verification page with code input
+- [x] Task 16: Verification page with code input
   - Create `app/(auth)/verify/page.tsx` with 6-digit code input
   - Read phone number from query param
   - Display phone number in bold above input

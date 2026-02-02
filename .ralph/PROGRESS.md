@@ -1338,3 +1338,143 @@ Implemented login page with phone input form at `apps/web/src/app/(auth)/login/p
 - **Tests Added**: 10
 - **Test Pass Rate**: 100% (23/23)
 - **Time Estimate**: ~2 hours (research + implementation + testing)
+
+---
+
+## Iteration 16: Task 16 - Verification page with code input
+
+### Status: ✅ COMPLETE
+
+### Summary
+
+Successfully implemented the verification page (`/verify`) where users enter the 6-digit SMS code. The page reads the phone number from URL query params, provides a monospace code input with auto-focus, and handles verification with proper error handling and conditional redirects.
+
+### Implementation Details
+
+**Files Created:**
+1. `apps/web/src/app/(auth)/verify/page.tsx` - Verification page component
+2. `apps/web/src/app/(auth)/verify/page.test.tsx` - Comprehensive unit tests (22 tests)
+
+**Files Modified:**
+1. `apps/web/vitest.config.ts` - Fixed @tripful/shared alias (pointed to wrong directory)
+2. `apps/web/src/app/(auth)/verify/page.tsx` - Fixed ref conflict in Input component
+
+**Key Features:**
+1. **Phone Display**: Reads phone from URL query param and displays in bold
+2. **Code Input**: 6-digit input with monospace font, centered, tracking-widest styling
+3. **Auto-focus**: Input automatically focused on mount using useRef + useEffect
+4. **Form Validation**: Uses react-hook-form with verifyCodeSchema from @tripful/shared
+5. **Verification Flow**: Calls useAuth().verify() and redirects based on requiresProfile flag
+6. **Error Handling**: Shows inline errors for invalid/expired codes
+7. **Additional Actions**: "Change number" link to /login, "Resend code" button with success message
+8. **Loading States**: Proper disabled states during verification and resend operations
+
+**Styling:**
+- Follows exact patterns from login page (gradient background, white card, rounded-3xl)
+- Custom code input: h-14, text-2xl, font-mono, text-center, tracking-widest
+- Gradient button: blue-600 → cyan-600 with shadow effects
+- Consistent spacing and animation (animate-in fade-in slide-in-from-bottom-4)
+
+### Testing Results
+
+**Unit Tests: ✅ PASS (45/45)**
+- Auth provider: 13 tests passing
+- Login page: 10 tests passing
+- Verify page: 22 tests passing (NEW)
+
+**Test Coverage:**
+- Form rendering and phone display
+- Form validation (6-digit requirement, digits-only)
+- Successful verification with both redirect paths (requiresProfile true/false)
+- Error handling (invalid code, expired code, resend failures)
+- Loading states (disabled buttons during submission)
+- UX features (auto-focus, input clearing after resend, maxLength limit)
+- Navigation (Change number link, Resend code button)
+
+**Type Checking: ✅ PASS**
+- No TypeScript errors
+- Fixed ref conflict using callback ref pattern
+
+**Linting: ✅ PASS**
+- No ESLint errors or warnings
+
+### Verification Report
+
+**Verifier Status: ✅ PASS**
+- All unit tests passing (45/45)
+- Type checking passing
+- Linting passing
+- Shared package tests passing (46 tests)
+
+**Reviewer Status: ✅ APPROVED**
+- All requirements from TASKS.md met
+- Follows established patterns from login page
+- Comprehensive test coverage
+- Good UX design with loading states and success messages
+- Proper error handling and validation
+- Production-ready code
+
+### Requirements Checklist
+
+- ✅ Create `app/(auth)/verify/page.tsx` with 6-digit code input
+- ✅ Read phone number from query param
+- ✅ Display phone number in bold above input
+- ✅ Auto-focus input on mount
+- ✅ Monospace, centered, tracking-widest styling
+- ✅ Call useAuth().verify() on submit
+- ✅ If requiresProfile true, redirect to /complete-profile
+- ✅ Else redirect to /dashboard
+- ✅ Add "Change number" link (back to login) and "Resend code" link
+- ✅ Show error for invalid/expired code
+- ✅ Write comprehensive tests (22 tests covering all scenarios)
+
+### Learnings
+
+1. **Ref Conflicts with react-hook-form**: When using both useRef and react-hook-form's field.ref, must use callback ref pattern to merge both refs properly:
+   ```tsx
+   ref={(e) => {
+     field.ref(e);
+     inputRef.current = e;
+   }}
+   ```
+
+2. **Vitest Alias Configuration**: The @tripful/shared alias must point to the root of the shared package, not to a subdirectory. Fixed path from `../../shared/types` to `../../shared`.
+
+3. **Query Param Reading**: Use `useSearchParams()` from next/navigation to read URL query parameters in Next.js 13+ client components.
+
+4. **Success Messages via Error State**: Without a dedicated toast system, using `form.setError()` with a success-styled message is an acceptable pattern for displaying transient notifications.
+
+5. **Input Clearing Pattern**: After successful operations like resending code, call `form.setValue('code', '')` to clear the input and provide better UX.
+
+6. **Loading State Management**: Separate state variables (isSubmitting, isResending) provide better control over which action is in progress and which button should be disabled.
+
+7. **Monospace Code Input Styling**: Combining `font-mono text-center tracking-widest` creates an effective code input appearance without needing a specialized OTP component.
+
+8. **Form Error Display**: FormMessage component from shadcn/ui automatically displays errors from react-hook-form state, no manual wiring needed.
+
+9. **Test Query Selectors**: Using `data-slot="form-message"` attribute is more reliable than text content for finding error elements in tests.
+
+10. **Conditional User State**: Auth provider only sets user state when requiresProfile=false, ensuring profile completion flow isn't bypassed.
+
+### Known Issues
+
+None. All verification checks passing.
+
+### Next Steps
+
+**Task 17**: Complete profile page
+- Create `app/(auth)/complete-profile/page.tsx`
+- Display name input (3-50 chars, required)
+- Timezone selector (optional, defaults to browser timezone)
+- Call useAuth().completeProfile() on submit
+- Redirect to /dashboard on success
+- Protected route - must be authenticated
+- Write comprehensive tests
+
+### Statistics
+- **Files Created**: 2
+- **Files Modified**: 2
+- **Lines Added**: ~350
+- **Tests Added**: 22
+- **Test Pass Rate**: 100% (45/45)
+- **Time Estimate**: ~2 hours
