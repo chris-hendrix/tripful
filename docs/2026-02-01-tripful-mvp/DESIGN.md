@@ -238,7 +238,7 @@ topic: Tripful - UI/UX Design Documentation
 │ Dates (optional)                    │
 │ [Oct 12] – [Oct 14, 2026]           │
 │                                     │
-│ Timezone                            │
+│ Preferred Timezone                  │
 │ [Eastern Time (ET)]                 │
 │                                     │
 │ Description                         │
@@ -256,7 +256,7 @@ topic: Tripful - UI/UX Design Documentation
 - **Trip Name**: Required, 3-100 chars, large input
 - **Destination**: Required, with location icon
 - **Dates**: Optional date range picker
-- **Timezone**: Dropdown, defaults to user timezone
+- **Preferred Timezone**: Dropdown, defaults to user timezone
 - **Description**: Textarea, 2000 char limit, preserves line breaks
 - **Cover Image**: File upload (5MB max) or URL input
 
@@ -463,9 +463,10 @@ topic: Tripful - UI/UX Design Documentation
 
 **Event Type Colors**:
 - Travel: Blue (✈️)
-- Accommodation: Purple (🏨)
 - Meal: Amber (🍽️)
 - Activity: Emerald (🎉)
+
+**Note**: Accommodation (🏨 Purple) is a separate entity type with its own form, not an event type.
 
 **FAB**:
 - Position: fixed bottom-8 right-8
@@ -481,8 +482,8 @@ topic: Tripful - UI/UX Design Documentation
 
 **Multi-Day Events**:
 - Events with end dates (e.g., accommodation Oct 12-15)
-- Appear as a card on each day they span
-- Show "Multi-day" badge
+- Appear once on the start date with a "Multi-day" badge showing the date range
+- Do NOT duplicate across each day
 - Typically all-day events (especially accommodation)
 
 ---
@@ -499,7 +500,7 @@ topic: Tripful - UI/UX Design Documentation
 │                                     │
 │ Event Type *                        │
 │ [✈️ Travel] [🍽️ Meal]               │
-│ [🎉 Activity & Other]               │
+│ [🎉 Activity]               │
 │                                     │
 │ Event Name *                        │
 │ [Drive to Key West]                 │
@@ -544,10 +545,10 @@ topic: Tripful - UI/UX Design Documentation
 **Form Sections**:
 
 **Event Type** (required):
-- 3 types only: Travel, Meal, Activity & Other
+- 3 types only: Travel, Meal, Activity
   - Travel: Group transportation (drives, ferries, etc.)
   - Meal: Dining reservations, group meals
-  - Activity & Other: Tours, excursions, activities
+  - Activity: Tours, excursions, activities
 - 3-column grid layout
 - Large touch targets (min h-20)
 - Radio button behavior
@@ -559,13 +560,12 @@ topic: Tripful - UI/UX Design Documentation
 - Emoji icon + label stacked
 - Smooth color transition (200ms)
 
-**Note**: Accommodation and individual traveler arrivals/departures use separate dedicated forms
+**Note**: Accommodation and individual member arrivals/departures use separate dedicated forms
 
 **Event Name** (required):
 - Large input (h-12)
 - Placeholder: Based on event type
   - Travel: "e.g., Flight to Miami"
-  - Accommodation: "e.g., Hilton Downtown"
   - Meal: "e.g., Dinner at Joe's"
   - Activity: "e.g., Boat tour"
 - Character count: 3-200 chars
@@ -574,12 +574,12 @@ topic: Tripful - UI/UX Design Documentation
 **Date** (required):
 - Start date picker: Native or custom with calendar popup
 - Full-width input
-- "Add end date" button below for multi-day events (accommodation, activities)
+- "Add end date" button below for multi-day events (activities)
 - When end date added:
   - Second date picker appears
   - "Remove end date" link to cancel
   - End date must be >= start date
-  - Multi-day events appear as cards on each day in the itinerary
+  - Multi-day events appear once on the start date with a "Multi-day" badge
 
 **Time** (optional):
 - Two-column layout: [Start time] — [End time]
@@ -598,7 +598,6 @@ topic: Tripful - UI/UX Design Documentation
 - Max 500 chars
 - Placeholder changes by type:
   - Travel: "JFK → MIA"
-  - Accommodation: "123 Main St, Miami, FL"
   - Meal: "Restaurant name and address"
   - Activity: "Venue or meeting point"
 
@@ -631,7 +630,7 @@ topic: Tripful - UI/UX Design Documentation
 **Optional Event**:
 - Checkbox with label: "Optional event"
 - Helper text: "Members can choose whether to attend"
-- All events are visible to all accepted travelers (no per-traveler assignment)
+- All events are visible to all accepted members
 
 **Form Actions**:
 - Cancel: Outline button, left-aligned
