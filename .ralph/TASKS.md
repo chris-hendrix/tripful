@@ -109,7 +109,7 @@
   - Both require authenticate middleware
   - Write integration tests (authenticated vs unauthenticated)
 
-- [ ] Task 14: Frontend auth context and provider
+- [x] Task 14: Frontend auth context and provider
   - Install `@tanstack/react-query` in web package
   - Create `app/providers/auth-provider.tsx` with AuthContext and useAuth hook
   - Implement login(), verify(), completeProfile(), logout(), refetch() methods
