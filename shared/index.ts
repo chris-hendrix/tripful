@@ -1,3 +1,10 @@
-// Placeholder file for shared package
-// This will be populated in Task 2.1 with types, schemas, and utils
-export {}
+// Barrel exports for @tripful/shared package
+
+// Types
+export type { ApiResponse, PaginatedResponse, ErrorResponse } from './types/index.js';
+
+// Schemas
+export { phoneNumberSchema, emailSchema, uuidSchema } from './schemas/index.js';
+
+// Utils
+export { convertToUTC, formatInTimeZone } from './utils/index.js';
