@@ -1,638 +1,697 @@
-# Phase 1: Project Setup & Infrastructure - Technical Architecture
+# Phase 2: SMS Authentication - Architecture
 
 ## Overview
 
-Phase 1 establishes the foundational monorepo infrastructure for Tripful MVP. This phase sets up the development environment, build tooling, and basic project structure without implementing business logic. The goal is a working full-stack skeleton with parallel dev servers, database connectivity, and comprehensive testing infrastructure.
+Implement phone-based authentication system with SMS verification codes, JWT token management, and user profile creation. This is the foundation for all user-facing features.
 
-## Technology Stack
+## Goals
 
-### Core Versions (Latest Stable)
+- Enable users to authenticate using phone numbers
+- Generate and validate 6-digit SMS verification codes
+- Issue and verify JWT tokens for session management
+- Create user profiles with display names
+- Protect API endpoints with authentication middleware
+- Implement rate limiting to prevent SMS abuse
 
-- **Node.js**: 22.x LTS
-- **pnpm**: Latest (workspace support)
-- **Turbo**: Latest (monorepo caching)
-- **TypeScript**: 5.x latest
-- **ESLint**: 9.x (flat config)
+## Technical Approach
 
-### Frontend (apps/web)
+### Backend Architecture
 
-- **Framework**: Next.js 16.x latest (App Router)
-- **UI Library**: React 19.x latest
-- **Styling**: Tailwind CSS 4.x latest
-- **Components**: shadcn/ui (Radix UI + Tailwind)
-- **Form Handling**: React Hook Form + Zod
-- **State Management**: TanStack Query v5 (deferred to Phase 2)
+#### 1. Database Schema
 
-### Backend (apps/api)
-
-- **Framework**: Fastify v5.x latest
-- **ORM**: Drizzle ORM v0.36+ latest
-- **Database**: PostgreSQL 16+ (Docker Compose)
-- **Validation**: Zod (shared with frontend)
-- **Plugins**:
-  - `@fastify/cors` - CORS handling
-  - `@fastify/jwt` - JWT authentication
-  - `@fastify/rate-limit` - Rate limiting
-  - `@fastify/swagger` - API documentation (optional)
-
-### Shared (shared/)
-
-- **Validation**: Zod schemas
-- **Types**: TypeScript type definitions
-- **Utils**: Shared utility functions (date formatting, timezone handling)
-
-### Development Tools
-
-- **Testing**: Vitest (unit + integration tests)
-- **Linting**: ESLint 9 flat config
-- **Type Checking**: TypeScript strict mode
-- **Git Hooks**: Husky + lint-staged
-- **Containerization**: Docker + Docker Compose
-
-## Monorepo Structure
-
-```
-tripful/
-├── apps/
-│   ├── web/                      # Next.js frontend
-│   │   ├── app/                  # App Router pages
-│   │   │   ├── layout.tsx        # Root layout
-│   │   │   ├── page.tsx          # Home page
-│   │   │   └── globals.css       # Global styles
-│   │   ├── components/
-│   │   │   └── ui/               # shadcn/ui components
-│   │   ├── lib/
-│   │   │   └── utils.ts          # cn() helper
-│   │   ├── .env                  # Environment variables (gitignored)
-│   │   ├── .env.example          # Example environment variables
-│   │   ├── components.json       # shadcn/ui config
-│   │   ├── next.config.ts        # Next.js configuration
-│   │   ├── tailwind.config.ts    # Tailwind configuration
-│   │   ├── tsconfig.json         # TypeScript config (extends base)
-│   │   ├── postcss.config.mjs    # PostCSS config for Tailwind
-│   │   └── package.json
-│   │
-│   └── api/                      # Fastify backend
-│       ├── src/
-│       │   ├── server.ts         # Fastify app initialization
-│       │   ├── config/
-│       │   │   ├── database.ts   # Drizzle config + connection
-│       │   │   └── env.ts        # Environment variable validation
-│       │   ├── routes/
-│       │   │   └── health.routes.ts  # Health check endpoint
-│       │   ├── controllers/
-│       │   │   └── health.controller.ts
-│       │   ├── services/
-│       │   │   └── health.service.ts
-│       │   ├── middleware/
-│       │   │   └── error.middleware.ts
-│       │   ├── db/
-│       │   │   └── schema/       # Drizzle schema (empty in Phase 1)
-│       │   └── types/
-│       │       └── index.ts
-│       ├── tests/
-│       │   ├── integration/
-│       │   │   ├── health.test.ts
-│       │   │   └── database.test.ts
-│       │   └── setup.ts          # Test environment setup
-│       ├── .env                  # Environment variables (gitignored)
-│       ├── .env.example          # Example environment variables
-│       ├── drizzle.config.ts     # Drizzle Kit configuration
-│       ├── tsconfig.json         # TypeScript config (extends base)
-│       ├── vitest.config.ts      # Vitest configuration
-│       └── package.json
-│
-├── shared/                       # Shared code (monolithic)
-│   ├── types/
-│   │   └── index.ts              # Common TypeScript types
-│   ├── schemas/
-│   │   └── index.ts              # Zod validation schemas
-│   ├── utils/
-│   │   └── index.ts              # Shared utilities
-│   ├── tsconfig.json             # TypeScript config (extends base)
-│   └── package.json
-│
-├── docker-compose.yml            # PostgreSQL service
-├── turbo.json                    # Turbo configuration (caching, pipelines)
-├── pnpm-workspace.yaml           # pnpm workspace definition
-├── tsconfig.base.json            # Base TypeScript config
-├── eslint.config.js              # Root ESLint config (flat)
-├── .husky/                       # Git hooks
-│   └── pre-commit                # Lint + typecheck hook
-├── package.json                  # Root package.json (workspace scripts)
-├── .gitignore                    # Git ignore patterns
-├── README.md                     # Comprehensive setup guide
-└── demo/                         # Design mockups (separate, untouched)
+**Users Table**
+```typescript
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  phoneNumber: varchar('phone_number', { length: 20 }).notNull().unique(),
+  displayName: varchar('display_name', { length: 50 }).notNull(),
+  profilePhotoUrl: text('profile_photo_url'),
+  timezone: varchar('timezone', { length: 100 }).notNull().default('UTC'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
 ```
 
-## Path Aliases
+**Verification Codes Table**
+```typescript
+export const verificationCodes = pgTable('verification_codes', {
+  phoneNumber: varchar('phone_number', { length: 20 }).primaryKey(),
+  code: varchar('code', { length: 6 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+```
 
-### apps/web
+**Indexes:**
+- `users.phone_number` - Unique index for phone lookups
+- `verification_codes.expires_at` - For cleanup queries
 
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./*"],
-      "@shared/types": ["../../shared/types"],
-      "@shared/schemas": ["../../shared/schemas"],
-      "@shared/utils": ["../../shared/utils"]
-    }
+#### 2. API Endpoints
+
+**POST /api/auth/request-code**
+- Body: `{ phoneNumber: string }`
+- Validates phone number with libphonenumber-js
+- Generates 6-digit random code
+- Stores code in DB with 5-minute expiry
+- Logs code to console (mock SMS)
+- Returns: `{ success: true, message: "Code sent" }`
+- Rate limit: 5 requests per phone per hour
+
+**POST /api/auth/verify-code**
+- Body: `{ phoneNumber: string, code: string }`
+- Verifies code from DB (checks expiry)
+- Creates or fetches user by phone number
+- Returns: `{ token: string, user: User, requiresProfile: boolean }`
+- Sets httpOnly cookie with JWT
+- Deletes code from DB after verification
+
+**POST /api/auth/complete-profile**
+- Body: `{ displayName: string, timezone?: string }`
+- Requires valid JWT (no display name yet)
+- Updates user with display name and timezone
+- Returns: `{ user: User }`
+- Re-issues JWT with complete profile
+
+**GET /api/auth/me**
+- Requires JWT authentication
+- Returns: `{ user: User }`
+- Used to restore session on page load
+
+**POST /api/auth/logout**
+- Clears httpOnly cookie
+- Returns: `{ success: true }`
+
+#### 3. Services
+
+**AuthService** (`src/services/auth.service.ts`)
+```typescript
+class AuthService {
+  // Generate random 6-digit code
+  generateCode(): string;
+
+  // Store code in DB with 5-min expiry
+  async storeCode(phoneNumber: string, code: string): Promise<void>;
+
+  // Verify code (check exists + not expired)
+  async verifyCode(phoneNumber: string, code: string): Promise<boolean>;
+
+  // Delete code after successful verification
+  async deleteCode(phoneNumber: string): Promise<void>;
+
+  // Get or create user by phone number
+  async getOrCreateUser(phoneNumber: string): Promise<User>;
+
+  // Update user profile
+  async updateProfile(userId: string, data: { displayName: string, timezone?: string }): Promise<User>;
+
+  // Generate JWT token
+  generateToken(user: User): string;
+
+  // Verify JWT token
+  verifyToken(token: string): JWTPayload;
+}
+```
+
+**SMS Service** (`src/services/sms.service.ts`)
+```typescript
+interface ISMSService {
+  sendVerificationCode(phoneNumber: string, code: string): Promise<void>;
+}
+
+// Mock implementation for MVP
+class MockSMSService implements ISMSService {
+  async sendVerificationCode(phoneNumber: string, code: string) {
+    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📱 SMS Verification Code`);
+    console.log(`Phone: ${phoneNumber}`);
+    console.log(`Code: ${code}`);
+    console.log(`Expires: 5 minutes`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
   }
 }
 ```
 
-### apps/api
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"],
-      "@shared/types": ["../../shared/types"],
-      "@shared/schemas": ["../../shared/schemas"],
-      "@shared/utils": ["../../shared/utils"]
-    }
-  }
-}
-```
-
-## Development Workflow
-
-### Starting Development Servers
-
-```bash
-# From root directory
-pnpm install              # Install all dependencies
-pnpm dev                  # Start both web (3000) and api (8000) in parallel
-
-# Or individually
-pnpm --filter web dev     # Frontend only
-pnpm --filter api dev     # Backend only
-```
-
-### Running Tests
-
-```bash
-pnpm test                 # Run all tests
-pnpm test:web             # Frontend tests only
-pnpm test:api             # Backend tests only
-```
-
-### Linting and Type Checking
-
-```bash
-pnpm lint                 # Lint all packages
-pnpm typecheck            # Type check all packages
-```
-
-### Building for Production
-
-```bash
-pnpm build                # Build all apps (Turbo cached)
-```
-
-## Database Setup
-
-### Docker Compose Configuration
-
-```yaml
-version: '3.9'
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: tripful-postgres
-    environment:
-      POSTGRES_USER: tripful
-      POSTGRES_PASSWORD: tripful_dev
-      POSTGRES_DB: tripful
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U tripful']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
-```
-
-### Connection String
-
-```
-DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5432/tripful
-TEST_DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5432/tripful_test
-```
-
-### Drizzle Configuration
-
+**Phone Validation** (`src/utils/phone.ts`)
 ```typescript
-// apps/api/drizzle.config.ts
-import { defineConfig } from 'drizzle-kit';
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
-export default defineConfig({
-  schema: './src/db/schema',
-  out: './src/db/migrations',
-  dialect: 'postgresql',
-  dbCredentials: {
-    url: process.env.DATABASE_URL!,
-  },
-  verbose: true,
-  strict: true,
-});
-```
-
-### Database Connection (Phase 1)
-
-In Phase 1, we only verify the database connection works. No schema or migrations are created.
-
-```typescript
-// apps/api/src/config/database.ts
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool);
-
-// Test connection
-export async function testConnection() {
+export function validatePhoneNumber(phone: string): {
+  isValid: boolean;
+  e164?: string;
+  error?: string
+} {
   try {
-    await pool.query('SELECT 1');
-    console.log('✓ Database connection successful');
-    return true;
-  } catch (error) {
-    console.error('✗ Database connection failed:', error);
-    return false;
+    if (!isValidPhoneNumber(phone)) {
+      return { isValid: false, error: 'Invalid phone number format' };
+    }
+
+    const parsed = parsePhoneNumber(phone);
+    return {
+      isValid: true,
+      e164: parsed.number
+    };
+  } catch (err) {
+    return {
+      isValid: false,
+      error: 'Invalid phone number format'
+    };
   }
 }
 ```
 
-## Fastify Server Structure
+#### 4. Middleware
 
-### Server Initialization
-
+**Authentication Middleware** (`src/middleware/auth.middleware.ts`)
 ```typescript
-// apps/api/src/server.ts
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
+export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    // Extract token from cookie
+    const token = request.cookies['auth_token'];
+
+    if (!token) {
+      return reply.status(401).send({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Missing authentication token',
+        },
+      });
+    }
+
+    // Verify token using Fastify JWT plugin
+    const decoded = await request.server.jwt.verify<JWTPayload>(token);
+
+    // Attach user info to request
+    request.user = {
+      id: decoded.sub,
+      phoneNumber: decoded.phone,
+    };
+  } catch (err) {
+    return reply.status(401).send({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Invalid or expired token',
+      },
+    });
+  }
+}
+
+// Optional: Middleware for incomplete profiles
+export async function requireCompleteProfile(request: FastifyRequest, reply: FastifyReply) {
+  // User must be authenticated first
+  if (!request.user) {
+    return reply.status(401).send({ error: 'Not authenticated' });
+  }
+
+  // Fetch user from DB to check profile completion
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, request.user.id),
+  });
+
+  if (!user || !user.displayName) {
+    return reply.status(403).send({
+      success: false,
+      error: {
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Please complete your profile',
+      },
+    });
+  }
+}
+```
+
+**Rate Limiting** (`src/middleware/rate-limit.middleware.ts`)
+```typescript
 import rateLimit from '@fastify/rate-limit';
-import { healthRoutes } from './routes/health.routes';
-import { errorMiddleware } from './middleware/error.middleware';
 
-const fastify = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
+// Configure rate limiting plugin
+export const smsRateLimitConfig = {
+  max: 5,
+  timeWindow: '1 hour',
+  keyGenerator: (request: FastifyRequest) => {
+    // Rate limit per phone number
+    const { phoneNumber } = request.body as { phoneNumber: string };
+    return phoneNumber || request.ip;
   },
-});
+  errorResponseBuilder: () => ({
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many verification code requests. Please try again later.',
+    },
+  }),
+};
+```
 
-// Plugins
-await fastify.register(cors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-});
+#### 5. JWT Configuration
 
+**JWT Token Structure**
+```typescript
+interface JWTPayload {
+  sub: string;        // User ID
+  phone: string;      // Phone number (for quick lookups)
+  name?: string;      // Display name (if set)
+  iat: number;        // Issued at
+  exp: number;        // Expires at (7 days)
+}
+```
+
+**JWT Setup** (`src/config/jwt.ts`)
+```typescript
+import { writeFileSync, existsSync, readFileSync } from 'fs';
+import { randomBytes } from 'crypto';
+
+export function ensureJWTSecret(): string {
+  const envLocalPath = '.env.local';
+
+  // Check if JWT_SECRET exists in environment
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  // Try to read from .env.local
+  if (existsSync(envLocalPath)) {
+    const content = readFileSync(envLocalPath, 'utf-8');
+    const match = content.match(/^JWT_SECRET=(.+)$/m);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  // Generate new secret
+  const secret = randomBytes(64).toString('hex');
+
+  // Append to .env.local
+  const line = `\nJWT_SECRET=${secret}\n`;
+  writeFileSync(envLocalPath, line, { flag: 'a' });
+
+  console.log('✓ Generated JWT secret and saved to .env.local');
+
+  return secret;
+}
+```
+
+**Fastify JWT Plugin Setup** (`src/server.ts`)
+```typescript
+import jwt from '@fastify/jwt';
+import cookie from '@fastify/cookie';
+
+// Register cookie plugin (required for httpOnly cookies)
+await fastify.register(cookie);
+
+// Register JWT plugin
 await fastify.register(jwt, {
-  secret: process.env.JWT_SECRET!,
+  secret: ensureJWTSecret(),
   sign: {
     expiresIn: '7d',
   },
-});
-
-await fastify.register(rateLimit, {
-  max: 100,
-  timeWindow: '15 minutes',
-});
-
-// Error handling
-fastify.setErrorHandler(errorMiddleware);
-
-// Routes
-await fastify.register(healthRoutes, { prefix: '/api/health' });
-
-const start = async () => {
-  try {
-    await fastify.listen({
-      port: Number(process.env.PORT) || 8000,
-      host: '0.0.0.0',
-    });
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
-```
-
-### Health Check Endpoint
-
-```typescript
-// apps/api/src/routes/health.routes.ts
-import { FastifyInstance } from 'fastify';
-import { healthController } from '../controllers/health.controller';
-
-export async function healthRoutes(fastify: FastifyInstance) {
-  fastify.get('/', healthController.check);
-}
-
-// apps/api/src/controllers/health.controller.ts
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { healthService } from '../services/health.service';
-
-export const healthController = {
-  async check(request: FastifyRequest, reply: FastifyReply) {
-    const health = await healthService.getStatus();
-    return reply.status(200).send(health);
+  cookie: {
+    cookieName: 'auth_token',
+    signed: false,
   },
-};
-
-// apps/api/src/services/health.service.ts
-import { testConnection } from '../config/database';
-
-export const healthService = {
-  async getStatus() {
-    const dbConnected = await testConnection();
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      database: dbConnected ? 'connected' : 'disconnected',
-    };
-  },
-};
+});
 ```
 
-## Frontend Structure
+#### 6. Error Handling
 
-### Next.js App Router Setup
+**Error Codes**
+- `VALIDATION_ERROR` - Invalid input (phone format, missing fields)
+- `UNAUTHORIZED` - Missing or invalid JWT token
+- `INVALID_CODE` - Wrong verification code or expired
+- `RATE_LIMIT_EXCEEDED` - Too many SMS requests
+- `PROFILE_INCOMPLETE` - User needs to set display name
 
+**Error Response Format**
 ```typescript
-// apps/web/app/layout.tsx
-import './globals.css'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: 'Tripful',
-  description: 'Collaborative trip planning platform',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  )
-}
-
-// apps/web/app/page.tsx
-export default function Home() {
-  return (
-    <main className="min-h-screen flex items-center justify-center">
-      <h1 className="text-4xl font-bold">Welcome to Tripful</h1>
-    </main>
-  )
-}
-```
-
-### shadcn/ui Setup
-
-```bash
-# Initialize shadcn/ui
-cd apps/web
-npx shadcn@latest init
-
-# Add basic components
-npx shadcn@latest add button
-npx shadcn@latest add input
-npx shadcn@latest add form
-```
-
-Configuration (`apps/web/components.json`):
-
-```json
 {
-  "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "new-york",
-  "rsc": true,
-  "tsx": true,
-  "tailwind": {
-    "config": "tailwind.config.ts",
-    "css": "app/globals.css",
-    "baseColor": "slate",
-    "cssVariables": true
-  },
-  "iconLibrary": "lucide",
-  "aliases": {
-    "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui"
+  success: false,
+  error: {
+    code: 'ERROR_CODE',
+    message: 'User-friendly message',
+    details?: any // Optional validation details
   }
 }
 ```
 
-## Testing Infrastructure
+### Frontend Architecture
 
-### Vitest Configuration
+#### 1. Page Structure
 
+**Login Page** (`app/(auth)/login/page.tsx`)
+- Phone number input with country code dropdown
+- Country code defaults to +1 (US)
+- Validates phone on blur
+- Submits to POST /api/auth/request-code
+- Redirects to /verify on success
+
+**Verification Page** (`app/(auth)/verify/page.tsx`)
+- Shows phone number from query param or state
+- 6-digit code input (monospace, centered)
+- Auto-focuses on mount
+- Submits to POST /api/auth/verify-code
+- If `requiresProfile: true`, redirect to /complete-profile
+- Else redirect to /dashboard
+- "Change number" link to go back
+- "Resend code" link to request new code
+
+**Complete Profile Page** (`app/(auth)/complete-profile/page.tsx`)
+- Display name input (required, 3-50 chars)
+- Timezone selector (optional, defaults to browser timezone)
+- Submits to POST /api/auth/complete-profile
+- Redirects to /dashboard on success
+- Must be authenticated but not have display name set
+
+#### 2. Auth Context
+
+**Auth Provider** (`app/providers/auth-provider.tsx`)
 ```typescript
-// apps/api/vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import path from 'path';
+'use client'
 
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    setupFiles: ['./tests/setup.ts'],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@shared/types': path.resolve(__dirname, '../../shared/types'),
-      '@shared/schemas': path.resolve(__dirname, '../../shared/schemas'),
-      '@shared/utils': path.resolve(__dirname, '../../shared/utils'),
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+interface User {
+  id: string
+  phoneNumber: string
+  displayName: string
+  timezone: string
+  profilePhotoUrl?: string
+}
+
+interface AuthContextType {
+  user: User | null
+  loading: boolean
+  login: (phoneNumber: string) => Promise<void>
+  verify: (phoneNumber: string, code: string) => Promise<{ requiresProfile: boolean }>
+  completeProfile: (data: { displayName: string, timezone?: string }) => Promise<void>
+  logout: () => Promise<void>
+  refetch: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  // Fetch current user on mount
+  useEffect(() => {
+    fetchUser()
+  }, [])
+
+  async function fetchUser() {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      } else {
+        setUser(null)
+      }
+    } catch (err) {
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function login(phoneNumber: string) {
+    const response = await fetch('/api/auth/request-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error.message)
+    }
+  }
+
+  async function verify(phoneNumber: string, code: string) {
+    const response = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ phoneNumber, code }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error.message)
+    }
+
+    const data = await response.json()
+
+    if (!data.requiresProfile) {
+      setUser(data.user)
+    }
+
+    return { requiresProfile: data.requiresProfile }
+  }
+
+  async function completeProfile(profileData: { displayName: string, timezone?: string }) {
+    const response = await fetch('/api/auth/complete-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(profileData),
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error.message)
+    }
+
+    const data = await response.json()
+    setUser(data.user)
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    setUser(null)
+    router.push('/login')
+  }
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      verify,
+      completeProfile,
+      logout,
+      refetch: fetchUser
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
+  return context
+}
+```
+
+#### 3. Protected Routes
+
+**Route Middleware** (`app/(app)/layout.tsx`)
+```typescript
+'use client'
+
+import { useAuth } from '@/providers/auth-provider'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+
+export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return <>{children}</>
+}
+```
+
+#### 4. API Client
+
+**Fetch Wrapper** (`lib/api.ts`)
+```typescript
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+
+export class APIError extends Error {
+  constructor(public code: string, message: string) {
+    super(message)
+  }
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
     },
-  },
-});
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new APIError(data.error.code, data.error.message)
+  }
+
+  return data
+}
 ```
 
-### Test Database Setup
+### Shared Package
 
+**Validation Schemas** (`shared/schemas/auth.ts`)
 ```typescript
-// apps/api/tests/setup.ts
-import { Pool } from 'pg';
-import { beforeAll, afterAll } from 'vitest';
+import { z } from 'zod'
 
-const testPool = new Pool({
-  connectionString: process.env.TEST_DATABASE_URL,
-});
+export const requestCodeSchema = z.object({
+  phoneNumber: z.string().min(10).max(20),
+})
 
-beforeAll(async () => {
-  // Test database connection
-  await testPool.query('SELECT 1');
-});
+export const verifyCodeSchema = z.object({
+  phoneNumber: z.string().min(10).max(20),
+  code: z.string().length(6).regex(/^\d{6}$/),
+})
 
-afterAll(async () => {
-  await testPool.end();
-});
+export const completeProfileSchema = z.object({
+  displayName: z.string().min(3).max(50),
+  timezone: z.string().optional(),
+})
+
+export type RequestCodeInput = z.infer<typeof requestCodeSchema>
+export type VerifyCodeInput = z.infer<typeof verifyCodeSchema>
+export type CompleteProfileInput = z.infer<typeof completeProfileSchema>
 ```
 
-### Sample Tests
-
+**User Types** (`shared/types/user.ts`)
 ```typescript
-// apps/api/tests/integration/health.test.ts
-import { describe, it, expect } from 'vitest';
-import { build } from '../helpers';
+export interface User {
+  id: string
+  phoneNumber: string
+  displayName: string
+  profilePhotoUrl?: string
+  timezone: string
+  createdAt: string
+  updatedAt: string
+}
 
-describe('Health Check', () => {
-  it('GET /api/health returns 200', async () => {
-    const app = await build();
-    const response = await app.inject({
-      method: 'GET',
-      url: '/api/health',
-    });
+export interface AuthResponse {
+  token: string
+  user: User
+  requiresProfile: boolean
+}
+```
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
-      status: 'ok',
-      database: 'connected',
-    });
+## Dependencies to Add
 
-    await app.close();
-  });
-});
+**Backend:**
+- `libphonenumber-js` - Phone number validation
+- `@fastify/cookie` - Cookie management for httpOnly cookies
 
-// apps/api/tests/integration/database.test.ts
-import { describe, it, expect } from 'vitest';
-import { testConnection } from '@/config/database';
+**Frontend:**
+- `@tanstack/react-query` - Data fetching and caching (already in architecture, add to package.json)
 
-describe('Database Connection', () => {
-  it('connects to PostgreSQL successfully', async () => {
-    const connected = await testConnection();
-    expect(connected).toBe(true);
-  });
-});
+## Database Migrations
+
+**Migration: Create users and verification_codes tables**
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number VARCHAR(20) NOT NULL UNIQUE,
+  display_name VARCHAR(50) NOT NULL,
+  profile_photo_url TEXT,
+  timezone VARCHAR(100) NOT NULL DEFAULT 'UTC',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_phone_number ON users(phone_number);
+
+CREATE TABLE verification_codes (
+  phone_number VARCHAR(20) PRIMARY KEY,
+  code VARCHAR(6) NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_verification_codes_expires_at ON verification_codes(expires_at);
 ```
 
 ## Environment Variables
 
-### Backend (.env.example)
-
+**Backend (.env or .env.local)**
 ```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/tripful
+
+# JWT (auto-generated if not set)
+JWT_SECRET=<auto-generated-64-char-hex>
+
 # Server
-NODE_ENV=development
 PORT=8000
 FRONTEND_URL=http://localhost:3000
-
-# Database
-DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5432/tripful
-TEST_DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5432/tripful_test
-
-# JWT (generate random string for production)
-JWT_SECRET=your-secret-key-change-in-production
-
-# Logging
-LOG_LEVEL=info
+NODE_ENV=development
 ```
 
-### Frontend (.env.example)
-
+**Frontend (.env.local)**
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
-## Turbo Configuration
+## Existing Patterns to Follow
 
-```json
-{
-  "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["tsconfig.base.json", "eslint.config.js"],
-  "pipeline": {
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "typecheck": {
-      "dependsOn": ["^typecheck"]
-    },
-    "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
-    }
-  }
-}
-```
-
-## Git Hooks
-
-### Husky Setup
-
-```bash
-# .husky/pre-commit
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-pnpm lint-staged
-```
-
-### lint-staged Configuration
-
-```json
-{
-  "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
-  "*.{json,md}": ["prettier --write"]
-}
-```
-
-## Build and Deployment (Phase 1 Notes)
-
-Phase 1 focuses on local development. Production build and deployment configurations are deferred to later phases. However, the infrastructure is set up to support:
-
-- **Frontend**: Vercel deployment (Next.js native)
-- **Backend**: Railway or AWS (Dockerized Fastify app)
-- **Database**: Managed PostgreSQL (Supabase, Neon, or RDS)
+From Phase 1 infrastructure:
+- Use Drizzle ORM for database queries
+- Follow controller → service → database layer pattern
+- Use Zod for validation at API boundaries
+- Error handling with try-catch and reply.status()
+- Vitest for unit and integration tests
+- TypeScript strict mode
 
 ## Success Criteria
 
-Phase 1 is complete when:
-
-1. ✅ Monorepo structure exists with pnpm workspaces
-2. ✅ Turbo caching works for dev, build, lint, test
-3. ✅ Frontend runs on http://localhost:3000 with shadcn/ui components
-4. ✅ Backend runs on http://localhost:8000 with health check endpoint
-5. ✅ PostgreSQL runs via Docker Compose and connects successfully
-6. ✅ `pnpm dev` starts both servers in parallel
-7. ✅ `pnpm test` runs sample tests (health check, DB connection)
-8. ✅ `pnpm lint` and `pnpm typecheck` pass
-9. ✅ Git pre-commit hooks enforce linting and type-checking
-10. ✅ README documents complete setup and usage
-11. ✅ Both .env and .env.example files exist for each app
-
-## Out of Scope (Deferred to Later Phases)
-
-- Database schema and migrations
-- Authentication implementation
-- Business logic (trips, events, RSVPs)
-- TanStack Query setup (Phase 2)
-- SMS integration (Phase 2)
-- E2E tests with Playwright (Phase 8)
-- Production deployment configurations
-- CI/CD pipelines
+- User can request verification code by entering phone number
+- Code is logged to console (mock SMS)
+- User can verify code and complete profile
+- JWT token is issued and stored in httpOnly cookie
+- Protected routes redirect to /login if not authenticated
+- Rate limiting prevents SMS abuse (5 per hour per phone)
+- All endpoints have proper error handling
+- Unit tests for AuthService methods
+- Integration tests for auth endpoints
+- E2E test for full auth flow
