@@ -1655,3 +1655,144 @@ None. All verification checks passing.
 - **Test Pass Rate**: 100% (61/61 web tests, 46/46 shared tests)
 - **Agent Execution Time**: ~8 minutes
 - **Overall Task Status**: ✅ COMPLETE
+
+---
+
+## Iteration 18: Protected Route Wrapper
+
+**Date**: 2026-02-02
+**Task**: Task 18 - Protected route wrapper
+**Status**: ✅ COMPLETE
+
+### Implementation Summary
+
+Created a protected route wrapper layout that guards authenticated routes and redirects unauthenticated users to the login page.
+
+#### Files Created
+
+1. **`apps/web/src/app/(app)/layout.tsx`** (30 lines)
+   - Protected route wrapper using Next.js App Router route groups
+   - Uses `useAuth()` hook to check authentication status
+   - Shows loading spinner while checking auth (`loading === true`)
+   - Redirects to `/login` when user is not authenticated
+   - Returns `null` when not authenticated (prevents content flash)
+   - Only renders children when user is authenticated
+   - Follows exact pattern from ARCHITECTURE.md specification
+
+2. **`apps/web/src/app/(app)/layout.test.tsx`** (126 lines, 5 tests)
+   - Comprehensive test coverage for protected layout:
+     - Renders children when user is authenticated
+     - Shows loading state while checking auth
+     - Redirects to `/login` when not authenticated
+     - Does not render children before redirect
+     - Does not redirect while loading is true
+   - All tests passing
+
+3. **`apps/web/src/app/(app)/dashboard/page.tsx`** (59 lines)
+   - Simple dashboard page for testing the protected route
+   - Displays user information (display name, phone number, timezone)
+   - Shows profile photo if available (conditional rendering)
+   - Includes logout button that calls `useAuth().logout()`
+   - Clean UI with Tailwind CSS
+
+4. **`apps/web/src/app/(app)/dashboard/page.test.tsx`** (101 lines, 5 tests)
+   - Comprehensive test coverage for dashboard:
+     - Renders user information
+     - Renders profile photo when present
+     - Does not render profile photo when not present
+     - Calls logout when logout button is clicked
+     - Returns null when user is not present
+   - All tests passing
+
+### Research Phase Insights
+
+**Researcher 1 (LOCATING)**: Identified that the `(app)` route group doesn't exist yet and needs to be created. Found AuthProvider at `app/providers/auth-provider.tsx` with the correct interface. Discovered tests are colocated using Vitest (not Playwright for unit tests).
+
+**Researcher 2 (ANALYZING)**: Analyzed the auth loading lifecycle - starts with `loading=true`, fetches user on mount, always sets `loading=false` in finally block. Identified the critical pattern: check loading first, redirect in useEffect, return null to prevent content flash.
+
+**Researcher 3 (PATTERNS)**: Found that layouts don't use 'use client' unless they need hooks. Discovered no existing spinner component, so simple "Loading..." text with `animate-pulse` is the pattern. All pages use `router.push()` from `next/navigation`.
+
+### Verification Results
+
+#### Tests: ✅ PASS
+- All 71 tests passed (66 existing + 10 new)
+- Test execution time: 2.95s
+- New layout tests: 5/5 passing
+- New dashboard tests: 5/5 passing
+- Minor pre-existing warning about React `act()` in AuthProvider tests (not related to this task)
+
+#### Type-check: ✅ PASS
+- No TypeScript errors
+- All type definitions correct
+- Proper use of ReactNode and inline type definitions
+
+#### Linting: ✅ PASS
+- No ESLint errors or warnings
+- Code follows project style guidelines
+
+### Code Review Results
+
+**Status**: ✅ APPROVED
+
+**Strengths**:
+- Excellent architecture compliance - follows ARCHITECTURE.md spec exactly
+- Strong security implementation - dual protection with useEffect redirect and null guard
+- Clean, minimal code (30 lines for layout)
+- Comprehensive test coverage covering all scenarios
+- Pattern consistency with existing codebase
+- Good user experience with clear loading state
+
+**Minor Observations** (non-blocking):
+- Loading spinner is simple but functional (consistent with MVP approach)
+- Dashboard includes defensive null check (good safety practice)
+- Uses native `img` tag instead of Next.js `Image` (acceptable for MVP)
+- Test mock patterns slightly inconsistent but both valid
+
+### Integration Points
+
+1. **Auth Provider**: Uses `useAuth()` hook from `@/app/providers/auth-provider`
+   - Accesses `user`, `loading` state
+   - Calls `logout()` method from dashboard
+
+2. **Route Group**: Creates `(app)` directory for protected routes
+   - URL: `/dashboard` (not `/app/dashboard`)
+   - Layout applies to all child routes
+
+3. **Navigation**: Uses `useRouter()` from `next/navigation`
+   - Redirects with `router.push('/login')`
+   - Consistent with other pages in codebase
+
+### Learnings
+
+1. **Route Group Behavior**: The `(app)` directory is a Next.js route group that applies the layout WITHOUT adding "app" to URLs.
+
+2. **Client Component Required**: Protected layout must use `'use client'` directive because it needs `useAuth()`, `useRouter()`, and `useEffect()` hooks.
+
+3. **Guard Pattern**: Return `null` when not authenticated (not redirect) to prevent flash of protected content before redirect completes.
+
+4. **Loading State Timing**: Must check `loading === false` before making redirect decisions to prevent race conditions.
+
+5. **Test Mocking**: Must mock both `next/navigation` and `@/app/providers/auth-provider` to isolate component logic.
+
+### Known Issues
+
+None. All verification checks passing.
+
+### Next Steps
+
+**Task 19**: API client utilities
+- Create `lib/api.ts` with `apiRequest()` wrapper function
+- Custom `APIError` class with code and message
+- Automatically includes `credentials: 'include'` for cookies
+- Throws `APIError` on non-2xx responses
+- Write unit tests for API client (mock fetch, test error handling)
+
+### Statistics
+
+- **Files Created**: 4 (layout, layout tests, dashboard, dashboard tests)
+- **Files Modified**: 0
+- **Lines Added**: ~316 (30 + 126 + 59 + 101)
+- **Tests Added**: 10 (5 layout + 5 dashboard)
+- **Test Pass Rate**: 100% (71/71 tests)
+- **Agent Execution Time**: ~6 minutes
+- **Overall Task Status**: ✅ COMPLETE

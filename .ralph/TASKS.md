@@ -152,7 +152,7 @@
   - Show error for invalid display name
   - Write E2E test (complete profile, redirect to dashboard)
 
-- [ ] Task 18: Protected route wrapper
+- [x] Task 18: Protected route wrapper
   - Create `app/(app)/layout.tsx` for protected routes
   - Use useAuth() to check authentication
   - Redirect to /login if not authenticated
