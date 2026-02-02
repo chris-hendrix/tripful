@@ -79,7 +79,7 @@
   - Return success response
   - Write integration tests (valid phone, invalid phone, rate limit exceeded)
 
-- [ ] Task 11: Verify code endpoint and user creation
+- [x] Task 11: Verify code endpoint and user creation
   - Add verifyCode handler to auth.controller.ts
   - Register POST /auth/verify-code in routes
   - Validate request body with Zod schema

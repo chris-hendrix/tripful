@@ -21,4 +21,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
     authController.requestCode
   );
+
+  /**
+   * POST /verify-code
+   * Verify a code and authenticate user
+   * No rate limiting applied
+   */
+  fastify.post('/verify-code', authController.verifyCode);
 }
