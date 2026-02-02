@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import { errorHandler } from '@/middleware/error.middleware.js'
 import { env } from '@/config/env.js'
+import { healthRoutes } from '@/routes/health.routes.js'
 
 /**
  * Build a Fastify app instance for testing
@@ -28,8 +29,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register error handler
   app.setErrorHandler(errorHandler)
 
-  // Phase 1: No routes yet - routes will be added in Task 3.2
-  // await app.register(healthRoutes, { prefix: '/api/health' })
+  // Register routes
+  await app.register(healthRoutes, { prefix: '/api/health' })
 
   await app.ready()
 

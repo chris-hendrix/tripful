@@ -6,6 +6,7 @@ import rateLimit from '@fastify/rate-limit'
 import { env } from './config/env.js'
 import { testConnection, closeDatabase } from './config/database.js'
 import { errorHandler } from './middleware/error.middleware.js'
+import { healthRoutes } from './routes/health.routes.js'
 
 const fastify: FastifyInstance = Fastify({
   logger: {
@@ -53,8 +54,8 @@ await fastify.register(rateLimit, {
 // Register error handler
 fastify.setErrorHandler(errorHandler)
 
-// Phase 1: No routes yet - routes will be added in Task 3.2
-// await fastify.register(healthRoutes, { prefix: '/api/health' })
+// Register routes
+await fastify.register(healthRoutes, { prefix: '/api/health' })
 
 // Graceful shutdown
 const signals = ['SIGINT', 'SIGTERM'] as const

@@ -354,3 +354,136 @@ Task 3.2: Implement health check endpoint with full testing
 
 ---
 
+
+---
+
+## Iteration 4: Task 3.2 - Health Check Endpoint Implementation
+
+**Date**: 2026-02-01
+**Task**: 3.2 Implement health check endpoint with full testing
+**Status**: ✅ COMPLETED
+
+### Summary
+
+Successfully implemented a complete health check endpoint at `GET /api/health` following the MVC architecture pattern. The endpoint verifies database connectivity and returns service status with comprehensive integration testing.
+
+### Implementation Details
+
+**Files Created:**
+1. `/apps/api/src/services/health.service.ts` - Service layer with database connectivity check
+2. `/apps/api/src/controllers/health.controller.ts` - Controller layer for handling HTTP requests
+3. `/apps/api/src/routes/health.routes.ts` - Route registration following Fastify plugin pattern
+4. `/apps/api/tests/integration/health.test.ts` - Comprehensive integration tests (6 test cases)
+
+**Files Modified:**
+1. `/apps/api/src/server.ts` - Registered health routes at `/api/health` prefix
+2. `/apps/api/tests/helpers.ts` - Added health routes to test app builder
+
+### Verification Results
+
+**Tests**: ✅ PASS
+- All 9 tests passing (3 database + 6 health)
+- Test execution time: 112ms
+- No TypeScript errors
+
+**Type Checking**: ✅ PASS
+- TypeScript compilation: 0 errors
+- All imports and types correctly configured
+
+**Manual Testing**: ✅ PASS
+- Endpoint URL: `http://localhost:8000/api/health`
+- HTTP Status: 200
+- Response: `{"status":"ok","timestamp":"2026-02-02T04:02:34.226Z","database":"connected"}`
+
+**Code Review**: ✅ APPROVED
+- Perfect adherence to MVC pattern
+- Clean separation of concerns
+- Proper TypeScript typing with no `any` types
+- Comprehensive test coverage
+- Follows all established conventions
+
+### Test Coverage
+
+**Health Endpoint Tests (6 tests):**
+1. Returns 200 status code
+2. Returns correct response structure (status, timestamp, database)
+3. Returns status as "ok"
+4. Returns valid ISO-8601 timestamp format
+5. Returns database status as 'connected' or 'disconnected'
+6. Returns database as 'connected' when database is available
+
+All tests use proper patterns:
+- `buildApp()` helper for test app creation
+- `app.inject()` for HTTP request simulation
+- `afterEach` cleanup to close app instances
+- Proper async/await handling
+
+### Architecture & Patterns
+
+**MVC Pattern Implementation:**
+- **Route Layer**: Registers endpoint using Fastify plugin pattern
+- **Controller Layer**: Handles HTTP request/response with minimal logic
+- **Service Layer**: Contains business logic for database connectivity check
+
+**Key Conventions Followed:**
+- ES modules with `.js` extensions in imports
+- Path aliases (`@/` for src/)
+- Export objects with methods (not classes)
+- TypeScript strict mode compatibility
+- Unused parameter prefixed with underscore (`_request`)
+
+### Response Format
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-02-01T23:02:38.123Z",
+  "database": "connected"
+}
+```
+
+Matches `HealthCheckResponse` interface:
+- `status`: 'ok' | 'error'
+- `timestamp`: ISO-8601 string format
+- `database`: 'connected' | 'disconnected' (reflects actual DB state)
+
+### Key Learnings
+
+1. **MVC Architecture**: Clean separation of route → controller → service provides excellent testability and maintainability
+2. **Fastify Plugin Pattern**: Using `async function` for route registration integrates seamlessly with Fastify's plugin system
+3. **Test Helpers**: The `buildApp()` helper provides consistent test setup and enables proper integration testing
+4. **Database Health Checks**: Using existing `testConnection()` function ensures health check reflects actual database state
+5. **ES Modules**: All imports must use `.js` extension with NodeNext module resolution
+6. **TypeScript Strict Mode**: Unused parameters must be prefixed with underscore to satisfy strict mode
+7. **Test Cleanup**: Always call `await app.close()` in `afterEach` to prevent resource leaks
+8. **ISO-8601 Format**: Use `new Date().toISOString()` for standardized timestamp format
+9. **Integration Testing**: `app.inject()` allows testing full request/response cycle without starting server
+10. **Type Safety**: Using `HealthCheckResponse` interface ensures response format consistency
+
+### Performance
+
+- Health check response time: ~5-10ms
+- Test execution time: 112ms for all 9 tests
+- No performance bottlenecks identified
+
+### Production Readiness
+
+The health check endpoint is production-ready:
+- ✅ Proper error handling via existing middleware
+- ✅ Returns 200 status even when DB is down (graceful degradation)
+- ✅ Can be used for container health checks
+- ✅ Suitable for monitoring systems (Datadog, New Relic, etc.)
+- ✅ Supports deployment verification
+- ✅ Provides accurate database connectivity status
+
+### Next Steps
+
+Task 3.2 is complete. The next task is **4.1 Create complete Next.js frontend with UI components**, which will set up the frontend application with Next.js 16, Tailwind CSS 4, and shadcn/ui components.
+
+### Notes
+
+- The optional `environment` field in `HealthCheckResponse` was not populated (acceptable)
+- Health endpoint always returns `status: 'ok'` even when database is disconnected (by design - service is up, DB status indicated separately)
+- Linting configuration not yet set up (noted in project, will be added in Task 6.1)
+
+---

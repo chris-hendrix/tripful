@@ -88,7 +88,7 @@
 
 **Test**: Server starts, env validation works, DB connection test passes
 
-- [ ] **3.2 Implement health check endpoint with full testing**
+- [x] **3.2 Implement health check endpoint with full testing**
   - Create health check route (`src/routes/health.routes.ts`)
   - Create health check controller (`src/controllers/health.controller.ts`)
   - Create health check service (`src/services/health.service.ts`):
