@@ -1478,3 +1478,180 @@ None. All verification checks passing.
 - **Tests Added**: 22
 - **Test Pass Rate**: 100% (45/45)
 - **Time Estimate**: ~2 hours
+
+---
+
+## Iteration 17: Task 17 - Complete Profile Page
+**Date**: 2026-02-02
+**Status**: ✅ COMPLETE
+**Task**: Create complete profile page with display name and timezone inputs
+
+### Implementation Summary
+
+Created the complete profile page at `/complete-profile` that allows authenticated users to set their display name and timezone after SMS verification. The page follows all established patterns from login/verify pages and integrates seamlessly with the auth flow.
+
+#### Files Created
+1. **apps/web/src/app/(auth)/complete-profile/page.tsx** (173 lines)
+   - Display name input (required, 3-50 characters)
+   - Timezone selector with 6 common US timezones
+   - Auto-focus on display name input
+   - Browser timezone auto-detection using `Intl.DateTimeFormat().resolvedOptions().timeZone`
+   - Form validation with Zod schema from `@tripful/shared`
+   - Loading states during submission
+   - Error handling with inline field errors
+   - Redirects to `/dashboard` on success
+   - Matches exact styling patterns (gradient card, blue button)
+
+2. **apps/web/src/app/(auth)/complete-profile/page.test.tsx** (302 lines, 16 tests)
+   - Render tests (form elements, labels, buttons)
+   - Validation tests (too short, too long, empty displayName)
+   - Success flow tests (submission, redirect, timezone handling)
+   - Error handling tests (API failure, generic errors)
+   - Loading state tests (button disabled, inputs disabled)
+   - UX tests (auto-focus, helper text, default timezone)
+
+3. **apps/web/src/components/ui/select.tsx** (191 lines)
+   - Added shadcn/ui Select component via CLI
+   - Used for timezone selector dropdown
+   - Includes Radix UI primitives and Lucide icons
+
+#### Files Modified
+1. **apps/web/package.json**
+   - Added `@testing-library/user-event` for test interactions
+   - Added `lucide-react` for select component icons
+   - Added `@radix-ui/react-select` for select component primitives
+
+### Research Findings
+
+**LOCATING Researcher:**
+- Mapped file structure and import paths
+- Identified auth provider location and completeProfile method
+- Found existing form patterns from login/verify pages
+- Located test patterns and shadcn/ui components
+
+**ANALYZING Researcher:**
+- Traced auth flow: login → verify → complete-profile → dashboard
+- Analyzed completeProfile method signature and behavior
+- Reviewed schema constraints (3-50 chars for displayName)
+- Documented redirect logic and authentication requirements
+
+**PATTERNS Researcher:**
+- Found react-hook-form + zodResolver patterns
+- Discovered timezone detection approach using Intl API
+- Analyzed styling conventions (gradient cards, button styles)
+- Reviewed test structure using Vitest and Testing Library
+
+### Verification Results
+
+**Type Checking:** ✅ PASS (0 errors)
+**Linting:** ✅ PASS (0 errors)
+**Unit Tests (complete-profile):** ✅ PASS (16/16)
+**All Web Tests:** ✅ PASS (61/61)
+**Shared Tests:** ✅ PASS (46/46)
+
+**Overall:** ✅ PASS
+
+### Code Review Results
+
+**Rating:** ✅ APPROVED
+
+**Strengths:**
+1. Excellent pattern consistency with login/verify pages
+2. Robust form implementation with proper TypeScript integration
+3. Comprehensive test coverage (16 tests, 100% passing)
+4. Proper integration with auth provider and shared schemas
+5. Good accessibility with labels, descriptions, and focus management
+6. Clean component structure with extracted constants
+
+**Issues Found:** None
+
+**Recommendations:**
+- Consider expanding timezone list for international users (future enhancement)
+- Current implementation meets all requirements for MVP
+
+### Implementation Details
+
+**Key Technical Decisions:**
+1. **Timezone Handling**: Made timezone optional in form to match schema, auto-detected from browser using Intl API
+2. **Payload Construction**: Used conditional spreading `...(timezone ? { timezone } : {})` to avoid passing explicit `undefined` (TypeScript strict mode)
+3. **Dual Ref Pattern**: Merged react-hook-form ref with useRef for auto-focus using callback ref pattern
+4. **Select Component**: Added via shadcn CLI to ensure proper Radix UI integration
+
+**Form Validation:**
+- Display name: 3-50 characters (enforced by Zod schema)
+- Timezone: Optional string (IANA timezone format)
+- Error messages shown inline via FormMessage component
+
+**User Experience:**
+- Auto-focus on display name input for immediate typing
+- Loading state prevents double submission
+- Clear error messages for validation failures
+- Helper text explains timezone usage
+- Button shows "Saving..." during submission
+
+### Testing Strategy
+
+**Test Coverage:**
+- Validation scenarios: empty, too short, too long displayName
+- Success path: correct data submission, redirect to /dashboard
+- Error handling: API failures with and without error messages
+- Loading states: button and input disabling during submission
+- UX features: auto-focus, helper text, timezone defaults
+- Integration: completeProfile method called correctly
+
+**Mock Patterns:**
+- Mocked `next/navigation` for router.push assertions
+- Mocked `useAuth` hook to control completeProfile behavior
+- Used `userEvent` for realistic user interactions
+- Used `waitFor` for async state changes
+
+### Integration Points
+
+1. **Auth Provider**: Uses `completeProfile(data)` method from `@/app/providers/auth-provider`
+2. **Validation Schema**: Imports `completeProfileSchema` from `@tripful/shared`
+3. **Backend API**: POSTs to `/api/auth/complete-profile` (already implemented in Task 12)
+4. **Navigation**: Redirects to `/dashboard` after successful profile completion
+5. **Layout**: Uses shared `(auth)/layout.tsx` for gradient background
+
+### Learnings
+
+1. **TypeScript Strict Mode**: With `exactOptionalPropertyTypes: true`, must avoid passing explicit `undefined` for optional fields. Use conditional spreading instead:
+   ```typescript
+   const payload = { displayName, ...(timezone ? { timezone } : {}) };
+   ```
+
+2. **Dual Ref Management**: When combining react-hook-form's field.ref with useRef for auto-focus, use callback ref pattern:
+   ```typescript
+   ref={(e) => {
+     field.ref(e);
+     if (e) inputRef.current = e;
+   }}
+   ```
+
+3. **Browser Timezone Detection**: `Intl.DateTimeFormat().resolvedOptions().timeZone` reliably returns IANA timezone string across browsers.
+
+4. **Select Component Testing**: Radix UI Select uses pointer capture which can cause issues in jsdom test environment. Focus tests on user-facing behavior rather than implementation details.
+
+5. **Default Value Handling**: For controlled Select components with optional fields, use conditional defaultValue prop to avoid React warnings about switching between controlled/uncontrolled.
+
+### Known Issues
+
+None. All verification checks passing.
+
+### Next Steps
+
+**Task 18**: Protected route wrapper
+- Create `app/(app)/layout.tsx` for protected routes
+- Use useAuth() to check authentication
+- Redirect to /login if not authenticated
+- Show loading spinner while checking auth
+- Write E2E test (access protected route without auth, redirect to login)
+
+### Statistics
+- **Files Created**: 3
+- **Files Modified**: 1
+- **Lines Added**: ~666
+- **Tests Added**: 16 (complete-profile unit tests)
+- **Test Pass Rate**: 100% (61/61 web tests, 46/46 shared tests)
+- **Agent Execution Time**: ~8 minutes
+- **Overall Task Status**: ✅ COMPLETE

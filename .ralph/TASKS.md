@@ -142,7 +142,7 @@
   - Show error for invalid/expired code
   - Write E2E test (enter code, redirect to complete-profile or dashboard)
 
-- [ ] Task 17: Complete profile page
+- [x] Task 17: Complete profile page
   - Create `app/(auth)/complete-profile/page.tsx` with display name form
   - Display name input (3-50 chars, required)
   - Timezone selector (optional, defaults to Intl.DateTimeFormat().resolvedOptions().timeZone)
