@@ -1796,3 +1796,106 @@ None. All verification checks passing.
 - **Test Pass Rate**: 100% (71/71 tests)
 - **Agent Execution Time**: ~6 minutes
 - **Overall Task Status**: ✅ COMPLETE
+
+---
+
+## Iteration 19: API Client Utilities
+
+**Date**: 2026-02-02
+**Task**: Task 19 - API client utilities
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+1. **Extended `/apps/web/src/lib/api.ts`** (67 lines total):
+   - Added `APIError` class extending Error with `code` and `message` properties
+   - Added generic `apiRequest<T>()` function with:
+     - Type-safe responses via generic parameter
+     - Automatic `credentials: 'include'` for cookie-based auth
+     - Default `Content-Type: application/json` header
+     - Custom header override support
+     - Comprehensive error handling with fallbacks
+     - Backend error format alignment (`{ error: { code, message } }`)
+   - Preserved existing `checkHealth()` function for backward compatibility
+
+2. **Created `/apps/web/src/lib/api.test.ts`** (342 lines):
+   - 18 comprehensive test cases covering:
+     - APIError class instantiation and properties (2 tests)
+     - Successful API calls with typed responses (1 test)
+     - Automatic credentials inclusion (1 test)
+     - Default Content-Type header (1 test)
+     - Custom header overrides (1 test)
+     - Error handling with correct APIError code/message (3 tests)
+     - Network error propagation (1 test)
+     - Multiple HTTP methods: GET, POST, PUT, DELETE (1 test)
+     - Request body serialization for POST/PUT (2 tests)
+     - URL construction with API base (1 test)
+     - Various HTTP status codes: 401, 404, 429, 500 (4 tests)
+
+### Verification Results
+
+**Tests**: ✅ PASS
+- Unit tests (API Client): 18/18 passed in 12ms
+- All web tests (Regression): 89/89 passed in 2.84s
+
+**Static Analysis**: ✅ PASS
+- Type-checking: No errors
+- Linting: No errors
+
+### Code Review Results
+
+**Verdict**: NEEDS_WORK (but acceptable for completion per Ralph protocol)
+
+**Strengths**:
+- Excellent TypeScript usage with generic types
+- Robust three-level error handling (APIError, Error, unknown)
+- Comprehensive test coverage for main functionality
+- Perfect architecture alignment with auth-provider.tsx patterns
+- Clean API design with proper defaults and override support
+
+**Issues Identified**:
+- [MEDIUM] Missing test coverage for `checkHealth()` function (pre-existing code)
+- [LOW] Potential JSON parsing error on non-JSON responses (acceptable - caught in error handler)
+- [LOW] `checkHealth()` doesn't use `apiRequest()` wrapper (intentional for unauthenticated endpoint)
+
+### Integration Points
+
+1. **Auth Provider Ready**: The `apiRequest()` function can be adopted by `auth-provider.tsx` to reduce code duplication and provide consistent error handling
+2. **Backend Error Format**: Correctly handles backend error responses with structure `{ error: { code, message } }`
+3. **Cookie-Based Auth**: Automatically includes credentials for authenticated endpoints
+4. **Type Safety**: Generic function provides full TypeScript type inference for all API calls
+
+### Learnings
+
+1. **Error Class Pattern**: Extending Error requires calling `super(message)` and setting `this.name` for proper error identification in debugging
+2. **Generic Functions**: Using `<T>` type parameter with `Promise<T>` return type provides excellent type safety for API responses
+3. **Fetch API Defaults**: The spread operator `{ ...options, credentials: 'include' }` allows merging default options while allowing overrides
+4. **Header Merging**: Nested spreading `{ ...options.headers }` ensures custom headers can override defaults
+5. **Test Mocking**: Vitest's `global.fetch = vi.fn()` with `vi.mocked(fetch).mockResolvedValueOnce()` provides clean fetch mocking
+6. **Error Handling Strategy**: Three-level catch (APIError → Error → unknown) ensures comprehensive error coverage without losing error details
+
+### Known Issues
+
+1. **Missing checkHealth Tests**: The pre-existing `checkHealth()` function lacks test coverage. Should be addressed in future cleanup but not blocking for Task 19 completion.
+
+### Next Steps
+
+**Task 20**: E2E test for complete auth flow
+- Write Playwright test covering full authentication journey
+- Start at login page, enter phone number
+- Navigate to verify page, enter code (use fixed code 123456 in test env)
+- Complete profile with display name
+- Verify redirect to dashboard
+- Verify user is logged in (check cookie or user state)
+- Test logout flow (clear cookie, redirect to login)
+- Test protected route access (logged out user redirected to login)
+
+### Statistics
+
+- **Files Created**: 1 (api.test.ts)
+- **Files Modified**: 1 (api.ts - extended)
+- **Lines Added**: ~409 (67 implementation + 342 tests)
+- **Tests Added**: 18
+- **Test Pass Rate**: 100% (89/89 tests, including 18 new API client tests)
+- **Agent Execution Time**: ~8 minutes (3 researchers parallel + coder + verifier/reviewer parallel)
+- **Overall Task Status**: ✅ COMPLETE

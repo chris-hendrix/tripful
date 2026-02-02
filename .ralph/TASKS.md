@@ -159,7 +159,7 @@
   - Show loading spinner while checking auth
   - Write E2E test (access protected route without auth, redirect to login)
 
-- [ ] Task 19: API client utilities
+- [x] Task 19: API client utilities
   - Create `lib/api.ts` with apiRequest() wrapper function
   - Custom APIError class with code and message
   - Automatically includes credentials: 'include' for cookies
