@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { requestCodeSchema, verifyCodeSchema } from '../../../../shared/schemas/index.js';
+import { requestCodeSchema, verifyCodeSchema, completeProfileSchema } from '../../../../shared/schemas/index.js';
 import { validatePhoneNumber } from '@/utils/phone.js';
 import { authService, AuthService } from '@/services/auth.service.js';
 import { smsService } from '@/services/sms.service.js';
@@ -173,6 +173,77 @@ export const authController = {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to verify code',
+        },
+      });
+    }
+  },
+
+  /**
+   * Complete profile endpoint
+   * Updates user's display name and timezone after initial authentication
+   * Requires authentication via JWT token
+   *
+   * @route POST /api/auth/complete-profile
+   * @middleware authenticate
+   * @param request - Fastify request with displayName and optional timezone in body
+   * @param reply - Fastify reply object
+   * @returns Success response with updated user
+   */
+  async completeProfile(request: FastifyRequest, reply: FastifyReply) {
+    // Validate request body with Zod schema
+    const result = completeProfileSchema.safeParse(request.body);
+
+    if (!result.success) {
+      return reply.status(400).send({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request data',
+          details: result.error.issues,
+        },
+      });
+    }
+
+    const { displayName, timezone } = result.data;
+
+    try {
+      // Get userId from authenticated user (populated by authenticate middleware)
+      const userId = request.user.sub;
+
+      // Update profile via service
+      const updatedUser = await authService.updateProfile(userId, {
+        displayName,
+        ...(timezone !== undefined && { timezone }),
+      });
+
+      // Generate new JWT token with updated profile info
+      const serviceWithFastify = new AuthService(request.server);
+      const token = serviceWithFastify.generateToken(updatedUser);
+
+      // Set httpOnly cookie with token
+      reply.setCookie('auth_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      });
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        user: updatedUser,
+      });
+    } catch (error) {
+      // Log error for debugging
+      request.log.error({ error, userId: request.user.sub }, 'Failed to complete profile');
+
+      // Return generic error response
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to complete profile',
         },
       });
     }

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { authController } from '@/controllers/auth.controller.js';
 import { smsRateLimitConfig } from '@/middleware/rate-limit.middleware.js';
+import { authenticate } from '@/middleware/auth.middleware.js';
 
 /**
  * Authentication Routes
@@ -28,4 +29,13 @@ export async function authRoutes(fastify: FastifyInstance) {
    * No rate limiting applied
    */
   fastify.post('/verify-code', authController.verifyCode);
+
+  /**
+   * POST /complete-profile
+   * Complete user profile with display name and timezone
+   * Requires authentication via JWT token
+   */
+  fastify.post('/complete-profile', {
+    preHandler: authenticate
+  }, authController.completeProfile);
 }

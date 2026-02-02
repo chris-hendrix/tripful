@@ -91,7 +91,7 @@
   - Delete verification code from DB
   - Write integration tests (valid code, invalid code, expired code, new vs existing user)
 
-- [ ] Task 12: Complete profile endpoint
+- [x] Task 12: Complete profile endpoint
   - Add completeProfile handler to auth.controller.ts
   - Register POST /auth/complete-profile in routes
   - Apply authenticate middleware (requires JWT)

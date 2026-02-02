@@ -29,6 +29,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(jwt, {
     secret: env.JWT_SECRET,
     sign: { expiresIn: '7d' },
+    cookie: {
+      cookieName: 'auth_token',
+      signed: false,
+    },
   });
 
   // Register rate limit plugin with global: false for route-specific rate limiting
