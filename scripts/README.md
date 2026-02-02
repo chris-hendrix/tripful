@@ -78,6 +78,80 @@ Verifies:
 - API tsx watch mode
 - Web Next.js dev mode
 
+### test-git-hooks.sh
+
+Tests Git hooks (Husky) and pre-commit configuration.
+
+```bash
+./scripts/test-git-hooks.sh
+```
+
+Verifies:
+
+- Husky installation and configuration
+- Pre-commit hook exists and is executable
+- lint-staged configuration
+- Hook integration with Prettier and ESLint
+
+### test-workflow.sh
+
+**Comprehensive end-to-end test** of the complete monorepo workflow from clean state through build verification and Turbo caching.
+
+```bash
+./scripts/test-workflow.sh
+```
+
+Tests complete workflow:
+
+1. **Clean State**: Removes node_modules, .turbo cache, build outputs
+2. **Install**: Runs `pnpm install` and verifies workspace linking
+3. **Docker**: Starts PostgreSQL and verifies health
+4. **Dev Servers**: Starts both web and API servers, tests health endpoint
+5. **Tests**: Runs `pnpm test` and verifies all tests pass
+6. **Lint**: Runs `pnpm lint` and verifies no errors
+7. **Typecheck**: Runs `pnpm typecheck` and verifies no TypeScript errors
+8. **Build**: Runs first `pnpm build` and verifies outputs
+9. **Turbo Cache**: Runs second build and verifies cache hits (FULL TURBO)
+10. **Cross-Package Imports**: Verifies @tripful/shared resolves correctly
+11. **Workspace Commands**: Verifies all workspace commands work
+
+This is the most comprehensive test that validates:
+
+- All workspace commands work without errors
+- Turbo caching works (second build faster)
+- All tests pass (backend integration tests)
+- Linting and type checking pass for all packages
+- Both apps build successfully
+- Shared package imports resolve correctly
+
+**Note:** This script takes several minutes to run as it performs a full clean install and double build. It will clean up processes and Docker containers on exit.
+
+See [WORKFLOW-TEST.md](WORKFLOW-TEST.md) for detailed documentation.
+
+### test-workflow-quick.sh
+
+**Quick workflow test** for faster iteration during development. Skips clean state and install steps.
+
+```bash
+./scripts/test-workflow-quick.sh
+```
+
+Tests:
+
+1. **Lint**: Runs `pnpm lint`
+2. **Typecheck**: Runs `pnpm typecheck`
+3. **Test**: Runs `pnpm test`
+4. **Build**: Clears cache and runs first build
+5. **Cache**: Runs second build and verifies Turbo caching
+
+**Duration**: 1-2 minutes (vs 5-10 minutes for full test)
+
+Use this when:
+
+- Iterating on code changes
+- Verifying cache behavior
+- Quick validation before commit
+
 ## Usage in CI/CD
 
 These scripts can be integrated into CI/CD pipelines:
@@ -96,14 +170,21 @@ These scripts can be integrated into CI/CD pipelines:
 To verify your complete development environment:
 
 ```bash
-# 1. Test Docker Compose configuration
+# Quick verification (unit tests only)
 ./scripts/test-docker-compose.sh
 
-# 2. Run full integration tests
+# Standard verification (integration tests)
 ./scripts/verify-dev-setup.sh
 
-# 3. Check hot reload configuration
-./scripts/test-hot-reload.sh
+# Comprehensive workflow test (end-to-end)
+./scripts/test-workflow.sh
+```
+
+For a complete validation of the monorepo from clean state through caching:
+
+```bash
+# Run the comprehensive workflow test (takes 5-10 minutes)
+./scripts/test-workflow.sh
 ```
 
 ## Requirements
