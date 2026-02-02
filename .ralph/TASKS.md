@@ -57,7 +57,7 @@
 
 ## 3. Backend (API) - Server, Database & Health Check
 
-- [ ] **3.1 Set up complete Fastify backend infrastructure**
+- [x] **3.1 Set up complete Fastify backend infrastructure**
   - Create `apps/api/` directory structure (src/config, routes, controllers, services, middleware, db/schema, types, tests/integration)
   - Create `apps/api/package.json` with scripts and dependencies:
     - Dependencies: fastify, drizzle-orm, pg, zod, dotenv
