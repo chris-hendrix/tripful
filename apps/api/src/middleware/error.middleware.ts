@@ -30,11 +30,12 @@ export async function errorHandler(
 
   // Rate limit errors
   if (error.statusCode === 429) {
+    const rateLimitError = error as Error & { customRateLimitMessage?: string };
     return reply.status(429).send({
       success: false,
       error: {
         code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests. Please try again later.',
+        message: rateLimitError.customRateLimitMessage || 'Too many requests. Please try again later.',
       },
     });
   }

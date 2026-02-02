@@ -62,7 +62,7 @@
   - Create requireCompleteProfile() middleware for profile check
   - Write integration tests for middleware (valid/invalid/missing tokens)
 
-- [ ] Task 9: Rate limiting configuration
+- [x] Task 9: Rate limiting configuration
   - Create `src/middleware/rate-limit.middleware.ts` with smsRateLimitConfig
   - Configure @fastify/rate-limit with 5 max per hour
   - Use phone number as key (fallback to IP)

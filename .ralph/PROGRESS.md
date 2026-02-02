@@ -1187,3 +1187,150 @@ Task 9: Rate limiting configuration
 - Use phone number as key (fallback to IP)
 - Custom error response with RATE_LIMIT_EXCEEDED code
 - Write integration tests (6th request fails)
+
+---
+
+## Iteration 9: Task 9 - Rate limiting configuration
+
+**Date:** 2026-02-02
+**Status:** ✅ COMPLETED
+
+### Task Description
+Create rate limiting configuration for SMS verification code requests to prevent abuse. Configure @fastify/rate-limit with 5 requests max per hour per phone number, use phone number as rate limit key (fallback to IP), custom error response with RATE_LIMIT_EXCEEDED code, and write integration tests.
+
+### Research Phase (3 parallel researchers)
+
+**LOCATING Researcher:**
+- Found @fastify/rate-limit v10.1.1 already installed in package.json
+- Located existing rate limit plugin registration in server.ts (global: 100 req/15min)
+- Identified error handler already supports RATE_LIMIT_EXCEEDED code
+- Confirmed middleware directory structure and test patterns
+
+**ANALYZING Researcher:**
+- Analyzed RateLimitOptions type for per-route configuration
+- Determined keyGenerator function pattern for phone-based rate limiting
+- Mapped errorResponseBuilder for custom error responses
+- Understood request.body access patterns and IP fallback mechanism
+
+**PATTERNS Researcher:**
+- Reviewed auth.middleware.ts for middleware export patterns
+- Found test patterns: buildTestApp(), app.inject(), afterEach cleanup
+- Identified rate limit test patterns: sequential requests in loops
+- Documented type safety patterns with proper TypeScript imports
+
+### Implementation Phase (Coder)
+
+**Files Created:**
+1. `apps/api/src/middleware/rate-limit.middleware.ts` (27 lines)
+   - Exported smsRateLimitConfig with RateLimitOptions type
+   - Custom keyGenerator: uses phone number from request.body, fallback to IP
+   - Custom errorResponseBuilder: returns Error with RATE_LIMIT_EXCEEDED code
+   - JSDoc documentation explaining configuration
+
+2. `apps/api/tests/integration/rate-limit.middleware.test.ts` (158 lines)
+   - buildTestApp() helper function with rate-limit plugin registration
+   - 5 comprehensive test scenarios:
+     - Allow 5 requests per phone number
+     - Reject 6th request with 429 status
+     - Use IP fallback when phone number missing
+     - Track different phone numbers independently
+     - Verify correct error response format
+
+**Files Modified:**
+3. `apps/api/src/middleware/error.middleware.ts`
+   - Enhanced rate limit error handler to support custom messages
+   - Added customRateLimitMessage property check
+
+### Verification Phase (Parallel Verifier + Reviewer)
+
+**Verifier Results (Initial):**
+- ❌ TypeScript: Failed (unused `request` parameter)
+- ❌ ESLint: Failed (unused parameters, `any` type warnings)
+- ✅ All tests passed: 101/101 tests (5 new rate limit tests)
+- ✅ Rate limit configuration matches architecture spec
+- ✅ Error response format correct
+
+**Reviewer Assessment:**
+- NEEDS_WORK: TypeScript and ESLint errors must be fixed
+- Strengths: Excellent test coverage, architecture alignment, good code quality
+- Issues: Unused parameters, `any` type usage
+
+### Fix Phase
+
+**Fixed Issues:**
+1. Prefixed unused `request` parameter with underscore in errorResponseBuilder
+2. Replaced `any` type with proper type assertion: `Error & { statusCode: number; code: string; customRateLimitMessage: string }`
+3. Fixed unused parameter in test route handler
+4. Updated error.middleware.ts to use type assertion instead of `any`
+
+### Final Verification
+
+**All Checks Passed:**
+- ✅ TypeScript: No errors
+- ✅ ESLint: No errors or warnings
+- ✅ All tests pass: 101/101 tests
+- ✅ Rate limit configuration: 5 requests per hour per phone
+- ✅ Error response format: `{ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: '...' } }`
+
+### Statistics
+
+**Code Written:**
+- Implementation: 27 lines (rate-limit.middleware.ts)
+- Tests: 158 lines (rate-limit.middleware.test.ts)
+- Modified: 9 lines (error.middleware.ts)
+- Total: 194 lines
+
+**Tests:**
+- New tests: 5 integration tests
+- All tests passing: 101 tests
+- Test coverage: Phone-based limiting, IP fallback, independent tracking
+
+**Time Breakdown:**
+- Research phase: 3 parallel researchers
+- Implementation phase: Middleware + comprehensive tests
+- Verification phase: Parallel verifier + reviewer
+- Fix phase: TypeScript and ESLint compliance
+- Re-verification: All checks passed
+
+### Key Features Implemented
+
+1. **Rate Limit Configuration:**
+   - 5 requests max per hour per phone number
+   - Custom keyGenerator extracts phone from request.body
+   - IP address fallback when phone number missing
+   - Custom error builder with RATE_LIMIT_EXCEEDED code
+
+2. **Integration Tests:**
+   - Sequential request testing (5 pass, 6th fails)
+   - Different phone numbers tracked independently
+   - IP-based fallback testing
+   - Exact error format validation
+
+3. **Error Handling:**
+   - Enhanced error middleware for custom rate limit messages
+   - Proper TypeScript typing without `any`
+   - Backward compatible with existing error handlers
+
+### Key Learnings
+
+1. **Rate Limit Plugin Configuration:** @fastify/rate-limit supports both global and per-route configuration. Used `global: false` in tests to enable route-specific rate limits with `app.rateLimit()` preHandler.
+
+2. **Custom Error Responses:** errorResponseBuilder returns an Error object that's processed by the global error handler. Added `customRateLimitMessage` property to pass custom messages through the error chain.
+
+3. **TypeScript Type Safety:** Avoided `any` type by using type assertions with intersection types: `Error & { customProperty: string }`. This maintains type safety while extending base types.
+
+4. **Rate Limit Key Generation:** keyGenerator function receives FastifyRequest and can access request.body (after parsing) or request.ip. Used optional chaining for safe access: `body?.phoneNumber || request.ip`.
+
+5. **Test Patterns for Rate Limiting:** Sequential requests in a loop test rate limiting effectively. Use `app.inject()` for fast, synchronous test requests without network overhead.
+
+### Next Task
+
+Task 10: Request code endpoint with validation
+- Create auth.controller.ts with requestCode handler
+- Create auth.routes.ts and register POST /auth/request-code
+- Validate phone number with libphonenumber-js
+- Call AuthService methods (generateCode, storeCode)
+- Call SMSService.sendVerificationCode (logs to console)
+- Apply smsRateLimitConfig middleware
+- Return success response
+- Write integration tests (valid phone, invalid phone, rate limit exceeded)
