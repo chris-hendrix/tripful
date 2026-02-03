@@ -138,7 +138,7 @@ describe('verifyCodeSchema', () => {
     const result = verifyCodeSchema.safeParse({ phoneNumber: '1234567890', code: '12345a' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      const messages = result.error.issues.map(issue => issue.message).join(' ');
+      const messages = result.error.issues.map((issue: { message: string }) => issue.message).join(' ');
       expect(messages).toContain('digits');
     }
   });

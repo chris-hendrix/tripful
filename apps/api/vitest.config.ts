@@ -12,6 +12,13 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 10000,
     hookTimeout: 10000,
+    // Use threads pool - faster than forks for sequential execution
+    pool: 'threads',
+    // Run test files sequentially to avoid database conflicts
+    // This is necessary because tests share the same test database
+    fileParallelism: false,
+    // Note: To enable parallel execution, tests would need unique test data
+    // (e.g., using unique phone numbers per test via test-utils.ts)
   },
   resolve: {
     alias: {

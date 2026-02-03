@@ -35,4 +35,4 @@ export {
   type RequestCodeInput,
   type VerifyCodeInput,
   type CompleteProfileInput,
-} from './auth';
+} from './auth.js';

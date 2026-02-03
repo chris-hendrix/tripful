@@ -22,7 +22,17 @@ export function validatePhoneNumber(phone: string): {
 } {
   try {
     // In TEST_MODE, accept 555 numbers for E2E testing
-    if (process.env.TEST_MODE === 'true' && phone.includes('555')) {
+    // But still require proper format - reject clearly invalid formats
+    if (process.env.TEST_MODE === 'true' && phone.startsWith('+') && phone.includes('555')) {
+      // Check for invalid characters (letters, multiple +, etc)
+      // Allow: digits, spaces, hyphens, parentheses, plus at start
+      if (!/^\+[\d\s\-()]+$/.test(phone)) {
+        return {
+          isValid: false,
+          error: 'Invalid phone number format',
+        };
+      }
+
       // Parse to E.164 format even if not technically valid
       try {
         const parsed = parsePhoneNumberWithError(phone);
@@ -31,10 +41,18 @@ export function validatePhoneNumber(phone: string): {
           e164: parsed.number,
         };
       } catch {
-        // If parsing fails, just use the provided number
+        // If parsing fails but format looks correct, accept it
+        // Remove formatting and check if it's valid E.164-like
+        const digitsOnly = phone.replace(/[\s\-()]/g, '');
+        if (/^\+[1-9]\d{7,14}$/.test(digitsOnly)) {
+          return {
+            isValid: true,
+            e164: digitsOnly,
+          };
+        }
         return {
-          isValid: true,
-          e164: phone.startsWith('+') ? phone : `+${phone}`,
+          isValid: false,
+          error: 'Invalid phone number format',
         };
       }
     }

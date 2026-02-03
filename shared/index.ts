@@ -7,7 +7,7 @@ export type {
   ErrorResponse,
   User,
   AuthResponse,
-} from './types/index';
+} from './types/index.js';
 
 // Schemas
 export {
@@ -17,14 +17,14 @@ export {
   requestCodeSchema,
   verifyCodeSchema,
   completeProfileSchema,
-} from './schemas/index';
+} from './schemas/index.js';
 
 // Schema inferred types
 export type {
   RequestCodeInput,
   VerifyCodeInput,
   CompleteProfileInput,
-} from './schemas/index';
+} from './schemas/index.js';
 
 // Utils
-export { convertToUTC, formatInTimeZone } from './utils/index';
+export { convertToUTC, formatInTimeZone } from './utils/index.js';

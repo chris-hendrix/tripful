@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import jwt from '@fastify/jwt';
@@ -12,13 +12,16 @@ describe('auth.service', () => {
   const testPhoneNumber = '+15551234567';
   const testPhoneNumber2 = '+15559876543';
 
-  // Clean up test data after each test
-  afterEach(async () => {
+  // Clean up test data before and after each test
+  const cleanup = async () => {
     await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber));
     await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber2));
     await db.delete(users).where(eq(users.phoneNumber, testPhoneNumber));
     await db.delete(users).where(eq(users.phoneNumber, testPhoneNumber2));
-  });
+  };
+
+  beforeEach(cleanup);
+  afterEach(cleanup);
 
   describe('generateCode', () => {
     it('should generate a 6-digit numeric code', () => {
