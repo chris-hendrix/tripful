@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { testDb, users, verificationCodes } from '../helpers/db';
 
 /**
  * E2E Test Suite: Complete Authentication Flow
  *
  * Prerequisites:
- * 1. Backend server running on http://localhost:8000 with TEST_MODE=true
- * 2. Frontend server running on http://localhost:3000
- * 3. Database accessible and in clean state
+ * 1. Test database setup: pnpm --filter @tripful/api test:setup
+ * 2. Backend server running on http://localhost:8000 with TEST_MODE=true
+ * 3. Frontend server running on http://localhost:3000
  *
  * To run:
  * Terminal 1: TEST_MODE=true pnpm --filter @tripful/api dev
@@ -16,6 +17,10 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Complete Auth Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Clean up test data directly from database
+    await testDb.delete(verificationCodes);
+    await testDb.delete(users);
+
     // Clear all cookies before each test for isolation
     await page.context().clearCookies();
   });
@@ -100,16 +105,20 @@ test.describe('Complete Auth Flow', () => {
     await codeInput.fill('123456');
     await page.locator('button:has-text("Verify")').click();
 
-    // Complete profile (or skip if already completed)
+    // Wait for navigation to either complete-profile or dashboard
+    await Promise.race([
+      page.waitForURL('**/dashboard'),
+      page.waitForURL('**/complete-profile')
+    ]);
+
+    // Complete profile if needed
     const currentUrl = await page.url();
     if (currentUrl.includes('/complete-profile')) {
       const displayNameInput = page.locator('input[type="text"]').first();
       await displayNameInput.fill('Test User');
       await page.locator('button:has-text("Complete profile")').click();
+      await page.waitForURL('**/dashboard');
     }
-
-    // Wait for dashboard
-    await page.waitForURL('**/dashboard');
     await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
 
     // Verify we have an auth cookie

@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
 
+  // Global setup - runs once before all tests
+  globalSetup: './tests/setup/global-setup.ts',
+
   // Maximum time one test can run
   timeout: 30 * 1000,
 
@@ -42,8 +45,8 @@ export default defineConfig({
     },
   ],
 
-  // Assume servers are already running
-  // Start them manually before running tests:
+  // Note: Test database is automatically set up before tests run
+  // Servers must be started manually before running tests:
   // Terminal 1: TEST_MODE=true pnpm --filter @tripful/api dev
   // Terminal 2: pnpm --filter @tripful/web dev
   // Terminal 3: pnpm --filter @tripful/web test:e2e
