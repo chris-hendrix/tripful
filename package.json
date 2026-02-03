@@ -19,6 +19,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "clean:cache": "rm -rf .turbo",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:restart": "docker-compose restart",
     "prepare": "husky"
   },
   "devDependencies": {

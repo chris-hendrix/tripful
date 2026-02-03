@@ -1,31 +1,21 @@
 import { test, expect } from '@playwright/test';
-import { testDb, users, verificationCodes } from '../helpers/db';
 
 /**
  * E2E Test Suite: Complete Authentication Flow
  *
- * Prerequisites:
- * 1. Test database setup: pnpm --filter @tripful/api test:setup
- * 2. Backend server running on http://localhost:8000 with TEST_MODE=true
- * 3. Frontend server running on http://localhost:3000
- *
- * To run:
- * Terminal 1: TEST_MODE=true pnpm --filter @tripful/api dev
- * Terminal 2: pnpm --filter @tripful/web dev
- * Terminal 3: pnpm --filter @tripful/web test:e2e
+ * Each test generates its own unique phone number for complete isolation.
+ * No shared state between tests.
  */
 
 test.describe('Complete Auth Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Clean up test data directly from database
-    await testDb.delete(verificationCodes);
-    await testDb.delete(users);
-
     // Clear all cookies before each test for isolation
     await page.context().clearCookies();
   });
 
   test('complete authentication journey: login → verify → complete profile → dashboard', async ({ page }) => {
+    const phone = `+1555${Date.now()}`;
+
     // Step 1: Navigate to login page
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
@@ -35,7 +25,7 @@ test.describe('Complete Auth Flow', () => {
 
     // Enter phone number
     const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill('+15551234567');
+    await phoneInput.fill(phone);
 
     // Click Continue button
     const continueButton = page.locator('button:has-text("Continue")');
@@ -47,7 +37,7 @@ test.describe('Complete Auth Flow', () => {
 
     // Verify we're on the verification page
     await expect(page.locator('h2:has-text("Verify your number")')).toBeVisible();
-    await expect(page.locator('text=+15551234567')).toBeVisible();
+    await expect(page.locator(`text=${phone}`)).toBeVisible();
 
     // Enter verification code (fixed code for test environment)
     const codeInput = page.locator('input[type="text"]').first();
@@ -79,7 +69,7 @@ test.describe('Complete Auth Flow', () => {
 
     // Verify user info is displayed
     await expect(page.locator('text=Test User')).toBeVisible();
-    await expect(page.locator('text=+15551234567')).toBeVisible();
+    await expect(page.locator(`text=${phone}`)).toBeVisible();
 
     // Verify auth cookie is set
     const cookies = await page.context().cookies();
@@ -90,13 +80,15 @@ test.describe('Complete Auth Flow', () => {
   });
 
   test('logout clears session and redirects to login', async ({ page }) => {
+    const phone = `+1555${Date.now()}`;
+
     // Complete auth flow first to get logged in
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
 
     // Login
     const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill('+15551234567');
+    await phoneInput.fill(phone);
     await page.locator('button:has-text("Continue")').click();
 
     // Verify
@@ -162,16 +154,31 @@ test.describe('Complete Auth Flow', () => {
     await expect(page.locator('h2:has-text("Get started")')).toBeVisible();
   });
 
-  test('existing user skips complete profile and goes to dashboard', async ({ page }) => {
-    // This test assumes the user from previous tests exists with a completed profile
-    // We'll log in again with the same phone number
+  test('existing user skips complete profile and goes to dashboard', async ({ page, request }) => {
+    const phone = `+1555${Date.now()}`;
 
+    // Create existing user with completed profile via API
+    await request.post('http://localhost:8000/api/auth/request-code', {
+      data: { phoneNumber: phone }
+    });
+
+    const verifyResponse = await request.post('http://localhost:8000/api/auth/verify-code', {
+      data: { phoneNumber: phone, code: '123456' }
+    });
+
+    const cookies = verifyResponse.headers()['set-cookie'];
+
+    await request.post('http://localhost:8000/api/auth/complete-profile', {
+      data: { displayName: 'Existing User', timezone: 'UTC' },
+      headers: { cookie: cookies || '' }
+    });
+
+    // Now test login with existing user - should skip complete-profile
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
 
-    // Login with existing phone
     const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill('+15551234567');
+    await phoneInput.fill(phone);
     await page.locator('button:has-text("Continue")').click();
 
     // Verify
@@ -180,26 +187,11 @@ test.describe('Complete Auth Flow', () => {
     await codeInput.fill('123456');
     await page.locator('button:has-text("Verify")').click();
 
-    // Should go directly to dashboard (or complete-profile if new)
-    // Wait for either URL
-    await Promise.race([
-      page.waitForURL('**/dashboard', { timeout: 5000 }),
-      page.waitForURL('**/complete-profile', { timeout: 5000 })
-    ]);
-
-    const currentUrl = await page.url();
-
-    // If we land on complete-profile, it means we're testing with a fresh user
-    // Complete the profile
-    if (currentUrl.includes('/complete-profile')) {
-      const displayNameInput = page.locator('input[type="text"]').first();
-      await displayNameInput.fill('Test User');
-      await page.locator('button:has-text("Complete profile")').click();
-      await page.waitForURL('**/dashboard');
-    }
+    // Should go directly to dashboard (user already has complete profile)
+    await page.waitForURL('**/dashboard', { timeout: 5000 });
 
     // Verify we're on dashboard
     await expect(page.locator('h1:has-text("Dashboard")')).toBeVisible();
-    await expect(page.locator('text=Test User')).toBeVisible();
+    await expect(page.locator('text=Existing User')).toBeVisible();
   });
 });

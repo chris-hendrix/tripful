@@ -21,9 +21,10 @@ export function validatePhoneNumber(phone: string): {
   error?: string;
 } {
   try {
-    // In TEST_MODE, accept 555 numbers for E2E testing
+    // In non-production environments, accept 555 numbers for E2E testing
     // But still require proper format - reject clearly invalid formats
-    if (process.env.TEST_MODE === 'true' && phone.startsWith('+') && phone.includes('555')) {
+    const isTestMode = process.env.NODE_ENV !== 'production';
+    if (isTestMode && phone.startsWith('+') && phone.includes('555')) {
       // Check for invalid characters (letters, multiple +, etc)
       // Allow: digits, spaces, hyphens, parentheses, plus at start
       if (!/^\+[\d\s\-()]+$/.test(phone)) {

@@ -3,7 +3,9 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
   "include": ["./**/*"],
   "exclude": ["node_modules", "dist"]

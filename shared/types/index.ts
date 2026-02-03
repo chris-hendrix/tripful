@@ -38,4 +38,4 @@ export interface ErrorResponse {
 }
 
 // Re-export user-related types
-export type { User, AuthResponse } from './user.js';
+export type { User, AuthResponse } from './user';

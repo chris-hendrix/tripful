@@ -15,7 +15,6 @@ const envSchema = z.object({
     .string()
     .url('DATABASE_URL must be a valid PostgreSQL URL')
     .refine((url) => url.startsWith('postgresql://'), 'DATABASE_URL must start with postgresql://'),
-  TEST_DATABASE_URL: z.string().url('TEST_DATABASE_URL must be a valid PostgreSQL URL').optional(),
 
   // Authentication
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters for security'),

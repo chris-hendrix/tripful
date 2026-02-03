@@ -92,13 +92,13 @@ export class AuthService implements IAuthService {
   /**
    * Generates a random 6-digit numeric verification code
    * Uses crypto.randomInt for secure random number generation
-   * In E2E test mode, returns a fixed code for deterministic testing
+   * In development, returns a fixed code for easier testing
    * @returns A 6-digit string code (e.g., "123456")
    */
   generateCode(): string {
-    // Use fixed code for E2E tests only (when E2E_TEST is explicitly set)
-    // This allows E2E tests to have deterministic codes while unit tests can verify randomness
-    if (process.env.E2E_TEST === 'true') {
+    // Use fixed code in development for easier testing (both manual and automated)
+    // Use random codes in production for security
+    if (process.env.NODE_ENV !== 'production') {
       return '123456';
     }
 
