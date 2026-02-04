@@ -36,7 +36,7 @@ const TIMEZONES = [
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const { completeProfile } = useAuth();
+  const { completeProfile, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +55,13 @@ export default function CompleteProfilePage() {
     }
   }, []);
 
+  // Navigate to dashboard when user is set (after profile completion)
+  useEffect(() => {
+    if (user && isSubmitting) {
+      router.push('/dashboard');
+    }
+  }, [user, isSubmitting, router]);
+
   async function onSubmit(data: CompleteProfileInput) {
     try {
       setIsSubmitting(true);
@@ -65,12 +72,11 @@ export default function CompleteProfilePage() {
         payload.timezone = data.timezone;
       }
       await completeProfile(payload);
-      router.push('/dashboard');
+      // Navigation happens in useEffect when user state updates
     } catch (error) {
       form.setError('displayName', {
         message: error instanceof Error && error.message ? error.message : 'Failed to complete profile',
       });
-    } finally {
       setIsSubmitting(false);
     }
   }

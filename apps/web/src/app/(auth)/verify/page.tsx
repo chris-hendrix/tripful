@@ -23,9 +23,10 @@ function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phoneNumber = searchParams.get('phone') || '';
-  const { verify, login } = useAuth();
+  const { verify, login, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState<'dashboard' | 'complete-profile' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<VerifyCodeInput>({
@@ -43,22 +44,31 @@ function VerifyPageContent() {
     }
   }, []);
 
+  // Navigate when user state is ready
+  useEffect(() => {
+    if (shouldNavigate === 'complete-profile') {
+      router.push('/complete-profile');
+    } else if (shouldNavigate === 'dashboard' && user) {
+      router.push('/dashboard');
+    }
+  }, [shouldNavigate, user, router]);
+
   async function onSubmit(data: VerifyCodeInput) {
     try {
       setIsSubmitting(true);
       const result = await verify(data.phoneNumber, data.code);
 
       if (result.requiresProfile) {
-        router.push('/complete-profile');
+        setShouldNavigate('complete-profile');
       } else {
-        router.push('/dashboard');
+        setShouldNavigate('dashboard');
       }
     } catch (error) {
       form.setError('code', {
         message: error instanceof Error ? error.message : 'Verification failed',
       });
-    } finally {
       setIsSubmitting(false);
+      setShouldNavigate(null);
     }
   }
 
