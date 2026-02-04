@@ -1,12 +1,19 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/providers/auth-provider';
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, refetch } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Refetch user on navigation to ensure we have fresh auth state
+    // This handles the race condition when navigating immediately after login/profile completion
+    refetch();
+  }, [pathname, refetch]);
 
   useEffect(() => {
     if (!loading && !user) {
