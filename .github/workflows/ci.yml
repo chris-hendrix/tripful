@@ -84,11 +84,11 @@ jobs:
       # On PR: run affected only
       - name: Lint (affected)
         if: github.event_name == 'pull_request'
-        run: turbo run lint --affected
+        run: pnpm turbo lint --affected
 
       - name: Type check (affected)
         if: github.event_name == 'pull_request'
-        run: turbo run typecheck --affected
+        run: pnpm turbo typecheck --affected
 
   # Step 3: Unit Tests (API)
   unit-tests:
