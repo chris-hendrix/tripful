@@ -46,7 +46,7 @@ export default defineConfig({
   // Reuse existing dev servers locally, start fresh in CI
   webServer: [
     {
-      command: 'cd ../api && pnpm dev',
+      command: 'cd ../api && NODE_ENV=test pnpm dev',
       url: 'http://localhost:8000/api/health',
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,

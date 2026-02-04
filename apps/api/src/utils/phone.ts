@@ -1,6 +1,7 @@
 // Phone number validation utilities
 
 import { parsePhoneNumberWithError, isValidPhoneNumber } from 'libphonenumber-js';
+import { env } from '@/config/env.js';
 
 /**
  * Validates a phone number and returns it in E.164 format
@@ -21,10 +22,10 @@ export function validatePhoneNumber(phone: string): {
   error?: string;
 } {
   try {
-    // In non-production environments, accept 555 numbers for E2E testing
+    // In non-production environments, accept 555 numbers for testing
+    // This includes development and test modes
     // But still require proper format - reject clearly invalid formats
-    const isTestMode = process.env.NODE_ENV !== 'production';
-    if (isTestMode && phone.startsWith('+') && phone.includes('555')) {
+    if (env.NODE_ENV !== 'production' && phone.startsWith('+') && phone.includes('555')) {
       // Check for invalid characters (letters, multiple +, etc)
       // Allow: digits, spaces, hyphens, parentheses, plus at start
       if (!/^\+[\d\s\-()]+$/.test(phone)) {

@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { config } from 'dotenv';
 
 // Load test environment variables
+// Vitest automatically sets NODE_ENV='test'
 config({ path: '.env' });
 
 // Use main database for tests

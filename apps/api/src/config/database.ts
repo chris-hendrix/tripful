@@ -4,6 +4,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { env } from './env.js';
 
 // Create connection pool
+// Tests use unique phone numbers for isolation, not separate databases
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
