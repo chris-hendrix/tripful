@@ -112,16 +112,16 @@ describe('POST /api/auth/request-code', () => {
 
       expect(response1.statusCode).toBe(200);
 
-      // Get first code
+      // Get first code record
       const result1 = await db
         .select()
         .from(verificationCodes)
         .where(eq(verificationCodes.phoneNumber, phoneNumber))
         .limit(1);
 
-      const firstCode = result1[0].code;
+      const firstCreatedAt = result1[0].createdAt;
 
-      // Wait a bit to ensure different code
+      // Wait a bit to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Second request
@@ -135,7 +135,7 @@ describe('POST /api/auth/request-code', () => {
 
       expect(response2.statusCode).toBe(200);
 
-      // Get second code
+      // Get second code record
       const result2 = await db
         .select()
         .from(verificationCodes)
@@ -145,9 +145,9 @@ describe('POST /api/auth/request-code', () => {
       // Should still be only one record (upsert behavior)
       expect(result2).toHaveLength(1);
 
-      // Code should be different (statistically almost certain)
-      const secondCode = result2[0].code;
-      expect(secondCode).not.toBe(firstCode);
+      // Timestamp should be updated (upsert refreshes the record)
+      const secondCreatedAt = result2[0].createdAt;
+      expect(secondCreatedAt.getTime()).toBeGreaterThan(firstCreatedAt.getTime());
     });
   });
 

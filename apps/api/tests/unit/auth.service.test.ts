@@ -447,25 +447,38 @@ describe('auth.service', () => {
       const code1 = authService.generateCode();
       await authService.storeCode(testPhoneNumber, code1);
 
+      // Get first code record timestamp
+      const firstRecord = await db
+        .select()
+        .from(verificationCodes)
+        .where(eq(verificationCodes.phoneNumber, testPhoneNumber))
+        .limit(1);
+      const firstCreatedAt = firstRecord[0].createdAt;
+      const firstExpiresAt = firstRecord[0].expiresAt;
+
+      // Wait to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // 2. User requests resend - generate and store second code
       const code2 = authService.generateCode();
       await authService.storeCode(testPhoneNumber, code2);
 
-      // 3. First code should no longer work
-      const isValid1 = await authService.verifyCode(testPhoneNumber, code1);
-      expect(isValid1).toBe(false);
-
-      // 4. Second code should work
-      const isValid2 = await authService.verifyCode(testPhoneNumber, code2);
-      expect(isValid2).toBe(true);
-
-      // 5. Should only have one code in database
+      // 3. Should only have one code in database (upsert behavior)
       const allCodes = await db
         .select()
         .from(verificationCodes)
         .where(eq(verificationCodes.phoneNumber, testPhoneNumber));
       expect(allCodes).toHaveLength(1);
-      expect(allCodes[0].code).toBe(code2);
+
+      // 4. Timestamps should be updated (upsert refreshes the record)
+      const secondCreatedAt = allCodes[0].createdAt;
+      const secondExpiresAt = allCodes[0].expiresAt;
+      expect(secondCreatedAt.getTime()).toBeGreaterThan(firstCreatedAt.getTime());
+      expect(secondExpiresAt.getTime()).toBeGreaterThan(firstExpiresAt.getTime());
+
+      // 5. Code should still work (in non-production, codes are fixed to '123456')
+      const isValid = await authService.verifyCode(testPhoneNumber, code2);
+      expect(isValid).toBe(true);
     });
   });
 
