@@ -1,18 +1,15 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../helpers.js';
 import { db } from '@/config/database.js';
 import { verificationCodes, users } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
+import { generateUniquePhone } from '../test-utils.js';
 
 describe('POST /api/auth/verify-code', () => {
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    // Clean up verification codes and users before each test
-    await db.delete(verificationCodes);
-    await db.delete(users);
-  });
+  // No cleanup needed - unique phone numbers prevent conflicts
 
   afterEach(async () => {
     if (app) {
@@ -24,7 +21,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 200 and create new user with requiresProfile: true', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552671';
+      const phoneNumber = generateUniquePhone();
       const code = '123456';
 
       // Create verification code in database
@@ -62,7 +59,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 200 for existing user with displayName (requiresProfile: false)', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552672';
+      const phoneNumber = generateUniquePhone();
       const code = '654321';
 
       // Create existing user with displayName
@@ -100,7 +97,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 200 for existing user without displayName (requiresProfile: true)', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552673';
+      const phoneNumber = generateUniquePhone();
       const code = '111111';
 
       // Create existing user without displayName
@@ -137,7 +134,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should set auth_token cookie', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552674';
+      const phoneNumber = generateUniquePhone();
       const code = '222222';
 
       // Create verification code
@@ -175,7 +172,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should delete verification code after success', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552675';
+      const phoneNumber = generateUniquePhone();
       const code = '333333';
 
       // Create verification code
@@ -209,7 +206,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return valid JWT token in cookie', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552676';
+      const phoneNumber = generateUniquePhone();
       const code = '444444';
 
       // Create verification code
@@ -274,7 +271,7 @@ describe('POST /api/auth/verify-code', () => {
         method: 'POST',
         url: '/api/auth/verify-code',
         payload: {
-          phoneNumber: '+14155552677',
+          phoneNumber: generateUniquePhone(),
         },
       });
 
@@ -327,13 +324,14 @@ describe('POST /api/auth/verify-code', () => {
       app = await buildApp();
 
       const invalidCodes = ['12345', '1234567', 'abcdef', '12345a'];
+      const phoneNumber = generateUniquePhone();
 
       for (const code of invalidCodes) {
         const response = await app.inject({
           method: 'POST',
           url: '/api/auth/verify-code',
           payload: {
-            phoneNumber: '+14155552678',
+            phoneNumber,
             code,
           },
         });
@@ -351,7 +349,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 400 for wrong code', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552679';
+      const phoneNumber = generateUniquePhone();
       const correctCode = '123456';
       const wrongCode = '654321';
 
@@ -386,7 +384,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 400 for expired code', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552680';
+      const phoneNumber = generateUniquePhone();
       const code = '123456';
 
       // Create expired verification code (expired 1 minute ago)
@@ -420,7 +418,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should return 400 for non-existent code', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552681';
+      const phoneNumber = generateUniquePhone();
       const code = '123456';
 
       // Don't create any verification code
@@ -451,7 +449,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should create new user with empty displayName and UTC timezone', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552682';
+      const phoneNumber = generateUniquePhone();
       const code = '123456';
 
       // Create verification code
@@ -492,7 +490,7 @@ describe('POST /api/auth/verify-code', () => {
     it('should not duplicate existing users', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552683';
+      const phoneNumber = generateUniquePhone();
       const code1 = '111111';
       const code2 = '222222';
 

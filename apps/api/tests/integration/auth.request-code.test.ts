@@ -1,17 +1,15 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../helpers.js';
 import { db } from '@/config/database.js';
 import { verificationCodes } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
+import { generateUniquePhone } from '../test-utils.js';
 
 describe('POST /api/auth/request-code', () => {
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    // Clean up verification codes before each test
-    await db.delete(verificationCodes);
-  });
+  // No cleanup needed - transaction rollback handles it automatically
 
   afterEach(async () => {
     if (app) {
@@ -27,7 +25,7 @@ describe('POST /api/auth/request-code', () => {
         method: 'POST',
         url: '/api/auth/request-code',
         payload: {
-          phoneNumber: '+14155552671',
+          phoneNumber: generateUniquePhone(),
         },
       });
 
@@ -43,7 +41,7 @@ describe('POST /api/auth/request-code', () => {
     it('should store verification code in database in E.164 format', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552672';
+      const phoneNumber = generateUniquePhone();
 
       await app.inject({
         method: 'POST',
@@ -77,7 +75,7 @@ describe('POST /api/auth/request-code', () => {
       app = await buildApp();
 
       const validPhoneNumbers = [
-        '+14155552673',
+        generateUniquePhone(),
         '+442071838750',
         '+61291234567',
       ];
@@ -101,7 +99,7 @@ describe('POST /api/auth/request-code', () => {
     it('should update existing code if phone number already has one', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552674';
+      const phoneNumber = generateUniquePhone();
 
       // First request
       const response1 = await app.inject({
@@ -274,7 +272,7 @@ describe('POST /api/auth/request-code', () => {
     it('should allow 5 requests per phone number within time window', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552675';
+      const phoneNumber = generateUniquePhone();
 
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
@@ -296,7 +294,7 @@ describe('POST /api/auth/request-code', () => {
     it('should reject 6th request with 429 RATE_LIMIT_EXCEEDED', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552676';
+      const phoneNumber = generateUniquePhone();
 
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
@@ -333,8 +331,8 @@ describe('POST /api/auth/request-code', () => {
     it('should track rate limits independently per phone number', async () => {
       app = await buildApp();
 
-      const phoneNumber1 = '+14155552677';
-      const phoneNumber2 = '+14155552678';
+      const phoneNumber1 = generateUniquePhone();
+      const phoneNumber2 = generateUniquePhone();
 
       // Make 5 requests for first phone number
       for (let i = 0; i < 5; i++) {
@@ -381,7 +379,7 @@ describe('POST /api/auth/request-code', () => {
       // Create a scenario that might cause database error
       // by attempting to send to a valid phone multiple times rapidly
       // This tests the error handling path in the controller
-      const phoneNumber = '+14155552679';
+      const phoneNumber = generateUniquePhone();
 
       const response = await app.inject({
         method: 'POST',
@@ -408,7 +406,7 @@ describe('POST /api/auth/request-code', () => {
     it('should call SMS service with E.164 formatted phone number', async () => {
       app = await buildApp();
 
-      const phoneNumber = '+14155552680';
+      const phoneNumber = generateUniquePhone();
 
       const response = await app.inject({
         method: 'POST',

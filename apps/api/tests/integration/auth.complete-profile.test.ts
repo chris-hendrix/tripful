@@ -1,17 +1,15 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../helpers.js';
 import { db } from '@/config/database.js';
 import { users } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
+import { generateUniquePhone } from '../test-utils.js';
 
 describe('POST /api/auth/complete-profile', () => {
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    // Clean up users before each test
-    await db.delete(users);
-  });
+  // No cleanup needed - unique phone numbers prevent conflicts
 
   afterEach(async () => {
     if (app) {
@@ -25,7 +23,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user with empty displayName
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551001',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -77,7 +75,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551002',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -114,7 +112,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551003',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -156,7 +154,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user with existing displayName
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551004',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Old Name',
         timezone: 'UTC',
       }).returning();
@@ -197,7 +195,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551005',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -239,7 +237,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551006',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -276,7 +274,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551007',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -315,7 +313,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551008',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -399,7 +397,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551009',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -441,7 +439,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551010',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -486,7 +484,7 @@ describe('POST /api/auth/complete-profile', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155551011',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();

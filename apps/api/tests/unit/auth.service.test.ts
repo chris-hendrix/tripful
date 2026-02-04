@@ -7,12 +7,15 @@ import { users, verificationCodes } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { authService, AuthService } from '@/services/auth.service.js';
 import { env } from '@/config/env.js';
+import { generateUniquePhone } from '../test-utils.js';
 
 describe('auth.service', () => {
-  const testPhoneNumber = '+15551234567';
-  const testPhoneNumber2 = '+15559876543';
+  // Use unique phone numbers per test run to enable parallel execution
+  // Targeted cleanup needed - unit tests verify specific database states
+  const testPhoneNumber = generateUniquePhone();
+  const testPhoneNumber2 = generateUniquePhone();
 
-  // Clean up test data before and after each test
+  // Clean up only this test file's data (safe for parallel execution)
   const cleanup = async () => {
     await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber));
     await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber2));

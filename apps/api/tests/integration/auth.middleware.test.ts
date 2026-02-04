@@ -10,6 +10,7 @@ import { users } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { env } from '@/config/env.js';
 import { errorHandler } from '@/middleware/error.middleware.js';
+import { generateUniquePhone } from '../test-utils.js';
 
 /**
  * Build a minimal Fastify app for testing middleware
@@ -76,7 +77,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: '+1234567890',
+          phoneNumber: generateUniquePhone(),
           displayName: 'Test User',
           timezone: 'America/New_York',
         })
@@ -118,7 +119,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: '+1234567891',
+          phoneNumber: generateUniquePhone(),
           displayName: 'Test User 2',
           timezone: 'UTC',
         })
@@ -203,7 +204,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: `+1${Date.now().toString().slice(-9)}`, // Unique phone number based on timestamp
+          phoneNumber: generateUniquePhone(),
           displayName: 'Test User 3',
           timezone: 'UTC',
         })
@@ -287,7 +288,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: '+1234567893',
+          phoneNumber: generateUniquePhone(),
           displayName: 'Complete User',
           timezone: 'UTC',
         })
@@ -328,7 +329,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: '+1234567894',
+          phoneNumber: generateUniquePhone(),
           displayName: '', // Empty display name
           timezone: 'UTC',
         })
@@ -372,7 +373,7 @@ describe('Authentication Middleware', () => {
       const testUser = await db
         .insert(users)
         .values({
-          phoneNumber: '+1234567895',
+          phoneNumber: generateUniquePhone(),
           displayName: '   ', // Whitespace-only display name
           timezone: 'UTC',
         })

@@ -4,6 +4,7 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { smsRateLimitConfig } from '@/middleware/rate-limit.middleware.js';
 import { errorHandler } from '@/middleware/error.middleware.js';
+import { generateUniquePhone } from '../test-utils.js';
 
 /**
  * Build a minimal Fastify app for testing rate limiting
@@ -54,7 +55,7 @@ describe('Rate Limit Middleware', () => {
     it('should allow 5 requests per phone number within the time window', async () => {
       app = await buildTestApp();
 
-      const phoneNumber = '+1234567890';
+      const phoneNumber = generateUniquePhone();
 
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
@@ -77,7 +78,7 @@ describe('Rate Limit Middleware', () => {
     it('should reject the 6th request with 429 status and RATE_LIMIT_EXCEEDED error', async () => {
       app = await buildTestApp();
 
-      const phoneNumber = '+1234567891';
+      const phoneNumber = generateUniquePhone();
 
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
@@ -153,8 +154,8 @@ describe('Rate Limit Middleware', () => {
     it('should track different phone numbers independently', async () => {
       app = await buildTestApp();
 
-      const phoneNumber1 = '+1234567892';
-      const phoneNumber2 = '+1234567893';
+      const phoneNumber1 = generateUniquePhone();
+      const phoneNumber2 = generateUniquePhone();
 
       // Make 5 requests for first phone number
       for (let i = 0; i < 5; i++) {
@@ -199,7 +200,7 @@ describe('Rate Limit Middleware', () => {
     it('should return correct error response format', async () => {
       app = await buildTestApp();
 
-      const phoneNumber = '+1234567894';
+      const phoneNumber = generateUniquePhone();
 
       // Make 5 requests to reach the limit
       for (let i = 0; i < 5; i++) {

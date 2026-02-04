@@ -5,8 +5,9 @@ import { config } from 'dotenv';
 // Load test environment variables
 config({ path: '.env' });
 
-// Phase 1: Use main database for tests (no schema yet, so safe)
-// Phase 2+: Will need separate test database for schema isolation
+// Use main database for tests
+// Tests use unique phone numbers (generateUniquePhone) to prevent conflicts
+// This allows parallel test execution without interference
 const testPool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });

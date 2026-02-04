@@ -1,16 +1,14 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../helpers.js';
 import { db } from '@/config/database.js';
 import { users } from '@/db/schema/index.js';
+import { generateUniquePhone } from '../test-utils.js';
 
 describe('GET /api/auth/me', () => {
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    // Clean up users before each test
-    await db.delete(users);
-  });
+  // No cleanup needed - unique phone numbers prevent conflicts
 
   afterEach(async () => {
     if (app) {
@@ -24,7 +22,7 @@ describe('GET /api/auth/me', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155552001',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Test User',
         timezone: 'America/New_York',
       }).returning();
@@ -62,7 +60,7 @@ describe('GET /api/auth/me', () => {
 
       // Create test user with empty displayName
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155552002',
+        phoneNumber: generateUniquePhone(),
         displayName: '',
         timezone: 'UTC',
       }).returning();
@@ -136,7 +134,7 @@ describe('GET /api/auth/me', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155552003',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Test User',
         timezone: 'UTC',
       }).returning();
@@ -173,7 +171,7 @@ describe('GET /api/auth/me', () => {
       // Generate token with non-existent user ID
       const token = app.jwt.sign({
         sub: '00000000-0000-0000-0000-000000000000',
-        phone: '+14155552004',
+        phone: generateUniquePhone(),
       });
 
       const response = await app.inject({
@@ -201,10 +199,7 @@ describe('GET /api/auth/me', () => {
 describe('POST /api/auth/logout', () => {
   let app: FastifyInstance;
 
-  beforeEach(async () => {
-    // Clean up users before each test
-    await db.delete(users);
-  });
+  // No cleanup needed - unique phone numbers prevent conflicts
 
   afterEach(async () => {
     if (app) {
@@ -218,7 +213,7 @@ describe('POST /api/auth/logout', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155553001',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Test User',
         timezone: 'UTC',
       }).returning();
@@ -301,7 +296,7 @@ describe('POST /api/auth/logout', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155553002',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Test User',
         timezone: 'UTC',
       }).returning();
@@ -339,7 +334,7 @@ describe('POST /api/auth/logout', () => {
 
       // Create test user
       const testUserResult = await db.insert(users).values({
-        phoneNumber: '+14155553003',
+        phoneNumber: generateUniquePhone(),
         displayName: 'Test User',
         timezone: 'UTC',
       }).returning();
