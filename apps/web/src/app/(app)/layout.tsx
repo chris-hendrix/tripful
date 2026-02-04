@@ -10,15 +10,22 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Refetch user on navigation to ensure we have fresh auth state
+    // If we're not loading and don't have a user, refetch to check auth cookie
     // This handles the race condition when navigating immediately after login/profile completion
-    refetch();
-  }, [pathname, refetch]);
+    if (!loading && !user) {
+      refetch();
+    }
+  }, [pathname, loading, user, refetch]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    // Give refetch a chance to complete before redirecting
+    const timer = setTimeout(() => {
+      if (!loading && !user) {
+        router.push('/login');
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [user, loading, router]);
 
   if (loading) {
