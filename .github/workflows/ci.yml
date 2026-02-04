@@ -1,0 +1,222 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Cancel in-progress runs for same workflow + PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Step 1: Detect what changed
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+            shared:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+              - '.github/**'
+              - 'tsconfig.base.json'
+              - 'eslint.config.js'
+
+  # Step 2: Lint + Type Check
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      # On main: run all
+      - name: Lint (all)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: pnpm lint
+
+      - name: Type check (all)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: pnpm typecheck
+
+      # On PR: run affected only
+      - name: Lint (affected)
+        if: github.event_name == 'pull_request'
+        run: turbo run lint --affected
+
+      - name: Type check (affected)
+        if: github.event_name == 'pull_request'
+        run: turbo run typecheck --affected
+
+  # Step 3: Unit Tests (API)
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    # Run if API changed OR on main branch OR shared files changed
+    if: |
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/master' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.shared == 'true'
+    env:
+      TEST_MODE: true
+      NODE_ENV: test
+      DATABASE_URL: postgresql://tripful:tripful123@localhost:5432/tripful
+      JWT_SECRET: test-jwt-secret-minimum-32-characters-long-for-testing-purposes-only
+      FRONTEND_URL: http://localhost:3000
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tripful
+          POSTGRES_PASSWORD: tripful123
+          POSTGRES_DB: tripful
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Run database migrations
+        run: pnpm --filter @tripful/api db:migrate
+
+      - name: Run unit tests
+        run: pnpm --filter @tripful/api test
+
+  # Step 4: E2E Tests
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: changes
+    # Run if API/web changed OR on main branch
+    if: |
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/master' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.shared == 'true'
+    env:
+      TEST_MODE: true
+      E2E_TEST: true
+      NODE_ENV: test
+      DATABASE_URL: postgresql://tripful:tripful123@localhost:5432/tripful
+      JWT_SECRET: test-jwt-secret-minimum-32-characters-long-for-testing-purposes-only
+      FRONTEND_URL: http://localhost:3000
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tripful
+          POSTGRES_PASSWORD: tripful123
+          POSTGRES_DB: tripful
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm --filter @tripful/web exec playwright install --with-deps
+
+      - name: Run database migrations
+        run: pnpm --filter @tripful/api db:migrate
+
+      - name: Run E2E tests
+        run: pnpm --filter @tripful/web test:e2e
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 30
