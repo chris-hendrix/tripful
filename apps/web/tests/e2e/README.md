@@ -7,7 +7,7 @@ End-to-end tests for the Tripful web application using Playwright.
 1. Backend API server running on `http://localhost:8000`
 2. Frontend web server running on `http://localhost:3000`
 3. PostgreSQL database accessible
-4. Backend configured with `TEST_MODE=true` to use fixed verification code
+4. Backend in non-production mode to use fixed verification code
 
 ## Setup
 
@@ -21,9 +21,9 @@ npx playwright install chromium
 
 ### Start the servers
 
-**Terminal 1 - Backend (with test mode):**
+**Terminal 1 - Backend:**
 ```bash
-TEST_MODE=true pnpm --filter @tripful/api dev
+pnpm --filter @tripful/api dev
 ```
 
 **Terminal 2 - Frontend:**
@@ -75,14 +75,14 @@ The E2E test suite covers:
 ## Test Data
 
 - **Test phone number:** `+15551234567`
-- **Test verification code:** `123456` (fixed when `TEST_MODE=true`)
+- **Test verification code:** `123456` (fixed in non-production environments)
 - **Test display name:** `Test User`
 
 ## Notes
 
 - Tests run sequentially to avoid database conflicts
 - Each test clears cookies before running for isolation
-- Backend must be in test mode (`TEST_MODE=true`) to use fixed verification code
+- Backend uses fixed verification code `123456` when `NODE_ENV !== 'production'`
 - Tests assume both servers are already running (not auto-started)
 
 ## Debugging
