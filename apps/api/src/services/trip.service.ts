@@ -1,6 +1,6 @@
 import { db } from '@/config/database.js';
 import { trips, members, users, type Trip, type Member } from '@/db/schema/index.js';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and } from 'drizzle-orm';
 import type { CreateTripInput } from '../../../../shared/schemas/index.js';
 
 /**
@@ -18,11 +18,15 @@ export interface ITripService {
   createTrip(userId: string, data: CreateTripInput): Promise<Trip>;
 
   /**
-   * Gets a trip by ID (to be implemented)
+   * Gets a trip by ID with organizer and member information
    * @param tripId - The UUID of the trip to retrieve
-   * @returns Promise that resolves to the trip or null if not found
+   * @param userId - The UUID of the user requesting the trip
+   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
    */
-  getTripById(tripId: string): Promise<Trip | null>;
+  getTripById(
+    tripId: string,
+    userId: string
+  ): Promise<(Trip & { organizers: Array<{ id: string; displayName: string; phoneNumber: string; profilePhotoUrl: string | null; timezone: string }>; memberCount: number }) | null>;
 
   /**
    * Gets all trips for a user (to be implemented)
@@ -167,13 +171,77 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Gets a trip by ID (placeholder implementation)
+   * Gets a trip by ID with organizer and member information
+   * Returns null if trip not found or user is not a member (security best practice)
    * @param tripId - The UUID of the trip to retrieve
-   * @returns Promise that resolves to the trip or null if not found
+   * @param userId - The UUID of the user requesting the trip
+   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
    */
-  async getTripById(tripId: string): Promise<Trip | null> {
-    const result = await db.select().from(trips).where(eq(trips.id, tripId)).limit(1);
-    return result[0] || null;
+  async getTripById(
+    tripId: string,
+    userId: string
+  ): Promise<(Trip & { organizers: Array<{ id: string; displayName: string; phoneNumber: string; profilePhotoUrl: string | null; timezone: string }>; memberCount: number }) | null> {
+    // Check if user is a member of the trip
+    const membershipCheck = await db
+      .select()
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    // Return null if user is not a member (security best practice: same response as "not found")
+    if (membershipCheck.length === 0) {
+      return null;
+    }
+
+    // Load the trip
+    const tripResult = await db.select().from(trips).where(eq(trips.id, tripId)).limit(1);
+
+    // Return null if trip doesn't exist
+    if (tripResult.length === 0) {
+      return null;
+    }
+
+    const trip = tripResult[0];
+
+    // Load organizers: creator + all members with status='going' (co-organizers are added with status='going')
+    // Get all members with status='going' (includes creator and co-organizers)
+    const organizerMembers = await db
+      .select()
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.status, 'going')));
+
+    const organizerUserIds = organizerMembers.map((m) => m.userId);
+
+    // Load user information for all organizers
+    const organizerUsers = await db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        phoneNumber: users.phoneNumber,
+        profilePhotoUrl: users.profilePhotoUrl,
+        timezone: users.timezone,
+      })
+      .from(users)
+      .where(inArray(users.id, organizerUserIds));
+
+    // Load member count
+    const memberCount = await this.getMemberCount(tripId);
+
+    // Return enhanced trip object with explicit type assertion
+    return {
+      ...trip,
+      organizers: organizerUsers,
+      memberCount,
+    } as Trip & {
+      organizers: Array<{
+        id: string;
+        displayName: string;
+        phoneNumber: string;
+        profilePhotoUrl: string | null;
+        timezone: string;
+      }>;
+      memberCount: number;
+    };
   }
 
   /**

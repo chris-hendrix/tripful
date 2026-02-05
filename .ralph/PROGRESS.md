@@ -814,3 +814,130 @@ Ready to proceed to **Task 2.3: Implement getTripById (TDD)**
 - `getMemberCount()` is now available for use in other service methods
 - Co-organizer validation patterns can be reused for other member operations
 - Test patterns established are solid foundation for remaining service methods
+
+---
+
+## Ralph Iteration 6: Task 2.3 - Implement getTripById (TDD)
+
+**Date**: 2026-02-05
+**Status**: ✅ COMPLETED
+**Task**: Implement getTripById(tripId, userId) with TDD approach
+
+### Implementation Summary
+
+**Files Modified:**
+- `apps/api/src/services/trip.service.ts`: Implemented getTripById method with authorization, organizer loading, and member count
+- `apps/api/tests/unit/trip.service.test.ts`: Added 6 comprehensive unit tests
+
+**Changes Made:**
+1. Updated interface signature from `getTripById(tripId: string)` to `getTripById(tripId: string, userId: string)`
+2. Implemented full method with:
+   - Membership authorization check (returns null if user not a member)
+   - Trip data loading
+   - Organizer information (all members with status='going')
+   - Member count via existing getMemberCount() method
+3. Enhanced return type to include organizers array and memberCount
+4. Added type assertion to fix TypeScript spread operator issue
+
+### Test Results
+
+**Unit Tests**: ✅ PASS (17/17 tests in trip.service.test.ts)
+- 7 tests: createTrip
+- 4 tests: getMemberCount
+- 6 tests: getTripById (NEW)
+
+**Test Coverage for getTripById:**
+1. ✅ Returns full trip details when user is a member
+2. ✅ Returns null when trip doesn't exist
+3. ✅ Returns null when user is not a member (authorization)
+4. ✅ Includes organizer information (creator + co-organizers)
+5. ✅ Includes member count
+6. ✅ Allows co-organizer to access trip
+
+**All API Tests**: ✅ PASS (222 tests, no regressions)
+**TypeScript**: ✅ PASS (after type assertion fix)
+**Linting**: ✅ PASS (3 minor warnings in test code using `any` type)
+
+### Verification Results
+
+**Verifier Report**: ✅ APPROVED
+- All unit tests pass
+- No test regressions
+- TypeScript compiles successfully (after fix)
+- Minor linting warnings only (non-blocking)
+
+**Reviewer Report**: ✅ APPROVED (after TypeScript fix)
+- Excellent security practice (returns null for both not found and unauthorized)
+- Comprehensive test coverage
+- Proper TDD approach followed
+- Clear documentation with JSDoc comments
+- Consistent error handling patterns
+- Good use of Drizzle ORM
+- Authorization-first approach (efficient and secure)
+
+### Key Technical Decisions
+
+1. **Authorization Pattern**: Check membership first, return null for both "not found" and "not authorized" to prevent information leakage
+2. **Data Aggregation**: Multiple queries for clarity (membership → trip → organizers → count) rather than complex JOINs
+3. **Organizer Identification**: All members with status='going' (includes creator and co-organizers)
+4. **Return Type Enhancement**: Extended base Trip type with organizers array and memberCount fields
+5. **Type Safety**: Used explicit type assertion for spread operator to satisfy TypeScript compiler
+
+### Issues Encountered & Resolutions
+
+**Issue 1: TypeScript Type Error**
+- **Problem**: Spread operator `...trip` made properties optional in return type
+- **Resolution**: Added explicit type assertion: `as Trip & { organizers: ...; memberCount: ... }`
+- **Impact**: TypeScript compilation now passes
+
+**Issue 2: Interface Signature Mismatch**
+- **Problem**: Current interface had `getTripById(tripId)` but ARCHITECTURE.md specified `getTripById(tripId, userId)`
+- **Resolution**: Updated interface to include userId parameter
+- **Impact**: Matches architectural specification
+
+### Security Considerations
+
+1. **Information Leakage Prevention**: Returns null for both non-existent trips and unauthorized access (doesn't reveal trip existence to non-members)
+2. **Authorization First**: Checks membership before loading trip data (more efficient and secure)
+3. **Type-Safe Queries**: Uses Drizzle ORM with parameterized queries (prevents SQL injection)
+
+### Performance Notes
+
+- 5 database queries per getTripById call:
+  1. Membership check
+  2. Trip data load
+  3. Organizer members load (status='going')
+  4. Organizer users load
+  5. Member count (via getMemberCount)
+- For MVP scope, this is acceptable. Future optimization could use JOINs to reduce round trips.
+
+### Key Learnings
+
+1. **Type Assertions for Spread**: When spreading database query results, TypeScript may infer properties as optional. Explicit type assertions resolve this.
+2. **Security by Design**: Returning null for both "not found" and "unauthorized" is a security best practice that prevents attackers from probing trip existence.
+3. **TDD Effectiveness**: Writing tests first (6 comprehensive tests) clarified authorization requirements and edge cases before implementation.
+4. **Pattern Reuse**: Leveraging existing getMemberCount() method promotes code reuse and consistency.
+5. **Multiple Queries vs JOINs**: For clarity and maintainability, multiple simple queries can be preferable to complex JOINs in MVP scope.
+
+### Integration Points
+
+**Used By (Future):**
+- Trip controller GET /trips/:id endpoint (Task 3.3)
+- Frontend trip detail page data fetching
+
+**Dependencies:**
+- Database schema: trips, members, users tables with proper indexes
+- Drizzle ORM: eq(), and(), inArray() operators
+- Existing getMemberCount() method (Task 2.2)
+
+### Next Steps
+
+Ready to proceed to **Task 2.4: Implement getUserTrips for dashboard (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task:**
+- getTripById pattern established for authorization checks (can reuse for getUserTrips)
+- Organizer identification pattern (status='going') can be reused
+- Test patterns (setup, cleanup, unique phones) are solid foundation
+- Enhanced return types pattern (Trip & { ... }) can be applied to TripSummary type

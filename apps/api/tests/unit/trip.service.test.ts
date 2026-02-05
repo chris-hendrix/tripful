@@ -358,4 +358,149 @@ describe('trip.service', () => {
       expect(count).toBe(2);
     });
   });
+
+  describe('getTripById', () => {
+    it('should return full trip details when user is a member', async () => {
+      // Create a trip with co-organizers
+      const tripData: CreateTripInput = {
+        name: 'Tokyo Adventure',
+        destination: 'Tokyo, Japan',
+        startDate: '2026-09-01',
+        endDate: '2026-09-10',
+        timezone: 'Asia/Tokyo',
+        description: 'Exploring Tokyo together',
+        coverImageUrl: 'https://example.com/tokyo.jpg',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Get trip as the creator (who is a member)
+      const result = await tripService.getTripById(trip.id, testUserId);
+
+      // Verify trip is returned with all details
+      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(trip.id);
+      expect(result!.name).toBe('Tokyo Adventure');
+      expect(result!.destination).toBe('Tokyo, Japan');
+      expect(result!.startDate).toBe('2026-09-01');
+      expect(result!.endDate).toBe('2026-09-10');
+      expect(result!.preferredTimezone).toBe('Asia/Tokyo');
+      expect(result!.description).toBe('Exploring Tokyo together');
+      expect(result!.coverImageUrl).toBe('https://example.com/tokyo.jpg');
+      expect(result!.allowMembersToAddEvents).toBe(true);
+      expect(result!.cancelled).toBe(false);
+      expect(result!.createdBy).toBe(testUserId);
+    });
+
+    it('should return null when trip does not exist', async () => {
+      const nonExistentTripId = '00000000-0000-0000-0000-000000000000';
+
+      const result = await tripService.getTripById(nonExistentTripId, testUserId);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when user is not a member', async () => {
+      // Create a trip with testUser as creator
+      const tripData: CreateTripInput = {
+        name: 'Private Trip',
+        destination: 'Secret Location',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Try to access as coOrganizer (who is not a member)
+      const result = await tripService.getTripById(trip.id, coOrganizerUserId);
+
+      // Should return null for non-members (security best practice)
+      expect(result).toBeNull();
+    });
+
+    it('should include organizer information', async () => {
+      // Create a trip with co-organizers
+      const tripData: CreateTripInput = {
+        name: 'Team Trip',
+        destination: 'Conference Center',
+        timezone: 'America/New_York',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone, coOrganizer2Phone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Get trip as a member
+      const result = await tripService.getTripById(trip.id, testUserId);
+
+      // Verify organizer information is included
+      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('organizers');
+      expect(Array.isArray(result!.organizers)).toBe(true);
+      expect(result!.organizers).toHaveLength(3); // creator + 2 co-organizers
+
+      // Verify creator is in organizers list
+      const creator = result!.organizers.find((org: any) => org.id === testUserId);
+      expect(creator).toBeDefined();
+      expect(creator.displayName).toBe('Test User');
+      expect(creator.phoneNumber).toBe(testPhone);
+
+      // Verify co-organizers are in the list
+      const coOrg1 = result!.organizers.find((org: any) => org.id === coOrganizerUserId);
+      expect(coOrg1).toBeDefined();
+      expect(coOrg1.displayName).toBe('Co-Organizer');
+
+      const coOrg2 = result!.organizers.find((org: any) => org.id === coOrganizer2UserId);
+      expect(coOrg2).toBeDefined();
+      expect(coOrg2.displayName).toBe('Co-Organizer 2');
+    });
+
+    it('should include member count', async () => {
+      // Create a trip with co-organizers
+      const tripData: CreateTripInput = {
+        name: 'Group Vacation',
+        destination: 'Beach Resort',
+        timezone: 'Pacific/Honolulu',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone, coOrganizer2Phone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Get trip as a member
+      const result = await tripService.getTripById(trip.id, testUserId);
+
+      // Verify member count is included
+      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('memberCount');
+      expect(result!.memberCount).toBe(3); // creator + 2 co-organizers
+    });
+
+    it('should allow co-organizer to access trip', async () => {
+      // Create a trip with co-organizer
+      const tripData: CreateTripInput = {
+        name: 'Shared Trip',
+        destination: 'Shared Destination',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Get trip as the co-organizer (who is a member)
+      const result = await tripService.getTripById(trip.id, coOrganizerUserId);
+
+      // Verify co-organizer can access the trip
+      expect(result).toBeDefined();
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(trip.id);
+      expect(result!.name).toBe('Shared Trip');
+    });
+  });
 });

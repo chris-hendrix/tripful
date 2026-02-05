@@ -112,7 +112,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 2.3: Implement getTripById (TDD)
+- [x] Task 2.3: Implement getTripById (TDD)
   - Write failing tests in `trip.service.test.ts`:
     - Test: Returns full trip details when user is a member
     - Test: Returns null when trip doesn't exist
