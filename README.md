@@ -156,7 +156,44 @@ docker compose exec postgres pg_isready -U tripful
 
 You should see: `localhost:5432 - accepting connections`
 
-### 5. Verify Installation
+### 5. Set Up Pre-commit Hooks (Recommended)
+
+Install pre-commit hooks to automatically check for security issues and code quality before each commit:
+
+```bash
+# Install pre-commit (if not already installed)
+pip install pre-commit
+
+# Install the pre-commit hooks
+pre-commit install
+```
+
+This sets up:
+- **GitGuardian ggshield**: Scans for hardcoded secrets and credentials
+- Prevents accidental commits of sensitive data
+
+**Optional: Get GitGuardian API key** (for full features):
+1. Sign up at [dashboard.gitguardian.com](https://dashboard.gitguardian.com)
+2. Get your API key
+3. Set it in your environment:
+```bash
+export GITGUARDIAN_API_KEY="your-api-key-here"
+# Add to ~/.bashrc or ~/.zshrc to persist
+```
+
+**Manual scan** (without pre-commit):
+```bash
+# Install ggshield
+pip install ggshield
+
+# Scan current changes
+ggshield secret scan pre-commit
+
+# Scan entire repository
+ggshield secret scan repo .
+```
+
+### 6. Verify Installation
 
 Run a comprehensive test to verify everything is set up correctly:
 
