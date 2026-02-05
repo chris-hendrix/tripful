@@ -23,7 +23,7 @@ status: Core flows implemented in demo
 11. [Security Considerations](#security-considerations)
 12. [Performance Considerations](#performance-considerations)
 
----
+***
 
 ## System Overview
 
@@ -31,21 +31,21 @@ Tripful is a collaborative trip planning platform that enables group travel coor
 
 ### Architecture Style
 
-- **Client-Server Architecture**: Clear separation between frontend and backend
-- **RESTful API**: HTTP-based API following REST principles
-- **Server-Side Rendering (SSR)**: Next.js App Router with React Server Components
-- **Service-Oriented**: Modular service layer for business logic
+* **Client-Server Architecture**: Clear separation between frontend and backend
+* **RESTful API**: HTTP-based API following REST principles
+* **Server-Side Rendering (SSR)**: Next.js App Router with React Server Components
+* **Service-Oriented**: Modular service layer for business logic
 
 ### Core Requirements
 
-- Mobile-first responsive web application
-- Phone-based authentication with SMS verification
-- Real-time timezone handling (store UTC, display in trip/local timezone)
-- Collaborative itinerary editing with permission system
-- Soft delete support for data recovery
-- Support for up to 25 members per trip, 50 events per trip
+* Mobile-first responsive web application
+* Phone-based authentication with SMS verification
+* Real-time timezone handling (store UTC, display in trip/local timezone)
+* Collaborative itinerary editing with permission system
+* Soft delete support for data recovery
+* Support for up to 25 members per trip, 50 events per trip
 
----
+***
 
 ## Architecture Diagram
 
@@ -127,53 +127,53 @@ Tripful is a collaborative trip planning platform that enables group travel coor
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## Technology Stack
 
 ### Frontend
 
-- **Framework**: Next.js 16 (App Router with React Server Components)
-- **Language**: TypeScript 5.9.x
-- **UI Library**: React 19
-- **Styling**: Tailwind CSS 4.x
-- **UI Components**: shadcn/ui (copy-paste component library)
-  - Built on Radix UI primitives
-  - Fully customizable and accessible
-  - Includes Dialog, Form, Input, Button, Card, etc.
-- **State Management**: TanStack Query v5 (React Query)
-- **Form Handling**: React Hook Form + Zod validation
-- **Validation**: Zod (shared with backend)
-- **Date/Time**: date-fns + date-fns-tz (timezone handling)
+* **Framework**: Next.js 16 (App Router with React Server Components)
+* **Language**: TypeScript 5.9.x
+* **UI Library**: React 19
+* **Styling**: Tailwind CSS 4.x
+* **UI Components**: shadcn/ui (copy-paste component library)
+  * Built on Radix UI primitives
+  * Fully customizable and accessible
+  * Includes Dialog, Form, Input, Button, Card, etc.
+* **State Management**: TanStack Query v5 (React Query)
+* **Form Handling**: React Hook Form + Zod validation
+* **Validation**: Zod (shared with backend)
+* **Date/Time**: date-fns + date-fns-tz (timezone handling)
 
 ### Backend
 
-- **Runtime**: Node.js 22.x (LTS)
-- **Framework**: Fastify v5.x
-- **Language**: TypeScript 5.9.x
-- **ORM**: Drizzle ORM v0.36+
-- **Database**: PostgreSQL 16+
-- **Validation**: Zod (shared with frontend)
-- **Authentication**: Custom JWT implementation with database-backed verification codes
+* **Runtime**: Node.js 22.x (LTS)
+* **Framework**: Fastify v5.x
+* **Language**: TypeScript 5.9.x
+* **ORM**: Drizzle ORM v0.36+
+* **Database**: PostgreSQL 16+
+* **Validation**: Zod (shared with frontend)
+* **Authentication**: Custom JWT implementation with database-backed verification codes
 
 ### External Services (MVP - Mocked)
 
-- **SMS Provider**: Mock SMS service (console logging)
-  - Production: Twilio or AWS SNS
-- **File Storage**: Abstract storage adapter (in-memory for MVP)
-  - Interface compatible with S3, Cloudinary, local filesystem
-  - Production: AWS S3 with presigned URLs
+* **SMS Provider**: Mock SMS service (console logging)
+  * Production: Twilio or AWS SNS
+* **File Storage**: Abstract storage adapter (in-memory for MVP)
+  * Interface compatible with S3, Cloudinary, local filesystem
+  * Production: AWS S3 with presigned URLs
 
 ### Development Tools
 
-- **Testing**: Vitest (unit tests) + Playwright (E2E tests)
-- **API Testing**: MSW (Mock Service Worker) for frontend
-- **Linting**: ESLint 9.x (flat config)
-- **Type Checking**: TypeScript strict mode
-- **Git Hooks**: Husky + lint-staged
-- **Package Manager**: pnpm (workspace support)
+* **Testing**: Vitest (unit tests) + Playwright (E2E tests)
+* **API Testing**: MSW (Mock Service Worker) for frontend
+* **Linting**: ESLint 9.x (flat config)
+* **Type Checking**: TypeScript strict mode
+* **Git Hooks**: Husky + lint-staged
+* **Package Manager**: pnpm (workspace support)
 
----
+***
 
 ## System Components
 
@@ -260,31 +260,31 @@ npx shadcn@latest add popover
 
 **Key Components for Tripful:**
 
-- `Dialog` - Event creation, trip settings
-- `Form` - All forms with React Hook Form integration
-- `Input`, `Textarea` - Form fields
-- `Button` - CTAs and actions
-- `Card` - Trip cards, event cards
-- `Select` - Dropdowns (timezone, event type)
-- `Calendar` + `Popover` - Date pickers
-- `Badge` - Event types, RSVP status
-- `Avatar` - User profiles
+* `Dialog` - Event creation, trip settings
+* `Form` - All forms with React Hook Form integration
+* `Input`, `Textarea` - Form fields
+* `Button` - CTAs and actions
+* `Card` - Trip cards, event cards
+* `Select` - Dropdowns (timezone, event type)
+* `Calendar` + `Popover` - Date pickers
+* `Badge` - Event types, RSVP status
+* `Avatar` - User profiles
 
 #### Key Features
 
 **React Server Components (RSC)**
 
-- Initial page loads with server-rendered content
-- Automatic code splitting and optimization
-- Direct database access in server components (for public data)
-- Reduced client bundle size
+* Initial page loads with server-rendered content
+* Automatic code splitting and optimization
+* Direct database access in server components (for public data)
+* Reduced client bundle size
 
 **Client Components**
 
-- Interactive UI elements (forms, modals, animations)
-- TanStack Query for data fetching and caching
-- Optimistic updates for better UX
-- Real-time timezone conversion
+* Interactive UI elements (forms, modals, animations)
+* TanStack Query for data fetching and caching
+* Optimistic updates for better UX
+* Real-time timezone conversion
 
 **TanStack Query Integration**
 
@@ -318,19 +318,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 #### Routing Strategy
 
-- `/` - Landing page (public)
-- `/login` - Phone authentication
-- `/verify` - SMS code verification
-- `/dashboard` - User's trip list
-- `/trips/[id]` - Trip itinerary view (requires RSVP)
-- `/trips/[id]/settings` - Trip settings (organizer only)
-- `/create-trip` - Create new trip
+* `/` - Landing page (public)
+* `/login` - Phone authentication
+* `/verify` - SMS code verification
+* `/dashboard` - User's trip list
+* `/trips/[id]` - Trip itinerary view (requires RSVP)
+* `/trips/[id]/settings` - Trip settings (organizer only)
+* `/create-trip` - Create new trip
 
 **Modal/Dialog Patterns:**
 
-- Events, accommodations, and member travel are created via **shadcn/ui Dialog** components (not routes)
-- Edit operations also use dialogs for better UX
-- Reduces navigation complexity and provides better mobile experience
+* Events, accommodations, and member travel are created via **shadcn/ui Dialog** components (not routes)
+* Edit operations also use dialogs for better UX
+* Reduces navigation complexity and provides better mobile experience
 
 ### 2. Backend API (Fastify)
 
@@ -400,39 +400,39 @@ apps/api/
 
 ```typescript
 // src/server.ts
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
-import rateLimit from '@fastify/rate-limit';
+import Fastify from 'fastify'
+import cors from '@fastify/cors'
+import jwt from '@fastify/jwt'
+import rateLimit from '@fastify/rate-limit'
 
 const fastify = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
   },
-});
+})
 
 // Plugins
 await fastify.register(cors, {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
-});
+})
 
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET!,
   sign: {
     expiresIn: '7d',
   },
-});
+})
 
 await fastify.register(rateLimit, {
   max: 100,
   timeWindow: '15 minutes',
-});
+})
 
 // Routes
-await fastify.register(authRoutes, { prefix: '/api/auth' });
-await fastify.register(tripsRoutes, { prefix: '/api/trips' });
-await fastify.register(eventsRoutes, { prefix: '/api/events' });
+await fastify.register(authRoutes, { prefix: '/api/auth' })
+await fastify.register(tripsRoutes, { prefix: '/api/trips' })
+await fastify.register(eventsRoutes, { prefix: '/api/events' })
 // ... other routes
 
 const start = async () => {
@@ -440,23 +440,23 @@ const start = async () => {
     await fastify.listen({
       port: Number(process.env.PORT) || 8000,
       host: '0.0.0.0',
-    });
+    })
   } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
+    fastify.log.error(err)
+    process.exit(1)
   }
-};
+}
 
-start();
+start()
 ```
 
 **Plugin Architecture**
 
-- `@fastify/cors` - CORS handling
-- `@fastify/jwt` - JWT authentication
-- `@fastify/rate-limit` - Rate limiting for SMS endpoints
-- `@fastify/swagger` - API documentation (future)
-- `@fastify/multipart` - File uploads
+* `@fastify/cors` - CORS handling
+* `@fastify/jwt` - JWT authentication
+* `@fastify/rate-limit` - Rate limiting for SMS endpoints
+* `@fastify/swagger` - API documentation (future)
+* `@fastify/multipart` - File uploads
 
 ### 3. Database Layer (PostgreSQL + Drizzle ORM)
 
@@ -464,7 +464,7 @@ start();
 
 ```typescript
 // drizzle.config.ts
-import { defineConfig } from 'drizzle-kit';
+import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
   schema: './src/db/schema',
@@ -475,7 +475,7 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
-});
+})
 ```
 
 #### Schema Examples
@@ -484,7 +484,7 @@ export default defineConfig({
 
 ```typescript
 // src/db/schema/users.ts
-import { pgTable, uuid, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -494,53 +494,49 @@ export const users = pgTable('users', {
   timezone: varchar('timezone', { length: 100 }).notNull().default('UTC'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
 ```
 
 **Verification Codes Table**
 
 ```typescript
 // src/db/schema/verification_codes.ts
-import { pgTable, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, timestamp } from 'drizzle-orm/pg-core'
 
 export const verificationCodes = pgTable('verification_codes', {
   phoneNumber: varchar('phone_number', { length: 20 }).primaryKey(),
   code: varchar('code', { length: 6 }).notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type VerificationCode = typeof verificationCodes.$inferSelect;
-export type NewVerificationCode = typeof verificationCodes.$inferInsert;
+export type VerificationCode = typeof verificationCodes.$inferSelect
+export type NewVerificationCode = typeof verificationCodes.$inferInsert
 ```
 
 **Members Table (trip membership and RSVP status)**
 
 ```typescript
 // src/db/schema/members.ts
-import { pgTable, uuid, timestamp, pgEnum } from 'drizzle-orm/pg-core';
-import { trips, users } from '.';
+import { pgTable, uuid, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { trips, users } from '.'
 
-export const rsvpStatusEnum = pgEnum('rsvp_status', ['going', 'not_going', 'maybe', 'no_response']);
+export const rsvpStatusEnum = pgEnum('rsvp_status', ['going', 'not_going', 'maybe', 'no_response'])
 
 export const members = pgTable('members', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id')
-    .notNull()
-    .references(() => trips.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   status: rsvpStatusEnum('status').notNull().default('no_response'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type Member = typeof members.$inferSelect;
-export type NewMember = typeof members.$inferInsert;
+export type Member = typeof members.$inferSelect
+export type NewMember = typeof members.$inferInsert
 ```
 
 **Note:** The `members` table represents trip membership and RSVP status. When a user is invited, a member record is created with status `no_response`. This table serves dual purpose: membership tracking and response status.
@@ -549,8 +545,8 @@ export type NewMember = typeof members.$inferInsert;
 
 ```typescript
 // src/db/schema/trips.ts
-import { pgTable, uuid, varchar, text, date, timestamp, boolean } from 'drizzle-orm/pg-core';
-import { users } from './users';
+import { pgTable, uuid, varchar, text, date, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { users } from './users'
 
 export const trips = pgTable('trips', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -561,46 +557,30 @@ export const trips = pgTable('trips', {
   preferredTimezone: varchar('preferred_timezone', { length: 100 }).notNull(),
   description: text('description'),
   coverImageUrl: text('cover_image_url'),
-  createdBy: uuid('created_by')
-    .notNull()
-    .references(() => users.id),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
   allowMembersToAddEvents: boolean('allow_members_to_add_events').notNull().default(true),
   cancelled: boolean('cancelled').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type Trip = typeof trips.$inferSelect;
-export type NewTrip = typeof trips.$inferInsert;
+export type Trip = typeof trips.$inferSelect
+export type NewTrip = typeof trips.$inferInsert
 ```
 
 **Events Table**
 
 ```typescript
 // src/db/schema/events.ts
-import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  date,
-  time,
-  timestamp,
-  boolean,
-  pgEnum,
-} from 'drizzle-orm/pg-core';
-import { trips, users } from '.';
+import { pgTable, uuid, varchar, text, date, time, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core'
+import { trips, users } from '.'
 
-export const eventTypeEnum = pgEnum('event_type', ['travel', 'meal', 'activity']);
+export const eventTypeEnum = pgEnum('event_type', ['travel', 'meal', 'activity'])
 
 export const events = pgTable('events', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id')
-    .notNull()
-    .references(() => trips.id, { onDelete: 'cascade' }),
-  createdBy: uuid('created_by')
-    .notNull()
-    .references(() => users.id),
+  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').notNull().references(() => users.id),
   eventType: eventTypeEnum('event_type').notNull(),
   title: varchar('title', { length: 200 }).notNull(),
   startDate: date('start_date').notNull(),
@@ -618,24 +598,22 @@ export const events = pgTable('events', {
   deletedBy: uuid('deleted_by').references(() => users.id),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type Event = typeof events.$inferSelect;
-export type NewEvent = typeof events.$inferInsert;
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert
 ```
 
 **Accommodations Table**
 
 ```typescript
 // src/db/schema/accommodations.ts
-import { pgTable, uuid, varchar, text, date, timestamp } from 'drizzle-orm/pg-core';
-import { trips } from '.';
+import { pgTable, uuid, varchar, text, date, timestamp } from 'drizzle-orm/pg-core'
+import { trips } from '.'
 
 export const accommodations = pgTable('accommodations', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id')
-    .notNull()
-    .references(() => trips.id, { onDelete: 'cascade' }),
+  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 200 }).notNull(),
   address: text('address'),
   checkInDate: date('check_in_date'),
@@ -644,29 +622,25 @@ export const accommodations = pgTable('accommodations', {
   links: text('links').array(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type Accommodation = typeof accommodations.$inferSelect;
-export type NewAccommodation = typeof accommodations.$inferInsert;
+export type Accommodation = typeof accommodations.$inferSelect
+export type NewAccommodation = typeof accommodations.$inferInsert
 ```
 
 **Travel Table (member arrivals/departures)**
 
 ```typescript
 // src/db/schema/travel.ts
-import { pgTable, uuid, varchar, text, date, time, timestamp, pgEnum } from 'drizzle-orm/pg-core';
-import { trips, members } from '.';
+import { pgTable, uuid, varchar, text, date, time, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { trips, members } from '.'
 
-export const travelTypeEnum = pgEnum('travel_type', ['arrival', 'departure']);
+export const travelTypeEnum = pgEnum('travel_type', ['arrival', 'departure'])
 
 export const travel = pgTable('travel', {
   id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id')
-    .notNull()
-    .references(() => trips.id, { onDelete: 'cascade' }),
-  memberId: uuid('member_id')
-    .notNull()
-    .references(() => members.id, { onDelete: 'cascade' }),
+  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  memberId: uuid('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
   travelType: travelTypeEnum('travel_type').notNull(),
   date: date('date').notNull(),
   departingFrom: varchar('departing_from', { length: 200 }),
@@ -678,24 +652,24 @@ export const travel = pgTable('travel', {
   links: text('links').array(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
-export type Travel = typeof travel.$inferSelect;
-export type NewTravel = typeof travel.$inferInsert;
+export type Travel = typeof travel.$inferSelect
+export type NewTravel = typeof travel.$inferInsert
 ```
 
 #### Relationships Definition
 
 ```typescript
 // src/db/schema/index.ts
-import { relations } from 'drizzle-orm';
-import * as schema from '.';
+import { relations } from 'drizzle-orm'
+import * as schema from '.'
 
 export const usersRelations = relations(schema.users, ({ many }) => ({
   tripsCreated: many(schema.trips),
   eventsCreated: many(schema.events),
   members: many(schema.members),
-}));
+}))
 
 export const tripsRelations = relations(schema.trips, ({ one, many }) => ({
   creator: one(schema.users, {
@@ -707,7 +681,7 @@ export const tripsRelations = relations(schema.trips, ({ one, many }) => ({
   members: many(schema.members),
   travel: many(schema.travel),
   invitations: many(schema.invitations),
-}));
+}))
 
 export const eventsRelations = relations(schema.events, ({ one }) => ({
   trip: one(schema.trips, {
@@ -718,7 +692,7 @@ export const eventsRelations = relations(schema.events, ({ one }) => ({
     fields: [schema.events.createdBy],
     references: [schema.users.id],
   }),
-}));
+}))
 
 export const membersRelations = relations(schema.members, ({ one, many }) => ({
   user: one(schema.users, {
@@ -730,7 +704,7 @@ export const membersRelations = relations(schema.members, ({ one, many }) => ({
     references: [schema.trips.id],
   }),
   travel: many(schema.travel),
-}));
+}))
 
 export const travelRelations = relations(schema.travel, ({ one }) => ({
   trip: one(schema.trips, {
@@ -741,16 +715,16 @@ export const travelRelations = relations(schema.travel, ({ one }) => ({
     fields: [schema.travel.memberId],
     references: [schema.members.id],
   }),
-}));
+}))
 ```
 
 #### Database Queries with Drizzle
 
 ```typescript
 // Example: Get trip with events and creator info
-import { db } from '@/config/database';
-import { trips, events, users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { db } from '@/config/database'
+import { trips, events, users } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
 const tripWithDetails = await db
   .select({
@@ -760,13 +734,13 @@ const tripWithDetails = await db
   .from(trips)
   .leftJoin(users, eq(trips.createdBy, users.id))
   .where(eq(trips.id, tripId))
-  .limit(1);
+  .limit(1)
 
 const tripEvents = await db
   .select()
   .from(events)
   .where(eq(events.tripId, tripId))
-  .orderBy(events.startDate, events.startTime);
+  .orderBy(events.startDate, events.startTime)
 ```
 
 ### 4. Service Layer (Business Logic)
@@ -778,30 +752,30 @@ const tripEvents = await db
 ```typescript
 // src/services/sms.service.ts
 export interface ISMSService {
-  sendVerificationCode(phoneNumber: string, code: string): Promise<void>;
-  sendInvitation(phoneNumber: string, tripName: string, tripLink: string): Promise<void>;
-  sendTripUpdate(phoneNumber: string, message: string): Promise<void>;
-  sendCancellation(phoneNumber: string, tripName: string): Promise<void>;
+  sendVerificationCode(phoneNumber: string, code: string): Promise<void>
+  sendInvitation(phoneNumber: string, tripName: string, tripLink: string): Promise<void>
+  sendTripUpdate(phoneNumber: string, message: string): Promise<void>
+  sendCancellation(phoneNumber: string, tripName: string): Promise<void>
 }
 
 // Mock implementation for MVP
 export class MockSMSService implements ISMSService {
   async sendVerificationCode(phoneNumber: string, code: string) {
-    console.log(`[MOCK SMS] Verification code for ${phoneNumber}: ${code}`);
+    console.log(`[MOCK SMS] Verification code for ${phoneNumber}: ${code}`)
     // In development: Also log to a file or display in UI
   }
 
   async sendInvitation(phoneNumber: string, tripName: string, tripLink: string) {
-    console.log(`[MOCK SMS] Invitation to ${phoneNumber}:`);
-    console.log(`You've been invited to ${tripName}! ${tripLink}`);
+    console.log(`[MOCK SMS] Invitation to ${phoneNumber}:`)
+    console.log(`You've been invited to ${tripName}! ${tripLink}`)
   }
 
   async sendTripUpdate(phoneNumber: string, message: string) {
-    console.log(`[MOCK SMS] Trip update to ${phoneNumber}: ${message}`);
+    console.log(`[MOCK SMS] Trip update to ${phoneNumber}: ${message}`)
   }
 
   async sendCancellation(phoneNumber: string, tripName: string) {
-    console.log(`[MOCK SMS] Cancellation to ${phoneNumber}: ${tripName} has been cancelled`);
+    console.log(`[MOCK SMS] Cancellation to ${phoneNumber}: ${tripName} has been cancelled`)
   }
 }
 
@@ -816,28 +790,28 @@ export class TwilioSMSService implements ISMSService {
 ```typescript
 // src/services/storage.service.ts
 export interface IStorageService {
-  uploadFile(file: Buffer, filename: string, mimeType: string): Promise<string>;
-  deleteFile(url: string): Promise<void>;
-  getSignedUrl(url: string, expiresIn?: number): Promise<string>;
+  uploadFile(file: Buffer, filename: string, mimeType: string): Promise<string>
+  deleteFile(url: string): Promise<void>
+  getSignedUrl(url: string, expiresIn?: number): Promise<string>
 }
 
 // Mock implementation for MVP
 export class MockStorageService implements IStorageService {
-  private files = new Map<string, Buffer>();
+  private files = new Map<string, Buffer>()
 
   async uploadFile(file: Buffer, filename: string, mimeType: string) {
-    const fileId = `mock-${Date.now()}-${filename}`;
-    this.files.set(fileId, file);
-    return `http://localhost:8000/mock-storage/${fileId}`;
+    const fileId = `mock-${Date.now()}-${filename}`
+    this.files.set(fileId, file)
+    return `http://localhost:8000/mock-storage/${fileId}`
   }
 
   async deleteFile(url: string) {
-    const fileId = url.split('/').pop()!;
-    this.files.delete(fileId);
+    const fileId = url.split('/').pop()!
+    this.files.delete(fileId)
   }
 
   async getSignedUrl(url: string, expiresIn = 3600) {
-    return `${url}?expires=${Date.now() + expiresIn * 1000}`;
+    return `${url}?expires=${Date.now() + expiresIn * 1000}`
   }
 }
 
@@ -857,10 +831,15 @@ export class PermissionsService {
     const organizer = await db
       .select()
       .from(organizers)
-      .where(and(eq(organizers.userId, userId), eq(organizers.tripId, tripId)))
-      .limit(1);
+      .where(
+        and(
+          eq(organizers.userId, userId),
+          eq(organizers.tripId, tripId)
+        )
+      )
+      .limit(1)
 
-    return organizer.length > 0;
+    return organizer.length > 0
   }
 
   // Check if user can add events
@@ -870,25 +849,29 @@ export class PermissionsService {
       .select()
       .from(members)
       .where(
-        and(eq(members.userId, userId), eq(members.tripId, tripId), eq(members.status, 'going'))
+        and(
+          eq(members.userId, userId),
+          eq(members.tripId, tripId),
+          eq(members.status, 'going')
+        )
       )
-      .limit(1);
+      .limit(1)
 
-    if (member.length === 0) return false;
+    if (member.length === 0) return false
 
     // Check if trip allows members to add events OR user is organizer
     const trip = await db
       .select({ allowMembersToAddEvents: trips.allowMembersToAddEvents })
       .from(trips)
       .where(eq(trips.id, tripId))
-      .limit(1);
+      .limit(1)
 
-    if (!trip[0]) return false;
+    if (!trip[0]) return false
 
-    if (trip[0].allowMembersToAddEvents) return true;
+    if (trip[0].allowMembersToAddEvents) return true
 
     // If setting is disabled, only organizers can add
-    return await this.isOrganizer(userId, tripId);
+    return await this.isOrganizer(userId, tripId)
   }
 
   // Check if user can edit event
@@ -900,9 +883,9 @@ export class PermissionsService {
       })
       .from(events)
       .where(eq(events.id, eventId))
-      .limit(1);
+      .limit(1)
 
-    if (!event[0]) return false;
+    if (!event[0]) return false
 
     // Creator can edit their own events (if still Going)
     if (event[0].createdBy === userId) {
@@ -916,18 +899,18 @@ export class PermissionsService {
             eq(members.status, 'going')
           )
         )
-        .limit(1);
+        .limit(1)
 
-      return member.length > 0;
+      return member.length > 0
     }
 
     // Organizers can edit any event
-    return await this.isOrganizer(userId, event[0].tripId);
+    return await this.isOrganizer(userId, event[0].tripId)
   }
 }
 ```
 
----
+***
 
 ## Data Model
 
@@ -991,14 +974,14 @@ See [Database Layer](#3-database-layer-postgresql--drizzle-orm) section for deta
 
 **Indexes:**
 
-- `users.phone_number` (unique)
-- `trips.created_by`
-- `events.trip_id, events.start_date` (composite)
-- `members.user_id, members.trip_id` (composite, unique)
-- `members.id` (primary key)
-- `invitations.invitee_phone_number, invitations.trip_id` (composite)
+* `users.phone_number` (unique)
+* `trips.created_by`
+* `events.trip_id, events.start_date` (composite)
+* `members.user_id, members.trip_id` (composite, unique)
+* `members.id` (primary key)
+* `invitations.invitee_phone_number, invitations.trip_id` (composite)
 
----
+***
 
 ## API Design
 
@@ -1163,15 +1146,15 @@ DELETE /api/travel/:id
 
 **Error Codes**
 
-- `VALIDATION_ERROR` - Invalid input data
-- `UNAUTHORIZED` - Missing or invalid token
-- `FORBIDDEN` - Insufficient permissions
-- `NOT_FOUND` - Resource not found
-- `CONFLICT` - Duplicate or conflicting data
-- `RATE_LIMIT_EXCEEDED` - Too many requests
-- `INTERNAL_ERROR` - Server error
+* `VALIDATION_ERROR` - Invalid input data
+* `UNAUTHORIZED` - Missing or invalid token
+* `FORBIDDEN` - Insufficient permissions
+* `NOT_FOUND` - Resource not found
+* `CONFLICT` - Duplicate or conflicting data
+* `RATE_LIMIT_EXCEEDED` - Too many requests
+* `INTERNAL_ERROR` - Server error
 
----
+***
 
 ## Authentication Flow
 
@@ -1227,10 +1210,10 @@ This eliminates the need for in-memory storage or Redis for simple verification 
 
 ```typescript
 interface JWTPayload {
-  sub: string; // User ID
-  phone: string; // Phone number (for quick lookups)
-  iat: number; // Issued at
-  exp: number; // Expires at (7 days)
+  sub: string          // User ID
+  phone: string        // Phone number (for quick lookups)
+  iat: number         // Issued at
+  exp: number         // Expires at (7 days)
 }
 ```
 
@@ -1238,11 +1221,14 @@ interface JWTPayload {
 
 ```typescript
 // src/middleware/auth.middleware.ts
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyRequest, FastifyReply } from 'fastify'
 
-export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
+export async function authenticate(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
   try {
-    const token = request.headers.authorization?.replace('Bearer ', '');
+    const token = request.headers.authorization?.replace('Bearer ', '')
 
     if (!token) {
       return reply.status(401).send({
@@ -1251,16 +1237,16 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
           code: 'UNAUTHORIZED',
           message: 'Missing authentication token',
         },
-      });
+      })
     }
 
-    const decoded = await request.server.jwt.verify<JWTPayload>(token);
+    const decoded = await request.server.jwt.verify<JWTPayload>(token)
 
     // Attach user to request
     request.user = {
       id: decoded.sub,
       phoneNumber: decoded.phone,
-    };
+    }
   } catch (err) {
     return reply.status(401).send({
       success: false,
@@ -1268,12 +1254,12 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
         code: 'UNAUTHORIZED',
         message: 'Invalid or expired token',
       },
-    });
+    })
   }
 }
 ```
 
----
+***
 
 ## Key Features Implementation
 
@@ -1281,9 +1267,9 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 
 **Strategy:**
 
-- Store all dates/times in UTC in the database
-- Each trip has a `preferredTimezone` field (IANA timezone identifier)
-- Users can toggle between trip timezone and their local timezone in UI
+* Store all dates/times in UTC in the database
+* Each trip has a `preferredTimezone` field (IANA timezone identifier)
+* Users can toggle between trip timezone and their local timezone in UI
 
 **Implementation:**
 
@@ -1329,7 +1315,7 @@ async function deleteEvent(eventId: string, userId: string) {
       deletedBy: userId,
       updatedAt: new Date(),
     })
-    .where(eq(events.id, eventId));
+    .where(eq(events.id, eventId))
 }
 
 // Restore event
@@ -1341,20 +1327,30 @@ async function restoreEvent(eventId: string) {
       deletedBy: null,
       updatedAt: new Date(),
     })
-    .where(eq(events.id, eventId));
+    .where(eq(events.id, eventId))
 }
 
 // Query non-deleted events
 const activeEvents = await db
   .select()
   .from(events)
-  .where(and(eq(events.tripId, tripId), isNull(events.deletedAt)));
+  .where(
+    and(
+      eq(events.tripId, tripId),
+      isNull(events.deletedAt)
+    )
+  )
 
 // Organizers can view deleted items
 const deletedEvents = await db
   .select()
   .from(events)
-  .where(and(eq(events.tripId, tripId), isNotNull(events.deletedAt)));
+  .where(
+    and(
+      eq(events.tripId, tripId),
+      isNotNull(events.deletedAt)
+    )
+  )
 ```
 
 ### 3. Permission System
@@ -1383,10 +1379,10 @@ const deletedEvents = await db
 
 ```typescript
 // hooks/useTripEvents.ts
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 export function useAddEvent(tripId: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (newEvent: NewEvent) => api.events.create(tripId, newEvent),
@@ -1394,30 +1390,30 @@ export function useAddEvent(tripId: string) {
     // Optimistic update
     onMutate: async (newEvent) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['events', tripId] });
+      await queryClient.cancelQueries({ queryKey: ['events', tripId] })
 
       // Snapshot previous value
-      const previousEvents = queryClient.getQueryData(['events', tripId]);
+      const previousEvents = queryClient.getQueryData(['events', tripId])
 
       // Optimistically update
       queryClient.setQueryData(['events', tripId], (old: Event[]) => [
         ...old,
         { ...newEvent, id: 'temp-id', createdAt: new Date() },
-      ]);
+      ])
 
-      return { previousEvents };
+      return { previousEvents }
     },
 
     // Rollback on error
     onError: (err, newEvent, context) => {
-      queryClient.setQueryData(['events', tripId], context.previousEvents);
+      queryClient.setQueryData(['events', tripId], context.previousEvents)
     },
 
     // Refetch on success
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['events', tripId] });
+      queryClient.invalidateQueries({ queryKey: ['events', tripId] })
     },
-  });
+  })
 }
 ```
 
@@ -1425,32 +1421,32 @@ export function useAddEvent(tripId: string) {
 
 **Display Strategy:**
 
-- Events with `endDate` different from `startDate` appear once on the start date
-- Show "Multi-day" badge with date range (e.g., "Oct 12-14")
-- Do NOT duplicate across each day
+* Events with `endDate` different from `startDate` appear once on the start date
+* Show "Multi-day" badge with date range (e.g., "Oct 12-14")
+* Do NOT duplicate across each day
 
 **Query Implementation:**
 
 ```typescript
 // Group events by day, handling multi-day events
 function groupEventsByDay(events: Event[]) {
-  const grouped = new Map<string, Event[]>();
+  const grouped = new Map<string, Event[]>()
 
-  events.forEach((event) => {
+  events.forEach(event => {
     // Multi-day events only appear on start date
-    const dateKey = format(event.startDate, 'yyyy-MM-dd');
+    const dateKey = format(event.startDate, 'yyyy-MM-dd')
 
     if (!grouped.has(dateKey)) {
-      grouped.set(dateKey, []);
+      grouped.set(dateKey, [])
     }
-    grouped.get(dateKey)!.push(event);
-  });
+    grouped.get(dateKey)!.push(event)
+  })
 
-  return grouped;
+  return grouped
 }
 ```
 
----
+***
 
 ## Development Practices
 
@@ -1528,7 +1524,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
    pnpm db:seed
    ```
 3. **Start development servers**
-
    ```bash
    # Root directory
    pnpm dev
@@ -1542,12 +1537,12 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 
 **TypeScript Configuration**
 
-- TypeScript 5.9.x (latest)
-- Strict mode enabled
-- Target: ES2023 for Node.js 22
-- Module: "nodenext" for modern module resolution
-- Shared `tsconfig.base.json` for consistency
-- Path aliases for clean imports
+* TypeScript 5.9.x (latest)
+* Strict mode enabled
+* Target: ES2023 for Node.js 22
+* Module: "nodenext" for modern module resolution
+* Shared `tsconfig.base.json` for consistency
+* Path aliases for clean imports
 
 ```json
 // tsconfig.base.json
@@ -1570,15 +1565,15 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 
 **Linting**
 
-- ESLint 9.x with flat config (`eslint.config.js`)
-- `@eslint/js` for recommended configs
-- TypeScript ESLint plugin for type-aware linting
+* ESLint 9.x with flat config (`eslint.config.js`)
+* `@eslint/js` for recommended configs
+* TypeScript ESLint plugin for type-aware linting
 
 ```javascript
 // eslint.config.js
-import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import js from '@eslint/js'
+import tseslint from '@typescript-eslint/eslint-plugin'
+import tsparser from '@typescript-eslint/parser'
 
 export default [
   js.configs.recommended,
@@ -1598,7 +1593,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },
-];
+]
 ```
 
 **Scripts**
@@ -1610,10 +1605,10 @@ pnpm typecheck  # TypeScript
 
 **Git Hooks (Husky)**
 
-- Pre-commit: Lint staged files, typecheck
-- Pre-push: Run unit tests
+* Pre-commit: Lint staged files, typecheck
+* Pre-push: Run unit tests
 
----
+***
 
 ## Testing Strategy
 
@@ -1623,26 +1618,26 @@ pnpm typecheck  # TypeScript
 
 ```typescript
 // tests/unit/services/permissions.service.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { PermissionsService } from '@/services/permissions.service';
+import { describe, it, expect, beforeEach } from 'vitest'
+import { PermissionsService } from '@/services/permissions.service'
 
 describe('PermissionsService', () => {
-  let service: PermissionsService;
+  let service: PermissionsService
 
   beforeEach(() => {
-    service = new PermissionsService();
-  });
+    service = new PermissionsService()
+  })
 
   it('should allow organizer to add events', async () => {
-    const canAdd = await service.canAddEvent('organizer-id', 'trip-id');
-    expect(canAdd).toBe(true);
-  });
+    const canAdd = await service.canAddEvent('organizer-id', 'trip-id')
+    expect(canAdd).toBe(true)
+  })
 
   it('should prevent non-going member from adding events', async () => {
-    const canAdd = await service.canAddEvent('member-id', 'trip-id');
-    expect(canAdd).toBe(false);
-  });
-});
+    const canAdd = await service.canAddEvent('member-id', 'trip-id')
+    expect(canAdd).toBe(false)
+  })
+})
 ```
 
 **Frontend Hooks**
@@ -1674,21 +1669,21 @@ describe('useTripEvents', () => {
 
 ```typescript
 // tests/integration/trips.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import { app } from '@/server';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import request from 'supertest'
+import { app } from '@/server'
 
 describe('Trips API', () => {
-  let authToken: string;
+  let authToken: string
 
   beforeAll(async () => {
     // Setup test database and authenticate
     const res = await request(app.server)
       .post('/api/auth/verify-code')
-      .send({ phoneNumber: '+15551234567', code: '123456' });
+      .send({ phoneNumber: '+15551234567', code: '123456' })
 
-    authToken = res.body.token;
-  });
+    authToken = res.body.token
+  })
 
   it('should create a new trip', async () => {
     const res = await request(app.server)
@@ -1698,65 +1693,65 @@ describe('Trips API', () => {
         name: 'Test Trip',
         destination: 'Miami',
         preferredTimezone: 'America/New_York',
-      });
+      })
 
-    expect(res.status).toBe(201);
-    expect(res.body.data.trip).toHaveProperty('id');
-    expect(res.body.data.trip.name).toBe('Test Trip');
-  });
-});
+    expect(res.status).toBe(201)
+    expect(res.body.data.trip).toHaveProperty('id')
+    expect(res.body.data.trip.name).toBe('Test Trip')
+  })
+})
 ```
 
 ### E2E Tests (Playwright)
 
 ```typescript
 // tests/e2e/trip-creation.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
 
 test('user can create a trip and invite members', async ({ page }) => {
   // Login
-  await page.goto('/login');
-  await page.fill('[name="phoneNumber"]', '+15551234567');
-  await page.click('button[type="submit"]');
+  await page.goto('/login')
+  await page.fill('[name="phoneNumber"]', '+15551234567')
+  await page.click('button[type="submit"]')
 
   // Enter verification code (mocked in test environment)
-  await page.fill('[name="code"]', '123456');
-  await page.click('button:has-text("Verify")');
+  await page.fill('[name="code"]', '123456')
+  await page.click('button:has-text("Verify")')
 
   // Create trip
-  await page.goto('/create-trip');
-  await page.fill('[name="name"]', 'Bachelor Party Weekend');
-  await page.fill('[name="destination"]', 'Miami Beach, FL');
-  await page.click('button:has-text("Create Trip")');
+  await page.goto('/create-trip')
+  await page.fill('[name="name"]', 'Bachelor Party Weekend')
+  await page.fill('[name="destination"]', 'Miami Beach, FL')
+  await page.click('button:has-text("Create Trip")')
 
   // Verify trip was created
-  await expect(page).toHaveURL(/\/trips\/[a-f0-9-]+/);
-  await expect(page.locator('h1')).toContainText('Bachelor Party Weekend');
+  await expect(page).toHaveURL(/\/trips\/[a-f0-9-]+/)
+  await expect(page.locator('h1')).toContainText('Bachelor Party Weekend')
 
   // Invite members
-  await page.click('button:has-text("Invite Members")');
-  await page.fill('[name="phoneNumbers"]', '+15559876543');
-  await page.click('button:has-text("Send Invitations")');
+  await page.click('button:has-text("Invite Members")')
+  await page.fill('[name="phoneNumbers"]', '+15559876543')
+  await page.click('button:has-text("Send Invitations")')
 
-  await expect(page.locator('.toast')).toContainText('Invitations sent');
-});
+  await expect(page.locator('.toast')).toContainText('Invitations sent')
+})
 ```
 
 ### Test Coverage Goals & Strategy
 
 **Backend Testing:**
 
-- Unit tests colocated with services (`service.ts` + `service.test.ts`)
-- Focus on business logic and edge cases
-- Target: 70%+ coverage for services
-- Integration tests for all API endpoints
+* Unit tests colocated with services (`service.ts` + `service.test.ts`)
+* Focus on business logic and edge cases
+* Target: 70%+ coverage for services
+* Integration tests for all API endpoints
 
 **Frontend Testing:**
 
-- Focus on **integration tests** over unit tests
-- Avoid over-testing individual components
-- Test **core workflows** end-to-end
-- Use Playwright for critical user journeys
+* Focus on **integration tests** over unit tests
+* Avoid over-testing individual components
+* Test **core workflows** end-to-end
+* Use Playwright for critical user journeys
 
 **Test Organization:**
 
@@ -1783,32 +1778,32 @@ apps/web/
 4. Frontend integration tests (multi-component workflows)
 5. Frontend unit tests (only for complex utilities)
 
----
+***
 
 ## Security Considerations
 
 ### 1. Authentication Security
 
-- **JWT Tokens**: Signed with strong secret, 7-day expiration
-- **Refresh Strategy**: New token on each request (optional)
-- **Cookie Storage**: `httpOnly`, `secure`, `sameSite: strict`
-- **Rate Limiting**: 5 attempts per phone number per hour for SMS codes
+* **JWT Tokens**: Signed with strong secret, 7-day expiration
+* **Refresh Strategy**: New token on each request (optional)
+* **Cookie Storage**: `httpOnly`, `secure`, `sameSite: strict`
+* **Rate Limiting**: 5 attempts per phone number per hour for SMS codes
 
 ### 2. Authorization
 
-- **Trip Access**: Verify phone number in invitations table before showing preview
-- **Event Permissions**: Check RSVP status and organizer role
-- **Resource Ownership**: Validate user owns resource before updates
+* **Trip Access**: Verify phone number in invitations table before showing preview
+* **Event Permissions**: Check RSVP status and organizer role
+* **Resource Ownership**: Validate user owns resource before updates
 
 ### 3. Input Validation
 
-- **Zod Schemas**: Shared between frontend and backend
-- **Sanitization**: Strip HTML/scripts from text inputs
-- **File Uploads**: Validate MIME types, file size limits (5MB)
+* **Zod Schemas**: Shared between frontend and backend
+* **Sanitization**: Strip HTML/scripts from text inputs
+* **File Uploads**: Validate MIME types, file size limits (5MB)
 
 ```typescript
 // Shared validation schema
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const createEventSchema = z.object({
   title: z.string().min(3).max(200),
@@ -1817,19 +1812,19 @@ export const createEventSchema = z.object({
   location: z.string().max(500).optional(),
   description: z.string().max(2000).optional(),
   links: z.array(z.string().url()).max(10).optional(),
-});
+})
 ```
 
 ### 4. Data Privacy
 
-- **Phone Numbers**: Hashed in database (but kept readable for SMS)
-- **PII Protection**: Minimal data collection, no tracking
-- **Soft Delete**: Data retained but marked deleted (GDPR consideration)
+* **Phone Numbers**: Hashed in database (but kept readable for SMS)
+* **PII Protection**: Minimal data collection, no tracking
+* **Soft Delete**: Data retained but marked deleted (GDPR consideration)
 
 ### 5. SQL Injection Prevention
 
-- **Drizzle ORM**: Parameterized queries by default
-- **No Raw SQL**: Avoid `.sql` unless necessary and carefully reviewed
+* **Drizzle ORM**: Parameterized queries by default
+* **No Raw SQL**: Avoid `.sql` unless necessary and carefully reviewed
 
 ### 6. CORS Configuration
 
@@ -1838,7 +1833,7 @@ fastify.register(cors, {
   origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-});
+})
 ```
 
 ### 7. Rate Limiting
@@ -1848,17 +1843,17 @@ fastify.register(cors, {
 fastify.register(rateLimit, {
   max: 100,
   timeWindow: '15 minutes',
-});
+})
 
 // SMS endpoint rate limit (stricter)
 fastify.register(rateLimit, {
   max: 5,
   timeWindow: '1 hour',
   keyGenerator: (req) => req.body.phoneNumber,
-});
+})
 ```
 
----
+***
 
 ## Performance Considerations
 
@@ -1875,9 +1870,9 @@ CREATE INDEX idx_verification_codes_expiry ON verification_codes(expires_at);
 
 **Query Optimization**
 
-- Use Drizzle's `leftJoin` for related data in single query
-- Limit results with `.limit()` and `.offset()`
-- Select only needed columns with `.select({ ... })`
+* Use Drizzle's `leftJoin` for related data in single query
+* Limit results with `.limit()` and `.offset()`
+* Select only needed columns with `.select({ ... })`
 
 ### 2. Caching Strategy
 
@@ -1889,7 +1884,7 @@ For MVP, verification codes are stored directly in the database with expiry time
 // Database verification code service
 class VerificationCodeService {
   async set(phoneNumber: string, code: string, ttlMinutes: number = 5) {
-    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000)
 
     await db
       .insert(verificationCodes)
@@ -1901,7 +1896,7 @@ class VerificationCodeService {
       .onConflictDoUpdate({
         target: verificationCodes.phoneNumber,
         set: { code, expiresAt, createdAt: new Date() },
-      });
+      })
   }
 
   async get(phoneNumber: string): Promise<string | null> {
@@ -1909,27 +1904,28 @@ class VerificationCodeService {
       .select()
       .from(verificationCodes)
       .where(eq(verificationCodes.phoneNumber, phoneNumber))
-      .limit(1);
+      .limit(1)
 
-    if (!result[0]) return null;
+    if (!result[0]) return null
 
     // Check expiry
     if (new Date() > result[0].expiresAt) {
-      await this.delete(phoneNumber);
-      return null;
+      await this.delete(phoneNumber)
+      return null
     }
 
-    return result[0].code;
+    return result[0].code
   }
 
   async delete(phoneNumber: string) {
-    await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, phoneNumber));
+    await db
+      .delete(verificationCodes)
+      .where(eq(verificationCodes.phoneNumber, phoneNumber))
   }
 }
 ```
 
 **Benefits:**
-
 - No need for Redis or in-memory storage in MVP
 - Automatic cleanup via periodic job or trigger
 - Persists across server restarts
@@ -1939,75 +1935,81 @@ class VerificationCodeService {
 
 **TanStack Query Caching** (Frontend)
 
-- `staleTime: 60000` (1 minute) - Consider data fresh
-- `gcTime: 300000` (5 minutes) - Cache persists in background
-- Automatic background refetching on window focus
+* `staleTime: 60000` (1 minute) - Consider data fresh
+* `gcTime: 300000` (5 minutes) - Cache persists in background
+* Automatic background refetching on window focus
 
 ### 3. Next.js Optimizations
 
 **React Server Components**
 
-- Initial page loads with pre-rendered content
-- Reduced client JavaScript bundle
-- Streaming SSR for faster Time to First Byte (TTFB)
+* Initial page loads with pre-rendered content
+* Reduced client JavaScript bundle
+* Streaming SSR for faster Time to First Byte (TTFB)
 
 **Image Optimization**
 
 ```tsx
-import Image from 'next/image';
+import Image from 'next/image'
 
-<Image src={trip.coverImageUrl} alt={trip.name} width={800} height={400} priority={false} />;
+<Image
+  src={trip.coverImageUrl}
+  alt={trip.name}
+  width={800}
+  height={400}
+  priority={false}
+/>
 ```
 
 **Code Splitting**
 
-- Automatic route-based splitting
-- Dynamic imports for modals and heavy components
+* Automatic route-based splitting
+* Dynamic imports for modals and heavy components
 
 ```tsx
-import dynamic from 'next/dynamic';
+import dynamic from 'next/dynamic'
 
 const EventFormModal = dynamic(() => import('@/components/EventFormModal'), {
   ssr: false,
   loading: () => <Spinner />,
-});
+})
 ```
 
 ### 4. API Response Times
 
 **Goals:**
 
-- GET endpoints: <200ms (p95)
-- POST/PATCH endpoints: <500ms (p95)
-- File uploads: <2s (p95)
+* GET endpoints: <200ms (p95)
+* POST/PATCH endpoints: <500ms (p95)
+* File uploads: <2s (p95)
 
 **Optimization Techniques:**
 
-- Connection pooling for PostgreSQL
-- Redis for session storage (not database)
-- Compress responses with `@fastify/compress`
+* Connection pooling for PostgreSQL
+* Redis for session storage (not database)
+* Compress responses with `@fastify/compress`
 
 ```typescript
 fastify.register(compress, {
   encodings: ['gzip', 'deflate'],
-});
+})
 ```
 
 ### 5. Frontend Performance
 
 **Bundle Size**
 
-- Target: <200KB initial JS bundle (gzipped)
-- Use tree-shaking for unused code
-- Lazy load routes and components
+* Target: <200KB initial JS bundle (gzipped)
+* Use tree-shaking for unused code
+* Lazy load routes and components
 
 **Rendering Performance**
 
-- Use `React.memo` for expensive list items
-- Virtualize long event lists (future: `react-window`)
-- Debounce search/filter inputs
+* Use `React.memo` for expensive list items
+* Virtualize long event lists (future: `react-window`)
+* Debounce search/filter inputs
 
----
+***
 
 ## Appendix
 
@@ -2030,103 +2032,102 @@ fastify.register(compress, {
 
 **Phase 1: Project Setup & Infrastructure (Week 1)**
 
-- Monorepo setup (pnpm workspaces, Turbo)
-- Backend: Fastify server, Drizzle ORM, PostgreSQL connection
-- Frontend: Next.js App Router, Tailwind CSS, shadcn/ui setup
-- Shared: Zod schemas, TypeScript configs, ESLint 9 flat config
-- Docker Compose for PostgreSQL
+* Monorepo setup (pnpm workspaces, Turbo)
+* Backend: Fastify server, Drizzle ORM, PostgreSQL connection
+* Frontend: Next.js App Router, Tailwind CSS, shadcn/ui setup
+* Shared: Zod schemas, TypeScript configs, ESLint 9 flat config
+* Docker Compose for PostgreSQL
 
 **Phase 2: Authentication Feature (Week 1-2)**
 
-- Backend: Phone verification endpoints, JWT generation, mock SMS service
-- Frontend: Login/verify pages, auth context, protected routes
-- Shared: Auth schemas, JWT types
-- E2E test: User can log in with phone number
+* Backend: Phone verification endpoints, JWT generation, mock SMS service
+* Frontend: Login/verify pages, auth context, protected routes
+* Shared: Auth schemas, JWT types
+* E2E test: User can log in with phone number
 
 **Phase 3: Trip Management (Week 2-3)**
 
-- Backend: Trip CRUD endpoints, organizer management, permissions service
-- Frontend: Dashboard, create trip dialog (shadcn), trip detail page
-- Shared: Trip schemas, permission types
-- E2E test: User can create and view trips
+* Backend: Trip CRUD endpoints, organizer management, permissions service
+* Frontend: Dashboard, create trip dialog (shadcn), trip detail page
+* Shared: Trip schemas, permission types
+* E2E test: User can create and view trips
 
 **Phase 4: Invitations & RSVP (Week 3-4)**
 
-- Backend: Invitation endpoints, RSVP management, partial preview logic
-- Frontend: Invite members dialog, RSVP buttons, member list
-- Shared: RSVP schemas
-- E2E test: User can invite members and RSVP to trips
+* Backend: Invitation endpoints, RSVP management, partial preview logic
+* Frontend: Invite members dialog, RSVP buttons, member list
+* Shared: RSVP schemas
+* E2E test: User can invite members and RSVP to trips
 
 **Phase 5: Itinerary Events (Week 4-5)**
 
-- Backend: Events CRUD, event types, permission checks
-- Frontend: Event creation dialog, event list, day-by-day view, timezone toggle
-- Shared: Event schemas, timezone utilities
-- E2E test: User can add/edit/delete events
+* Backend: Events CRUD, event types, permission checks
+* Frontend: Event creation dialog, event list, day-by-day view, timezone toggle
+* Shared: Event schemas, timezone utilities
+* E2E test: User can add/edit/delete events
 
 **Phase 6: Accommodations & Member Travel (Week 5-6)**
 
-- Backend: Accommodations/travel CRUD, organizer-only restrictions
-- Frontend: Add accommodation dialog, add travel dialog, compact view/expand
-- Shared: Accommodation/travel schemas
-- E2E test: Organizer can add accommodations, members can add their travel
+* Backend: Accommodations/travel CRUD, organizer-only restrictions
+* Frontend: Add accommodation dialog, add travel dialog, compact view/expand
+* Shared: Accommodation/travel schemas
+* E2E test: Organizer can add accommodations, members can add their travel
 
 **Phase 7: Advanced Itinerary Features (Week 6)**
 
-- Backend: Soft delete, restore, multi-day events
-- Frontend: Group by type view, deleted items (organizers), multi-day badges
-- E2E test: Organizer can restore deleted events
+* Backend: Soft delete, restore, multi-day events
+* Frontend: Group by type view, deleted items (organizers), multi-day badges
+* E2E test: Organizer can restore deleted events
 
 **Phase 8: Polish & Testing (Week 7-8)**
 
-- Error handling and validation
-- Loading states and optimistic updates
-- Responsive design refinements
-- Performance optimization (query optimization, caching strategy)
-- Unit tests for complex services
-- Integration tests for all API endpoints
-- E2E tests for all critical flows
-- Documentation
+* Error handling and validation
+* Loading states and optimistic updates
+* Responsive design refinements
+* Performance optimization (query optimization, caching strategy)
+* Unit tests for complex services
+* Integration tests for all API endpoints
+* E2E tests for all critical flows
+* Documentation
 
 ### Future Enhancements (Post-MVP)
 
 **Phase 2 Features:**
 
-- Rich text editor for descriptions
-- Map integration for locations
-- Search and filtering
-- Notification center UI
-- Per-event RSVP tracking
+* Rich text editor for descriptions
+* Map integration for locations
+* Search and filtering
+* Notification center UI
+* Per-event RSVP tracking
 
 **Advanced Features:**
 
-- Cost tracking and split payments
-- Comments and discussion threads
-- Photo sharing per event
-- Calendar export (iCal, Google Calendar)
-- Trip templates
-- Packing lists
-- Weather integration
+* Cost tracking and split payments
+* Comments and discussion threads
+* Photo sharing per event
+* Calendar export (iCal, Google Calendar)
+* Trip templates
+* Packing lists
+* Weather integration
 
----
+***
 
 ## References
 
-- [PRD.md](./PRD.md) - Product Requirements Document
-- [DESIGN.md](./DESIGN.md) - UI/UX Design Documentation
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Fastify Documentation](https://fastify.dev/)
-- [Drizzle ORM Documentation](https://orm.drizzle.team/)
-- [TanStack Query Documentation](https://tanstack.com/query)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+* [PRD.md](./PRD.md) - Product Requirements Document
+* [DESIGN.md](./DESIGN.md) - UI/UX Design Documentation
+* [Next.js Documentation](https://nextjs.org/docs)
+* [Fastify Documentation](https://fastify.dev/)
+* [Drizzle ORM Documentation](https://orm.drizzle.team/)
+* [TanStack Query Documentation](https://tanstack.com/query)
+* [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 
----
+***
 
 **Document Version**: 1.1
 **Last Updated**: 2026-02-01
 **Status**: MVP Architecture - Core Flows Implemented
 **Key Updates**:
-
 - Renamed `rsvps` table to `members` with proper ID primary key
 - Changed verification codes from in-memory to database-backed storage
 - Added comprehensive schema definitions for all tables
