@@ -110,3 +110,162 @@ Task 1.1 is complete. Ready to proceed to Task 1.2: Create upload service for im
 - Standardize regex patterns across schemas
 - Evaluate minimum length for destination field
 
+
+---
+
+## Ralph Iteration 2: Task 1.2 - Create Upload Service for Image Handling
+
+**Date**: 2026-02-04
+**Status**: ✅ COMPLETE
+**Duration**: ~3 hours (research + implementation + verification)
+
+### Task Summary
+
+Implemented a local file upload service for handling trip cover images and user profile photos. The service validates image files (5MB max, JPG/PNG/WEBP only), stores them with UUID filenames, and provides deletion capabilities.
+
+### Implementation Details
+
+**Files Created:**
+1. `/home/chend/git/tripful/apps/api/src/services/upload.service.ts` (141 lines)
+   - Interface: `IUploadService` with 3 methods
+   - Implementation: `UploadService` class with singleton export
+   - Methods: `uploadImage()`, `deleteImage()`, `validateImage()`
+   - Uses Node.js built-ins only: `node:crypto`, `node:fs`, `node:path`
+
+2. `/home/chend/git/tripful/apps/api/tests/unit/upload.service.test.ts` (262 lines)
+   - 24 comprehensive unit tests
+   - Tests all methods with edge cases
+   - Proper cleanup with beforeEach/afterEach
+
+**Files Modified:**
+- `.gitignore`: Added `apps/api/uploads/` to exclude uploaded files
+
+### Agent Workflow
+
+**Research Phase (3 agents in parallel):**
+1. **Researcher 1 (LOCATING)**: Found service structure patterns, file locations, Node.js module usage
+2. **Researcher 2 (ANALYZING)**: Analyzed interface requirements, validation logic, path construction patterns
+3. **Researcher 3 (PATTERNS)**: Identified service patterns from auth.service.ts, test patterns, documentation style
+
+**Implementation Phase:**
+- **Coder**: Implemented service and comprehensive tests following TDD approach
+- All 24 tests passing on first implementation
+
+**Verification Phase (2 agents in parallel):**
+1. **Verifier**: 
+   - ✅ All 24 unit tests pass
+   - ✅ All 101 unit tests across codebase pass (no regressions)
+   - ✅ TypeScript strict mode compliance
+   - ❌ Found 2 ESLint errors (unused variables)
+
+2. **Reviewer**:
+   - Rating: APPROVED
+   - Perfect architecture compliance
+   - Excellent code quality and security practices
+   - Comprehensive test coverage
+
+**Fixes Applied:**
+- Fixed unused variable in catch block (removed parameter)
+- Removed unused `mkdirSync` import from test file
+- Re-verified: All checks now pass ✅
+
+### Technical Implementation
+
+**Service Interface:**
+```typescript
+export interface IUploadService {
+  uploadImage(file: Buffer, filename: string, mimetype: string): Promise<string>;
+  deleteImage(url: string): Promise<void>;
+  validateImage(file: Buffer, mimetype: string): Promise<void>;
+}
+```
+
+**Key Features:**
+- **Validation**: Checks MIME type (image/jpeg, image/png, image/webp) and file size (5MB max)
+- **Storage**: Local filesystem at `apps/api/uploads/` with UUID filenames
+- **URL Format**: Returns `/uploads/{uuid}.{ext}` (e.g., `/uploads/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg`)
+- **Deletion**: Idempotent operation (handles non-existent files gracefully)
+- **Auto-creation**: Creates uploads directory on initialization if it doesn't exist
+
+**Security Considerations:**
+- UUID filenames prevent path traversal and collisions
+- Server-side MIME type validation
+- File size limits enforced before writing
+- Proper path construction with `resolve()` prevents directory traversal
+
+### Test Coverage
+
+**24 tests covering:**
+- `validateImage()` - 9 tests (MIME type validation, size validation, edge cases)
+- `uploadImage()` - 9 tests (directory creation, file saving, URL generation, validation enforcement)
+- `deleteImage()` - 4 tests (file deletion, non-existent files, URL parsing)
+- Integration - 2 tests (full lifecycle, multiple uploads)
+
+**Edge cases tested:**
+- All 3 supported MIME types (jpeg, png, webp)
+- Invalid MIME types (gif, text/plain)
+- Boundary conditions (exactly 5MB, 5MB + 1 byte, 0 bytes)
+- File existence checks
+- UUID uniqueness
+- Proper cleanup
+
+### Verification Results
+
+**Final Status: ALL CHECKS PASS ✅**
+
+- ✅ Unit tests: 24/24 passing
+- ✅ All tests: 101/101 passing (no regressions)
+- ✅ TypeScript: No errors in strict mode
+- ✅ Linting: No errors or warnings
+- ✅ All acceptance criteria met
+
+**Acceptance Criteria:**
+- ✅ Validates file size correctly (rejects > 5MB)
+- ✅ Validates MIME types correctly (only JPG/PNG/WEBP)
+- ✅ Saves files to uploads/ directory with UUID names
+- ✅ Returns correct URL path (/uploads/{uuid}.{ext})
+- ✅ Deletes files correctly
+- ✅ All unit tests pass
+
+### Key Learnings
+
+1. **Pattern Consistency**: Following existing service patterns (from auth.service.ts) made the code immediately recognizable and maintainable.
+
+2. **Node.js Built-ins Preferred**: Using `crypto.randomUUID()`, `node:fs`, and `node:path` eliminated external dependencies while providing all needed functionality.
+
+3. **Idempotent Operations**: Making `deleteImage()` handle non-existent files gracefully (no error thrown) follows REST best practices and makes the API more resilient.
+
+4. **Test-Driven Success**: Writing comprehensive tests first (covering edge cases like boundary conditions and error paths) led to a robust implementation with no bugs found during verification.
+
+5. **ESLint Strictness**: The codebase enforces `@typescript-eslint/no-unused-vars` even for catch blocks. Using catch without a parameter `catch { }` is the cleanest solution when error handling doesn't need the error object.
+
+6. **Directory Auto-creation**: Creating the uploads directory automatically on service initialization (with `{ recursive: true }`) improves deployment experience - no manual setup needed.
+
+7. **MIME to Extension Mapping**: Using an object map (`MIME_TO_EXT`) provides cleaner, more maintainable code than switch statements or string parsing.
+
+### Integration Points
+
+**Current Integration:**
+- None yet - standalone service ready for consumption
+
+**Future Integration (Task 3.7):**
+- Trip routes will use `@fastify/multipart` to parse file uploads
+- Trip controller will call `uploadService.uploadImage()` for cover images
+- Static file serving route `GET /uploads/:filename` will be added
+- Trip service will store returned URLs in `trips.coverImageUrl` column
+
+**No Dependencies Added:**
+- Uses only Node.js built-in modules
+- `@fastify/multipart` will be added when implementing upload routes (Task 3.7)
+
+### Next Steps
+
+Task 1.2 is complete. Ready to proceed to **Task 1.3: Create permissions service for authorization**.
+
+**Blockers**: None
+
+**Notes for Next Task:**
+- Permissions service will need database access (unlike upload service)
+- Will follow same interface + class + singleton pattern
+- Will need comprehensive unit tests with database setup/teardown
+- Consider using test-utils helpers for database cleanup

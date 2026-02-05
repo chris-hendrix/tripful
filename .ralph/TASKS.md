@@ -25,7 +25,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
     - Date validation ensures end >= start
     - Schema tests cover all edge cases (name length, date ranges, etc.)
 
-- [ ] Task 1.2: Create upload service for image handling
+- [x] Task 1.2: Create upload service for image handling
   - Create `apps/api/src/services/upload.service.ts`
   - Implement `IUploadService` interface (uploadImage, deleteImage, validateImage)
   - Implement file validation (5MB max, MIME type check: image/jpeg, image/png, image/webp)

@@ -68,3 +68,6 @@ Thumbs.db
 .cache/
 temp/
 tmp/
+
+# Uploads
+apps/api/uploads/
