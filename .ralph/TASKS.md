@@ -10,7 +10,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 1. Backend Foundation
 
-- [ ] Task 1.1: Create trip schemas in shared package
+- [x] Task 1.1: Create trip schemas in shared package
   - Create `shared/schemas/trip.ts`
   - Define `createTripSchema` with Zod (name, destination, dates, timezone, description, coverImageUrl, allowMembersToAddEvents, coOrganizerPhones)
   - Define `updateTripSchema` (partial of createTripSchema)

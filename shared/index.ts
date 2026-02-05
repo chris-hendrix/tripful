@@ -7,7 +7,7 @@ export type {
   ErrorResponse,
   User,
   AuthResponse,
-} from './types/index';
+} from "./types/index";
 
 // Schemas
 export {
@@ -17,14 +17,20 @@ export {
   requestCodeSchema,
   verifyCodeSchema,
   completeProfileSchema,
-} from './schemas/index';
+  createTripSchema,
+  updateTripSchema,
+  addCoOrganizerSchema,
+} from "./schemas/index";
 
 // Schema inferred types
 export type {
   RequestCodeInput,
   VerifyCodeInput,
   CompleteProfileInput,
-} from './schemas/index';
+  CreateTripInput,
+  UpdateTripInput,
+  AddCoOrganizerInput,
+} from "./schemas/index";
 
 // Utils
-export { convertToUTC, formatInTimeZone } from './utils/index';
+export { convertToUTC, formatInTimeZone } from "./utils/index";

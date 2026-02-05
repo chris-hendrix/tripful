@@ -1,6 +1,6 @@
 // Shared Zod validation schemas for the Tripful platform
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Validates phone numbers in E.164 format
@@ -10,21 +10,21 @@ import { z } from 'zod';
  * - Total length: 8-15 characters after '+'
  */
 export const phoneNumberSchema = z.string().regex(/^\+[1-9]\d{1,14}$/, {
-  message: 'Phone number must be in E.164 format (e.g., +14155552671)',
+  message: "Phone number must be in E.164 format (e.g., +14155552671)",
 });
 
 /**
  * Validates email addresses using Zod's built-in email validator
  */
 export const emailSchema = z.string().email({
-  message: 'Invalid email address',
+  message: "Invalid email address",
 });
 
 /**
  * Validates UUID strings (v4 format)
  */
 export const uuidSchema = z.string().uuid({
-  message: 'Invalid UUID format',
+  message: "Invalid UUID format",
 });
 
 // Re-export authentication schemas
@@ -35,4 +35,14 @@ export {
   type RequestCodeInput,
   type VerifyCodeInput,
   type CompleteProfileInput,
-} from './auth';
+} from "./auth";
+
+// Re-export trip schemas
+export {
+  createTripSchema,
+  updateTripSchema,
+  addCoOrganizerSchema,
+  type CreateTripInput,
+  type UpdateTripInput,
+  type AddCoOrganizerInput,
+} from "./trip";
