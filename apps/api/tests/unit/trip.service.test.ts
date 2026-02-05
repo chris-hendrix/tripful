@@ -25,10 +25,12 @@ describe('trip.service', () => {
     }
     if (coOrganizerUserId) {
       await db.delete(members).where(eq(members.userId, coOrganizerUserId));
+      await db.delete(trips).where(eq(trips.createdBy, coOrganizerUserId));
       await db.delete(users).where(eq(users.id, coOrganizerUserId));
     }
     if (coOrganizer2UserId) {
       await db.delete(members).where(eq(members.userId, coOrganizer2UserId));
+      await db.delete(trips).where(eq(trips.createdBy, coOrganizer2UserId));
       await db.delete(users).where(eq(users.id, coOrganizer2UserId));
     }
   };
@@ -501,6 +503,262 @@ describe('trip.service', () => {
       expect(result).not.toBeNull();
       expect(result!.id).toBe(trip.id);
       expect(result!.name).toBe('Shared Trip');
+    });
+  });
+
+  describe('getUserTrips', () => {
+    it('should return all trips where user is a member', async () => {
+      // Create multiple trips where testUser is a member
+      const trip1Data: CreateTripInput = {
+        name: 'Trip 1',
+        destination: 'Destination 1',
+        startDate: '2026-08-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      const trip1 = await tripService.createTrip(testUserId, trip1Data);
+
+      const trip2Data: CreateTripInput = {
+        name: 'Trip 2',
+        destination: 'Destination 2',
+        startDate: '2026-09-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      const trip2 = await tripService.createTrip(testUserId, trip2Data);
+
+      // Create a trip where coOrganizer is creator (testUser is co-organizer)
+      const trip3Data: CreateTripInput = {
+        name: 'Trip 3',
+        destination: 'Destination 3',
+        startDate: '2026-07-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [testPhone],
+      };
+      const trip3 = await tripService.createTrip(coOrganizerUserId, trip3Data);
+
+      // Get all trips for testUser
+      const results = await tripService.getUserTrips(testUserId);
+
+      // Verify all 3 trips are returned
+      expect(results).toHaveLength(3);
+      const tripIds = results.map((t: any) => t.id);
+      expect(tripIds).toContain(trip1.id);
+      expect(tripIds).toContain(trip2.id);
+      expect(tripIds).toContain(trip3.id);
+    });
+
+    it('should return empty array when user has no trips', async () => {
+      // Don't create any trips for testUser
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results).toHaveLength(0);
+      expect(Array.isArray(results)).toBe(true);
+    });
+
+    it('should return trip summary with all required fields', async () => {
+      // Create a trip with full details
+      const tripData: CreateTripInput = {
+        name: 'Complete Trip',
+        destination: 'Full Destination',
+        startDate: '2026-10-15',
+        endDate: '2026-10-20',
+        timezone: 'America/New_York',
+        description: 'A complete trip',
+        coverImageUrl: 'https://example.com/cover.jpg',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone],
+      };
+      await tripService.createTrip(testUserId, tripData);
+
+      // Get user trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results).toHaveLength(1);
+      const summary = results[0];
+
+      // Verify all required fields are present
+      expect(summary).toHaveProperty('id');
+      expect(summary).toHaveProperty('name', 'Complete Trip');
+      expect(summary).toHaveProperty('destination', 'Full Destination');
+      expect(summary).toHaveProperty('startDate', '2026-10-15');
+      expect(summary).toHaveProperty('endDate', '2026-10-20');
+      expect(summary).toHaveProperty('coverImageUrl', 'https://example.com/cover.jpg');
+      expect(summary).toHaveProperty('isOrganizer');
+      expect(summary).toHaveProperty('rsvpStatus');
+      expect(summary).toHaveProperty('organizerInfo');
+      expect(summary).toHaveProperty('memberCount', 2);
+      expect(summary).toHaveProperty('eventCount', 0);
+
+      // Verify organizerInfo structure
+      expect(Array.isArray(summary.organizerInfo)).toBe(true);
+      expect(summary.organizerInfo).toHaveLength(2);
+      expect(summary.organizerInfo[0]).toHaveProperty('id');
+      expect(summary.organizerInfo[0]).toHaveProperty('displayName');
+      expect(summary.organizerInfo[0]).toHaveProperty('profilePhotoUrl');
+    });
+
+    it('should set isOrganizer=true for trip creator', async () => {
+      // Create a trip where testUser is creator
+      const tripData: CreateTripInput = {
+        name: 'Creator Trip',
+        destination: 'Creator Destination',
+        startDate: '2026-11-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, tripData);
+
+      // Get user trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].isOrganizer).toBe(true);
+    });
+
+    it('should set isOrganizer=true for co-organizer with status="going"', async () => {
+      // Create a trip where testUser is co-organizer
+      const tripData: CreateTripInput = {
+        name: 'Co-Org Trip',
+        destination: 'Co-Org Destination',
+        startDate: '2026-11-15',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [testPhone],
+      };
+      await tripService.createTrip(coOrganizerUserId, tripData);
+
+      // Get user trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].isOrganizer).toBe(true);
+      expect(results[0].rsvpStatus).toBe('going');
+    });
+
+    it('should set isOrganizer=false for regular member with status!="going"', async () => {
+      // Create a trip where testUser is creator
+      const tripData: CreateTripInput = {
+        name: 'Regular Member Trip',
+        destination: 'Regular Destination',
+        startDate: '2026-12-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone],
+      };
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Add coOrganizer2 as regular member with status='maybe'
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: coOrganizer2UserId,
+        status: 'maybe',
+      });
+
+      // Get trips for coOrganizer2
+      const results = await tripService.getUserTrips(coOrganizer2UserId);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].isOrganizer).toBe(false);
+      expect(results[0].rsvpStatus).toBe('maybe');
+    });
+
+    it('should return trips ordered by startDate (upcoming first)', async () => {
+      // Create trips with different start dates
+      const futureTrip: CreateTripInput = {
+        name: 'Future Trip',
+        destination: 'Future',
+        startDate: '2027-01-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, futureTrip);
+
+      const soonTrip: CreateTripInput = {
+        name: 'Soon Trip',
+        destination: 'Soon',
+        startDate: '2026-06-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, soonTrip);
+
+      const midTrip: CreateTripInput = {
+        name: 'Mid Trip',
+        destination: 'Mid',
+        startDate: '2026-09-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, midTrip);
+
+      // Get trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      // Verify ordering: soonTrip, midTrip, futureTrip
+      expect(results).toHaveLength(3);
+      expect(results[0].name).toBe('Soon Trip');
+      expect(results[1].name).toBe('Mid Trip');
+      expect(results[2].name).toBe('Future Trip');
+    });
+
+    it('should place trips with null startDate at the end', async () => {
+      // Create trips with and without start dates
+      const datedTrip: CreateTripInput = {
+        name: 'Dated Trip',
+        destination: 'Dated',
+        startDate: '2026-08-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, datedTrip);
+
+      const undatedTrip: CreateTripInput = {
+        name: 'Undated Trip',
+        destination: 'Undated',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      await tripService.createTrip(testUserId, undatedTrip);
+
+      // Get trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      // Verify ordering: dated trip first, undated trip last
+      expect(results).toHaveLength(2);
+      expect(results[0].name).toBe('Dated Trip');
+      expect(results[1].name).toBe('Undated Trip');
+      expect(results[1].startDate).toBeNull();
+    });
+
+    it('should return correct rsvpStatus from members table', async () => {
+      // Create trip where testUser is creator (status='going')
+      const tripData: CreateTripInput = {
+        name: 'RSVP Test Trip',
+        destination: 'RSVP Test',
+        startDate: '2026-11-01',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Add coOrganizer with different status
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: coOrganizerUserId,
+        status: 'maybe',
+      });
+
+      // Get trips for testUser (should have status='going')
+      const testUserResults = await tripService.getUserTrips(testUserId);
+      expect(testUserResults).toHaveLength(1);
+      expect(testUserResults[0].rsvpStatus).toBe('going');
+
+      // Get trips for coOrganizer (should have status='maybe')
+      const coOrgResults = await tripService.getUserTrips(coOrganizerUserId);
+      expect(coOrgResults).toHaveLength(1);
+      expect(coOrgResults[0].rsvpStatus).toBe('maybe');
     });
   });
 });

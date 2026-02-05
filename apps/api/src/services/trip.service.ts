@@ -1,7 +1,29 @@
 import { db } from '@/config/database.js';
 import { trips, members, users, type Trip, type Member } from '@/db/schema/index.js';
-import { eq, inArray, and } from 'drizzle-orm';
+import { eq, inArray, and, asc, sql } from 'drizzle-orm';
 import type { CreateTripInput } from '../../../../shared/schemas/index.js';
+
+/**
+ * Trip Summary Type
+ * Used for dashboard display of trips
+ */
+export type TripSummary = {
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  coverImageUrl: string | null;
+  isOrganizer: boolean;
+  rsvpStatus: 'going' | 'not_going' | 'maybe' | 'no_response';
+  organizerInfo: Array<{
+    id: string;
+    displayName: string;
+    profilePhotoUrl: string | null;
+  }>;
+  memberCount: number;
+  eventCount: number;
+};
 
 /**
  * Trip Service Interface
@@ -29,11 +51,11 @@ export interface ITripService {
   ): Promise<(Trip & { organizers: Array<{ id: string; displayName: string; phoneNumber: string; profilePhotoUrl: string | null; timezone: string }>; memberCount: number }) | null>;
 
   /**
-   * Gets all trips for a user (to be implemented)
+   * Gets all trips for a user with summary information
    * @param userId - The UUID of the user
-   * @returns Promise that resolves to array of trips
+   * @returns Promise that resolves to array of trip summaries
    */
-  getUserTrips(userId: string): Promise<Trip[]>;
+  getUserTrips(userId: string): Promise<TripSummary[]>;
 
   /**
    * Updates a trip (to be implemented)
@@ -245,12 +267,92 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Gets all trips for a user (placeholder implementation)
-   * @param _userId - The UUID of the user
-   * @returns Promise that resolves to array of trips
+   * Gets all trips for a user with summary information
+   * Returns trip summaries for dashboard display
+   * @param userId - The UUID of the user
+   * @returns Promise that resolves to array of trip summaries ordered by start date
    */
-  async getUserTrips(_userId: string): Promise<Trip[]> {
-    return [];
+  async getUserTrips(userId: string): Promise<TripSummary[]> {
+    // Get all trips where user is a member
+    const userMemberships = await db
+      .select({
+        tripId: members.tripId,
+        status: members.status,
+      })
+      .from(members)
+      .where(eq(members.userId, userId));
+
+    // Return empty array if user has no trips
+    if (userMemberships.length === 0) {
+      return [];
+    }
+
+    const tripIds = userMemberships.map((m) => m.tripId);
+
+    // Load all trips for the user
+    const userTrips = await db
+      .select()
+      .from(trips)
+      .where(inArray(trips.id, tripIds))
+      .orderBy(
+        // Order by startDate ascending (upcoming first), NULL last
+        sql`CASE WHEN ${trips.startDate} IS NULL THEN 1 ELSE 0 END`,
+        asc(trips.startDate)
+      );
+
+    // Build trip summaries
+    const summaries: TripSummary[] = [];
+
+    for (const trip of userTrips) {
+      // Get user's RSVP status from memberships
+      const userMembership = userMemberships.find((m) => m.tripId === trip.id);
+      const rsvpStatus = userMembership!.status;
+
+      // Determine if user is organizer:
+      // - True if user is creator OR
+      // - True if user is co-organizer (member with status='going')
+      const isCreator = trip.createdBy === userId;
+      const isCoOrganizer = !isCreator && rsvpStatus === 'going';
+      const isOrganizer = isCreator || isCoOrganizer;
+
+      // Load organizers: all members with status='going'
+      const organizerMembers = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.status, 'going')));
+
+      const organizerUserIds = organizerMembers.map((m) => m.userId);
+
+      // Load organizer user information
+      const organizerUsers = await db
+        .select({
+          id: users.id,
+          displayName: users.displayName,
+          profilePhotoUrl: users.profilePhotoUrl,
+        })
+        .from(users)
+        .where(inArray(users.id, organizerUserIds));
+
+      // Get member count
+      const memberCount = await this.getMemberCount(trip.id);
+
+      // Build summary
+      summaries.push({
+        id: trip.id,
+        name: trip.name,
+        destination: trip.destination,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        coverImageUrl: trip.coverImageUrl,
+        isOrganizer,
+        rsvpStatus,
+        organizerInfo: organizerUsers,
+        memberCount,
+        eventCount: 0, // Events in Phase 5
+      });
+    }
+
+    return summaries;
   }
 
   /**

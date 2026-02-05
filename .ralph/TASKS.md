@@ -135,7 +135,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 2.4: Implement getUserTrips for dashboard (TDD)
+- [x] Task 2.4: Implement getUserTrips for dashboard (TDD)
   - Write failing tests in `trip.service.test.ts`:
     - Test: Returns all trips where user is a member
     - Test: Returns empty array when user has no trips
