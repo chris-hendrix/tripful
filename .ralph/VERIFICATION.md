@@ -1,406 +1,765 @@
-# Phase 2: SMS Authentication - Verification
+# Verification: Phase 3 - Trip Management
+
+## Overview
+
+This document describes how to verify Phase 3 implementation through automated tests, manual testing, and environment setup. All verification steps should pass before considering Phase 3 complete.
 
 ## Environment Setup
 
 ### Prerequisites
 
-- Node.js 22.x LTS installed
-- PostgreSQL 16+ running (via Docker or local)
-- pnpm installed globally
+- **Node.js**: v22.x (LTS)
+- **pnpm**: v9.x
+- **PostgreSQL**: 16.x (running via Docker)
+- **Docker**: Required for PostgreSQL and GitGuardian pre-commit hook
 
-### Database Setup
-
-Start PostgreSQL using Docker Compose:
+### Initial Setup
 
 ```bash
-# From project root
-docker-compose up -d postgres
+# Install dependencies
+pnpm install
 
-# Verify postgres is running
-docker-compose ps
+# Start PostgreSQL
+pnpm docker:up
+
+# Run migrations
+cd apps/api
+pnpm db:migrate
+cd ../..
+
+# Create uploads directory
+mkdir -p apps/api/uploads
+
+# Verify environment files exist
+ls apps/api/.env apps/web/.env.local
 ```
-
-**Expected output:** Container `tripful-postgres` should be running on port 5432.
 
 ### Environment Variables
 
-**Backend** (apps/api/.env or apps/api/.env.local):
-
+**apps/api/.env:**
 ```bash
-DATABASE_URL=postgresql://tripful:tripful@localhost:5432/tripful
-FRONTEND_URL=http://localhost:3000
+DATABASE_URL=postgresql://tripful_user:tripful_password@localhost:5433/tripful_db
+JWT_SECRET=your-secret-key-minimum-32-characters-long
 NODE_ENV=development
-PORT=8000
 
-# JWT_SECRET will be auto-generated on first run if missing
-# JWT_SECRET=<will be auto-generated>
+# Phase 3: File upload settings
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=5242880  # 5MB
+ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp
 ```
 
-**Frontend** (apps/web/.env.local):
-
+**apps/web/.env.local:**
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### Install Dependencies
+### Test Credentials
 
+Phase 3 uses the same test pattern as Phase 2:
+
+- **Phone numbers**: Generated dynamically per test (e.g., `+1555${Date.now()}`)
+- **Verification code**: `123456` (fixed in development/test environments)
+- **Test images**: Located in `apps/web/tests/fixtures/` (must be created)
+
+**Create test fixture image:**
 ```bash
-# From project root
-pnpm install
-
-# Verify installs
-pnpm --filter @tripful/api list | grep libphonenumber-js
-pnpm --filter @tripful/api list | grep @fastify/cookie
-pnpm --filter @tripful/web list | grep @tanstack/react-query
+mkdir -p apps/web/tests/fixtures
+# Download or create a test image
+wget -O apps/web/tests/fixtures/test-image.jpg "https://picsum.photos/800/600"
 ```
 
-**Expected:** All three packages should be listed.
+## Port Assignments
 
-### Run Database Migrations
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend (Next.js) | 3000 | Web application |
+| Backend (Fastify) | 8000 | REST API |
+| PostgreSQL | 5433 (external), 5432 (container) | Database |
+| Playwright UI | 9323 | E2E test debugging UI |
 
+## Test Suites
+
+### 1. Unit Tests (Vitest)
+
+**Run all unit tests:**
 ```bash
-# From project root
-pnpm --filter @tripful/api db:generate
-pnpm --filter @tripful/api db:migrate
-
-# Verify tables created
-docker exec -it tripful-postgres psql -U tripful -d tripful -c "\dt"
+cd apps/api
+pnpm test:unit
 ```
 
-**Expected output:** Should show `users` and `verification_codes` tables.
-
-### Start Development Servers
-
-**Terminal 1 - Backend:**
-
+**Run specific test file:**
 ```bash
-pnpm --filter @tripful/api dev
+cd apps/api
+pnpm vitest tests/unit/trip.service.test.ts
 ```
 
-**Expected output:**
-
-```
-Server listening at http://localhost:8000
-✓ Generated JWT secret and saved to .env.local
-```
-
-**Terminal 2 - Frontend:**
-
+**Run with coverage:**
 ```bash
-pnpm --filter @tripful/web dev
+cd apps/api
+pnpm test:coverage
 ```
 
-**Expected output:**
+**Expected Results:**
+- **Trip Service**: 15+ tests, all passing
+- **Permissions Service**: 10+ tests, all passing
+- **Upload Service**: 8+ tests, all passing
+- **Schema Validation**: 5+ tests, all passing
+- **Total**: 38+ unit tests passing
+- **Coverage**: >80% for Phase 3 code
 
-```
-▲ Next.js 16.0.0
-- Local: http://localhost:3000
-```
+**Key Test Files:**
+- `apps/api/tests/unit/trip.service.test.ts`
+- `apps/api/tests/unit/permissions.service.test.ts`
+- `apps/api/tests/unit/upload.service.test.ts`
+- `shared/schemas/trip.test.ts`
 
-## Verification Test Suites
+### 2. Integration Tests (Vitest + Supertest)
 
-### 1. Unit Tests (Backend Services)
-
+**Run all integration tests:**
 ```bash
-# Test authentication service
-pnpm --filter @tripful/api test src/services/auth.service.test.ts
-
-# Test phone validation
-pnpm --filter @tripful/api test src/utils/phone.test.ts
-
-# Test JWT utilities
-pnpm --filter @tripful/api test src/config/jwt.test.ts
-
-# Test SMS service mock
-pnpm --filter @tripful/api test src/services/sms.service.test.ts
+cd apps/api
+pnpm test:integration
 ```
 
-**Pass criteria:** All unit tests pass (0 failures).
-
-**Tests should cover:**
-
-- ✓ Code generation (6 digits, numeric)
-- ✓ Code storage with expiry
-- ✓ Code verification (valid, invalid, expired)
-- ✓ User creation and profile updates
-- ✓ JWT token generation and verification
-- ✓ Phone number validation (US, international, invalid formats)
-- ✓ SMS mock console logging
-
-### 2. Integration Tests (API Endpoints)
-
+**Run specific test suite:**
 ```bash
-# Test all auth endpoints
-pnpm --filter @tripful/api test src/routes/auth.routes.test.ts
-pnpm --filter @tripful/api test src/controllers/auth.controller.test.ts
-
-# Test authentication middleware
-pnpm --filter @tripful/api test src/middleware/auth.middleware.test.ts
-
-# Test rate limiting
-pnpm --filter @tripful/api test src/middleware/rate-limit.middleware.test.ts
+cd apps/api
+pnpm vitest tests/integration/trip.routes.test.ts
 ```
 
-**Pass criteria:** All integration tests pass (0 failures).
+**Expected Results:**
+- **Trip Routes**: 20+ tests, all passing
+- **Co-Organizer Routes**: 5+ tests, all passing
+- **Image Upload Routes**: 5+ tests, all passing
+- **Total**: 30+ integration tests passing
 
-**Tests should cover:**
+**Key Test Files:**
+- `apps/api/tests/integration/trip.routes.test.ts`
 
-- ✓ POST /api/auth/request-code (valid phone, invalid phone, rate limited)
-- ✓ POST /api/auth/verify-code (valid code, invalid code, expired code)
-- ✓ POST /api/auth/complete-profile (valid profile, missing display name)
-- ✓ GET /api/auth/me (authenticated, unauthenticated)
-- ✓ POST /api/auth/logout (clears cookie)
-- ✓ Authentication middleware (valid token, invalid token, missing token)
-- ✓ Rate limiting (5 requests pass, 6th fails)
+**Verification Checklist:**
+- [ ] POST /trips creates trip and member records
+- [ ] POST /trips enforces member limit
+- [ ] POST /trips validates co-organizer phones
+- [ ] GET /trips returns user's trips
+- [ ] GET /trips/:id returns trip for members only
+- [ ] PUT /trips/:id updates trip for organizers
+- [ ] DELETE /trips/:id soft-deletes trip
+- [ ] POST /trips/:id/co-organizers adds co-organizers
+- [ ] DELETE /trips/:id/co-organizers/:userId removes co-organizer
+- [ ] POST /trips/:id/cover-image uploads image
+- [ ] DELETE /trips/:id/cover-image removes image
+- [ ] GET /uploads/:filename serves images
 
-### 3. Frontend Unit Tests
+### 3. E2E Tests (Playwright)
 
+**Run all E2E tests:**
 ```bash
-# Test auth context
-pnpm --filter @tripful/web test app/providers/auth-provider.test.tsx
-
-# Test API client
-pnpm --filter @tripful/web test lib/api.test.ts
-
-# Test shared validation schemas
-pnpm test --filter @tripful/shared
-```
-
-**Pass criteria:** All frontend unit tests pass.
-
-**Tests should cover:**
-
-- ✓ Auth context login/verify/logout methods
-- ✓ API client error handling
-- ✓ Zod schema validation (valid/invalid inputs)
-
-### 4. End-to-End Tests (Playwright)
-
-```bash
-# Run E2E tests
+cd apps/web
 pnpm test:e2e
-
-# Or run specific test file
-pnpm exec playwright test tests/e2e/auth-flow.spec.ts
 ```
 
-**Pass criteria:** All E2E tests pass.
-
-**Test scenarios:**
-
-1. **Complete authentication flow:**
-   - Navigate to /login
-   - Enter phone number +15551234567
-   - Click "Continue"
-   - Navigate to /verify
-   - Enter code 123456 (fixed test code)
-   - Navigate to /complete-profile
-   - Enter display name "Test User"
-   - Navigate to /dashboard
-   - Verify user is logged in (check for user profile)
-
-2. **Login validation errors:**
-   - Enter invalid phone number
-   - See error message "Invalid phone number format"
-
-3. **Verification errors:**
-   - Enter wrong code (654321)
-   - See error "Invalid code. Please try again"
-
-4. **Protected route access:**
-   - Navigate to /dashboard without authentication
-   - Redirected to /login
-
-5. **Logout flow:**
-   - Log in as user
-   - Click logout
-   - Redirected to /login
-   - Navigate to /dashboard
-   - Redirected to /login (no longer authenticated)
-
-### 5. Type Checking
-
+**Run E2E tests with UI (for debugging):**
 ```bash
-# Backend type checking
-pnpm --filter @tripful/api typecheck
-
-# Frontend type checking
-pnpm --filter @tripful/web typecheck
-
-# Shared package type checking
-pnpm --filter @tripful/shared typecheck
+cd apps/web
+pnpm test:e2e:ui
 ```
 
-**Pass criteria:** No TypeScript errors (0 errors).
-
-### 6. Linting
-
+**Run specific E2E test:**
 ```bash
-# Lint all packages
+cd apps/web
+pnpm playwright test tests/e2e/trip-flow.spec.ts
+```
+
+**Expected Results:**
+- **Create Trip Flow**: 1 test passing
+- **Edit Trip Flow**: 1 test passing
+- **Permissions Flow**: 1 test passing
+- **Co-Organizer Flow**: 1 test passing
+- **Total**: 4 E2E tests passing
+
+**Key Test Files:**
+- `apps/web/tests/e2e/trip-flow.spec.ts`
+
+**Verification Checklist:**
+- [ ] User can create trip via FAB and dialog
+- [ ] Trip appears in dashboard after creation
+- [ ] Trip detail page displays correct data
+- [ ] User can edit trip details
+- [ ] User can upload cover image
+- [ ] Non-members cannot access trip
+- [ ] Non-organizers cannot edit trip
+- [ ] Co-organizers can edit trip
+
+### 4. Linting & Type Checking
+
+**Run ESLint:**
+```bash
+# From root
 pnpm lint
 
-# Or individually
-pnpm --filter @tripful/api lint
-pnpm --filter @tripful/web lint
+# Or per package
+cd apps/api && pnpm lint
+cd apps/web && pnpm lint
 ```
 
-**Pass criteria:** No linting errors (0 errors).
-
-## Manual Verification with Browser
-
-### Test SMS Code Flow
-
-1. **Start servers** (backend + frontend)
-
-2. **Navigate to login page:** http://localhost:3000/login
-
-3. **Enter phone number:** +15551234567
-
-4. **Click "Continue"**
-
-   **Expected:**
-   - Backend console should show:
-     ```
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     📱 SMS Verification Code
-     Phone: +15551234567
-     Code: 123456
-     Expires: 5 minutes
-     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     ```
-   - Frontend redirects to `/verify?phone=%2B15551234567`
-
-5. **Enter verification code from console** (e.g., 123456)
-
-6. **Click "Verify"**
-
-   **Expected:**
-   - If new user: Redirect to `/complete-profile`
-   - If existing user: Redirect to `/dashboard`
-
-7. **Complete profile** (if new user)
-   - Enter display name: "John Doe"
-   - Select timezone: (defaults to browser timezone)
-   - Click "Continue"
-
-   **Expected:**
-   - Redirect to `/dashboard`
-   - User profile appears in dashboard
-
-8. **Verify authentication persists**
-   - Refresh page
-   - User should still be logged in (no redirect to login)
-
-9. **Test logout**
-   - Click logout button
-   - Redirect to `/login`
-   - Try accessing `/dashboard` directly
-   - Should redirect to `/login`
-
-### Test Rate Limiting
-
-1. **Use Postman or curl to send 6 requests rapidly:**
-
+**Run TypeScript type checking:**
 ```bash
-for i in {1..6}; do
-  curl -X POST http://localhost:8000/api/auth/request-code \
-    -H "Content-Type: application/json" \
-    -d '{"phoneNumber": "+15551234567"}'
-  echo "\nRequest $i complete\n"
-done
+# From root
+pnpm typecheck
+
+# Or per package
+cd apps/api && pnpm typecheck
+cd apps/web && pnpm typecheck
+```
+
+**Expected Results:**
+- No ESLint errors
+- No TypeScript errors (strict mode)
+- 0 warnings for new Phase 3 code
+
+### 5. Format Check
+
+**Run Prettier check:**
+```bash
+pnpm format:check
+```
+
+**Auto-fix formatting:**
+```bash
+pnpm format
+```
+
+**Expected Results:**
+- All files formatted consistently
+- Pre-commit hook runs Prettier automatically
+
+## Manual Testing
+
+### Prerequisites
+
+1. Start both servers:
+```bash
+# Terminal 1: Start API
+cd apps/api
+pnpm dev
+
+# Terminal 2: Start web app
+cd apps/web
+pnpm dev
+```
+
+2. Create a test user account:
+```bash
+# Open http://localhost:3000
+# Login with test phone: +15551234567
+# Enter verification code: 123456
+# Complete profile with display name
+```
+
+### Test Scenario 1: Create Trip
+
+**Steps:**
+1. Navigate to dashboard: `http://localhost:3000/dashboard`
+2. Click floating action button (bottom-right, blue gradient)
+3. **Step 1**: Fill in basic info:
+   - Trip name: "Test Trip to Miami"
+   - Destination: "Miami Beach, FL"
+   - Start date: (select future date)
+   - End date: (select date after start)
+   - Timezone: "America/New_York"
+   - Click "Continue"
+4. **Step 2**: Fill in optional details:
+   - Description: "A test trip for verification"
+   - Upload cover image (use test-image.jpg, <5MB)
+   - Check "Allow members to add events"
+   - (Skip co-organizers for now)
+   - Click "Create Trip"
+5. Verify redirect to trip detail page
+6. Verify trip appears on dashboard
+
+**Expected Results:**
+- [ ] FAB button visible on dashboard
+- [ ] Dialog opens with step indicator (Step 1 of 2)
+- [ ] Form validates required fields (name, destination, timezone)
+- [ ] Cannot submit Step 1 with invalid data
+- [ ] Step 2 loads with progress indicator (Step 2 of 2)
+- [ ] Image upload works (preview shown)
+- [ ] Trip created successfully
+- [ ] Redirected to trip detail page
+- [ ] Trip shows in dashboard "Upcoming trips" section
+- [ ] Cover image displays on trip card and detail page
+
+### Test Scenario 2: Edit Trip
+
+**Steps:**
+1. From dashboard, click on a trip card
+2. Click "Edit Trip" button (visible to organizers only)
+3. Update trip name to "Updated Trip Name"
+4. Update description
+5. Upload different cover image
+6. Click "Save Changes"
+7. Verify changes reflected on detail page
+8. Go back to dashboard, verify changes on card
+
+**Expected Results:**
+- [ ] Edit button visible (you are organizer)
+- [ ] Edit dialog pre-filled with current data
+- [ ] Can update all fields
+- [ ] Image upload replaces previous image
+- [ ] Changes save successfully
+- [ ] Trip detail page shows updated data
+- [ ] Dashboard card shows updated data
+- [ ] Optimistic update: UI updates before API response
+
+### Test Scenario 3: Add Co-Organizer
+
+**Prerequisites:**
+- Create second test user account (different phone number)
+- Note their phone number
+
+**Steps:**
+1. Open trip detail page for a trip you created
+2. Click "Edit Trip"
+3. In Step 2, add co-organizer phone number: `+15559876543`
+4. Click "Save Changes"
+5. Verify co-organizer appears in organizer list
+6. **Switch accounts**: Logout, login as co-organizer
+7. Navigate to dashboard
+8. Verify trip appears in co-organizer's trip list
+9. Click trip to view detail
+10. Verify co-organizer can see "Edit Trip" button
+11. Verify co-organizer can edit trip
+
+**Expected Results:**
+- [ ] Can add co-organizer phone number
+- [ ] Co-organizer added successfully
+- [ ] Co-organizer appears in organizer info
+- [ ] Co-organizer can see trip in their dashboard
+- [ ] Co-organizer can edit trip
+- [ ] Co-organizer marked as "Going" (RSVP status)
+
+### Test Scenario 4: Member Limit Enforcement
+
+**Steps:**
+1. Create a trip
+2. Attempt to add 25+ phone numbers as co-organizers
+3. Verify error message appears
+
+**Expected Results:**
+- [ ] Error displayed: "Maximum 25 members per trip"
+- [ ] Co-organizers not added beyond limit
+- [ ] Existing co-organizers remain
+
+### Test Scenario 5: Delete Trip
+
+**Steps:**
+1. Open trip detail page for a trip you created
+2. Click "Edit Trip"
+3. Click "Delete Trip" button
+4. Confirm deletion in dialog
+5. Verify redirect to dashboard
+6. Verify trip no longer appears in trip list
+7. Attempt to access trip URL directly
+8. Verify 404 error
+
+**Expected Results:**
+- [ ] Delete button visible in edit dialog
+- [ ] Confirmation dialog appears
+- [ ] Trip soft-deleted (cancelled=true in database)
+- [ ] Redirected to dashboard
+- [ ] Trip not shown in dashboard
+- [ ] Direct URL access shows error
+- [ ] Trip still exists in database with cancelled=true
+
+### Test Scenario 6: Permissions (Non-Member Access)
+
+**Steps:**
+1. Create trip as user A
+2. Note trip URL (e.g., `/trips/abc-123-def`)
+3. Logout
+4. Login as user B (different account, not added as member)
+5. Navigate to trip URL directly
+6. Verify access denied
+
+**Expected Results:**
+- [ ] Error page shown: "You do not have access to this trip" OR "Trip not found"
+- [ ] Cannot view trip details
+- [ ] Cannot see edit button
+
+### Test Scenario 7: Permissions (Member but Not Organizer)
+
+**Prerequisites:**
+- Phase 4 will add member invitations. For Phase 3, manually add member via database:
+```sql
+INSERT INTO members (trip_id, user_id, status)
+VALUES ('trip-uuid', 'user-b-uuid', 'going');
+```
+
+**Steps:**
+1. Add user B as member (not organizer) via SQL
+2. Login as user B
+3. Navigate to trip
+4. Verify can view trip details
+5. Verify "Edit Trip" button NOT visible
+
+**Expected Results:**
+- [ ] User B can view trip
+- [ ] User B cannot see edit button
+- [ ] User B cannot edit trip (API returns 403 if attempted)
+
+### Test Scenario 8: Dashboard Filtering
+
+**Prerequisites:**
+- Create 2 trips: one with past dates, one with future dates
+
+**Steps:**
+1. Navigate to dashboard
+2. Verify "Upcoming trips" section shows only future trips
+3. Verify "Past trips" section shows only past trips
+4. Verify trips sorted by start date
+
+**Expected Results:**
+- [ ] Upcoming trips appear in "Upcoming trips" section
+- [ ] Past trips appear in "Past trips" section
+- [ ] Empty state shown if no trips in section
+- [ ] Trips sorted chronologically
+
+### Test Scenario 9: Image Upload Validation
+
+**Steps:**
+1. Create or edit trip
+2. Attempt to upload image >5MB
+3. Verify error message
+4. Attempt to upload non-image file (PDF, TXT, etc.)
+5. Verify error message
+6. Upload valid image (JPG, <5MB)
+7. Verify success
+
+**Expected Results:**
+- [ ] Error: "Image must be under 5MB"
+- [ ] Error: "Invalid file type. Only JPG, PNG, and WEBP are allowed"
+- [ ] Valid image uploads successfully
+- [ ] Image preview shown
+- [ ] Image URL saved to trip
+
+### Test Scenario 10: Form Validation
+
+**Steps:**
+1. Open create trip dialog
+2. Submit without filling required fields
+3. Verify error messages
+4. Enter trip name with 2 characters
+5. Verify error: "Trip name must be at least 3 characters"
+6. Enter trip name with 101 characters
+7. Verify error: "Trip name must not exceed 100 characters"
+8. Select end date before start date
+9. Verify error: "End date must be on or after start date"
+
+**Expected Results:**
+- [ ] Required field errors shown
+- [ ] Name length validated (3-100 chars)
+- [ ] Date validation works (end >= start)
+- [ ] Cannot submit invalid form
+- [ ] Inline errors clear when fixed
+
+## Database Verification
+
+### Check Schema
+
+**Verify trips table:**
+```sql
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_name = 'trips'
+ORDER BY ordinal_position;
+```
+
+**Expected columns:**
+- id (uuid, NOT NULL)
+- name (character varying, NOT NULL)
+- destination (text, NOT NULL)
+- start_date (date, nullable)
+- end_date (date, nullable)
+- preferred_timezone (character varying, NOT NULL)
+- description (text, nullable)
+- cover_image_url (text, nullable)
+- created_by (uuid, NOT NULL, FK to users)
+- allow_members_to_add_events (boolean, DEFAULT true)
+- cancelled (boolean, DEFAULT false)
+- created_at (timestamp, NOT NULL)
+- updated_at (timestamp, NOT NULL)
+
+**Verify members table:**
+```sql
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_name = 'members'
+ORDER BY ordinal_position;
+```
+
+**Expected columns:**
+- id (uuid, NOT NULL)
+- trip_id (uuid, NOT NULL, FK to trips, CASCADE)
+- user_id (uuid, NOT NULL, FK to users, CASCADE)
+- status (enum: going/maybe/not_going/no_response, DEFAULT no_response)
+- updated_at (timestamp, NOT NULL)
+- created_at (timestamp, NOT NULL)
+
+### Verify Data After Manual Tests
+
+**Check trip creation:**
+```sql
+SELECT t.id, t.name, t.destination, t.created_by, t.cancelled,
+       m.user_id, m.status
+FROM trips t
+LEFT JOIN members m ON t.id = m.trip_id
+WHERE t.name = 'Test Trip to Miami';
 ```
 
 **Expected:**
+- Trip record exists
+- Creator has member record with status='going'
+- Co-organizers (if added) have member records with status='going'
 
-- Requests 1-5: `{ "success": true, "message": "Code sent" }`
-- Request 6: `{ "success": false, "error": { "code": "RATE_LIMIT_EXCEEDED", "message": "Too many verification code requests..." } }`
+**Check soft delete:**
+```sql
+SELECT id, name, cancelled
+FROM trips
+WHERE cancelled = true;
+```
 
-### Test Phone Validation
+**Expected:**
+- Deleted trips have cancelled=true
+- Trips not actually removed from database
 
-Try various phone formats in login form:
+**Check member count constraint:**
+```sql
+SELECT t.name, COUNT(m.id) as member_count
+FROM trips t
+LEFT JOIN members m ON t.id = m.trip_id
+GROUP BY t.id, t.name;
+```
 
-- ✓ Valid US: +15551234567
-- ✓ Valid US (alt format): +1 (555) 123-4567
-- ✓ Valid international: +447911123456 (UK)
-- ✗ Invalid (no country code): 5551234567 → should show error
-- ✗ Invalid (too short): +1555 → should show error
-- ✗ Invalid (letters): +1abc123 → should show error
+**Expected:**
+- No trip has >25 members
 
-### Test Cookie Behavior
+## Performance Checks
 
-1. **Log in successfully**
+### API Response Times
 
-2. **Open browser DevTools → Application → Cookies**
+**Measure endpoint performance:**
+```bash
+# Create trip
+curl -w "@curl-format.txt" -o /dev/null -s -X POST http://localhost:8000/trips \
+  -H "Cookie: auth_token=YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{...}'
 
-3. **Verify `auth_token` cookie exists:**
-   - Name: `auth_token`
-   - HttpOnly: ✓ (checked)
-   - Secure: ✓ (if HTTPS)
-   - SameSite: Strict or Lax
+# Get trips
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8000/trips \
+  -H "Cookie: auth_token=YOUR_TOKEN"
 
-4. **Decode JWT token:**
-   - Copy token value
-   - Go to https://jwt.io
-   - Paste token
-   - Verify payload contains: `sub`, `phone`, `name`, `iat`, `exp`
+# Get trip by ID
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8000/trips/TRIP_ID \
+  -H "Cookie: auth_token=YOUR_TOKEN"
+```
 
-5. **Test cookie expiry:**
-   - JWT should expire in 7 days
-   - Browser session should persist across page refreshes
+**curl-format.txt:**
+```
+time_total: %{time_total}s\n
+```
+
+**Expected Response Times (local development):**
+- POST /trips: <200ms
+- GET /trips: <100ms
+- GET /trips/:id: <100ms
+- Image upload: <500ms (varies with image size)
+
+### Frontend Performance
+
+**Open DevTools → Performance:**
+1. Record page load of dashboard
+2. Verify First Contentful Paint <1s
+3. Verify Time to Interactive <2s
+4. Check for layout shifts (CLS should be minimal)
+
+**Expected:**
+- Dashboard loads quickly with skeleton states
+- Trip cards render without layout shift
+- Images lazy-load properly
+
+## Accessibility Checks
+
+**Run axe DevTools:**
+1. Install axe DevTools browser extension
+2. Run scan on dashboard page
+3. Run scan on trip detail page
+4. Run scan on create trip dialog
+
+**Expected:**
+- 0 critical accessibility issues
+- Form inputs have labels
+- Buttons have accessible names
+- Images have alt text
+- Color contrast meets WCAG AA
+
+## Security Verification
+
+### Authentication
+
+**Test unauthenticated access:**
+```bash
+curl -i http://localhost:8000/trips
+```
+
+**Expected:**
+- 401 Unauthorized response
+
+### Authorization
+
+**Test non-organizer editing trip:**
+```bash
+# Create trip as user A, get auth token
+# Try to edit as user B
+curl -i -X PUT http://localhost:8000/trips/TRIP_ID \
+  -H "Cookie: auth_token=USER_B_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Hacked"}'
+```
+
+**Expected:**
+- 403 Forbidden response
+
+### File Upload Security
+
+**Test file upload with invalid MIME:**
+```bash
+curl -i -X POST http://localhost:8000/trips/TRIP_ID/cover-image \
+  -H "Cookie: auth_token=YOUR_TOKEN" \
+  -F "image=@test.pdf"
+```
+
+**Expected:**
+- 400 Bad Request
+- Error: "Invalid file type"
+
+**Test file upload > 5MB:**
+```bash
+# Create 6MB file
+dd if=/dev/zero of=big.jpg bs=1M count=6
+
+curl -i -X POST http://localhost:8000/trips/TRIP_ID/cover-image \
+  -H "Cookie: auth_token=YOUR_TOKEN" \
+  -F "image=@big.jpg"
+```
+
+**Expected:**
+- 400 Bad Request
+- Error: "Image must be under 5MB"
+
+### Path Traversal Protection
+
+**Attempt to access file outside uploads directory:**
+```bash
+curl -i http://localhost:8000/uploads/../../../etc/passwd
+```
+
+**Expected:**
+- 404 Not Found OR 403 Forbidden
+- Cannot access files outside uploads/
 
 ## Feature Flags
 
-No feature flags required for Phase 2.
+Phase 3 does not require feature flags. The `allowMembersToAddEvents` field in trips table is a trip-level setting, not a global feature flag.
 
-## URLs and Ports
-
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000/api
-- **Database:** postgresql://localhost:5432/tripful
-- **Drizzle Studio:** http://localhost:4983 (run `pnpm --filter @tripful/api db:studio`)
-
-## Test Data
-
-**Test phone numbers** (for manual testing):
-
-- +15551234567 (US format)
-- +447911123456 (UK format)
-- +33612345678 (France format)
-
-**Test verification code** (predictable for E2E):
-
-- In test environment: Always return `123456`
-- In dev environment: Random 6-digit code logged to console
-
-## Manual Testing with Playwright MCP
-
-If testing requires visual verification (screenshots), use Playwright MCP:
-
-```bash
-# Take screenshot after login
-browser.screenshot("apps/api/.ralph/screenshots/iteration-001-login-page.png")
-
-# Take screenshot after verification
-browser.screenshot("apps/api/.ralph/screenshots/iteration-001-verification-page.png")
-
-# Take screenshot of dashboard
-browser.screenshot("apps/api/.ralph/screenshots/iteration-001-dashboard-logged-in.png")
+**Verify setting works:**
+```sql
+SELECT id, name, allow_members_to_add_events FROM trips;
 ```
 
-**Save screenshots to:** `.ralph/screenshots/`
+**Expected:**
+- Default value is `true`
+- Can be toggled via edit trip dialog
 
-## Success Criteria Summary
+## Troubleshooting
 
-Phase 2 is complete when:
+### Tests Failing
 
-- ✅ All unit tests pass (services, utilities)
-- ✅ All integration tests pass (API endpoints, middleware)
-- ✅ All E2E tests pass (full auth flow)
-- ✅ No TypeScript errors (typecheck passes)
-- ✅ No linting errors (lint passes)
-- ✅ Manual verification: User can log in, verify code, complete profile, and access dashboard
-- ✅ Rate limiting works (5 requests max per phone per hour)
-- ✅ JWT tokens stored in httpOnly cookies
-- ✅ Phone validation works for US and international formats
-- ✅ Console logs show verification codes clearly
-- ✅ Protected routes redirect to login when unauthenticated
+**Issue: Database connection errors**
+```
+Solution: Verify PostgreSQL is running
+  pnpm docker:up
+  pnpm db:migrate
+```
+
+**Issue: Tests fail due to stale data**
+```
+Solution: Clean test database
+  cd apps/api
+  pnpm db:drop  # (if command exists)
+  pnpm db:migrate
+```
+
+**Issue: Playwright tests timeout**
+```
+Solution: Increase timeout or check servers are running
+  # Verify servers running:
+  curl http://localhost:3000
+  curl http://localhost:8000/health
+```
+
+### Manual Testing Issues
+
+**Issue: Images not displaying**
+```
+Solution: Check uploads directory exists and has correct permissions
+  ls -la apps/api/uploads
+  # Ensure uploads/ in .gitignore
+```
+
+**Issue: Cannot add co-organizers**
+```
+Solution: Verify phone number exists in users table
+  SELECT id, phone_number FROM users WHERE phone_number = '+15559876543';
+```
+
+**Issue: Trip not appearing in dashboard**
+```
+Solution: Check member record created
+  SELECT * FROM members WHERE user_id = 'YOUR_USER_ID';
+```
+
+### GitGuardian Pre-Commit Hook
+
+**Issue: Pre-commit hook fails**
+```
+Solution: Ensure Docker is running
+  docker ps
+  # Start Docker if not running
+```
+
+## Success Criteria
+
+Phase 3 verification is complete when:
+
+- [ ] All unit tests pass (38+ tests)
+- [ ] All integration tests pass (30+ tests)
+- [ ] All E2E tests pass (4 tests)
+- [ ] Code coverage >80% for Phase 3 code
+- [ ] No linter errors
+- [ ] No TypeScript errors
+- [ ] All manual test scenarios pass
+- [ ] Database schema verified
+- [ ] Security checks pass
+- [ ] Accessibility checks pass
+- [ ] Performance meets targets
+- [ ] Documentation updated
+
+## Known Limitations (Phase 3)
+
+- **No member invitations**: Co-organizers must have existing accounts (Phase 4)
+- **No RSVP changes**: Creator and co-organizers always marked "Going" (Phase 4)
+- **No events**: Event system coming in Phase 5
+- **Local storage only**: Images stored locally, not S3/CDN (Post-MVP)
+- **No pagination**: Trip list shows all trips (optimize in future)
+- **No search**: Search bar is placeholder (Post-MVP)
