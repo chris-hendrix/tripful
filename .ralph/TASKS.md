@@ -41,7 +41,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
     - Deletes files correctly
     - All unit tests pass
 
-- [ ] Task 1.3: Create permissions service for authorization
+- [x] Task 1.3: Create permissions service for authorization
   - Create `apps/api/src/services/permissions.service.ts`
   - Implement `IPermissionsService` interface
   - Implement `canEditTrip(userId, tripId)`: Check if user is creator OR co-organizer
