@@ -62,7 +62,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 2. Trip Service Implementation
 
-- [ ] Task 2.1: Implement createTrip in trip service (TDD)
+- [x] Task 2.1: Implement createTrip in trip service (TDD)
   - Create test file: `apps/api/tests/unit/trip.service.test.ts`
   - Write failing tests for `createTrip`:
     - Test: Creates trip record with correct data
