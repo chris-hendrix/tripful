@@ -1,27 +1,96 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Core flows implemented in demo
+status: Phase 1 & 2 Complete - Monorepo Setup + SMS Authentication
+last_updated: 2026-02-04
 ---
 
 # Tripful - High-Level Architecture
 
-> **Note**: Core flows of the design have been implemented in a demo version. This document reflects the updated architecture based on implementation learnings.
+> **Implementation Status**:
+> - ✅ **Phase 1 Complete**: Monorepo setup with pnpm + Turbo + TypeScript
+> - ✅ **Phase 2 Complete**: SMS authentication with full E2E testing
+> - 🚧 **Phase 3-8**: Pending (Trip management, invitations, itinerary features)
+>
+> This document reflects the current production implementation and planned architecture.
+
+## Implementation Progress
+
+### ✅ Phase 1: Monorepo Setup (Complete)
+**Git Commit**: `faeb16c - Phase 1: Monorepo Setup with pnpm + Turbo + TypeScript`
+
+- [x] pnpm workspace configuration with 3 packages (@tripful/api, @tripful/web, @tripful/shared)
+- [x] Turbo build orchestration with parallel task execution
+- [x] TypeScript 5.7.3 strict mode across all workspaces
+- [x] Shared tsconfig.base.json for consistent configuration
+- [x] PostgreSQL 16 via Docker Compose (port 5433)
+- [x] Drizzle ORM 0.36.4 with schema-first approach
+- [x] ESLint + Prettier configuration
+- [x] Development scripts for parallel dev servers
+
+### ✅ Phase 2: SMS Authentication (Complete)
+**Git Commit**: `1fe5e5e - Phase 2: SMS Authentication with E2E Testing`
+
+**Backend (Fastify):**
+- [x] Phone-based authentication with SMS verification codes
+- [x] JWT token generation with httpOnly cookies
+- [x] Database-backed verification codes (5-minute expiry)
+- [x] Rate limiting (5 SMS requests/hour per phone number)
+- [x] libphonenumber-js for E.164 phone validation
+- [x] Auth middleware with protected routes
+- [x] Profile completion flow (displayName + timezone)
+- [x] Mock SMS service (console logging for dev/test)
+- [x] Comprehensive unit tests (8 test files, all passing)
+- [x] Integration tests for all auth endpoints
+
+**Frontend (Next.js 16):**
+- [x] Login page with phone number input
+- [x] Verification page with 6-digit code entry
+- [x] Complete profile page with timezone selection
+- [x] Protected dashboard route
+- [x] AuthProvider context for global auth state
+- [x] Radix UI + shadcn/ui components
+- [x] TanStack Query for API state management
+
+**Database Schema:**
+- [x] users table (id, phone_number, display_name, timezone, profile_photo_url)
+- [x] verification_codes table (phone_number PK, code, expires_at)
+- [x] Indexes for phone_number and expires_at
+- [x] Migration: `0000_smooth_sharon_ventura.sql`
+
+**E2E Testing (Playwright):**
+- [x] Complete authentication journey (login → verify → profile → dashboard)
+- [x] Logout flow with cookie cleanup
+- [x] Protected route access control
+- [x] Existing user skip profile flow
+- [x] All tests passing with sequential execution
+
+### 🚧 Phase 3-8: Remaining Features (Planned)
+
+- [ ] Trip creation and management (Phase 3)
+- [ ] Invitations and RSVP system (Phase 4)
+- [ ] Event creation and itinerary views (Phase 5)
+- [ ] Accommodations and member travel (Phase 6)
+- [ ] Advanced itinerary features (soft delete, multi-day) (Phase 7)
+- [ ] Polish, validation, and performance optimization (Phase 8)
+
+---
 
 ## Table of Contents
 
-1. [System Overview](#system-overview)
-2. [Architecture Diagram](#architecture-diagram)
-3. [Technology Stack](#technology-stack)
-4. [System Components](#system-components)
-5. [Data Model](#data-model)
-6. [API Design](#api-design)
-7. [Authentication Flow](#authentication-flow)
-8. [Key Features Implementation](#key-features-implementation)
-9. [Development Practices](#development-practices)
-10. [Testing Strategy](#testing-strategy)
-11. [Security Considerations](#security-considerations)
-12. [Performance Considerations](#performance-considerations)
+1. [Implementation Progress](#implementation-progress)
+2. [System Overview](#system-overview)
+3. [Architecture Diagram](#architecture-diagram)
+4. [Technology Stack](#technology-stack)
+5. [System Components](#system-components)
+6. [Data Model](#data-model)
+7. [API Design](#api-design)
+8. [Authentication Flow](#authentication-flow)
+9. [Key Features Implementation](#key-features-implementation)
+10. [Development Practices](#development-practices)
+11. [Testing Strategy](#testing-strategy)
+12. [Security Considerations](#security-considerations)
+13. [Performance Considerations](#performance-considerations)
 
 ***
 
@@ -987,24 +1056,199 @@ See [Database Layer](#3-database-layer-postgresql--drizzle-orm) section for deta
 
 ### REST API Endpoints
 
-#### Authentication
+#### Authentication (✅ Implemented)
+
+**File:** `apps/api/src/routes/auth.routes.ts`
+
+**1. Request Verification Code**
+
+```http
+POST /api/auth/request-code
+
+Request:
+  Content-Type: application/json
+  {
+    "phoneNumber": "5551234567"  // 10-20 digits
+  }
+
+Response (200):
+  {
+    "success": true,
+    "message": "Verification code sent to +15551234567"
+  }
+
+Response (400 - Validation Error):
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Phone number must be between 10 and 20 characters"
+    }
+  }
+
+Response (429 - Rate Limited):
+  {
+    "success": false,
+    "error": {
+      "code": "RATE_LIMIT_EXCEEDED",
+      "message": "Too many requests. Please try again in 60 minutes."
+    }
+  }
+
+Rate Limit: 5 requests per phone number per hour
+Phone Format: Converted to E.164 (+15551234567) using libphonenumber-js
+Code Expiry: 5 minutes
+Dev/Test: Fixed code "123456" | Production: Random 6-digit code
+```
+
+**2. Verify Code and Login**
+
+```http
+POST /api/auth/verify-code
+
+Request:
+  Content-Type: application/json
+  {
+    "phoneNumber": "5551234567",
+    "code": "123456"
+  }
+
+Response (200 - New User):
+  Set-Cookie: auth_token=<jwt>; HttpOnly; Secure; SameSite=Strict
+  {
+    "success": true,
+    "user": {
+      "id": "uuid",
+      "phoneNumber": "+15551234567",
+      "displayName": "",
+      "timezone": "UTC",
+      "profilePhotoUrl": null,
+      "createdAt": "2026-02-04T...",
+      "updatedAt": "2026-02-04T..."
+    },
+    "requiresProfile": true
+  }
+
+Response (200 - Existing User):
+  Set-Cookie: auth_token=<jwt>; HttpOnly; Secure; SameSite=Strict
+  {
+    "success": true,
+    "user": { /* ... with displayName */ },
+    "requiresProfile": false
+  }
+
+Response (400 - Invalid Code):
+  {
+    "success": false,
+    "error": {
+      "code": "INVALID_CODE",
+      "message": "Invalid or expired verification code"
+    }
+  }
+
+JWT Payload: { sub, phone, name, iat, exp }
+Expiry: 7 days
+```
+
+**3. Complete Profile**
+
+```http
+POST /api/auth/complete-profile
+Authentication: Required (JWT in cookie or Authorization header)
+
+Request:
+  {
+    "displayName": "John Doe",   // 3-50 characters
+    "timezone": "America/New_York"  // Optional, IANA timezone
+  }
+
+Response (200):
+  Set-Cookie: auth_token=<new-jwt>; HttpOnly; Secure; SameSite=Strict
+  {
+    "success": true,
+    "user": {
+      "id": "uuid",
+      "phoneNumber": "+15551234567",
+      "displayName": "John Doe",
+      "timezone": "America/New_York",
+      /* ... */
+    }
+  }
+
+Response (401 - Not Authenticated):
+  {
+    "success": false,
+    "error": {
+      "code": "UNAUTHORIZED",
+      "message": "Missing authentication token"
+    }
+  }
+```
+
+**4. Get Current User**
+
+```http
+GET /api/auth/me
+Authentication: Required
+
+Response (200):
+  {
+    "success": true,
+    "user": {
+      "id": "uuid",
+      "phoneNumber": "+15551234567",
+      "displayName": "John Doe",
+      "timezone": "America/New_York",
+      "profilePhotoUrl": null,
+      "createdAt": "2026-02-04T...",
+      "updatedAt": "2026-02-04T..."
+    }
+  }
+```
+
+**5. Logout**
+
+```http
+POST /api/auth/logout
+Authentication: Required
+
+Response (200):
+  Set-Cookie: auth_token=; Max-Age=0  // Clears cookie
+  {
+    "success": true,
+    "message": "Logged out successfully"
+  }
+```
+
+---
+
+#### Trips (🚧 Planned)
 
 ```
-POST   /api/auth/request-code
-  Body: { phoneNumber: string, countryCode: string }
-  Response: { success: boolean, message: string }
+GET    /api/trips
+  Query: { status?: 'upcoming' | 'past' }
+  Response: { trips: Trip[] }
 
-POST   /api/auth/verify-code
-  Body: { phoneNumber: string, code: string }
-  Response: { token: string, user: User }
+GET    /api/trips/:id
+  Response: { trip: Trip, creator: User, rsvpStatus?: string }
 
-POST   /api/auth/refresh
-  Headers: { Authorization: 'Bearer <token>' }
-  Response: { token: string }
+POST   /api/trips
+  Body: { name, destination, startDate?, endDate?, timezone, description?, coverImage? }
+  Response: { trip: Trip }
 
-GET    /api/auth/me
-  Headers: { Authorization: 'Bearer <token>' }
-  Response: { user: User }
+PATCH  /api/trips/:id
+  Body: Partial<Trip>
+  Response: { trip: Trip }
+
+DELETE /api/trips/:id
+  Response: { success: boolean }
+
+GET    /api/trips/:id/members
+  Response: { members: Array<{ user: User, member: Member }> }
+
+POST   /api/trips/:id/invite
+  Body: { phoneNumbers: string[] }
+  Response: { sent: number, failed: string[] }
 ```
 
 #### Trips
@@ -1206,29 +1450,46 @@ Note: For MVP, verification codes are stored in the database with expiry timesta
 This eliminates the need for in-memory storage or Redis for simple verification flows.
 ```
 
-### JWT Token Structure
+### JWT Token Structure (✅ Implemented)
+
+**Token Payload** (generated by `apps/api/src/services/auth.service.ts`):
 
 ```typescript
 interface JWTPayload {
-  sub: string          // User ID
-  phone: string        // Phone number (for quick lookups)
-  iat: number         // Issued at
-  exp: number         // Expires at (7 days)
+  sub: string          // User ID (UUID)
+  phone: string        // Phone number in E.164 format
+  name: string         // Display name (empty if profile incomplete)
+  iat: number          // Issued at timestamp
+  exp: number          // Expires at (iat + 7 days)
 }
 ```
 
-### Authentication Middleware
+**Signing Configuration** (`apps/api/src/server.ts`):
+- Algorithm: HS256
+- Secret: From JWT_SECRET env var (min 32 characters)
+- Expiration: 7 days
+- Stored in httpOnly cookie: `auth_token`
+  - Path: `/`
+  - SameSite: `strict`
+  - Secure: `true` (production only)
+
+### Authentication Middleware (✅ Implemented)
+
+**File:** `apps/api/src/middleware/auth.middleware.ts`
+
+#### 1. `authenticate()` Middleware
+
+Validates JWT from cookie or Authorization header:
 
 ```typescript
-// src/middleware/auth.middleware.ts
-import { FastifyRequest, FastifyReply } from 'fastify'
-
 export async function authenticate(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
   try {
-    const token = request.headers.authorization?.replace('Bearer ', '')
+    // Check cookie first, fallback to Authorization header
+    const token = request.cookies.auth_token ||
+                  request.headers.authorization?.replace('Bearer ', '')
 
     if (!token) {
       return reply.status(401).send({
@@ -1240,12 +1501,14 @@ export async function authenticate(
       })
     }
 
+    // Verify JWT signature and expiry
     const decoded = await request.server.jwt.verify<JWTPayload>(token)
 
-    // Attach user to request
+    // Attach user to request object
     request.user = {
       id: decoded.sub,
       phoneNumber: decoded.phone,
+      displayName: decoded.name,
     }
   } catch (err) {
     return reply.status(401).send({
@@ -1257,6 +1520,44 @@ export async function authenticate(
     })
   }
 }
+```
+
+#### 2. `requireCompleteProfile()` Middleware
+
+Ensures authenticated user has completed their profile:
+
+```typescript
+export async function requireCompleteProfile(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  // Must have displayName to access protected features
+  if (!request.user?.displayName || request.user.displayName.trim() === '') {
+    return reply.status(403).send({
+      success: false,
+      error: {
+        code: 'PROFILE_INCOMPLETE',
+        message: 'Please complete your profile first',
+      },
+    })
+  }
+}
+```
+
+**Usage in Routes:**
+
+```typescript
+// Protected route requiring auth
+fastify.get('/api/trips',
+  { preHandler: authenticate },
+  tripsController.list
+)
+
+// Protected route requiring complete profile
+fastify.post('/api/trips',
+  { preHandler: [authenticate, requireCompleteProfile] },
+  tripsController.create
+)
 ```
 
 ***
@@ -1450,45 +1751,119 @@ function groupEventsByDay(events: Event[]) {
 
 ## Development Practices
 
-### Monorepo Structure
+### Monorepo Structure (✅ Implemented)
+
+**Current Structure:**
 
 ```
 tripful/
 ├── apps/
-│   ├── web/              # Next.js frontend
-│   └── api/              # Fastify backend
-├── shared/               # Shared types and utilities (no packages nesting)
+│   ├── api/              (@tripful/api) - Fastify backend server
+│   │   ├── src/
+│   │   │   ├── server.ts             # Entry point, Fastify app setup
+│   │   │   ├── config/
+│   │   │   │   ├── env.ts            # Environment variable validation
+│   │   │   │   └── database.ts       # Drizzle connection
+│   │   │   ├── controllers/
+│   │   │   │   └── auth.controller.ts  # Auth endpoint handlers
+│   │   │   ├── services/
+│   │   │   │   ├── auth.service.ts     # Business logic for auth
+│   │   │   │   └── sms.service.ts      # Mock SMS service
+│   │   │   ├── middleware/
+│   │   │   │   ├── auth.middleware.ts  # JWT verification
+│   │   │   │   ├── error.middleware.ts # Error handling
+│   │   │   │   └── rate-limit.middleware.ts  # SMS rate limiting
+│   │   │   ├── db/
+│   │   │   │   ├── schema/
+│   │   │   │   │   └── index.ts        # Users, verification_codes tables
+│   │   │   │   └── migrations/
+│   │   │   │       └── 0000_smooth_sharon_ventura.sql
+│   │   │   ├── routes/
+│   │   │   │   └── auth.routes.ts      # Auth route registration
+│   │   │   └── utils/
+│   │   │       └── phone.ts            # Phone validation (libphonenumber-js)
+│   │   ├── tests/
+│   │   │   ├── unit/                   # 8 unit test files
+│   │   │   └── integration/            # 9 integration test files
+│   │   ├── drizzle.config.ts
+│   │   ├── vitest.config.ts
+│   │   └── package.json
+│   └── web/              (@tripful/web) - Next.js 16 frontend
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── (auth)/             # Auth route group
+│       │   │   │   ├── login/page.tsx
+│       │   │   │   ├── verify/page.tsx
+│       │   │   │   └── complete-profile/page.tsx
+│       │   │   ├── (app)/              # Protected route group
+│       │   │   │   └── dashboard/page.tsx
+│       │   │   ├── providers/
+│       │   │   │   ├── auth-provider.tsx  # Auth context
+│       │   │   │   └── query-provider.tsx
+│       │   │   └── layout.tsx
+│       │   ├── components/ui/          # Radix UI + shadcn components
+│       │   │   ├── button.tsx
+│       │   │   ├── input.tsx
+│       │   │   ├── label.tsx
+│       │   │   ├── select.tsx
+│       │   │   └── form.tsx
+│       │   └── lib/
+│       │       └── api.ts              # API client wrapper
+│       ├── tests/e2e/
+│       │   └── auth-flow.spec.ts       # 4 E2E test scenarios
+│       ├── playwright.config.ts
+│       └── package.json
+├── shared/               (@tripful/shared) - Shared types & schemas
+│   ├── schemas/
+│   │   ├── auth.ts                 # Zod schemas for auth endpoints
+│   │   └── index.ts
 │   ├── types/
-│   ├── schemas/          # Zod schemas (shared validation)
-│   └── utils/
+│   │   ├── user.ts                 # User, AuthResponse interfaces
+│   │   └── index.ts                # ApiResponse, ErrorResponse types
+│   └── package.json
 ├── docs/
 │   └── 2026-02-01-tripful-mvp/
 │       ├── PRD.md
 │       ├── DESIGN.md
 │       └── ARCHITECTURE.md (this file)
-├── pnpm-workspace.yaml
-├── turbo.json
-├── package.json
-└── .env.example
+├── docker-compose.yml        # PostgreSQL 16 (port 5433)
+├── turbo.json                # Build pipeline configuration
+├── pnpm-workspace.yaml       # Workspace package list
+├── tsconfig.base.json        # Shared TypeScript config
+└── package.json              # Root workspace scripts
 ```
 
-**Note:** `shared` is at the root level for simplicity. No need to nest under `packages` for MVP.
+**Package Details:**
 
-### Environment Variables
+| Package | Version | Description |
+|---------|---------|-------------|
+| @tripful/api | private | Fastify backend with auth implementation |
+| @tripful/web | private | Next.js 16 frontend with Radix UI |
+| @tripful/shared | private | Shared Zod schemas and TypeScript types |
 
-**Backend (.env.api)**
+**Note:** All packages are private (not published). Shared package uses root-level structure (not nested under `packages/`).
+
+### Environment Variables (✅ Implemented)
+
+**Backend (apps/api/.env)**
+
+Validated via `/apps/api/src/config/env.ts` using Zod schemas:
 
 ```bash
-# Server
-NODE_ENV=development
-PORT=8000
+# Server Configuration
+NODE_ENV=development              # development | test | production
+PORT=8000                         # Default: 8000
+HOST=0.0.0.0                      # Default: 0.0.0.0
+LOG_LEVEL=info                    # fatal | error | warn | info | debug | trace
+
+# Database (Required)
+DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5433/tripful
+
+# JWT Authentication (Required in production, auto-generated in dev)
+JWT_SECRET=your-secret-key-min-32-characters-for-security
+
+# CORS
 FRONTEND_URL=http://localhost:3000
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/tripful
-
-# JWT
-JWT_SECRET=your-secret-key-change-in-production
 
 # SMS (Future - Twilio)
 # TWILIO_ACCOUNT_SID=
@@ -1505,33 +1880,116 @@ JWT_SECRET=your-secret-key-change-in-production
 # REDIS_URL=redis://localhost:6379
 ```
 
-**Frontend (.env.web)**
+**Frontend (apps/web/.env.local)**
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
-### Development Workflow
+**Docker PostgreSQL Configuration (docker-compose.yml):**
 
-1. **Start PostgreSQL**
-   ```bash
-   docker-compose up -d postgres
-   ```
-2. **Run migrations**
-   ```bash
-   cd apps/api
-   pnpm db:migrate
-   pnpm db:seed
-   ```
-3. **Start development servers**
-   ```bash
-   # Root directory
-   pnpm dev
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tripful
+      POSTGRES_PASSWORD: tripful_dev
+      POSTGRES_DB: tripful
+    ports:
+      - "5433:5432"  # External:Internal (avoids conflict with local PostgreSQL)
+```
 
-   # Or individually
-   pnpm --filter web dev
-   pnpm --filter api dev
-   ```
+### Development Workflow (✅ Implemented)
+
+**1. Start PostgreSQL Database**
+```bash
+pnpm db:up
+# Starts PostgreSQL 16 on localhost:5433
+```
+
+**2. Run Database Migrations**
+```bash
+cd apps/api
+pnpm db:generate      # Generate migrations from schema changes
+pnpm db:migrate       # Apply migrations to database
+```
+
+**3. Start Development Servers**
+
+**Option A: Start all services (recommended)**
+```bash
+# From root directory
+pnpm dev
+# Starts both API (8000) and Web (3000) in parallel via Turbo
+```
+
+**Option B: Start individual services**
+```bash
+# API only
+pnpm dev:api
+# or
+pnpm --filter @tripful/api dev
+
+# Web only
+pnpm dev:web
+# or
+pnpm --filter @tripful/web dev
+```
+
+**4. Run Tests**
+```bash
+# All tests (unit + integration + E2E)
+pnpm test
+
+# E2E tests only (Playwright)
+pnpm test:e2e
+
+# Watch mode (unit tests)
+pnpm test:watch
+
+# API tests only
+pnpm --filter @tripful/api test
+```
+
+**5. Database Management**
+```bash
+# Open Drizzle Studio (visual DB editor)
+cd apps/api
+pnpm db:studio
+
+# Stop database
+pnpm db:down
+```
+
+**6. Linting & Type Checking**
+```bash
+# Lint all packages
+pnpm lint
+
+# Auto-fix lint issues
+pnpm lint:fix
+
+# TypeScript type checking
+pnpm typecheck
+```
+
+**Available Scripts (Root `package.json`):**
+
+| Script | Description |
+|--------|-------------|
+| `pnpm dev` | Start all dev servers in parallel |
+| `pnpm dev:api` | Start API server only |
+| `pnpm dev:web` | Start web server only |
+| `pnpm build` | Build all packages for production |
+| `pnpm test` | Run all tests |
+| `pnpm test:e2e` | Run Playwright E2E tests |
+| `pnpm test:watch` | Watch mode for tests |
+| `pnpm lint` | Run ESLint on all packages |
+| `pnpm lint:fix` | Fix auto-fixable lint issues |
+| `pnpm typecheck` | Run TypeScript compiler checks |
+| `pnpm db:up` | Start PostgreSQL via Docker |
+| `pnpm db:down` | Stop PostgreSQL |
 
 ### Code Quality
 
@@ -1612,130 +2070,245 @@ pnpm typecheck  # TypeScript
 
 ## Testing Strategy
 
-### Unit Tests (Vitest)
+### ✅ Unit Tests (Vitest) - 8 Test Files Implemented
 
-**Backend Services**
+**Location:** `apps/api/tests/unit/`
 
-```typescript
-// tests/unit/services/permissions.service.test.ts
-import { describe, it, expect, beforeEach } from 'vitest'
-import { PermissionsService } from '@/services/permissions.service'
+**Configuration:** `apps/api/vitest.config.ts`
+- Environment: Node.js
+- Test timeout: 10 seconds
+- Parallel execution: 4 max concurrency
+- Pool: threads with isolation disabled
 
-describe('PermissionsService', () => {
-  let service: PermissionsService
+**Implemented Test Files:**
 
-  beforeEach(() => {
-    service = new PermissionsService()
-  })
+1. **`phone.test.ts`** - Phone number validation
+   - Validates E.164 format conversion
+   - Tests country code detection
+   - Validates test numbers (555) in dev/test
 
-  it('should allow organizer to add events', async () => {
-    const canAdd = await service.canAddEvent('organizer-id', 'trip-id')
-    expect(canAdd).toBe(true)
-  })
+2. **`auth.service.test.ts`** - Authentication service logic
+   - Code generation (6 digits)
+   - Code storage with expiry
+   - Code verification logic
+   - User creation and retrieval
+   - JWT token generation
 
-  it('should prevent non-going member from adding events', async () => {
-    const canAdd = await service.canAddEvent('member-id', 'trip-id')
-    expect(canAdd).toBe(false)
-  })
-})
+3. **`schema.test.ts`** - Zod schema validation
+   - `requestCodeSchema` validation
+   - `verifyCodeSchema` validation
+   - `completeProfileSchema` validation
+   - Error message testing
+
+4. **`jwt-config.test.ts`** - JWT configuration
+   - Token signing
+   - Token verification
+   - Expiry validation
+   - Payload structure
+
+5. **`sms.service.test.ts`** - SMS service mocking
+   - Mock SMS logging
+   - Phone number formatting
+   - Code delivery simulation
+
+6. **`env.test.ts`** - Environment variable validation
+7. **`database.test.ts`** - Database connection testing
+8. **`rate-limit.test.ts`** - Rate limiting logic
+
+**Running Tests:**
+```bash
+cd apps/api
+pnpm test           # Run all tests
+pnpm test:watch     # Watch mode
 ```
 
-**Frontend Hooks**
+---
 
-```typescript
-// tests/unit/hooks/useTripEvents.test.ts
-import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useTripEvents } from '@/hooks/useTripEvents'
+### ✅ Integration Tests (Vitest) - 9 Test Files Implemented
 
-describe('useTripEvents', () => {
-  it('should fetch trip events', async () => {
-    const queryClient = new QueryClient()
-    const wrapper = ({ children }) => (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    )
+**Location:** `apps/api/tests/integration/`
 
-    const { result } = renderHook(() => useTripEvents('trip-id'), { wrapper })
+**Implemented Test Files:**
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(3)
-  })
-})
+1. **`health.test.ts`** - Health check endpoint
+   - GET /health returns 200
+
+2. **`rate-limit.middleware.test.ts`** - Rate limiting
+   - 5 requests per phone per hour
+   - Rate limit reset after timeout
+   - Custom error responses
+
+3. **`auth.request-code.test.ts`** - Request verification code
+   - Valid phone number accepts request
+   - Invalid phone number rejects
+   - Code stored in database
+   - 5-minute expiry set correctly
+   - Rate limiting enforced
+
+4. **`auth.verify-code.test.ts`** - Verify code flow
+   - Valid code creates/fetches user
+   - Invalid code returns error
+   - Expired code returns error
+   - JWT token set in cookie
+   - `requiresProfile` flag correct
+
+5. **`auth.complete-profile.test.ts`** - Profile completion
+   - Updates displayName and timezone
+   - Validates input (3-50 chars)
+   - Returns new JWT with updated name
+   - Requires authentication
+
+6. **`auth.me-logout.test.ts`** - Get user and logout
+   - GET /api/auth/me returns current user
+   - POST /api/auth/logout clears cookie
+   - Requires valid JWT
+
+7. **`auth.middleware.test.ts`** - Auth middleware
+   - `authenticate()` validates JWT
+   - `requireCompleteProfile()` checks displayName
+   - Cookie and header token extraction
+   - 401/403 error responses
+
+8. **`database.test.ts`** - Database operations
+   - Connection pooling
+   - Query execution
+   - Transaction handling
+
+9. **`error.middleware.test.ts`** - Error handling
+   - Validation errors (400)
+   - Unauthorized errors (401)
+   - Rate limit errors (429)
+   - Server errors (500)
+
+**Running Tests:**
+```bash
+cd apps/api
+pnpm test           # Includes integration tests
 ```
 
-### Integration Tests (Vitest + Supertest)
+**All 17 tests (unit + integration) passing.**
 
+---
+
+### ✅ E2E Tests (Playwright) - 4 Scenarios Implemented
+
+**Location:** `apps/web/tests/e2e/auth-flow.spec.ts`
+
+**Configuration:** `apps/web/playwright.config.ts`
+- Base URL: http://localhost:3000
+- Timeout: 30 seconds per test
+- Sequential execution (no parallelism for DB isolation)
+- Auto-start both API (8000) and web (3000) servers
+- HTML reporter with screenshots on failure
+
+**Implemented Test Scenarios:**
+
+#### Test 1: Complete Authentication Journey
 ```typescript
-// tests/integration/trips.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import request from 'supertest'
-import { app } from '@/server'
+test('complete authentication flow from login to dashboard', async ({ page }) => {
+  const phoneNumber = `+1555${Date.now()}`
 
-describe('Trips API', () => {
-  let authToken: string
-
-  beforeAll(async () => {
-    // Setup test database and authenticate
-    const res = await request(app.server)
-      .post('/api/auth/verify-code')
-      .send({ phoneNumber: '+15551234567', code: '123456' })
-
-    authToken = res.body.token
-  })
-
-  it('should create a new trip', async () => {
-    const res = await request(app.server)
-      .post('/api/trips')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        name: 'Test Trip',
-        destination: 'Miami',
-        preferredTimezone: 'America/New_York',
-      })
-
-    expect(res.status).toBe(201)
-    expect(res.body.data.trip).toHaveProperty('id')
-    expect(res.body.data.trip.name).toBe('Test Trip')
-  })
-})
-```
-
-### E2E Tests (Playwright)
-
-```typescript
-// tests/e2e/trip-creation.spec.ts
-import { test, expect } from '@playwright/test'
-
-test('user can create a trip and invite members', async ({ page }) => {
-  // Login
+  // 1. Login page - enter phone number
   await page.goto('/login')
-  await page.fill('[name="phoneNumber"]', '+15551234567')
+  await page.fill('input[type="tel"]', phoneNumber.slice(2))
   await page.click('button[type="submit"]')
 
-  // Enter verification code (mocked in test environment)
-  await page.fill('[name="code"]', '123456')
+  // 2. Verify page - enter code
+  await page.waitForURL('/verify*')
+  await page.fill('input[maxlength="6"]', '123456')
   await page.click('button:has-text("Verify")')
 
-  // Create trip
-  await page.goto('/create-trip')
-  await page.fill('[name="name"]', 'Bachelor Party Weekend')
-  await page.fill('[name="destination"]', 'Miami Beach, FL')
-  await page.click('button:has-text("Create Trip")')
+  // 3. Complete profile
+  await page.waitForURL('/complete-profile')
+  await page.fill('input[name="displayName"]', 'Test User')
+  await page.click('button[type="submit"]')
 
-  // Verify trip was created
-  await expect(page).toHaveURL(/\/trips\/[a-f0-9-]+/)
-  await expect(page.locator('h1')).toContainText('Bachelor Party Weekend')
+  // 4. Dashboard - verify logged in
+  await page.waitForURL('/dashboard')
+  await expect(page.locator('text=Test User')).toBeVisible()
 
-  // Invite members
-  await page.click('button:has-text("Invite Members")')
-  await page.fill('[name="phoneNumbers"]', '+15559876543')
-  await page.click('button:has-text("Send Invitations")')
-
-  await expect(page.locator('.toast')).toContainText('Invitations sent')
+  // 5. Verify auth cookie set
+  const cookies = await page.context().cookies()
+  const authCookie = cookies.find(c => c.name === 'auth_token')
+  expect(authCookie).toBeDefined()
+  expect(authCookie?.httpOnly).toBe(true)
+  expect(authCookie?.secure).toBe(true)  // In production
 })
 ```
+
+#### Test 2: Logout Flow
+```typescript
+test('logout clears cookie and redirects to login', async ({ page }) => {
+  // Complete auth flow first
+  // ...
+
+  // Logout
+  await page.click('button:has-text("Logout")')
+  await page.waitForURL('/login')
+
+  // Verify cookie cleared
+  const cookies = await page.context().cookies()
+  const authCookie = cookies.find(c => c.name === 'auth_token')
+  expect(authCookie).toBeUndefined()
+
+  // Verify cannot access protected route
+  await page.goto('/dashboard')
+  await page.waitForURL('/login')
+})
+```
+
+#### Test 3: Protected Route Access
+```typescript
+test('accessing protected route without auth redirects to login', async ({ page }) => {
+  await page.goto('/dashboard')
+  await page.waitForURL('/login')
+})
+```
+
+#### Test 4: Existing User Path
+```typescript
+test('existing user skips profile completion', async ({ page }) => {
+  // Create user via API
+  const phoneNumber = `+1555${Date.now()}`
+  await fetch('http://localhost:8000/api/auth/request-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber }),
+  })
+  await fetch('http://localhost:8000/api/auth/verify-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber, code: '123456' }),
+  })
+
+  // Complete profile via API
+  // ...
+
+  // Login again
+  await page.goto('/login')
+  await page.fill('input[type="tel"]', phoneNumber.slice(2))
+  await page.click('button[type="submit"]')
+  await page.fill('input[maxlength="6"]', '123456')
+  await page.click('button:has-text("Verify")')
+
+  // Should go directly to dashboard (skip profile)
+  await page.waitForURL('/dashboard')
+})
+```
+
+**Running E2E Tests:**
+```bash
+# From root
+pnpm test:e2e
+
+# From web directory
+cd apps/web
+pnpm test:e2e              # Headless mode
+pnpm test:e2e:ui           # Playwright UI
+pnpm test:e2e:headed       # Headed browser mode
+```
+
+**All 4 E2E tests passing.**
 
 ### Test Coverage Goals & Strategy
 
@@ -2028,22 +2601,33 @@ fastify.register(compress, {
 | ESLint         | 9.x     | Flat config                      |
 | shadcn/ui      | Latest  | Copy-paste components (Radix UI) |
 
-### Development Timeline Estimate (Feature-Based)
+### Development Timeline
 
-**Phase 1: Project Setup & Infrastructure (Week 1)**
+**Phase 1: Project Setup & Infrastructure** ✅ COMPLETE
+**Git Commit:** `faeb16c - Phase 1: Monorepo Setup with pnpm + Turbo + TypeScript`
 
-* Monorepo setup (pnpm workspaces, Turbo)
-* Backend: Fastify server, Drizzle ORM, PostgreSQL connection
-* Frontend: Next.js App Router, Tailwind CSS, shadcn/ui setup
-* Shared: Zod schemas, TypeScript configs, ESLint 9 flat config
-* Docker Compose for PostgreSQL
+* ✅ Monorepo setup (pnpm workspaces, Turbo)
+* ✅ Backend: Fastify server, Drizzle ORM, PostgreSQL connection
+* ✅ Frontend: Next.js App Router, Tailwind CSS, shadcn/ui setup
+* ✅ Shared: Zod schemas, TypeScript configs, ESLint 9 flat config
+* ✅ Docker Compose for PostgreSQL
 
-**Phase 2: Authentication Feature (Week 1-2)**
+**Phase 2: Authentication Feature** ✅ COMPLETE
+**Git Commit:** `1fe5e5e - Phase 2: SMS Authentication with E2E Testing`
 
-* Backend: Phone verification endpoints, JWT generation, mock SMS service
-* Frontend: Login/verify pages, auth context, protected routes
-* Shared: Auth schemas, JWT types
-* E2E test: User can log in with phone number
+* ✅ Backend: Phone verification endpoints, JWT generation, mock SMS service
+* ✅ Backend: Database-backed verification codes (5-min expiry)
+* ✅ Backend: Rate limiting (5 SMS requests/hour per phone)
+* ✅ Backend: Auth middleware (authenticate + requireCompleteProfile)
+* ✅ Backend: Profile completion endpoint
+* ✅ Backend: 17 tests (8 unit, 9 integration) - all passing
+* ✅ Frontend: Login/verify pages, auth context, protected routes
+* ✅ Frontend: Complete profile page with timezone selection
+* ✅ Frontend: Dashboard with logout functionality
+* ✅ Frontend: AuthProvider with TanStack Query
+* ✅ Shared: Auth schemas, JWT types, User types
+* ✅ E2E tests: 4 scenarios covering complete auth flow - all passing
+* ✅ Database: users and verification_codes tables with migration
 
 **Phase 3: Trip Management (Week 2-3)**
 
@@ -2124,11 +2708,32 @@ fastify.register(compress, {
 
 ***
 
-**Document Version**: 1.1
-**Last Updated**: 2026-02-01
-**Status**: MVP Architecture - Core Flows Implemented
-**Key Updates**:
+## Document Revision History
+
+**Document Version**: 2.0
+**Last Updated**: 2026-02-04
+**Status**: Phase 1 & 2 Complete - Production Authentication Implementation
+
+**Version 2.0 Updates (2026-02-04)**:
+- ✅ Documented Phase 1 completion: Monorepo setup with pnpm + Turbo + TypeScript
+- ✅ Documented Phase 2 completion: SMS authentication with E2E testing
+- ✅ Added actual codebase structure with file paths
+- ✅ Documented 17 backend tests (8 unit, 9 integration) - all passing
+- ✅ Documented 4 E2E tests covering complete auth flow - all passing
+- ✅ Added actual API endpoint documentation with request/response examples
+- ✅ Documented JWT implementation with httpOnly cookie storage
+- ✅ Added auth middleware implementation details
+- ✅ Updated environment variables with Zod validation
+- ✅ Added development workflow scripts and commands
+- ✅ Marked Phase 3-8 as planned (not yet implemented)
+
+**Version 1.1 Updates (2026-02-01)**:
 - Renamed `rsvps` table to `members` with proper ID primary key
 - Changed verification codes from in-memory to database-backed storage
 - Added comprehensive schema definitions for all tables
 - Noted that core flows have been implemented in demo
+
+**Git Commits Referenced**:
+- `1fe5e5e` - Phase 2: SMS Authentication with E2E Testing
+- `faeb16c` - Phase 1: Monorepo Setup with pnpm + Turbo + TypeScript
+- `2c8a3eb` - MVP Demo: Tripful Core Features Implementation
