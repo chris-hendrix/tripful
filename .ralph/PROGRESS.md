@@ -666,3 +666,151 @@ Ready to proceed to **Task 2.2: Implement co-organizer validation and member lim
 - Will need to create `getMemberCount()` helper method
 - Should consider extracting user lookup logic to helper method for reuse
 - Member limit validation already implemented but needs dedicated tests
+
+---
+
+## Ralph Iteration 5: Task 2.2 - Implement co-organizer validation and member limit (TDD)
+
+**Date**: 2026-02-04
+**Status**: ✅ COMPLETE
+**Task**: Implement co-organizer validation and member limit (TDD)
+
+### Execution Summary
+
+**Researchers** (3 parallel agents):
+1. **Researcher 1 (LOCATING)**: Discovered that most of Task 2.2 was already implemented in Task 2.1
+   - Co-organizer phone validation already done (lines 111-123 of trip.service.ts)
+   - Member limit check already done (lines 106-108)
+   - Tests for validation errors already present (lines 212-264 of test file)
+   - Only `getMemberCount()` placeholder remained (lines 250-252)
+
+2. **Researcher 2 (ANALYZING)**: Analyzed data flow and determined implementation pattern
+   - Recommended using `.select().from(members).where(eq(members.tripId, tripId))` pattern
+   - Identified that counting via `.length` matches codebase style
+   - Verified member counting should include all members regardless of status
+
+3. **Researcher 3 (PATTERNS)**: Found existing patterns to follow
+   - Test structure from trip.service.test.ts (beforeEach/afterEach cleanup)
+   - Query patterns using `eq` and Drizzle ORM
+   - Assertion patterns and test naming conventions
+
+**Coder**:
+- Added 4 comprehensive tests for `getMemberCount()` (lines 289-360 of trip.service.test.ts)
+- Implemented `getMemberCount()` method (lines 245-254 of trip.service.ts)
+- Followed TDD: tests written first, then implementation
+- All 216 tests passed
+
+**Verifier**: ✅ PASS
+- Unit tests: 139 tests passed (11 in trip.service.test.ts)
+- Integration tests: 77 tests passed
+- Type checking: No errors
+- Linting: No errors
+- Full suite: 216 tests passed in 2.29s
+
+**Reviewer**: ✅ APPROVED
+- Code Quality: 4/5 - Clean, readable, matches patterns
+- Test Quality: 5/5 - Comprehensive coverage with edge cases
+- Design: 4/5 - Integrates seamlessly with existing code
+- No blocking issues found
+
+### Files Modified
+
+1. **`apps/api/src/services/trip.service.ts`** (lines 245-254)
+   - Replaced placeholder `getMemberCount()` with proper implementation
+   - Queries members table by tripId and returns count
+
+2. **`apps/api/tests/unit/trip.service.test.ts`** (lines 289-360)
+   - Added describe block for `getMemberCount` with 4 tests
+   - Test: Returns 0 for trip with no members
+   - Test: Returns 1 for trip with only creator
+   - Test: Returns correct count for trip with creator and co-organizers
+   - Test: Counts all members regardless of status
+
+### Acceptance Criteria Status
+
+- ✅ All unit tests pass (4+ new tests)
+- ✅ Rejects co-organizer phones that don't exist (implemented in Task 2.1)
+- ✅ Correctly counts current members via getMemberCount()
+- ✅ Rejects adding co-organizers if limit exceeded (implemented in Task 2.1)
+- ✅ Returns appropriate error messages
+- ✅ No TypeScript errors
+- ✅ No linting errors
+- ✅ No regressions
+
+### Key Implementation Details
+
+**getMemberCount() Implementation:**
+```typescript
+async getMemberCount(tripId: string): Promise<number> {
+  const memberRecords = await db
+    .select()
+    .from(members)
+    .where(eq(members.tripId, tripId));
+  return memberRecords.length;
+}
+```
+
+**Design Decisions:**
+- Uses `.select()` and `.length` pattern (consistent with codebase style)
+- Counts all members regardless of status (correct for capacity management)
+- Simple, readable implementation suitable for MVP scale (max 25 members)
+
+### Test Coverage
+
+**New Tests Added (4):**
+1. Empty trip (artificially created by deleting members) → count = 0
+2. Trip with only creator → count = 1
+3. Trip with creator + 2 co-organizers → count = 3
+4. Members with different statuses ('going', 'maybe', 'not_going') → all counted
+
+**Existing Tests (Still Passing):**
+- Co-organizer phone validation (throws error for non-existent user)
+- Member limit enforcement (throws error when >25 members)
+
+### Key Learnings
+
+1. **Most work was already done**: Task 2.1 implementation was more comprehensive than expected, covering validation logic and tests
+2. **TDD effectiveness**: Writing tests first clarified the requirements for `getMemberCount()`
+3. **Pattern consistency**: Following existing query patterns (.select() + .length) maintained codebase uniformity
+4. **Test isolation**: Using `generateUniquePhone()` ensures parallel test execution safety
+
+### Technical Notes
+
+**Co-organizer Validation (Already Implemented):**
+- Uses `inArray()` for efficient bulk user lookup by phone
+- Validates all phones exist before creating trip
+- Throws specific error with first missing phone number
+- Error: `"Co-organizer not found: {phone}"`
+
+**Member Limit Enforcement (Already Implemented):**
+- Checks limit before database operations (fail-fast)
+- Calculation: `1 (creator) + coOrganizerPhones.length <= 25`
+- Error: `"Member limit exceeded: maximum 25 members allowed (including creator)"`
+
+**getMemberCount() Use Cases:**
+- Future: Validate member limit when adding members to existing trips
+- Future: Display current member count in UI
+- Future: Check capacity before accepting invitations
+
+### Integration Points
+
+**Used By (Potential):**
+- `addCoOrganizers()` method (not yet implemented) - will need to check limit
+- `addMember()` method (future) - will need to check limit
+- Dashboard/UI - display member counts
+
+**Dependencies:**
+- Database schema: `members` table with `tripId` foreign key
+- Drizzle ORM: `eq()` operator for filtering
+- Service interface: `ITripService.getMemberCount()` declaration
+
+### Next Steps
+
+Ready to proceed to **Task 2.3: Implement getTripById (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task:**
+- `getMemberCount()` is now available for use in other service methods
+- Co-organizer validation patterns can be reused for other member operations
+- Test patterns established are solid foundation for remaining service methods

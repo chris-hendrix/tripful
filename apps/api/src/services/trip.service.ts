@@ -243,12 +243,16 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Gets the count of members for a trip (placeholder implementation)
-   * @param _tripId - The UUID of the trip
+   * Gets the count of members for a trip
+   * @param tripId - The UUID of the trip
    * @returns Promise that resolves to the member count
    */
-  async getMemberCount(_tripId: string): Promise<number> {
-    return 0;
+  async getMemberCount(tripId: string): Promise<number> {
+    const memberRecords = await db
+      .select()
+      .from(members)
+      .where(eq(members.tripId, tripId));
+    return memberRecords.length;
   }
 }
 

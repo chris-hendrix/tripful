@@ -88,7 +88,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 2.2: Implement co-organizer validation and member limit (TDD)
+- [x] Task 2.2: Implement co-organizer validation and member limit (TDD)
   - Write failing tests in `trip.service.test.ts`:
     - Test: Rejects co-organizer phone that doesn't exist in users table
     - Test: Correctly counts current members via getMemberCount()

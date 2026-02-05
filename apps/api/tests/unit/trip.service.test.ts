@@ -284,4 +284,78 @@ describe('trip.service', () => {
       expect(trip.allowMembersToAddEvents).toBe(true);
     });
   });
+
+  describe('getMemberCount', () => {
+    it('should return 0 for trip with no members', async () => {
+      // Create a trip (which adds creator as member)
+      const tripData: CreateTripInput = {
+        name: 'Test Trip',
+        destination: 'Test Destination',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Delete all members from the trip
+      await db.delete(members).where(eq(members.tripId, trip.id));
+
+      // Verify count is 0
+      const count = await tripService.getMemberCount(trip.id);
+      expect(count).toBe(0);
+    });
+
+    it('should return 1 for trip with only creator', async () => {
+      const tripData: CreateTripInput = {
+        name: 'Solo Trip',
+        destination: 'Solo Destination',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Verify count is 1 (creator only)
+      const count = await tripService.getMemberCount(trip.id);
+      expect(count).toBe(1);
+    });
+
+    it('should return correct count for trip with creator and co-organizers', async () => {
+      const tripData: CreateTripInput = {
+        name: 'Group Trip',
+        destination: 'Group Destination',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone, coOrganizer2Phone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Verify count is 3 (creator + 2 co-organizers)
+      const count = await tripService.getMemberCount(trip.id);
+      expect(count).toBe(3);
+    });
+
+    it('should count all members regardless of status', async () => {
+      const tripData: CreateTripInput = {
+        name: 'Status Test Trip',
+        destination: 'Status Test',
+        timezone: 'UTC',
+        allowMembersToAddEvents: true,
+        coOrganizerPhones: [coOrganizerPhone],
+      };
+
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Update co-organizer status to 'maybe'
+      await db
+        .update(members)
+        .set({ status: 'maybe' })
+        .where(eq(members.userId, coOrganizerUserId));
+
+      // Verify count is still 2 (status doesn't matter)
+      const count = await tripService.getMemberCount(trip.id);
+      expect(count).toBe(2);
+    });
+  });
 });
