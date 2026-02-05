@@ -1,0 +1,35 @@
+# GitGuardian configuration
+# Ignore test files and directories that contain test credentials
+
+version: 2
+
+paths-ignore:
+  # Test directories
+  - "**/tests/**"
+  - "**/test/**"
+  - "**/__tests__/**"
+  - "**/*.test.ts"
+  - "**/*.test.js"
+  - "**/*.spec.ts"
+  - "**/*.spec.js"
+
+  # Test setup scripts
+  - "**/scripts/setup-test-db.sh"
+  - "**/scripts/*-test-*.sh"
+
+  # CI/CD files with test credentials
+  - ".github/workflows/ci.yml"
+  - ".github/workflows/test*.yml"
+
+  # Example and fixture files
+  - "**/*.example"
+  - "**/*.fixture.*"
+  - "**/fixtures/**"
+  - "**/examples/**"
+
+# Allow specific patterns that are safe in test contexts
+matches-ignore:
+  - name: Test database credentials
+    match: tripful123
+  - name: Test JWT secrets
+    match: test-jwt-secret-minimum-32-characters-long-for-testing-purposes-only
