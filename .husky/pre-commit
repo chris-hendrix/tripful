@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run GitGuardian secret scan using official Docker image
+# https://docs.gitguardian.com/ggshield-docs/integrations/git-hooks/pre-commit
+echo "🔍 Scanning for secrets with GitGuardian..."
+
+if [ -z "$GITGUARDIAN_API_KEY" ]; then
+  echo "⚠️  GITGUARDIAN_API_KEY not set - skipping secret scan"
+  echo "   To enable: Get free API key at https://dashboard.gitguardian.com"
+  echo "   Then: export GITGUARDIAN_API_KEY=your-key-here"
+  exit 0
+fi
+
+if command -v docker >/dev/null 2>&1; then
+  docker run --rm \
+    -e GITGUARDIAN_API_KEY \
+    -v "$(pwd):/data" \
+    gitguardian/ggshield:latest \
+    ggshield secret scan pre-commit --exit-zero
+
+  echo "✅ Secret scan complete"
+else
+  echo "⚠️  Docker not found - skipping secret scan"
+  echo "   Docker is required for this project (database + security scanning)"
+fi
