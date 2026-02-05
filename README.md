@@ -156,7 +156,35 @@ docker compose exec postgres pg_isready -U tripful
 
 You should see: `localhost:5432 - accepting connections`
 
-### 5. Verify Installation
+### 5. Set Up Pre-commit Hooks (Automatic)
+
+Pre-commit hooks are already configured with Husky! They will automatically:
+- **Scan for secrets**: Uses GitGuardian ggshield via Docker to detect hardcoded credentials
+- **Prevent sensitive data commits**: Blocks commits if secrets are found
+
+**No setup required** - the hooks are automatically installed when you run `pnpm install`.
+
+**Requirements**:
+- Docker must be installed and running (already needed for the database)
+- If Docker is not available, the hook will skip with a warning
+
+**Manual scan** (test the hook):
+```bash
+# Scan staged changes
+docker run --rm -v "$(pwd):/data" gitguardian/ggshield:latest ggshield secret scan pre-commit
+
+# Scan entire repository
+docker run --rm -v "$(pwd):/data" gitguardian/ggshield:latest ggshield secret scan repo .
+```
+
+**Optional: GitGuardian API key** (for dashboard features):
+```bash
+# Sign up at dashboard.gitguardian.com to get a key
+export GITGUARDIAN_API_KEY="your-api-key-here"
+# Add to ~/.bashrc or ~/.zshrc to persist
+```
+
+### 6. Verify Installation
 
 Run a comprehensive test to verify everything is set up correctly:
 

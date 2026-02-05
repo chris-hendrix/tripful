@@ -36,3 +36,6 @@ export interface ErrorResponse {
   message: string;
   details?: Record<string, unknown>;
 }
+
+// Re-export user-related types
+export type { User, AuthResponse } from './user';

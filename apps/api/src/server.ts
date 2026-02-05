@@ -1,12 +1,17 @@
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+// Ensure JWT secret exists BEFORE loading env (which validates it)
+import { ensureJWTSecret } from './config/jwt.js';
+ensureJWTSecret();
 import { env } from './config/env.js';
 import { testConnection, closeDatabase } from './config/database.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { healthRoutes } from './routes/health.routes.js';
+import { authRoutes } from './routes/auth.routes.js';
 
 const fastify: FastifyInstance = Fastify({
   logger: {
@@ -29,6 +34,9 @@ await fastify.register(cors, {
   maxAge: 86400, // 24 hours
 });
 
+// Register cookie plugin (must be before JWT)
+await fastify.register(cookie);
+
 // Register JWT plugin
 await fastify.register(jwt, {
   secret: env.JWT_SECRET,
@@ -38,6 +46,10 @@ await fastify.register(jwt, {
   },
   verify: {
     algorithms: ['HS256'],
+  },
+  cookie: {
+    cookieName: 'auth_token',
+    signed: false,
   },
 });
 
@@ -56,6 +68,7 @@ fastify.setErrorHandler(errorHandler);
 
 // Register routes
 await fastify.register(healthRoutes, { prefix: '/api/health' });
+await fastify.register(authRoutes, { prefix: '/api/auth' });
 
 // Graceful shutdown
 const signals = ['SIGINT', 'SIGTERM'] as const;
