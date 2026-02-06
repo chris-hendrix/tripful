@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
-import { users, members } from "@/db/schema/index.js";
+import { users, members, trips } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
@@ -750,6 +750,323 @@ describe("POST /api/trips", () => {
           message: "Member limit exceeded: maximum 25 members allowed (including creator)",
         },
       });
+    });
+  });
+});
+
+describe("GET /api/trips", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should return 200 with empty array when user has no trips", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toEqual({
+        success: true,
+        trips: [],
+      });
+    });
+
+    it("should return 200 with trips array when user has trips", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Summer Adventure",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          startDate: "2026-06-01",
+          endDate: "2026-06-10",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.trips).toHaveLength(1);
+      expect(body.trips[0]).toMatchObject({
+        id: trip.id,
+        name: "Summer Adventure",
+        destination: "Paris, France",
+        startDate: "2026-06-01",
+        endDate: "2026-06-10",
+        isOrganizer: true,
+        rsvpStatus: "going",
+        memberCount: 1,
+        eventCount: 0,
+      });
+      expect(body.trips[0]).toHaveProperty("coverImageUrl");
+      expect(body.trips[0]).toHaveProperty("organizerInfo");
+      expect(Array.isArray(body.trips[0].organizerInfo)).toBe(true);
+    });
+
+    it("should return 200 with multiple trips ordered by startDate", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trips with different start dates
+      const trip1Result = await db
+        .insert(trips)
+        .values({
+          name: "Trip 1 - Later",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          startDate: "2026-08-01",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip2Result = await db
+        .insert(trips)
+        .values({
+          name: "Trip 2 - Earlier",
+          destination: "London, UK",
+          preferredTimezone: "Europe/London",
+          startDate: "2026-06-01",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      // Add user as member to both trips
+      await db.insert(members).values([
+        {
+          tripId: trip1Result[0].id,
+          userId: testUser.id,
+          status: "going",
+        },
+        {
+          tripId: trip2Result[0].id,
+          userId: testUser.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.trips).toHaveLength(2);
+      // Should be ordered by startDate, so earlier trip first
+      expect(body.trips[0].name).toBe("Trip 2 - Earlier");
+      expect(body.trips[1].name).toBe("Trip 1 - Later");
+    });
+
+    it("should not return cancelled trips", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create active trip
+      const activeTripResult = await db
+        .insert(trips)
+        .values({
+          name: "Active Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+          cancelled: false,
+        })
+        .returning();
+
+      // Create cancelled trip
+      const cancelledTripResult = await db
+        .insert(trips)
+        .values({
+          name: "Cancelled Trip",
+          destination: "Berlin, Germany",
+          preferredTimezone: "Europe/Berlin",
+          createdBy: testUser.id,
+          cancelled: true,
+        })
+        .returning();
+
+      // Add user as member to both trips
+      await db.insert(members).values([
+        {
+          tripId: activeTripResult[0].id,
+          userId: testUser.id,
+          status: "going",
+        },
+        {
+          tripId: cancelledTripResult[0].id,
+          userId: testUser.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.trips).toHaveLength(1);
+      expect(body.trips[0].name).toBe("Active Trip");
+    });
+  });
+
+  describe("Unauthorized Cases (401)", () => {
+    it("should return 401 when no token provided", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body).toEqual({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired token",
+        },
+      });
+    });
+
+    it("should return 401 when invalid token provided", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: "invalid.token.here",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
     });
   });
 });

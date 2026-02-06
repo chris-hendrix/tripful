@@ -89,4 +89,39 @@ export const tripController = {
       });
     }
   },
+
+  /**
+   * Get user trips endpoint
+   * Returns trip summaries for the authenticated user's dashboard
+   *
+   * @route GET /api/trips
+   * @middleware authenticate
+   * @param request - Fastify request
+   * @param reply - Fastify reply object
+   * @returns Success response with user's trips
+   */
+  async getUserTrips(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = request.user.sub;
+      const trips = await tripService.getUserTrips(userId);
+
+      return reply.status(200).send({
+        success: true,
+        trips,
+      });
+    } catch (error) {
+      request.log.error(
+        { error, userId: request.user.sub },
+        "Failed to get user trips",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get trips",
+        },
+      });
+    }
+  },
 };

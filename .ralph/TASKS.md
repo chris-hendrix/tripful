@@ -259,7 +259,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.2: Add GET /trips endpoint (TDD)
+- [x] Task 3.2: Add GET /trips endpoint (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: GET /trips returns user's trips with correct structure
     - Test: GET /trips returns empty array when user has no trips

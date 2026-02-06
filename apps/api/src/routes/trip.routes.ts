@@ -10,6 +10,19 @@ import { authenticate, requireCompleteProfile } from "@/middleware/auth.middlewa
  */
 export async function tripRoutes(fastify: FastifyInstance) {
   /**
+   * GET /
+   * Get user's trips
+   * Requires authentication only (not complete profile)
+   */
+  fastify.get(
+    "/",
+    {
+      preHandler: authenticate,
+    },
+    tripController.getUserTrips,
+  );
+
+  /**
    * POST /
    * Create a new trip
    * Requires authentication and complete profile

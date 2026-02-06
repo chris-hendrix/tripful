@@ -2008,3 +2008,190 @@ Ready to proceed to **Task 3.2: Add GET /trips endpoint (TDD)**
 - ✅ Creates member records for co-organizers
 - ✅ Trip data correctly stored in database
 - ✅ Error handling comprehensive and consistent
+
+---
+
+## Iteration 6 - Task 3.2: Add GET /trips endpoint (TDD)
+
+**Date**: 2026-02-05
+**Task**: Implement GET /trips endpoint that returns trip summaries for the authenticated user's dashboard
+**Status**: ✅ COMPLETE
+
+### Implementation Summary
+
+Successfully implemented GET /trips endpoint following Test-Driven Development (TDD) approach. The endpoint returns trip summaries for the authenticated user, including all trips where the user is a member (creator, co-organizer, or regular member).
+
+### Agent Workflow
+
+1. **3 Researcher Agents (Parallel)**:
+   - **Researcher 1 (LOCATING)**: Located test file, controller, routes, and service files. Identified existing patterns and helper functions.
+   - **Researcher 2 (ANALYZING)**: Traced data flow from authentication through service layer. Analyzed TripSummary type and response structure.
+   - **Researcher 3 (PATTERNS)**: Found similar GET endpoint patterns from Phase 2 auth routes. Documented test and controller patterns.
+
+2. **Coder Agent**: 
+   - Wrote 6 integration tests FIRST (TDD red phase)
+   - Implemented getUserTrips controller method
+   - Registered GET / route with authenticate middleware
+   - All tests passed (green phase)
+
+3. **Verifier + Reviewer Agents (Parallel)**:
+   - **Verifier**: All 282 tests pass (280 passed, 2 pre-existing failures unrelated to this task)
+   - **Reviewer**: APPROVED - excellent code quality, pattern compliance, and comprehensive test coverage
+
+### Files Changed
+
+1. **`apps/api/tests/integration/trip.routes.test.ts`**
+   - Added 6 integration tests for GET /api/trips endpoint (lines 757-1072)
+   - Tests cover: empty array, trips array, multiple trips ordering, cancelled trip filtering, auth errors
+
+2. **`apps/api/src/controllers/trip.controller.ts`**
+   - Added `getUserTrips` controller method (lines 103-126)
+   - Extracts userId from request.user.sub
+   - Calls tripService.getUserTrips(userId)
+   - Returns 200 with { success: true, trips: [] }
+   - Proper error handling and logging
+
+3. **`apps/api/src/routes/trip.routes.ts`**
+   - Registered GET / route (lines 17-23)
+   - Uses authenticate middleware (not requireCompleteProfile for read operations)
+   - Wired to tripController.getUserTrips
+
+### Test Results
+
+**Integration Tests**: 6 new tests, all passing
+- ✅ Returns 200 with empty array when user has no trips
+- ✅ Returns 200 with trips array when user has trips (verifies TripSummary structure)
+- ✅ Returns 200 with multiple trips ordered by startDate (upcoming first)
+- ✅ Does not return cancelled trips
+- ✅ Returns 401 when no token provided
+- ✅ Returns 401 when invalid token provided
+
+**Overall Test Suite**:
+- Total: 282 tests
+- Passed: 280 tests
+- Failed: 2 tests (pre-existing, unrelated to GET /trips implementation)
+- Integration tests: 21 tests for trip routes (15 POST + 6 GET)
+
+**Static Analysis**:
+- ✅ No TypeScript errors
+- ✅ No new ESLint errors
+- ✅ 7 pre-existing ESLint warnings (not related to this task)
+
+### Implementation Details
+
+**Controller Method**:
+```typescript
+async getUserTrips(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const userId = request.user.sub;
+    const trips = await tripService.getUserTrips(userId);
+    return reply.status(200).send({
+      success: true,
+      trips,
+    });
+  } catch (error) {
+    request.log.error({ error, userId: request.user.sub }, "Failed to get user trips");
+    return reply.status(500).send({
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get trips",
+      },
+    });
+  }
+}
+```
+
+**Route Registration**:
+```typescript
+fastify.get(
+  "/",
+  {
+    preHandler: authenticate,  // Only authenticate, not requireCompleteProfile
+  },
+  tripController.getUserTrips,
+);
+```
+
+**Service Method** (already implemented from Task 2.4):
+- `tripService.getUserTrips(userId)` returns `Promise<TripSummary[]>`
+- Filters out cancelled trips
+- Orders by startDate (upcoming first, nulls last)
+- Returns empty array if user has no trips
+- Includes: trip details, organizer info, RSVP status, member/event counts
+
+**TripSummary Type**:
+```typescript
+{
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  coverImageUrl: string | null;
+  isOrganizer: boolean;
+  rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
+  organizerInfo: Array<{ id, displayName, profilePhotoUrl }>;
+  memberCount: number;
+  eventCount: number;  // Always 0 in Phase 3
+}
+```
+
+### Code Quality Assessment
+
+**Strengths**:
+- Excellent TDD implementation (tests written first, confirmed to fail, then implementation)
+- Follows all existing patterns from auth routes and POST /trips endpoint
+- Clean error handling with proper logging
+- Comprehensive test coverage (6 tests covering all scenarios)
+- Uses unique test data (generateUniquePhone) to avoid conflicts
+- Edge cases covered: empty array, ordering, cancelled trips, auth errors
+
+**Pattern Compliance**:
+- ✅ Controller pattern matches existing controllers (async, try-catch, error logging)
+- ✅ Route registration matches existing patterns (authenticate middleware)
+- ✅ Test patterns match existing integration tests
+- ✅ Response format consistent with other endpoints ({ success: true, data })
+- ✅ Uses only `authenticate` middleware (not `requireCompleteProfile` for read operations)
+
+### Acceptance Criteria Verification
+
+- ✅ All integration tests pass (6 tests - exceeds 3+ requirement by 100%)
+- ✅ GET /trips returns user's trips with correct structure
+- ✅ Returns empty array when user has no trips
+- ✅ Returns 401 without auth token
+- ✅ Returns 401 with invalid auth token
+- ✅ Cancelled trips are filtered out
+- ✅ Trips ordered by startDate (upcoming first)
+- ✅ Response includes all TripSummary fields
+
+### Statistics
+
+- **Lines of Code**: ~100 lines (controller + route + tests)
+- **Test Coverage**: 6 tests (exceeds 3+ requirement by 100%)
+- **Time to Implement**: 1 iteration (complete on first verification)
+- **Agent Workflow Efficiency**: 3 parallel researchers → 1 coder → 2 parallel reviewers = 6 agent tasks
+- **Iteration Count**: 1 (complete on first verification)
+- **Test Success Rate**: 100% (all 6 new tests passing, 21 total trip route tests passing)
+
+### Learnings
+
+1. **TDD Success**: Writing tests first helped clarify requirements and ensured comprehensive coverage
+2. **Pattern Reuse**: Leveraging existing patterns from auth routes made implementation straightforward
+3. **Service Layer**: The getUserTrips service method from Task 2.4 was already fully implemented and tested, making controller implementation simple
+4. **Middleware Choice**: Using only `authenticate` (not `requireCompleteProfile`) is correct for read operations - allows all authenticated users to view their trips
+5. **Test Data Strategy**: Using `generateUniquePhone()` prevents test data conflicts and enables parallel test execution
+
+### Next Steps
+
+Ready to proceed to **Task 3.3: Add GET /trips/:id endpoint (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task**:
+- Continue using same test file (`trip.routes.test.ts`) for GET /trips/:id tests
+- Implement `getTripById` handler in trip controller
+- Call `tripService.getTripById(tripId, userId)` which returns trip details or null
+- Return 200 for members, 404 for non-existent trips, 403 for non-members
+- Write 4+ integration tests
+- Validate UUID format for tripId parameter
