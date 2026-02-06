@@ -410,7 +410,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 4. Frontend Components
 
-- [ ] Task 4.1: Create trip card component
+- [x] Task 4.1: Create trip card component
   - Create `apps/web/src/components/trip/trip-card.tsx`
   - Display: cover image, name, destination, dates, RSVP badge, organizer avatars, event count
   - Match demo design (rounded corners, shadows, hover effects)
