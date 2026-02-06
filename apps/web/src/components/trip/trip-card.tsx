@@ -14,7 +14,7 @@ interface TripCardProps {
     coverImageUrl: string | null;
     isOrganizer: boolean;
     rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
-    organizerInfo: Array<{
+    organizerInfo?: Array<{
       id: string;
       displayName: string;
       profilePhotoUrl: string | null;
@@ -122,10 +122,10 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
   const rsvpBadge = getRsvpBadge(trip.rsvpStatus);
 
   // Show up to 3 organizers
-  const displayedOrganizers = trip.organizerInfo.slice(0, 3);
-  const firstOrganizer = trip.organizerInfo[0];
+  const displayedOrganizers = (trip.organizerInfo ?? []).slice(0, 3);
+  const firstOrganizer = trip.organizerInfo?.[0];
   const organizerLabel = firstOrganizer
-    ? `${firstOrganizer.displayName}${trip.organizerInfo.length > 1 ? ` +${trip.organizerInfo.length - 1}` : ""}`
+    ? `${firstOrganizer.displayName}${(trip.organizerInfo?.length ?? 0) > 1 ? ` +${(trip.organizerInfo?.length ?? 0) - 1}` : ""}`
     : "";
 
   return (

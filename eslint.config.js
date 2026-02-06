@@ -20,6 +20,8 @@ export default [
       "**/*.config.ts",
       "**/drizzle.config.ts",
       "**/vitest.config.ts",
+      "**/playwright-report/**",
+      "**/test-results/**",
     ],
   },
 

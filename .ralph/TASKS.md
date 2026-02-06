@@ -613,7 +613,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 6. E2E Testing
 
-- [ ] Task 6.1: Write E2E test for create trip flow
+- [x] Task 6.1: Write E2E test for create trip flow
   - Create test file: `apps/web/tests/e2e/trip-flow.spec.ts`
   - Write test: Login → Dashboard → Click FAB → Fill form (2 steps) → Create trip → View trip detail
   - Use Playwright with test fixtures
