@@ -48,4 +48,18 @@ export async function tripRoutes(fastify: FastifyInstance) {
     },
     tripController.getTripById,
   );
+
+  /**
+   * PUT /:id
+   * Update trip details
+   * Requires authentication and complete profile
+   * Only organizers can update trips
+   */
+  fastify.put(
+    "/:id",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.updateTrip,
+  );
 }

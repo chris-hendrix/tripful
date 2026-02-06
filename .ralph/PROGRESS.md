@@ -2341,3 +2341,155 @@ Ready to proceed to **Task 3.4: Add PUT /trips/:id endpoint (TDD)**
 - Write 5+ integration tests covering success, validation, permissions, not found
 - Use `updateTripSchema` from shared schemas for request body validation
 - Only organizers should be able to update trips (403 for non-organizers)
+
+---
+
+## Iteration 8: Task 3.4 - Add PUT /trips/:id endpoint (TDD)
+
+**Date**: 2026-02-05  
+**Task**: Implement PUT /trips/:id endpoint with TDD approach  
+**Status**: ✅ COMPLETE
+
+### What Was Implemented
+
+1. **Integration Tests** (`apps/api/tests/integration/trip.routes.test.ts`, lines 1380-2088)
+   - Added 11 comprehensive integration tests for PUT /api/trips/:id endpoint
+   - **Success Cases (4 tests)**:
+     - Returns 200 and updated trip when organizer updates trip
+     - Returns 200 and updated trip when co-organizer updates trip
+     - Allows partial updates (only some fields)
+     - Updates updatedAt timestamp
+   - **Validation Errors (3 tests)**:
+     - Returns 400 for invalid trip ID format
+     - Returns 400 for invalid request data
+     - Returns 400 when endDate is before startDate
+   - **Unauthorized Cases (1 test)**:
+     - Returns 401 when no auth token provided
+   - **Forbidden Cases (2 tests)**:
+     - Returns 403 when non-organizer tries to update trip
+     - Returns 403 when regular member tries to update trip
+   - **Not Found Cases (1 test)**:
+     - Returns 404 when trip does not exist
+
+2. **Controller Handler** (`apps/api/src/controllers/trip.controller.ts`, lines 191-284)
+   - Added `updateTrip` method with:
+     - UUID validation for trip ID using `uuidSchema.safeParse()`
+     - Request body validation using `updateTripSchema.safeParse()`
+     - User ID extraction from JWT token (`request.user.sub`)
+     - Service layer call to `tripService.updateTrip()`
+     - Comprehensive error handling (400, 403, 404, 500)
+     - Error logging with context
+
+3. **Route Registration** (`apps/api/src/routes/trip.routes.ts`, lines 52-64)
+   - Registered PUT /:id route
+   - Applied middleware: `[authenticate, requireCompleteProfile]`
+   - Added JSDoc documentation
+
+### Agent Workflow
+
+**3 Researchers (Parallel)**:
+1. **LOCATING**: Found all file locations and verified service/schema existence
+2. **ANALYZING**: Analyzed service method, schema, and error handling patterns
+3. **PATTERNS**: Documented test structure and controller patterns
+
+**1 Coder**: Implemented tests-first (TDD), then controller handler and route
+
+**2 Reviewers (Parallel)**:
+1. **Verifier**: All 11 tests pass, TypeScript compiles, no linting errors
+2. **Reviewer**: APPROVED - excellent pattern consistency and comprehensive coverage
+
+### Verification Results
+
+**Tests**: ✅ PASS
+- All 11 new PUT /api/trips/:id tests passing
+- Tests exceed requirement (11 tests implemented vs 5+ required)
+- Total trip route tests: 38 (27 existing + 11 new)
+
+**Static Analysis**: ✅ PASS
+- TypeScript compilation: 0 errors
+- ESLint: 0 errors (7 warnings in unrelated test files)
+
+**Acceptance Criteria**: ✅ ALL MET
+- ✅ PUT /trips/:id returns 200 with updated trip for organizers
+- ✅ Returns 200 for co-organizers (bonus test)
+- ✅ Returns 403 for non-organizers
+- ✅ Returns 400 for invalid data
+- ✅ Returns 404 for non-existent trip
+- ✅ Returns 401 without auth token
+- ✅ Allows partial updates (bonus test)
+- ✅ Updates updatedAt timestamp (bonus test)
+
+### Key Implementation Details
+
+1. **Service Layer Reuse**: The `tripService.updateTrip()` method was already implemented in Task 2.5 (lines 422-468), so only controller and tests were needed
+
+2. **Permission Checking**: Uses `permissionsService.canEditTrip()` which returns true for:
+   - Trip creator (trips.createdBy)
+   - Co-organizers (members with status='going')
+
+3. **Field Mapping**: Service automatically maps `timezone` → `preferredTimezone` for database consistency
+
+4. **Partial Updates**: All fields in `updateTripSchema` are optional via `.partial()`, allowing updates to any subset of fields
+
+5. **Error Handling Pattern**:
+   - 400: Invalid UUID format or request body validation failure
+   - 401: No auth token (middleware)
+   - 403: Permission denied (non-organizers)
+   - 404: Trip not found
+   - 500: Unexpected errors
+
+### Code Quality
+
+**Strengths**:
+- Excellent pattern consistency with existing endpoints (POST /trips, GET /trips/:id)
+- Comprehensive test coverage (11 tests across 5 categories)
+- Proper authorization with both creator and co-organizer support
+- Clean error handling with descriptive messages
+- JSDoc documentation included
+
+**Reviewer Assessment**:
+- Readability: ⭐⭐⭐⭐⭐ Excellent
+- Maintainability: ⭐⭐⭐⭐⭐ Excellent
+- Test Quality: ⭐⭐⭐⭐⭐ Excellent
+- Pattern Adherence: ⭐⭐⭐⭐⭐ Perfect consistency
+- Security: ⭐⭐⭐⭐⭐ Comprehensive
+
+### Statistics
+
+- **Files Modified**: 3 (tests, controller, routes)
+- **Lines Added**: ~679 lines (11 tests + handler + route)
+- **Tests Written**: 11 (exceeds 5+ requirement by 120%)
+- **Test Success Rate**: 100% (11/11 passing)
+- **Iteration Count**: 1 (complete on first verification)
+- **Agent Tasks**: 6 (3 researchers + 1 coder + 2 reviewers)
+
+### Learnings
+
+1. **TDD Success**: Writing 11 comprehensive tests first ensured all edge cases were covered before implementation
+
+2. **Service Layer Benefits**: Having `tripService.updateTrip()` already implemented from Task 2.5 made controller implementation straightforward and focused on HTTP concerns
+
+3. **Pattern Consistency**: Following exact patterns from GET /trips/:id (UUID validation, error format) and POST /trips (body validation, middleware) ensured seamless integration
+
+4. **Middleware Choice**: Using `[authenticate, requireCompleteProfile]` matches POST /trips and ensures only users with complete profiles can modify trips
+
+5. **Test Organization**: The 5-category test structure (Success, Validation, Unauthorized, Forbidden, Not Found) provides excellent organization and should be used for future endpoints
+
+6. **Partial Updates**: The `.partial()` schema approach allows flexible updates without requiring all fields, improving API usability
+
+7. **Permission Model**: The organizer model (creator OR member with status='going') works well and is consistently enforced across all update operations
+
+### Next Steps
+
+Ready to proceed to **Task 3.5: Add DELETE /trips/:id endpoint (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task**:
+- Continue using same test file (`trip.routes.test.ts`) for DELETE /trips/:id tests
+- Implement `cancelTrip` handler in trip controller (service method already exists at lines 476-507)
+- DELETE should soft-delete (set cancelled=true) not hard-delete
+- Write 5+ integration tests covering success, permissions, not found
+- Use status code 204 No Content for successful deletion
+- Non-organizers should receive 403 Forbidden
+

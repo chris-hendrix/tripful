@@ -1,5 +1,9 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { createTripSchema, uuidSchema } from "@tripful/shared/schemas";
+import {
+  createTripSchema,
+  updateTripSchema,
+  uuidSchema,
+} from "@tripful/shared/schemas";
 import { tripService } from "@/services/trip.service.js";
 
 /**
@@ -179,6 +183,101 @@ export const tripController = {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get trip",
+        },
+      });
+    }
+  },
+
+  /**
+   * Update trip endpoint
+   * Updates an existing trip's details
+   * Only organizers can update trips
+   *
+   * @route PUT /api/trips/:id
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with trip ID in params and update data in body
+   * @param reply - Fastify reply object
+   * @returns Success response with updated trip
+   */
+  async updateTrip(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      // Extract and validate trip ID from params
+      const { id } = request.params as { id: string };
+      const validationResult = uuidSchema.safeParse(id);
+
+      if (!validationResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid trip ID format",
+          },
+        });
+      }
+
+      // Validate request body
+      const bodyResult = updateTripSchema.safeParse(request.body);
+
+      if (!bodyResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid request data",
+            details: bodyResult.error.issues,
+          },
+        });
+      }
+
+      // Extract user ID from JWT
+      const userId = request.user.sub;
+
+      // Call service to update trip
+      const trip = await tripService.updateTrip(id, userId, bodyResult.data);
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        trip,
+      });
+    } catch (error) {
+      // Handle known service errors
+      if (error instanceof Error) {
+        if (error.message === "Trip not found") {
+          return reply.status(404).send({
+            success: false,
+            error: {
+              code: "NOT_FOUND",
+              message: "Trip not found",
+            },
+          });
+        }
+
+        if (error.message.startsWith("Permission denied:")) {
+          return reply.status(403).send({
+            success: false,
+            error: {
+              code: "PERMISSION_DENIED",
+              message: error.message,
+            },
+          });
+        }
+      }
+
+      // Log error and return 500
+      request.log.error(
+        { error, userId: request.user.sub, tripId: (request.params as { id: string }).id },
+        "Failed to update trip",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update trip",
         },
       });
     }

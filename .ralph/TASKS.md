@@ -300,7 +300,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.4: Add PUT /trips/:id endpoint (TDD)
+- [x] Task 3.4: Add PUT /trips/:id endpoint (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: PUT /trips/:id returns 200 with updated trip for organizers
     - Test: PUT /trips/:id returns 403 for non-organizers
