@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-3 Complete - Monorepo + Auth + Trip Management
+status: Phase 1-3 Implemented | Phase 4-8 Documented (Not Yet Implemented)
 last_updated: 2026-02-06
 ---
 
@@ -14,7 +14,7 @@ last_updated: 2026-02-06
 > - ✅ **Phase 3 Complete**: Trip management with CRUD, permissions, co-organizers, and image uploads
 > - 🚧 **Phase 4-8**: Pending (Invitations, itinerary features, advanced features)
 >
-> This document reflects the current production implementation and planned architecture.
+> **Important**: This document describes both implemented features (Phases 1-3) and planned features (Phases 4-8). Features, tables, routes, and components marked as 🚧 or described in Phase 4-8 sections do not yet exist in the codebase.
 
 ## Implementation Progress
 
@@ -102,8 +102,10 @@ last_updated: 2026-02-06
 **Database Schema:**
 
 - [x] trips table (name, destination, dates, timezone, cover_image_url, settings)
-- [x] organizers table (many-to-many relationship)
+- [x] members table (tracks RSVPs and co-organizer status via status='going')
 - [x] Migration: `0001_trip_management.sql`
+
+**Note**: Co-organizers are implemented via the `members` table rather than a separate `organizers` junction table. The trip creator (trips.createdBy) and any member with status='going' are considered co-organizers.
 
 **E2E Testing (Playwright):**
 
@@ -262,7 +264,7 @@ Tripful is a collaborative trip planning platform that enables group travel coor
 ### Frontend
 
 - **Framework**: Next.js 16 (App Router with React Server Components)
-- **Language**: TypeScript 5.9.x
+- **Language**: TypeScript 5.7.3
 - **UI Library**: React 19
 - **Styling**: Tailwind CSS 4.x
 - **UI Components**: shadcn/ui (copy-paste component library)
@@ -278,7 +280,7 @@ Tripful is a collaborative trip planning platform that enables group travel coor
 
 - **Runtime**: Node.js 22.x (LTS)
 - **Framework**: Fastify v5.x
-- **Language**: TypeScript 5.9.x
+- **Language**: TypeScript 5.7.3
 - **ORM**: Drizzle ORM v0.36+
 - **Database**: PostgreSQL 16+
 - **Validation**: Zod (shared with frontend)
@@ -498,16 +500,8 @@ apps/api/
 │   │   └── rate-limit.middleware.ts
 │   ├── db/
 │   │   ├── schema/
-│   │   │   ├── users.ts
-│   │   │   ├── verification_codes.ts
-│   │   │   ├── trips.ts
-│   │   │   ├── organizers.ts
-│   │   │   ├── invitations.ts
-│   │   │   ├── members.ts
-│   │   │   ├── events.ts
-│   │   │   ├── accommodations.ts
-│   │   │   ├── travel.ts
-│   │   │   └── index.ts
+│   │   │   └── index.ts           # ✅ All schemas in single file (users, verification_codes, trips, members)
+│   │   │                          # 🚧 Future: invitations, events, accommodations, travel tables
 │   │   ├── migrations/
 │   │   └── seed.ts
 │   ├── types/
@@ -1052,14 +1046,38 @@ export class S3StorageService implements IStorageService {
 // src/services/permissions.service.ts
 export class PermissionsService {
   // Check if user is organizer
+  // An organizer is either:
+  // 1. The trip creator (trips.createdBy)
+  // 2. A co-organizer (member with status='going')
   async isOrganizer(userId: string, tripId: string): Promise<boolean> {
-    const organizer = await db
-      .select()
-      .from(organizers)
-      .where(and(eq(organizers.userId, userId), eq(organizers.tripId, tripId)))
+    const result = await db
+      .select({
+        tripId: trips.id,
+        createdBy: trips.createdBy,
+        memberUserId: members.userId,
+        memberStatus: members.status,
+      })
+      .from(trips)
+      .leftJoin(
+        members,
+        and(
+          eq(members.tripId, trips.id),
+          eq(members.userId, userId),
+          eq(members.status, "going"),
+        ),
+      )
+      .where(
+        and(
+          eq(trips.id, tripId),
+          or(
+            eq(trips.createdBy, userId), // User is the creator
+            eq(members.userId, userId), // User is a co-organizer (status='going')
+          ),
+        ),
+      )
       .limit(1);
 
-    return organizer.length > 0;
+    return result.length > 0;
   }
 
   // Check if user can add events
@@ -1180,17 +1198,18 @@ See [Database Layer](#3-database-layer-postgresql--drizzle-orm) section for deta
 
 **Primary Tables:**
 
-1. `users` - User accounts
-2. `verification_codes` - Phone verification codes with expiry
-3. `trips` - Trip information
-4. `organizers` - Trip organizers (many-to-many)
-5. `invitations` - Trip invitations by phone
-6. `members` - **Trip membership and RSVP status** (combined entity)
-7. `events` - Itinerary events
-8. `accommodations` - Where group is staying
-9. `travel` - Individual member arrivals/departures
+1. ✅ `users` - User accounts
+2. ✅ `verification_codes` - Phone verification codes with expiry
+3. ✅ `trips` - Trip information
+4. ✅ `members` - **Trip membership, RSVP status, and co-organizer tracking** (combined entity)
+5. 🚧 `invitations` - Trip invitations by phone (planned)
+6. 🚧 `events` - Itinerary events (planned)
+7. 🚧 `accommodations` - Where group is staying (planned)
+8. 🚧 `travel` - Individual member arrivals/departures (planned)
 
 **Note on Members:** The `members` table serves as the trip membership table. When a user is invited, a member record is created, making them a trip member. The `status` field tracks their RSVP response (going/not_going/maybe/no_response). This design keeps membership and status in sync.
+
+**Note on Co-Organizers:** Co-organizers are identified by membership status rather than a separate junction table. The trip creator (trips.createdBy) plus any member with status='going' are considered co-organizers with edit permissions. This simplifies the schema while maintaining the co-organizer functionality.
 
 **Indexes:**
 
@@ -1468,6 +1487,8 @@ Response (200):
     }
   }
 
+Note: The "organizers" array is populated from the members table (all members with status='going'), not from a separate organizers junction table. This design simplifies the schema while maintaining co-organizer functionality.
+
 Response (404 - Not Found):
   {
     "success": false,
@@ -1622,15 +1643,7 @@ Request:
 
 Response (200):
   {
-    "success": true,
-    "data": {
-      "organizer": {
-        "id": "uuid",
-        "tripId": "uuid",
-        "userId": "uuid",
-        "createdAt": "2026-02-06T..."
-      }
-    }
+    "success": true
   }
 
 Response (400 - User Not Found):
@@ -1642,19 +1655,19 @@ Response (400 - User Not Found):
     }
   }
 
-Response (409 - Already Organizer):
+Response (409 - Already Co-Organizer):
   {
     "success": false,
     "error": {
       "code": "CONFLICT",
-      "message": "User is already an organizer"
+      "message": "User is already a co-organizer (has status='going')"
     }
   }
 
 Additional Information:
   - User must exist in system (registered)
-  - Adds user as organizer if not already
-  - Also adds as member with "going" status if not member
+  - Adds user as member with status='going' (which grants co-organizer permissions)
+  - If user is already a member, updates their status to 'going'
 ```
 
 **7. Remove Co-Organizer**
@@ -2100,21 +2113,8 @@ export const trips = pgTable("trips", {
     .defaultNow(),
 });
 
-// Organizers table (many-to-many)
-export const organizers = pgTable("organizers", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tripId: uuid("trip_id")
-    .notNull()
-    .references(() => trips.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-// Members table (includes RSVP status)
+// Members table (includes RSVP status and co-organizer tracking)
+// Note: Co-organizers are identified by status='going' rather than a separate table
 export const members = pgTable("members", {
   id: uuid("id").primaryKey().defaultRandom(),
   tripId: uuid("trip_id")
@@ -2692,7 +2692,7 @@ pnpm typecheck
 
 **TypeScript Configuration**
 
-- TypeScript 5.9.x (latest)
+- TypeScript 5.7.3
 - Strict mode enabled
 - Target: ES2023 for Node.js 22
 - Module: "nodenext" for modern module resolution
@@ -3303,7 +3303,7 @@ fastify.register(compress, {
 | -------------- | ------- | -------------------------------- |
 | Next.js        | 16.x    | Latest with App Router           |
 | React          | 19.x    | Latest stable                    |
-| TypeScript     | 5.9.x   | Latest (target: ES2023)          |
+| TypeScript     | 5.7.3   | Target: ES2023                   |
 | Fastify        | 5.x     | Latest v5                        |
 | Drizzle ORM    | 0.36+   | Latest with improved types       |
 | TanStack Query | 5.x     | React Query v5                   |
