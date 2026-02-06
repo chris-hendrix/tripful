@@ -278,7 +278,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.3: Add GET /trips/:id endpoint (TDD)
+- [x] Task 3.3: Add GET /trips/:id endpoint (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: GET /trips/:id returns 200 with trip data for members
     - Test: GET /trips/:id returns 404 for non-existent trip

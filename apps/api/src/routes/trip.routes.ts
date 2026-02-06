@@ -34,4 +34,18 @@ export async function tripRoutes(fastify: FastifyInstance) {
     },
     tripController.createTrip,
   );
+
+  /**
+   * GET /:id
+   * Get trip by ID
+   * Requires authentication only (not complete profile)
+   * Returns 404 for both non-existent trips and trips user is not a member of
+   */
+  fastify.get(
+    "/:id",
+    {
+      preHandler: authenticate,
+    },
+    tripController.getTripById,
+  );
 }

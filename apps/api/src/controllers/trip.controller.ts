@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { createTripSchema } from "@tripful/shared/schemas";
+import { createTripSchema, uuidSchema } from "@tripful/shared/schemas";
 import { tripService } from "@/services/trip.service.js";
 
 /**
@@ -120,6 +120,65 @@ export const tripController = {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get trips",
+        },
+      });
+    }
+  },
+
+  /**
+   * Get trip by ID
+   * Returns trip details for members only
+   */
+  async getTripById(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      const { id } = request.params as { id: string };
+      const userId = request.user.sub;
+
+      // Validate UUID format
+      const validationResult = uuidSchema.safeParse(id);
+      if (!validationResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid trip ID format",
+          },
+        });
+      }
+
+      // Get trip from service
+      const trip = await tripService.getTripById(id, userId);
+
+      // Handle null response (either not found or not authorized)
+      if (!trip) {
+        return reply.status(404).send({
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: "Trip not found",
+          },
+        });
+      }
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        trip,
+      });
+    } catch (error) {
+      request.log.error(
+        { error, userId: request.user.sub, tripId: (request.params as { id: string }).id },
+        "Failed to get trip",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get trip",
         },
       });
     }

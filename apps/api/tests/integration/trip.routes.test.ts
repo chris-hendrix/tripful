@@ -1070,3 +1070,309 @@ describe("GET /api/trips", () => {
     });
   });
 });
+
+describe("GET /api/trips/:id", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) await app.close();
+  });
+
+  describe("Success Cases", () => {
+    it("should return 200 with trip details when user is member", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const phone = generateUniquePhone();
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: phone,
+          displayName: "Test Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          description: "A test trip",
+          startDate: "2026-06-01",
+          endDate: "2026-06-07",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add user as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: user.id,
+        phoneNumber: user.phoneNumber,
+      });
+
+      // Make request
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.trip).toBeDefined();
+      expect(body.trip.id).toBe(trip.id);
+      expect(body.trip.name).toBe("Test Trip");
+      expect(body.trip.destination).toBe("Paris, France");
+      expect(body.trip.description).toBe("A test trip");
+      expect(body.trip.createdBy).toBe(user.id);
+      expect(body.trip.organizers).toBeDefined();
+      expect(Array.isArray(body.trip.organizers)).toBe(true);
+      expect(body.trip.memberCount).toBeDefined();
+      expect(typeof body.trip.memberCount).toBe("number");
+      expect(body.trip.memberCount).toBe(1);
+    });
+  });
+
+  describe("Error Cases", () => {
+    it("should return 400 for invalid UUID format", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const phone = generateUniquePhone();
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: phone,
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: user.id,
+        phoneNumber: user.phoneNumber,
+      });
+
+      // Make request with invalid UUID
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips/not-a-valid-uuid",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid trip ID format");
+    });
+
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const phone = generateUniquePhone();
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: phone,
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: user.id,
+        phoneNumber: user.phoneNumber,
+      });
+
+      // Make request with non-existent trip ID (valid UUID format)
+      const nonExistentId = "550e8400-e29b-41d4-a716-446655440000";
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${nonExistentId}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Trip not found");
+    });
+
+    it("should return 404 when user is not a member of the trip", async () => {
+      app = await buildApp();
+
+      // Create trip organizer
+      const organizerPhone = generateUniquePhone();
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: organizerPhone,
+          displayName: "Trip Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Private Trip",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          description: "Only for members",
+          startDate: "2026-07-01",
+          endDate: "2026-07-07",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+      });
+
+      // Create different user (not a member)
+      const nonMemberPhone = generateUniquePhone();
+      const [nonMember] = await db
+        .insert(users)
+        .values({
+          phoneNumber: nonMemberPhone,
+          displayName: "Non Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Generate JWT token for non-member
+      const token = app.jwt.sign({
+        sub: nonMember.id,
+        phoneNumber: nonMember.phoneNumber,
+      });
+
+      // Make request
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Trip not found");
+    });
+
+    it("should return 401 when no auth token is provided", async () => {
+      app = await buildApp();
+
+      // Create a trip (doesn't matter if it exists)
+      const phone = generateUniquePhone();
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: phone,
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Berlin, Germany",
+          preferredTimezone: "Europe/Berlin",
+          description: "A test trip",
+          startDate: "2026-08-01",
+          endDate: "2026-08-07",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Make request without auth token
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("should return 401 with invalid auth token", async () => {
+      app = await buildApp();
+
+      // Create a trip
+      const phone = generateUniquePhone();
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: phone,
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Berlin, Germany",
+          preferredTimezone: "Europe/Berlin",
+          description: "A test trip",
+          startDate: "2026-08-01",
+          endDate: "2026-08-07",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Make request with invalid token
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: "invalid.token.here",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+});
