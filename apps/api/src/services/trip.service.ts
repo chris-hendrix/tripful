@@ -68,11 +68,12 @@ export interface ITripService {
   updateTrip(tripId: string, userId: string, data: UpdateTripInput): Promise<Trip>;
 
   /**
-   * Cancels a trip (to be implemented)
+   * Cancels a trip (soft delete)
    * @param tripId - The UUID of the trip to cancel
+   * @param userId - The ID of the user attempting to cancel
    * @returns Promise that resolves when the trip is cancelled
    */
-  cancelTrip(tripId: string): Promise<void>;
+  cancelTrip(tripId: string, userId: string): Promise<void>;
 
   /**
    * Adds co-organizers to a trip (to be implemented)
@@ -295,7 +296,7 @@ export class TripService implements ITripService {
     const userTrips = await db
       .select()
       .from(trips)
-      .where(inArray(trips.id, tripIds))
+      .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
       .orderBy(
         // Order by startDate ascending (upcoming first), NULL last
         sql`CASE WHEN ${trips.startDate} IS NULL THEN 1 ELSE 0 END`,
@@ -411,12 +412,42 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Cancels a trip (placeholder implementation)
-   * @param _tripId - The UUID of the trip to cancel
+   * Cancels a trip (soft delete - sets cancelled=true)
+   * @param tripId - The UUID of the trip to cancel
+   * @param userId - The ID of the user attempting to cancel
    * @returns Promise that resolves when the trip is cancelled
    */
-  async cancelTrip(_tripId: string): Promise<void> {
-    throw new Error('Not implemented');
+  async cancelTrip(tripId: string, userId: string): Promise<void> {
+    // 1. Check permissions - only organizers can cancel trips
+    const canDelete = await permissionsService.canDeleteTrip(userId, tripId);
+    if (!canDelete) {
+      // Check if trip exists for better error message
+      const tripExists = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1);
+
+      if (tripExists.length === 0) {
+        throw new Error('Trip not found');
+      }
+
+      throw new Error('Permission denied: only organizers can cancel trips');
+    }
+
+    // 2. Perform soft delete (set cancelled=true)
+    const result = await db
+      .update(trips)
+      .set({
+        cancelled: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(trips.id, tripId))
+      .returning();
+
+    if (!result[0]) {
+      throw new Error('Trip not found');
+    }
   }
 
   /**

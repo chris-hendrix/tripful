@@ -1317,3 +1317,209 @@ Ready to proceed to **Task 2.6: Implement cancelTrip - soft delete (TDD)**
 - **Time to Implement**: Single iteration with one round of fixes
 - **Agent Workflow Efficiency**: 3 parallel researchers → 1 coder → 2 parallel reviewers → 1 coder (fixes) → 2 parallel reviewers = 6 agent tasks
 - **Iteration Count**: 2 (initial + fixes)
+
+---
+
+## Iteration 3: Task 2.6 - Implement cancelTrip (Soft Delete) - COMPLETE ✅
+
+**Date**: 2026-02-05
+**Task**: Task 2.6 - Implement cancelTrip - soft delete (TDD)
+**Status**: COMPLETE
+**Outcome**: APPROVED by reviewer after small fix
+
+### Implementation Summary
+
+Implemented the `cancelTrip` method in Trip Service following Test-Driven Development (TDD). This feature provides a soft delete operation that marks trips as cancelled (sets `cancelled=true`) instead of physically deleting records from the database.
+
+**Files Modified:**
+1. `/home/chend/git/tripful/apps/api/tests/unit/trip.service.test.ts` - Added 7 comprehensive tests (lines 904-1077)
+2. `/home/chend/git/tripful/apps/api/src/services/trip.service.ts` - Updated interface (line 76) and implementation (lines 420-451)
+3. `/home/chend/git/tripful/apps/api/src/services/trip.service.ts` - Fixed getUserTrips to filter cancelled trips (line 299)
+
+### Features Implemented
+
+**Core Functionality:**
+- ✅ Soft delete implementation (sets `cancelled=true`, doesn't delete record)
+- ✅ Permission checking via `permissionsService.canDeleteTrip()`
+- ✅ Only organizers (creator and co-organizers) can cancel trips
+- ✅ Updates `updatedAt` timestamp on cancellation
+- ✅ Clear error messages for different failure scenarios
+
+**Authorization Logic:**
+- Checks `canDeleteTrip()` before performing any database operations
+- Distinguishes between "Trip not found" and "Permission denied" errors
+- Validates user is creator OR co-organizer with status='going'
+
+**Dashboard Filtering:**
+- Fixed `getUserTrips` to exclude cancelled trips from results
+- Ensures cancelled trips don't appear in dashboard listings
+- Allows direct access to cancelled trips via `getTripById` for historical reference
+
+### Test Coverage
+
+**7 Comprehensive Tests Written:**
+1. ✅ Creator can cancel trip successfully
+2. ✅ Co-organizer can cancel trip
+3. ✅ Non-organizer receives permission error when attempting to cancel
+4. ✅ Trip marked as cancelled (cancelled=true) in database
+5. ✅ Trip record still exists in database (not hard deleted)
+6. ✅ updatedAt timestamp updated when cancelling
+7. ✅ Trip not found error when trip doesn't exist
+
+**Test Results:**
+- 40/40 trip service tests passing
+- 245/245 total unit tests passing
+- All acceptance criteria met
+- Unique phone generation for parallel test execution
+
+### Agent Workflow
+
+**Research Phase (3 parallel researchers):**
+1. **Researcher 1 (LOCATING)**: Found all file paths, interface locations, and reference patterns
+2. **Researcher 2 (ANALYZING)**: Analyzed data flow, permission logic, and soft delete requirements
+3. **Researcher 3 (PATTERNS)**: Identified test patterns and existing code conventions
+
+**Implementation Phase:**
+- **Coder**: Implemented cancelTrip following TDD (tests first, then implementation)
+
+**Review Phase (2 parallel reviewers):**
+- **Verifier**: All tests pass, no TypeScript errors, no linting errors - PASS
+- **Reviewer**: Found NEEDS_WORK - missing cancelled filter in getUserTrips
+
+**Fix Phase:**
+- **Coder**: Applied small fix to getUserTrips to filter cancelled trips (line 299)
+
+**Re-review Phase (2 parallel reviewers):**
+- **Verifier**: All tests still pass after fix - PASS
+- **Reviewer**: All issues resolved - APPROVED
+
+### Key Implementation Details
+
+**Interface Signature:**
+```typescript
+cancelTrip(tripId: string, userId: string): Promise<void>
+```
+
+**Implementation Pattern:**
+```typescript
+async cancelTrip(tripId: string, userId: string): Promise<void> {
+  // 1. Check permissions
+  const canDelete = await permissionsService.canDeleteTrip(userId, tripId);
+  if (!canDelete) {
+    // Check if trip exists for better error message
+    const tripExists = await db.select().from(trips)
+      .where(eq(trips.id, tripId)).limit(1);
+
+    if (tripExists.length === 0) {
+      throw new Error('Trip not found');
+    }
+
+    throw new Error('Permission denied: only organizers can cancel trips');
+  }
+
+  // 2. Perform soft delete
+  const result = await db.update(trips)
+    .set({ cancelled: true, updatedAt: new Date() })
+    .where(eq(trips.id, tripId))
+    .returning();
+
+  if (!result[0]) {
+    throw new Error('Trip not found');
+  }
+}
+```
+
+**getUserTrips Filter Fix:**
+```typescript
+// Added cancelled=false filter to exclude cancelled trips from dashboard
+.where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
+```
+
+### Verification Results
+
+**Verifier Report:**
+- ✅ Unit tests: 245/245 passing
+- ✅ Type checking: No errors
+- ✅ Linting: No new errors (4 pre-existing warnings in unrelated test code)
+- ✅ All acceptance criteria met
+
+**Reviewer Report:**
+- ✅ Code quality: Excellent
+- ✅ Test coverage: Comprehensive (7 tests covering all scenarios)
+- ✅ Pattern consistency: Follows updateTrip implementation pattern
+- ✅ Security: Proper authorization checks
+- ✅ Database operations: Correct soft delete implementation
+- ✅ All issues resolved after getUserTrips fix
+
+### Acceptance Criteria Status
+
+From Task 2.6:
+- ✅ **All unit tests pass (4+ tests)** - 7 tests implemented and passing
+- ✅ **Organizers can cancel trip** - Verified by tests for creator and co-organizer
+- ✅ **Non-organizers cannot cancel** - Permission error thrown, verified by test
+- ✅ **Trip marked as cancelled in database** - Sets `cancelled=true`, verified by test
+- ✅ **Trip not deleted from database (soft delete)** - Record exists with cancelled=true, verified by test
+
+### Dependencies Used
+
+**Existing Services:**
+- `permissionsService.canDeleteTrip()` - Authorization check
+- Database (Drizzle ORM) - Parameterized queries for SQL injection protection
+
+**Existing Test Utilities:**
+- `generateUniquePhone()` - Parallel test execution support
+- Database cleanup patterns - FK dependency order (members → trips → users)
+
+### Design Decisions
+
+1. **Soft Delete Strategy**: Preserves records for audit trails and allows potential restoration
+2. **Permission-First Approach**: Check authorization before any database operations (fail-fast)
+3. **Error Message Distinction**: Different messages for "not found" vs "permission denied"
+4. **Dashboard Filtering**: Cancelled trips excluded from listings but accessible via direct ID lookup
+5. **Timestamp Tracking**: Updates `updatedAt` to track when cancellation occurred
+
+### Security Considerations
+
+1. ✅ **Authorization**: Permission check before any database modifications
+2. ✅ **SQL Injection Protection**: Uses Drizzle ORM parameterized queries
+3. ✅ **Information Leakage**: Error messages don't expose sensitive data
+4. ✅ **Input Validation**: UUID validation via TypeScript types
+5. ✅ **Immutable Fields**: Only `cancelled` and `updatedAt` can be modified
+
+### Performance Notes
+
+- Single database query for cancellation (efficient)
+- Permission check adds one query but provides fail-fast behavior
+- No N+1 query issues
+- getUserTrips filter applied at database level (not in application layer)
+
+### Key Learnings
+
+1. **TDD Value**: Writing 7 tests first clarified all edge cases and requirements upfront
+2. **Small Fix Efficiency**: The getUserTrips fix was caught in review and fixed quickly (single line change)
+3. **Parallel Research**: 3 parallel researchers provided comprehensive context efficiently
+4. **Pattern Consistency**: Following updateTrip pattern made implementation straightforward
+5. **Review Process Value**: Reviewer caught missing cancelled filter that would have been a production bug
+6. **Iteration Efficiency**: 2 iterations (initial + small fix) kept momentum without blocking
+
+### Next Steps
+
+Ready to proceed to **Task 2.7: Implement co-organizer management methods (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task:**
+- Permission pattern well-established (use `canManageCoOrganizers()`)
+- Test structure template proven (creator vs co-organizer vs non-member)
+- Member limit enforcement pattern available (from Task 2.2)
+- Three methods to implement: `addCoOrganizers`, `removeCoOrganizer`, `getCoOrganizers`
+- Must prevent removing trip creator (validation check needed)
+
+### Statistics
+
+- **Lines of Code**: ~30 lines implementation + ~5 lines fix, ~170 lines tests
+- **Test Coverage**: 7 tests covering all scenarios
+- **Time to Implement**: 2 iterations (initial + one round of fixes)
+- **Agent Workflow Efficiency**: 3 parallel researchers → 1 coder → 2 parallel reviewers → 1 coder (fix) → 2 parallel reviewers = 7 agent tasks
+- **Iteration Count**: 2 (initial + small fix)
+- **Test Success Rate**: 100% (all tests passing after implementation)

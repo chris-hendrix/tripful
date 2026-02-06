@@ -900,4 +900,179 @@ describe('trip.service', () => {
       expect(result.preferredTimezone).toBe('Europe/London');
     });
   });
+
+  describe('cancelTrip', () => {
+    let testCreatorId: string;
+    let testCoOrganizerId: string;
+    let testNonOrganizerId: string;
+    let testTripId: string;
+    let testPhone1: string;
+    let testPhone2: string;
+    let testPhone3: string;
+
+    beforeEach(async () => {
+      // Generate unique phones
+      testPhone1 = generateUniquePhone();
+      testPhone2 = generateUniquePhone();
+      testPhone3 = generateUniquePhone();
+
+      // Create creator
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone1,
+          displayName: 'Creator',
+          timezone: 'UTC',
+        })
+        .returning();
+      testCreatorId = creator.id;
+
+      // Create co-organizer
+      const [coOrganizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone2,
+          displayName: 'Co-Organizer',
+          timezone: 'UTC',
+        })
+        .returning();
+      testCoOrganizerId = coOrganizer.id;
+
+      // Create non-organizer
+      const [nonOrganizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone3,
+          displayName: 'Non-Organizer',
+          timezone: 'UTC',
+        })
+        .returning();
+      testNonOrganizerId = nonOrganizer.id;
+
+      // Create trip with creator
+      const tripData: CreateTripInput = {
+        name: 'Test Trip',
+        destination: 'Test Destination',
+        timezone: 'America/New_York',
+        startDate: '2026-06-01',
+        endDate: '2026-06-07',
+        allowMembersToAddEvents: false,
+      };
+
+      const trip = await tripService.createTrip(testCreatorId, tripData);
+      testTripId = trip.id;
+
+      // Add co-organizer as member with status='going'
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: testCoOrganizerId,
+        status: 'going',
+      });
+    });
+
+    afterEach(async () => {
+      // Cleanup in reverse FK dependency order
+      await db.delete(members).where(eq(members.tripId, testTripId));
+      await db.delete(trips).where(eq(trips.id, testTripId));
+      await db.delete(users).where(eq(users.id, testCreatorId));
+      await db.delete(users).where(eq(users.id, testCoOrganizerId));
+      await db.delete(users).where(eq(users.id, testNonOrganizerId));
+    });
+
+    it('should allow organizer (creator) to cancel trip successfully', async () => {
+      await tripService.cancelTrip(testTripId, testCreatorId);
+
+      // Verify trip is marked as cancelled
+      const [dbTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      expect(dbTrip).toBeDefined();
+      expect(dbTrip.cancelled).toBe(true);
+    });
+
+    it('should allow co-organizer to cancel trip', async () => {
+      await tripService.cancelTrip(testTripId, testCoOrganizerId);
+
+      // Verify trip is marked as cancelled
+      const [dbTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      expect(dbTrip).toBeDefined();
+      expect(dbTrip.cancelled).toBe(true);
+    });
+
+    it('should throw permission error when non-organizer tries to cancel', async () => {
+      await expect(
+        tripService.cancelTrip(testTripId, testNonOrganizerId)
+      ).rejects.toThrow('Permission denied: only organizers can cancel trips');
+    });
+
+    it('should mark trip as cancelled in database (soft delete)', async () => {
+      await tripService.cancelTrip(testTripId, testCreatorId);
+
+      // Query database directly
+      const dbTrip = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      expect(dbTrip).toHaveLength(1);
+      expect(dbTrip[0].cancelled).toBe(true);
+    });
+
+    it('should keep trip record in database (not hard deleted)', async () => {
+      await tripService.cancelTrip(testTripId, testCreatorId);
+
+      // Query trips table by ID
+      const dbTrip = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      // Record should still exist
+      expect(dbTrip).toHaveLength(1);
+      expect(dbTrip[0].id).toBe(testTripId);
+      expect(dbTrip[0].cancelled).toBe(true);
+    });
+
+    it('should update updatedAt timestamp when cancelling', async () => {
+      // Get original trip
+      const [originalTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      const originalUpdatedAt = originalTrip.updatedAt.getTime();
+
+      // Wait to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      await tripService.cancelTrip(testTripId, testCreatorId);
+
+      // Verify updatedAt changed
+      const [updatedTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, testTripId))
+        .limit(1);
+
+      expect(updatedTrip.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt);
+    });
+
+    it('should throw error when trip does not exist', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      await expect(
+        tripService.cancelTrip(fakeId, testCreatorId)
+      ).rejects.toThrow('Trip not found');
+    });
+  });
 });

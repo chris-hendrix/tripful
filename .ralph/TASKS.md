@@ -179,7 +179,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 2.6: Implement cancelTrip - soft delete (TDD)
+- [x] Task 2.6: Implement cancelTrip - soft delete (TDD)
   - Write failing tests in `trip.service.test.ts`:
     - Test: Organizer can cancel trip successfully
     - Test: Non-organizer receives permission error when attempting to cancel
