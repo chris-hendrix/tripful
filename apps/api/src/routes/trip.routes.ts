@@ -62,4 +62,19 @@ export async function tripRoutes(fastify: FastifyInstance) {
     },
     tripController.updateTrip,
   );
+
+  /**
+   * DELETE /:id
+   * Cancel trip (soft delete)
+   * Requires authentication and complete profile
+   * Only organizers can cancel trips
+   */
+  fastify.delete(
+    "/:id",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.cancelTrip,
+  );
 }
+

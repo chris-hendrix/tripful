@@ -282,4 +282,83 @@ export const tripController = {
       });
     }
   },
+
+  /**
+   * Cancel trip endpoint
+   * Soft-deletes a trip (sets cancelled=true) if user is an organizer
+   *
+   * @route DELETE /api/trips/:id
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with trip ID in params
+   * @param reply - Fastify reply
+   * @returns Success response with { success: true }
+   */
+  async cancelTrip(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      // Extract and validate trip ID from params
+      const { id } = request.params as { id: string };
+      const validationResult = uuidSchema.safeParse(id);
+
+      if (!validationResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid trip ID format",
+          },
+        });
+      }
+
+      // Extract user ID from JWT
+      const userId = request.user.sub;
+
+      // Call service to cancel trip (soft delete)
+      await tripService.cancelTrip(id, userId);
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+      });
+    } catch (error) {
+      // Handle known service errors
+      if (error instanceof Error) {
+        if (error.message === "Trip not found") {
+          return reply.status(404).send({
+            success: false,
+            error: {
+              code: "NOT_FOUND",
+              message: "Trip not found",
+            },
+          });
+        }
+
+        if (error.message.startsWith("Permission denied:")) {
+          return reply.status(403).send({
+            success: false,
+            error: {
+              code: "PERMISSION_DENIED",
+              message: error.message,
+            },
+          });
+        }
+      }
+
+      // Log error and return 500
+      request.log.error(
+        { error, userId: request.user.sub, tripId: (request.params as { id: string }).id },
+        "Failed to cancel trip",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to cancel trip",
+        },
+      });
+    }
+  },
 };

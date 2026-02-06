@@ -324,7 +324,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.5: Add DELETE /trips/:id endpoint (TDD)
+- [x] Task 3.5: Add DELETE /trips/:id endpoint (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: DELETE /trips/:id returns 204 for organizers
     - Test: DELETE /trips/:id soft-deletes trip (cancelled=true in DB)

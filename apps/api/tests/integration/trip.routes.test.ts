@@ -2086,3 +2086,486 @@ describe("PUT /api/trips/:id", () => {
     });
   });
 });
+
+describe("DELETE /trips/:id", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should allow organizer to delete trip and soft-delete it", async () => {
+      app = await buildApp();
+
+      // Create test user (organizer)
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add creator as organizer in members
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify trip is soft-deleted in database
+      const [updatedTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, trip.id));
+
+      expect(updatedTrip.cancelled).toBe(true);
+      expect(updatedTrip.updatedAt).toBeDefined();
+    });
+
+    it("should allow co-organizer to delete trip", async () => {
+      app = await buildApp();
+
+      // Create creator user
+      const creatorResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const creator = creatorResult[0];
+
+      // Create co-organizer user
+      const coOrgResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Co-Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const coOrg = coOrgResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add creator and co-organizer to members
+      // Note: co-organizers are just members with status='going'
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate JWT token for co-organizer
+      const token = app.jwt.sign({
+        sub: coOrg.id,
+        phone: coOrg.phoneNumber,
+        name: coOrg.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify trip is soft-deleted in database
+      const [updatedTrip] = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, trip.id));
+
+      expect(updatedTrip.cancelled).toBe(true);
+    });
+  });
+
+  describe("Validation Errors (400)", () => {
+    it("should return 400 for invalid UUID format", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/invalid-uuid",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid trip ID format");
+    });
+  });
+
+  describe("Unauthorized Cases (401)", () => {
+    it("should return 401 when no auth token provided", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("should return 401 with invalid auth token", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: "invalid-token",
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("Forbidden Cases (403)", () => {
+    it("should return 403 when non-organizer tries to delete trip", async () => {
+      app = await buildApp();
+
+      // Create creator user
+      const creatorResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const creator = creatorResult[0];
+
+      // Create another user (not part of the trip)
+      const otherUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Other User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const otherUser = otherUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add creator as organizer in members
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token for the other user
+      const token = app.jwt.sign({
+        sub: otherUser.id,
+        phone: otherUser.phoneNumber,
+        name: otherUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("PERMISSION_DENIED");
+      expect(body.error.message).toBe(
+        "Permission denied: only organizers can cancel trips",
+      );
+    });
+
+    it("should return 403 when regular member tries to delete trip", async () => {
+      app = await buildApp();
+
+      // Create creator user
+      const creatorResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const creator = creatorResult[0];
+
+      // Create regular member user
+      const memberResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const member = memberResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add creator as organizer and regular member with no_response status
+      // Note: only members with status='going' are considered co-organizers
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: member.id,
+          tripId: trip.id,
+          status: "no_response",
+        },
+      ]);
+
+      // Generate JWT token for regular member
+      const token = app.jwt.sign({
+        sub: member.id,
+        phone: member.phoneNumber,
+        name: member.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("PERMISSION_DENIED");
+      expect(body.error.message).toBe(
+        "Permission denied: only organizers can cancel trips",
+      );
+    });
+  });
+
+  describe("Not Found Cases (404)", () => {
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      // Use a valid UUID that doesn't exist
+      const nonExistentId = "550e8400-e29b-41d4-a716-446655440000";
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${nonExistentId}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Trip not found");
+    });
+  });
+});

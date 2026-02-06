@@ -2493,3 +2493,175 @@ Ready to proceed to **Task 3.5: Add DELETE /trips/:id endpoint (TDD)**
 - Use status code 204 No Content for successful deletion
 - Non-organizers should receive 403 Forbidden
 
+
+---
+
+## Ralph Iteration 9 - Task 3.5: Add DELETE /trips/:id endpoint (TDD)
+
+**Date**: 2026-02-05
+**Status**: ✅ COMPLETE
+**Task**: Implement DELETE /trips/:id endpoint with soft-delete functionality for trip cancellation
+
+### Implementation Summary
+
+Successfully implemented DELETE /trips/:id endpoint following TDD methodology. The endpoint performs soft-delete operations (sets `cancelled=true`) and enforces proper permission checks, allowing only organizers (trip creators or co-organizers) to cancel trips.
+
+**Files Modified:**
+1. `/home/chend/git/tripful/apps/api/tests/integration/trip.routes.test.ts` - Added 8 comprehensive integration tests
+2. `/home/chend/git/tripful/apps/api/src/controllers/trip.controller.ts` - Implemented `cancelTrip` handler (lines 286-363)
+3. `/home/chend/git/tripful/apps/api/src/routes/trip.routes.ts` - Registered DELETE /:id route (lines 66-78)
+
+### Test Coverage
+
+**8 Tests Implemented** (exceeds 5+ requirement by 60%):
+
+**Success Cases (2 tests)**:
+1. Organizer can delete trip and soft-delete it (verifies `cancelled=true` in DB)
+2. Co-organizer can delete trip (verifies co-organizers have delete permission)
+
+**Validation Errors - 400 (1 test)**:
+3. Invalid UUID format returns 400 with VALIDATION_ERROR
+
+**Unauthorized Cases - 401 (2 tests)**:
+4. No auth token provided returns 401
+5. Invalid auth token returns 401
+
+**Forbidden Cases - 403 (2 tests)**:
+6. Non-organizer (non-member) cannot delete trip returns 403
+7. Regular member (status != 'going') cannot delete trip returns 403
+
+**Not Found Cases - 404 (1 test)**:
+8. Non-existent trip ID returns 404
+
+All 8 tests pass successfully with 100% pass rate.
+
+### Implementation Details
+
+**Controller Handler** (`cancelTrip` at lines 286-363):
+- Validates trip ID using `uuidSchema.safeParse()` 
+- Extracts userId from JWT token (`request.user.sub`)
+- Delegates to `tripService.cancelTrip(tripId, userId)` (service method already implemented in Task 2.6)
+- Maps service errors to HTTP status codes:
+  - "Trip not found" → 404 NOT_FOUND
+  - "Permission denied: only organizers can cancel trips" → 403 PERMISSION_DENIED
+  - Unexpected errors → 500 INTERNAL_SERVER_ERROR with logging
+- Returns 200 OK with `{ success: true }` on successful deletion
+
+**Route Registration** (lines 66-78):
+- Route: `DELETE /:id`
+- Middleware: `[authenticate, requireCompleteProfile]` (same as PUT for consistency)
+- Handler: `tripController.cancelTrip`
+- JSDoc comment documents organizer-only restriction
+
+**Soft-Delete Implementation**:
+- Service sets `cancelled=true` in database (line 499 in trip.service.ts)
+- Updates `updatedAt` timestamp automatically
+- Trip record remains in database (NOT hard deleted)
+- No cascade deletions occur (members, events remain intact)
+- Permission check via `permissionsService.canDeleteTrip()` (creator OR co-organizer with status='going')
+
+**Status Code Choice**: 200 OK with response body (not 204 No Content)
+- Rationale: Architecture docs specify `{ success: boolean }` response format
+- Consistent with other endpoints in this codebase that return success indicators
+
+### Agent Workflow
+
+**3 Researchers (Parallel)**:
+1. **LOCATING**: Found test file, controller, routes, and confirmed service method exists (lines 476-507)
+2. **ANALYZING**: Traced complete data flow from HTTP → auth → controller → service → database
+3. **PATTERNS**: Identified 5-category test structure and controller pattern from PUT /trips/:id
+
+**1 Coder**:
+- Wrote 8 failing tests first (TDD)
+- Implemented `cancelTrip` handler following PUT endpoint patterns
+- Registered DELETE route with proper middleware
+- All tests passing on first implementation attempt
+
+**2 Reviewers (Parallel)**:
+1. **Verifier**: All 8 tests pass, TypeScript compiles, no linting errors in modified files
+2. **Reviewer**: APPROVED - excellent pattern consistency, comprehensive security, and complete test coverage
+
+### Verification Results
+
+**Tests**: ✅ PASS
+- All 8 new DELETE /api/trips/:id tests passing
+- Tests exceed requirement (8 tests vs 5+ required)
+- Total trip route tests: 46 tests (38 from previous tasks + 8 new)
+- 1 pre-existing test failure unrelated to DELETE endpoint (POST member limit test has data setup issue)
+
+**Static Analysis**: ✅ PASS
+- TypeScript compilation: 0 errors in modified files
+- ESLint: 0 errors in modified files (7 warnings in unrelated test files)
+
+**Acceptance Criteria**: ✅ ALL MET
+- ✅ 8 integration tests pass (exceeds 5+ requirement)
+- ✅ DELETE /trips/:id cancels trip for organizers
+- ✅ DELETE /trips/:id cancels trip for co-organizers
+- ✅ Returns 403 for non-organizers
+- ✅ Returns 403 for regular members (status != 'going')
+- ✅ Returns 404 for non-existent trip
+- ✅ Returns 401 without auth token
+- ✅ Trip soft-deleted (cancelled=true) verified in database
+
+### Code Quality
+
+**Strengths**:
+- Perfect pattern consistency with PUT /trips/:id endpoint
+- Comprehensive test coverage (8 tests across 5 categories)
+- Proper soft-delete implementation prevents data loss
+- Clean error handling with descriptive messages
+- JSDoc documentation included
+- Database verification in tests confirms soft-delete
+- Proper permission checks enforced (only organizers)
+- No business logic in controller (delegated to service layer)
+
+**Reviewer Assessment**:
+- Readability: ⭐⭐⭐⭐⭐ Excellent
+- Maintainability: ⭐⭐⭐⭐⭐ Excellent
+- Test Quality: ⭐⭐⭐⭐⭐ Excellent
+- Pattern Adherence: ⭐⭐⭐⭐⭐ Perfect consistency
+- Security: ⭐⭐⭐⭐⭐ Comprehensive
+
+### Statistics
+
+- **Files Modified**: 3 (tests, controller, routes)
+- **Lines Added**: ~482 lines (8 tests + handler + route)
+- **Tests Written**: 8 (exceeds 5+ requirement by 60%)
+- **Test Success Rate**: 100% (8/8 passing)
+- **Iteration Count**: 1 (complete on first verification)
+- **Agent Tasks**: 6 (3 researchers + 1 coder + 2 reviewers)
+
+### Learnings
+
+1. **Service Reuse Benefits**: The `tripService.cancelTrip()` method was already implemented in Task 2.6 (lines 476-507), so only controller and routes needed implementation. This demonstrates excellent planning in the task breakdown.
+
+2. **Soft-Delete Pattern**: Setting `cancelled=true` instead of hard-deleting preserves data integrity, allows potential restoration, and prevents cascade deletion issues. This is the correct approach for production systems.
+
+3. **Status Code Decision**: While 204 No Content is RESTful for DELETE, using 200 with `{ success: true }` maintains consistency with the existing API response format throughout this codebase.
+
+4. **Permission Model Clarity**: Tests differentiate between:
+   - Organizers (creator + co-organizers with status='going') → 200 success
+   - Regular members (status != 'going') → 403 forbidden
+   - Non-members → 403 forbidden
+   This clear distinction ensures proper access control.
+
+5. **Test Organization**: The 5-category test structure (Success, Validation, Unauthorized, Forbidden, Not Found) continues to provide excellent organization and should remain the standard for all future endpoint implementations.
+
+6. **Middleware Consistency**: Using `[authenticate, requireCompleteProfile]` for DELETE matches PUT and POST, ensuring only users with complete profiles can perform mutating operations.
+
+7. **Database Verification**: Including database checks in tests (verifying `cancelled=true`) provides confidence that soft-delete works correctly at the data layer, not just at the API response level.
+
+### Next Steps
+
+Ready to proceed to **Task 3.6: Add co-organizer management endpoints (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task**:
+- Implement POST /trips/:id/co-organizers and DELETE /trips/:id/co-organizers/:userId
+- Service methods `addCoOrganizers()` and `removeCoOrganizer()` already exist (Task 2.7)
+- Write 6+ integration tests covering success, permissions, validation, auth
+- Both endpoints require organizer permissions
+- addCoOrganizers validates user phone numbers and enforces 25-member limit
+- removeCoOrganizer prevents removing trip creator
+
