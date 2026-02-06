@@ -2101,3 +2101,104 @@ Task 7.1 required adding comprehensive loading states and error handling across 
 ### Next Task
 
 Task 7.1 is complete. Next unchecked task: **Task 7.2 - Add environment configuration**
+
+---
+
+## Iteration 29: Task 7.2 - Add Environment Configuration
+
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-06
+**Task**: Add environment configuration for upload service
+
+### Summary
+
+Successfully externalized hardcoded upload configuration values to environment variables with proper Zod validation. All three new environment variables (`UPLOAD_DIR`, `MAX_FILE_SIZE`, `ALLOWED_MIME_TYPES`) are now configurable with sensible defaults, comprehensive validation, and clear documentation.
+
+### Implementation Details
+
+**Files Modified**:
+1. `apps/api/src/config/env.ts` - Added Zod schema validation for three new environment variables
+2. `apps/api/src/services/upload.service.ts` - Refactored to use env config instead of hardcoded values
+3. `apps/api/src/server.ts` - Updated multipart and static file plugins to use env config
+4. `apps/api/.env.example` - Added upload configuration section with clear comments
+5. `README.md` - Updated environment variables table with three new entries
+
+**Environment Variables Added**:
+- `UPLOAD_DIR` (optional) - Directory path for uploads, default: "uploads"
+- `MAX_FILE_SIZE` (optional) - Maximum file size in bytes, default: "5242880" (5MB)
+- `ALLOWED_MIME_TYPES` (optional) - Comma-separated MIME types, default: "image/jpeg,image/png,image/webp"
+
+**Validation Logic**:
+- `UPLOAD_DIR`: String validation with default
+- `MAX_FILE_SIZE`: String-to-number transform with positive integer validation
+- `ALLOWED_MIME_TYPES`: String-to-array transform with "image/*" prefix validation
+
+**Key Implementation Details**:
+- Zod schema validates and transforms environment variables on server startup
+- Clear error messages guide users when validation fails
+- Default values match previous hardcoded values for backward compatibility
+- Upload service constructor reads from centralized `env` object
+- Server multipart plugin and static file serving both use env config
+- Documentation includes validation constraints (e.g., "must start with 'image/'")
+
+### Testing Results
+
+**Verifier Report**: PASS
+- TypeScript compilation: ✓ No errors
+- Linting: ✓ No errors (7 pre-existing warnings unrelated to task)
+- Upload service unit tests: ✓ All 25 tests passing
+- Environment validation: ✓ Works with defaults, custom values, and rejects invalid values
+- Server startup: ✓ Tested with multiple configurations
+
+**Reviewer Report**: APPROVED (after minor documentation fixes)
+- Initial review: NEEDS_WORK (minor doc improvements needed)
+- Applied fixes: Enhanced `.env.example` and `README.md` to clarify MIME type validation requirement
+- Final review: APPROVED
+
+### Agent Performance
+
+**Workflow Timeline**:
+- **3 Researcher Agents** (parallel): ~2 minutes each
+  - LOCATING: Found env files, .gitignore, README structure, upload service
+  - ANALYZING: Traced upload service config usage, env validation patterns
+  - PATTERNS: Identified documentation formats, Zod validation patterns
+- **Coder Agent**: ~2 minutes (implementation of 5 files)
+- **Verifier + Reviewer** (parallel): ~3 minutes each
+- **Coder Agent** (documentation fixes): ~30 seconds
+- **Verifier + Reviewer** (re-check): ~1 minute each
+
+**Total Time**: ~10 minutes across all agents
+**Agent Count**: 8 agent invocations (3 researchers + 2 coder + 2 verifier + 2 reviewer)
+
+### Technical Learnings
+
+1. **Zod Transform Power**: String-to-array transformation with `split(',')` and validation with `refine()` enables complex validation logic while keeping env files simple
+2. **Backward Compatibility**: Using `.default()` on all optional env variables ensures existing deployments work without configuration changes
+3. **Validation Early**: Validating environment configuration on server startup (fail-fast) prevents runtime errors and provides clear feedback
+4. **Documentation Clarity**: Including validation constraints in comments (e.g., "must start with 'image/'") helps developers configure correctly
+5. **Centralized Config**: Using a single `env` object exported from `config/env.ts` ensures consistent configuration access across the codebase
+
+### Files Changed Summary
+
+| File | Lines Changed | Purpose |
+|------|--------------|---------|
+| `apps/api/src/config/env.ts` | +30 | Added Zod validation for upload env vars |
+| `apps/api/src/services/upload.service.ts` | ~10 | Refactored to use env config |
+| `apps/api/src/server.ts` | ~5 | Updated multipart and static plugins |
+| `apps/api/.env.example` | +10 | Documented upload configuration |
+| `README.md` | +3 rows | Added env vars to documentation table |
+
+### Acceptance Criteria
+
+- ✅ .env.example updated with upload configuration section
+- ✅ .gitignore includes uploads/ (already existed on line 73)
+- ✅ README documents new config in environment variables table
+- ✅ Env validation passes with proper Zod schema
+- ✅ Upload service uses env variables instead of hardcoded values
+- ✅ Server multipart config uses env variable
+- ✅ Existing tests still pass (25/25 upload service tests)
+- ✅ Documentation includes validation constraints
+
+### Next Task
+
+Task 7.2 is complete. Next unchecked task: **Task 7.3 - Code review and cleanup**

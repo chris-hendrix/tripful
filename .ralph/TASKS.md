@@ -689,7 +689,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 7.2: Add environment configuration
+- [x] Task 7.2: Add environment configuration
   - Add UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_MIME_TYPES to .env.example
   - Update README with new env vars
   - Add uploads/ to .gitignore

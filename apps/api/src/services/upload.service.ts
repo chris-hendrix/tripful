@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { env } from "../config/env.js";
 
 /**
  * Upload Service Interface
@@ -48,12 +49,8 @@ export interface IUploadService {
  */
 export class UploadService implements IUploadService {
   private readonly uploadsDir: string;
-  private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  private readonly ALLOWED_MIME_TYPES = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ];
+  private readonly MAX_FILE_SIZE: number;
+  private readonly ALLOWED_MIME_TYPES: string[];
   private readonly MIME_TO_EXT: Record<string, string> = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -61,7 +58,9 @@ export class UploadService implements IUploadService {
   };
 
   constructor() {
-    this.uploadsDir = resolve(process.cwd(), "uploads");
+    this.uploadsDir = resolve(process.cwd(), env.UPLOAD_DIR);
+    this.MAX_FILE_SIZE = env.MAX_FILE_SIZE;
+    this.ALLOWED_MIME_TYPES = env.ALLOWED_MIME_TYPES;
     this.ensureUploadsDirExists();
   }
 

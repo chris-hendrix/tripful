@@ -70,14 +70,14 @@ await fastify.register(rateLimit, {
 // Register multipart plugin (for file uploads)
 await fastify.register(multipart, {
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: env.MAX_FILE_SIZE,
     files: 1,
   },
 });
 
 // Register static file serving plugin (for uploaded images)
 await fastify.register(fastifyStatic, {
-  root: resolve(process.cwd(), "uploads"),
+  root: resolve(process.cwd(), env.UPLOAD_DIR),
   prefix: "/uploads/",
   decorateReply: false,
 });

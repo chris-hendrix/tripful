@@ -40,6 +40,23 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+
+  // File Upload Configuration
+  UPLOAD_DIR: z.string().default("uploads"),
+  MAX_FILE_SIZE: z
+    .string()
+    .regex(/^\d+$/, "MAX_FILE_SIZE must be a number")
+    .transform(Number)
+    .refine((n) => n > 0, "MAX_FILE_SIZE must be positive")
+    .default("5242880"),
+  ALLOWED_MIME_TYPES: z
+    .string()
+    .transform((val) => val.split(",").map((type) => type.trim()))
+    .refine(
+      (types) => types.every((type) => type.startsWith("image/")),
+      "All ALLOWED_MIME_TYPES must start with 'image/'",
+    )
+    .default("image/jpeg,image/png,image/webp"),
 });
 
 export type Env = z.infer<typeof envSchema>;

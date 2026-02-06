@@ -445,16 +445,19 @@ See [scripts/README.md](scripts/README.md) for detailed documentation on each te
 
 The API requires the following environment variables:
 
-| Variable            | Description                      | Default                   | Required |
-| ------------------- | -------------------------------- | ------------------------- | -------- |
-| `NODE_ENV`          | Environment mode                 | `development`             | Yes      |
-| `PORT`              | API server port                  | `8000`                    | Yes      |
-| `HOST`              | Server host binding              | `0.0.0.0`                 | Yes      |
-| `DATABASE_URL`      | PostgreSQL connection string     | See below                 | Yes      |
-| `TEST_DATABASE_URL` | Test database connection string  | See below                 | No       |
-| `JWT_SECRET`        | Secret key for JWT token signing | Must change in production | Yes      |
-| `FRONTEND_URL`      | Frontend URL for CORS            | `http://localhost:3000`   | Yes      |
-| `LOG_LEVEL`         | Logging verbosity                | `info`                    | No       |
+| Variable              | Description                        | Default                       | Required |
+| --------------------- | ---------------------------------- | ----------------------------- | -------- |
+| `NODE_ENV`            | Environment mode                   | `development`                 | Yes      |
+| `PORT`                | API server port                    | `8000`                        | Yes      |
+| `HOST`                | Server host binding                | `0.0.0.0`                     | Yes      |
+| `DATABASE_URL`        | PostgreSQL connection string       | See below                     | Yes      |
+| `TEST_DATABASE_URL`   | Test database connection string    | See below                     | No       |
+| `JWT_SECRET`          | Secret key for JWT token signing   | Must change in production     | Yes      |
+| `FRONTEND_URL`        | Frontend URL for CORS              | `http://localhost:3000`       | Yes      |
+| `LOG_LEVEL`           | Logging verbosity                  | `info`                        | No       |
+| `UPLOAD_DIR`          | Directory for uploaded files       | `uploads`                     | No       |
+| `MAX_FILE_SIZE`       | Maximum upload file size in bytes  | `5242880` (5MB)               | No       |
+| `ALLOWED_MIME_TYPES`  | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
 
 **Database URL Format**:
 
