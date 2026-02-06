@@ -1,7 +1,7 @@
-import type { FastifyRequest, FastifyReply } from 'fastify';
-import { db } from '@/config/database.js';
-import { users } from '@/db/schema/index.js';
-import { eq } from 'drizzle-orm';
+import type { FastifyRequest, FastifyReply } from "fastify";
+import { db } from "@/config/database.js";
+import { users } from "@/db/schema/index.js";
+import { eq } from "drizzle-orm";
 
 /**
  * Authentication middleware that verifies JWT token and populates request.user
@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm';
  */
 export async function authenticate(
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): Promise<void> {
   try {
     // Verify JWT token and populate request.user with JWTPayload
@@ -21,8 +21,8 @@ export async function authenticate(
     return reply.status(401).send({
       success: false,
       error: {
-        code: 'UNAUTHORIZED',
-        message: 'Invalid or expired token',
+        code: "UNAUTHORIZED",
+        message: "Invalid or expired token",
       },
     });
   }
@@ -35,15 +35,15 @@ export async function authenticate(
  */
 export async function requireCompleteProfile(
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): Promise<void> {
   // Check if user is authenticated (authenticate middleware should run first)
   if (!request.user) {
     return reply.status(401).send({
       success: false,
       error: {
-        code: 'UNAUTHORIZED',
-        message: 'Authentication required',
+        code: "UNAUTHORIZED",
+        message: "Authentication required",
       },
     });
   }
@@ -62,19 +62,19 @@ export async function requireCompleteProfile(
     return reply.status(401).send({
       success: false,
       error: {
-        code: 'UNAUTHORIZED',
-        message: 'User not found',
+        code: "UNAUTHORIZED",
+        message: "User not found",
       },
     });
   }
 
   // Check if profile is complete (displayName must exist and not be empty)
-  if (!user.displayName || user.displayName.trim() === '') {
+  if (!user.displayName || user.displayName.trim() === "") {
     return reply.status(403).send({
       success: false,
       error: {
-        code: 'PROFILE_INCOMPLETE',
-        message: 'Profile setup required. Please complete your profile.',
+        code: "PROFILE_INCOMPLETE",
+        message: "Profile setup required. Please complete your profile.",
       },
     });
   }

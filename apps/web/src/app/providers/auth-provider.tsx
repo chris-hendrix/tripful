@@ -1,17 +1,29 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import type { User } from '@tripful/shared';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@tripful/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (phoneNumber: string) => Promise<void>;
-  verify: (phoneNumber: string, code: string) => Promise<{ requiresProfile: boolean }>;
-  completeProfile: (data: { displayName: string; timezone?: string }) => Promise<void>;
+  verify: (
+    phoneNumber: string,
+    code: string,
+  ) => Promise<{ requiresProfile: boolean }>;
+  completeProfile: (data: {
+    displayName: string;
+    timezone?: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
 }
@@ -31,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchUser() {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
-        credentials: 'include',
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -49,28 +61,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(phoneNumber: string) {
     const response = await fetch(`${API_URL}/auth/request-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phoneNumber }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Request failed');
+      throw new Error(errorData.error?.message || "Request failed");
     }
   }
 
   async function verify(phoneNumber: string, code: string) {
     const response = await fetch(`${API_URL}/auth/verify-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ phoneNumber, code }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Request failed');
+      throw new Error(errorData.error?.message || "Request failed");
     }
 
     const data = await response.json();
@@ -82,17 +94,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { requiresProfile: data.requiresProfile };
   }
 
-  async function completeProfile(profileData: { displayName: string; timezone?: string }) {
+  async function completeProfile(profileData: {
+    displayName: string;
+    timezone?: string;
+  }) {
     const response = await fetch(`${API_URL}/auth/complete-profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(profileData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Request failed');
+      throw new Error(errorData.error?.message || "Request failed");
     }
 
     const data = await response.json();
@@ -101,12 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     await fetch(`${API_URL}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
     });
 
     setUser(null);
-    router.push('/login');
+    router.push("/login");
   }
 
   return (
@@ -129,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 }

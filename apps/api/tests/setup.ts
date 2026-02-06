@@ -1,10 +1,10 @@
-import { beforeAll, afterAll } from 'vitest';
-import { Pool } from 'pg';
-import { config } from 'dotenv';
+import { beforeAll, afterAll } from "vitest";
+import { Pool } from "pg";
+import { config } from "dotenv";
 
 // Load test environment variables
 // Vitest automatically sets NODE_ENV='test'
-config({ path: '.env' });
+config({ path: ".env" });
 
 // Use main database for tests
 // Tests use unique phone numbers (generateUniquePhone) to prevent conflicts
@@ -16,10 +16,10 @@ const testPool = new Pool({
 beforeAll(async () => {
   // Test database connection
   try {
-    await testPool.query('SELECT 1');
-    console.log('✓ Test database connected');
+    await testPool.query("SELECT 1");
+    console.log("✓ Test database connected");
   } catch (error) {
-    console.error('✗ Test database connection failed:', error);
+    console.error("✗ Test database connection failed:", error);
     throw error;
   }
 });
@@ -27,7 +27,7 @@ beforeAll(async () => {
 afterAll(async () => {
   // Clean up connections
   await testPool.end();
-  console.log('✓ Test database connection closed');
+  console.log("✓ Test database connection closed");
 });
 
 // Export for use in tests

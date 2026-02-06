@@ -25,13 +25,13 @@ A collaborative trip planning platform that makes group travel itineraries simpl
 
 ## Terminology
 
-| Term | Definition |
-|------|-----------|
-| **Trip** | The overall group travel plan (equivalent to "Event" in Partiful) |
-| **Event** | Individual items in the trip itinerary (flights, dinners, activities, etc.) |
-| **Organizer** | Trip creator and co-organizers (equivalent to "Host" in Partiful) |
-| **Member** | People invited to/attending the trip (equivalent to "Guest" in Partiful) |
-| **Member Travel** | Individual member arrivals and departures to/from the trip location |
+| Term              | Definition                                                                  |
+| ----------------- | --------------------------------------------------------------------------- |
+| **Trip**          | The overall group travel plan (equivalent to "Event" in Partiful)           |
+| **Event**         | Individual items in the trip itinerary (flights, dinners, activities, etc.) |
+| **Organizer**     | Trip creator and co-organizers (equivalent to "Host" in Partiful)           |
+| **Member**        | People invited to/attending the trip (equivalent to "Guest" in Partiful)    |
+| **Member Travel** | Individual member arrivals and departures to/from the trip location         |
 
 ## Design Considerations
 
@@ -46,6 +46,7 @@ Trips often involve multiple destinations (e.g., "Paris → Amsterdam → London
 - Each event's individual `location` field shows where that specific activity takes place
 
 **Example**: A bachelor party road trip
+
 - Trip destination: "Florida Keys"
 - Day 1: Flight to Miami (location: "JFK → MIA")
 - Day 1: Dinner in Miami (location: "Miami Beach")
@@ -55,6 +56,7 @@ Trips often involve multiple destinations (e.g., "Paris → Amsterdam → London
 - Day 4: Flight home (location: "MIA → JFK")
 
 This approach:
+
 - Works for any trip type (multi-city, road trips, cruises)
 - Doesn't require complex trip segmentation
 - Leverages existing event types and fields
@@ -63,6 +65,7 @@ This approach:
 ## Core User Flows
 
 ### 1. User Registration & Authentication
+
 - User selects country code from dropdown (defaults to US +1)
 - User enters phone number
 - Receives SMS verification code
@@ -71,6 +74,7 @@ This approach:
 - Account created and authenticated
 
 ### 2. Trip Creation
+
 - User clicks "Create Trip"
 - Enters trip details:
   - Trip name (required)
@@ -84,12 +88,14 @@ This approach:
 - Creator can send invites via SMS to phone numbers
 
 ### 3. Trip Invitation
+
 - Organizer enters phone numbers of invitees
 - System sends SMS with trip link and preview
 - Invitees receive text: "[Organizer] invited you to [Trip]! [Link]"
 - Recipients can also receive link via share functionality
 
 ### 4. Member RSVP & Preview
+
 - Invited member clicks trip link (format: `/t/{uuid}`)
 - System verifies user's phone number is in Invitation table
 - If not invited, shows "Trip not found" or "You haven't been invited to this trip"
@@ -110,6 +116,7 @@ This approach:
 - **Only "Going" members can add events to itinerary**
 
 ### 5. Viewing Trip Itinerary
+
 - Accepted members (Going status) view full trip itinerary
 - When selecting times for events, user chooses timezone display:
   - **Trip's preferred timezone** (default): All dates/times shown in the trip's preferred timezone
@@ -134,6 +141,7 @@ This approach:
   - "Member no longer attending" indicator (if creator has changed RSVP to Not Going/Maybe)
 
 ### 6. Adding Accommodation
+
 - **Only organizers** can add accommodations
 - Organizer clicks "Add Accommodation"
 - Enters accommodation details:
@@ -148,6 +156,7 @@ This approach:
 - Accommodations appear in a compact, expandable section at the top of each day
 
 ### 7. Adding Member Travel (Individual Arrivals & Departures)
+
 - **Members** can add their own arrival/departure times
 - **Organizers** can add member travel for any member
 - Member clicks "Add Member Travel" or "Add My Travel Dates"
@@ -180,6 +189,7 @@ This approach:
 **Note**: The member travel form accommodates various modes (flights, buses, trains, driving). Not all fields need to be filled - e.g., for driving, only departure/arrival locations may be relevant.
 
 ### 8. Adding Events to Itinerary
+
 - **Permission required**: Must have "Going" status AND trip setting "Allow members to add events" must be enabled
 - If setting is disabled, only organizers can add events
 - Members click "Add Event"
@@ -203,6 +213,7 @@ This approach:
 - Event creator is displayed on the event
 
 ### 9. Editing & Deleting
+
 - **Accommodations**: Only organizers can edit or delete
 - **Member Travel**: Members can edit/delete their own; organizers can edit/delete any
 - **Events**: Event creator can edit or delete their own events; organizers can edit, delete, or restore any event (including events from members who left)
@@ -214,6 +225,7 @@ This approach:
 - Organizers can restore deleted items from "Deleted Items" section at any time
 
 ### 10. Trip Management
+
 - Organizers view member list with RSVP statuses
 - Organizers can edit trip details (including timezone)
 - Organizers can toggle "Allow members to add events" setting (default: enabled)
@@ -225,6 +237,7 @@ This approach:
 - Organizers can cancel trip (notifies all members)
 
 ### 11. Member Experience
+
 - Members view upcoming trips they're invited to
 - Members see trips they've RSVP'd "Going" to with full itinerary
 - Members can update their RSVP status
@@ -234,6 +247,7 @@ This approach:
 - Members can choose to view all dates/times in trip's preferred timezone or their local timezone
 
 ### 12. Member Status Changes
+
 - When a member changes from "Going" to "Maybe" or "Not Going":
   - Their events remain in the itinerary
   - Events show "Member no longer attending" indicator next to creator name
@@ -248,6 +262,7 @@ This approach:
 ## Acceptance Criteria
 
 ### AC1: User Authentication
+
 **Given** a new user wants to create an account
 **When** they enter their phone number and verify via SMS code
 **Then** they should be authenticated and able to create trips
@@ -265,17 +280,19 @@ This approach:
 **Then** they should see an error message "Invalid code. Please try again" and be able to request a new code
 
 ### AC2: Trip Creation
+
 **Given** an authenticated user wants to create a trip
 **When** they complete the trip form with:
+
 - Trip name (3-100 characters)
 - Destination (required)
 - Optional date range (start and end dates)
 - Preferred timezone (defaults to user's local timezone, can be changed)
 - Optional description (max 2000 characters, with line breaks preserved)
 - Optional cover image (max 5MB, JPG/PNG/WEBP)
-**Then** the trip should be created with a unique shareable link
-**And** the user should be set as the trip organizer
-**And** all dates and times for this trip should be stored in UTC
+  **Then** the trip should be created with a unique shareable link
+  **And** the user should be set as the trip organizer
+  **And** all dates and times for this trip should be stored in UTC
 
 **Given** an organizer is creating a trip
 **When** they add co-organizer phone numbers
@@ -290,6 +307,7 @@ This approach:
 **Then** they should see an error "Image must be under 5MB. Please choose a smaller file."
 
 ### AC3: Trip Invitation
+
 **Given** an organizer has created a trip
 **When** they enter member phone numbers and send invitations
 **Then** each invitee should receive an SMS with trip details and link
@@ -310,9 +328,11 @@ This approach:
 **And** the invitation should be marked as failed (can be resent)
 
 ### AC4: Partial Preview for Invited Members
+
 **Given** an invited member views a trip they haven't RSVP'd to
 **When** they access the trip page
 **Then** they should see:
+
 - Trip name
 - Destination
 - Date range (if set, displayed in trip's preferred timezone)
@@ -322,11 +342,13 @@ This approach:
 - RSVP buttons
 
 **And** they should NOT see:
+
 - The itinerary events list
 - Event details
 - Member list
 
 ### AC5: Member RSVP Management
+
 **Given** an authenticated user views a trip they're invited to
 **When** they select "Going", "Not Going", or "Maybe"
 **Then** their RSVP status should be saved and visible to the organizer
@@ -355,17 +377,19 @@ This approach:
 **And** they should be able to edit their existing events again
 
 ### AC6: Adding Accommodations
+
 **Given** an organizer wants to add accommodation
 **When** they add an accommodation with:
+
 - Name (3-200 characters)
 - Address (optional, max 500 characters)
 - Check-in date (required)
 - Check-out date (optional)
 - Description (optional, max 2000 characters)
 - Links (optional, max 10 URLs)
-**Then** the accommodation should be added to the trip
-**And** all accepted members should see it in the day-by-day view
-**And** the accommodation should appear in a compact section on relevant days
+  **Then** the accommodation should be added to the trip
+  **And** all accepted members should see it in the day-by-day view
+  **And** the accommodation should appear in a compact section on relevant days
 
 **Given** a non-organizer tries to add accommodation
 **When** they attempt to access the add accommodation form
@@ -386,6 +410,7 @@ This approach:
 **Then** they should see an error "Maximum 10 accommodations per trip reached."
 
 ### AC7: Adding Member Travel (Individual Arrivals & Departures)
+
 **Given** a member has RSVP'd "Going" to a trip
 **When** they access the add member travel form
 **Then** the "Who is traveling" field should default to themselves
@@ -398,6 +423,7 @@ This approach:
 **And** see helper text "As organizer, you can add member travel for any member"
 
 **Given** a member adds their member travel with:
+
 - Type (Arrival or Departure)
 - Who is traveling (defaults to self)
 - Date (required)
@@ -406,9 +432,9 @@ This approach:
 - Travel method (optional, max 200 characters) - e.g., "AA 2451", "Greyhound", "Driving"
 - Details (optional, max 500 characters) - gate, confirmation, notes
 - Links (optional, max 5 URLs)
-**Then** the member travel should be added to the trip
-**And** all accepted members should see it in the arrivals/departures section
-**And** it should appear in a compact, expandable format
+  **Then** the member travel should be added to the trip
+  **And** all accepted members should see it in the arrivals/departures section
+  **And** it should appear in a compact, expandable format
 
 **Given** an organizer adds member travel for another member
 **When** they select the member and add member travel details
@@ -441,9 +467,11 @@ This approach:
 **Then** they should see validation error "Departure time is required for departures"
 
 ### AC8: Adding Events to Itinerary
+
 **Given** a member has RSVP'd "Going" to a trip
 **And** the trip setting "Allow members to add events" is enabled
 **When** they add an event to the itinerary with:
+
 - Type (Travel/Meal/Activity)
   - Travel = group transportation during trip (e.g., "Drive to Key West")
   - Meal = dining reservations, group meals
@@ -457,9 +485,9 @@ This approach:
 - Optional description (max 2000 characters)
 - Optional links (max 10 URLs)
 - Optional "Optional" flag to mark as skippable
-**Then** the event should be added to the trip itinerary
-**And** all accepted members should see the new event
-**And** the event should show who created it
+  **Then** the event should be added to the trip itinerary
+  **And** all accepted members should see the new event
+  **And** the event should show who created it
 
 **Given** a member has RSVP'd "Maybe" or "Not Going"
 **When** they try to add an event
@@ -511,6 +539,7 @@ This approach:
 **Then** they should see an error "Maximum 50 events per trip reached. Please consolidate or remove old events."
 
 ### AC9: Permissions
+
 **Given** an organizer views any accommodation
 **When** they access the accommodation options
 **Then** they should be able to edit or delete it
@@ -554,9 +583,11 @@ This approach:
 **Then** they should see a "Restore" option to bring it back to the itinerary
 
 ### AC10: Itinerary View Modes
+
 **Given** an accepted member views a trip itinerary
 **When** the page loads (default view)
 **Then** the itinerary should be displayed in **day-by-day grouping**:
+
 - Each day shows compact sections at the top:
   - Accommodation (if applicable for that day)
   - Arrivals (if any members arriving)
@@ -579,6 +610,7 @@ This approach:
 **Given** a member is viewing the day-by-day itinerary
 **When** they toggle to "Group by type" view
 **Then** items should be reorganized by type:
+
 - All Accommodations together
 - All Travel events together (group transportation only)
 - All Meal events together
@@ -598,13 +630,16 @@ This approach:
 **And** timezone indicator should show "Showing times in trip's preferred timezone (EST)" or similar
 
 ### AC11: Trip Dashboard
+
 **Given** an authenticated user accesses their dashboard
 **When** the page loads
 **Then** they should see two sections:
+
 - **Upcoming Trips**: All future trips (organizing or Going status) sorted by date
 - **Past Trips**: All trips that have ended, sorted by date (most recent first)
 
 **And** each trip card should display:
+
 - Cover image (if uploaded)
 - Trip name
 - Destination
@@ -616,9 +651,11 @@ This approach:
 - Click to view trip details
 
 ### AC12: Trip Management
+
 **Given** an organizer views their trip
 **When** they access the trip management page
 **Then** they should see:
+
 - Full member list with RSVP statuses (Going/Not Going/Maybe/No Response)
 - Total counts for each RSVP type
 - Options to edit trip details (name, destination, dates, timezone, description)
@@ -643,6 +680,7 @@ This approach:
 **Then** they should see an error "Cannot remove the last organizer. Please add a co-organizer first or cancel the trip."
 
 ### AC13: Trip Updates & Cancellation
+
 **Given** an organizer updates trip details (dates, destination, description, timezone)
 **When** they save the changes
 **Then** all invited members should receive a notification of the update
@@ -664,9 +702,11 @@ This approach:
 **And** changes should not be lost (remain in the form)
 
 ### AC14: Display Details
+
 **Given** a member views an accommodation in collapsed state
 **When** displayed in the itinerary
 **Then** they should see:
+
 - Hotel/accommodation name
 - Multi-day indicator (if check-out date is set)
 - Expand icon
@@ -674,6 +714,7 @@ This approach:
 **Given** a member expands an accommodation
 **When** the accommodation details are shown
 **Then** they should see:
+
 - Description with line breaks preserved
 - Address as a clickable Google Maps link with location icon (if provided)
 - Links as clickable URLs (if provided)
@@ -683,6 +724,7 @@ This approach:
 **Given** a member views arrivals or departures in collapsed state
 **When** displayed in the itinerary
 **Then** they should see in a single line:
+
 - Icon (🛬 for arrival, 🛫 for departure)
 - Member name
 - Time
@@ -692,6 +734,7 @@ This approach:
 **Given** a member expands arrival/departure
 **When** the travel details are shown
 **Then** they should see:
+
 - Full flight/travel details with line breaks preserved
 - Links as clickable URLs (if provided)
 - Creator name and profile picture ("Added by [name]")
@@ -700,6 +743,7 @@ This approach:
 **Given** a member views an event in the itinerary
 **When** the event is displayed (collapsed view)
 **Then** they should see:
+
 - Type badge with color coding (Travel/Meal/Activity)
 - Event title
 - Date and time in selected timezone (or "All day")
@@ -710,6 +754,7 @@ This approach:
 **Given** a member expands an event in the itinerary
 **When** the event details are shown
 **Then** they should additionally see:
+
 - Duration display for multi-day events (e.g., "Oct 10-12")
 - Description with line breaks preserved
 - Links as clickable URLs (if provided, max 10 displayed)
@@ -718,6 +763,7 @@ This approach:
 - Edit button (if permitted)
 
 ### AC15: Trip Privacy & Access
+
 **Given** an organizer has created a trip
 **When** they access the trip details
 **Then** they should see the trip URL in format `/t/{uuid}`
@@ -736,6 +782,7 @@ This approach:
 ## Data Validation Requirements
 
 ### Trip Constraints
+
 - Trip name: 3-100 characters
 - Destination: Required, max 500 characters
 - Description: Max 2000 characters
@@ -747,6 +794,7 @@ This approach:
 - Trip preferred timezone: Must be a valid IANA timezone identifier
 
 ### Accommodation Constraints
+
 - Name: 3-200 characters
 - Address: Max 500 characters
 - Description: Max 2000 characters
@@ -755,6 +803,7 @@ This approach:
 - Check-out date: Optional, must be >= check-in date if provided
 
 ### Member Travel Constraints
+
 - Date: Required
 - Departing from: Max 200 characters
 - Departure time: Optional for arrivals; required for departures
@@ -766,6 +815,7 @@ This approach:
 - Must belong to a valid trip member
 
 ### Event Constraints
+
 - Event title: 3-200 characters
 - Event description: Max 2000 characters
 - Event location: Max 500 characters
@@ -779,17 +829,20 @@ This approach:
 - Event type: Must be one of: travel, meal, activity
 
 ### User Constraints
+
 - Display name: 3-50 characters
 - Phone number: Must be valid E.164 format
 
 ## Technical Requirements
 
 ### Platform
+
 - Web application (responsive, mobile-first design)
 - Accessible from any modern browser
 - Progressive Web App (PWA) capabilities for mobile
 
 ### Authentication
+
 - Phone number as primary identifier
 - SMS verification via Twilio or similar
 - JWT-based session management
@@ -798,6 +851,7 @@ This approach:
 ### Core Entities
 
 #### User
+
 - id (UUID)
 - phone_number (unique, indexed)
 - display_name
@@ -807,6 +861,7 @@ This approach:
 - updated_at
 
 #### Trip
+
 - id (UUID)
 - name
 - destination (text)
@@ -824,11 +879,13 @@ This approach:
 **Note**: Trip URL format is `/t/{uuid}` where uuid is the trip ID. All trips are private - users must be invited to view.
 
 #### Organizer
+
 - trip_id
 - user_id
 - added_at
 
 #### Invitation
+
 - id (UUID)
 - trip_id
 - inviter_id (user_id)
@@ -838,12 +895,14 @@ This approach:
 - responded_at (optional)
 
 #### Rsvp
+
 - trip_id
 - user_id
 - status (going, not_going, maybe)
 - updated_at
 
 #### Accommodation
+
 - id (UUID)
 - trip_id
 - name (text) - e.g., "Fontainebleau Miami Beach"
@@ -861,6 +920,7 @@ This approach:
 **Note**: Accommodations are separate entities from Events - they represent where the group is staying. Accommodations are trip-level (not per-member) and only organizers can create/edit them.
 
 #### Travel (Individual Arrivals & Departures)
+
 - id (UUID)
 - trip_id
 - member_id (user_id) - the person arriving/departing
@@ -882,6 +942,7 @@ This approach:
 **Note**: Travel represents individual participation boundaries. A member can have multiple arrivals and departures if joining/leaving the trip at different points. The form accommodates various travel modes (flights, buses, trains, driving) - not all fields need to be filled.
 
 #### Event (Itinerary Activities)
+
 - id (UUID)
 - trip_id
 - created_by (user_id)
@@ -913,12 +974,14 @@ This approach:
 ### Key Features
 
 #### SMS Integration
+
 - Send invitation messages with trip details
 - Send trip update notifications
 - Send cancellation notifications
 - Handle opt-out/unsubscribe
 
 #### Trip Management
+
 - CRUD operations for trips
 - Co-organizer management
 - Member list management
@@ -926,6 +989,7 @@ This approach:
 - Timezone management
 
 #### Itinerary Management
+
 - CRUD operations for accommodations (organizer-only)
 - CRUD operations for transportation (self or organizer)
 - CRUD operations for events (with creator permissions)
@@ -936,12 +1000,14 @@ This approach:
 - Soft delete with restore capability for all itinerary items
 
 #### Timezone Handling
+
 - Store all dates/times in UTC
 - Display in trip's preferred timezone by default
 - Allow users to toggle to their local timezone
 - Handle timezone conversions for all date/time displays
 
 #### Notifications (MVP Scope)
+
 - SMS notifications for:
   - Trip invitations
   - Trip cancellations
@@ -950,6 +1016,7 @@ This approach:
 - Future: Event additions, event changes
 
 ### Security & Privacy
+
 - Phone numbers stored securely (hashed)
 - Rate limiting on SMS sends
 - All trips are private (not publicly discoverable)
@@ -965,6 +1032,7 @@ This approach:
 - Soft delete allows recovery of accidentally deleted items (retained forever)
 
 ### Performance
+
 - Trip page loads in <2 seconds
 - RSVP actions complete in <1 second
 - Itinerary view renders efficiently with 50+ events
@@ -974,6 +1042,7 @@ This approach:
 ### Error Handling
 
 Users should see clear, actionable error messages for:
+
 - Invalid phone numbers
 - Incorrect verification codes
 - SMS delivery failures
@@ -986,6 +1055,7 @@ Users should see clear, actionable error messages for:
 ## Out of Scope (Future Enhancements)
 
 ### MVP Phase 2 Features
+
 - Search functionality for trips
 - Advanced trip filtering tabs (Organizing, Attending, Past)
 - Notification center UI
@@ -1001,6 +1071,7 @@ Users should see clear, actionable error messages for:
 - Link preview metadata (title, image)
 
 ### Future Features
+
 - Cost/budget tracking per event
 - Split payment calculations
 - Comments/chat functionality
@@ -1038,6 +1109,7 @@ Users should see clear, actionable error messages for:
 ## Technical Stack Recommendations
 
 ### Frontend
+
 - React or Next.js
 - Tailwind CSS for styling
 - Mobile-first responsive design
@@ -1045,17 +1117,20 @@ Users should see clear, actionable error messages for:
 - Timezone picker component
 
 ### Backend
+
 - Node.js + Express or Python + FastAPI
 - PostgreSQL database
 - Redis for caching and sessions
 
 ### Infrastructure
+
 - Cloud hosting (Vercel, Railway, or AWS)
 - Twilio for SMS
 - CloudFlare for CDN and DDoS protection
 - S3 or similar for image storage
 
 ### Third-party Services
+
 - Twilio (SMS)
 - SendGrid (email notifications - secondary)
 - Sentry (error tracking)
@@ -1071,10 +1146,10 @@ This is an MVP scoped for 6-8 week development cycle with a single full-stack en
 **Phase 4 (Week 6-7)**: View modes (day-by-day, group by type), permissions, and member status handling
 **Phase 5 (Week 7-8)**: Testing, error handling, and deployment
 
-
 ## Appendix: User Stories
 
 ### Organizer Stories
+
 - As an organizer, I want to create a trip quickly so I can start inviting friends
 - As an organizer, I want to add co-organizers so I can share planning responsibilities
 - As an organizer, I want to see who's coming so I can plan accordingly
@@ -1086,6 +1161,7 @@ This is an MVP scoped for 6-8 week development cycle with a single full-stack en
 - As an organizer, I want to remove members who are no longer coming
 
 ### Member Stories
+
 - As a member, I want to see basic trip info before deciding to RSVP
 - As a member, I want to RSVP quickly without a complex profile
 - As a member, I want to add events to the itinerary once I'm attending
@@ -1098,6 +1174,7 @@ This is an MVP scoped for 6-8 week development cycle with a single full-stack en
 - As a member, I want my events to remain visible even if I change my RSVP to Maybe
 
 ### Platform Stories
+
 - As the system, I need to prevent spam by rate-limiting SMS sends
 - As the system, I need to ensure only accepted members can add events
 - As the system, I need to maintain trip data integrity with co-organizers
@@ -1107,15 +1184,15 @@ This is an MVP scoped for 6-8 week development cycle with a single full-stack en
 
 ## Key Differences from Partiful
 
-| Feature | Partiful | Tripful |
-|---------|----------|---------|
-| Main entity | Event (party) | Trip (group travel) |
-| Sub-items | N/A | Events (itinerary items) |
-| Terminology | Hosts & Guests | Organizers & Members |
-| Collaboration | Host-only content | Accepted members add events |
-| Date structure | Single date/time | Optional date range + event dates |
-| Timezone | Single timezone | Trip's preferred timezone + user can toggle to local |
-| Content types | Event details | Categorized events (Travel/Meal/Activity) |
-| Views | Single event view | Day-by-day + Group by type |
-| Preview | Full event details | Partial preview until RSVP |
-| Member status changes | N/A | Events persist with indicator when member leaves |
+| Feature               | Partiful           | Tripful                                              |
+| --------------------- | ------------------ | ---------------------------------------------------- |
+| Main entity           | Event (party)      | Trip (group travel)                                  |
+| Sub-items             | N/A                | Events (itinerary items)                             |
+| Terminology           | Hosts & Guests     | Organizers & Members                                 |
+| Collaboration         | Host-only content  | Accepted members add events                          |
+| Date structure        | Single date/time   | Optional date range + event dates                    |
+| Timezone              | Single timezone    | Trip's preferred timezone + user can toggle to local |
+| Content types         | Event details      | Categorized events (Travel/Meal/Activity)            |
+| Views                 | Single event view  | Day-by-day + Group by type                           |
+| Preview               | Full event details | Partial preview until RSVP                           |
+| Member status changes | N/A                | Events persist with indicator when member leaves     |

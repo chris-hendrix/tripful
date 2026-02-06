@@ -1,10 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import Fastify from 'fastify';
-import rateLimit from '@fastify/rate-limit';
-import { smsRateLimitConfig } from '@/middleware/rate-limit.middleware.js';
-import { errorHandler } from '@/middleware/error.middleware.js';
-import { generateUniquePhone } from '../test-utils.js';
+import { describe, it, expect, afterEach } from "vitest";
+import type { FastifyInstance } from "fastify";
+import Fastify from "fastify";
+import rateLimit from "@fastify/rate-limit";
+import { smsRateLimitConfig } from "@/middleware/rate-limit.middleware.js";
+import { errorHandler } from "@/middleware/error.middleware.js";
+import { generateUniquePhone } from "../test-utils.js";
 
 /**
  * Build a minimal Fastify app for testing rate limiting
@@ -25,16 +25,16 @@ async function buildTestApp(): Promise<FastifyInstance> {
 
   // Register test route with SMS rate limiting using app.rateLimit() as preHandler
   app.post(
-    '/test-sms-rate-limit',
+    "/test-sms-rate-limit",
     {
       preHandler: app.rateLimit(smsRateLimitConfig),
     },
     async (_request) => {
       return {
         success: true,
-        message: 'Request processed',
+        message: "Request processed",
       };
-    }
+    },
   );
 
   await app.ready();
@@ -42,7 +42,7 @@ async function buildTestApp(): Promise<FastifyInstance> {
   return app;
 }
 
-describe('Rate Limit Middleware', () => {
+describe("Rate Limit Middleware", () => {
   let app: FastifyInstance;
 
   afterEach(async () => {
@@ -51,8 +51,8 @@ describe('Rate Limit Middleware', () => {
     }
   });
 
-  describe('smsRateLimitConfig', () => {
-    it('should allow 5 requests per phone number within the time window', async () => {
+  describe("smsRateLimitConfig", () => {
+    it("should allow 5 requests per phone number within the time window", async () => {
       app = await buildTestApp();
 
       const phoneNumber = generateUniquePhone();
@@ -60,8 +60,8 @@ describe('Rate Limit Middleware', () => {
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/test-sms-rate-limit',
+          method: "POST",
+          url: "/test-sms-rate-limit",
           payload: {
             phoneNumber,
           },
@@ -71,11 +71,11 @@ describe('Rate Limit Middleware', () => {
 
         const body = JSON.parse(response.body);
         expect(body.success).toBe(true);
-        expect(body.message).toBe('Request processed');
+        expect(body.message).toBe("Request processed");
       }
     });
 
-    it('should reject the 6th request with 429 status and RATE_LIMIT_EXCEEDED error', async () => {
+    it("should reject the 6th request with 429 status and RATE_LIMIT_EXCEEDED error", async () => {
       app = await buildTestApp();
 
       const phoneNumber = generateUniquePhone();
@@ -83,8 +83,8 @@ describe('Rate Limit Middleware', () => {
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/test-sms-rate-limit',
+          method: "POST",
+          url: "/test-sms-rate-limit",
           payload: {
             phoneNumber,
           },
@@ -95,8 +95,8 @@ describe('Rate Limit Middleware', () => {
 
       // 6th request should be rate limited
       const response = await app.inject({
-        method: 'POST',
-        url: '/test-sms-rate-limit',
+        method: "POST",
+        url: "/test-sms-rate-limit",
         payload: {
           phoneNumber,
         },
@@ -108,20 +108,21 @@ describe('Rate Limit Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many verification code requests. Please try again later.',
+          code: "RATE_LIMIT_EXCEEDED",
+          message:
+            "Too many verification code requests. Please try again later.",
         },
       });
     });
 
-    it('should use IP address as fallback when phoneNumber is not provided', async () => {
+    it("should use IP address as fallback when phoneNumber is not provided", async () => {
       app = await buildTestApp();
 
       // Make 5 requests without phoneNumber - should use IP as key
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/test-sms-rate-limit',
+          method: "POST",
+          url: "/test-sms-rate-limit",
           payload: {
             // No phoneNumber provided
           },
@@ -132,8 +133,8 @@ describe('Rate Limit Middleware', () => {
 
       // 6th request should be rate limited based on IP
       const response = await app.inject({
-        method: 'POST',
-        url: '/test-sms-rate-limit',
+        method: "POST",
+        url: "/test-sms-rate-limit",
         payload: {
           // No phoneNumber provided
         },
@@ -145,13 +146,14 @@ describe('Rate Limit Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many verification code requests. Please try again later.',
+          code: "RATE_LIMIT_EXCEEDED",
+          message:
+            "Too many verification code requests. Please try again later.",
         },
       });
     });
 
-    it('should track different phone numbers independently', async () => {
+    it("should track different phone numbers independently", async () => {
       app = await buildTestApp();
 
       const phoneNumber1 = generateUniquePhone();
@@ -160,8 +162,8 @@ describe('Rate Limit Middleware', () => {
       // Make 5 requests for first phone number
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/test-sms-rate-limit',
+          method: "POST",
+          url: "/test-sms-rate-limit",
           payload: {
             phoneNumber: phoneNumber1,
           },
@@ -172,8 +174,8 @@ describe('Rate Limit Middleware', () => {
 
       // 6th request for first phone number should be rate limited
       const response1 = await app.inject({
-        method: 'POST',
-        url: '/test-sms-rate-limit',
+        method: "POST",
+        url: "/test-sms-rate-limit",
         payload: {
           phoneNumber: phoneNumber1,
         },
@@ -183,8 +185,8 @@ describe('Rate Limit Middleware', () => {
 
       // First request for second phone number should succeed (independent limit)
       const response2 = await app.inject({
-        method: 'POST',
-        url: '/test-sms-rate-limit',
+        method: "POST",
+        url: "/test-sms-rate-limit",
         payload: {
           phoneNumber: phoneNumber2,
         },
@@ -194,10 +196,10 @@ describe('Rate Limit Middleware', () => {
 
       const body2 = JSON.parse(response2.body);
       expect(body2.success).toBe(true);
-      expect(body2.message).toBe('Request processed');
+      expect(body2.message).toBe("Request processed");
     });
 
-    it('should return correct error response format', async () => {
+    it("should return correct error response format", async () => {
       app = await buildTestApp();
 
       const phoneNumber = generateUniquePhone();
@@ -205,8 +207,8 @@ describe('Rate Limit Middleware', () => {
       // Make 5 requests to reach the limit
       for (let i = 0; i < 5; i++) {
         await app.inject({
-          method: 'POST',
-          url: '/test-sms-rate-limit',
+          method: "POST",
+          url: "/test-sms-rate-limit",
           payload: {
             phoneNumber,
           },
@@ -215,8 +217,8 @@ describe('Rate Limit Middleware', () => {
 
       // 6th request should return properly formatted error
       const response = await app.inject({
-        method: 'POST',
-        url: '/test-sms-rate-limit',
+        method: "POST",
+        url: "/test-sms-rate-limit",
         payload: {
           phoneNumber,
         },
@@ -227,17 +229,17 @@ describe('Rate Limit Middleware', () => {
       const body = JSON.parse(response.body);
 
       // Verify exact structure
-      expect(body).toHaveProperty('success', false);
-      expect(body).toHaveProperty('error');
-      expect(body.error).toHaveProperty('code', 'RATE_LIMIT_EXCEEDED');
+      expect(body).toHaveProperty("success", false);
+      expect(body).toHaveProperty("error");
+      expect(body.error).toHaveProperty("code", "RATE_LIMIT_EXCEEDED");
       expect(body.error).toHaveProperty(
-        'message',
-        'Too many verification code requests. Please try again later.'
+        "message",
+        "Too many verification code requests. Please try again later.",
       );
 
       // Ensure no extra properties
-      expect(Object.keys(body)).toEqual(['success', 'error']);
-      expect(Object.keys(body.error)).toEqual(['code', 'message']);
+      expect(Object.keys(body)).toEqual(["success", "error"]);
+      expect(Object.keys(body.error)).toEqual(["code", "message"]);
     });
   });
 });

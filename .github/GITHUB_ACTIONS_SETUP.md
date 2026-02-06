@@ -23,11 +23,13 @@ This repository uses GitHub Actions for continuous integration and deployment. T
 ### Conditional Execution
 
 **On Pull Requests:**
+
 - Only affected packages are linted/typechecked (`--affected` flag)
 - Unit tests run only if `apps/api/**` changed
 - E2E tests run only if `apps/api/**` or `apps/web/**` changed
 
 **On Main Branch:**
+
 - Full suite always runs (quality gates for production)
 - All packages linted and typechecked
 - All tests run regardless of changes
@@ -35,6 +37,7 @@ This repository uses GitHub Actions for continuous integration and deployment. T
 ### Path Filters
 
 Changes in these paths trigger specific jobs:
+
 - `apps/api/**` → Unit tests + E2E tests
 - `apps/web/**` → E2E tests
 - `package.json`, `turbo.json`, configs → All tests
@@ -44,6 +47,7 @@ Changes in these paths trigger specific jobs:
 ### 1. No Additional Configuration Required
 
 The workflow is ready to use! It will automatically run on:
+
 - Push to `main` or `master` branches
 - Pull requests targeting `main` or `master`
 
@@ -69,6 +73,7 @@ For faster builds across team members:
    ```
 
 **Benefits:**
+
 - 80%+ cache hit rate for unchanged packages
 - 3-5x faster CI runs
 - Shared cache between developers and CI
@@ -89,31 +94,36 @@ Protect your main branch by requiring CI to pass:
 
 **Expected Run Times:**
 
-| Scenario | Time | Description |
-|----------|------|-------------|
-| PR (API only) | 3-4 min | Quality + Unit + E2E tests |
-| PR (Web only) | 2-3 min | Quality + E2E tests |
-| PR (No changes to apps) | 1-2 min | Quality checks only |
-| Main branch | 5-7 min | Full suite always runs |
+| Scenario                | Time    | Description                |
+| ----------------------- | ------- | -------------------------- |
+| PR (API only)           | 3-4 min | Quality + Unit + E2E tests |
+| PR (Web only)           | 2-3 min | Quality + E2E tests        |
+| PR (No changes to apps) | 1-2 min | Quality checks only        |
+| Main branch             | 5-7 min | Full suite always runs     |
 
 **With Remote Cache:**
+
 - PR builds: 1-2 min (most tasks cached)
 - Main builds: 3-4 min (selective caching)
 
 ## Debugging Failed Builds
 
 ### View Logs
+
 1. Go to **Actions** tab in GitHub
 2. Click on failed workflow run
 3. Click on failed job to see logs
 
 ### Download Playwright Reports
+
 1. Scroll to bottom of workflow run
 2. Download **playwright-report** artifact
 3. Extract and open `index.html` in browser
 
 ### Run Locally
+
 Reproduce CI environment locally:
+
 ```bash
 # Set test environment variables
 export TEST_MODE=true
@@ -135,10 +145,12 @@ pnpm test:e2e
 ## Cost Estimation
 
 **GitHub Actions Free Tier:**
+
 - Public repos: Unlimited minutes ✅
 - Private repos: 2,000 minutes/month
 
 **Estimated Usage:**
+
 - 20 PRs/month × 5 min = 100 minutes/month
 - 40 commits to main × 7 min = 280 minutes/month
 - **Total: ~380 minutes/month** (well within free tier)
@@ -150,19 +162,25 @@ pnpm test:e2e
 ## Troubleshooting
 
 ### Playwright Installation Fails
+
 **Solution:** The workflow uses `playwright install --with-deps` which automatically installs Ubuntu dependencies. No action needed.
 
 ### Database Connection Fails
+
 **Solution:** The PostgreSQL service includes health checks. Wait for service to be ready before running tests.
 
 ### Turbo Cache Not Working
+
 **Solution:**
+
 1. Check `.turbo` directory is cached (should see "Cache restored" in logs)
 2. Verify `turbo.json` includes correct task outputs
 3. For remote cache, verify `TURBO_TOKEN` is set correctly
 
 ### Tests Pass Locally but Fail in CI
+
 **Solution:**
+
 1. Check environment variables match between local and CI
 2. Verify database migrations ran successfully
 3. Check for timing issues (CI is slower - adjust timeouts)

@@ -1,8 +1,12 @@
-import type { FastifyRequest, FastifyReply } from 'fastify';
-import { requestCodeSchema, verifyCodeSchema, completeProfileSchema } from '@tripful/shared/schemas';
-import { validatePhoneNumber } from '@/utils/phone.js';
-import { authService, AuthService } from '@/services/auth.service.js';
-import { smsService } from '@/services/sms.service.js';
+import type { FastifyRequest, FastifyReply } from "fastify";
+import {
+  requestCodeSchema,
+  verifyCodeSchema,
+  completeProfileSchema,
+} from "@tripful/shared/schemas";
+import { validatePhoneNumber } from "@/utils/phone.js";
+import { authService, AuthService } from "@/services/auth.service.js";
+import { smsService } from "@/services/sms.service.js";
 
 /**
  * Authentication Controller
@@ -26,8 +30,8 @@ export const authController = {
       return reply.status(400).send({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: result.error.issues,
         },
       });
@@ -42,8 +46,8 @@ export const authController = {
       return reply.status(400).send({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: phoneValidation.error || 'Invalid phone number format',
+          code: "VALIDATION_ERROR",
+          message: phoneValidation.error || "Invalid phone number format",
         },
       });
     }
@@ -63,18 +67,21 @@ export const authController = {
       // Return success response
       return reply.status(200).send({
         success: true,
-        message: 'Verification code sent',
+        message: "Verification code sent",
       });
     } catch (error) {
       // Log error for debugging
-      request.log.error({ error, phoneNumber: e164PhoneNumber }, 'Failed to process verification code request');
+      request.log.error(
+        { error, phoneNumber: e164PhoneNumber },
+        "Failed to process verification code request",
+      );
 
       // Return generic error response
       return reply.status(500).send({
         success: false,
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to send verification code',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send verification code",
         },
       });
     }
@@ -97,8 +104,8 @@ export const authController = {
       return reply.status(400).send({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: result.error.issues,
         },
       });
@@ -113,8 +120,8 @@ export const authController = {
       return reply.status(400).send({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: phoneValidation.error || 'Invalid phone number format',
+          code: "VALIDATION_ERROR",
+          message: phoneValidation.error || "Invalid phone number format",
         },
       });
     }
@@ -129,8 +136,8 @@ export const authController = {
         return reply.status(400).send({
           success: false,
           error: {
-            code: 'INVALID_CODE',
-            message: 'Invalid or expired verification code',
+            code: "INVALID_CODE",
+            message: "Invalid or expired verification code",
           },
         });
       }
@@ -143,11 +150,11 @@ export const authController = {
       const token = serviceWithFastify.generateToken(user);
 
       // Set httpOnly cookie with token
-      reply.setCookie('auth_token', token, {
+      reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
       });
 
@@ -155,7 +162,8 @@ export const authController = {
       await authService.deleteCode(e164PhoneNumber);
 
       // Determine if user needs to complete profile
-      const requiresProfile = !user.displayName || user.displayName.trim() === '';
+      const requiresProfile =
+        !user.displayName || user.displayName.trim() === "";
 
       // Return success response
       return reply.status(200).send({
@@ -165,14 +173,17 @@ export const authController = {
       });
     } catch (error) {
       // Log error for debugging
-      request.log.error({ error, phoneNumber: e164PhoneNumber }, 'Failed to verify code');
+      request.log.error(
+        { error, phoneNumber: e164PhoneNumber },
+        "Failed to verify code",
+      );
 
       // Return generic error response
       return reply.status(500).send({
         success: false,
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to verify code',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to verify code",
         },
       });
     }
@@ -197,8 +208,8 @@ export const authController = {
       return reply.status(400).send({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: result.error.issues,
         },
       });
@@ -221,11 +232,11 @@ export const authController = {
       const token = serviceWithFastify.generateToken(updatedUser);
 
       // Set httpOnly cookie with token
-      reply.setCookie('auth_token', token, {
+      reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
       });
 
@@ -236,14 +247,17 @@ export const authController = {
       });
     } catch (error) {
       // Log error for debugging
-      request.log.error({ error, userId: request.user.sub }, 'Failed to complete profile');
+      request.log.error(
+        { error, userId: request.user.sub },
+        "Failed to complete profile",
+      );
 
       // Return generic error response
       return reply.status(500).send({
         success: false,
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to complete profile',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to complete profile",
         },
       });
     }
@@ -272,8 +286,8 @@ export const authController = {
         return reply.status(401).send({
           success: false,
           error: {
-            code: 'UNAUTHORIZED',
-            message: 'User not found',
+            code: "UNAUTHORIZED",
+            message: "User not found",
           },
         });
       }
@@ -285,14 +299,17 @@ export const authController = {
       });
     } catch (error) {
       // Log error for debugging
-      request.log.error({ error, userId: request.user.sub }, 'Failed to get current user');
+      request.log.error(
+        { error, userId: request.user.sub },
+        "Failed to get current user",
+      );
 
       // Return generic error response
       return reply.status(500).send({
         success: false,
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to get user',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get user",
         },
       });
     }
@@ -312,23 +329,26 @@ export const authController = {
   async logout(request: FastifyRequest, reply: FastifyReply) {
     try {
       // Clear the auth_token cookie
-      reply.clearCookie('auth_token', { path: '/' });
+      reply.clearCookie("auth_token", { path: "/" });
 
       // Return success response
       return reply.status(200).send({
         success: true,
-        message: 'Logged out successfully',
+        message: "Logged out successfully",
       });
     } catch (error) {
       // Log error for debugging
-      request.log.error({ error, userId: request.user.sub }, 'Failed to logout');
+      request.log.error(
+        { error, userId: request.user.sub },
+        "Failed to logout",
+      );
 
       // Return generic error response
       return reply.status(500).send({
         success: false,
         error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to logout',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to logout",
         },
       });
     }

@@ -22,15 +22,15 @@ shared/
 Import from the package root:
 
 ```typescript
-import { User, phoneNumberSchema, convertToUTC } from '@tripful/shared';
+import { User, phoneNumberSchema, convertToUTC } from "@tripful/shared";
 ```
 
 Or import from specific subpaths:
 
 ```typescript
-import { User } from '@tripful/shared/types';
-import { phoneNumberSchema } from '@tripful/shared/schemas';
-import { convertToUTC } from '@tripful/shared/utils';
+import { User } from "@tripful/shared/types";
+import { phoneNumberSchema } from "@tripful/shared/schemas";
+import { convertToUTC } from "@tripful/shared/utils";
 ```
 
 ## Development Notes
@@ -40,17 +40,19 @@ import { convertToUTC } from '@tripful/shared/utils';
 This package uses TypeScript with **no file extensions** in import paths, despite using `"moduleResolution": "NodeNext"`. This is intentional to support Next.js's `transpilePackages` feature.
 
 **Why no `.js` extensions?**
+
 - Next.js with `transpilePackages` cannot resolve `.js` extensions when importing from TypeScript source files
 - Removing extensions allows Next.js to transpile the package correctly
 - TypeScript will show warnings (TS2835) about missing extensions - these are cosmetic and can be ignored
 
 **Example:**
+
 ```typescript
 // ✅ Correct (works with Next.js transpilation)
-export { User } from './types/index';
+export { User } from "./types/index";
 
 // ❌ Incorrect (breaks Next.js module resolution)
-export { User } from './types/index.js';
+export { User } from "./types/index.js";
 ```
 
 ### Adding New Exports
@@ -62,6 +64,7 @@ When adding new types, schemas, or utils:
 3. Re-export from the root `index.ts` if needed for convenience
 
 **Example:**
+
 ```typescript
 // In schemas/profile.ts
 export const profileSchema = z.object({ ... });
@@ -76,6 +79,7 @@ export { profileSchema } from './schemas/index';  // No .js extension
 ## Testing
 
 Run tests:
+
 ```bash
 pnpm test          # Run once
 pnpm test:watch    # Watch mode

@@ -1,6 +1,6 @@
-import { db } from '@/config/database.js';
-import { trips, members } from '@/db/schema/index.js';
-import { eq, and, or } from 'drizzle-orm';
+import { db } from "@/config/database.js";
+import { trips, members } from "@/db/schema/index.js";
+import { eq, and, or } from "drizzle-orm";
 
 /**
  * Permissions Service Interface
@@ -83,17 +83,17 @@ export class PermissionsService implements IPermissionsService {
         and(
           eq(members.tripId, trips.id),
           eq(members.userId, userId),
-          eq(members.status, 'going')
-        )
+          eq(members.status, "going"),
+        ),
       )
       .where(
         and(
           eq(trips.id, tripId),
           or(
-            eq(trips.createdBy, userId),  // User is the creator
-            eq(members.userId, userId)     // User is a co-organizer (status='going' from JOIN)
-          )
-        )
+            eq(trips.createdBy, userId), // User is the creator
+            eq(members.userId, userId), // User is a co-organizer (status='going' from JOIN)
+          ),
+        ),
       )
       .limit(1);
 
@@ -111,12 +111,7 @@ export class PermissionsService implements IPermissionsService {
     const result = await db
       .select()
       .from(members)
-      .where(
-        and(
-          eq(members.tripId, tripId),
-          eq(members.userId, userId)
-        )
-      )
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
       .limit(1);
 
     return result.length > 0;
@@ -151,7 +146,10 @@ export class PermissionsService implements IPermissionsService {
    * @param tripId - The UUID of the trip to check
    * @returns true if user can manage co-organizers, false otherwise
    */
-  async canManageCoOrganizers(userId: string, tripId: string): Promise<boolean> {
+  async canManageCoOrganizers(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean> {
     return this.isOrganizer(userId, tripId);
   }
 }

@@ -22,11 +22,13 @@ npx playwright install chromium
 ### Start the servers
 
 **Terminal 1 - Backend:**
+
 ```bash
 pnpm --filter @tripful/api dev
 ```
 
 **Terminal 2 - Frontend:**
+
 ```bash
 pnpm --filter @tripful/web dev
 ```

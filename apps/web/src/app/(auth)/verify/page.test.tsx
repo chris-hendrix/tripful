@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { useRouter, useSearchParams } from 'next/navigation';
-import VerifyPage from './page';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useRouter, useSearchParams } from "next/navigation";
+import VerifyPage from "./page";
 
 // Mock next/navigation
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
   useSearchParams: vi.fn(),
 }));
@@ -13,14 +13,14 @@ vi.mock('next/navigation', () => ({
 // Mock auth provider
 const mockVerify = vi.fn();
 const mockLogin = vi.fn();
-vi.mock('@/app/providers/auth-provider', () => ({
+vi.mock("@/app/providers/auth-provider", () => ({
   useAuth: () => ({
     verify: mockVerify,
     login: mockLogin,
   }),
 }));
 
-describe('VerifyPage', () => {
+describe("VerifyPage", () => {
   const mockPush = vi.fn();
   const mockGet = vi.fn();
 
@@ -29,7 +29,7 @@ describe('VerifyPage', () => {
       push: mockPush,
     } as any);
 
-    mockGet.mockReturnValue('+15551234567');
+    mockGet.mockReturnValue("+15551234567");
     vi.mocked(useSearchParams).mockReturnValue({
       get: mockGet,
     } as any);
@@ -44,38 +44,40 @@ describe('VerifyPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the verification form', () => {
+  it("renders the verification form", () => {
     render(<VerifyPage />);
 
-    expect(screen.getByText('Verify your number')).toBeDefined();
+    expect(screen.getByText("Verify your number")).toBeDefined();
     expect(screen.getByLabelText(/verification code/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /verify/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /verify/i })).toBeDefined();
   });
 
-  it('displays phone number from query param', () => {
-    mockGet.mockReturnValue('+15551234567');
+  it("displays phone number from query param", () => {
+    mockGet.mockReturnValue("+15551234567");
 
     render(<VerifyPage />);
 
-    expect(screen.getByText('+15551234567')).toBeDefined();
-    expect(mockGet).toHaveBeenCalledWith('phone');
+    expect(screen.getByText("+15551234567")).toBeDefined();
+    expect(mockGet).toHaveBeenCalledWith("phone");
   });
 
-  it('displays validation error for code that is not 6 digits', async () => {
+  it("displays validation error for code that is not 6 digits", async () => {
     const user = userEvent.setup();
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123');
+    await user.type(input, "123");
     await user.click(button);
 
     await waitFor(() => {
       // Look for the error message text
       const errorMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('exactly 6 characters');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("exactly 6 characters")
+        );
       });
       expect(errorMessage).toBeTruthy();
     });
@@ -83,20 +85,22 @@ describe('VerifyPage', () => {
     expect(mockVerify).not.toHaveBeenCalled();
   });
 
-  it('displays validation error for code with non-digits', async () => {
+  it("displays validation error for code with non-digits", async () => {
     const user = userEvent.setup();
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, 'abcdef');
+    await user.type(input, "abcdef");
     await user.click(button);
 
     await waitFor(() => {
       const errorMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('only digits');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("only digits")
+        );
       });
       expect(errorMessage).toBeTruthy();
     });
@@ -104,73 +108,75 @@ describe('VerifyPage', () => {
     expect(mockVerify).not.toHaveBeenCalled();
   });
 
-  it('calls verify with correct phone number and code on submit', async () => {
+  it("calls verify with correct phone number and code on submit", async () => {
     const user = userEvent.setup();
     mockVerify.mockResolvedValue({ requiresProfile: false });
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockVerify).toHaveBeenCalledWith('+15551234567', '123456');
+      expect(mockVerify).toHaveBeenCalledWith("+15551234567", "123456");
     });
   });
 
-  it('redirects to complete-profile when requiresProfile is true', async () => {
+  it("redirects to complete-profile when requiresProfile is true", async () => {
     const user = userEvent.setup();
     mockVerify.mockResolvedValue({ requiresProfile: true });
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/complete-profile');
+      expect(mockPush).toHaveBeenCalledWith("/complete-profile");
     });
   });
 
-  it('redirects to dashboard when requiresProfile is false', async () => {
+  it("redirects to dashboard when requiresProfile is false", async () => {
     const user = userEvent.setup();
     mockVerify.mockResolvedValue({ requiresProfile: false });
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
     });
   });
 
-  it('displays error message for invalid code', async () => {
+  it("displays error message for invalid code", async () => {
     const user = userEvent.setup();
-    mockVerify.mockRejectedValue(new Error('Invalid verification code'));
+    mockVerify.mockRejectedValue(new Error("Invalid verification code"));
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
       const errorMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('Invalid verification code');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("Invalid verification code")
+        );
       });
       expect(errorMessage).toBeTruthy();
     });
@@ -178,22 +184,24 @@ describe('VerifyPage', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('displays error message for expired code', async () => {
+  it("displays error message for expired code", async () => {
     const user = userEvent.setup();
-    mockVerify.mockRejectedValue(new Error('Verification code has expired'));
+    mockVerify.mockRejectedValue(new Error("Verification code has expired"));
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
       const errorMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('expired');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("expired")
+        );
       });
       expect(errorMessage).toBeTruthy();
     });
@@ -201,26 +209,26 @@ describe('VerifyPage', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('disables button while verifying', async () => {
+  it("disables button while verifying", async () => {
     const user = userEvent.setup();
     let resolveVerify: () => void;
     mockVerify.mockReturnValue(
       new Promise((resolve) => {
         resolveVerify = resolve as () => void;
-      })
+      }),
     );
 
     render(<VerifyPage />);
 
     const input = screen.getByLabelText(/verification code/i);
-    const button = screen.getByRole('button', { name: /verify/i });
+    const button = screen.getByRole("button", { name: /verify/i });
 
-    await user.type(input, '123456');
+    await user.type(input, "123456");
     await user.click(button);
 
     await waitFor(() => {
-      expect(button).toHaveProperty('disabled', true);
-      const verifyingText = screen.queryByText('Verifying...');
+      expect(button).toHaveProperty("disabled", true);
+      const verifyingText = screen.queryByText("Verifying...");
       expect(verifyingText).toBeTruthy();
     });
 
@@ -228,92 +236,99 @@ describe('VerifyPage', () => {
     resolveVerify!();
 
     await waitFor(() => {
-      expect(button).toHaveProperty('disabled', false);
+      expect(button).toHaveProperty("disabled", false);
     });
   });
 
-  it('renders change number link', () => {
+  it("renders change number link", () => {
     render(<VerifyPage />);
 
-    const link = screen.getByText('Change number');
+    const link = screen.getByText("Change number");
     expect(link).toBeDefined();
-    expect(link.closest('a')).toHaveProperty('href', expect.stringContaining('/login'));
+    expect(link.closest("a")).toHaveProperty(
+      "href",
+      expect.stringContaining("/login"),
+    );
   });
 
-  it('renders resend code button', () => {
+  it("renders resend code button", () => {
     render(<VerifyPage />);
 
-    const button = screen.getByRole('button', { name: /resend code/i });
+    const button = screen.getByRole("button", { name: /resend code/i });
     expect(button).toBeDefined();
   });
 
-  it('calls login again when resend code is clicked', async () => {
+  it("calls login again when resend code is clicked", async () => {
     const user = userEvent.setup();
     mockLogin.mockResolvedValue(undefined);
 
     render(<VerifyPage />);
 
-    const resendButton = screen.getByRole('button', { name: /resend code/i });
+    const resendButton = screen.getByRole("button", { name: /resend code/i });
     await user.click(resendButton);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('+15551234567');
+      expect(mockLogin).toHaveBeenCalledWith("+15551234567");
     });
   });
 
-  it('shows success message after resending code', async () => {
+  it("shows success message after resending code", async () => {
     const user = userEvent.setup();
     mockLogin.mockResolvedValue(undefined);
 
     render(<VerifyPage />);
 
-    const resendButton = screen.getByRole('button', { name: /resend code/i });
+    const resendButton = screen.getByRole("button", { name: /resend code/i });
     await user.click(resendButton);
 
     await waitFor(() => {
       const successMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('new code has been sent');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("new code has been sent")
+        );
       });
       expect(successMessage).toBeTruthy();
     });
   });
 
-  it('clears input after resending code', async () => {
+  it("clears input after resending code", async () => {
     const user = userEvent.setup();
     mockLogin.mockResolvedValue(undefined);
 
     render(<VerifyPage />);
 
-    const input = screen.getByLabelText(/verification code/i) as HTMLInputElement;
-    await user.type(input, '123456');
-    expect(input.value).toBe('123456');
+    const input = screen.getByLabelText(
+      /verification code/i,
+    ) as HTMLInputElement;
+    await user.type(input, "123456");
+    expect(input.value).toBe("123456");
 
-    const resendButton = screen.getByRole('button', { name: /resend code/i });
+    const resendButton = screen.getByRole("button", { name: /resend code/i });
     await user.click(resendButton);
 
     await waitFor(() => {
-      expect(input.value).toBe('');
+      expect(input.value).toBe("");
     });
   });
 
-  it('disables resend button while resending', async () => {
+  it("disables resend button while resending", async () => {
     const user = userEvent.setup();
     let resolveLogin: () => void;
     mockLogin.mockReturnValue(
       new Promise((resolve) => {
         resolveLogin = resolve as () => void;
-      })
+      }),
     );
 
     render(<VerifyPage />);
 
-    const resendButton = screen.getByRole('button', { name: /resend code/i });
+    const resendButton = screen.getByRole("button", { name: /resend code/i });
     await user.click(resendButton);
 
     await waitFor(() => {
-      expect(resendButton).toHaveProperty('disabled', true);
-      const sendingText = screen.queryByText('Sending...');
+      expect(resendButton).toHaveProperty("disabled", true);
+      const sendingText = screen.queryByText("Sending...");
       expect(sendingText).toBeTruthy();
     });
 
@@ -321,72 +336,80 @@ describe('VerifyPage', () => {
     resolveLogin!();
 
     await waitFor(() => {
-      expect(resendButton).toHaveProperty('disabled', false);
+      expect(resendButton).toHaveProperty("disabled", false);
     });
   });
 
-  it('shows error message if resending fails', async () => {
+  it("shows error message if resending fails", async () => {
     const user = userEvent.setup();
-    mockLogin.mockRejectedValue(new Error('Too many requests'));
+    mockLogin.mockRejectedValue(new Error("Too many requests"));
 
     render(<VerifyPage />);
 
-    const resendButton = screen.getByRole('button', { name: /resend code/i });
+    const resendButton = screen.getByRole("button", { name: /resend code/i });
     await user.click(resendButton);
 
     await waitFor(() => {
       const errorMessage = screen.queryByText((content, element) => {
-        return element?.getAttribute('data-slot') === 'form-message' &&
-               content.includes('Too many requests');
+        return (
+          element?.getAttribute("data-slot") === "form-message" &&
+          content.includes("Too many requests")
+        );
       });
       expect(errorMessage).toBeTruthy();
     });
   });
 
-  it('has focus ref attached to code input', () => {
+  it("has focus ref attached to code input", () => {
     render(<VerifyPage />);
 
-    const input = screen.getByLabelText(/verification code/i) as HTMLInputElement;
+    const input = screen.getByLabelText(
+      /verification code/i,
+    ) as HTMLInputElement;
 
     // Verify the input has the ref attribute (which enables auto-focus)
     // Note: Auto-focus behavior in test environment is limited, so we verify the input exists
     expect(input).toBeDefined();
-    expect(input.type).toBe('text');
+    expect(input.type).toBe("text");
   });
 
-  it('limits code input to 6 characters', async () => {
+  it("limits code input to 6 characters", async () => {
     const user = userEvent.setup();
     render(<VerifyPage />);
 
-    const input = screen.getByLabelText(/verification code/i) as HTMLInputElement;
-    await user.type(input, '1234567890');
+    const input = screen.getByLabelText(
+      /verification code/i,
+    ) as HTMLInputElement;
+    await user.type(input, "1234567890");
 
     // Input should be limited to 6 characters by maxLength attribute
-    expect(input).toHaveProperty('maxLength', 6);
+    expect(input).toHaveProperty("maxLength", 6);
   });
 
-  it('shows SMS disclaimer text', () => {
+  it("shows SMS disclaimer text", () => {
     render(<VerifyPage />);
 
     expect(
-      screen.getByText('Check your SMS messages for the code')
+      screen.getByText("Check your SMS messages for the code"),
     ).toBeDefined();
   });
 
-  it('shows resend disclaimer text', () => {
+  it("shows resend disclaimer text", () => {
     render(<VerifyPage />);
 
     expect(
-      screen.getByText("Didn't receive the code? Wait a moment and try resending")
+      screen.getByText(
+        "Didn't receive the code? Wait a moment and try resending",
+      ),
     ).toBeDefined();
   });
 
-  it('handles missing phone number in query param', () => {
+  it("handles missing phone number in query param", () => {
     mockGet.mockReturnValue(null);
 
     render(<VerifyPage />);
 
     // Should still render but with empty phone number
-    expect(screen.getByText('Verify your number')).toBeDefined();
+    expect(screen.getByText("Verify your number")).toBeDefined();
   });
 });

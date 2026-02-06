@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/app/providers/auth-provider';
+import { useAuth } from "@/app/providers/auth-provider";
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -13,27 +13,37 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-6">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-6">
+            Dashboard
+          </h1>
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Display Name</label>
+              <label className="text-sm font-medium text-gray-500">
+                Display Name
+              </label>
               <p className="text-lg text-gray-900">{user.displayName}</p>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Phone Number</label>
+              <label className="text-sm font-medium text-gray-500">
+                Phone Number
+              </label>
               <p className="text-lg text-gray-900">{user.phoneNumber}</p>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-500">Timezone</label>
+              <label className="text-sm font-medium text-gray-500">
+                Timezone
+              </label>
               <p className="text-lg text-gray-900">{user.timezone}</p>
             </div>
 
             {user.profilePhotoUrl && (
               <div>
-                <label className="text-sm font-medium text-gray-500">Profile Photo</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Profile Photo
+                </label>
                 <img
                   src={user.profilePhotoUrl}
                   alt="Profile"

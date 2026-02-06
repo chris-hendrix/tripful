@@ -24,12 +24,12 @@ export class MockSMSService implements ISMSService {
    * @param code - The verification code to send
    */
   async sendVerificationCode(phoneNumber: string, code: string): Promise<void> {
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📱 SMS Verification Code');
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📱 SMS Verification Code");
     console.log(`Phone: ${phoneNumber}`);
     console.log(`Code: ${code}`);
-    console.log('Expires: 5 minutes');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    console.log("Expires: 5 minutes");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
   }
 }
 

@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto';
-import { writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { randomUUID } from "node:crypto";
+import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Upload Service Interface
@@ -16,7 +16,11 @@ export interface IUploadService {
    * @returns Promise that resolves to the URL path of the uploaded image
    * @throws Error if file validation fails
    */
-  uploadImage(file: Buffer, filename: string, mimetype: string): Promise<string>;
+  uploadImage(
+    file: Buffer,
+    filename: string,
+    mimetype: string,
+  ): Promise<string>;
 
   /**
    * Deletes an image file from the server
@@ -45,15 +49,19 @@ export interface IUploadService {
 export class UploadService implements IUploadService {
   private readonly uploadsDir: string;
   private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-  private readonly ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  private readonly ALLOWED_MIME_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
   private readonly MIME_TO_EXT: Record<string, string> = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/webp': '.webp',
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
   };
 
   constructor() {
-    this.uploadsDir = resolve(process.cwd(), 'uploads');
+    this.uploadsDir = resolve(process.cwd(), "uploads");
     this.ensureUploadsDirExists();
   }
 
@@ -76,12 +84,12 @@ export class UploadService implements IUploadService {
   async validateImage(file: Buffer, mimetype: string): Promise<void> {
     // Check MIME type
     if (!this.ALLOWED_MIME_TYPES.includes(mimetype)) {
-      throw new Error('Invalid file type. Only JPG, PNG, and WEBP are allowed');
+      throw new Error("Invalid file type. Only JPG, PNG, and WEBP are allowed");
     }
 
     // Check file size (5MB max)
     if (file.length > this.MAX_FILE_SIZE) {
-      throw new Error('Image must be under 5MB. Please choose a smaller file');
+      throw new Error("Image must be under 5MB. Please choose a smaller file");
     }
   }
 
@@ -93,7 +101,11 @@ export class UploadService implements IUploadService {
    * @param mimetype - The MIME type of the file
    * @returns The URL path to access the uploaded image
    */
-  async uploadImage(file: Buffer, _filename: string, mimetype: string): Promise<string> {
+  async uploadImage(
+    file: Buffer,
+    _filename: string,
+    mimetype: string,
+  ): Promise<string> {
     // Validate image first
     await this.validateImage(file, mimetype);
 
@@ -121,7 +133,7 @@ export class UploadService implements IUploadService {
    */
   async deleteImage(url: string): Promise<void> {
     // Extract filename from URL path
-    const filename = url.split('/').pop();
+    const filename = url.split("/").pop();
     if (!filename) {
       return;
     }

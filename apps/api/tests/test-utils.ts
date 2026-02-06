@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto';
+import { randomInt } from "crypto";
 
 // Counter for guaranteed uniqueness within same process
 let phoneCounter = 0;
@@ -11,7 +11,7 @@ let phoneCounter = 0;
 export function generateUniquePhone(): string {
   // Use incrementing counter (3 digits) + random (4 digits) for high uniqueness
   // Counter ensures uniqueness within same process, random adds cross-process uniqueness
-  const counter = (++phoneCounter % 1000).toString().padStart(3, '0');
+  const counter = (++phoneCounter % 1000).toString().padStart(3, "0");
   const random = randomInt(1000, 10000); // 4 random digits
   return `+1555${counter}${random}`;
 }

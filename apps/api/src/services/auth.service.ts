@@ -1,9 +1,9 @@
-import { randomInt } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
-import { db } from '@/config/database.js';
-import { users, verificationCodes, type User } from '@/db/schema/index.js';
-import type { JWTPayload } from '@/types/index.js';
-import { eq } from 'drizzle-orm';
+import { randomInt } from "node:crypto";
+import type { FastifyInstance } from "fastify";
+import { db } from "@/config/database.js";
+import { users, verificationCodes, type User } from "@/db/schema/index.js";
+import type { JWTPayload } from "@/types/index.js";
+import { eq } from "drizzle-orm";
 
 /**
  * Authentication Service Interface
@@ -61,7 +61,10 @@ export interface IAuthService {
    * @param data - The profile data to update (displayName and/or timezone)
    * @returns Promise that resolves to the updated user record
    */
-  updateProfile(userId: string, data: { displayName?: string; timezone?: string }): Promise<User>;
+  updateProfile(
+    userId: string,
+    data: { displayName?: string; timezone?: string },
+  ): Promise<User>;
 
   /**
    * Generates a JWT token for a user
@@ -98,8 +101,8 @@ export class AuthService implements IAuthService {
   generateCode(): string {
     // Use fixed code in non-production environments (development and test)
     // This makes manual testing and E2E tests easier with a predictable code
-    if (process.env.NODE_ENV !== 'production') {
-      return '123456';
+    if (process.env.NODE_ENV !== "production") {
+      return "123456";
     }
 
     // Generate random number between 100000 and 999999 (inclusive)
@@ -199,13 +202,13 @@ export class AuthService implements IAuthService {
       .insert(users)
       .values({
         phoneNumber,
-        displayName: '', // Empty string by default
-        timezone: 'UTC', // UTC by default
+        displayName: "", // Empty string by default
+        timezone: "UTC", // UTC by default
       })
       .returning();
 
     if (!newUserResult[0]) {
-      throw new Error('Failed to create user');
+      throw new Error("Failed to create user");
     }
 
     return newUserResult[0];
@@ -236,7 +239,7 @@ export class AuthService implements IAuthService {
    */
   async updateProfile(
     userId: string,
-    data: { displayName?: string; timezone?: string }
+    data: { displayName?: string; timezone?: string },
   ): Promise<User> {
     const updateData: Partial<User> = {
       ...data,
@@ -250,7 +253,7 @@ export class AuthService implements IAuthService {
       .returning();
 
     if (!result[0]) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     return result[0];
@@ -264,7 +267,7 @@ export class AuthService implements IAuthService {
    */
   generateToken(user: User): string {
     if (!this.fastify) {
-      throw new Error('FastifyInstance not available');
+      throw new Error("FastifyInstance not available");
     }
 
     const payload = {
@@ -285,7 +288,7 @@ export class AuthService implements IAuthService {
    */
   verifyToken(token: string): JWTPayload {
     if (!this.fastify) {
-      throw new Error('FastifyInstance not available');
+      throw new Error("FastifyInstance not available");
     }
 
     try {
@@ -294,7 +297,7 @@ export class AuthService implements IAuthService {
       if (error instanceof Error) {
         throw new Error(`Token verification failed: ${error.message}`);
       }
-      throw new Error('Token verification failed');
+      throw new Error("Token verification failed");
     }
   }
 }

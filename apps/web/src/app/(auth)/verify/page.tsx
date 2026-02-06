@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { Suspense, useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { verifyCodeSchema, type VerifyCodeInput } from '@tripful/shared';
-import { useAuth } from '@/app/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { verifyCodeSchema, type VerifyCodeInput } from "@tripful/shared";
+import { useAuth } from "@/app/providers/auth-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -17,23 +17,25 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 
 function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const phoneNumber = searchParams.get('phone') || '';
+  const phoneNumber = searchParams.get("phone") || "";
   const { verify, login, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [shouldNavigate, setShouldNavigate] = useState<'dashboard' | 'complete-profile' | null>(null);
+  const [shouldNavigate, setShouldNavigate] = useState<
+    "dashboard" | "complete-profile" | null
+  >(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<VerifyCodeInput>({
     resolver: zodResolver(verifyCodeSchema),
     defaultValues: {
       phoneNumber,
-      code: '',
+      code: "",
     },
   });
 
@@ -46,10 +48,10 @@ function VerifyPageContent() {
 
   // Navigate when user state is ready
   useEffect(() => {
-    if (shouldNavigate === 'complete-profile') {
-      router.push('/complete-profile');
-    } else if (shouldNavigate === 'dashboard' && user) {
-      router.push('/dashboard');
+    if (shouldNavigate === "complete-profile") {
+      router.push("/complete-profile");
+    } else if (shouldNavigate === "dashboard" && user) {
+      router.push("/dashboard");
     }
   }, [shouldNavigate, user, router]);
 
@@ -59,13 +61,13 @@ function VerifyPageContent() {
       const result = await verify(data.phoneNumber, data.code);
 
       if (result.requiresProfile) {
-        setShouldNavigate('complete-profile');
+        setShouldNavigate("complete-profile");
       } else {
-        setShouldNavigate('dashboard');
+        setShouldNavigate("dashboard");
       }
     } catch (error) {
-      form.setError('code', {
-        message: error instanceof Error ? error.message : 'Verification failed',
+      form.setError("code", {
+        message: error instanceof Error ? error.message : "Verification failed",
       });
       setIsSubmitting(false);
       setShouldNavigate(null);
@@ -76,13 +78,14 @@ function VerifyPageContent() {
     try {
       setIsResending(true);
       await login(phoneNumber);
-      form.setError('code', {
-        message: 'A new code has been sent to your phone',
+      form.setError("code", {
+        message: "A new code has been sent to your phone",
       });
-      form.setValue('code', '');
+      form.setValue("code", "");
     } catch (error) {
-      form.setError('code', {
-        message: error instanceof Error ? error.message : 'Failed to resend code',
+      form.setError("code", {
+        message:
+          error instanceof Error ? error.message : "Failed to resend code",
       });
     } finally {
       setIsResending(false);
@@ -98,8 +101,10 @@ function VerifyPageContent() {
               Verify your number
             </h2>
             <p className="text-slate-600">
-              Enter the 6-digit code sent to{' '}
-              <span className="font-semibold text-slate-900">{phoneNumber}</span>
+              Enter the 6-digit code sent to{" "}
+              <span className="font-semibold text-slate-900">
+                {phoneNumber}
+              </span>
             </p>
           </div>
 
@@ -140,7 +145,7 @@ function VerifyPageContent() {
                 disabled={isSubmitting}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
               >
-                {isSubmitting ? 'Verifying...' : 'Verify'}
+                {isSubmitting ? "Verifying..." : "Verify"}
               </Button>
             </form>
           </Form>
@@ -158,7 +163,7 @@ function VerifyPageContent() {
               disabled={isResending}
               className="text-blue-600 hover:text-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isResending ? 'Sending...' : 'Resend code'}
+              {isResending ? "Sending..." : "Resend code"}
             </button>
           </div>
 
