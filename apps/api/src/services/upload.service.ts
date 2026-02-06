@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { env } from "../config/env.js";
+import { env } from "@/config/env.js";
 
 /**
  * Upload Service Interface

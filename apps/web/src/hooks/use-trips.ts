@@ -252,14 +252,11 @@ export function useCreateTrip() {
     },
 
     // On error: Rollback optimistic update
-    onError: (error, _newTrip, context) => {
+    onError: (_error, _newTrip, context) => {
       // Rollback to previous trips list if we had one
       if (context?.previousTrips) {
         queryClient.setQueryData(["trips"], context.previousTrips);
       }
-
-      // Log error for debugging
-      console.error("Failed to create trip:", error);
     },
 
     // Always invalidate queries after mutation settles (success or error)
@@ -420,7 +417,7 @@ export function useUpdateTrip() {
     },
 
     // On error: Rollback optimistic update
-    onError: (error, { tripId }, context) => {
+    onError: (_error, { tripId }, context) => {
       // Rollback to previous state if we had one
       if (context?.previousTrip) {
         queryClient.setQueryData(["trips", tripId], context.previousTrip);
@@ -428,9 +425,6 @@ export function useUpdateTrip() {
       if (context?.previousTrips) {
         queryClient.setQueryData(["trips"], context.previousTrips);
       }
-
-      // Log error for debugging
-      console.error("Failed to update trip:", error);
     },
 
     // Always invalidate queries after mutation settles (success or error)
@@ -547,14 +541,11 @@ export function useCancelTrip() {
     },
 
     // On error: Rollback optimistic update
-    onError: (error, _tripId, context) => {
+    onError: (_error, _tripId, context) => {
       // Rollback to previous trips list if we had one
       if (context?.previousTrips) {
         queryClient.setQueryData(["trips"], context.previousTrips);
       }
-
-      // Log error for debugging
-      console.error("Failed to cancel trip:", error);
     },
 
     // Always invalidate queries after mutation settles (success or error)

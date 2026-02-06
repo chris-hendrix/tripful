@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
-import { trips, members, users } from "@/db/schema/index.js";
+import { trips, members, users, type User } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
-import { tripService } from "@/services/trip.service.js";
+import { tripService, type TripSummary } from "@/services/trip.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import type { CreateTripInput } from "@tripful/shared/schemas";
 
@@ -463,25 +463,23 @@ describe("trip.service", () => {
       expect(result!.organizers).toHaveLength(3); // creator + 2 co-organizers
 
       // Verify creator is in organizers list
-      const creator = result!.organizers.find(
-        (org: any) => org.id === testUserId,
-      );
+      const creator = result!.organizers.find((org) => org.id === testUserId);
       expect(creator).toBeDefined();
-      expect(creator.displayName).toBe("Test User");
-      expect(creator.phoneNumber).toBe(testPhone);
+      expect(creator!.displayName).toBe("Test User");
+      expect(creator!.phoneNumber).toBe(testPhone);
 
       // Verify co-organizers are in the list
       const coOrg1 = result!.organizers.find(
-        (org: any) => org.id === coOrganizerUserId,
+        (org) => org.id === coOrganizerUserId,
       );
       expect(coOrg1).toBeDefined();
-      expect(coOrg1.displayName).toBe("Co-Organizer");
+      expect(coOrg1!.displayName).toBe("Co-Organizer");
 
       const coOrg2 = result!.organizers.find(
-        (org: any) => org.id === coOrganizer2UserId,
+        (org) => org.id === coOrganizer2UserId,
       );
       expect(coOrg2).toBeDefined();
-      expect(coOrg2.displayName).toBe("Co-Organizer 2");
+      expect(coOrg2!.displayName).toBe("Co-Organizer 2");
     });
 
     it("should include member count", async () => {
@@ -566,7 +564,7 @@ describe("trip.service", () => {
 
       // Verify all 3 trips are returned
       expect(results).toHaveLength(3);
-      const tripIds = results.map((t: any) => t.id);
+      const tripIds = results.map((t: TripSummary) => t.id);
       expect(tripIds).toContain(trip1.id);
       expect(tripIds).toContain(trip2.id);
       expect(tripIds).toContain(trip3.id);
@@ -1483,15 +1481,13 @@ describe("trip.service", () => {
         expect(coOrganizers).toHaveLength(3);
 
         // Verify all expected users are present
-        const coOrgIds = coOrganizers.map((user: any) => user.id);
+        const coOrgIds = coOrganizers.map((user: User) => user.id);
         expect(coOrgIds).toContain(testCreatorId);
         expect(coOrgIds).toContain(newCoOrgUserId1);
         expect(coOrgIds).toContain(newCoOrgUserId2);
 
         // Verify full user objects are returned
-        const creator = coOrganizers.find(
-          (user: any) => user.id === testCreatorId,
-        );
+        const creator = coOrganizers.find((user) => user.id === testCreatorId);
         expect(creator).toHaveProperty("displayName", "Trip Creator");
         expect(creator).toHaveProperty("phoneNumber");
         expect(creator).toHaveProperty("timezone", "UTC");
@@ -1517,7 +1513,7 @@ describe("trip.service", () => {
         // Should only return creator + co-organizer with status='going' = 2 users
         expect(coOrganizers).toHaveLength(2);
 
-        const coOrgIds = coOrganizers.map((user: any) => user.id);
+        const coOrgIds = coOrganizers.map((user: User) => user.id);
         expect(coOrgIds).toContain(testCreatorId);
         expect(coOrgIds).toContain(newCoOrgUserId1);
         expect(coOrgIds).not.toContain(newCoOrgUserId2);

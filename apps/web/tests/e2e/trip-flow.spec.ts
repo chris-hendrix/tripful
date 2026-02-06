@@ -440,7 +440,9 @@ test.describe("Trip Flow", () => {
     // The TanStack Query mutation updates the cache in onMutate (before API call completes)
     // Check that the updated name appears in the trip detail page header right away
     // Note: Dialog may still be open/closing at this point
-    await expect(page.locator('h1').filter({ hasText: updatedName })).toBeVisible({
+    await expect(
+      page.locator("h1").filter({ hasText: updatedName }),
+    ).toBeVisible({
       timeout: 1000,
     });
 
@@ -723,7 +725,9 @@ test.describe("Trip Flow", () => {
     ).toBeVisible();
 
     // Step 6: Verify edit button is NOT visible on error page
-    await expect(page.locator('button:has-text("Edit trip")')).not.toBeVisible();
+    await expect(
+      page.locator('button:has-text("Edit trip")'),
+    ).not.toBeVisible();
 
     // Step 7: Verify "Return to dashboard" button works
     const returnButton = page.locator('button:has-text("Return to dashboard")');
@@ -845,11 +849,11 @@ test.describe("Trip Flow", () => {
     await page.locator('button:has-text("Update trip")').click();
 
     // Verify update succeeded
-    await expect(
-      page.locator(`h1:has-text("${updatedTripName}")`),
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.locator(`h1:has-text("${updatedTripName}")`)).toBeVisible(
+      {
+        timeout: 10000,
+      },
+    );
     await expect(page.locator("text=Trip updated successfully")).toBeVisible();
 
     // Step 6: Switch back to User A to remove User B as co-organizer
@@ -888,7 +892,9 @@ test.describe("Trip Flow", () => {
     await expect(page.locator('h2:has-text("Trip not found")')).toBeVisible();
 
     // Verify edit button is NOT visible
-    await expect(page.locator('button:has-text("Edit trip")')).not.toBeVisible();
+    await expect(
+      page.locator('button:has-text("Edit trip")'),
+    ).not.toBeVisible();
 
     // Verify "Organizing" badge is NOT visible
     await expect(page.locator("text=Organizing")).not.toBeVisible();

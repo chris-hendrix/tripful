@@ -1034,9 +1034,7 @@ describe("ImageUpload", () => {
     });
 
     it("shows network error message for network failures", async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error("Failed to fetch")),
-      );
+      global.fetch = vi.fn(() => Promise.reject(new Error("Failed to fetch")));
 
       const { container } = render(
         <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
