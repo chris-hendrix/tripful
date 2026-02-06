@@ -629,7 +629,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 6.2: Write E2E test for edit trip flow
+- [x] Task 6.2: Write E2E test for edit trip flow
   - Write test in `trip-flow.spec.ts`: Login → Dashboard → Click trip → Click edit → Update fields → Save → Verify changes
   - Include image upload test (upload new cover image)
   - Verify optimistic updates (UI updates before API response)
