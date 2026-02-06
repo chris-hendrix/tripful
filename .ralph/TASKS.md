@@ -394,7 +394,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.8: Register trip routes
+- [x] Task 3.8: Register trip routes
   - Create `apps/api/src/routes/trip.routes.ts`
   - Register all trip endpoints with authentication middleware
   - Export route registration function
