@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, AlertCircle } from "lucide-react";
+import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips } from "@/hooks/use-trips";
 import { TripCard } from "@/components/trip/trip-card";
 import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
@@ -31,7 +31,14 @@ export default function DashboardPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: trips = [], isLoading, isError, error, refetch } = useTrips();
+  const {
+    data: trips = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useTrips();
 
   // Filter trips by search query (case-insensitive, searches name and destination)
   const filteredTrips = useMemo(() => {
@@ -124,9 +131,11 @@ export default function DashboardPage() {
             </p>
             <Button
               onClick={() => refetch()}
-              className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+              disabled={isFetching}
+              className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Try again
+              {isFetching && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isFetching ? "Loading..." : "Try again"}
             </Button>
           </div>
         )}

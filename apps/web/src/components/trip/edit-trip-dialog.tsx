@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/trip/image-upload";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -505,6 +505,9 @@ export function EditTripDialog({
                         variant="destructive"
                         className="flex-1 h-10 rounded-xl"
                       >
+                        {isDeleting && (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        )}
                         {isDeleting ? "Deleting..." : "Yes, delete"}
                       </Button>
                     </div>
@@ -543,6 +546,9 @@ export function EditTripDialog({
                     disabled={isPending || isDeleting}
                     className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
+                    {isPending && (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    )}
                     {isPending ? "Updating trip..." : "Update trip"}
                   </Button>
                 </div>

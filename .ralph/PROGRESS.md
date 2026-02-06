@@ -1958,3 +1958,146 @@ Successfully implemented comprehensive E2E test for co-organizer management, cov
 ### Next Task
 
 Task 6.4 is complete. Next unchecked task: **Task 7.1 - Add loading states and error handling**
+
+---
+
+## Iteration 28: Task 7.1 - Add Loading States and Error Handling
+
+**Date**: 2026-02-06
+**Status**: ✅ COMPLETE
+**Agent Workflow**: 3 Researchers → Coder → Verifier + Reviewer (Parallel)
+
+### Task Summary
+
+Task 7.1 required adding comprehensive loading states and error handling across all trip management features to improve user feedback during async operations and provide retry mechanisms for failures.
+
+### Implementation Details
+
+#### 1. Dialog Button Spinners
+**Files**: `create-trip-dialog.tsx`, `edit-trip-dialog.tsx`
+- Added `Loader2` spinner icons to submit buttons
+- Spinners appear when `isPending` or `isDeleting` is true
+- Pattern: `{isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}`
+- Buttons show loading text: "Creating trip...", "Updating trip...", "Deleting..."
+
+#### 2. Image Upload Retry Mechanism
+**File**: `image-upload.tsx`
+- Added `lastFailedFile` state to store failed upload reference
+- Implemented `handleRetry()` function to re-attempt uploads
+- Retry button appears in error UI after upload failures (not validation errors)
+- Enhanced network error detection with specific error messages
+- State properly cleaned up on successful retry
+
+#### 3. Dashboard Refetch Loading State
+**File**: `dashboard/page.tsx`
+- Added `isFetching` tracking from `useTrips()` hook
+- Retry button shows spinner and loading text during refetch
+- Button disabled during refetch: `disabled={isFetching}`
+- Loading text: "Try again" → "Loading..."
+
+#### 4. Enhanced Network Error Detection
+**File**: `use-trips.ts`
+- Updated three error helper functions:
+  - `getCreateTripErrorMessage()`
+  - `getUpdateTripErrorMessage()`
+  - `getCancelTripErrorMessage()`
+- Checks for multiple network error indicators: "fetch", "network", "failed to fetch"
+- Provides consistent network error message: "Network error: Please check your connection and try again."
+
+#### 5. Test Coverage
+**File**: `image-upload.test.tsx`
+- Added 6 comprehensive tests for retry functionality
+- Tests cover:
+  - Retry button appears after upload error
+  - No retry button for validation errors
+  - Retry triggers second upload attempt
+  - Network error message displayed correctly
+  - State cleanup on success
+
+### Verification Results
+
+**All Checks Passed**:
+- ✅ Unit Tests: 360/364 passing (4 pre-existing failures in auth pages)
+- ✅ Modified Files: All 215 tests passed (100% success rate)
+  - `image-upload.test.tsx`: 57/57 tests (including 6 new retry tests)
+  - `create-trip-dialog.test.tsx`: 59/59 tests
+  - `edit-trip-dialog.test.tsx`: 43/43 tests
+  - `dashboard/page.test.tsx`: 22/22 tests
+  - `use-trips.test.tsx`: 34/34 tests
+- ✅ Type Checking: No TypeScript errors
+- ✅ Linting: No ESLint errors
+- ✅ Build: Production build successful
+- ✅ Integration Tests: No new failures introduced
+
+### Code Review Results
+
+**Status**: APPROVED ✅
+
+**Strengths**:
+- Consistent loading state pattern across all components
+- Comprehensive error handling with user-friendly messages
+- Clean retry implementation with proper state management
+- Excellent test coverage (6 new tests, all passing)
+- Follows existing codebase patterns and conventions
+- UI/UX improvements are clear and intuitive
+
+**Issues Found**: None blocking
+
+**Acceptance Criteria Met**:
+- ✅ All async operations show loading states (spinners + text)
+- ✅ Errors display clear messages (network errors, API errors, validation errors)
+- ✅ User can retry failed operations (image upload retry, dashboard refetch)
+- ✅ UI remains responsive during loads (disabled buttons, visual feedback)
+
+### Files Modified
+
+1. `apps/web/src/components/trip/create-trip-dialog.tsx` - Added spinner to submit button
+2. `apps/web/src/components/trip/edit-trip-dialog.tsx` - Added spinners to update/delete buttons
+3. `apps/web/src/components/trip/image-upload.tsx` - Added retry mechanism and enhanced error handling
+4. `apps/web/src/app/(app)/dashboard/page.tsx` - Fixed refetch loading state
+5. `apps/web/src/hooks/use-trips.ts` - Enhanced network error detection
+6. `apps/web/src/components/trip/__tests__/image-upload.test.tsx` - Added retry tests
+
+### Technical Details
+
+**Loading State Pattern**:
+- Buttons: `Loader2` icon with `animate-spin` class + loading text
+- Disabled state: `disabled={isPending}` with opacity-50 styling
+- Consistent spacing: `mr-2` margin between spinner and text
+
+**Error Handling Pattern**:
+- Red error boxes: `bg-red-50 border border-red-200 text-red-600`
+- AlertCircle icon for visual emphasis
+- Specific error messages for different failure types
+- Network errors distinguished from API errors
+
+**Retry Mechanism**:
+- Retry button only for upload failures (not client validation)
+- Button shows loading state during retry ("Retrying...")
+- State properly cleaned up on success
+- Error cleared on retry attempt
+
+### Learnings for Future Iterations
+
+1. **Loading State Consistency**: Using `Loader2` with `animate-spin` provides consistent loading feedback across the app
+2. **Error Message Specificity**: Distinguishing network errors from API errors helps users understand and fix issues
+3. **Retry UX**: Retry buttons should have loading states and clear feedback during retry attempts
+4. **State Management**: Storing `lastFailedFile` allows clean retry implementation without re-uploading from file picker
+5. **Test Coverage**: Adding tests for retry functionality ensures the mechanism works correctly across edge cases
+
+### Agent Performance
+
+**Workflow Timeline**:
+- **3 Researcher Agents** (parallel): ~2-3 minutes each
+  - LOCATING: Found existing loading/error patterns, shadcn/ui components, test locations
+  - ANALYZING: Traced async operations, TanStack Query flows, error handling gaps
+  - PATTERNS: Identified established patterns for skeletons, spinners, error displays
+- **Coder Agent**: ~15 minutes (implementation + tests)
+- **Verifier + Reviewer** (parallel): ~5 minutes each
+
+**Total Time**: ~25 minutes across all agents
+**Agent Count**: 6 agent invocations (3 researchers + 1 coder + 1 verifier + 1 reviewer)
+
+### Next Task
+
+Task 7.1 is complete. Next unchecked task: **Task 7.2 - Add environment configuration**

@@ -947,4 +947,181 @@ describe("ImageUpload", () => {
       expect(root.className).toContain("custom-class");
     });
   });
+
+  describe("Retry functionality", () => {
+    it("shows retry button after upload error", async () => {
+      global.fetch = vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          json: async () => ({ error: { message: "Upload failed" } }),
+        } as Response),
+      );
+
+      const { container } = render(
+        <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
+      );
+
+      const file = createMockFile("test.jpg", "image/jpeg", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Upload failed")).toBeDefined();
+        expect(screen.getByText("Try again")).toBeDefined();
+      });
+    });
+
+    it("does not show retry button for validation errors", async () => {
+      const { container } = render(<ImageUpload onChange={mockOnChange} />);
+
+      const file = createMockFile("test.pdf", "application/pdf", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            "Invalid file type. Only JPG, PNG, and WEBP are allowed",
+          ),
+        ).toBeDefined();
+        expect(screen.queryByText("Try again")).toBeNull();
+      });
+    });
+
+    it("retries upload when retry button is clicked", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: { message: "Upload failed" } }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ trip: { coverImageUrl: "/uploads/test.jpg" } }),
+        } as Response);
+
+      global.fetch = mockFetch;
+
+      const user = userEvent.setup();
+      const { container } = render(
+        <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
+      );
+
+      const file = createMockFile("test.jpg", "image/jpeg", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Upload failed")).toBeDefined();
+      });
+
+      const retryButton = screen.getByText("Try again");
+      await user.click(retryButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(mockOnChange).toHaveBeenCalledWith("/uploads/test.jpg");
+      });
+    });
+
+    it("shows network error message for network failures", async () => {
+      global.fetch = vi.fn(() =>
+        Promise.reject(new Error("Failed to fetch")),
+      );
+
+      const { container } = render(
+        <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
+      );
+
+      const file = createMockFile("test.jpg", "image/jpeg", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            "Network error: Please check your connection and try again.",
+          ),
+        ).toBeDefined();
+      });
+    });
+
+    it("calls fetch again when retry button is clicked", async () => {
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({ error: { message: "Upload failed" } }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ trip: { coverImageUrl: "/uploads/test.jpg" } }),
+        } as Response);
+
+      global.fetch = mockFetch;
+
+      const user = userEvent.setup();
+      const { container } = render(
+        <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
+      );
+
+      const file = createMockFile("test.jpg", "image/jpeg", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(screen.getByText("Upload failed")).toBeDefined();
+      });
+
+      const retryButton = screen.getByText("Try again") as HTMLButtonElement;
+      await user.click(retryButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(mockOnChange).toHaveBeenCalledWith("/uploads/test.jpg");
+      });
+    });
+
+    it("clears lastFailedFile on successful upload", async () => {
+      const mockFetch = vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: async () => ({ trip: { coverImageUrl: "/uploads/test.jpg" } }),
+        } as Response),
+      );
+
+      global.fetch = mockFetch;
+
+      const { container } = render(
+        <ImageUpload onChange={mockOnChange} tripId="trip-123" />,
+      );
+
+      const file = createMockFile("test.jpg", "image/jpeg", 1024);
+      const fileInput = container.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith("/uploads/test.jpg");
+        expect(screen.queryByText("Try again")).toBeNull();
+      });
+    });
+  });
 });

@@ -295,7 +295,11 @@ export function getCreateTripErrorMessage(error: Error | null): string | null {
   }
 
   // Network errors or other generic errors
-  if (error.message.includes("fetch")) {
+  if (
+    error.message.includes("fetch") ||
+    error.message.includes("network") ||
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
     return "Network error: Please check your connection and try again.";
   }
 
@@ -463,7 +467,11 @@ export function getUpdateTripErrorMessage(error: Error | null): string | null {
   }
 
   // Network errors or other generic errors
-  if (error.message.includes("fetch")) {
+  if (
+    error.message.includes("fetch") ||
+    error.message.includes("network") ||
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
     return "Network error: Please check your connection and try again.";
   }
 
@@ -580,7 +588,11 @@ export function getCancelTripErrorMessage(error: Error | null): string | null {
   }
 
   // Network errors or other generic errors
-  if (error.message.includes("fetch")) {
+  if (
+    error.message.includes("fetch") ||
+    error.message.includes("network") ||
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
     return "Network error: Please check your connection and try again.";
   }
 

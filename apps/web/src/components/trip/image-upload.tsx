@@ -40,6 +40,7 @@ export function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [lastFailedFile, setLastFailedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Cleanup blob URLs on unmount or when previewUrl changes
@@ -88,6 +89,7 @@ export function ImageUpload({
 
     setIsUploading(true);
     setError(null);
+    setLastFailedFile(null);
 
     try {
       const formData = new FormData();
@@ -112,12 +114,28 @@ export function ImageUpload({
       onChange(uploadedUrl);
       setPreviewUrl(uploadedUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const errorMessage = err instanceof Error ? err.message : "Upload failed";
+      const isNetworkError =
+        errorMessage.includes("fetch") || errorMessage.includes("network");
+
+      setError(
+        isNetworkError
+          ? "Network error: Please check your connection and try again."
+          : errorMessage,
+      );
+      // Store the file for retry
+      setLastFailedFile(file);
       // Revert preview on error
       setPreviewUrl(value || null);
       setSelectedFile(null);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (lastFailedFile) {
+      uploadImage(lastFailedFile);
     }
   };
 
@@ -128,6 +146,7 @@ export function ImageUpload({
     setPreviewUrl(null);
     setSelectedFile(null);
     setError(null);
+    setLastFailedFile(null);
     onChange(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -265,9 +284,21 @@ export function ImageUpload({
       )}
 
       {error && (
-        <div className="mt-2 flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+          <div className="flex items-start gap-2 mb-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700 flex-1">{error}</p>
+          </div>
+          {lastFailedFile && tripId && (
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={isUploading}
+              className="text-sm font-medium text-red-600 hover:text-red-700 underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? "Retrying..." : "Try again"}
+            </button>
+          )}
         </div>
       )}
     </div>
