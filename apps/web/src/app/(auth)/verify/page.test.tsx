@@ -13,10 +13,14 @@ vi.mock("next/navigation", () => ({
 // Mock auth provider
 const mockVerify = vi.fn();
 const mockLogin = vi.fn();
+let mockUser: any = null;
 vi.mock("@/app/providers/auth-provider", () => ({
   useAuth: () => ({
     verify: mockVerify,
     login: mockLogin,
+    get user() {
+      return mockUser;
+    },
   }),
 }));
 
@@ -38,6 +42,7 @@ describe("VerifyPage", () => {
     mockLogin.mockClear();
     mockPush.mockClear();
     mockGet.mockClear();
+    mockUser = null;
   });
 
   afterEach(() => {
@@ -144,7 +149,10 @@ describe("VerifyPage", () => {
 
   it("redirects to dashboard when requiresProfile is false", async () => {
     const user = userEvent.setup();
-    mockVerify.mockResolvedValue({ requiresProfile: false });
+    mockVerify.mockImplementation(async () => {
+      mockUser = { id: "1", name: "Test User", phoneNumber: "+15551234567" };
+      return { requiresProfile: false };
+    });
 
     render(<VerifyPage />);
 

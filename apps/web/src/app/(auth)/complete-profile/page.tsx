@@ -41,6 +41,7 @@ export default function CompleteProfilePage() {
   const router = useRouter();
   const { completeProfile, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CompleteProfileInput>({
@@ -60,10 +61,10 @@ export default function CompleteProfilePage() {
 
   // Navigate to dashboard when user is set (after profile completion)
   useEffect(() => {
-    if (user && isSubmitting) {
+    if (shouldNavigate && user) {
       router.push("/dashboard");
     }
-  }, [user, isSubmitting, router]);
+  }, [shouldNavigate, user, router]);
 
   async function onSubmit(data: CompleteProfileInput) {
     try {
@@ -75,6 +76,7 @@ export default function CompleteProfilePage() {
         payload.timezone = data.timezone;
       }
       await completeProfile(payload);
+      setShouldNavigate(true);
       // Navigation happens in useEffect when user state updates
     } catch (error) {
       form.setError("displayName", {
@@ -84,6 +86,7 @@ export default function CompleteProfilePage() {
             : "Failed to complete profile",
       });
       setIsSubmitting(false);
+      setShouldNavigate(false);
     }
   }
 

@@ -11,9 +11,13 @@ vi.mock("next/navigation", () => ({
 
 // Mock auth provider
 const mockCompleteProfile = vi.fn();
+let mockUser: any = null;
 vi.mock("@/app/providers/auth-provider", () => ({
   useAuth: () => ({
     completeProfile: mockCompleteProfile,
+    get user() {
+      return mockUser;
+    },
   }),
 }));
 
@@ -26,6 +30,7 @@ describe("CompleteProfilePage", () => {
     } as any);
     mockCompleteProfile.mockClear();
     mockPush.mockClear();
+    mockUser = null;
   });
 
   afterEach(() => {
@@ -131,7 +136,9 @@ describe("CompleteProfilePage", () => {
 
   it("redirects to dashboard on successful profile completion", async () => {
     const user = userEvent.setup();
-    mockCompleteProfile.mockResolvedValue(undefined);
+    mockCompleteProfile.mockImplementation(async () => {
+      mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
+    });
 
     render(<CompleteProfilePage />);
 
@@ -191,11 +198,13 @@ describe("CompleteProfilePage", () => {
       expect(savingText).toBeTruthy();
     });
 
-    // Resolve the promise
+    // Resolve the promise and set user - this triggers navigation
+    mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
     resolveCompleteProfile!();
 
+    // After successful completion, button stays disabled until navigation
     await waitFor(() => {
-      expect(button).toHaveProperty("disabled", false);
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
     });
   });
 
@@ -304,11 +313,13 @@ describe("CompleteProfilePage", () => {
       expect(input).toHaveProperty("disabled", true);
     });
 
-    // Resolve the promise
+    // Resolve the promise and set user - this triggers navigation
+    mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
     resolveCompleteProfile!();
 
+    // After successful completion, inputs stay disabled until navigation
     await waitFor(() => {
-      expect(input).toHaveProperty("disabled", false);
+      expect(mockPush).toHaveBeenCalledWith("/dashboard");
     });
   });
 });
