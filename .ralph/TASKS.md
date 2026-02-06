@@ -233,7 +233,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 3. Trip Controller & Routes
 
-- [ ] Task 3.1: Create trip controller with POST /trips endpoint (TDD)
+- [x] Task 3.1: Create trip controller with POST /trips endpoint (TDD)
   - Create test file: `apps/api/tests/integration/trip.routes.test.ts`
   - Write failing integration tests:
     - Test: POST /trips returns 201 with trip data on success

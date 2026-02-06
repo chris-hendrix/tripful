@@ -12,6 +12,7 @@ import { testConnection, closeDatabase } from "./config/database.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
+import { tripRoutes } from "./routes/trip.routes.js";
 
 const fastify: FastifyInstance = Fastify({
   logger: {
@@ -69,6 +70,7 @@ fastify.setErrorHandler(errorHandler);
 // Register routes
 await fastify.register(healthRoutes, { prefix: "/api/health" });
 await fastify.register(authRoutes, { prefix: "/api/auth" });
+await fastify.register(tripRoutes, { prefix: "/api/trips" });
 
 // Graceful shutdown
 const signals = ["SIGINT", "SIGTERM"] as const;

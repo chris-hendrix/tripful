@@ -7,6 +7,7 @@ import { errorHandler } from "@/middleware/error.middleware.js";
 import { env } from "@/config/env.js";
 import { healthRoutes } from "@/routes/health.routes.js";
 import { authRoutes } from "@/routes/auth.routes.js";
+import { tripRoutes } from "@/routes/trip.routes.js";
 import rateLimit from "@fastify/rate-limit";
 
 /**
@@ -46,6 +47,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register routes
   await app.register(healthRoutes, { prefix: "/api/health" });
   await app.register(authRoutes, { prefix: "/api/auth" });
+  await app.register(tripRoutes, { prefix: "/api/trips" });
 
   await app.ready();
 
