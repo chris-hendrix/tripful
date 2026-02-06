@@ -125,6 +125,7 @@ function DashboardHeader() {
 ### Form Fields
 
 **Step 1 (Required):**
+
 - `name` - Trip name (3-100 characters)
 - `destination` - Destination (3-500 characters)
 - `startDate` - Start date (optional)
@@ -132,6 +133,7 @@ function DashboardHeader() {
 - `timezone` - Preferred timezone (IANA identifier)
 
 **Step 2 (Optional):**
+
 - `description` - Trip description (max 2000 characters)
 - `coverImage` - Cover image file (JPEG/PNG/WebP, max 5MB)
 
@@ -187,21 +189,25 @@ function TripHeader({ trip }: { trip: Trip }) {
 ### Tab Details
 
 **Details Tab:**
+
 - Edit name, destination, dates, timezone, description
 - Same validation as CreateTripDialog
 
 **Settings Tab:**
+
 - Toggle member event permissions
 - Add co-organizer by phone number (E.164 format)
 - List of current co-organizers with remove buttons
 - Creator badge shown for trip creator
 
 **Cover Image Tab:**
+
 - ImageUpload component for file management
 - Delete button for existing images
 - Image preview
 
 **Delete Tab:**
+
 - Danger zone with trip deletion
 - Confirmation dialog before deletion
 - Navigates to dashboard after deletion

@@ -107,6 +107,7 @@ The E2E test suite covers:
    - Test co-organizer permissions (can edit, delete, manage settings)
 
 **Coverage:**
+
 - Trip CRUD operations (create, read, update, delete)
 - Two-step trip creation form
 - Tabbed edit dialog (Details, Settings, Cover Image, Delete)

@@ -38,10 +38,11 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/pg": "^8.11.10",
+    "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.28.1",
     "form-data": "^4.0.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.0"
+    "vitest": "^4.0.18"
   }
 }

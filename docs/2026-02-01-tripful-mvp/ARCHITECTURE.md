@@ -2085,31 +2085,51 @@ export const trips = pgTable("trips", {
   preferredTimezone: varchar("preferred_timezone", { length: 100 }).notNull(),
   description: text("description"),
   coverImageUrl: text("cover_image_url"),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => users.id),
   allowMembersToAddEvents: boolean("allow_members_to_add_events")
     .notNull()
     .default(true),
   cancelled: boolean("cancelled").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 // Organizers table (many-to-many)
 export const organizers = pgTable("organizers", {
   id: uuid("id").primaryKey().defaultRandom(),
-  tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  tripId: uuid("trip_id")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 // Members table (includes RSVP status)
 export const members = pgTable("members", {
   id: uuid("id").primaryKey().defaultRandom(),
-  tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tripId: uuid("trip_id")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   status: rsvpStatusEnum("status").notNull().default("no_response"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 ```
 
