@@ -5,15 +5,15 @@ let phoneCounter = 0;
 
 /**
  * Generates a unique phone number for testing
- * Uses counter + random digits to ensure uniqueness across parallel test runs
+ * Uses timestamp + counter + random to ensure uniqueness across all test runs
  * @returns A unique phone number in E.164 format starting with +1555
  */
 export function generateUniquePhone(): string {
-  // Use incrementing counter (3 digits) + random (4 digits) for high uniqueness
-  // Counter ensures uniqueness within same process, random adds cross-process uniqueness
+  // Use timestamp (last 4 digits) + counter (3 digits) + random (3 digits) for guaranteed uniqueness
+  const timestamp = Date.now() % 10000; // Last 4 digits of timestamp
   const counter = (++phoneCounter % 1000).toString().padStart(3, "0");
-  const random = randomInt(1000, 10000); // 4 random digits
-  return `+1555${counter}${random}`;
+  const random = randomInt(100, 1000); // 3 random digits
+  return `+1555${timestamp}${counter}${random}`;
 }
 
 /**

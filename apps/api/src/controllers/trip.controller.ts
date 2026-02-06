@@ -652,7 +652,15 @@ export const tripController = {
       } catch (fileError) {
         // Handle multipart parsing errors (e.g., file too large, invalid format, no multipart data)
         if (fileError instanceof Error) {
-          if (fileError.message.includes("Request body is too large")) {
+          const errorMsg = fileError.message.toLowerCase();
+
+          // Handle file size limit errors from @fastify/multipart
+          if (
+            errorMsg.includes("file too large") ||
+            errorMsg.includes("request body is too large") ||
+            errorMsg.includes("exceeds the maximum") ||
+            errorMsg.includes("limit")
+          ) {
             return reply.status(400).send({
               success: false,
               error: {
@@ -664,8 +672,8 @@ export const tripController = {
           }
           // If the error is about missing/invalid multipart content-type
           if (
-            fileError.message.includes("the request is not multipart") ||
-            fileError.message.includes("missing content-type header")
+            errorMsg.includes("the request is not multipart") ||
+            errorMsg.includes("missing content-type header")
           ) {
             return reply.status(400).send({
               success: false,
@@ -721,7 +729,31 @@ export const tripController = {
       }
 
       // Convert file stream to buffer
-      const fileBuffer = await data.toBuffer();
+      let fileBuffer;
+      try {
+        fileBuffer = await data.toBuffer();
+      } catch (bufferError) {
+        // Handle errors when consuming the multipart stream (e.g., file too large)
+        if (bufferError instanceof Error) {
+          const errorMsg = bufferError.message.toLowerCase();
+          if (
+            errorMsg.includes("file too large") ||
+            errorMsg.includes("limit") ||
+            errorMsg.includes("exceeded") ||
+            errorMsg.includes("maximum")
+          ) {
+            return reply.status(400).send({
+              success: false,
+              error: {
+                code: "VALIDATION_ERROR",
+                message:
+                  "Image must be under 5MB. Please choose a smaller file",
+              },
+            });
+          }
+        }
+        throw bufferError;
+      }
 
       // Delete old cover image if it exists
       if (trip.coverImageUrl) {

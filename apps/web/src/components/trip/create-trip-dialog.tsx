@@ -8,6 +8,7 @@ import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -153,6 +154,9 @@ export function CreateTripDialog({
           >
             Create a new trip
           </DialogTitle>
+          <DialogDescription>
+            Plan your next adventure with friends and family
+          </DialogDescription>
         </DialogHeader>
 
         {/* Progress indicator */}

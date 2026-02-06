@@ -14,6 +14,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -170,6 +171,9 @@ export function EditTripDialog({
           >
             Edit trip
           </DialogTitle>
+          <DialogDescription>
+            Update your trip details and settings
+          </DialogDescription>
         </DialogHeader>
 
         {/* Progress indicator */}
