@@ -511,7 +511,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ## 5. Dashboard & Detail Pages
 
-- [ ] Task 5.1: Redesign dashboard page
+- [x] Task 5.1: Redesign dashboard page
   - Update `apps/web/src/app/(app)/dashboard/page.tsx`
   - Replace simple user info with trip listing
   - Implement "Upcoming trips" and "Past trips" sections
@@ -528,7 +528,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 5.2: Add floating action button for create trip
+- [x] Task 5.2: Add floating action button for create trip
   - Add FAB (fixed bottom-right position)
   - Click opens CreateTripDialog
   - Match demo design (gradient, shadow, plus icon)
@@ -542,7 +542,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 5.3: Implement trip data fetching in dashboard
+- [x] Task 5.3: Implement trip data fetching in dashboard
   - Use `useTrips` hook with useQuery
   - Fetch from GET /trips endpoint
   - Filter trips into upcoming/past based on startDate

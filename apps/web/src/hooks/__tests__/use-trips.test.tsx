@@ -3,9 +3,11 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import {
+  useTrips,
   useCreateTrip,
   getCreateTripErrorMessage,
   type Trip,
+  type TripSummary,
 } from "../use-trips";
 import { APIError } from "@/lib/api";
 import type { CreateTripInput } from "@tripful/shared/schemas";
@@ -31,6 +33,213 @@ vi.mock("next/navigation", () => ({
     push: mockPush,
   }),
 }));
+
+describe("useTrips", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  const mockTrips: TripSummary[] = [
+    {
+      id: "trip-1",
+      name: "Summer Vacation",
+      destination: "Hawaii",
+      startDate: "2026-07-15",
+      endDate: "2026-07-22",
+      coverImageUrl: "https://example.com/hawaii.jpg",
+      isOrganizer: true,
+      rsvpStatus: "going",
+      organizerInfo: [
+        {
+          id: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: "https://example.com/john.jpg",
+        },
+      ],
+      memberCount: 5,
+      eventCount: 3,
+    },
+    {
+      id: "trip-2",
+      name: "Ski Weekend",
+      destination: "Aspen, CO",
+      startDate: "2026-12-10",
+      endDate: "2026-12-15",
+      coverImageUrl: null,
+      isOrganizer: false,
+      rsvpStatus: "maybe",
+      organizerInfo: [
+        {
+          id: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+        },
+      ],
+      memberCount: 8,
+      eventCount: 5,
+    },
+  ];
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+        mutations: {
+          retry: false,
+        },
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+      },
+    });
+
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  describe("successful trips fetch", () => {
+    it("fetches trips successfully", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trips: mockTrips,
+      });
+
+      const { result } = renderHook(() => useTrips(), { wrapper });
+
+      // Initially loading
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.data).toBeUndefined();
+
+      // Wait for query to complete
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify data is correct
+      expect(result.current.data).toEqual(mockTrips);
+      expect(result.current.error).toBe(null);
+
+      // Verify API was called correctly
+      expect(apiRequest).toHaveBeenCalledWith("/trips");
+    });
+
+    it("returns empty array when no trips exist", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trips: [],
+      });
+
+      const { result } = renderHook(() => useTrips(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual([]);
+    });
+
+    it("uses correct query key for caching", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trips: mockTrips,
+      });
+
+      renderHook(() => useTrips(), { wrapper });
+
+      await waitFor(() => {
+        const cachedData = queryClient.getQueryData(["trips"]);
+        expect(cachedData).toEqual(mockTrips);
+      });
+    });
+  });
+
+  describe("error handling", () => {
+    it("handles API errors correctly", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const apiError = new APIError("UNAUTHORIZED", "Not authenticated");
+      vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+      const { result } = renderHook(() => useTrips(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(apiError);
+      expect(result.current.data).toBeUndefined();
+    });
+
+    it("handles network errors", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const networkError = new Error("fetch failed");
+      vi.mocked(apiRequest).mockRejectedValueOnce(networkError);
+
+      const { result } = renderHook(() => useTrips(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(networkError);
+    });
+  });
+
+  describe("refetch functionality", () => {
+    it("can refetch trips data", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trips: mockTrips,
+      });
+
+      const { result } = renderHook(() => useTrips(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify initial data
+      expect(result.current.data).toEqual(mockTrips);
+
+      // Mock a different response for refetch
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trips: [mockTrips[0]],
+      });
+
+      // Trigger refetch
+      result.current.refetch();
+
+      // Wait for refetch to complete and data to update
+      await waitFor(
+        () => {
+          expect(result.current.data?.length).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+
+      // Verify updated data
+      expect(result.current.data).toEqual([mockTrips[0]]);
+
+      // Verify API was called twice
+      expect(apiRequest).toHaveBeenCalledTimes(2);
+    });
+  });
+});
 
 describe("useCreateTrip", () => {
   let queryClient: QueryClient;

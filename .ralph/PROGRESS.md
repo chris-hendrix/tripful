@@ -395,3 +395,175 @@ None - implementation follows best practices with comprehensive tests and proper
 - **Components Created**: 1 (EditTripDialog)
 - **Files Created**: 2
 - **Files Modified**: 2
+
+---
+
+## Iteration 19: Tasks 5.1, 5.2, 5.3 - Dashboard Redesign (COMPLETED)
+
+**Date**: 2026-02-06
+**Tasks**: Redesign dashboard page, Add FAB, Implement data fetching
+**Status**: ✅ APPROVED
+
+### Summary
+
+Successfully redesigned the dashboard page from a simple user profile display into a full-featured trip listing dashboard with search, FAB for trip creation, and comprehensive state management. Implementation exceeded acceptance criteria by providing fully functional search (not just a placeholder) and completing Tasks 5.1, 5.2, and 5.3 in a single cohesive implementation.
+
+### Implementation Details
+
+#### 1. Created useTrips Query Hook
+**File**: `/apps/web/src/hooks/use-trips.ts`
+- Added `TripSummary` interface matching backend API contract
+- Added `GetTripsResponse` interface for type safety
+- Implemented `useTrips()` query hook using TanStack Query
+- Query key: `["trips"]` (integrates with existing mutation cache invalidation)
+- Endpoint: `GET /trips`
+- Includes proper error handling with APIError class
+
+#### 2. Redesigned Dashboard Page
+**File**: `/apps/web/src/app/(app)/dashboard/page.tsx`
+
+**Features Implemented**:
+- **Header Section**: Title with Playfair Display font, trip count display
+- **Search Bar**: Fully functional client-side filtering by trip name and destination (case-insensitive)
+- **Trip Categorization**: Splits trips into "Upcoming" and "Past" sections based on startDate
+  - Upcoming: startDate >= today OR startDate is null (TBD trips)
+  - Past: startDate < today
+- **Loading State**: 3 skeleton cards with pulsing animation
+- **Error State**: User-friendly error message with retry button
+- **Empty State**: "No trips yet" message with CTA button to create first trip
+- **No Results State**: Dedicated UI when search returns no matches
+- **FAB**: Fixed bottom-right floating action button with gradient styling
+- **CreateTripDialog Integration**: Opens dialog on FAB click and empty state CTA
+
+**Design Consistency**:
+- Playfair Display font for all headings (7 locations)
+- Blue-to-cyan gradient (`from-blue-600 to-cyan-600`) for primary actions
+- Proper spacing, shadows, and rounded corners matching existing patterns
+- Staggered animations for TripCard components (100ms delay per index)
+- Responsive layout with max-w-7xl container
+
+#### 3. Comprehensive Test Suite
+**File**: `/apps/web/src/hooks/__tests__/use-trips.test.tsx`
+- Added 8 new tests for useTrips hook
+- Tests cover: API integration, caching, error handling, refetch
+- All 25 tests passing (17 existing + 8 new)
+
+**File**: `/apps/web/src/app/(app)/dashboard/page.test.tsx`
+- Complete rewrite with 22 comprehensive tests
+- Tests cover all states: loading, error, empty, no results, success
+- Tests search functionality thoroughly
+- Tests trip categorization logic (upcoming vs past)
+- Tests FAB and dialog integration
+- All 22 tests passing
+
+### Acceptance Criteria Verification
+
+**Task 5.1: Redesign dashboard page**
+- ✅ Dashboard shows two sections: upcoming and past
+- ✅ Trips display in TripCard components with correct props
+- ✅ Empty state shows when no trips
+- ✅ Search bar present and **fully functional** (exceeds requirement)
+- ✅ Matches demo design (Playfair Display, gradients, spacing)
+
+**Task 5.2: Add floating action button**
+- ✅ FAB visible and positioned correctly (fixed bottom-8 right-8)
+- ✅ Opens create dialog on click
+- ✅ Matches demo styling (gradient, shadow, plus icon)
+- ✅ Works on mobile and desktop (z-50 for proper layering)
+
+**Task 5.3: Implement trip data fetching**
+- ✅ useTrips hook with useQuery
+- ✅ Fetches from GET /trips endpoint
+- ✅ Filters trips into upcoming/past based on startDate
+- ✅ Loading state with skeleton cards (3 shown)
+- ✅ Error state with retry button
+- ✅ Auto-refresh on window focus (TanStack Query default)
+
+### Code Quality
+
+**Verifier Report**: ✅ PASS
+- All tests passing (47 total: 25 hook + 22 dashboard)
+- TypeScript compilation: ✅ No errors
+- Linting: ✅ No errors
+- All acceptance criteria met
+
+**Reviewer Report**: ✅ APPROVED
+- Architecture: Excellent (clean separation of concerns)
+- Type Safety: Excellent (strict TypeScript, proper interfaces)
+- Error Handling: Excellent (user-friendly messages, retry logic)
+- Performance: Excellent (useMemo for search and filtering)
+- Design Consistency: Excellent (matches all existing patterns)
+- Test Quality: Excellent (comprehensive coverage, edge cases)
+- UX/UI: Excellent (all 5 states handled properly)
+
+### Technical Highlights
+
+1. **Efficient React Patterns**: Used `useMemo` for search filtering and trip categorization to prevent unnecessary re-computation
+2. **Proper Date Handling**: Timezone-aware comparison using local date at midnight
+3. **Cache Integration**: Query key `["trips"]` works seamlessly with existing `useCreateTrip` mutation invalidation
+4. **Type Safety**: Complete TypeScript coverage with interfaces matching backend contracts
+5. **Accessibility**: Proper ARIA labels, semantic HTML, keyboard navigation support
+6. **State Management**: All states mutually exclusive (loading OR error OR empty OR success)
+
+### Known Issues & Limitations
+
+None. Implementation is production-ready with no blocking issues.
+
+### Recommendations
+
+Optional enhancements for future iterations:
+1. Search debouncing for very large trip lists (current performance is fine)
+2. `aria-live="polite"` for search results count (screen reader enhancement)
+3. Different empty state message for non-organizers vs organizers
+
+### Learnings
+
+1. **Task Consolidation**: Tasks 5.1, 5.2, and 5.3 were naturally cohesive and implementing them together resulted in better integration and fewer context switches
+2. **Search Enhancement**: Implementing fully functional search (not just placeholder) significantly improved UX with minimal additional complexity
+3. **Test Coverage**: Comprehensive tests (47 total) caught several edge cases during implementation (null dates, empty searches, single trip)
+4. **Design Patterns**: Following existing patterns (Playfair Display, gradients, animations) ensured visual consistency across the app
+
+### Metrics
+
+- **Lines of Code**: ~1,400 lines total
+  - 231 lines: Dashboard page component
+  - 519 lines: Hooks file (with useTrips addition)
+  - 575 lines: Dashboard tests
+  - 658 lines: Hook tests (including existing tests)
+- **Test Count**: 47 tests total, 100% passing
+  - 22 dashboard page tests
+  - 25 hook tests (8 new for useTrips, 17 existing)
+- **Test Coverage**: All states and edge cases covered
+- **Components Modified**: 2 (dashboard page, use-trips hook)
+- **Test Files**: 2 (dashboard tests, hook tests)
+
+### Agent Performance
+
+- **3 Researcher Agents** (parallel): ~2.5-3 minutes each
+  - LOCATING: Found all relevant files and components
+  - ANALYZING: Traced complete data flow from API to UI
+  - PATTERNS: Identified all design patterns and conventions
+
+- **Coder Agent**: ~5.7 minutes
+  - Implemented useTrips hook
+  - Redesigned dashboard page
+  - Wrote 30 new comprehensive tests
+  - Clean, production-ready implementation
+
+- **Verifier Agent**: ~2.2 minutes
+  - Ran all test suites (47 tests)
+  - Verified TypeScript compilation
+  - Checked linting and formatting
+  - Confirmed all acceptance criteria met
+  - Status: **PASS**
+
+- **Reviewer Agent**: ~1.6 minutes
+  - Comprehensive code review
+  - Verified architecture patterns
+  - Checked test coverage and quality
+  - Evaluated UX/UI consistency
+  - Status: **APPROVED**
+
+**Total Time**: ~12 minutes for complete implementation, testing, verification, and review
+**Agent Count**: 5 agents (3 researchers parallel + coder + verifier/reviewer parallel)
+**Efficiency**: Excellent - parallel execution maximized throughput

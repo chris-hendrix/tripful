@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { apiRequest, APIError } from "@/lib/api";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
@@ -24,6 +24,36 @@ export interface Trip {
 }
 
 /**
+ * Trip summary type returned by GET /api/trips
+ * Used for dashboard display with minimal data
+ */
+export interface TripSummary {
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  coverImageUrl: string | null;
+  isOrganizer: boolean;
+  rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
+  organizerInfo: Array<{
+    id: string;
+    displayName: string;
+    profilePhotoUrl: string | null;
+  }>;
+  memberCount: number;
+  eventCount: number;
+}
+
+/**
+ * API response type for fetching trips list
+ */
+interface GetTripsResponse {
+  success: true;
+  trips: TripSummary[];
+}
+
+/**
  * API response type for trip creation
  */
 interface CreateTripResponse {
@@ -45,6 +75,36 @@ interface UpdateTripResponse {
 interface CancelTripResponse {
   success: true;
   message: string;
+}
+
+/**
+ * Hook for fetching all trips for the current user
+ *
+ * Features:
+ * - Automatic caching: Results are cached with ["trips"] key
+ * - Returns TripSummary array with minimal data for dashboard display
+ * - Error handling: Provides error state for failed requests
+ *
+ * @returns Query object with data, loading, and error state
+ *
+ * @example
+ * ```tsx
+ * const { data: trips, isLoading, isError, error, refetch } = useTrips();
+ *
+ * if (isLoading) return <div>Loading...</div>;
+ * if (isError) return <div>Error: {error.message}</div>;
+ *
+ * return trips.map(trip => <TripCard key={trip.id} trip={trip} />);
+ * ```
+ */
+export function useTrips() {
+  return useQuery({
+    queryKey: ["trips"],
+    queryFn: async () => {
+      const response = await apiRequest<GetTripsResponse>("/trips");
+      return response.trips;
+    },
+  });
 }
 
 /**
