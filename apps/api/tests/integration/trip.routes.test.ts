@@ -747,7 +747,8 @@ describe("POST /api/trips", () => {
         success: false,
         error: {
           code: "MEMBER_LIMIT_EXCEEDED",
-          message: "Member limit exceeded: maximum 25 members allowed (including creator)",
+          message:
+            "Member limit exceeded: maximum 25 members allowed (including creator)",
         },
       });
     });
@@ -2566,6 +2567,1007 @@ describe("DELETE /trips/:id", () => {
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("NOT_FOUND");
       expect(body.error.message).toBe("Trip not found");
+    });
+  });
+});
+
+describe("POST /api/trips/:id/co-organizers", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should return 200 when organizer adds co-organizer by phone", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const coOrgPhone = generateUniquePhone();
+
+      const [creator, coOrg] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          { phoneNumber: coOrgPhone, displayName: "Co-Org", timezone: "UTC" },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add creator as organizer
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate token for creator
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      // Add co-organizer via API
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: coOrgPhone },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify co-organizer was added to members table
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, coOrg.id)));
+
+      expect(memberRecords.length).toBe(1);
+      expect(memberRecords[0].status).toBe("going");
+    });
+
+    it("should return 200 when co-organizer can add another co-organizer", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const coOrg1Phone = generateUniquePhone();
+      const coOrg2Phone = generateUniquePhone();
+
+      const [creator, coOrg1, coOrg2] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: coOrg1Phone,
+            displayName: "Co-Org 1",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: coOrg2Phone,
+            displayName: "Co-Org 2",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add creator and first co-organizer as members
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg1.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate token for first co-organizer
+      const token = app.jwt.sign({
+        sub: coOrg1.id,
+        phone: coOrg1.phoneNumber,
+        name: coOrg1.displayName,
+      });
+
+      // Add second co-organizer via API
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: coOrg2Phone },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify second co-organizer was added
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, coOrg2.id)));
+
+      expect(memberRecords.length).toBe(1);
+      expect(memberRecords[0].status).toBe("going");
+    });
+  });
+
+  describe("Validation Errors (400)", () => {
+    it("should return 400 for invalid trip ID format", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/invalid-uuid/co-organizers",
+        cookies: { auth_token: token },
+        payload: { phoneNumber: "+12345678901" },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid trip ID format");
+    });
+
+    it("should return 400 for invalid phone format", async () => {
+      app = await buildApp();
+
+      // Create test user and trip
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: "invalid-phone" },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid request data");
+    });
+
+    it("should return 400 when phone number not found", async () => {
+      app = await buildApp();
+
+      // Create test user and trip
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      // Try to add non-existent phone number
+      const nonExistentPhone = generateUniquePhone();
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: nonExistentPhone },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("CO_ORGANIZER_NOT_FOUND");
+      expect(body.error.message).toContain("Co-organizer not found:");
+    });
+  });
+
+  describe("Unauthorized Cases (401)", () => {
+    it("should return 401 when no auth token provided", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/co-organizers",
+        payload: { phoneNumber: "+12345678901" },
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("Forbidden Cases (403)", () => {
+    it("should return 403 when non-organizer tries to add co-organizer", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const nonMemberPhone = generateUniquePhone();
+      const coOrgPhone = generateUniquePhone();
+
+      const [creator, nonMember] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: nonMemberPhone,
+            displayName: "Non-Member",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create co-org user separately (only phone needed for test)
+      await db.insert(users).values({
+        phoneNumber: coOrgPhone,
+        displayName: "Co-Org",
+        timezone: "UTC",
+      });
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Only add creator as member
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate token for non-member
+      const token = app.jwt.sign({
+        sub: nonMember.id,
+        phone: nonMember.phoneNumber,
+        name: nonMember.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: coOrgPhone },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("PERMISSION_DENIED");
+      expect(body.error.message).toContain("Permission denied:");
+    });
+  });
+
+  describe("Not Found Cases (404)", () => {
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/co-organizers",
+        cookies: { auth_token: token },
+        payload: { phoneNumber: "+12345678901" },
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Trip not found");
+    });
+  });
+
+  describe("Business Logic Errors", () => {
+    it("should return 409 when member limit exceeded", async () => {
+      app = await buildApp();
+
+      // Create creator
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add creator as member
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Create and add 24 more members (total 25 including creator)
+      const memberPhones = Array.from({ length: 24 }, () =>
+        generateUniquePhone(),
+      );
+      const memberUsers = await db
+        .insert(users)
+        .values(
+          memberPhones.map((phone, i) => ({
+            phoneNumber: phone,
+            displayName: `Member ${i + 1}`,
+            timezone: "UTC",
+          })),
+        )
+        .returning();
+
+      await db.insert(members).values(
+        memberUsers.map((user) => ({
+          userId: user.id,
+          tripId: trip.id,
+          status: "going" as const,
+        })),
+      );
+
+      // Create one more user to exceed limit
+      const extraPhone = generateUniquePhone();
+      await db
+        .insert(users)
+        .values({
+          phoneNumber: extraPhone,
+          displayName: "Extra Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/co-organizers`,
+        cookies: { auth_token: token },
+        payload: { phoneNumber: extraPhone },
+      });
+
+      expect(response.statusCode).toBe(409);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("MEMBER_LIMIT_EXCEEDED");
+      expect(body.error.message).toContain("Member limit exceeded:");
+    });
+  });
+});
+
+describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should return 200 when organizer removes co-organizer", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const coOrgPhone = generateUniquePhone();
+
+      const [creator, coOrg] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          { phoneNumber: coOrgPhone, displayName: "Co-Org", timezone: "UTC" },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add both as members
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate token for creator
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      // Remove co-organizer via API
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/co-organizers/${coOrg.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify co-organizer was removed
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, coOrg.id)));
+
+      expect(memberRecords.length).toBe(0);
+    });
+
+    it("should return 200 when co-organizer can remove another co-organizer", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const coOrg1Phone = generateUniquePhone();
+      const coOrg2Phone = generateUniquePhone();
+
+      const [creator, coOrg1, coOrg2] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: coOrg1Phone,
+            displayName: "Co-Org 1",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: coOrg2Phone,
+            displayName: "Co-Org 2",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add all as members
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg1.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg2.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate token for first co-organizer
+      const token = app.jwt.sign({
+        sub: coOrg1.id,
+        phone: coOrg1.phoneNumber,
+        name: coOrg1.displayName,
+      });
+
+      // Remove second co-organizer via API
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/co-organizers/${coOrg2.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+
+      // Verify second co-organizer was removed
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, coOrg2.id)));
+
+      expect(memberRecords.length).toBe(0);
+    });
+  });
+
+  describe("Validation Errors (400)", () => {
+    it("should return 400 for invalid trip ID format", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/invalid-uuid/co-organizers/00000000-0000-0000-0000-000000000000",
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid ID format");
+    });
+
+    it("should return 400 for invalid user ID format", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/co-organizers/invalid-uuid",
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toBe("Invalid ID format");
+    });
+
+    it("should return 400 when trying to remove trip creator", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const coOrgPhone = generateUniquePhone();
+
+      const [creator, coOrg] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          { phoneNumber: coOrgPhone, displayName: "Co-Org", timezone: "UTC" },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add both as members
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate token for co-organizer
+      const token = app.jwt.sign({
+        sub: coOrg.id,
+        phone: coOrg.phoneNumber,
+        name: coOrg.displayName,
+      });
+
+      // Try to remove creator
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/co-organizers/${creator.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("CANNOT_REMOVE_CREATOR");
+      expect(body.error.message).toBe(
+        "Cannot remove trip creator as co-organizer",
+      );
+    });
+  });
+
+  describe("Unauthorized Cases (401)", () => {
+    it("should return 401 when no auth token provided", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/co-organizers/00000000-0000-0000-0000-000000000001",
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("Forbidden Cases (403)", () => {
+    it("should return 403 when non-organizer tries to remove co-organizer", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const nonMemberPhone = generateUniquePhone();
+      const coOrgPhone = generateUniquePhone();
+
+      const [creator, nonMember, coOrg] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: nonMemberPhone,
+            displayName: "Non-Member",
+            timezone: "UTC",
+          },
+          { phoneNumber: coOrgPhone, displayName: "Co-Org", timezone: "UTC" },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Add creator and co-organizer as members
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: coOrg.id,
+          tripId: trip.id,
+          status: "going",
+        },
+      ]);
+
+      // Generate token for non-member
+      const token = app.jwt.sign({
+        sub: nonMember.id,
+        phone: nonMember.phoneNumber,
+        name: nonMember.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/co-organizers/${coOrg.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("PERMISSION_DENIED");
+      expect(body.error.message).toContain("Permission denied:");
+    });
+  });
+
+  describe("Not Found Cases (404)", () => {
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const creatorPhone = generateUniquePhone();
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: creatorPhone,
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/co-organizers/00000000-0000-0000-0000-000000000001",
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Trip not found");
+    });
+
+    it("should return 404 when co-organizer not found in trip", async () => {
+      app = await buildApp();
+
+      // Create test users
+      const creatorPhone = generateUniquePhone();
+      const nonMemberPhone = generateUniquePhone();
+
+      const [creator, nonMember] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: nonMemberPhone,
+            displayName: "Non-Member",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Test",
+          preferredTimezone: "UTC",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      // Only add creator as member
+      await db.insert(members).values({
+        userId: creator.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate token for creator
+      const token = app.jwt.sign({
+        sub: creator.id,
+        phone: creator.phoneNumber,
+        name: creator.displayName,
+      });
+
+      // Try to remove non-member
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/co-organizers/${nonMember.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.message).toBe("Co-organizer not found in trip");
     });
   });
 });

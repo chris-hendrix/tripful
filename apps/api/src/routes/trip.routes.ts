@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { tripController } from "@/controllers/trip.controller.js";
-import { authenticate, requireCompleteProfile } from "@/middleware/auth.middleware.js";
+import {
+  authenticate,
+  requireCompleteProfile,
+} from "@/middleware/auth.middleware.js";
 
 /**
  * Trip Routes
@@ -76,5 +79,32 @@ export async function tripRoutes(fastify: FastifyInstance) {
     },
     tripController.cancelTrip,
   );
-}
 
+  /**
+   * POST /:id/co-organizers
+   * Add co-organizer to trip
+   * Requires authentication and complete profile
+   * Only organizers can add co-organizers
+   */
+  fastify.post(
+    "/:id/co-organizers",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.addCoOrganizer,
+  );
+
+  /**
+   * DELETE /:id/co-organizers/:userId
+   * Remove co-organizer from trip
+   * Requires authentication and complete profile
+   * Only organizers can remove co-organizers
+   */
+  fastify.delete(
+    "/:id/co-organizers/:userId",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.removeCoOrganizer,
+  );
+}

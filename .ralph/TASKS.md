@@ -347,7 +347,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.6: Add co-organizer management endpoints (TDD)
+- [x] Task 3.6: Add co-organizer management endpoints (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: POST /trips/:id/co-organizers returns 200 and adds co-organizers
     - Test: POST /trips/:id/co-organizers returns 403 for non-organizers
