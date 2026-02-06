@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { requestCodeSchema, verifyCodeSchema, completeProfileSchema } from '../../../../shared/schemas/index.js';
+import { requestCodeSchema, verifyCodeSchema, completeProfileSchema } from '@tripful/shared/schemas';
 import { validatePhoneNumber } from '@/utils/phone.js';
 import { authService, AuthService } from '@/services/auth.service.js';
 import { smsService } from '@/services/sms.service.js';

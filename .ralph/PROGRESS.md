@@ -1142,3 +1142,178 @@ Ready to proceed to **Task 2.5: Implement updateTrip (TDD)**
 4. Implement Redis caching for frequently accessed trip lists
 
 **Current Status**: Performance acceptable for Phase 3 MVP scope (most users have <20 trips)
+
+---
+
+## Iteration 2: Task 2.5 - Implement updateTrip (TDD)
+
+**Date**: 2026-02-05
+**Status**: ✅ COMPLETED
+**Agent Workflow**: 3 researchers → coder → verifier + reviewer (parallel) → coder (fixes) → verifier + reviewer (re-check)
+
+### Task Summary
+
+Implemented the `updateTrip` method in the trip service using Test-Driven Development (TDD). The method allows organizers (creators and co-organizers) to update trip details with proper permission checking and partial update support.
+
+### Implementation Details
+
+**Files Modified:**
+1. `/home/chend/git/tripful/apps/api/src/services/trip.service.ts`
+   - Updated `ITripService` interface signature (line 66) to include `userId` parameter and use `UpdateTripInput` type
+   - Implemented `updateTrip` method (lines 358-409)
+   - Added imports for `UpdateTripInput` and `permissionsService`
+
+2. `/home/chend/git/tripful/apps/api/tests/unit/trip.service.test.ts`
+   - Added 8 comprehensive test cases for updateTrip (lines 765-883)
+   - Tests cover all acceptance criteria and edge cases
+
+**Method Signature:**
+```typescript
+async updateTrip(tripId: string, userId: string, data: UpdateTripInput): Promise<Trip>
+```
+
+**Key Features:**
+1. **Permission Checking**: Uses `permissionsService.canEditTrip()` to verify user is creator or co-organizer
+2. **Smart Error Handling**: Distinguishes between "trip not found" and "permission denied" errors
+3. **Field Mapping**: Correctly maps `timezone` to `preferredTimezone` to match database schema
+4. **Partial Updates**: Supports updating only provided fields using spread operator
+5. **Timestamp Management**: Automatically updates `updatedAt` field on every update
+6. **Type Safety**: Uses `Record<string, unknown>` for dynamic field manipulation while maintaining type safety
+
+### Test Coverage
+
+**Tests Written (8 total):**
+1. ✅ Should allow creator to update trip
+2. ✅ Should allow co-organizer to update trip
+3. ✅ Should throw error when non-organizer tries to update
+4. ✅ Should only update provided fields (partial updates)
+5. ✅ Should update the updatedAt timestamp
+6. ✅ Should throw error when trip does not exist
+7. ✅ Should correctly map timezone field to preferredTimezone
+8. ✅ Should handle permission denied with proper error message
+
+**Test Results:**
+- All 33 trip service unit tests pass
+- All 238 unit tests across entire API pass
+- Test execution time: ~1.5s
+
+### Verification Results
+
+**Initial Review: NEEDS_WORK**
+- Issue 1: Import path breaking TypeScript typecheck (MEDIUM)
+- Issue 2: Use of `any` type reducing type safety (MEDIUM)
+- Issue 3: Test import path inconsistency (LOW)
+
+**After Fixes: APPROVED**
+- ✅ TypeScript compilation passes (all 3 packages)
+- ✅ All unit tests pass (238/238)
+- ✅ Linting passes with acceptable warnings
+- ✅ Import paths use package alias consistently
+- ✅ Type safety maintained with `Record<string, unknown>`
+
+### Acceptance Criteria - All Met ✅
+
+- ✅ All unit tests pass (8 tests, exceeds 4+ requirement)
+- ✅ Organizers (creator and co-organizers) can update trip
+- ✅ Non-organizers receive permission error
+- ✅ Only provided fields are updated (partial updates work)
+- ✅ updatedAt timestamp is refreshed on every update
+- ✅ Trip not found error handled correctly
+- ✅ Field mapping (timezone → preferredTimezone) works correctly
+- ✅ Error messages are clear and consistent
+- ✅ Tests use unique phone numbers for parallel execution
+
+### Technical Decisions
+
+1. **Permission Check Priority**: Check permissions BEFORE attempting update to fail fast and provide better error messages
+2. **Error Message Clarity**: Distinguish between "trip not found" and "permission denied" by checking trip existence after permission failure
+3. **Type Safety Approach**: Use `Record<string, unknown>` instead of `any` to maintain type safety while allowing dynamic field manipulation
+4. **Import Pattern**: Use package alias `@tripful/shared/schemas` for consistency with codebase conventions
+5. **Field Mapping Strategy**: Handle `timezone` → `preferredTimezone` mapping explicitly in update logic with conditional check
+
+### Challenges & Resolutions
+
+**Challenge 1: Import Path Confusion**
+- Initial implementation used relative paths, then switched to package alias
+- Resolution: Reviewer caught the inconsistency; standardized on package alias pattern
+
+**Challenge 2: Type Safety vs Flexibility**
+- Need to handle dynamic fields while maintaining TypeScript safety
+- Resolution: Used `Record<string, unknown>` which provides type checking while allowing field manipulation
+
+**Challenge 3: Error Message Precision**
+- Should we return "not found" or "permission denied" for non-existent trips?
+- Resolution: Check trip existence after permission denial to provide accurate error messages
+
+### Code Quality
+
+**Strengths:**
+- Excellent test coverage with 8 comprehensive tests
+- Clear separation of concerns (permissions service handles authorization)
+- Follows established patterns from `auth.service.updateProfile`
+- Type-safe implementation with proper TypeScript usage
+- Well-documented test cases with descriptive names
+
+**Patterns Followed:**
+- TDD approach: Tests written before implementation
+- Permission checking via dedicated service
+- Drizzle ORM for safe database queries
+- Partial update pattern with spread operator
+- Explicit timestamp management
+
+### Integration Points
+
+**Dependencies:**
+- `permissionsService.canEditTrip()` for authorization
+- `UpdateTripInput` type from shared schemas
+- Database: trips table with Drizzle ORM
+- Existing test infrastructure (generateUniquePhone, cleanup)
+
+**Used By (Next):**
+- Trip controller PUT /trips/:id endpoint (Task 3.4)
+- Frontend edit trip dialog (Task 4.6)
+
+### Security Considerations
+
+1. ✅ **Authorization**: Proper permission checks before any updates
+2. ✅ **SQL Injection Protection**: Uses Drizzle ORM parameterized queries
+3. ✅ **Information Leakage**: Error messages don't expose sensitive data
+4. ✅ **Input Validation**: Uses Zod schema validation (UpdateTripInput)
+5. ✅ **Immutable Fields**: createdBy, id, createdAt cannot be modified
+
+### Performance Notes
+
+- Permission check adds one additional query but provides fail-fast behavior
+- Update operation uses single `.returning()` query (efficient)
+- No N+1 query issues
+- Timestamp update handled in-memory before query
+
+### Key Learnings
+
+1. **TDD Value**: Writing 8 tests first clarified all edge cases and requirements upfront
+2. **Error Handling Priority**: Permission checks before database operations provide better UX
+3. **Type Safety Balance**: `Record<string, unknown>` provides good balance between safety and flexibility
+4. **Import Consistency**: Package aliases improve maintainability across monorepo
+5. **Field Mapping**: Explicit handling of schema-to-database field name differences prevents bugs
+6. **Review Process Value**: Reviewer caught type safety and import issues before they became problems
+
+### Next Steps
+
+Ready to proceed to **Task 2.6: Implement cancelTrip - soft delete (TDD)**
+
+**Blockers**: None
+
+**Notes for Next Task:**
+- Permission pattern well-established (use `canDeleteTrip()`)
+- Error handling pattern proven (permission check → database operation → error handling)
+- Test structure template available (creator vs co-organizer vs non-member)
+- Soft delete: set `cancelled=true` and update `updatedAt` timestamp
+- Should verify trip not already cancelled before operation
+
+### Statistics
+
+- **Lines of Code**: ~50 lines implementation, ~120 lines tests
+- **Test Coverage**: 8 tests covering all scenarios
+- **Time to Implement**: Single iteration with one round of fixes
+- **Agent Workflow Efficiency**: 3 parallel researchers → 1 coder → 2 parallel reviewers → 1 coder (fixes) → 2 parallel reviewers = 6 agent tasks
+- **Iteration Count**: 2 (initial + fixes)

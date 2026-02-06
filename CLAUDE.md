@@ -82,6 +82,11 @@ Place code shared between web/api in `shared/`:
 
 Always export through barrel files (`index.ts`).
 
+**Importing from shared package:**
+- ✅ Use workspace package: `import { ... } from '@tripful/shared/schemas'`
+- ❌ Never use relative paths: `import { ... } from '../../../../shared/schemas/index.js'`
+- Available exports: `@tripful/shared`, `@tripful/shared/types`, `@tripful/shared/schemas`, `@tripful/shared/utils`
+
 ### Database Changes
 1. Update schema in `apps/api/src/db/schema/`
 2. Generate migration: `cd apps/api && pnpm db:generate`

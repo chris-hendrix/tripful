@@ -157,7 +157,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 2.5: Implement updateTrip (TDD)
+- [x] Task 2.5: Implement updateTrip (TDD)
   - Write failing tests in `trip.service.test.ts`:
     - Test: Organizer can update trip successfully
     - Test: Non-organizer receives permission error

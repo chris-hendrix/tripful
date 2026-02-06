@@ -1,7 +1,8 @@
 import { db } from '@/config/database.js';
 import { trips, members, users, type Trip, type Member } from '@/db/schema/index.js';
 import { eq, inArray, and, asc, sql } from 'drizzle-orm';
-import type { CreateTripInput } from '../../../../shared/schemas/index.js';
+import type { CreateTripInput, UpdateTripInput } from '@tripful/shared/schemas';
+import { permissionsService } from './permissions.service.js';
 
 /**
  * Trip Summary Type
@@ -60,10 +61,11 @@ export interface ITripService {
   /**
    * Updates a trip (to be implemented)
    * @param tripId - The UUID of the trip to update
+   * @param userId - The UUID of the user requesting the update
    * @param data - The trip update data
    * @returns Promise that resolves to the updated trip
    */
-  updateTrip(tripId: string, data: Partial<CreateTripInput>): Promise<Trip>;
+  updateTrip(tripId: string, userId: string, data: UpdateTripInput): Promise<Trip>;
 
   /**
    * Cancels a trip (to be implemented)
@@ -356,13 +358,56 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Updates a trip (placeholder implementation)
-   * @param _tripId - The UUID of the trip to update
-   * @param _data - The trip update data
+   * Updates a trip
+   * Only organizers (creator or co-organizers) can update trips
+   * @param tripId - The UUID of the trip to update
+   * @param userId - The UUID of the user requesting the update
+   * @param data - The trip update data
    * @returns Promise that resolves to the updated trip
+   * @throws Error if user lacks permission or trip not found
    */
-  async updateTrip(_tripId: string, _data: Partial<CreateTripInput>): Promise<Trip> {
-    throw new Error('Not implemented');
+  async updateTrip(tripId: string, userId: string, data: UpdateTripInput): Promise<Trip> {
+    // Check permissions
+    const canEdit = await permissionsService.canEditTrip(userId, tripId);
+    if (!canEdit) {
+      // Check if trip exists to provide better error message
+      const tripExists = await db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1);
+
+      if (tripExists.length === 0) {
+        throw new Error('Trip not found');
+      }
+
+      throw new Error('Permission denied: only organizers can update trips');
+    }
+
+    // Build update data with field mapping
+    const updateData: Record<string, unknown> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    // Map timezone to preferredTimezone if provided
+    if (data.timezone !== undefined) {
+      updateData.preferredTimezone = data.timezone;
+      delete updateData.timezone;
+    }
+
+    // Perform update
+    const result = await db
+      .update(trips)
+      .set(updateData)
+      .where(eq(trips.id, tripId))
+      .returning();
+
+    if (!result[0]) {
+      throw new Error('Trip not found');
+    }
+
+    return result[0];
   }
 
   /**

@@ -4,7 +4,7 @@ import { trips, members, users } from '@/db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { tripService } from '@/services/trip.service.js';
 import { generateUniquePhone } from '../test-utils.js';
-import type { CreateTripInput } from '../../../../shared/schemas/index.js';
+import type { CreateTripInput } from '@tripful/shared/schemas';
 
 describe('trip.service', () => {
   // Use unique phone numbers per test run to enable parallel execution
@@ -759,6 +759,145 @@ describe('trip.service', () => {
       const coOrgResults = await tripService.getUserTrips(coOrganizerUserId);
       expect(coOrgResults).toHaveLength(1);
       expect(coOrgResults[0].rsvpStatus).toBe('maybe');
+    });
+  });
+
+  describe('updateTrip', () => {
+    let testCreatorId: string;
+    let testCoOrganizerId: string;
+    let testNonOrganizerId: string;
+    let testTripId: string;
+    let testPhone1: string;
+    let testPhone2: string;
+    let testPhone3: string;
+
+    beforeEach(async () => {
+      // Setup test users
+      testPhone1 = generateUniquePhone();
+      testPhone2 = generateUniquePhone();
+      testPhone3 = generateUniquePhone();
+
+      // Create creator
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone1,
+          displayName: 'Creator',
+          timezone: 'UTC',
+        })
+        .returning();
+      testCreatorId = creator.id;
+
+      // Create co-organizer
+      const [coOrganizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone2,
+          displayName: 'Co-Organizer',
+          timezone: 'UTC',
+        })
+        .returning();
+      testCoOrganizerId = coOrganizer.id;
+
+      // Create non-organizer
+      const [nonOrganizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: testPhone3,
+          displayName: 'Non-Organizer',
+          timezone: 'UTC',
+        })
+        .returning();
+      testNonOrganizerId = nonOrganizer.id;
+
+      // Create trip with creator
+      const tripData: CreateTripInput = {
+        name: 'Test Trip',
+        destination: 'Test Destination',
+        timezone: 'America/New_York',
+        startDate: '2026-06-01',
+        endDate: '2026-06-07',
+        allowMembersToAddEvents: false,
+      };
+
+      const trip = await tripService.createTrip(testCreatorId, tripData);
+      testTripId = trip.id;
+
+      // Add co-organizer manually (since addCoOrganizers is not implemented yet)
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: testCoOrganizerId,
+        status: 'going',
+      });
+    });
+
+    afterEach(async () => {
+      // Cleanup in reverse FK dependency order
+      await db.delete(members).where(eq(members.tripId, testTripId));
+      await db.delete(trips).where(eq(trips.id, testTripId));
+      await db.delete(users).where(eq(users.id, testCreatorId));
+      await db.delete(users).where(eq(users.id, testCoOrganizerId));
+      await db.delete(users).where(eq(users.id, testNonOrganizerId));
+    });
+
+    it('should allow creator to update trip', async () => {
+      const updateData = { name: 'Updated Trip Name' };
+      const result = await tripService.updateTrip(testTripId, testCreatorId, updateData);
+
+      expect(result.name).toBe('Updated Trip Name');
+      expect(result.id).toBe(testTripId);
+    });
+
+    it('should allow co-organizer to update trip', async () => {
+      const updateData = { destination: 'New Destination' };
+      const result = await tripService.updateTrip(testTripId, testCoOrganizerId, updateData);
+
+      expect(result.destination).toBe('New Destination');
+      expect(result.id).toBe(testTripId);
+    });
+
+    it('should throw error when non-organizer tries to update', async () => {
+      const updateData = { name: 'Hacked' };
+      await expect(
+        tripService.updateTrip(testTripId, testNonOrganizerId, updateData)
+      ).rejects.toThrow('Permission denied');
+    });
+
+    it('should only update provided fields', async () => {
+      const originalTrip = await tripService.getTripById(testTripId, testCreatorId);
+      const updateData = { name: 'New Name' };
+
+      const result = await tripService.updateTrip(testTripId, testCreatorId, updateData);
+
+      expect(result.name).toBe('New Name');
+      expect(result.destination).toBe(originalTrip!.destination);
+      expect(result.preferredTimezone).toBe(originalTrip!.preferredTimezone);
+    });
+
+    it('should update the updatedAt timestamp', async () => {
+      const originalTrip = await tripService.getTripById(testTripId, testCreatorId);
+      const originalUpdatedAt = originalTrip!.updatedAt;
+
+      // Wait a bit to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const result = await tripService.updateTrip(testTripId, testCreatorId, { name: 'New' });
+
+      expect(result.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+    });
+
+    it('should throw error when trip does not exist', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      await expect(
+        tripService.updateTrip(fakeId, testCreatorId, { name: 'Test' })
+      ).rejects.toThrow('Trip not found');
+    });
+
+    it('should correctly map timezone field to preferredTimezone', async () => {
+      const updateData = { timezone: 'Europe/London' };
+      const result = await tripService.updateTrip(testTripId, testCreatorId, updateData);
+
+      expect(result.preferredTimezone).toBe('Europe/London');
     });
   });
 });
