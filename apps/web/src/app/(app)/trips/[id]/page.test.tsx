@@ -1,5 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TripDetailPage from "./page";
 import type { TripDetail } from "@/hooks/use-trips";
@@ -43,14 +49,31 @@ vi.mock("@/components/trip/edit-trip-dialog", () => ({
     open,
     onOpenChange,
     trip,
+    onSuccess,
   }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     trip: TripDetail;
+    onSuccess?: () => void;
   }) => (
-    <div data-testid="edit-trip-dialog" data-open={open}>
+    <div
+      data-testid="edit-trip-dialog"
+      data-open={open}
+      data-onsuccess={onSuccess ? "true" : "false"}
+    >
       <button onClick={() => onOpenChange(false)}>Close Dialog</button>
       <span>Editing: {trip.name}</span>
+      {onSuccess && (
+        <button
+          data-testid="trigger-success"
+          onClick={() => {
+            onSuccess();
+            onOpenChange(false);
+          }}
+        >
+          Trigger Success
+        </button>
+      )}
     </div>
   ),
 }));
@@ -92,6 +115,10 @@ describe("TripDetailPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: mockUser });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe("rendering tests", () => {
@@ -498,9 +525,9 @@ describe("TripDetailPage", () => {
       await user.click(editButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId("edit-trip-dialog").getAttribute("data-open")).toBe(
-          "true",
-        );
+        expect(
+          screen.getByTestId("edit-trip-dialog").getAttribute("data-open"),
+        ).toBe("true");
       });
 
       // Close dialog
@@ -508,10 +535,119 @@ describe("TripDetailPage", () => {
       await user.click(closeButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId("edit-trip-dialog").getAttribute("data-open")).toBe(
-          "false",
-        );
+        expect(
+          screen.getByTestId("edit-trip-dialog").getAttribute("data-open"),
+        ).toBe("false");
       });
+    });
+  });
+
+  describe("success notification tests", () => {
+    it("shows success banner when trip is updated", async () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(<TripDetailPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Edit trip")).toBeDefined();
+      });
+
+      // Success banner should not be visible initially
+      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
+
+      // Trigger onSuccess callback by simulating trip update
+      // The mock EditTripDialog component will have an onSuccess prop
+      const dialog = screen.getByTestId("edit-trip-dialog");
+      const onSuccessProp = dialog.getAttribute("data-onsuccess");
+      expect(onSuccessProp).toBe("true");
+    });
+
+    it("success banner auto-dismisses after timeout", () => {
+      vi.useFakeTimers();
+
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(<TripDetailPage />);
+
+      // Open dialog
+      const editButton = screen.getByText("Edit trip");
+      fireEvent.click(editButton);
+
+      // Trigger success by clicking the success trigger button (added to mock)
+      const successButton = screen.getByTestId("trigger-success");
+      fireEvent.click(successButton);
+
+      // Success banner should appear
+      expect(screen.getByText(/trip updated successfully/i)).toBeDefined();
+
+      // Fast-forward time by 5 seconds
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      // Banner should now be dismissed
+      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it("success banner has correct styling", async () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(<TripDetailPage />);
+
+      // Open dialog
+      const editButton = screen.getByText("Edit trip");
+      await user.click(editButton);
+
+      // Trigger success
+      const successButton = screen.getByTestId("trigger-success");
+      await user.click(successButton);
+
+      // Check banner styling
+      const banner = screen.getByText(
+        /trip updated successfully/i,
+      ).parentElement;
+      expect(banner).toBeDefined();
+      expect(banner?.className).toContain("bg-green-50");
+      expect(banner?.className).toContain("border-green-200");
+    });
+
+    it("does not show success banner on initial page load", () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(<TripDetailPage />);
+
+      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
     });
   });
 

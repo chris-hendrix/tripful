@@ -22,13 +22,7 @@ vi.mock("next/navigation", () => ({
 
 // Mock TripCard component
 vi.mock("@/components/trip/trip-card", () => ({
-  TripCard: ({
-    trip,
-    index,
-  }: {
-    trip: TripSummary;
-    index?: number;
-  }) => (
+  TripCard: ({ trip, index }: { trip: TripSummary; index?: number }) => (
     <div data-testid={`trip-card-${trip.id}`} data-index={index}>
       <h3>{trip.name}</h3>
       <p>{trip.destination}</p>

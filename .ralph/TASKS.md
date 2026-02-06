@@ -595,7 +595,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 5.6: Integrate edit dialog into trip detail page
+- [x] Task 5.6: Integrate edit dialog into trip detail page
   - Add edit button (organizers only)
   - Open EditTripDialog on click
   - Pass trip data to dialog for pre-population

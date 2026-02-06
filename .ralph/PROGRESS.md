@@ -17,10 +17,12 @@ Successfully implemented TanStack Query mutation hook for creating trips with op
 ### Implementation Details
 
 **Files Created:**
+
 1. `/home/chend/git/tripful/apps/web/src/hooks/use-trips.ts` - Custom React Query hooks for trip operations
 2. `/home/chend/git/tripful/apps/web/src/hooks/__tests__/use-trips.test.tsx` - Comprehensive hook tests (19 tests)
 
 **Files Modified:**
+
 1. `/home/chend/git/tripful/apps/web/src/app/providers/providers.tsx` - Added QueryClientProvider with SSR-safe configuration
 2. `/home/chend/git/tripful/apps/web/src/components/trip/create-trip-dialog.tsx` - Integrated useCreateTrip hook, replaced placeholder
 3. `/home/chend/git/tripful/apps/web/src/components/trip/__tests__/create-trip-dialog.test.tsx` - Updated tests to work with QueryClient (59 tests)
@@ -58,6 +60,7 @@ Successfully implemented TanStack Query mutation hook for creating trips with op
 ### Test Results
 
 **Hook Tests** (`use-trips.test.tsx`): ✅ **19/19 passed** in 615ms
+
 - Successful creation and redirect (3 tests)
 - Optimistic updates with temp ID (2 tests)
 - Error handling and rollback (5 tests)
@@ -65,10 +68,12 @@ Successfully implemented TanStack Query mutation hook for creating trips with op
 - Error message transformation (7 tests)
 
 **Dialog Tests** (`create-trip-dialog.test.tsx`): ✅ **59/59 passed** in 5853ms
+
 - All existing tests updated to work with QueryClientProvider
 - Form validation, navigation, co-organizers, loading states fully covered
 
 **Static Analysis**:
+
 - ✅ TypeScript: No type errors
 - ✅ ESLint: No linting errors
 - ✅ Prettier: All files formatted correctly
@@ -83,6 +88,7 @@ Successfully implemented TanStack Query mutation hook for creating trips with op
 ### Verification Report
 
 **Verifier Agent** (86 seconds):
+
 - All 78 tests passing (19 hook + 59 dialog)
 - TypeScript compilation successful
 - ESLint check passed
@@ -91,6 +97,7 @@ Successfully implemented TanStack Query mutation hook for creating trips with op
 - Status: **PASS** - Production ready
 
 **Reviewer Agent** (86 seconds):
+
 - Code quality: Excellent
 - Architecture: Follows Next.js SSR best practices
 - Testing: Comprehensive coverage (78 tests)
@@ -200,6 +207,7 @@ Successfully implemented the edit trip dialog component with update and delete f
 ### Implementation Details
 
 **Files Created:**
+
 1. `/home/chend/git/tripful/apps/web/src/components/trip/edit-trip-dialog.tsx` (335 lines)
    - Two-step dialog matching CreateTripDialog design
    - Form pre-population with useEffect
@@ -214,6 +222,7 @@ Successfully implemented the edit trip dialog component with update and delete f
    - Tests delete confirmation flow
 
 **Files Modified:**
+
 1. `/home/chend/git/tripful/apps/web/src/hooks/use-trips.ts`
    - Added `useUpdateTrip` hook with optimistic updates
    - Added `useCancelTrip` hook for soft delete with redirect
@@ -226,12 +235,14 @@ Successfully implemented the edit trip dialog component with update and delete f
 ### Features Implemented
 
 **Form Pre-population:**
+
 - Uses useEffect to reset form with existing trip data when dialog opens
 - Handles null values gracefully (description, dates, coverImageUrl)
 - Maps database field names correctly (preferredTimezone → timezone)
 - Resets to Step 1 and clears delete confirmation on dialog reopen
 
 **Update Mutation (useUpdateTrip):**
+
 - PUT request to `/trips/:tripId` endpoint
 - Optimistic updates for both trips list and individual trip caches
 - Proper field mapping for partial updates
@@ -240,6 +251,7 @@ Successfully implemented the edit trip dialog component with update and delete f
 - Stays on current page (no redirect)
 
 **Delete Mutation (useCancelTrip):**
+
 - DELETE request to `/trips/:tripId` endpoint (soft delete)
 - Optimistic removal from trips list cache
 - Two-step confirmation process with clear warning
@@ -247,6 +259,7 @@ Successfully implemented the edit trip dialog component with update and delete f
 - Error rollback on failure
 
 **User Experience:**
+
 - Matches CreateTripDialog styling (Playfair Display, gradient buttons, rounded corners)
 - Loading states: "Updating trip..." and "Deleting..." with disabled fields
 - Error messages: User-friendly error handling for all error codes
@@ -256,11 +269,13 @@ Successfully implemented the edit trip dialog component with update and delete f
 ### Test Results
 
 **Edit Trip Dialog Tests:**
+
 - Tests: 40 passed / 40 total
 - Duration: 2.20s
 - Coverage: Dialog behavior, form pre-population, validation, mutations, delete confirmation, styling, accessibility
 
 **Test Categories:**
+
 - Dialog open/close behavior (3 tests)
 - Form pre-population (7 tests)
 - Step navigation (4 tests)
@@ -273,6 +288,7 @@ Successfully implemented the edit trip dialog component with update and delete f
 - Progress indicator (2 tests)
 
 **Static Analysis:**
+
 - TypeScript compilation: ✅ PASS (no type errors)
 - Linting: ✅ PASS (no linting errors)
 - Code style: ✅ Follows project conventions
@@ -280,6 +296,7 @@ Successfully implemented the edit trip dialog component with update and delete f
 ### Acceptance Criteria
 
 All acceptance criteria met:
+
 - ✅ Dialog pre-fills with current trip data (tested with 7 tests)
 - ✅ Updates trip on submit (tested with 6 tests)
 - ✅ Optimistic update works correctly (cache updates immediately, rollback on error)
@@ -289,6 +306,7 @@ All acceptance criteria met:
 ### Code Quality
 
 **Verifier Assessment:** PASS
+
 - All 40 tests passing
 - No TypeScript errors
 - No linting errors
@@ -296,6 +314,7 @@ All acceptance criteria met:
 - No regressions in existing functionality
 
 **Reviewer Assessment:** APPROVED
+
 - Exceptional pattern consistency with CreateTripDialog
 - Clean code structure with clear separation of concerns
 - Strong TypeScript usage throughout
@@ -318,17 +337,20 @@ All acceptance criteria met:
 ### Learnings
 
 **Form Pre-population Pattern:**
+
 - Use `form.reset()` in `useEffect` when dialog opens with existing data
 - Handle null values explicitly (convert to empty string or undefined)
 - Reset auxiliary state (step, confirmation) alongside form
 
 **Update vs Create Mutations:**
+
 - Update: Modify existing items in cache (don't add new ones)
 - Update: No redirect on success (stay on current page)
 - Create: Add new item to cache, redirect to detail page
 - Both: Implement optimistic updates and rollback
 
 **Delete Confirmation UX:**
+
 - Two-step process prevents accidental deletions
 - Clear warning message: "This action cannot be undone"
 - Separate cancel and confirm buttons
@@ -336,6 +358,7 @@ All acceptance criteria met:
 - Reset confirmation state when navigating back
 
 **Cache Management:**
+
 - Update both specific item cache `["trips", tripId]` and list cache `["trips"]`
 - Cancel in-flight queries before optimistic updates
 - Store previous state for rollback
@@ -411,7 +434,9 @@ Successfully redesigned the dashboard page from a simple user profile display in
 ### Implementation Details
 
 #### 1. Created useTrips Query Hook
+
 **File**: `/apps/web/src/hooks/use-trips.ts`
+
 - Added `TripSummary` interface matching backend API contract
 - Added `GetTripsResponse` interface for type safety
 - Implemented `useTrips()` query hook using TanStack Query
@@ -420,9 +445,11 @@ Successfully redesigned the dashboard page from a simple user profile display in
 - Includes proper error handling with APIError class
 
 #### 2. Redesigned Dashboard Page
+
 **File**: `/apps/web/src/app/(app)/dashboard/page.tsx`
 
 **Features Implemented**:
+
 - **Header Section**: Title with Playfair Display font, trip count display
 - **Search Bar**: Fully functional client-side filtering by trip name and destination (case-insensitive)
 - **Trip Categorization**: Splits trips into "Upcoming" and "Past" sections based on startDate
@@ -436,6 +463,7 @@ Successfully redesigned the dashboard page from a simple user profile display in
 - **CreateTripDialog Integration**: Opens dialog on FAB click and empty state CTA
 
 **Design Consistency**:
+
 - Playfair Display font for all headings (7 locations)
 - Blue-to-cyan gradient (`from-blue-600 to-cyan-600`) for primary actions
 - Proper spacing, shadows, and rounded corners matching existing patterns
@@ -443,12 +471,15 @@ Successfully redesigned the dashboard page from a simple user profile display in
 - Responsive layout with max-w-7xl container
 
 #### 3. Comprehensive Test Suite
+
 **File**: `/apps/web/src/hooks/__tests__/use-trips.test.tsx`
+
 - Added 8 new tests for useTrips hook
 - Tests cover: API integration, caching, error handling, refetch
 - All 25 tests passing (17 existing + 8 new)
 
 **File**: `/apps/web/src/app/(app)/dashboard/page.test.tsx`
+
 - Complete rewrite with 22 comprehensive tests
 - Tests cover all states: loading, error, empty, no results, success
 - Tests search functionality thoroughly
@@ -459,6 +490,7 @@ Successfully redesigned the dashboard page from a simple user profile display in
 ### Acceptance Criteria Verification
 
 **Task 5.1: Redesign dashboard page**
+
 - ✅ Dashboard shows two sections: upcoming and past
 - ✅ Trips display in TripCard components with correct props
 - ✅ Empty state shows when no trips
@@ -466,12 +498,14 @@ Successfully redesigned the dashboard page from a simple user profile display in
 - ✅ Matches demo design (Playfair Display, gradients, spacing)
 
 **Task 5.2: Add floating action button**
+
 - ✅ FAB visible and positioned correctly (fixed bottom-8 right-8)
 - ✅ Opens create dialog on click
 - ✅ Matches demo styling (gradient, shadow, plus icon)
 - ✅ Works on mobile and desktop (z-50 for proper layering)
 
 **Task 5.3: Implement trip data fetching**
+
 - ✅ useTrips hook with useQuery
 - ✅ Fetches from GET /trips endpoint
 - ✅ Filters trips into upcoming/past based on startDate
@@ -482,12 +516,14 @@ Successfully redesigned the dashboard page from a simple user profile display in
 ### Code Quality
 
 **Verifier Report**: ✅ PASS
+
 - All tests passing (47 total: 25 hook + 22 dashboard)
 - TypeScript compilation: ✅ No errors
 - Linting: ✅ No errors
 - All acceptance criteria met
 
 **Reviewer Report**: ✅ APPROVED
+
 - Architecture: Excellent (clean separation of concerns)
 - Type Safety: Excellent (strict TypeScript, proper interfaces)
 - Error Handling: Excellent (user-friendly messages, retry logic)
@@ -512,6 +548,7 @@ None. Implementation is production-ready with no blocking issues.
 ### Recommendations
 
 Optional enhancements for future iterations:
+
 1. Search debouncing for very large trip lists (current performance is fine)
 2. `aria-live="polite"` for search results count (screen reader enhancement)
 3. Different empty state message for non-organizers vs organizers
@@ -583,6 +620,7 @@ Successfully implemented a comprehensive trip detail page at `/trips/[id]` with 
 ### Implementation Details
 
 #### Files Created
+
 1. **`apps/web/src/app/(app)/trips/[id]/page.tsx`** (357 lines)
    - Client-side Next.js page component
    - Hero section with cover image or gradient placeholder (320px height)
@@ -604,6 +642,7 @@ Successfully implemented a comprehensive trip detail page at `/trips/[id]` with 
      - Edge cases: missing dates, null description, empty organizers, member count pluralization, date formatting
 
 #### Files Modified
+
 3. **`apps/web/src/hooks/use-trips.ts`**
    - Added `TripDetail` interface extending `Trip` with `organizers` array and `memberCount`
    - Added `GetTripDetailResponse` interface for API response typing
@@ -649,6 +688,7 @@ Successfully implemented a comprehensive trip detail page at `/trips/[id]` with 
 ### Verification Results
 
 **Verifier**: ✅ PASS
+
 - Unit tests (hooks): 34/34 passing (includes 10 new useTripDetail tests)
 - Component tests (page): 28/28 passing
 - TypeScript: No errors
@@ -656,6 +696,7 @@ Successfully implemented a comprehensive trip detail page at `/trips/[id]` with 
 - All acceptance criteria met
 
 **Reviewer**: ✅ APPROVED
+
 - Code quality: ⭐⭐⭐⭐⭐ (5/5)
 - Test quality: ⭐⭐⭐⭐⭐ (5/5)
 - Production-ready implementation
@@ -667,6 +708,7 @@ Successfully implemented a comprehensive trip detail page at `/trips/[id]` with 
 ### Acceptance Criteria Verification
 
 All criteria from Task 5.4 met:
+
 - ✅ Trip details display correctly
 - ✅ Cover image shown if available
 - ✅ Organizers see edit button
@@ -706,7 +748,6 @@ All criteria from Task 5.4 met:
   - LOCATING: Complete file inventory with exact paths
   - ANALYZING: Full data flow mapping from API to UI
   - PATTERNS: Comprehensive UI/design pattern extraction
-  
 - **Coder Agent**: ~10 minutes
   - Implemented useTripDetail hook with tests
   - Created trip detail page component
@@ -753,11 +794,11 @@ Task 5.5 was already completed as part of Task 5.4 (Iteration 20). The `useTripD
 ### Verification Results
 
 #### Implementation Check
+
 - **useTripDetail Hook**: ✅ Fully implemented in `apps/web/src/hooks/use-trips.ts`
   - Fetches from GET /trips/:id endpoint
   - Uses TanStack Query with proper caching (query key: `["trips", tripId]`)
   - Returns loading, error, and data states
-  
 - **Trip Detail Page**: ✅ Properly integrated in `apps/web/src/app/(app)/trips/[id]/page.tsx`
   - Uses `useTripDetail(tripId)` hook
   - Shows loading state with SkeletonDetail component
@@ -767,6 +808,7 @@ Task 5.5 was already completed as part of Task 5.4 (Iteration 20). The `useTripD
 #### Test Coverage
 
 **Hook Tests** (10 tests in `use-trips.test.tsx`):
+
 - ✅ Fetches trip detail successfully
 - ✅ Returns trip with organizers and member count
 - ✅ Uses correct query key for caching
@@ -779,6 +821,7 @@ Task 5.5 was already completed as part of Task 5.4 (Iteration 20). The `useTripD
 - ✅ Updates cache on refetch
 
 **Page Tests** (28 tests in `page.test.tsx`):
+
 - ✅ Renders loading state initially
 - ✅ Renders trip details when data loaded
 - ✅ Shows cover image when available
@@ -798,6 +841,7 @@ Task 5.5 was already completed as part of Task 5.4 (Iteration 20). The `useTripD
 #### Acceptance Criteria
 
 All acceptance criteria met:
+
 - ✅ Trip details load correctly
 - ✅ 404 error shows "Trip not found" page
 - ✅ 403 error shows "No access" page (combined with 404 into single error message)
@@ -807,12 +851,15 @@ All acceptance criteria met:
 ### Key Implementation Details
 
 1. **Hook Implementation**:
+
    ```typescript
    export function useTripDetail(tripId: string) {
      return useQuery({
        queryKey: ["trips", tripId],
        queryFn: async () => {
-         const response = await apiRequest<GetTripDetailResponse>(`/trips/${tripId}`);
+         const response = await apiRequest<GetTripDetailResponse>(
+           `/trips/${tripId}`,
+         );
          return response.trip;
        },
      });
@@ -848,3 +895,174 @@ Total: 347 tests passed
 Since all acceptance criteria are met, tests are passing, and the implementation is already in production-ready state, Task 5.5 is marked as complete.
 
 **Next Task**: Task 5.6 - Integrate edit dialog into trip detail page
+
+---
+
+## Iteration 22 - Task 5.6: Integrate Edit Dialog into Trip Detail Page
+
+**Date**: 2026-02-06
+**Task**: Task 5.6 - Integrate edit dialog into trip detail page
+**Status**: ✅ COMPLETE
+
+### Research Phase
+
+Spawned 3 researcher agents in parallel:
+
+1. **LOCATING Researcher**: Found that most of Task 5.6 was already implemented
+   - Edit button already exists at lines 174-183 in trip detail page
+   - Dialog state management already in place (line 103)
+   - EditTripDialog component already imported and rendered (lines 282-288)
+   - Only missing piece: success notification after update
+
+2. **ANALYZING Researcher**: Traced the data flow
+   - `useTripDetail(tripId)` fetches trip data with cache key `["trips", tripId]`
+   - `useUpdateTrip()` mutation handles updates with optimistic updates
+   - Cache invalidation triggers automatic refetch of trip data
+   - Trip detail page automatically re-renders with updated data
+
+3. **PATTERNS Researcher**: Identified existing patterns
+   - No toast/notification library installed in the project
+   - Inline error messages used throughout (green variant for success)
+   - Dialog success callbacks close dialog after mutation succeeds
+   - Organizer checks use `isOrganizer` boolean from user and trip data
+
+**Key Finding**: The integration was 90% complete. Only needed to add success notification.
+
+### Implementation Phase
+
+**Coder Agent** implemented the missing success notification feature:
+
+1. **EditTripDialog Enhancement** (`edit-trip-dialog.tsx`):
+   - Added optional `onSuccess?: () => void` prop to interface
+   - Called callback after successful update (backward compatible)
+
+2. **Success Banner Component** (`trips/[id]/page.tsx`):
+   - Added `showSuccessBanner` state
+   - Created fixed-position green banner with checkmark icon
+   - Positioned at top-right corner with proper z-index
+   - Auto-dismisses after 5 seconds using setTimeout
+
+3. **Integration**:
+   - Passed `onSuccess` callback to EditTripDialog
+   - Callback shows banner and sets timeout to hide it
+
+4. **Comprehensive Testing**:
+   - Added 4 new tests in page.test.tsx (success banner appearance, styling, auto-dismiss)
+   - Added 3 new tests in edit-trip-dialog.test.tsx (onSuccess callback behavior)
+   - All tests initially passed
+
+**Files Modified**:
+- `apps/web/src/components/trip/edit-trip-dialog.tsx`
+- `apps/web/src/app/(app)/trips/[id]/page.tsx`
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx`
+- `apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx`
+
+### Verification Phase (Round 1)
+
+**Verifier Agent**: PASS with minor issues
+- All 7 new tests passed
+- TypeScript: No errors
+- Linting: No errors
+- Formatting: 6 files needed formatting (non-blocking)
+
+**Reviewer Agent**: NEEDS_WORK (Small Fix)
+- Identified flaky test: "success banner auto-dismisses after timeout"
+- Issue: Test used real timers which are unreliable in test environments
+- Recommendation: Use fake timers for deterministic time control
+
+### Small Fix Phase
+
+**Coder Agent** fixed the flaky test:
+
+1. **Test Fix** (`page.test.tsx` lines 572-606):
+   - Replaced real timers with `vi.useFakeTimers()`
+   - Changed from `userEvent` to `fireEvent` for better fake timer compatibility
+   - Used `vi.advanceTimersByTime(5000)` wrapped in `act()` for synchronous time control
+   - Added proper cleanup with `vi.useRealTimers()` in afterEach
+
+2. **Formatting**:
+   - Ran `pnpm format` to fix all formatting issues
+
+### Verification Phase (Round 2)
+
+**Verifier Agent**: PASS
+- All 32 tests in page.test.tsx passing (including fixed auto-dismiss test)
+- All 43 tests in edit-trip-dialog.test.tsx passing
+- TypeScript: No errors
+- Linting: No errors
+- Formatting: Clean (1 unrelated file: postcss.config.mjs)
+
+**Reviewer Agent**: APPROVED
+- Excellent fix implementation using fake timers
+- Test reliability confirmed (multiple runs, stable execution times)
+- Follows Vitest best practices
+- Production-ready
+
+### Acceptance Criteria Verification
+
+From TASKS.md Task 5.6:
+- ✅ Edit button visible to organizers only (already implemented)
+- ✅ Dialog opens with pre-filled data (already implemented)
+- ✅ Trip detail refreshes after update (automatic via TanStack Query)
+- ✅ Success message shown on update (NEWLY IMPLEMENTED)
+- ✅ Works with optimistic updates (already implemented)
+
+### Test Results
+
+**New Tests Added** (7 total, all passing):
+
+**Trip Detail Page Tests**:
+1. Passes onSuccess callback to EditTripDialog
+2. Success banner appears after update
+3. Success banner auto-dismisses after timeout (fixed with fake timers)
+4. Success banner has correct styling (green color scheme)
+
+**Edit Trip Dialog Tests**:
+1. Calls onSuccess callback after successful update
+2. Does not call onSuccess callback when update fails
+3. Works without onSuccess callback (backward compatibility)
+
+**Overall Test Suite**:
+- Task 5.6 files: 75/75 tests passing (32 page tests + 43 dialog tests)
+- Total project: 354/358 tests passing (4 pre-existing failures in auth pages)
+
+### Technical Decisions
+
+1. **No Toast Library**: Chose not to install a new dependency (sonner, react-hot-toast, etc.)
+   - Implemented simple inline success banner instead
+   - Matches existing error message pattern (green variant)
+   - Keeps bundle size minimal
+
+2. **5-Second Auto-Dismiss**: Standard UX pattern for success notifications
+   - Long enough to read
+   - Short enough to not clutter UI
+   - User can still interact while banner is visible
+
+3. **Fixed Positioning**: Success banner at top-right corner
+   - Always visible regardless of scroll position
+   - High z-index (z-50) ensures it appears above content
+   - Doesn't block trip content
+
+4. **Fake Timers for Testing**: Essential for reliable timeout testing
+   - Eliminates race conditions with real timers
+   - Fast test execution (no actual 5-second wait)
+   - Deterministic behavior across all environments
+
+### Learnings for Future Iterations
+
+1. **Most Integration Already Done**: Task 5.6 was simpler than expected because previous iterations had already integrated the edit dialog. Research phase correctly identified this, saving implementation time.
+
+2. **Real Timers Are Flaky**: When testing setTimeout/setInterval, always use fake timers for reliability. Real timers depend on system scheduling and are inherently flaky in test environments.
+
+3. **userEvent vs fireEvent with Fake Timers**: `userEvent` has async behavior that doesn't work well with fake timers. Use `fireEvent` for synchronous interactions when testing time-dependent behavior.
+
+4. **Success Notification Pattern**: The simple inline banner approach works well for this project's needs. If more notifications are needed in future phases, consider installing a toast library then.
+
+5. **Backward Compatibility**: Making the `onSuccess` callback optional ensures existing code continues to work, following the Open/Closed Principle.
+
+### Next Task
+
+Task 6.1: Write E2E test for create trip flow
+- Create test file: `apps/web/tests/e2e/trip-flow.spec.ts`
+- Test full flow: Login → Dashboard → FAB → Form → Create → View detail
+- Use Playwright with test fixtures

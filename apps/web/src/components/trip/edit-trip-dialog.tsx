@@ -52,12 +52,14 @@ interface EditTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   trip: Trip;
+  onSuccess?: () => void;
 }
 
 export function EditTripDialog({
   open,
   onOpenChange,
   trip,
+  onSuccess,
 }: EditTripDialogProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -136,6 +138,8 @@ export function EditTripDialog({
         onSuccess: () => {
           // Close dialog on successful update
           onOpenChange(false);
+          // Call optional success callback
+          onSuccess?.();
         },
       },
     );

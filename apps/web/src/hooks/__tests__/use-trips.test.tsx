@@ -818,7 +818,10 @@ describe("useTripDetail", () => {
 
     it("handles unauthorized error", async () => {
       const { apiRequest } = await import("@/lib/api");
-      const unauthorizedError = new APIError("UNAUTHORIZED", "Not authenticated");
+      const unauthorizedError = new APIError(
+        "UNAUTHORIZED",
+        "Not authenticated",
+      );
       vi.mocked(apiRequest).mockRejectedValueOnce(unauthorizedError);
 
       const { result } = renderHook(() => useTripDetail("trip-123"), {

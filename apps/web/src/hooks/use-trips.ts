@@ -155,7 +155,9 @@ export function useTripDetail(tripId: string) {
   return useQuery({
     queryKey: ["trips", tripId],
     queryFn: async () => {
-      const response = await apiRequest<GetTripDetailResponse>(`/trips/${tripId}`);
+      const response = await apiRequest<GetTripDetailResponse>(
+        `/trips/${tripId}`,
+      );
       return response.trip;
     },
   });
@@ -366,12 +368,26 @@ export function useUpdateTrip() {
           // Only update fields that are provided in the data
           name: data.name ?? previousTrip.name,
           destination: data.destination ?? previousTrip.destination,
-          startDate: data.startDate !== undefined ? data.startDate ?? null : previousTrip.startDate,
-          endDate: data.endDate !== undefined ? data.endDate ?? null : previousTrip.endDate,
+          startDate:
+            data.startDate !== undefined
+              ? (data.startDate ?? null)
+              : previousTrip.startDate,
+          endDate:
+            data.endDate !== undefined
+              ? (data.endDate ?? null)
+              : previousTrip.endDate,
           preferredTimezone: data.timezone ?? previousTrip.preferredTimezone,
-          description: data.description !== undefined ? data.description ?? null : previousTrip.description,
-          coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl ?? null : previousTrip.coverImageUrl,
-          allowMembersToAddEvents: data.allowMembersToAddEvents ?? previousTrip.allowMembersToAddEvents,
+          description:
+            data.description !== undefined
+              ? (data.description ?? null)
+              : previousTrip.description,
+          coverImageUrl:
+            data.coverImageUrl !== undefined
+              ? (data.coverImageUrl ?? null)
+              : previousTrip.coverImageUrl,
+          allowMembersToAddEvents:
+            data.allowMembersToAddEvents ??
+            previousTrip.allowMembersToAddEvents,
           updatedAt: new Date(),
         };
 

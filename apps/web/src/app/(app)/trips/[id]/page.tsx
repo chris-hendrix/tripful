@@ -101,6 +101,7 @@ export default function TripDetailPage() {
   const { data: trip, isLoading, isError } = useTripDetail(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // Determine if user is an organizer
   const isOrganizer =
@@ -144,6 +145,15 @@ export default function TripDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Success Banner */}
+      {showSuccessBanner && (
+        <div className="fixed top-4 right-4 z-50 p-4 rounded-xl bg-green-50 border border-green-200 shadow-lg">
+          <p className="text-sm text-green-600 font-medium">
+            ✓ Trip updated successfully
+          </p>
+        </div>
+      )}
+
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
         <div className="relative h-80 overflow-hidden">
@@ -284,6 +294,10 @@ export default function TripDetailPage() {
           trip={trip}
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
+          onSuccess={() => {
+            setShowSuccessBanner(true);
+            setTimeout(() => setShowSuccessBanner(false), 5000);
+          }}
         />
       )}
     </div>

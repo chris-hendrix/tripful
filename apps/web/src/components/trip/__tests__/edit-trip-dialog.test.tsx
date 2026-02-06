@@ -559,6 +559,100 @@ describe("EditTripDialog", () => {
       });
     });
 
+    it("calls onSuccess callback after successful update", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: { ...mockTrip, name: "Updated Trip Name" },
+      });
+
+      const mockOnSuccess = vi.fn();
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <EditTripDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          trip={mockTrip}
+          onSuccess={mockOnSuccess}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
+
+      await waitFor(() => {
+        expect(mockOnSuccess).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("does not call onSuccess callback when update fails", async () => {
+      const { apiRequest, APIError } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockRejectedValueOnce(
+        new APIError("PERMISSION_DENIED", "Permission denied"),
+      );
+
+      const mockOnSuccess = vi.fn();
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <EditTripDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          trip={mockTrip}
+          onSuccess={mockOnSuccess}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/you don't have permission to edit this trip/i),
+        ).toBeDefined();
+      });
+
+      expect(mockOnSuccess).not.toHaveBeenCalled();
+    });
+
+    it("works without onSuccess callback (backward compatibility)", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: { ...mockTrip, name: "Updated Trip Name" },
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <EditTripDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          trip={mockTrip}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
+
+      await waitFor(() => {
+        expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+
     it("shows loading state during update", async () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockImplementationOnce(
@@ -687,7 +781,9 @@ describe("EditTripDialog", () => {
 
       await navigateToStep2(user);
 
-      expect(screen.getByRole("button", { name: /delete trip/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /delete trip/i }),
+      ).toBeDefined();
     });
 
     it("shows confirmation dialog when delete is clicked", async () => {
@@ -915,7 +1011,9 @@ describe("EditTripDialog", () => {
       expect(
         screen.queryByText(/are you sure you want to delete this trip/i),
       ).toBeNull();
-      expect(screen.getByRole("button", { name: /delete trip/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /delete trip/i }),
+      ).toBeDefined();
     });
   });
 
