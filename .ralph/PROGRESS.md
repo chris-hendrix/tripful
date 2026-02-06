@@ -3416,10 +3416,12 @@ Successfully implemented a production-ready image upload component with comprehe
 ### Implementation
 
 **Created Files**:
+
 - `apps/web/src/components/trip/image-upload.tsx` (7,587 bytes) - Full-featured image upload component
 - `apps/web/src/components/trip/__tests__/image-upload.test.tsx` (29,151 bytes) - Comprehensive test suite
 
 **Modified Files**:
+
 - `apps/web/src/components/trip/index.ts` - Added ImageUpload export
 
 ### Features Implemented
@@ -3461,6 +3463,7 @@ Successfully implemented a production-ready image upload component with comprehe
 ### Testing
 
 **Test Coverage**: 51 tests across 11 categories
+
 - Basic rendering (4 tests)
 - User interactions (8 tests: click, keyboard, drag/drop)
 - File type validation (5 tests)
@@ -3486,6 +3489,7 @@ Successfully implemented a production-ready image upload component with comprehe
 ### Code Quality
 
 **Strengths**:
+
 - Comprehensive test coverage (51 tests)
 - Excellent accessibility (ARIA labels, keyboard navigation)
 - Proper resource cleanup (useEffect for blob URL revocation)
@@ -3495,6 +3499,7 @@ Successfully implemented a production-ready image upload component with comprehe
 - User-friendly error messages
 
 **Initial Issue Found & Fixed**:
+
 - Memory leak: Blob URLs not cleaned up on unmount
 - Fixed: Added `useEffect` cleanup hook
 - All tests still pass after fix
@@ -3525,6 +3530,7 @@ Successfully implemented a production-ready image upload component with comprehe
 ### Integration Notes
 
 **Usage in Create/Edit Trip Dialogs**:
+
 ```typescript
 import { ImageUpload } from "@/components/trip";
 
@@ -3543,6 +3549,7 @@ import { ImageUpload } from "@/components/trip";
 ```
 
 **API Integration**:
+
 - Endpoint: `POST /api/trips/:id/cover-image`
 - Request: FormData with `file` field
 - Response: `{ success: true, trip: { coverImageUrl: "/uploads/uuid.ext" } }`
@@ -3554,4 +3561,206 @@ Ready to proceed to **Task 4.3: Create create trip dialog (Step 1: Basic Info)**
 **Blockers**: None
 
 **Technical Debt**: None - component is production-ready
+
+---
+
+## Iteration 15: Task 4.3 - Create Trip Dialog (Step 1: Basic Info)
+
+**Date**: 2026-02-05
+**Status**: ✅ COMPLETE
+**Time**: ~18 minutes (3 researchers in parallel + coder + verifier/reviewer in parallel)
+
+### Task Summary
+
+Implemented the Create Trip Dialog component with Step 1 (Basic Info) of a two-step trip creation flow. This dialog provides the UI for users to create new trips with proper validation, accessibility, and UX matching the demo design.
+
+### Implementation Details
+
+**Files Created**:
+- `/home/chend/git/tripful/apps/web/src/components/trip/create-trip-dialog.tsx` (333 lines)
+- `/home/chend/git/tripful/apps/web/src/components/ui/dialog.tsx` (158 lines, copied from demo)
+- `/home/chend/git/tripful/apps/web/src/components/trip/__tests__/create-trip-dialog.test.tsx` (535 lines, 33 tests)
+- `/home/chend/git/tripful/apps/web/src/components/trip/create-trip-dialog.example.tsx` (25 lines)
+
+**Files Modified**:
+- `/home/chend/git/tripful/apps/web/package.json` (added `@radix-ui/react-dialog` dependency)
+- `/home/chend/git/tripful/apps/web/src/components/trip/index.ts` (added CreateTripDialog export)
+
+**Component Features**:
+1. **Multi-Step Form**:
+   - Step 1 (implemented): Basic info (name, destination, dates, timezone)
+   - Step 2 (placeholder): Details & co-organizers (Task 4.4)
+   - State management with `useState` for current step
+   - Form data persists when navigating between steps
+
+2. **Form Fields (Step 1)**:
+   - Trip name: Text input, 3-100 characters (required)
+   - Destination: Text input, 1+ characters (required)
+   - Start date: Native HTML5 date input (optional)
+   - End date: Native HTML5 date input (optional, must be >= start date)
+   - Timezone: Select dropdown with 6 US timezones (required, defaults to browser timezone)
+
+3. **Validation**:
+   - Uses `createTripSchema` from `@tripful/shared`
+   - React Hook Form with Zod resolver
+   - Cross-field validation: end date >= start date
+   - Step-by-step validation with `form.trigger()` before navigation
+   - Inline error display via `FormMessage` component
+   - Cannot proceed to Step 2 with invalid Step 1 data
+
+4. **UI/UX**:
+   - Progress indicator showing "Step 1 of 2" with visual step circles
+   - Playfair Display font for dialog title
+   - Gradient button (blue-600 to cyan-600) for Continue
+   - h-12 input heights, rounded-xl corners
+   - Required fields marked with red asterisks
+   - Form descriptions provide context
+   - Matches demo design aesthetic
+
+5. **Accessibility**:
+   - All form fields have proper labels
+   - FormDescription provides additional context
+   - Error messages associated with fields via aria attributes
+   - aria-invalid set on invalid fields
+   - Close button has screen reader text
+
+### Research Findings
+
+**Researcher 1 (Locating)**:
+- Found Dialog component in demo that needed copying
+- Located form components and trip schema
+- Identified demo create trip form for design reference
+
+**Researcher 2 (Analyzing)**:
+- Analyzed React Hook Form + Zod pattern from complete-profile page
+- Identified timezone default value approach
+- Confirmed no TanStack Query setup yet (Task 4.5)
+- Date format: YYYY-MM-DD for native inputs
+
+**Researcher 3 (Patterns)**:
+- Found FormField render prop pattern
+- Select component integration pattern
+- Button styling conventions (gradient, rounded)
+- Test structure conventions
+- Progress indicator implementation approach
+
+### Verification Results
+
+**Tests**: ✅ PASS
+- 33 comprehensive tests, all passing
+- Coverage: Dialog behavior, form rendering, field validation, step navigation, accessibility, styling
+- Test duration: 2.59s
+- No regressions in existing tests
+
+**Type Checking**: ✅ PASS
+- No TypeScript errors
+- Proper types throughout
+
+**Linting**: ✅ PASS
+- No ESLint errors
+
+**Formatting**: ✅ PASS
+- All files properly formatted with Prettier
+
+**Code Review**: ✅ APPROVED
+- Clean, readable code structure
+- Follows established patterns
+- Proper component organization
+- No security or performance concerns
+- Ready for production
+
+### Acceptance Criteria Verification
+
+- ✅ Dialog opens/closes correctly
+- ✅ Form validates all Step 1 fields
+- ✅ Inline errors display for invalid inputs
+- ✅ Progress indicator shows "Step 1 of 2"
+- ✅ Navigates to Step 2 on continue
+- ✅ Cannot proceed with invalid Step 1 data
+- ✅ Timezone defaults to browser timezone
+- ✅ Date cross-validation works (end >= start)
+- ✅ Step 2 placeholder present
+
+### Key Learnings
+
+1. **Dialog Component Setup**: The `@radix-ui/react-dialog` package needed to be added to apps/web. Dialog component from demo was copied to maintain consistent styling.
+
+2. **Multi-Step Form State**: Using a single `useForm` instance for both steps is cleaner than separate forms. Step state managed with `useState<1 | 2>`, data persists across navigation.
+
+3. **Step Validation**: Use `form.trigger(['field1', 'field2'])` to validate only specific fields before allowing step navigation. This prevents Step 2 field errors from blocking Step 1 completion.
+
+4. **Native Date Inputs**: HTML5 date inputs work well and return YYYY-MM-DD format matching the schema. No need for a heavy date picker library at this stage.
+
+5. **Timezone Default**: `Intl.DateTimeFormat().resolvedOptions().timeZone` provides accurate browser timezone detection, matching the pattern from complete-profile page.
+
+6. **Progress Indicator**: Custom implementation with step circles, connecting line, and conditional styling (blue for current/completed, gray for future steps) provides clear visual feedback.
+
+7. **Form Descriptions**: Adding `FormDescription` below fields provides helpful context and improves UX without cluttering labels.
+
+8. **Test Organization**: Grouping tests by concern (dialog behavior, field validation, step navigation, accessibility, styling) makes the test suite maintainable and easy to navigate.
+
+### Integration Notes
+
+**Usage Pattern**:
+```tsx
+import { CreateTripDialog } from "@/components/trip";
+
+const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+<CreateTripDialog
+  open={isCreateDialogOpen}
+  onOpenChange={setIsCreateDialogOpen}
+/>
+```
+
+**Next Steps**:
+- Task 4.4 will implement Step 2 (description, cover image, settings, co-organizers)
+- Task 4.5 will add TanStack Query mutation for actual API integration
+- Dashboard FAB will trigger this dialog (Task 5.2)
+
+### Blockers
+
+None - task completed successfully.
+
+### Technical Debt
+
+None - component is production-ready with comprehensive tests and proper architecture.
+
+### Agent Performance
+
+- **3 Researcher Agents** (parallel): 141-145 seconds each
+  - All completed simultaneously, excellent parallelization
+  - Comprehensive findings with no overlap
+  - Each focused on their specific area (locating, analyzing, patterns)
+
+- **Coder Agent**: 272 seconds (~4.5 minutes)
+  - Implemented component with 33 tests
+  - Added dependencies, copied Dialog component
+  - Created example usage file
+  - Clean, well-structured implementation
+
+- **Verifier Agent**: 104 seconds (~2 minutes)
+  - Ran all verification checks
+  - Identified formatting issue
+  - Confirmed all acceptance criteria met
+
+- **Reviewer Agent**: 137 seconds (~2 minutes)
+  - Comprehensive code review
+  - No blocking issues found
+  - Approved for production
+
+- **Manual Fix**: Applied Prettier formatting (completed in seconds)
+
+**Total Time**: ~18 minutes for complete implementation, testing, and verification
+**Agent Count**: 5 agents (3 researchers parallel + coder + verifier/reviewer parallel)
+**Efficiency**: Excellent - parallel execution saved significant time
+
+### Metrics
+
+- **Lines of Code**: 1,051 lines (333 component + 535 tests + 158 dialog + 25 example)
+- **Test Count**: 33 tests, 100% passing
+- **Test Coverage**: All component behavior covered (dialog, validation, navigation, accessibility, styling)
+- **Dependencies Added**: 1 (`@radix-ui/react-dialog`)
+- **Files Created**: 4
+- **Files Modified**: 2
 

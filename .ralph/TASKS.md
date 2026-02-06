@@ -442,7 +442,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 4.3: Create create trip dialog (Step 1: Basic Info)
+- [x] Task 4.3: Create create trip dialog (Step 1: Basic Info)
   - Create `apps/web/src/components/trip/create-trip-dialog.tsx`
   - Implement dialog with shadcn Dialog component
   - Step 1 form: name, destination, start/end dates, timezone
