@@ -1,8 +1,8 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1 & 2 Complete - Monorepo Setup + SMS Authentication
-last_updated: 2026-02-04
+status: Phase 1-3 Complete - Monorepo + Auth + Trip Management
+last_updated: 2026-02-06
 ---
 
 # Tripful - High-Level Architecture
@@ -11,7 +11,8 @@ last_updated: 2026-02-04
 >
 > - ✅ **Phase 1 Complete**: Monorepo setup with pnpm + Turbo + TypeScript
 > - ✅ **Phase 2 Complete**: SMS authentication with full E2E testing
-> - 🚧 **Phase 3-8**: Pending (Trip management, invitations, itinerary features)
+> - ✅ **Phase 3 Complete**: Trip management with CRUD, permissions, co-organizers, and image uploads
+> - 🚧 **Phase 4-8**: Pending (Invitations, itinerary features, advanced features)
 >
 > This document reflects the current production implementation and planned architecture.
 
@@ -72,9 +73,60 @@ last_updated: 2026-02-04
 - [x] Existing user skip profile flow
 - [x] All tests passing with sequential execution
 
-### 🚧 Phase 3-8: Remaining Features (Planned)
+### ✅ Phase 3: Trip Management (Complete)
 
-- [ ] Trip creation and management (Phase 3)
+**Git Commit**: `2c31b4f - Ralph: Task 30 - Task 7.3: Code review and cleanup`
+
+**Backend (Fastify):**
+
+- [x] Trip CRUD operations (create, read, update, delete/cancel)
+- [x] List user's trips with role information (organizer/member)
+- [x] Co-organizer management (add/remove)
+- [x] Permission service for access control
+- [x] Image upload service for trip cover images
+- [x] File storage with validation (JPEG/PNG/WebP, max 5MB)
+- [x] Comprehensive unit tests for services
+- [x] Integration tests for all trip endpoints
+
+**Frontend (Next.js 16):**
+
+- [x] Dashboard with trip list and search functionality
+- [x] Trip grouping (Your Trips, Other Trips, Past Trips)
+- [x] CreateTripDialog with 2-step form (details + optional cover image)
+- [x] EditTripDialog with tabbed interface (Details, Settings, Cover Image, Delete)
+- [x] Trip detail page with full information display
+- [x] TripCard component for list display
+- [x] ImageUpload component with drag-and-drop
+- [x] Permission-based UI rendering
+
+**Database Schema:**
+
+- [x] trips table (name, destination, dates, timezone, cover_image_url, settings)
+- [x] organizers table (many-to-many relationship)
+- [x] Migration: `0001_trip_management.sql`
+
+**E2E Testing (Playwright):**
+
+- [x] Trip creation flow (2-step form)
+- [x] Trip editing flow (all tabs)
+- [x] Permission system tests
+- [x] Co-organizer management tests
+- [x] All tests passing (902 lines, 4 test suites)
+
+**API Endpoints Implemented:**
+
+- `GET /api/trips` - List user's trips
+- `POST /api/trips` - Create new trip
+- `GET /api/trips/:id` - Get trip details
+- `PUT /api/trips/:id` - Update trip
+- `DELETE /api/trips/:id` - Cancel trip
+- `POST /api/trips/:id/co-organizers` - Add co-organizer
+- `DELETE /api/trips/:id/co-organizers/:userId` - Remove co-organizer
+- `POST /api/trips/:id/cover-image` - Upload cover image
+- `DELETE /api/trips/:id/cover-image` - Delete cover image
+
+### 🚧 Phase 4-8: Remaining Features (Planned)
+
 - [ ] Invitations and RSVP system (Phase 4)
 - [ ] Event creation and itinerary views (Phase 5)
 - [ ] Accommodations and member travel (Phase 6)
@@ -1321,62 +1373,398 @@ Response (200):
 
 ---
 
-#### Trips (🚧 Planned)
+#### Trips (✅ Implemented)
 
+**File:** `apps/api/src/routes/trips.routes.ts`
+
+**1. List User's Trips**
+
+```http
+GET /api/trips
+Authentication: Required
+
+Response (200):
+  {
+    "success": true,
+    "data": {
+      "trips": [
+        {
+          "id": "uuid",
+          "name": "Summer Vacation",
+          "destination": "Hawaii",
+          "startDate": "2026-07-01",
+          "endDate": "2026-07-10",
+          "preferredTimezone": "Pacific/Honolulu",
+          "description": "Beach vacation with friends",
+          "coverImageUrl": "https://example.com/image.jpg",
+          "allowMembersToAddEvents": true,
+          "cancelled": false,
+          "createdBy": "uuid",
+          "createdAt": "2026-02-01T...",
+          "updatedAt": "2026-02-01T...",
+          "isOrganizer": true,
+          "rsvpStatus": "going",
+          "organizerInfo": [
+            {
+              "id": "uuid",
+              "displayName": "John Doe",
+              "profilePhotoUrl": null
+            }
+          ],
+          "memberCount": 5,
+          "eventCount": 12
+        }
+      ]
+    }
+  }
+
+Additional Information:
+  - Returns all trips where user is organizer or member
+  - Includes role information (isOrganizer)
+  - Includes RSVP status for member trips
+  - Includes organizer list and counts
+  - Ordered by start date (descending), then created date (descending)
 ```
-GET    /api/trips
-  Query: { status?: 'upcoming' | 'past' }
-  Response: { trips: Trip[] }
 
-GET    /api/trips/:id
-  Response: { trip: Trip, creator: User, rsvpStatus?: string }
+**2. Get Trip Details**
 
-POST   /api/trips
-  Body: { name, destination, startDate?, endDate?, timezone, description?, coverImage? }
-  Response: { trip: Trip }
+```http
+GET /api/trips/:id
+Authentication: Required
 
-PATCH  /api/trips/:id
-  Body: Partial<Trip>
-  Response: { trip: Trip }
+Response (200):
+  {
+    "success": true,
+    "data": {
+      "trip": {
+        "id": "uuid",
+        "name": "Summer Vacation",
+        "destination": "Hawaii",
+        "startDate": "2026-07-01",
+        "endDate": "2026-07-10",
+        "preferredTimezone": "Pacific/Honolulu",
+        "description": "Beach vacation with friends",
+        "coverImageUrl": "https://example.com/image.jpg",
+        "allowMembersToAddEvents": true,
+        "cancelled": false,
+        "createdBy": "uuid",
+        "createdAt": "2026-02-01T...",
+        "updatedAt": "2026-02-01T..."
+      },
+      "creator": {
+        "id": "uuid",
+        "displayName": "John Doe",
+        "profilePhotoUrl": null
+      },
+      "organizers": [
+        {
+          "id": "uuid",
+          "displayName": "John Doe",
+          "profilePhotoUrl": null
+        }
+      ],
+      "isOrganizer": true,
+      "rsvpStatus": "going"
+    }
+  }
 
+Response (404 - Not Found):
+  {
+    "success": false,
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "Trip not found"
+    }
+  }
+
+Response (403 - Forbidden):
+  {
+    "success": false,
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "You must be a member of this trip"
+    }
+  }
+
+Authorization: User must be organizer or member of the trip
+```
+
+**3. Create Trip**
+
+```http
+POST /api/trips
+Authentication: Required
+Authorization: Complete profile required
+
+Request:
+  Content-Type: application/json
+  {
+    "name": "Summer Vacation",          // 3-100 characters
+    "destination": "Hawaii",            // 3-500 characters
+    "startDate": "2026-07-01",         // Optional, ISO date (YYYY-MM-DD)
+    "endDate": "2026-07-10",           // Optional, ISO date (YYYY-MM-DD)
+    "preferredTimezone": "Pacific/Honolulu",  // IANA timezone identifier
+    "description": "Beach vacation",    // Optional, max 2000 characters
+    "allowMembersToAddEvents": true    // Optional, default: true
+  }
+
+Response (201):
+  {
+    "success": true,
+    "data": {
+      "trip": {
+        "id": "uuid",
+        "name": "Summer Vacation",
+        /* ... full trip object */
+      }
+    }
+  }
+
+Response (400 - Validation Error):
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Trip name must be between 3 and 100 characters"
+    }
+  }
+
+Additional Information:
+  - Creator automatically becomes organizer
+  - Creator automatically becomes member with "going" status
+  - endDate must be >= startDate if both provided
+```
+
+**4. Update Trip**
+
+```http
+PUT /api/trips/:id
+Authentication: Required
+Authorization: Must be organizer
+
+Request:
+  Content-Type: application/json
+  {
+    "name": "Updated Trip Name",       // Optional
+    "destination": "Updated Location", // Optional
+    "startDate": "2026-07-15",        // Optional
+    "endDate": "2026-07-20",          // Optional
+    "preferredTimezone": "America/New_York",  // Optional
+    "description": "Updated description",     // Optional
+    "allowMembersToAddEvents": false  // Optional
+  }
+
+Response (200):
+  {
+    "success": true,
+    "data": {
+      "trip": {
+        /* ... updated trip object */
+      }
+    }
+  }
+
+Response (403 - Forbidden):
+  {
+    "success": false,
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "Only organizers can update trip details"
+    }
+  }
+
+Additional Information:
+  - Only provided fields are updated
+  - Validates dates if both provided
+  - Updates updatedAt timestamp
+```
+
+**5. Cancel/Delete Trip**
+
+```http
 DELETE /api/trips/:id
-  Response: { success: boolean }
+Authentication: Required
+Authorization: Must be organizer
 
-GET    /api/trips/:id/members
-  Response: { members: Array<{ user: User, member: Member }> }
+Response (200):
+  {
+    "success": true,
+    "message": "Trip cancelled successfully"
+  }
 
-POST   /api/trips/:id/invite
-  Body: { phoneNumbers: string[] }
-  Response: { sent: number, failed: string[] }
+Response (403 - Forbidden):
+  {
+    "success": false,
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "Only organizers can cancel trips"
+    }
+  }
+
+Additional Information:
+  - Sets cancelled field to true (soft delete)
+  - Trip still accessible but marked as cancelled
+  - Does not delete related data (members, events, etc.)
 ```
 
-#### Trips
+**6. Add Co-Organizer**
 
+```http
+POST /api/trips/:id/co-organizers
+Authentication: Required
+Authorization: Must be organizer
+
+Request:
+  Content-Type: application/json
+  {
+    "phoneNumber": "+15551234567"  // E.164 format
+  }
+
+Response (200):
+  {
+    "success": true,
+    "data": {
+      "organizer": {
+        "id": "uuid",
+        "tripId": "uuid",
+        "userId": "uuid",
+        "createdAt": "2026-02-06T..."
+      }
+    }
+  }
+
+Response (400 - User Not Found):
+  {
+    "success": false,
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "User with phone number +15551234567 not found"
+    }
+  }
+
+Response (409 - Already Organizer):
+  {
+    "success": false,
+    "error": {
+      "code": "CONFLICT",
+      "message": "User is already an organizer"
+    }
+  }
+
+Additional Information:
+  - User must exist in system (registered)
+  - Adds user as organizer if not already
+  - Also adds as member with "going" status if not member
 ```
-GET    /api/trips
-  Query: { status?: 'upcoming' | 'past' }
-  Response: { trips: Trip[] }
 
-GET    /api/trips/:id
-  Response: { trip: Trip, creator: User, rsvpStatus?: string }
+**7. Remove Co-Organizer**
 
-POST   /api/trips
-  Body: { name, destination, startDate?, endDate?, timezone, description?, coverImage? }
-  Response: { trip: Trip }
+```http
+DELETE /api/trips/:id/co-organizers/:userId
+Authentication: Required
+Authorization: Must be organizer
 
-PATCH  /api/trips/:id
-  Body: Partial<Trip>
-  Response: { trip: Trip }
+Response (200):
+  {
+    "success": true,
+    "message": "Co-organizer removed successfully"
+  }
 
-DELETE /api/trips/:id
-  Response: { success: boolean }
+Response (400 - Cannot Remove Creator):
+  {
+    "success": false,
+    "error": {
+      "code": "FORBIDDEN",
+      "message": "Cannot remove trip creator as organizer"
+    }
+  }
 
-GET    /api/trips/:id/members
-  Response: { members: Array<{ user: User, member: Member }> }
+Response (404 - Not Organizer):
+  {
+    "success": false,
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "User is not an organizer of this trip"
+    }
+  }
 
-POST   /api/trips/:id/invite
-  Body: { phoneNumbers: string[] }
-  Response: { sent: number, failed: string[] }
+Additional Information:
+  - Cannot remove trip creator (createdBy user)
+  - Removes organizer role but keeps as member
+  - User remains member with their RSVP status
+```
+
+**8. Upload Cover Image**
+
+```http
+POST /api/trips/:id/cover-image
+Authentication: Required
+Authorization: Must be organizer
+Content-Type: multipart/form-data
+
+Request:
+  Form Data:
+    file: <image file>  // JPEG, PNG, or WebP, max 5MB
+
+Response (200):
+  {
+    "success": true,
+    "data": {
+      "coverImageUrl": "/uploads/trip-uuid-timestamp.jpg"
+    }
+  }
+
+Response (400 - File Too Large):
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "File size exceeds maximum of 5MB"
+    }
+  }
+
+Response (400 - Invalid Type):
+  {
+    "success": false,
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Invalid file type. Allowed: image/jpeg, image/png, image/webp"
+    }
+  }
+
+Additional Information:
+  - Deletes old cover image if exists
+  - Stores in UPLOAD_DIR (default: uploads/)
+  - File named: trip-{tripId}-{timestamp}.{ext}
+  - Updates trip.coverImageUrl field
+```
+
+**9. Delete Cover Image**
+
+```http
+DELETE /api/trips/:id/cover-image
+Authentication: Required
+Authorization: Must be organizer
+
+Response (200):
+  {
+    "success": true,
+    "message": "Cover image deleted successfully"
+  }
+
+Response (404 - No Image):
+  {
+    "success": false,
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "Trip has no cover image"
+    }
+  }
+
+Additional Information:
+  - Deletes file from filesystem
+  - Sets trip.coverImageUrl to null
+  - No error if file doesn't exist on filesystem
 ```
 
 #### RSVPs
@@ -1658,6 +2046,199 @@ fastify.post(
   tripsController.create,
 );
 ```
+
+---
+
+## Trip Management Flow
+
+### Trip Creation and Management (✅ Implemented)
+
+**Services Layer:**
+
+1. **TripService** (`apps/api/src/services/trip.service.ts`)
+   - CRUD operations for trips
+   - List user's trips with role and RSVP information
+   - Co-organizer management
+   - Member and organizer tracking
+
+2. **PermissionsService** (`apps/api/src/services/permissions.service.ts`)
+   - Check if user is organizer
+   - Check if user can perform specific actions
+   - Enforce permission rules based on trip settings
+
+3. **UploadService** (`apps/api/src/services/upload.service.ts`)
+   - Handle file uploads with validation
+   - Support for trip cover images
+   - File size and MIME type validation
+   - Cleanup of old files
+
+**Database Schema:**
+
+```typescript
+// Trips table
+export const trips = pgTable("trips", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  destination: text("destination").notNull(),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  preferredTimezone: varchar("preferred_timezone", { length: 100 }).notNull(),
+  description: text("description"),
+  coverImageUrl: text("cover_image_url"),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  allowMembersToAddEvents: boolean("allow_members_to_add_events")
+    .notNull()
+    .default(true),
+  cancelled: boolean("cancelled").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Organizers table (many-to-many)
+export const organizers = pgTable("organizers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Members table (includes RSVP status)
+export const members = pgTable("members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: rsvpStatusEnum("status").notNull().default("no_response"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+```
+
+**Permission Rules:**
+
+1. **Organizer Actions** (must be organizer):
+   - Update trip details (name, destination, dates, description)
+   - Change trip settings (allowMembersToAddEvents)
+   - Add/remove co-organizers
+   - Upload/delete cover images
+   - Cancel/delete trip
+
+2. **Member Actions** (based on RSVP status and settings):
+   - View trip details (any member)
+   - Add events (if RSVP="going" AND trip allows OR is organizer)
+   - Edit own events (if still RSVP="going")
+   - Delete own events (if still RSVP="going")
+
+3. **Trip Creator Special Rules**:
+   - Cannot be removed as organizer
+   - Always has full permissions
+
+**Frontend Components:**
+
+1. **Dashboard** (`apps/web/src/app/(app)/dashboard/page.tsx`)
+   - Lists all user's trips grouped by status
+   - Search functionality
+   - Trip grouping: Your Trips, Other Trips, Past Trips
+   - CreateTripDialog trigger button
+
+2. **CreateTripDialog** (`apps/web/src/components/trip/create-trip-dialog.tsx`)
+   - Two-step form:
+     - Step 1: Basic info (name, destination, dates, timezone)
+     - Step 2: Optional details (description, cover image)
+   - Zod validation with inline errors
+   - TanStack Query mutation for optimistic updates
+
+3. **TripCard** (`apps/web/src/components/trip/trip-card.tsx`)
+   - Displays trip summary with cover image
+   - Shows RSVP status badge
+   - Shows organizer badge if applicable
+   - Displays organizer avatars (stacked, max 3)
+   - Shows event count
+   - Animated entrance with staggered delays
+
+4. **Trip Detail Page** (`apps/web/src/app/(app)/trips/[id]/page.tsx`)
+   - Full trip information display
+   - EditTripDialog trigger (organizers only)
+   - Future: Events list, accommodations, member travel
+
+5. **EditTripDialog** (`apps/web/src/components/trip/edit-trip-dialog.tsx`)
+   - Tabbed interface:
+     - **Details**: Edit basic trip info
+     - **Settings**: Manage permissions and co-organizers
+     - **Cover Image**: Upload/replace/delete image
+     - **Delete**: Cancel trip (danger zone)
+   - Permission-based rendering (organizers only)
+   - Optimistic updates with TanStack Query
+
+6. **ImageUpload** (`apps/web/src/components/trip/image-upload.tsx`)
+   - Drag-and-drop or click to upload
+   - File validation (size, type)
+   - Image preview with metadata
+   - Clear selection button
+
+**API Flow Example - Creating a Trip:**
+
+```
+User Action → Frontend → API → Database → Response
+─────────────────────────────────────────────────
+
+1. User clicks "Create Trip" button
+   └─> Opens CreateTripDialog
+
+2. User fills Step 1 (name, destination, dates, timezone)
+   └─> Validates locally with Zod schema
+   └─> Clicks "Next" to Step 2
+
+3. User fills Step 2 (description, cover image)
+   └─> Validates locally with Zod schema
+   └─> Clicks "Create Trip"
+
+4. Frontend: TanStack Query mutation
+   └─> POST /api/trips (trip data without image)
+   └─> Optimistic update: Add trip to cache
+
+5. API: TripService.createTrip()
+   ├─> Validate request with Zod schema
+   ├─> Check user has complete profile
+   ├─> Insert into trips table
+   ├─> Insert creator as organizer
+   ├─> Insert creator as member (status: "going")
+   └─> Return created trip
+
+6. Frontend: Upload cover image (if selected)
+   └─> POST /api/trips/:id/cover-image (multipart/form-data)
+
+7. API: UploadService.uploadFile()
+   ├─> Validate file size (<= 5MB)
+   ├─> Validate MIME type (image/jpeg, image/png, image/webp)
+   ├─> Save file to uploads/ directory
+   ├─> Update trip.coverImageUrl
+   └─> Return image URL
+
+8. Frontend: Success
+   ├─> Close dialog
+   ├─> Invalidate trips query cache
+   ├─> Navigate to trip detail page
+   └─> Show success toast
+```
+
+**Environment Variables:**
+
+```bash
+# File upload configuration
+UPLOAD_DIR=uploads                                    # Directory for uploaded files
+MAX_FILE_SIZE=5242880                                # 5MB in bytes
+ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp  # Accepted image formats
+```
+
+**Testing:**
+
+- **Unit Tests**: TripService, PermissionsService, UploadService
+- **Integration Tests**: All 9 trip API endpoints
+- **E2E Tests**: Complete trip management flows (902 lines, 4 test suites)
+  - Trip creation with 2-step form
+  - Trip editing with all tabs
+  - Permission enforcement
+  - Co-organizer management
 
 ---
 
@@ -2820,9 +3401,23 @@ fastify.register(compress, {
 
 ## Document Revision History
 
-**Document Version**: 2.0
-**Last Updated**: 2026-02-04
-**Status**: Phase 1 & 2 Complete - Production Authentication Implementation
+**Document Version**: 3.0
+**Last Updated**: 2026-02-06
+**Status**: Phase 1-3 Complete - Monorepo + Auth + Trip Management
+
+**Version 3.0 Updates (2026-02-06)**:
+
+- ✅ Documented Phase 3 completion: Trip Management with CRUD, permissions, and image uploads
+- ✅ Added 9 trip API endpoints with full request/response documentation
+- ✅ Documented 3 new services: TripService, PermissionsService, UploadService
+- ✅ Added comprehensive trip management flow documentation
+- ✅ Documented database schema updates (trips, organizers, members tables)
+- ✅ Added frontend components documentation (CreateTripDialog, EditTripDialog, ImageUpload)
+- ✅ Documented permission system and access control rules
+- ✅ Added environment variables for file uploads (UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_MIME_TYPES)
+- ✅ Documented E2E tests for trip management (902 lines, 4 test suites)
+- ✅ Updated dashboard with trip grouping and search functionality
+- ✅ Marked Phase 4-8 as planned (invitations, events, accommodations, etc.)
 
 **Version 2.0 Updates (2026-02-04)**:
 
@@ -2847,6 +3442,7 @@ fastify.register(compress, {
 
 **Git Commits Referenced**:
 
+- `2c31b4f` - Ralph: Task 30 - Task 7.3: Code review and cleanup (Phase 3)
 - `1fe5e5e` - Phase 2: SMS Authentication with E2E Testing
 - `faeb16c` - Phase 1: Monorepo Setup with pnpm + Turbo + TypeScript
 - `2c8a3eb` - MVP Demo: Tripful Core Features Implementation

@@ -20,7 +20,7 @@ pnpm install
 
 Environment files have already been created:
 
-- `apps/api/.env` - API configuration (database URL, JWT secret, etc.)
+- `apps/api/.env` - API configuration (database URL, JWT secret, uploads, etc.)
 - `apps/web/.env.local` - Web app configuration (API URL)
 
 To customize, copy from the example files:
@@ -32,6 +32,16 @@ cp apps/api/.env.example apps/api/.env
 # Web environment (if needed)
 cp apps/web/.env.local.example apps/web/.env.local
 ```
+
+**Phase 3 Environment Variables:**
+
+The API now includes configuration for file uploads (trip cover images):
+
+- `UPLOAD_DIR` - Directory for uploaded files (default: `uploads`)
+- `MAX_FILE_SIZE` - Maximum upload file size in bytes (default: `5242880` = 5MB)
+- `ALLOWED_MIME_TYPES` - Comma-separated allowed MIME types (default: `image/jpeg,image/png,image/webp`)
+
+The uploads directory will be created automatically when the API server starts.
 
 ### 3. Start PostgreSQL
 
