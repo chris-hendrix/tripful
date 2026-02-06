@@ -657,7 +657,8 @@ export const tripController = {
               success: false,
               error: {
                 code: "VALIDATION_ERROR",
-                message: "Image must be under 5MB. Please choose a smaller file",
+                message:
+                  "Image must be under 5MB. Please choose a smaller file",
               },
             });
           }
@@ -713,7 +714,8 @@ export const tripController = {
           success: false,
           error: {
             code: "FORBIDDEN",
-            message: "Permission denied: Only organizers can upload cover images",
+            message:
+              "Permission denied: Only organizers can upload cover images",
           },
         });
       }
@@ -853,7 +855,8 @@ export const tripController = {
           success: false,
           error: {
             code: "FORBIDDEN",
-            message: "Permission denied: Only organizers can delete cover images",
+            message:
+              "Permission denied: Only organizers can delete cover images",
           },
         });
       }

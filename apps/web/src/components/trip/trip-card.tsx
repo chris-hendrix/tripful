@@ -30,7 +30,7 @@ function formatDateRange(start: string | null, end: string | null): string {
 
   // Parse dates as UTC to avoid timezone issues
   const parseDate = (dateStr: string) => {
-    const parts = dateStr.split('-').map(Number);
+    const parts = dateStr.split("-").map(Number);
     const year = parts[0];
     const month = parts[1];
     const day = parts[2];
@@ -56,9 +56,15 @@ function formatDateRange(start: string | null, end: string | null): string {
   const startDate = parseDate(start!);
   const endDate = parseDate(end!);
 
-  const startMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(startDate);
+  const startMonth = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  }).format(startDate);
   const startDay = startDate.getUTCDate();
-  const endMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(endDate);
+  const endMonth = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  }).format(endDate);
   const endDay = endDate.getUTCDate();
   const year = endDate.getUTCFullYear();
 
@@ -196,7 +202,7 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex -space-x-2 shrink-0">
-              {displayedOrganizers.map((org) => (
+              {displayedOrganizers.map((org) =>
                 org.profilePhotoUrl ? (
                   <img
                     key={org.id}
@@ -211,8 +217,8 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
                   >
                     {getInitials(org.displayName)}
                   </div>
-                )
-              ))}
+                ),
+              )}
             </div>
             <span className="text-xs text-slate-600 truncate">
               {organizerLabel}

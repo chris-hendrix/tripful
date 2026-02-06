@@ -50,7 +50,9 @@ describe("TripCard", () => {
     it("displays cover image when provided", () => {
       render(<TripCard trip={baseTrip} />);
 
-      const image = screen.getByAltText("Summer Beach Vacation") as HTMLImageElement;
+      const image = screen.getByAltText(
+        "Summer Beach Vacation",
+      ) as HTMLImageElement;
       expect(image).toBeDefined();
       expect(image.src).toBe("https://example.com/beach.jpg");
     });
@@ -123,7 +125,9 @@ describe("TripCard", () => {
       const trip = { ...baseTrip, coverImageUrl: null };
       const { container } = render(<TripCard trip={trip} />);
 
-      const placeholder = container.querySelector(".bg-gradient-to-br.from-slate-100.to-blue-100");
+      const placeholder = container.querySelector(
+        ".bg-gradient-to-br.from-slate-100.to-blue-100",
+      );
       expect(placeholder).toBeDefined();
     });
 
@@ -180,9 +184,21 @@ describe("TripCard", () => {
       const trip = {
         ...baseTrip,
         organizerInfo: [
-          { id: "1", displayName: "John", profilePhotoUrl: "https://example.com/1.jpg" },
-          { id: "2", displayName: "Jane", profilePhotoUrl: "https://example.com/2.jpg" },
-          { id: "3", displayName: "Bob", profilePhotoUrl: "https://example.com/3.jpg" },
+          {
+            id: "1",
+            displayName: "John",
+            profilePhotoUrl: "https://example.com/1.jpg",
+          },
+          {
+            id: "2",
+            displayName: "Jane",
+            profilePhotoUrl: "https://example.com/2.jpg",
+          },
+          {
+            id: "3",
+            displayName: "Bob",
+            profilePhotoUrl: "https://example.com/3.jpg",
+          },
         ],
       };
       render(<TripCard trip={trip} />);
@@ -196,15 +212,33 @@ describe("TripCard", () => {
       const trip = {
         ...baseTrip,
         organizerInfo: [
-          { id: "1", displayName: "John", profilePhotoUrl: "https://example.com/1.jpg" },
-          { id: "2", displayName: "Jane", profilePhotoUrl: "https://example.com/2.jpg" },
-          { id: "3", displayName: "Bob", profilePhotoUrl: "https://example.com/3.jpg" },
-          { id: "4", displayName: "Alice", profilePhotoUrl: "https://example.com/4.jpg" },
+          {
+            id: "1",
+            displayName: "John",
+            profilePhotoUrl: "https://example.com/1.jpg",
+          },
+          {
+            id: "2",
+            displayName: "Jane",
+            profilePhotoUrl: "https://example.com/2.jpg",
+          },
+          {
+            id: "3",
+            displayName: "Bob",
+            profilePhotoUrl: "https://example.com/3.jpg",
+          },
+          {
+            id: "4",
+            displayName: "Alice",
+            profilePhotoUrl: "https://example.com/4.jpg",
+          },
         ],
       };
       const { container } = render(<TripCard trip={trip} />);
 
-      const avatars = container.querySelectorAll("img[alt='John'], img[alt='Jane'], img[alt='Bob']");
+      const avatars = container.querySelectorAll(
+        "img[alt='John'], img[alt='Jane'], img[alt='Bob']",
+      );
       expect(avatars.length).toBe(3);
       expect(screen.queryByAltText("Alice")).toBeNull();
     });
@@ -227,8 +261,16 @@ describe("TripCard", () => {
       const trip = {
         ...baseTrip,
         organizerInfo: [
-          { id: "1", displayName: "John", profilePhotoUrl: "https://example.com/1.jpg" },
-          { id: "2", displayName: "Jane", profilePhotoUrl: "https://example.com/2.jpg" },
+          {
+            id: "1",
+            displayName: "John",
+            profilePhotoUrl: "https://example.com/1.jpg",
+          },
+          {
+            id: "2",
+            displayName: "Jane",
+            profilePhotoUrl: "https://example.com/2.jpg",
+          },
         ],
       };
       render(<TripCard trip={trip} />);

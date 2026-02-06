@@ -425,7 +425,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 4.2: Create image upload component
+- [x] Task 4.2: Create image upload component
   - Create `apps/web/src/components/trip/image-upload.tsx`
   - Implement file input with drag-and-drop
   - Show image preview

@@ -30,8 +30,8 @@ function TripList({ trips }: { trips: TripSummary[] }) {
     id: string;
     name: string;
     destination: string;
-    startDate: string | null;          // ISO date string (YYYY-MM-DD)
-    endDate: string | null;            // ISO date string (YYYY-MM-DD)
+    startDate: string | null; // ISO date string (YYYY-MM-DD)
+    endDate: string | null; // ISO date string (YYYY-MM-DD)
     coverImageUrl: string | null;
     isOrganizer: boolean;
     rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
@@ -67,6 +67,7 @@ function TripList({ trips }: { trips: TripSummary[] }) {
 ### Styling
 
 The component uses Tailwind CSS with the following key styles:
+
 - Rounded corners (`rounded-2xl`)
 - Hover shadow effect
 - Active scale-down effect (`active:scale-[0.98]`)
@@ -75,6 +76,7 @@ The component uses Tailwind CSS with the following key styles:
 ### Testing
 
 Comprehensive test suite covers:
+
 - All prop combinations
 - Edge cases (missing data, null values)
 - RSVP badge variants
