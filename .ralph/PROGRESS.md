@@ -737,3 +737,114 @@ All criteria from Task 5.4 met:
 - 4 unrelated test failures exist in auth pages (complete-profile and verify pages) - these are pre-existing issues not introduced by this implementation
 - Events section shows placeholder "Events coming in Phase 5!" as planned
 - RSVP badge shows "Going" for organizers as expected in Phase 3
+
+---
+
+## Iteration 21: Task 5.5 - Implement trip detail data fetching
+
+**Date**: 2026-02-06
+**Status**: ✅ COMPLETE (already implemented in Task 5.4)
+**Reviewer**: APPROVED
+
+### Summary
+
+Task 5.5 was already completed as part of Task 5.4 (Iteration 20). The `useTripDetail` hook and all data fetching logic for the trip detail page were implemented together with the page component, as they are integral to the page implementation. This iteration verified the implementation and marked the task as complete.
+
+### Verification Results
+
+#### Implementation Check
+- **useTripDetail Hook**: ✅ Fully implemented in `apps/web/src/hooks/use-trips.ts`
+  - Fetches from GET /trips/:id endpoint
+  - Uses TanStack Query with proper caching (query key: `["trips", tripId]`)
+  - Returns loading, error, and data states
+  
+- **Trip Detail Page**: ✅ Properly integrated in `apps/web/src/app/(app)/trips/[id]/page.tsx`
+  - Uses `useTripDetail(tripId)` hook
+  - Shows loading state with SkeletonDetail component
+  - Shows error state with "Trip not found" page for 404/403 errors
+  - Displays trip details when data loaded
+
+#### Test Coverage
+
+**Hook Tests** (10 tests in `use-trips.test.tsx`):
+- ✅ Fetches trip detail successfully
+- ✅ Returns trip with organizers and member count
+- ✅ Uses correct query key for caching
+- ✅ Caches different trips separately
+- ✅ Handles 404 error (trip not found)
+- ✅ Handles 404 error when user has no access
+- ✅ Handles network errors
+- ✅ Handles unauthorized error
+- ✅ Can refetch trip detail data
+- ✅ Updates cache on refetch
+
+**Page Tests** (28 tests in `page.test.tsx`):
+- ✅ Renders loading state initially
+- ✅ Renders trip details when data loaded
+- ✅ Shows cover image when available
+- ✅ Shows placeholder when no cover image
+- ✅ Displays trip name, destination, dates
+- ✅ Shows organizer information
+- ✅ Displays member count and event count
+- ✅ Shows RSVP badge
+- ✅ Shows/hides description appropriately
+- ✅ Authorization tests (edit button visibility)
+- ✅ Edit dialog integration tests
+- ✅ Error handling tests (404, network failures)
+- ✅ All error states handled gracefully
+
+**Total Test Coverage**: 38 tests (10 hook + 28 page), all passing
+
+#### Acceptance Criteria
+
+All acceptance criteria met:
+- ✅ Trip details load correctly
+- ✅ 404 error shows "Trip not found" page
+- ✅ 403 error shows "No access" page (combined with 404 into single error message)
+- ✅ Loading state shown while fetching
+- ✅ Error states handled gracefully
+
+### Key Implementation Details
+
+1. **Hook Implementation**:
+   ```typescript
+   export function useTripDetail(tripId: string) {
+     return useQuery({
+       queryKey: ["trips", tripId],
+       queryFn: async () => {
+         const response = await apiRequest<GetTripDetailResponse>(`/trips/${tripId}`);
+         return response.trip;
+       },
+     });
+   }
+   ```
+
+2. **Error Handling**: The page combines 404 and 403 errors into a single user-friendly message:
+   - "Trip not found"
+   - "This trip doesn't exist or you don't have access to it."
+   - Provides "Return to dashboard" button
+
+3. **Loading State**: Custom SkeletonDetail component provides smooth loading experience
+
+4. **Query Caching**: Proper cache key structure allows independent caching per trip
+
+### Notes
+
+- Task 5.5 was intentionally implemented alongside Task 5.4 because the `useTripDetail` hook is integral to the page implementation
+- The combined implementation approach was more efficient than splitting the work
+- All tests were written and passing before marking complete
+- No code changes were needed in this iteration - only verification and task marking
+
+### Test Results
+
+```
+✓ src/hooks/__tests__/use-trips.test.tsx (34 tests) - includes 10 useTripDetail tests
+✓ src/app/(app)/trips/[id]/page.test.tsx (28 tests)
+Total: 347 tests passed
+```
+
+### Decision: Mark Complete
+
+Since all acceptance criteria are met, tests are passing, and the implementation is already in production-ready state, Task 5.5 is marked as complete.
+
+**Next Task**: Task 5.6 - Integrate edit dialog into trip detail page
