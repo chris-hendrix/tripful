@@ -493,7 +493,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 4.6: Create edit trip dialog
+- [x] Task 4.6: Create edit trip dialog
   - Create `apps/web/src/components/trip/edit-trip-dialog.tsx`
   - Pre-populate form with existing trip data
   - Use same two-step structure as create dialog
