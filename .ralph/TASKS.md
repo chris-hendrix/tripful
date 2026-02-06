@@ -460,7 +460,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 4.4: Create create trip dialog (Step 2: Details & Co-Orgs)
+- [x] Task 4.4: Create create trip dialog (Step 2: Details & Co-Orgs)
   - Step 2 form: description, cover image upload, allowMembersToAddEvents checkbox, co-organizer phones
   - Progress indicator (Step 2 of 2)
   - Multi-input for co-organizer phone numbers

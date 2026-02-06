@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ImageUpload } from "@/components/trip/image-upload";
+import { Plus, X } from "lucide-react";
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -48,6 +51,9 @@ export function CreateTripDialog({
   onOpenChange,
 }: CreateTripDialogProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newCoOrganizerPhone, setNewCoOrganizerPhone] = useState("");
+  const [coOrganizerError, setCoOrganizerError] = useState<string | null>(null);
 
   const form = useForm<CreateTripInput>({
     resolver: zodResolver(createTripSchema),
@@ -85,9 +91,54 @@ export function CreateTripDialog({
     setCurrentStep(1);
   };
 
-  const handleSubmit = (data: CreateTripInput) => {
+  const handleSubmit = async (data: CreateTripInput) => {
     // Placeholder for Task 4.5: API call will be implemented later
-    console.log("Trip data:", data);
+    setIsSubmitting(true);
+    try {
+      console.log("Trip data:", data);
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validatePhoneNumber = (phone: string): boolean => {
+    const phoneRegex = /^\+[1-9]\d{6,13}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handleAddCoOrganizer = () => {
+    setCoOrganizerError(null);
+
+    if (!newCoOrganizerPhone.trim()) {
+      setCoOrganizerError("Phone number is required");
+      return;
+    }
+
+    if (!validatePhoneNumber(newCoOrganizerPhone)) {
+      setCoOrganizerError(
+        "Phone number must be in E.164 format (e.g., +14155552671)",
+      );
+      return;
+    }
+
+    const currentPhones = form.getValues("coOrganizerPhones") || [];
+    if (currentPhones.includes(newCoOrganizerPhone)) {
+      setCoOrganizerError("This phone number is already added");
+      return;
+    }
+
+    form.setValue("coOrganizerPhones", [...currentPhones, newCoOrganizerPhone]);
+    setNewCoOrganizerPhone("");
+  };
+
+  const handleRemoveCoOrganizer = (phoneToRemove: string) => {
+    const currentPhones = form.getValues("coOrganizerPhones") || [];
+    form.setValue(
+      "coOrganizerPhones",
+      currentPhones.filter((phone) => phone !== phoneToRemove),
+    );
   };
 
   return (
@@ -297,14 +348,183 @@ export function CreateTripDialog({
 
             {currentStep === 2 && (
               <div className="space-y-4">
-                <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-                  <p className="text-lg text-slate-600">
-                    Step 2 coming in Task 4.4
-                  </p>
-                  <p className="text-sm text-slate-500 mt-2">
-                    This will include description, cover image, and settings
-                  </p>
-                </div>
+                {/* Description */}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => {
+                    const charCount = field.value?.length || 0;
+                    const showCounter = charCount >= 1600;
+
+                    return (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-slate-900">
+                          Description
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Tell your group about this trip..."
+                            className="h-32 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
+                            disabled={isSubmitting}
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        {showCounter && (
+                          <div className="text-xs text-slate-500 text-right">
+                            {charCount} / 2000 characters
+                          </div>
+                        )}
+                        <FormDescription className="text-sm text-slate-500">
+                          Optional: Share details about the trip
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                {/* Cover Image */}
+                <FormField
+                  control={form.control}
+                  name="coverImageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold text-slate-900">
+                        Cover image
+                      </FormLabel>
+                      <FormControl>
+                        <ImageUpload
+                          value={field.value ?? null}
+                          onChange={field.onChange}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-sm text-slate-500">
+                        Optional: Upload a cover image for your trip
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Allow Members to Add Events */}
+                <FormField
+                  control={form.control}
+                  name="allowMembersToAddEvents"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          disabled={isSubmitting}
+                          className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Allow members to add events"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-base font-semibold text-slate-900 cursor-pointer">
+                          Allow members to add events
+                        </FormLabel>
+                        <FormDescription className="text-sm text-slate-500">
+                          Let trip members create and propose events for the
+                          itinerary
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Co-Organizers */}
+                <FormField
+                  control={form.control}
+                  name="coOrganizerPhones"
+                  render={({ field }) => {
+                    const phones = field.value || [];
+
+                    return (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-slate-900">
+                          Co-organizers
+                        </FormLabel>
+                        <FormDescription className="text-sm text-slate-500">
+                          Add phone numbers of people who can help organize this
+                          trip
+                        </FormDescription>
+
+                        {/* List of added co-organizers */}
+                        {phones.length > 0 && (
+                          <div className="space-y-2 mt-2">
+                            {phones.map((phone, index) => (
+                              <div
+                                key={`${phone}-${index}`}
+                                className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200"
+                              >
+                                <span className="text-sm font-medium text-slate-900">
+                                  {phone}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCoOrganizer(phone)}
+                                  disabled={isSubmitting}
+                                  className="p-1 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  aria-label={`Remove ${phone}`}
+                                >
+                                  <X className="w-4 h-4 text-slate-600" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add co-organizer input */}
+                        <div className="space-y-2 mt-2">
+                          <div className="flex gap-2">
+                            <Input
+                              type="tel"
+                              placeholder="+14155552671"
+                              value={newCoOrganizerPhone}
+                              onChange={(e) => {
+                                setNewCoOrganizerPhone(e.target.value);
+                                setCoOrganizerError(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddCoOrganizer();
+                                }
+                              }}
+                              disabled={isSubmitting}
+                              className="flex-1 h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                              aria-label="Co-organizer phone number"
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleAddCoOrganizer}
+                              disabled={isSubmitting}
+                              className="h-12 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl"
+                              variant="outline"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </Button>
+                          </div>
+                          {coOrganizerError && (
+                            <p className="text-sm text-red-600">
+                              {coOrganizerError}
+                            </p>
+                          )}
+                          <p className="text-xs text-slate-500">
+                            Format: E.164 (e.g., +14155552671)
+                          </p>
+                        </div>
+
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
 
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
@@ -312,15 +532,17 @@ export function CreateTripDialog({
                     type="button"
                     variant="outline"
                     onClick={handleBack}
+                    disabled={isSubmitting}
                     className="flex-1 h-12 rounded-xl border-slate-300"
                   >
                     Back
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+                    disabled={isSubmitting}
+                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Create trip
+                    {isSubmitting ? "Creating trip..." : "Create trip"}
                   </Button>
                 </div>
               </div>

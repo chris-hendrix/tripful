@@ -165,7 +165,7 @@ describe("CreateTripDialog", () => {
 
       // Should proceed to Step 2 without date errors
       await waitFor(() => {
-        expect(screen.getByText("Step 2 coming in Task 4.4")).toBeDefined();
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
       });
     });
 
@@ -220,7 +220,7 @@ describe("CreateTripDialog", () => {
 
       // Should proceed to Step 2
       await waitFor(() => {
-        expect(screen.getByText("Step 2 coming in Task 4.4")).toBeDefined();
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
       });
     });
   });
@@ -279,7 +279,7 @@ describe("CreateTripDialog", () => {
       // Should show Step 2
       await waitFor(() => {
         expect(screen.getByText("Step 2 of 2")).toBeDefined();
-        expect(screen.getByText("Step 2 coming in Task 4.4")).toBeDefined();
+        expect(screen.getByText("Details & settings")).toBeDefined();
       });
     });
 
@@ -346,12 +346,8 @@ describe("CreateTripDialog", () => {
     });
   });
 
-  describe("Step 2 placeholder", () => {
-    it("displays Step 2 placeholder content", async () => {
-      const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
-
-      // Navigate to Step 2
+  describe("Step 2 - Details & settings rendering", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.type(nameInput, "Test Trip");
 
@@ -361,18 +357,49 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /continue/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("Step 2 coming in Task 4.4")).toBeDefined();
-        expect(
-          screen.getByText(/this will include description, cover image/i),
-        ).toBeDefined();
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
       });
+    }
+
+    it("displays all Step 2 fields", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      expect(screen.getByLabelText(/description/i)).toBeDefined();
+      expect(screen.getAllByText(/cover image/i).length).toBeGreaterThan(0);
+      expect(
+        screen.getByLabelText(/allow members to add events/i),
+      ).toBeDefined();
+      expect(screen.getAllByText(/co-organizers/i).length).toBeGreaterThan(0);
     });
 
     it("shows Back and Create trip buttons on Step 2", async () => {
       const user = userEvent.setup();
       render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
 
-      // Navigate to Step 2
+      await navigateToStep2(user);
+
+      expect(screen.getByRole("button", { name: /back/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /create trip/i }),
+      ).toBeDefined();
+    });
+
+    it("shows Step 2 of 2 progress indicator", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      expect(screen.getByText("Details & settings")).toBeDefined();
+    });
+  });
+
+  describe("Step 2 - Description field", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.type(nameInput, "Test Trip");
 
@@ -382,11 +409,591 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /continue/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /back/i })).toBeDefined();
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+    }
+
+    it("allows entering description text", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const descriptionInput = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      await user.type(descriptionInput, "This is a test trip description");
+
+      expect(descriptionInput.value).toBe("This is a test trip description");
+    });
+
+    it("does not show character counter below 1600 characters", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const descriptionInput = screen.getByLabelText(/description/i);
+      await user.type(descriptionInput, "Short description");
+
+      expect(screen.queryByText(/\/ 2000 characters/i)).toBeNull();
+    });
+
+    it("shows character counter at 1600+ characters", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const descriptionInput = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      const longText = "a".repeat(1600);
+
+      // Use paste to avoid slow character-by-character typing
+      await user.click(descriptionInput);
+      await user.paste(longText);
+
+      await waitFor(() => {
+        expect(screen.getByText("1600 / 2000 characters")).toBeDefined();
+      });
+    });
+
+    it("shows error when description exceeds 2000 characters", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const descriptionInput = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      const tooLongText = "a".repeat(2001);
+
+      // Use paste to avoid slow character-by-character typing
+      await user.click(descriptionInput);
+      await user.paste(tooLongText);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      await waitFor(() => {
         expect(
-          screen.getByRole("button", { name: /create trip/i }),
+          screen.getByText(/description must not exceed 2000 characters/i),
         ).toBeDefined();
       });
+    });
+
+    it("accepts valid description (under 2000 characters)", async () => {
+      const user = userEvent.setup();
+      const consoleSpy = vi.spyOn(console, "log");
+
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const descriptionInput = screen.getByLabelText(/description/i);
+      await user.type(descriptionInput, "Valid description");
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Trip data:",
+          expect.objectContaining({
+            description: "Valid description",
+          }),
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("Step 2 - Cover image field", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
+      const nameInput = screen.getByLabelText(/trip name/i);
+      await user.type(nameInput, "Test Trip");
+
+      const destinationInput = screen.getByLabelText(/destination/i);
+      await user.type(destinationInput, "Miami");
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+    }
+
+    it("renders ImageUpload component", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      // ImageUpload component should render its upload area
+      expect(
+        screen.getByText(/click to upload or drag and drop/i),
+      ).toBeDefined();
+    });
+
+    it("allows cover image to be optional", async () => {
+      const user = userEvent.setup();
+      const consoleSpy = vi.spyOn(console, "log");
+
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      // Submit without uploading image
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Trip data:",
+          expect.objectContaining({
+            coverImageUrl: null,
+          }),
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("Step 2 - Allow members to add events checkbox", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
+      const nameInput = screen.getByLabelText(/trip name/i);
+      await user.type(nameInput, "Test Trip");
+
+      const destinationInput = screen.getByLabelText(/destination/i);
+      await user.type(destinationInput, "Miami");
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+    }
+
+    it("defaults to checked (true)", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const checkbox = screen.getByLabelText(
+        /allow members to add events/i,
+      ) as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+    });
+
+    it("can be toggled off", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const checkbox = screen.getByLabelText(
+        /allow members to add events/i,
+      ) as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+
+      await user.click(checkbox);
+
+      expect(checkbox.checked).toBe(false);
+    });
+
+    it("can be toggled back on", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const checkbox = screen.getByLabelText(
+        /allow members to add events/i,
+      ) as HTMLInputElement;
+
+      await user.click(checkbox);
+      expect(checkbox.checked).toBe(false);
+
+      await user.click(checkbox);
+      expect(checkbox.checked).toBe(true);
+    });
+
+    it("submits correct value when unchecked", async () => {
+      const user = userEvent.setup();
+      const consoleSpy = vi.spyOn(console, "log");
+
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const checkbox = screen.getByLabelText(/allow members to add events/i);
+      await user.click(checkbox);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Trip data:",
+          expect.objectContaining({
+            allowMembersToAddEvents: false,
+          }),
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("Step 2 - Co-organizers field", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
+      const nameInput = screen.getByLabelText(/trip name/i);
+      await user.type(nameInput, "Test Trip");
+
+      const destinationInput = screen.getByLabelText(/destination/i);
+      await user.type(destinationInput, "Miami");
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+    }
+
+    it("shows co-organizer input field", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      expect(screen.getByLabelText(/co-organizer phone number/i)).toBeDefined();
+    });
+
+    it("allows adding valid phone number", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      await user.type(phoneInput, "+14155552671");
+
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552671")).toBeDefined();
+      });
+    });
+
+    it("shows error for invalid phone format", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      await user.type(phoneInput, "invalid");
+
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/phone number must be in E\.164 format/i),
+        ).toBeDefined();
+      });
+    });
+
+    it("shows error for empty phone number", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/phone number is required/i)).toBeDefined();
+      });
+    });
+
+    it("prevents duplicate phone numbers", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+
+      // Add first phone
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552671")).toBeDefined();
+      });
+
+      // Try to add same phone again
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/this phone number is already added/i),
+        ).toBeDefined();
+      });
+    });
+
+    it("allows adding multiple co-organizers", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+
+      // Add first phone
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552671")).toBeDefined();
+      });
+
+      // Add second phone
+      await user.type(phoneInput, "+14155552672");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552672")).toBeDefined();
+      });
+    });
+
+    it("allows removing co-organizers", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+
+      // Add phone
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552671")).toBeDefined();
+      });
+
+      // Remove phone
+      const removeButton = screen.getByRole("button", {
+        name: /remove \+14155552671/i,
+      });
+      await user.click(removeButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText("+14155552671")).toBeNull();
+      });
+    });
+
+    it("clears input after adding co-organizer", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(
+        /co-organizer phone number/i,
+      ) as HTMLInputElement;
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await waitFor(() => {
+        expect(phoneInput.value).toBe("");
+      });
+    });
+
+    it("allows adding co-organizer by pressing Enter", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      await user.type(phoneInput, "+14155552671");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(screen.getByText("+14155552671")).toBeDefined();
+      });
+    });
+
+    it("includes co-organizers in form submission", async () => {
+      const user = userEvent.setup();
+      const consoleSpy = vi.spyOn(console, "log");
+
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      const addButton = screen.getByRole("button", {
+        name: "",
+      });
+
+      // Add co-organizers
+      await user.type(phoneInput, "+14155552671");
+      await user.click(addButton);
+
+      await user.type(phoneInput, "+14155552672");
+      await user.click(addButton);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      await waitFor(() => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Trip data:",
+          expect.objectContaining({
+            coOrganizerPhones: ["+14155552671", "+14155552672"],
+          }),
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("Step 2 - Back navigation preserves data", () => {
+    it("preserves Step 2 data when navigating back to Step 1", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      // Fill Step 1
+      await user.type(screen.getByLabelText(/trip name/i), "Test Trip");
+      await user.type(screen.getByLabelText(/destination/i), "Miami");
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+
+      // Fill Step 2
+      const descriptionInput = screen.getByLabelText(/description/i);
+      await user.type(descriptionInput, "Test description");
+
+      const checkbox = screen.getByLabelText(/allow members to add events/i);
+      await user.click(checkbox);
+
+      // Navigate back
+      await user.click(screen.getByRole("button", { name: /back/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 1 of 2")).toBeDefined();
+      });
+
+      // Navigate forward again
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+
+      // Verify data is preserved
+      const descriptionInputAfterBack = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      expect(descriptionInputAfterBack.value).toBe("Test description");
+
+      const checkboxAfterBack = screen.getByLabelText(
+        /allow members to add events/i,
+      ) as HTMLInputElement;
+      expect(checkboxAfterBack.checked).toBe(false);
+    });
+  });
+
+  describe("Step 2 - Loading state", () => {
+    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
+      const nameInput = screen.getByLabelText(/trip name/i);
+      await user.type(nameInput, "Test Trip");
+
+      const destinationInput = screen.getByLabelText(/destination/i);
+      await user.type(destinationInput, "Miami");
+
+      await user.click(screen.getByRole("button", { name: /continue/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Step 2 of 2")).toBeDefined();
+      });
+    }
+
+    it("shows loading state during submission", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      // Should show loading text
+      expect(screen.getByText("Creating trip...")).toBeDefined();
+    });
+
+    it("disables all fields during submission", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      // Check that fields are disabled
+      const descriptionInput = screen.getByLabelText(/description/i);
+      expect(descriptionInput).toHaveProperty("disabled", true);
+
+      const checkbox = screen.getByLabelText(/allow members to add events/i);
+      expect(checkbox).toHaveProperty("disabled", true);
+
+      const phoneInput = screen.getByLabelText(/co-organizer phone number/i);
+      expect(phoneInput).toHaveProperty("disabled", true);
+    });
+
+    it("disables Back and Create trip buttons during submission", async () => {
+      const user = userEvent.setup();
+      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+      await navigateToStep2(user);
+
+      await user.click(screen.getByRole("button", { name: /create trip/i }));
+
+      const backButton = screen.getByRole("button", { name: /back/i });
+      expect(backButton).toHaveProperty("disabled", true);
+
+      const createButton = screen.getByRole("button", {
+        name: /creating trip\.\.\./i,
+      });
+      expect(createButton).toHaveProperty("disabled", true);
     });
   });
 
