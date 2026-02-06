@@ -1,33 +1,84 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CreateTripDialog } from "../create-trip-dialog";
+
+// Mock the API module
+vi.mock("@/lib/api", () => ({
+  apiRequest: vi.fn(),
+  APIError: class APIError extends Error {
+    constructor(
+      public code: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = "APIError";
+    }
+  },
+}));
+
+// Mock next/navigation
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
 
 describe("CreateTripDialog", () => {
   const mockOnOpenChange = vi.fn();
+  let queryClient: QueryClient;
 
   beforeEach(() => {
     mockOnOpenChange.mockClear();
-    // Mock console.log to avoid test output noise
+
+    // Create a new QueryClient for each test
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+      },
+    });
+
+    // Mock console.log and console.error to avoid test output noise
     vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
+
+  // Helper function to render component with QueryClientProvider
+  const renderWithQueryClient = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    );
+  };
 
   describe("Dialog open/close behavior", () => {
     it("renders dialog when open is true", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.getByText("Create a new trip")).toBeDefined();
     });
 
     it("does not render dialog content when open is false", () => {
-      render(<CreateTripDialog open={false} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={false} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.queryByText("Create a new trip")).toBeNull();
     });
 
     it("calls onOpenChange when close button is clicked", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const closeButton = screen.getByRole("button", { name: /close/i });
       await user.click(closeButton);
@@ -38,7 +89,9 @@ describe("CreateTripDialog", () => {
 
   describe("Step 1 - Basic information rendering", () => {
     it("displays all Step 1 fields", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.getByLabelText(/trip name/i)).toBeDefined();
       expect(screen.getByLabelText(/destination/i)).toBeDefined();
@@ -48,20 +101,26 @@ describe("CreateTripDialog", () => {
     });
 
     it("shows Step 1 of 2 progress indicator", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.getByText("Step 1 of 2")).toBeDefined();
       expect(screen.getByText("Basic information")).toBeDefined();
     });
 
     it("displays Continue button on Step 1", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.getByRole("button", { name: /continue/i })).toBeDefined();
     });
 
     it("shows required field indicators", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Check for required asterisks by finding text content
       const labels = screen.getAllByText("*");
@@ -73,7 +132,9 @@ describe("CreateTripDialog", () => {
   describe("Field validation - Trip name", () => {
     it("shows error when trip name is too short", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.type(nameInput, "AB");
@@ -88,7 +149,9 @@ describe("CreateTripDialog", () => {
 
     it("shows error when trip name is empty", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       await user.click(continueButton);
@@ -100,7 +163,9 @@ describe("CreateTripDialog", () => {
 
     it("accepts valid trip name (3-100 characters)", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.type(nameInput, "Summer Vacation 2026");
@@ -121,7 +186,9 @@ describe("CreateTripDialog", () => {
   describe("Field validation - Destination", () => {
     it("shows error when destination is empty", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill name but leave destination empty
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -137,7 +204,9 @@ describe("CreateTripDialog", () => {
 
     it("accepts valid destination", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const destinationInput = screen.getByLabelText(/destination/i);
       await user.type(destinationInput, "Miami, FL");
@@ -150,7 +219,9 @@ describe("CreateTripDialog", () => {
   describe("Field validation - Date fields", () => {
     it("accepts optional start and end dates", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill required fields
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -171,7 +242,9 @@ describe("CreateTripDialog", () => {
 
     it("shows error when end date is before start date", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill required fields
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -199,7 +272,9 @@ describe("CreateTripDialog", () => {
 
     it("accepts valid date range", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill required fields
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -227,7 +302,9 @@ describe("CreateTripDialog", () => {
 
   describe("Field validation - Timezone", () => {
     it("defaults to browser timezone", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Timezone should have a default value
       const timezoneSelect = screen.getByLabelText(/trip timezone/i);
@@ -235,7 +312,9 @@ describe("CreateTripDialog", () => {
     });
 
     it("renders timezone select with options", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const timezoneSelect = screen.getByLabelText(/trip timezone/i);
       expect(timezoneSelect).toBeDefined();
@@ -249,7 +328,9 @@ describe("CreateTripDialog", () => {
   describe("Step navigation", () => {
     it("does not proceed to Step 2 with invalid Step 1 data", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Leave fields empty
       const continueButton = screen.getByRole("button", { name: /continue/i });
@@ -264,7 +345,9 @@ describe("CreateTripDialog", () => {
 
     it("proceeds to Step 2 with valid Step 1 data", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill required fields
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -285,7 +368,9 @@ describe("CreateTripDialog", () => {
 
     it("returns to Step 1 when Back button is clicked", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Navigate to Step 2
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -313,7 +398,9 @@ describe("CreateTripDialog", () => {
 
     it("preserves Step 1 data when navigating back from Step 2", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill Step 1 data
       const nameInput = screen.getByLabelText(/trip name/i);
@@ -363,7 +450,9 @@ describe("CreateTripDialog", () => {
 
     it("displays all Step 2 fields", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -377,7 +466,9 @@ describe("CreateTripDialog", () => {
 
     it("shows Back and Create trip buttons on Step 2", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -389,7 +480,9 @@ describe("CreateTripDialog", () => {
 
     it("shows Step 2 of 2 progress indicator", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -415,7 +508,9 @@ describe("CreateTripDialog", () => {
 
     it("allows entering description text", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -429,7 +524,9 @@ describe("CreateTripDialog", () => {
 
     it("does not show character counter below 1600 characters", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -441,7 +538,9 @@ describe("CreateTripDialog", () => {
 
     it("shows character counter at 1600+ characters", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -461,7 +560,9 @@ describe("CreateTripDialog", () => {
 
     it("shows error when description exceeds 2000 characters", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -484,10 +585,30 @@ describe("CreateTripDialog", () => {
     });
 
     it("accepts valid description (under 2000 characters)", async () => {
-      const user = userEvent.setup();
-      const consoleSpy = vi.spyOn(console, "log");
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: {
+          id: "trip-123",
+          name: "Test Trip",
+          destination: "Miami",
+          startDate: null,
+          endDate: null,
+          preferredTimezone: "America/New_York",
+          description: "Valid description",
+          coverImageUrl: null,
+          createdBy: "user-123",
+          allowMembersToAddEvents: true,
+          cancelled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -497,15 +618,14 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /create trip/i }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Trip data:",
+        expect(apiRequest).toHaveBeenCalledWith(
+          "/trips",
           expect.objectContaining({
-            description: "Valid description",
+            method: "POST",
+            body: expect.stringContaining("Valid description"),
           }),
         );
       });
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -526,7 +646,9 @@ describe("CreateTripDialog", () => {
 
     it("renders ImageUpload component", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -537,10 +659,30 @@ describe("CreateTripDialog", () => {
     });
 
     it("allows cover image to be optional", async () => {
-      const user = userEvent.setup();
-      const consoleSpy = vi.spyOn(console, "log");
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: {
+          id: "trip-123",
+          name: "Test Trip",
+          destination: "Miami",
+          startDate: null,
+          endDate: null,
+          preferredTimezone: "America/New_York",
+          description: null,
+          coverImageUrl: null,
+          createdBy: "user-123",
+          allowMembersToAddEvents: true,
+          cancelled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -548,15 +690,13 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /create trip/i }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Trip data:",
+        expect(apiRequest).toHaveBeenCalledWith(
+          "/trips",
           expect.objectContaining({
-            coverImageUrl: null,
+            method: "POST",
           }),
         );
       });
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -577,7 +717,9 @@ describe("CreateTripDialog", () => {
 
     it("defaults to checked (true)", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -589,7 +731,9 @@ describe("CreateTripDialog", () => {
 
     it("can be toggled off", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -605,7 +749,9 @@ describe("CreateTripDialog", () => {
 
     it("can be toggled back on", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -621,10 +767,31 @@ describe("CreateTripDialog", () => {
     });
 
     it("submits correct value when unchecked", async () => {
-      const user = userEvent.setup();
-      const consoleSpy = vi.spyOn(console, "log");
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockClear();
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: {
+          id: "trip-123",
+          name: "Test Trip",
+          destination: "Miami",
+          startDate: null,
+          endDate: null,
+          preferredTimezone: "America/New_York",
+          description: null,
+          coverImageUrl: null,
+          createdBy: "user-123",
+          allowMembersToAddEvents: false,
+          cancelled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -634,15 +801,12 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /create trip/i }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Trip data:",
-          expect.objectContaining({
-            allowMembersToAddEvents: false,
-          }),
-        );
+        expect(apiRequest).toHaveBeenCalled();
+        const callArgs = vi.mocked(apiRequest).mock.calls[0];
+        expect(callArgs).toBeDefined();
+        const body = JSON.parse(callArgs[1]?.body as string);
+        expect(body.allowMembersToAddEvents).toBe(false);
       });
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -663,7 +827,9 @@ describe("CreateTripDialog", () => {
 
     it("shows co-organizer input field", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -672,7 +838,9 @@ describe("CreateTripDialog", () => {
 
     it("allows adding valid phone number", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -691,7 +859,9 @@ describe("CreateTripDialog", () => {
 
     it("shows error for invalid phone format", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -712,7 +882,9 @@ describe("CreateTripDialog", () => {
 
     it("shows error for empty phone number", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -728,7 +900,9 @@ describe("CreateTripDialog", () => {
 
     it("prevents duplicate phone numbers", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -758,7 +932,9 @@ describe("CreateTripDialog", () => {
 
     it("allows adding multiple co-organizers", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -786,7 +962,9 @@ describe("CreateTripDialog", () => {
 
     it("allows removing co-organizers", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -816,7 +994,9 @@ describe("CreateTripDialog", () => {
 
     it("clears input after adding co-organizer", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -837,7 +1017,9 @@ describe("CreateTripDialog", () => {
 
     it("allows adding co-organizer by pressing Enter", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -851,10 +1033,31 @@ describe("CreateTripDialog", () => {
     });
 
     it("includes co-organizers in form submission", async () => {
-      const user = userEvent.setup();
-      const consoleSpy = vi.spyOn(console, "log");
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockClear();
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: {
+          id: "trip-123",
+          name: "Test Trip",
+          destination: "Miami",
+          startDate: null,
+          endDate: null,
+          preferredTimezone: "America/New_York",
+          description: null,
+          coverImageUrl: null,
+          createdBy: "user-123",
+          allowMembersToAddEvents: true,
+          cancelled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -873,22 +1076,24 @@ describe("CreateTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /create trip/i }));
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Trip data:",
-          expect.objectContaining({
-            coOrganizerPhones: ["+14155552671", "+14155552672"],
-          }),
-        );
+        expect(apiRequest).toHaveBeenCalled();
+        const callArgs = vi.mocked(apiRequest).mock.calls[0];
+        expect(callArgs).toBeDefined();
+        const body = JSON.parse(callArgs[1]?.body as string);
+        expect(body.coOrganizerPhones).toEqual([
+          "+14155552671",
+          "+14155552672",
+        ]);
       });
-
-      consoleSpy.mockRestore();
     });
   });
 
   describe("Step 2 - Back navigation preserves data", () => {
     it("preserves Step 2 data when navigating back to Step 1", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill Step 1
       await user.type(screen.getByLabelText(/trip name/i), "Test Trip");
@@ -949,8 +1154,40 @@ describe("CreateTripDialog", () => {
     }
 
     it("shows loading state during submission", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      // Mock API with delay to observe loading state
+      vi.mocked(apiRequest).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  trip: {
+                    id: "trip-123",
+                    name: "Test Trip",
+                    destination: "Miami",
+                    startDate: null,
+                    endDate: null,
+                    preferredTimezone: "America/New_York",
+                    description: null,
+                    coverImageUrl: null,
+                    createdBy: "user-123",
+                    allowMembersToAddEvents: true,
+                    cancelled: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                }),
+              100,
+            );
+          }),
+      );
+
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -961,8 +1198,40 @@ describe("CreateTripDialog", () => {
     });
 
     it("disables all fields during submission", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      // Mock API with delay to observe disabled state
+      vi.mocked(apiRequest).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  trip: {
+                    id: "trip-123",
+                    name: "Test Trip",
+                    destination: "Miami",
+                    startDate: null,
+                    endDate: null,
+                    preferredTimezone: "America/New_York",
+                    description: null,
+                    coverImageUrl: null,
+                    createdBy: "user-123",
+                    allowMembersToAddEvents: true,
+                    cancelled: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                }),
+              100,
+            );
+          }),
+      );
+
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -980,8 +1249,40 @@ describe("CreateTripDialog", () => {
     });
 
     it("disables Back and Create trip buttons during submission", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      // Mock API with delay to observe disabled state
+      vi.mocked(apiRequest).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  trip: {
+                    id: "trip-123",
+                    name: "Test Trip",
+                    destination: "Miami",
+                    startDate: null,
+                    endDate: null,
+                    preferredTimezone: "America/New_York",
+                    description: null,
+                    coverImageUrl: null,
+                    createdBy: "user-123",
+                    allowMembersToAddEvents: true,
+                    cancelled: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                }),
+              100,
+            );
+          }),
+      );
+
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       await navigateToStep2(user);
 
@@ -999,7 +1300,9 @@ describe("CreateTripDialog", () => {
 
   describe("Progress indicator styling", () => {
     it("shows active styling for Step 1 when on Step 1", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Check for step indicators showing "1" and "2"
       const stepIndicators = screen.getAllByText(/^[12]$/);
@@ -1011,7 +1314,9 @@ describe("CreateTripDialog", () => {
 
     it("shows step progress when navigating to Step 2", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Verify Step 1 indicator
       expect(screen.getByText("Step 1 of 2")).toBeDefined();
@@ -1037,7 +1342,9 @@ describe("CreateTripDialog", () => {
 
   describe("Accessibility", () => {
     it("has proper labels for all form fields", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(screen.getByLabelText(/trip name/i)).toBeDefined();
       expect(screen.getByLabelText(/destination/i)).toBeDefined();
@@ -1048,7 +1355,9 @@ describe("CreateTripDialog", () => {
 
     it("has aria-invalid attribute on invalid fields", async () => {
       const user = userEvent.setup();
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       await user.click(continueButton);
@@ -1060,7 +1369,9 @@ describe("CreateTripDialog", () => {
     });
 
     it("shows form descriptions for context", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       expect(
         screen.getByText(/choose something memorable \(3-100 characters\)/i),
@@ -1073,21 +1384,27 @@ describe("CreateTripDialog", () => {
 
   describe("Styling", () => {
     it("applies Playfair Display font to title", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const title = screen.getByText("Create a new trip");
       expect(title.style.fontFamily).toContain("Playfair Display");
     });
 
     it("applies h-12 height to inputs", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const nameInput = screen.getByLabelText(/trip name/i);
       expect(nameInput.className).toContain("h-12");
     });
 
     it("applies rounded-xl to inputs and buttons", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const nameInput = screen.getByLabelText(/trip name/i);
       expect(nameInput.className).toContain("rounded-xl");
@@ -1097,7 +1414,9 @@ describe("CreateTripDialog", () => {
     });
 
     it("applies gradient styling to Continue button", () => {
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       expect(continueButton.className).toContain("bg-gradient-to-r");
@@ -1106,12 +1425,32 @@ describe("CreateTripDialog", () => {
     });
   });
 
-  describe("Form submission placeholder", () => {
-    it("logs trip data on form submit (placeholder for API call)", async () => {
-      const user = userEvent.setup();
-      const consoleSpy = vi.spyOn(console, "log");
+  describe("Form submission", () => {
+    it("calls API with trip data on form submit", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: {
+          id: "trip-123",
+          name: "API Test Trip",
+          destination: "Test City",
+          startDate: null,
+          endDate: null,
+          preferredTimezone: "America/New_York",
+          description: null,
+          coverImageUrl: null,
+          createdBy: "user-123",
+          allowMembersToAddEvents: true,
+          cancelled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-      render(<CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />);
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
 
       // Fill Step 1
       await user.type(screen.getByLabelText(/trip name/i), "API Test Trip");
@@ -1125,18 +1464,16 @@ describe("CreateTripDialog", () => {
 
       await user.click(screen.getByRole("button", { name: /create trip/i }));
 
-      // Verify console.log was called (placeholder for API call)
+      // Verify API was called with correct data
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Trip data:",
+        expect(apiRequest).toHaveBeenCalledWith(
+          "/trips",
           expect.objectContaining({
-            name: "API Test Trip",
-            destination: "Test City",
+            method: "POST",
+            body: expect.stringContaining("API Test Trip"),
           }),
         );
       });
-
-      consoleSpy.mockRestore();
     });
   });
 });

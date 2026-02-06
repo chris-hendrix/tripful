@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTripSchema, type CreateTripInput } from "@tripful/shared";
+import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import {
   Dialog,
   DialogContent,
@@ -51,9 +52,11 @@ export function CreateTripDialog({
   onOpenChange,
 }: CreateTripDialogProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newCoOrganizerPhone, setNewCoOrganizerPhone] = useState("");
   const [coOrganizerError, setCoOrganizerError] = useState<string | null>(null);
+
+  const { mutate: createTrip, isPending, error } = useCreateTrip();
+  const errorMessage = getCreateTripErrorMessage(error);
 
   const form = useForm<CreateTripInput>({
     resolver: zodResolver(createTripSchema),
@@ -91,16 +94,15 @@ export function CreateTripDialog({
     setCurrentStep(1);
   };
 
-  const handleSubmit = async (data: CreateTripInput) => {
-    // Placeholder for Task 4.5: API call will be implemented later
-    setIsSubmitting(true);
-    try {
-      console.log("Trip data:", data);
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSubmit = (data: CreateTripInput) => {
+    // Create trip via TanStack Query mutation
+    // This will trigger optimistic update, API call, and redirect on success
+    createTrip(data, {
+      onSuccess: () => {
+        // Close dialog on successful creation (before redirect)
+        onOpenChange(false);
+      },
+    });
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
@@ -365,7 +367,7 @@ export function CreateTripDialog({
                           <Textarea
                             placeholder="Tell your group about this trip..."
                             className="h-32 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
-                            disabled={isSubmitting}
+                            disabled={isPending}
                             {...field}
                             value={field.value || ""}
                           />
@@ -397,7 +399,7 @@ export function CreateTripDialog({
                         <ImageUpload
                           value={field.value ?? null}
                           onChange={field.onChange}
-                          disabled={isSubmitting}
+                          disabled={isPending}
                         />
                       </FormControl>
                       <FormDescription className="text-sm text-slate-500">
@@ -419,7 +421,7 @@ export function CreateTripDialog({
                           type="checkbox"
                           checked={field.value}
                           onChange={field.onChange}
-                          disabled={isSubmitting}
+                          disabled={isPending}
                           className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Allow members to add events"
                         />
@@ -468,7 +470,7 @@ export function CreateTripDialog({
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveCoOrganizer(phone)}
-                                  disabled={isSubmitting}
+                                  disabled={isPending}
                                   className="p-1 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   aria-label={`Remove ${phone}`}
                                 >
@@ -496,14 +498,14 @@ export function CreateTripDialog({
                                   handleAddCoOrganizer();
                                 }
                               }}
-                              disabled={isSubmitting}
+                              disabled={isPending}
                               className="flex-1 h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
                               aria-label="Co-organizer phone number"
                             />
                             <Button
                               type="button"
                               onClick={handleAddCoOrganizer}
-                              disabled={isSubmitting}
+                              disabled={isPending}
                               className="h-12 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl"
                               variant="outline"
                             >
@@ -526,23 +528,30 @@ export function CreateTripDialog({
                   }}
                 />
 
+                {/* Error message */}
+                {errorMessage && (
+                  <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                    <p className="text-sm text-red-600">{errorMessage}</p>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleBack}
-                    disabled={isSubmitting}
+                    disabled={isPending}
                     className="flex-1 h-12 rounded-xl border-slate-300"
                   >
                     Back
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isPending}
                     className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? "Creating trip..." : "Create trip"}
+                    {isPending ? "Creating trip..." : "Create trip"}
                   </Button>
                 </div>
               </div>

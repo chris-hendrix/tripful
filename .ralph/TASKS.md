@@ -477,7 +477,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 4.5: Implement create trip mutation with optimistic updates
+- [x] Task 4.5: Implement create trip mutation with optimistic updates
   - Create `apps/web/src/hooks/use-trips.ts`
   - Implement `useCreateTrip` hook with useMutation
   - Optimistic update: Add trip to cache immediately

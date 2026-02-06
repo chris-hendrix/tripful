@@ -1,0 +1,448 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import {
+  useCreateTrip,
+  getCreateTripErrorMessage,
+  type Trip,
+} from "../use-trips";
+import { APIError } from "@/lib/api";
+import type { CreateTripInput } from "@tripful/shared/schemas";
+
+// Mock the API module
+vi.mock("@/lib/api", () => ({
+  apiRequest: vi.fn(),
+  APIError: class APIError extends Error {
+    constructor(
+      public code: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = "APIError";
+    }
+  },
+}));
+
+// Mock next/navigation
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+describe("useCreateTrip", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  // Sample trip data for testing
+  const mockTripInput: CreateTripInput = {
+    name: "Bachelor Party in Miami",
+    destination: "Miami Beach, FL",
+    startDate: "2026-06-01",
+    endDate: "2026-06-05",
+    timezone: "America/New_York",
+    description: "Epic bachelor party weekend",
+    coverImageUrl: "https://example.com/cover.jpg",
+    allowMembersToAddEvents: true,
+    coOrganizerPhones: ["+14155552671"],
+  };
+
+  const mockTripResponse: Trip = {
+    id: "trip-123",
+    name: "Bachelor Party in Miami",
+    destination: "Miami Beach, FL",
+    startDate: "2026-06-01",
+    endDate: "2026-06-05",
+    preferredTimezone: "America/New_York",
+    description: "Epic bachelor party weekend",
+    coverImageUrl: "https://example.com/cover.jpg",
+    createdBy: "user-123",
+    allowMembersToAddEvents: true,
+    cancelled: false,
+    createdAt: new Date("2026-02-06T12:00:00Z"),
+    updatedAt: new Date("2026-02-06T12:00:00Z"),
+  };
+
+  beforeEach(() => {
+    // Create a new QueryClient for each test to ensure isolation
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+        mutations: {
+          retry: false,
+        },
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+      },
+    });
+
+    // Create wrapper component with QueryClientProvider
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    // Clear all mocks
+    vi.clearAllMocks();
+
+    // Mock console.error to avoid test output noise from expected errors
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  describe("successful trip creation", () => {
+    it("creates a trip successfully and redirects", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripResponse,
+      });
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      // Initially not pending
+      expect(result.current.isPending).toBe(false);
+
+      // Trigger mutation
+      result.current.mutate(mockTripInput);
+
+      // Wait for mutation to complete
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify API was called with correct data
+      expect(apiRequest).toHaveBeenCalledWith("/trips", {
+        method: "POST",
+        body: JSON.stringify(mockTripInput),
+      });
+
+      // Verify redirect happened
+      expect(mockPush).toHaveBeenCalledWith("/trips/trip-123");
+
+      // Verify no error
+      expect(result.current.error).toBe(null);
+    });
+
+    it("returns the created trip data", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripResponse,
+      });
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockTripResponse);
+    });
+
+    it("invalidates trips query on success", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripResponse,
+      });
+
+      // Set initial query data
+      queryClient.setQueryData(["trips"], []);
+
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify invalidateQueries was called with trips key
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["trips"] });
+    });
+  });
+
+  describe("optimistic updates", () => {
+    it("adds trip to cache immediately (optimistic update)", async () => {
+      const { apiRequest } = await import("@/lib/api");
+
+      // Delay the API response to observe optimistic update
+      vi.mocked(apiRequest).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  trip: mockTripResponse,
+                }),
+              100,
+            );
+          }),
+      );
+
+      // Set initial query data with existing trips
+      const existingTrip: Trip = {
+        id: "existing-trip",
+        name: "Existing Trip",
+        destination: "Somewhere",
+        startDate: null,
+        endDate: null,
+        preferredTimezone: "UTC",
+        description: null,
+        coverImageUrl: null,
+        createdBy: "user-123",
+        allowMembersToAddEvents: true,
+        cancelled: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      queryClient.setQueryData(["trips"], [existingTrip]);
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      // Check cache was updated optimistically (before API resolves)
+      await waitFor(() => {
+        const cachedTrips = queryClient.getQueryData<Trip[]>(["trips"]);
+        expect(cachedTrips).toHaveLength(2);
+        expect(cachedTrips![0].id).toMatch(/^temp-/); // Temporary ID
+        expect(cachedTrips![0].name).toBe(mockTripInput.name);
+        expect(cachedTrips![1]).toEqual(existingTrip);
+      });
+    });
+
+    it("cancels outgoing queries during optimistic update", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripResponse,
+      });
+
+      const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries");
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify cancelQueries was called
+      expect(cancelQueriesSpy).toHaveBeenCalledWith({ queryKey: ["trips"] });
+    });
+  });
+
+  describe("error handling", () => {
+    it("handles API errors correctly", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const apiError = new APIError(
+        "CO_ORGANIZER_NOT_FOUND",
+        "Co-organizer not found: +14155552671",
+      );
+      vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(apiError);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("rolls back optimistic update on error", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const apiError = new APIError("VALIDATION_ERROR", "Invalid request data");
+      vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+      // Set initial query data
+      const existingTrip: Trip = {
+        id: "existing-trip",
+        name: "Existing Trip",
+        destination: "Somewhere",
+        startDate: null,
+        endDate: null,
+        preferredTimezone: "UTC",
+        description: null,
+        coverImageUrl: null,
+        createdBy: "user-123",
+        allowMembersToAddEvents: true,
+        cancelled: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      queryClient.setQueryData(["trips"], [existingTrip]);
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      // Verify cache was rolled back to original state
+      const cachedTrips = queryClient.getQueryData<Trip[]>(["trips"]);
+      expect(cachedTrips).toEqual([existingTrip]);
+    });
+
+    it("handles network errors", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const networkError = new Error("fetch failed");
+      vi.mocked(apiRequest).mockRejectedValueOnce(networkError);
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(networkError);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it("invalidates queries even after error (onSettled)", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const apiError = new APIError("VALIDATION_ERROR", "Invalid data");
+      vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput);
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      // Verify invalidateQueries was still called
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["trips"] });
+    });
+  });
+
+  describe("mutation callbacks", () => {
+    it("calls onSuccess callback when provided", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripResponse,
+      });
+
+      const onSuccess = vi.fn();
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput, { onSuccess });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(onSuccess).toHaveBeenCalled();
+      expect(onSuccess.mock.calls[0][0]).toEqual(mockTripResponse);
+      expect(onSuccess.mock.calls[0][1]).toEqual(mockTripInput);
+    });
+
+    it("calls onError callback when provided", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const apiError = new APIError("VALIDATION_ERROR", "Invalid data");
+      vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+      const onError = vi.fn();
+
+      const { result } = renderHook(() => useCreateTrip(), { wrapper });
+
+      result.current.mutate(mockTripInput, { onError });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(onError).toHaveBeenCalled();
+      expect(onError.mock.calls[0][0]).toEqual(apiError);
+      expect(onError.mock.calls[0][1]).toEqual(mockTripInput);
+    });
+  });
+});
+
+describe("getCreateTripErrorMessage", () => {
+  it("returns null for no error", () => {
+    expect(getCreateTripErrorMessage(null)).toBe(null);
+  });
+
+  it("handles CO_ORGANIZER_NOT_FOUND error", () => {
+    const error = new APIError(
+      "CO_ORGANIZER_NOT_FOUND",
+      "Co-organizer not found: +14155552671",
+    );
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "One or more co-organizers could not be found. Please check the phone numbers and try again.",
+    );
+  });
+
+  it("handles MEMBER_LIMIT_EXCEEDED error", () => {
+    const error = new APIError(
+      "MEMBER_LIMIT_EXCEEDED",
+      "Member limit exceeded: maximum 25 members allowed",
+    );
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "Trip cannot be created: maximum 25 members allowed (including creator and co-organizers).",
+    );
+  });
+
+  it("handles VALIDATION_ERROR", () => {
+    const error = new APIError("VALIDATION_ERROR", "Invalid request data");
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "Please check your input and try again.",
+    );
+  });
+
+  it("handles UNAUTHORIZED error", () => {
+    const error = new APIError("UNAUTHORIZED", "Not authenticated");
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "You must be logged in to create a trip.",
+    );
+  });
+
+  it("handles unknown APIError codes", () => {
+    const error = new APIError("UNKNOWN_ERROR", "Something went wrong");
+    expect(getCreateTripErrorMessage(error)).toBe("Something went wrong");
+  });
+
+  it("handles network errors", () => {
+    const error = new Error("fetch failed");
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "Network error: Please check your connection and try again.",
+    );
+  });
+
+  it("handles generic errors", () => {
+    const error = new Error("Something unexpected happened");
+    expect(getCreateTripErrorMessage(error)).toBe(
+      "An unexpected error occurred. Please try again.",
+    );
+  });
+});
