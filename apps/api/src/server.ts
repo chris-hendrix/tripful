@@ -4,6 +4,9 @@ import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
+import multipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import { resolve } from "node:path";
 // Ensure JWT secret exists BEFORE loading env (which validates it)
 import { ensureJWTSecret } from "./config/jwt.js";
 ensureJWTSecret();
@@ -22,7 +25,7 @@ const fastify: FastifyInstance = Fastify({
   requestIdLogLabel: "reqId",
   connectionTimeout: 30000,
   keepAliveTimeout: 5000,
-  bodyLimit: 1048576, // 1MB
+  bodyLimit: 10 * 1024 * 1024, // 10MB (allows for 5MB file + multipart overhead)
 });
 
 // Register CORS plugin
@@ -62,6 +65,21 @@ await fastify.register(rateLimit, {
   cache: 10000,
   allowList: ["127.0.0.1"],
   skipOnError: false,
+});
+
+// Register multipart plugin (for file uploads)
+await fastify.register(multipart, {
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+    files: 1,
+  },
+});
+
+// Register static file serving plugin (for uploaded images)
+await fastify.register(fastifyStatic, {
+  root: resolve(process.cwd(), "uploads"),
+  prefix: "/uploads/",
+  decorateReply: false,
 });
 
 // Register error handler

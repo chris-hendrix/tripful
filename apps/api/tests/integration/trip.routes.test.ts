@@ -5,6 +5,7 @@ import { db } from "@/config/database.js";
 import { users, members, trips } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
+import FormData from "form-data";
 
 describe("POST /api/trips", () => {
   let app: FastifyInstance;
@@ -3568,6 +3569,937 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("NOT_FOUND");
       expect(body.error.message).toBe("Co-organizer not found in trip");
+    });
+  });
+});
+
+describe("POST /api/trips/:id/cover-image", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should upload cover image and return 200 with updated trip", async () => {
+      app = await buildApp();
+
+      // Create test user with complete profile
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      // Create a fake image buffer (1KB PNG)
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body).toHaveProperty("trip");
+      expect(body.trip).toMatchObject({
+        id: trip.id,
+        name: "Test Trip",
+        destination: "Paris, France",
+      });
+      expect(body.trip.coverImageUrl).toMatch(/^\/uploads\/[a-f0-9-]+\.png$/);
+    });
+
+    it("should replace existing cover image and delete old one", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip with existing cover image
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+          coverImageUrl: "/uploads/old-image.jpg",
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      // Create a fake image buffer
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.trip.coverImageUrl).not.toBe("/uploads/old-image.jpg");
+      expect(body.trip.coverImageUrl).toMatch(/^\/uploads\/[a-f0-9-]+\.png$/);
+    });
+  });
+
+  describe("400 - Bad Request", () => {
+    it("should return 400 when no file is uploaded", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 when file size exceeds 5MB", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      // Create a buffer larger than 5MB
+      const largeBuffer = Buffer.alloc(6 * 1024 * 1024);
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", largeBuffer, {
+        filename: "large.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toContain("5MB");
+    });
+
+    it("should return 400 when file type is invalid", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      // Create a fake PDF buffer
+      const pdfBuffer = Buffer.from("fake pdf content");
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", pdfBuffer, {
+        filename: "document.pdf",
+        contentType: "application/pdf",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.message).toContain("Invalid file type");
+    });
+
+    it("should return 400 when trip ID is invalid UUID", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/invalid-uuid/cover-image",
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
+  describe("401 - Unauthorized", () => {
+    it("should return 401 when no auth token provided", async () => {
+      app = await buildApp();
+
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/cover-image",
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("403 - Forbidden", () => {
+    it("should return 403 when user is not a co-organizer", async () => {
+      app = await buildApp();
+
+      // Create creator and another user
+      const creatorPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
+
+      const [creator, member] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: memberPhone,
+            displayName: "Member",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add both as members (creator as co-organizer, member as regular attendee)
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: member.id,
+          tripId: trip.id,
+          status: "no_response", // Regular member, not a co-organizer
+        },
+      ]);
+
+      // Generate token for non-organizer member
+      const token = app.jwt.sign({
+        sub: member.id,
+        phone: member.phoneNumber,
+        name: member.displayName,
+      });
+
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("FORBIDDEN");
+    });
+  });
+
+  describe("404 - Not Found", () => {
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      // Create form data
+      const form = new FormData();
+      form.append("file", imageBuffer, {
+        filename: "test.png",
+        contentType: "image/png",
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/cover-image",
+        cookies: {
+          auth_token: token,
+        },
+        payload: form,
+        headers: form.getHeaders(),
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+});
+
+describe("DELETE /api/trips/:id/cover-image", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should delete cover image and return 200 with updated trip", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip with cover image
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+          coverImageUrl: "/uploads/test-image.jpg",
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body).toHaveProperty("trip");
+      expect(body.trip).toMatchObject({
+        id: trip.id,
+        name: "Test Trip",
+        destination: "Paris, France",
+      });
+      expect(body.trip.coverImageUrl).toBeNull();
+    });
+
+    it("should return 200 when trip has no cover image", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create trip without cover image
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        userId: testUser.id,
+        tripId: trip.id,
+        status: "going",
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.trip.coverImageUrl).toBeNull();
+    });
+  });
+
+  describe("400 - Bad Request", () => {
+    it("should return 400 when trip ID is invalid UUID", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/invalid-uuid/cover-image",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
+  describe("401 - Unauthorized", () => {
+    it("should return 401 when no auth token provided", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/cover-image",
+      });
+
+      expect(response.statusCode).toBe(401);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("UNAUTHORIZED");
+    });
+  });
+
+  describe("403 - Forbidden", () => {
+    it("should return 403 when user is not a co-organizer", async () => {
+      app = await buildApp();
+
+      // Create creator and another user
+      const creatorPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
+
+      const [creator, member] = await db
+        .insert(users)
+        .values([
+          {
+            phoneNumber: creatorPhone,
+            displayName: "Creator",
+            timezone: "UTC",
+          },
+          {
+            phoneNumber: memberPhone,
+            displayName: "Member",
+            timezone: "UTC",
+          },
+        ])
+        .returning();
+
+      // Create trip with cover image
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: creator.id,
+          coverImageUrl: "/uploads/test-image.jpg",
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add both as members (creator as co-organizer, member as regular attendee)
+      await db.insert(members).values([
+        {
+          userId: creator.id,
+          tripId: trip.id,
+          status: "going",
+        },
+        {
+          userId: member.id,
+          tripId: trip.id,
+          status: "no_response", // Regular member, not a co-organizer
+        },
+      ]);
+
+      // Generate token for non-organizer member
+      const token = app.jwt.sign({
+        sub: member.id,
+        phone: member.phoneNumber,
+        name: member.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/cover-image`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("FORBIDDEN");
+    });
+  });
+
+  describe("404 - Not Found", () => {
+    it("should return 404 when trip does not exist", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/00000000-0000-0000-0000-000000000000/cover-image",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+  });
+});
+
+describe("GET /uploads/:filename", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  describe("Success Cases", () => {
+    it("should serve uploaded image file", async () => {
+      app = await buildApp();
+
+      // Create a test image file in uploads directory
+      const { writeFileSync, existsSync, mkdirSync } = await import("fs");
+      const { resolve } = await import("path");
+
+      const uploadsDir = resolve(process.cwd(), "uploads");
+      if (!existsSync(uploadsDir)) {
+        mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const testImagePath = resolve(uploadsDir, "test-image.png");
+      const imageBuffer = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      writeFileSync(testImagePath, imageBuffer);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/uploads/test-image.png",
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toContain("image");
+    });
+  });
+
+  describe("404 - Not Found", () => {
+    it("should return 404 when image file does not exist", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/uploads/non-existent-image.png",
+      });
+
+      expect(response.statusCode).toBe(404);
     });
   });
 });

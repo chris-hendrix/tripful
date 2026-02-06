@@ -107,4 +107,32 @@ export async function tripRoutes(fastify: FastifyInstance) {
     },
     tripController.removeCoOrganizer,
   );
+
+  /**
+   * POST /:id/cover-image
+   * Upload cover image for trip
+   * Requires authentication and complete profile
+   * Only organizers can upload cover images
+   */
+  fastify.post(
+    "/:id/cover-image",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.uploadCoverImage,
+  );
+
+  /**
+   * DELETE /:id/cover-image
+   * Delete cover image from trip
+   * Requires authentication and complete profile
+   * Only organizers can delete cover images
+   */
+  fastify.delete(
+    "/:id/cover-image",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.deleteCoverImage,
+  );
 }

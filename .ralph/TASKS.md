@@ -369,7 +369,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 3.7: Add image upload endpoints (TDD)
+- [x] Task 3.7: Add image upload endpoints (TDD)
   - Write failing integration tests in `trip.routes.test.ts`:
     - Test: POST /trips/:id/cover-image uploads image and returns updated trip
     - Test: POST /trips/:id/cover-image validates file size (rejects >5MB)

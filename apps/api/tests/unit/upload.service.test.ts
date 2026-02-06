@@ -291,6 +291,39 @@ describe("upload.service", () => {
       expect(existsSync(filepath1)).toBe(false);
       expect(existsSync(filepath2)).toBe(true);
     });
+
+    it("should safely handle path traversal attempts in deleteImage", async () => {
+      // Create a test file first
+      const buffer = Buffer.from("test image data");
+      const url = await uploadService.uploadImage(
+        buffer,
+        "test.jpg",
+        "image/jpeg",
+      );
+
+      // Attempt various path traversal patterns - should not throw
+      const maliciousUrls = [
+        "/uploads/../../../etc/passwd",
+        "/uploads/..%2F..%2F..%2Fetc%2Fpasswd",
+        "/uploads/....//....//etc/passwd",
+        "/../../../etc/passwd",
+        "/uploads/../uploads/../../../etc/passwd",
+      ];
+
+      for (const maliciousUrl of maliciousUrls) {
+        await expect(
+          uploadService.deleteImage(maliciousUrl),
+        ).resolves.not.toThrow();
+      }
+
+      // Verify the real file still exists (wasn't deleted by traversal)
+      const filename = url.split("/").pop()!;
+      const filePath = resolve(process.cwd(), "uploads", filename);
+      expect(existsSync(filePath)).toBe(true);
+
+      // Clean up
+      await uploadService.deleteImage(url);
+    });
   });
 
   describe("integration: complete upload lifecycle", () => {

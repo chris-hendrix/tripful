@@ -140,6 +140,13 @@ export class UploadService implements IUploadService {
 
     const filePath = resolve(this.uploadsDir, filename);
 
+    // Security check: ensure resolved path is within uploads directory
+    // This prevents path traversal attacks like /uploads/../../../etc/passwd
+    if (!filePath.startsWith(this.uploadsDir)) {
+      // Silently fail for security (don't reveal system info)
+      return;
+    }
+
     // Delete file if it exists
     try {
       if (existsSync(filePath)) {

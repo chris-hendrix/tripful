@@ -3,6 +3,9 @@ import type { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
+import multipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import { resolve } from "node:path";
 import { errorHandler } from "@/middleware/error.middleware.js";
 import { env } from "@/config/env.js";
 import { healthRoutes } from "@/routes/health.routes.js";
@@ -39,6 +42,21 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register rate limit plugin with global: false for route-specific rate limiting
   await app.register(rateLimit, {
     global: false,
+  });
+
+  // Register multipart plugin (for file uploads)
+  await app.register(multipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+      files: 1,
+    },
+  });
+
+  // Register static file serving plugin (for uploaded images)
+  await app.register(fastifyStatic, {
+    root: resolve(process.cwd(), "uploads"),
+    prefix: "/uploads/",
+    decorateReply: false,
   });
 
   // Register error handler

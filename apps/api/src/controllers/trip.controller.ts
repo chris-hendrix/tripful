@@ -6,6 +6,8 @@ import {
   addCoOrganizerSchema,
 } from "@tripful/shared/schemas";
 import { tripService } from "@/services/trip.service.js";
+import { uploadService } from "@/services/upload.service.js";
+import { permissionsService } from "@/services/permissions.service.js";
 
 /**
  * Trip Controller
@@ -609,6 +611,307 @@ export const tripController = {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to remove co-organizer",
+        },
+      });
+    }
+  },
+
+  /**
+   * Upload cover image endpoint
+   * Uploads a cover image for a trip
+   *
+   * @route POST /api/trips/:id/cover-image
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with trip ID in params and image file
+   * @param reply - Fastify reply
+   * @returns Success response with updated trip
+   */
+  async uploadCoverImage(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      // Extract and validate trip ID from params
+      const { id } = request.params as { id: string };
+      const validationResult = uuidSchema.safeParse(id);
+
+      if (!validationResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid trip ID format",
+          },
+        });
+      }
+
+      // Get file from request
+      let data;
+      try {
+        data = await request.file();
+      } catch (fileError) {
+        // Handle multipart parsing errors (e.g., file too large, invalid format, no multipart data)
+        if (fileError instanceof Error) {
+          if (fileError.message.includes("Request body is too large")) {
+            return reply.status(400).send({
+              success: false,
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "Image must be under 5MB. Please choose a smaller file",
+              },
+            });
+          }
+          // If the error is about missing/invalid multipart content-type
+          if (
+            fileError.message.includes("the request is not multipart") ||
+            fileError.message.includes("missing content-type header")
+          ) {
+            return reply.status(400).send({
+              success: false,
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "No file uploaded",
+              },
+            });
+          }
+        }
+        // Re-throw unknown errors
+        throw fileError;
+      }
+
+      if (!data) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "No file uploaded",
+          },
+        });
+      }
+
+      // Extract user ID from JWT
+      const userId = request.user.sub;
+
+      // Fetch trip to check permissions and get old image URL
+      const trip = await tripService.getTripById(id, userId);
+
+      if (!trip) {
+        return reply.status(404).send({
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: "Trip not found",
+          },
+        });
+      }
+
+      // Check if user can edit trip
+      const canEdit = await permissionsService.canEditTrip(userId, id);
+
+      if (!canEdit) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Permission denied: Only organizers can upload cover images",
+          },
+        });
+      }
+
+      // Convert file stream to buffer
+      const fileBuffer = await data.toBuffer();
+
+      // Delete old cover image if it exists
+      if (trip.coverImageUrl) {
+        await uploadService.deleteImage(trip.coverImageUrl);
+      }
+
+      // Upload new image
+      const imageUrl = await uploadService.uploadImage(
+        fileBuffer,
+        data.filename,
+        data.mimetype,
+      );
+
+      // Update trip with new cover image URL
+      const updatedTrip = await tripService.updateTrip(id, userId, {
+        coverImageUrl: imageUrl,
+      });
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        trip: updatedTrip,
+      });
+    } catch (error) {
+      // Handle known validation errors from upload service
+      if (error instanceof Error) {
+        if (
+          error.message.includes("Invalid file type") ||
+          error.message.includes("must be under 5MB")
+        ) {
+          return reply.status(400).send({
+            success: false,
+            error: {
+              code: "VALIDATION_ERROR",
+              message: error.message,
+            },
+          });
+        }
+
+        if (error.message.startsWith("Permission denied:")) {
+          return reply.status(403).send({
+            success: false,
+            error: {
+              code: "FORBIDDEN",
+              message: error.message,
+            },
+          });
+        }
+
+        if (error.message === "Trip not found") {
+          return reply.status(404).send({
+            success: false,
+            error: {
+              code: "NOT_FOUND",
+              message: "Trip not found",
+            },
+          });
+        }
+      }
+
+      // Log error and return 500
+      request.log.error(
+        {
+          error,
+          userId: request.user.sub,
+          tripId: (request.params as { id: string }).id,
+        },
+        "Failed to upload cover image",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upload cover image",
+        },
+      });
+    }
+  },
+
+  /**
+   * Delete cover image endpoint
+   * Removes the cover image from a trip
+   *
+   * @route DELETE /api/trips/:id/cover-image
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with trip ID in params
+   * @param reply - Fastify reply
+   * @returns Success response with updated trip
+   */
+  async deleteCoverImage(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      // Extract and validate trip ID from params
+      const { id } = request.params as { id: string };
+      const validationResult = uuidSchema.safeParse(id);
+
+      if (!validationResult.success) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid trip ID format",
+          },
+        });
+      }
+
+      // Extract user ID from JWT
+      const userId = request.user.sub;
+
+      // Fetch trip to check permissions and get image URL
+      const trip = await tripService.getTripById(id, userId);
+
+      if (!trip) {
+        return reply.status(404).send({
+          success: false,
+          error: {
+            code: "NOT_FOUND",
+            message: "Trip not found",
+          },
+        });
+      }
+
+      // Check if user can edit trip
+      const canEdit = await permissionsService.canEditTrip(userId, id);
+
+      if (!canEdit) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: "FORBIDDEN",
+            message: "Permission denied: Only organizers can delete cover images",
+          },
+        });
+      }
+
+      // Delete image file if it exists
+      if (trip.coverImageUrl) {
+        await uploadService.deleteImage(trip.coverImageUrl);
+      }
+
+      // Update trip to remove cover image URL
+      const updatedTrip = await tripService.updateTrip(id, userId, {
+        coverImageUrl: null,
+      });
+
+      // Return success response
+      return reply.status(200).send({
+        success: true,
+        trip: updatedTrip,
+      });
+    } catch (error) {
+      // Handle known service errors
+      if (error instanceof Error) {
+        if (error.message.startsWith("Permission denied:")) {
+          return reply.status(403).send({
+            success: false,
+            error: {
+              code: "FORBIDDEN",
+              message: error.message,
+            },
+          });
+        }
+
+        if (error.message === "Trip not found") {
+          return reply.status(404).send({
+            success: false,
+            error: {
+              code: "NOT_FOUND",
+              message: "Trip not found",
+            },
+          });
+        }
+      }
+
+      // Log error and return 500
+      request.log.error(
+        {
+          error,
+          userId: request.user.sub,
+          tripId: (request.params as { id: string }).id,
+        },
+        "Failed to delete cover image",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete cover image",
         },
       });
     }

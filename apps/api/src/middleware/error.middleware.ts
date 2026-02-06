@@ -53,6 +53,41 @@ export async function errorHandler(
     });
   }
 
+  // Multipart file upload errors - file too large
+  if (
+    error.code === "FST_REQ_FILE_TOO_LARGE" ||
+    error.code === "FST_FILES_LIMIT" ||
+    error.code === "FST_PARTS_LIMIT" ||
+    error.code === "FST_FIELDS_LIMIT" ||
+    error.message?.toLowerCase().includes("body is too large") ||
+    error.message?.toLowerCase().includes("file too large") ||
+    error.message?.toLowerCase().includes("files limit") ||
+    error.message?.toLowerCase().includes("parts limit") ||
+    error.statusCode === 413
+  ) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Image must be under 5MB. Please choose a smaller file",
+      },
+    });
+  }
+
+  // Multipart content-type errors
+  if (
+    error.code === "FST_INVALID_MULTIPART_CONTENT_TYPE" ||
+    error.message?.includes("the request is not multipart")
+  ) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "No file uploaded",
+      },
+    });
+  }
+
   // Database errors (PostgreSQL constraint violations)
   if (error.code?.startsWith("23")) {
     return reply.status(409).send({
