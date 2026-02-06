@@ -78,6 +78,29 @@ interface CancelTripResponse {
 }
 
 /**
+ * Trip detail type returned by GET /api/trips/:id
+ * Extends the base Trip type with organizers and member count
+ */
+export interface TripDetail extends Trip {
+  organizers: Array<{
+    id: string;
+    displayName: string;
+    phoneNumber: string;
+    profilePhotoUrl: string | null;
+    timezone: string;
+  }>;
+  memberCount: number;
+}
+
+/**
+ * API response type for fetching trip detail
+ */
+interface GetTripDetailResponse {
+  success: true;
+  trip: TripDetail;
+}
+
+/**
  * Hook for fetching all trips for the current user
  *
  * Features:
@@ -103,6 +126,37 @@ export function useTrips() {
     queryFn: async () => {
       const response = await apiRequest<GetTripsResponse>("/trips");
       return response.trips;
+    },
+  });
+}
+
+/**
+ * Hook for fetching a single trip's detailed information
+ *
+ * Features:
+ * - Automatic caching: Results are cached with ["trips", tripId] key
+ * - Returns detailed trip information including organizers and member count
+ * - Error handling: Provides error state for failed requests (404 if trip not found or user has no access)
+ *
+ * @param tripId - The ID of the trip to fetch
+ * @returns Query object with data, loading, and error state
+ *
+ * @example
+ * ```tsx
+ * const { data: trip, isLoading, isError, error, refetch } = useTripDetail("trip-123");
+ *
+ * if (isLoading) return <div>Loading...</div>;
+ * if (isError) return <div>Error: {error.message}</div>;
+ *
+ * return <TripDetailPage trip={trip} />;
+ * ```
+ */
+export function useTripDetail(tripId: string) {
+  return useQuery({
+    queryKey: ["trips", tripId],
+    queryFn: async () => {
+      const response = await apiRequest<GetTripDetailResponse>(`/trips/${tripId}`);
+      return response.trip;
     },
   });
 }

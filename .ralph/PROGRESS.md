@@ -567,3 +567,173 @@ Optional enhancements for future iterations:
 **Total Time**: ~12 minutes for complete implementation, testing, verification, and review
 **Agent Count**: 5 agents (3 researchers parallel + coder + verifier/reviewer parallel)
 **Efficiency**: Excellent - parallel execution maximized throughput
+
+---
+
+## Iteration 20 - Task 5.4: Create trip detail page
+
+**Status**: ✅ COMPLETE
+
+**Date**: 2026-02-06
+
+### Summary
+
+Successfully implemented a comprehensive trip detail page at `/trips/[id]` with full authentication, authorization, and error handling. The page displays trip information including cover image, metadata, organizers, and event count, with proper loading and error states. Organizers see an edit button that opens the EditTripDialog component.
+
+### Implementation Details
+
+#### Files Created
+1. **`apps/web/src/app/(app)/trips/[id]/page.tsx`** (357 lines)
+   - Client-side Next.js page component
+   - Hero section with cover image or gradient placeholder (320px height)
+   - Trip header: name (Playfair Display), destination with MapPin icon
+   - Metadata: dates, organizers with avatars, RSVP badge, organizer badge
+   - Stats: member count, event count (0 for Phase 3)
+   - Description section (when available)
+   - Edit button for organizers that opens EditTripDialog
+   - Empty state for events: "No events yet - Events coming in Phase 5!"
+   - Loading skeleton state with hero placeholder
+   - Error state for 404 with "Return to dashboard" button
+
+2. **`apps/web/src/app/(app)/trips/[id]/page.test.tsx`** (688 lines)
+   - 28 comprehensive test cases covering:
+     - Rendering: loading, trip details, cover image, placeholder, dates, organizers, stats, badges, description
+     - Authorization: edit button visibility for creator/co-organizer/non-organizer, organizer badge
+     - Error handling: 404 errors, network failures, navigation on error
+     - Interactions: edit dialog open/close
+     - Edge cases: missing dates, null description, empty organizers, member count pluralization, date formatting
+
+#### Files Modified
+3. **`apps/web/src/hooks/use-trips.ts`**
+   - Added `TripDetail` interface extending `Trip` with `organizers` array and `memberCount`
+   - Added `GetTripDetailResponse` interface for API response typing
+   - Implemented `useTripDetail(tripId: string)` hook with TanStack Query
+   - Query key: `["trips", tripId]` for proper caching and invalidation
+   - Comprehensive JSDoc documentation
+
+4. **`apps/web/src/hooks/__tests__/use-trips.test.tsx`**
+   - Added 10 test cases for `useTripDetail` hook:
+     - Successful data fetching with organizers and member count
+     - Loading state handling
+     - 404 error handling (trip not found or no access)
+     - Network error handling
+     - Query key caching verification
+     - Cache isolation for different trip IDs
+     - Refetch functionality
+
+### Technical Highlights
+
+1. **Authorization Logic**
+   - Determines organizer status: `user && (trip.createdBy === user.id || trip.organizers.some(org => org.id === user.id))`
+   - Edit button and organizer badge only visible to organizers
+   - API returns 404 for both non-existent trips and unauthorized access (security best practice)
+
+2. **Date Formatting**
+   - Reused `formatDateRange` utility from TripCard for consistency
+   - Handles UTC parsing to avoid timezone issues
+   - Formats: "Oct 12 - 14, 2026" (same month) or "Oct 12 - Nov 14, 2026" (different months)
+   - Shows "Dates TBD" when both dates are null
+
+3. **Organizer Display**
+   - Stacked avatars with profile photos or initials fallback
+   - Shows first organizer name + count (e.g., "Mike Johnson +2")
+   - Uses `getInitials` helper for avatar fallback
+
+4. **Design Consistency**
+   - Playfair Display font for headings
+   - Blue-cyan gradients for primary actions
+   - `rounded-2xl` borders for cards
+   - `shadow-lg shadow-blue-500/30` for prominent elements
+   - Matches dashboard and TripCard patterns
+
+### Verification Results
+
+**Verifier**: ✅ PASS
+- Unit tests (hooks): 34/34 passing (includes 10 new useTripDetail tests)
+- Component tests (page): 28/28 passing
+- TypeScript: No errors
+- ESLint: No errors or warnings
+- All acceptance criteria met
+
+**Reviewer**: ✅ APPROVED
+- Code quality: ⭐⭐⭐⭐⭐ (5/5)
+- Test quality: ⭐⭐⭐⭐⭐ (5/5)
+- Production-ready implementation
+- Excellent type safety with no `any` types
+- Consistent pattern adherence
+- Comprehensive test coverage (62 total tests)
+- Proper authorization and error handling
+
+### Acceptance Criteria Verification
+
+All criteria from Task 5.4 met:
+- ✅ Trip details display correctly
+- ✅ Cover image shown if available
+- ✅ Organizers see edit button
+- ✅ Non-organizers don't see edit button
+- ✅ Empty state for events shown
+- ✅ Matches demo design
+
+### Key Learnings
+
+1. **Task Consolidation**: Task 5.4 naturally included Task 5.5 (data fetching) as they're inseparable - implementing the page requires the hook, and the hook is only used by this page. Combined implementation was more efficient.
+
+2. **Reusable Utilities**: Extracted `formatDateRange` and `getInitials` functions from TripCard to maintain consistency across components. Future refactor could move these to shared utilities.
+
+3. **Error Handling Pattern**: API returns 404 for both non-existent trips and unauthorized access, preventing information leakage about trip existence. Frontend treats both cases identically.
+
+4. **Test Organization**: Organized 28 page tests into clear categories (Rendering, Authorization, Error handling, Interactions, Edge cases) making the test suite easy to navigate and maintain.
+
+5. **Authorization Checks**: Two-pronged organizer check (creator OR co-organizer) properly handles both trip creation scenarios and co-organizer addition.
+
+### Metrics
+
+- **Lines of Code**: ~1,400 lines total
+  - 357 lines: Trip detail page component
+  - 331 lines: Hook modifications (including new `useTripDetail`)
+  - 688 lines: Page tests
+  - Added tests to existing hook test file
+- **Test Count**: 62 tests total, 100% passing
+  - 34 hook tests (10 new for useTripDetail)
+  - 28 page tests (all new)
+- **Test Coverage**: All states, edge cases, and authorization scenarios covered
+- **Components Modified**: 1 page created, 1 hook file modified
+- **Test Files**: 1 page test file created, 1 hook test file modified
+
+### Agent Performance
+
+- **3 Researcher Agents** (parallel): ~3-4 minutes each
+  - LOCATING: Complete file inventory with exact paths
+  - ANALYZING: Full data flow mapping from API to UI
+  - PATTERNS: Comprehensive UI/design pattern extraction
+  
+- **Coder Agent**: ~10 minutes
+  - Implemented useTripDetail hook with tests
+  - Created trip detail page component
+  - Wrote 38 comprehensive tests (10 hook + 28 page)
+  - Clean, production-ready code following all patterns
+
+- **Verifier Agent**: ~3.5 minutes
+  - Ran all test suites (62 tests)
+  - Verified TypeScript compilation
+  - Checked linting and formatting
+  - Confirmed all acceptance criteria met
+  - Status: **PASS**
+
+- **Reviewer Agent**: ~2 minutes
+  - Comprehensive code quality review
+  - Verified architecture patterns and best practices
+  - Checked test coverage and quality
+  - Evaluated UX/UI consistency
+  - Status: **APPROVED**
+
+**Total Time**: ~18 minutes for complete implementation, testing, verification, and review
+**Agent Count**: 5 agents (3 researchers parallel + coder + verifier/reviewer parallel)
+**Efficiency**: Excellent - parallel execution and comprehensive research enabled high-quality first-pass implementation
+
+### Notes
+
+- Task 5.5 (Implement trip detail data fetching) was naturally included in this task as the `useTripDetail` hook is integral to the page implementation
+- 4 unrelated test failures exist in auth pages (complete-profile and verify pages) - these are pre-existing issues not introduced by this implementation
+- Events section shows placeholder "Events coming in Phase 5!" as planned
+- RSVP badge shows "Going" for organizers as expected in Phase 3

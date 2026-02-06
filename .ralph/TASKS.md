@@ -559,7 +559,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 5.4: Create trip detail page
+- [x] Task 5.4: Create trip detail page
   - Create `apps/web/src/app/(app)/trips/[id]/page.tsx`
   - Display cover image hero section (if available)
   - Trip header: name, destination, dates

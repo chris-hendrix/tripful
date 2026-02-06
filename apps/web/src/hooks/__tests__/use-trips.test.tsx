@@ -4,10 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import {
   useTrips,
+  useTripDetail,
   useCreateTrip,
   getCreateTripErrorMessage,
   type Trip,
   type TripSummary,
+  type TripDetail,
 } from "../use-trips";
 import { APIError } from "@/lib/api";
 import type { CreateTripInput } from "@tripful/shared/schemas";
@@ -593,6 +595,283 @@ describe("useCreateTrip", () => {
       expect(onError).toHaveBeenCalled();
       expect(onError.mock.calls[0][0]).toEqual(apiError);
       expect(onError.mock.calls[0][1]).toEqual(mockTripInput);
+    });
+  });
+});
+
+describe("useTripDetail", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  const mockTripDetail: TripDetail = {
+    id: "trip-123",
+    name: "Bachelor Party in Miami",
+    destination: "Miami Beach, FL",
+    startDate: "2026-06-01",
+    endDate: "2026-06-05",
+    preferredTimezone: "America/New_York",
+    description: "Epic bachelor party weekend",
+    coverImageUrl: "https://example.com/cover.jpg",
+    createdBy: "user-123",
+    allowMembersToAddEvents: true,
+    cancelled: false,
+    createdAt: new Date("2026-02-06T12:00:00Z"),
+    updatedAt: new Date("2026-02-06T12:00:00Z"),
+    organizers: [
+      {
+        id: "user-123",
+        displayName: "John Doe",
+        phoneNumber: "+14155551234",
+        profilePhotoUrl: "https://example.com/john.jpg",
+        timezone: "America/New_York",
+      },
+      {
+        id: "user-456",
+        displayName: "Jane Smith",
+        phoneNumber: "+14155555678",
+        profilePhotoUrl: null,
+        timezone: "America/Los_Angeles",
+      },
+    ],
+    memberCount: 8,
+  };
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+        mutations: {
+          retry: false,
+        },
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+      },
+    });
+
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  describe("successful trip detail fetch", () => {
+    it("fetches trip detail successfully", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+      });
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      // Initially loading
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.data).toBeUndefined();
+
+      // Wait for query to complete
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify data is correct
+      expect(result.current.data).toEqual(mockTripDetail);
+      expect(result.current.error).toBe(null);
+
+      // Verify API was called correctly
+      expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123");
+    });
+
+    it("returns trip with organizers and member count", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+      });
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data?.organizers).toHaveLength(2);
+      expect(result.current.data?.organizers[0].displayName).toBe("John Doe");
+      expect(result.current.data?.memberCount).toBe(8);
+    });
+
+    it("uses correct query key for caching", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+      });
+
+      renderHook(() => useTripDetail("trip-123"), { wrapper });
+
+      await waitFor(() => {
+        const cachedData = queryClient.getQueryData(["trips", "trip-123"]);
+        expect(cachedData).toEqual(mockTripDetail);
+      });
+    });
+
+    it("caches different trips separately", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const trip1 = { ...mockTripDetail, id: "trip-1", name: "Trip 1" };
+      const trip2 = { ...mockTripDetail, id: "trip-2", name: "Trip 2" };
+
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: trip1,
+      });
+
+      const { result: result1 } = renderHook(() => useTripDetail("trip-1"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result1.current.isSuccess).toBe(true);
+      });
+
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: trip2,
+      });
+
+      const { result: result2 } = renderHook(() => useTripDetail("trip-2"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result2.current.isSuccess).toBe(true);
+      });
+
+      // Verify both are cached separately
+      expect(queryClient.getQueryData(["trips", "trip-1"])).toEqual(trip1);
+      expect(queryClient.getQueryData(["trips", "trip-2"])).toEqual(trip2);
+    });
+  });
+
+  describe("error handling", () => {
+    it("handles 404 error (trip not found)", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const notFoundError = new APIError("NOT_FOUND", "Trip not found");
+      vi.mocked(apiRequest).mockRejectedValueOnce(notFoundError);
+
+      const { result } = renderHook(() => useTripDetail("nonexistent-trip"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(notFoundError);
+      expect(result.current.data).toBeUndefined();
+    });
+
+    it("handles 404 error when user has no access", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const notFoundError = new APIError("NOT_FOUND", "Trip not found");
+      vi.mocked(apiRequest).mockRejectedValueOnce(notFoundError);
+
+      const { result } = renderHook(() => useTripDetail("trip-no-access"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(notFoundError);
+    });
+
+    it("handles network errors", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const networkError = new Error("fetch failed");
+      vi.mocked(apiRequest).mockRejectedValueOnce(networkError);
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(networkError);
+    });
+
+    it("handles unauthorized error", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      const unauthorizedError = new APIError("UNAUTHORIZED", "Not authenticated");
+      vi.mocked(apiRequest).mockRejectedValueOnce(unauthorizedError);
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toEqual(unauthorizedError);
+    });
+  });
+
+  describe("refetch functionality", () => {
+    it("can refetch trip detail data", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+      });
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Verify initial data
+      expect(result.current.data?.name).toBe("Bachelor Party in Miami");
+
+      // Mock a different response for refetch
+      const updatedTrip = { ...mockTripDetail, name: "Updated Trip Name" };
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: updatedTrip,
+      });
+
+      // Trigger refetch
+      result.current.refetch();
+
+      // Wait for refetch to complete and data to update
+      await waitFor(
+        () => {
+          expect(result.current.data?.name).toBe("Updated Trip Name");
+        },
+        { timeout: 3000 },
+      );
+
+      // Verify API was called twice
+      expect(apiRequest).toHaveBeenCalledTimes(2);
     });
   });
 });
