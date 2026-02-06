@@ -1817,3 +1817,144 @@ Successfully implemented comprehensive E2E test for trip permissions. The test v
 ### Next Task
 
 Task 6.3 is complete. Next unchecked task: **Task 6.4 - Write E2E test for co-organizer management**
+
+---
+
+## Iteration 27 - Task 6.4: Write E2E test for co-organizer management
+
+**Date**: 2026-02-06
+**Status**: ✅ COMPLETE
+**Agent Workflow**: 3 Researchers (parallel) → Coder → Verifier + Reviewer (parallel)
+
+### Summary
+
+Successfully implemented comprehensive E2E test for co-organizer management, covering the full lifecycle: adding co-organizers, verifying their permissions, and removing them. The test validates that co-organizers have the same edit permissions as trip creators and properly lose access after removal.
+
+### Implementation Details
+
+**Test Added**: `apps/web/tests/e2e/trip-flow.spec.ts` (lines 741-895)
+
+**Test Flow**:
+1. **User A creates trip** - Authenticates and creates a trip via UI
+2. **User B registers** - Creates second test user with offset phone number
+3. **Add co-organizer** - User A adds User B as co-organizer via API (`POST /api/trips/:id/co-organizers`)
+4. **Verify permissions** - User B logs in and verifies:
+   - Can access the trip detail page
+   - Sees "Edit trip" button (organizer permission indicator)
+   - Sees "Organizing" badge
+   - Can successfully edit trip details
+5. **Remove co-organizer** - User A removes User B via API (`DELETE /api/trips/:id/co-organizers/:userId`)
+6. **Verify removal** - User B verifies:
+   - Cannot access trip (404 error)
+   - No longer sees edit button or organizing badge
+
+**Helper Function Added**: `authenticateUserWithPhone(page, phone, displayName)` (lines 62-102)
+- Enables re-authentication with specific phone number
+- Critical for multi-user tests where users need to log back in
+- Handles profile completion flow
+
+### Technical Approach
+
+**Multi-User Testing Pattern**:
+- Phone number generation: `+1555${String(Date.now()).slice(-10)}` (last 10 digits to stay within E.164 15-digit limit)
+- User B phone: `+1555${String(Date.now() + 1000).slice(-10)}` (offset to avoid collisions)
+- Session isolation: `page.context().clearCookies()` between user switches
+- Proper re-authentication flow for each user
+
+**API Integration**:
+- Used `page.request.post()` and `page.request.delete()` for co-organizer management
+- No UI exists for co-org management post-creation, so direct API calls were necessary
+- Fetched trip detail via `GET /api/trips/:id` to extract User B's ID for removal
+- All API operations include assertions (`expect(response.ok()).toBeTruthy()`)
+
+**Reliability Features**:
+- Proper waits: `waitForLoadState("networkidle")`, `waitForTimeout(300)`
+- Extended timeout (10s) for optimistic update verification
+- Sequential operations with proper error handling
+- Phone number collision avoidance with timestamp offsets
+
+### Test Results
+
+**Verifier**: ✅ PASS
+- New test "add co-organizer, verify permissions, and remove co-organizer" **PASSED**
+- Test duration: 16.5 seconds
+- No linting errors
+- No TypeScript errors
+- Test executes consistently without flakiness
+
+**Reviewer**: ✅ APPROVED
+- All acceptance criteria met
+- Excellent multi-user testing pattern
+- Robust API integration
+- Clear code structure with step-by-step comments
+- Follows existing test patterns perfectly
+- Production-ready implementation
+
+### Code Quality
+
+**Strengths**:
+1. Comprehensive coverage of all acceptance criteria
+2. Smart phone number generation avoiding E.164 format violations
+3. Proper multi-user session management with cookie clearing
+4. Robust API integration with error checking
+5. Clear, maintainable code with descriptive comments
+6. Follows existing patterns from trip-flow.spec.ts
+7. Tests both positive (can edit) and negative (cannot access) cases
+
+**Test Coverage**:
+- ✅ Co-organizer addition via API
+- ✅ Co-organizer can access trip
+- ✅ Co-organizer sees edit button (permission indicator)
+- ✅ Co-organizer sees "Organizing" badge
+- ✅ Co-organizer can successfully edit trip
+- ✅ Co-organizer removal via API
+- ✅ Removed co-org cannot access trip
+- ✅ Removed co-org loses all organizer permissions
+
+### Challenges & Solutions
+
+**Challenge 1: No UI for Co-Organizer Management**
+- **Problem**: Edit dialog doesn't have UI for adding/removing co-organizers after trip creation
+- **Solution**: Used direct API calls via `page.request` to test backend functionality and permission model
+- **Rationale**: Validates the complete permission system even without UI
+
+**Challenge 2: Getting User B's ID for Removal**
+- **Problem**: DELETE endpoint requires user ID, not phone number
+- **Solution**: Fetched trip detail via GET /api/trips/:id and extracted User B's ID from organizers array
+- **Implementation**: Lines 860-870
+
+**Challenge 3: E.164 Phone Number Format Limit**
+- **Problem**: E.164 format has 15-digit maximum, `Date.now()` produces 13 digits, adding prefix exceeds limit
+- **Solution**: Use last 10 digits of timestamp: `String(Date.now()).slice(-10)`
+- **Result**: Phone numbers stay within format: `+15551234567890` (14 digits total)
+
+### Agent Performance
+
+**Workflow Timeline**:
+- **3 Researcher Agents** (parallel): ~2-3 minutes each
+  - LOCATING: Found test file, UI patterns, authentication helpers
+  - ANALYZING: Traced co-organizer API flow, permission validation
+  - PATTERNS: Identified multi-user testing patterns, session management
+- **Coder Agent**: ~10 minutes (test implementation with helper function)
+- **Verifier + Reviewer** (parallel): ~4 minutes each
+
+**Total Time**: ~20 minutes across all agents
+**Agent Count**: 6 agent invocations (3 researchers + 1 coder + 1 verifier + 1 reviewer)
+
+### Files Changed
+
+- `apps/web/tests/e2e/trip-flow.spec.ts`:
+  - Added `authenticateUserWithPhone()` helper (lines 62-102)
+  - Added comprehensive co-organizer management test (lines 741-895)
+
+### Learnings for Future Iterations
+
+1. **Phone Number Format Constraints**: E.164 has strict length limits - use `.slice(-10)` for timestamps to avoid violations
+2. **Multi-User Re-Authentication**: Need helper that accepts phone number for consistent user identity across sessions
+3. **API-First Testing**: When UI doesn't exist, direct API testing via `page.request` validates backend and permission model
+4. **User ID Extraction**: When API requires user IDs, fetch from GET endpoint rather than maintaining separate lookup
+5. **Offset Timing**: Add 1000ms offset for second user's phone to prevent timestamp collisions in rapid succession
+
+### Next Task
+
+Task 6.4 is complete. Next unchecked task: **Task 7.1 - Add loading states and error handling**

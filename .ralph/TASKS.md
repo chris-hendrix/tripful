@@ -660,7 +660,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 6.4: Write E2E test for co-organizer management
+- [x] Task 6.4: Write E2E test for co-organizer management
   - Test: Create trip → Add co-organizer → Verify co-org can edit trip
   - Test removing co-organizer
 

@@ -56,6 +56,51 @@ async function authenticateUser(
   return phone;
 }
 
+/**
+ * Helper function to authenticate a user with a specific phone number
+ */
+async function authenticateUserWithPhone(
+  page: Page,
+  phone: string,
+  displayName: string = "Test User",
+): Promise<void> {
+  // Navigate to login page
+  await page.goto("/login");
+  await page.waitForLoadState("networkidle");
+
+  // Enter phone number
+  const phoneInput = page.locator('input[type="tel"]');
+  await phoneInput.fill(phone);
+
+  // Click Continue button
+  await page.locator('button:has-text("Continue")').click();
+
+  // Wait for navigation to verify page
+  await page.waitForURL("**/verify**");
+
+  // Enter verification code (fixed code for test environment)
+  const codeInput = page.locator('input[type="text"]').first();
+  await codeInput.fill("123456");
+
+  // Click Verify button
+  await page.locator('button:has-text("Verify")').click();
+
+  // Wait for navigation (either to complete-profile or dashboard)
+  await Promise.race([
+    page.waitForURL("**/dashboard"),
+    page.waitForURL("**/complete-profile"),
+  ]);
+
+  // Complete profile if needed
+  const currentUrl = page.url();
+  if (currentUrl.includes("/complete-profile")) {
+    const displayNameInput = page.locator('input[type="text"]').first();
+    await displayNameInput.fill(displayName);
+    await page.locator('button:has-text("Complete profile")').click();
+    await page.waitForURL("**/dashboard");
+  }
+}
+
 test.describe("Trip Flow", () => {
   test.beforeEach(async ({ page }) => {
     // Clear all cookies before each test for isolation
@@ -691,5 +736,161 @@ test.describe("Trip Flow", () => {
 
     // Step 8: Verify User B does not see User A's trip in their dashboard
     await expect(page.locator(`text=${tripName}`)).not.toBeVisible();
+  });
+
+  test("add co-organizer, verify permissions, and remove co-organizer", async ({
+    page,
+  }) => {
+    // Step 1: User A creates a trip
+    // Generate phone numbers for both users upfront to maintain consistency
+    // Use last 10 digits of timestamp to stay within E.164 format (max 15 digits)
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const userAPhone = `+1555${shortTimestamp}`;
+    const userBPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
+
+    // Authenticate User A
+    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+
+    const tripName = `Co-Org Test Trip ${timestamp}`;
+    const tripDestination = "Amsterdam, Netherlands";
+
+    // Create trip
+    await page.locator('button[aria-label="Create new trip"]').click();
+    await page.waitForTimeout(300);
+
+    // Fill Step 1
+    await page.locator('input[name="name"]').fill(tripName);
+    await page.locator('input[name="destination"]').fill(tripDestination);
+    await page.locator('input[name="startDate"]').fill("2026-08-01");
+    await page.locator('input[name="endDate"]').fill("2026-08-10");
+
+    // Continue to Step 2
+    await page.locator('button:has-text("Continue")').click();
+    await page.waitForTimeout(200);
+
+    // Submit the form
+    await page.locator('button:has-text("Create trip")').click();
+
+    // Wait for redirect to trip detail page and capture trip ID
+    await page.waitForURL("**/trips/**");
+    const tripUrl = page.url();
+    const tripId = tripUrl.split("/trips/")[1];
+
+    // Verify trip was created
+    await expect(page.locator(`h1:has-text("${tripName}")`)).toBeVisible();
+
+    // Verify User A has organizer permissions
+    await expect(page.locator('button:has-text("Edit trip")')).toBeVisible();
+    await expect(page.locator("text=Organizing")).toBeVisible();
+
+    // Step 2: Create User B by authenticating them first
+    await page.context().clearCookies();
+    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+
+    // Step 3: Switch back to User A to add User B as co-organizer
+    await page.context().clearCookies();
+    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+
+    // Navigate back to the trip
+    await page.goto(`/trips/${tripId}`);
+    await page.waitForLoadState("networkidle");
+
+    // Add User B as co-organizer via API call
+    const addCoOrgResponse = await page.request.post(
+      `http://localhost:8000/api/trips/${tripId}/co-organizers`,
+      {
+        data: {
+          phoneNumber: userBPhone,
+        },
+      },
+    );
+
+    // Verify API call succeeded
+    expect(addCoOrgResponse.ok()).toBeTruthy();
+
+    // Step 4: Switch to User B and verify co-organizer permissions
+    await page.context().clearCookies();
+    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+
+    // Navigate to the trip
+    await page.goto(`/trips/${tripId}`);
+    await page.waitForLoadState("networkidle");
+
+    // Verify User B can see the trip
+    await expect(page.locator(`h1:has-text("${tripName}")`)).toBeVisible();
+
+    // Verify User B has organizer permissions - edit button visible
+    await expect(page.locator('button:has-text("Edit trip")')).toBeVisible();
+
+    // Verify User B has "Organizing" badge
+    await expect(page.locator("text=Organizing")).toBeVisible();
+
+    // Step 5: Verify User B can edit the trip
+    await page.locator('button:has-text("Edit trip")').click();
+    await page.waitForTimeout(300);
+
+    // Verify edit dialog opens
+    await expect(page.locator('h2:has-text("Edit trip")')).toBeVisible();
+
+    // Update trip name
+    const updatedTripName = `${tripName} - Updated by Co-Org`;
+    await page.locator('input[name="name"]').fill(updatedTripName);
+
+    // Navigate to Step 2
+    await page.locator('button:has-text("Continue")').click();
+    await page.waitForTimeout(200);
+
+    // Submit the update
+    await page.locator('button:has-text("Update trip")').click();
+
+    // Verify update succeeded
+    await expect(
+      page.locator(`h1:has-text("${updatedTripName}")`),
+    ).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator("text=Trip updated successfully")).toBeVisible();
+
+    // Step 6: Switch back to User A to remove User B as co-organizer
+    await page.context().clearCookies();
+    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+
+    // Navigate to trip and get User B's ID from trip data
+    const tripResponse = await page.request.get(
+      `http://localhost:8000/api/trips/${tripId}`,
+    );
+    expect(tripResponse.ok()).toBeTruthy();
+
+    const tripData = await tripResponse.json();
+    const userBId = tripData.trip.organizers.find(
+      (org: { phoneNumber: string }) => org.phoneNumber === userBPhone,
+    )?.id;
+
+    expect(userBId).toBeDefined();
+
+    // Remove User B as co-organizer via API call
+    const removeCoOrgResponse = await page.request.delete(
+      `http://localhost:8000/api/trips/${tripId}/co-organizers/${userBId}`,
+    );
+
+    // Verify API call succeeded
+    expect(removeCoOrgResponse.ok()).toBeTruthy();
+
+    // Step 7: Switch to User B and verify co-organizer permissions removed
+    await page.context().clearCookies();
+    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+
+    // Attempt to access the trip
+    await page.goto(`/trips/${tripId}`);
+
+    // Verify User B can no longer access the trip
+    await expect(page.locator('h2:has-text("Trip not found")')).toBeVisible();
+
+    // Verify edit button is NOT visible
+    await expect(page.locator('button:has-text("Edit trip")')).not.toBeVisible();
+
+    // Verify "Organizing" badge is NOT visible
+    await expect(page.locator("text=Organizing")).not.toBeVisible();
   });
 });
