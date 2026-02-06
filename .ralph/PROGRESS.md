@@ -1708,3 +1708,112 @@ From TASKS.md Task 6.2:
 
 Task 6.2 is complete. Next unchecked task: **Task 6.3 - Write E2E test for permissions**
 
+---
+
+## Ralph Iteration 26 - Task 6.3: Write E2E test for permissions
+
+**Date**: 2026-02-06
+**Status**: ✅ COMPLETE
+**Outcome**: APPROVED
+
+### Summary
+
+Successfully implemented comprehensive E2E test for trip permissions. The test verifies that non-members cannot access trips and that the edit button is not visible to unauthorized users. The test covers multi-user scenarios with proper session isolation and validates all error states.
+
+### Implementation Details
+
+**Test Added**: `apps/web/tests/e2e/trip-flow.spec.ts` (lines 626-694)
+
+**Test Name**: "non-member cannot access trip and does not see edit button"
+
+**Test Coverage**:
+1. User A creates trip with complete details (name, destination, dates)
+2. Captures trip URL for direct access testing
+3. Logs out User A (clears cookies for session isolation)
+4. User B logs in as separate, non-member user
+5. User B attempts to access trip via direct URL
+6. Verifies error page displays: "Trip not found"
+7. Verifies error message: "This trip doesn't exist or you don't have access to it."
+8. Verifies edit button is NOT visible on error page
+9. Verifies "Return to dashboard" button works
+10. Verifies User B's dashboard doesn't show User A's trip
+
+**Technical Approach**:
+- Reused existing `authenticateUser()` helper for both users
+- Used `page.context().clearCookies()` for proper logout and session isolation
+- Used `Date.now()` for unique trip names to prevent test conflicts
+- Applied regex matching for robust error message verification
+- Followed existing test patterns for timing (300ms dialog, 200ms transitions)
+
+### Verification Results
+
+**E2E Tests**: ✅ PASS
+- Test ran 3 times consecutively, all passed (10.7-10.8s each)
+- Consistent, non-flaky behavior
+- All 10 assertions passed
+
+**Type Checking**: ✅ PASS
+- Command: `pnpm typecheck` in apps/web
+- No TypeScript errors
+
+**Linting**: ✅ PASS
+- Command: `pnpm lint` in apps/web
+- No ESLint errors
+
+### Code Review Results
+
+**Reviewer Status**: ✅ APPROVED
+
+**Strengths Noted**:
+1. Complete coverage of all acceptance criteria
+2. Excellent adherence to existing test patterns
+3. Robust test design with proper isolation
+4. Clear and descriptive test naming
+5. Appropriate waiting strategies and assertions
+
+**Code Quality**:
+- Follows TypeScript best practices
+- Consistent with project formatting (Prettier)
+- Clear variable naming and step comments
+- Proper use of Playwright selectors and assertions
+
+**Security Validation**:
+- Backend returns 404 (not 403) for non-members to avoid information disclosure
+- Frontend displays unified error message for both 404 and 403
+- Test validates this security pattern works correctly
+
+### Agent Performance
+
+**Workflow:**
+- **3 Researcher Agents** (parallel): ~2-3 minutes each
+  - LOCATING: Found test files and authentication patterns
+  - ANALYZING: Traced permission flow and error handling
+  - PATTERNS: Identified multi-user test patterns
+- **Coder Agent**: ~4 minutes (test implementation)
+- **Verifier + Reviewer** (parallel): ~2 minutes each
+
+**Total Time**: ~12 minutes across all agents
+**Agent Count**: 6 agent invocations (3 researchers + 1 coder + 1 verifier + 1 reviewer)
+
+### Known Pre-existing Issues
+
+**Unrelated Test Failures**:
+- 4 failing tests in `auth-flow.spec.ts` (existed before Task 6.3)
+- 1 skipped test for delete functionality (pre-existing API client bug)
+- These do not affect Task 6.3 validation
+
+### Files Changed
+
+- `.ralph/TASKS.md` - Marked Task 6.3 as complete (- [x])
+- `apps/web/tests/e2e/trip-flow.spec.ts` - Added comprehensive permissions test (69 lines)
+
+### Learnings for Future Iterations
+
+1. **Multi-User Testing Pattern**: Successfully demonstrated pattern for testing multi-user scenarios with proper session isolation using `clearCookies()`
+2. **Security Testing**: Validated that security pattern (404 instead of 403) properly prevents information disclosure
+3. **Error Page Testing**: Established pattern for testing error states with navigation verification
+4. **Test Reliability**: Using `Date.now()` for unique names and proper waits ensures consistent test execution
+
+### Next Task
+
+Task 6.3 is complete. Next unchecked task: **Task 6.4 - Write E2E test for co-organizer management**

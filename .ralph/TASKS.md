@@ -644,7 +644,7 @@ This phase implements trip CRUD operations, co-organizer management, image uploa
 
 ---
 
-- [ ] Task 6.3: Write E2E test for permissions
+- [x] Task 6.3: Write E2E test for permissions
   - Write test in `trip-flow.spec.ts`:
     - Create trip as user A
     - Logout and login as user B (not a member)

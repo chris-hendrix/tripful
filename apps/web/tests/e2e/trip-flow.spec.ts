@@ -622,4 +622,74 @@ test.describe("Trip Flow", () => {
     // Verify we cannot proceed to Step 2
     await expect(page.locator("text=Step 2 of 2")).not.toBeVisible();
   });
+
+  test("non-member cannot access trip and does not see edit button", async ({
+    page,
+  }) => {
+    // Step 1: User A creates a trip
+    await authenticateUser(page, "User A");
+
+    const tripName = `Private Trip ${Date.now()}`;
+    const tripDestination = "Barcelona, Spain";
+
+    // Navigate to dashboard and create trip
+    await page.locator('button[aria-label="Create new trip"]').click();
+    await page.waitForTimeout(300);
+
+    // Fill Step 1
+    await page.locator('input[name="name"]').fill(tripName);
+    await page.locator('input[name="destination"]').fill(tripDestination);
+    await page.locator('input[name="startDate"]').fill("2026-09-15");
+    await page.locator('input[name="endDate"]').fill("2026-09-20");
+
+    // Continue to Step 2
+    await page.locator('button:has-text("Continue")').click();
+    await page.waitForTimeout(200);
+
+    // Submit the form
+    await page.locator('button:has-text("Create trip")').click();
+
+    // Wait for redirect to trip detail page and capture URL
+    await page.waitForURL("**/trips/**");
+    const tripUrl = page.url();
+    const tripId = tripUrl.split("/trips/")[1];
+
+    // Verify trip was created
+    await expect(page.locator(`h1:has-text("${tripName}")`)).toBeVisible();
+
+    // Step 2: Logout User A (clear cookies to simulate different user)
+    await page.context().clearCookies();
+
+    // Step 3: User B logs in (different user, not a member)
+    await authenticateUser(page, "User B");
+
+    // Verify User B is on dashboard
+    await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
+
+    // Step 4: User B attempts to access trip directly by URL
+    await page.goto(`/trips/${tripId}`);
+
+    // Step 5: Verify error page is displayed
+    await expect(page.locator('h2:has-text("Trip not found")')).toBeVisible();
+    await expect(
+      page.locator(
+        "text=/This trip doesn't exist or you don't have access to it/i",
+      ),
+    ).toBeVisible();
+
+    // Step 6: Verify edit button is NOT visible on error page
+    await expect(page.locator('button:has-text("Edit trip")')).not.toBeVisible();
+
+    // Step 7: Verify "Return to dashboard" button works
+    const returnButton = page.locator('button:has-text("Return to dashboard")');
+    await expect(returnButton).toBeVisible();
+    await returnButton.click();
+
+    // Verify navigation back to dashboard
+    await page.waitForURL("**/dashboard");
+    await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
+
+    // Step 8: Verify User B does not see User A's trip in their dashboard
+    await expect(page.locator(`text=${tripName}`)).not.toBeVisible();
+  });
 });
