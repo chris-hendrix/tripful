@@ -6,7 +6,7 @@
 
 ---
 
-- [ ] Task 1: Database Schema and Migrations
+- [x] Task 1: Database Schema and Migrations
 
 Create all database tables (events, accommodations, member_travel) with enums, indexes, foreign keys, and soft delete support.
 
