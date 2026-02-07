@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
+import { toast } from "sonner";
 import {
   useUpdateTrip,
   getUpdateTripErrorMessage,
@@ -125,7 +126,6 @@ export function EditTripDialog({
   };
 
   const handleSubmit = (data: UpdateTripInput) => {
-    form.clearErrors("root");
     updateTrip(
       { tripId: trip.id, data },
       {
@@ -134,11 +134,10 @@ export function EditTripDialog({
           onSuccess?.();
         },
         onError: (error) => {
-          form.setError("root", {
-            message:
-              getUpdateTripErrorMessage(error) ??
+          toast.error(
+            getUpdateTripErrorMessage(error) ??
               "An unexpected error occurred.",
-          });
+          );
         },
       },
     );
@@ -146,11 +145,13 @@ export function EditTripDialog({
 
   const handleDelete = () => {
     cancelTrip(trip.id, {
+      onSuccess: () => {
+        toast.success("Trip deleted successfully");
+      },
       onError: (error) => {
-        form.setError("root", {
-          message:
-            getCancelTripErrorMessage(error) ?? "An unexpected error occurred.",
-        });
+        toast.error(
+          getCancelTripErrorMessage(error) ?? "An unexpected error occurred.",
+        );
       },
     });
   };
@@ -465,13 +466,6 @@ export function EditTripDialog({
                     </FormItem>
                   )}
                 />
-
-                {/* Root error message */}
-                {form.formState.errors.root && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.root.message}
-                  </p>
-                )}
 
                 {/* Delete Button with AlertDialog */}
                 <div className="pt-4 border-t border-border">

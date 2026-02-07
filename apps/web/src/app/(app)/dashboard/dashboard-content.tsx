@@ -7,6 +7,7 @@ import { useTrips, type TripSummary } from "@/hooks/use-trips";
 import { TripCard } from "@/components/trip/trip-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CreateTripDialog = dynamic(
   () =>
@@ -21,17 +22,17 @@ const preloadCreateTripDialog = () =>
 
 function SkeletonCard() {
   return (
-    <div className="bg-card rounded-2xl overflow-hidden border border-border animate-pulse">
-      <div className="h-40 bg-muted" />
+    <div className="bg-card rounded-2xl overflow-hidden border border-border">
+      <Skeleton className="h-40 w-full rounded-none" />
       <div className="p-4 space-y-3">
         <div className="space-y-2">
-          <div className="h-6 bg-muted rounded w-3/4" />
-          <div className="h-4 bg-muted rounded w-1/2" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
         </div>
-        <div className="h-4 bg-muted rounded w-2/3" />
+        <Skeleton className="h-4 w-2/3" />
         <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div className="h-6 bg-muted rounded w-24" />
-          <div className="h-4 bg-muted rounded w-20" />
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-4 w-20" />
         </div>
       </div>
     </div>

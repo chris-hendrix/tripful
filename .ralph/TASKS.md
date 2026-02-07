@@ -44,7 +44,7 @@
 
 ## Phase 4: Toast Notifications & Breadcrumbs
 
-- [ ] Task 4.1: Add Sonner toast system, breadcrumbs, and replace inline notifications
+- [x] Task 4.1: Add Sonner toast system, breadcrumbs, and replace inline notifications
   - Implement: Install Sonner — `pnpm dlx shadcn@latest add sonner` (from apps/web).
   - Implement: Install Breadcrumb — `pnpm dlx shadcn@latest add breadcrumb` (from apps/web).
   - Implement: Install Skeleton — `pnpm dlx shadcn@latest add skeleton` (from apps/web).

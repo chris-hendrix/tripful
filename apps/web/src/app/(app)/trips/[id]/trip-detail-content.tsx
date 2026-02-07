@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import {
   Calendar,
   MapPin,
@@ -17,6 +18,15 @@ import { useTripDetail } from "@/hooks/use-trips";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
 
 const EditTripDialog = dynamic(
@@ -32,13 +42,13 @@ const preloadEditTripDialog = () =>
 
 function SkeletonDetail() {
   return (
-    <div className="animate-pulse">
-      <div className="h-80 bg-muted" />
+    <div>
+      <Skeleton className="h-80 w-full rounded-none" />
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div className="h-10 bg-muted rounded w-1/2" />
-        <div className="h-6 bg-muted rounded w-1/3" />
-        <div className="h-6 bg-muted rounded w-1/4" />
-        <div className="h-20 bg-muted rounded" />
+        <Skeleton className="h-10 w-1/2" />
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-6 w-1/4" />
+        <Skeleton className="h-20 w-full" />
       </div>
     </div>
   );
@@ -49,7 +59,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: trip, isPending, isError } = useTripDetail(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // Determine if user is an organizer
   const isOrganizer =
@@ -87,14 +96,20 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Success Banner */}
-      {showSuccessBanner && (
-        <div className="fixed top-4 right-4 z-50 p-4 rounded-xl bg-success/10 border border-success/30 shadow-lg">
-          <p className="text-sm text-success font-medium">
-            ✓ Trip updated successfully
-          </p>
-        </div>
-      )}
+      {/* Breadcrumb navigation */}
+      <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard">My Trips</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{trip.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
@@ -238,8 +253,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
           onSuccess={() => {
-            setShowSuccessBanner(true);
-            setTimeout(() => setShowSuccessBanner(false), 5000);
+            toast.success("Trip updated successfully");
           }}
         />
       )}

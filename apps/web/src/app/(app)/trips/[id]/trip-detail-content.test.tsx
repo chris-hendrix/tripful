@@ -3,14 +3,19 @@ import {
   render,
   screen,
   waitFor,
-  act,
-  fireEvent,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Suspense } from "react";
 import { TripDetailContent } from "./trip-detail-content";
 import type { TripDetail } from "@/hooks/use-trips";
 import type { User } from "@tripful/shared";
+
+// Mock sonner
+const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({
+  toast: mockToast,
+}));
 
 // Mock next/dynamic
 vi.mock("next/dynamic", () => ({
@@ -206,7 +211,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       expect(screen.getByText("Miami Beach, FL")).toBeDefined();
@@ -256,7 +261,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       // Check for gradient placeholder
@@ -282,7 +287,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
         expect(screen.getByText("Miami Beach, FL")).toBeDefined();
         expect(screen.getByText("Jun 1 - 5, 2026")).toBeDefined();
       });
@@ -400,7 +405,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       expect(screen.queryByText("About this trip")).toBeNull();
@@ -469,7 +474,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       expect(screen.queryByText("Edit trip")).toBeNull();
@@ -514,7 +519,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       expect(screen.queryByText("Organizing")).toBeNull();
@@ -668,7 +673,12 @@ describe("TripDetailContent", () => {
   });
 
   describe("success notification tests", () => {
-    it("shows success banner when trip is updated", async () => {
+    beforeEach(() => {
+      mockToast.success.mockClear();
+      mockToast.error.mockClear();
+    });
+
+    it("shows toast notification when trip is updated", async () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -688,19 +698,15 @@ describe("TripDetailContent", () => {
         expect(screen.getByText("Edit trip")).toBeDefined();
       });
 
-      // Success banner should not be visible initially
-      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
+      // Get the EditTripDialog mock and trigger its onSuccess
+      const editDialog = screen.getByTestId("edit-trip-dialog");
+      const onSuccessButton = within(editDialog).getByTestId("trigger-success");
+      await userEvent.click(onSuccessButton);
 
-      // Trigger onSuccess callback by simulating trip update
-      // The mock EditTripDialog component will have an onSuccess prop
-      const dialog = screen.getByTestId("edit-trip-dialog");
-      const onSuccessProp = dialog.getAttribute("data-onsuccess");
-      expect(onSuccessProp).toBe("true");
+      expect(mockToast.success).toHaveBeenCalledWith("Trip updated successfully");
     });
 
-    it("success banner auto-dismisses after timeout", () => {
-      vi.useFakeTimers();
-
+    it("does not show toast on initial page load", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -716,63 +722,12 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
-      // Open dialog
-      const editButton = screen.getByText("Edit trip");
-      fireEvent.click(editButton);
-
-      // Trigger success by clicking the success trigger button (added to mock)
-      const successButton = screen.getByTestId("trigger-success");
-      fireEvent.click(successButton);
-
-      // Success banner should appear
-      expect(screen.getByText(/trip updated successfully/i)).toBeDefined();
-
-      // Fast-forward time by 5 seconds
-      act(() => {
-        vi.advanceTimersByTime(5000);
-      });
-
-      // Banner should now be dismissed
-      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
-
-      vi.useRealTimers();
+      expect(mockToast.success).not.toHaveBeenCalled();
     });
+  });
 
-    it("success banner has correct styling", async () => {
-      mockUseAuth.mockReturnValue({ user: mockUser });
-      mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
-        isPending: false,
-        isError: false,
-        error: null,
-        refetch: vi.fn(),
-      });
-
-      const user = userEvent.setup();
-      render(
-        <Suspense fallback={null}>
-          <TripDetailContent tripId="trip-123" />
-        </Suspense>,
-      );
-
-      // Open dialog
-      const editButton = screen.getByText("Edit trip");
-      await user.click(editButton);
-
-      // Trigger success
-      const successButton = screen.getByTestId("trigger-success");
-      await user.click(successButton);
-
-      // Check banner styling
-      const banner = screen.getByText(
-        /trip updated successfully/i,
-      ).parentElement;
-      expect(banner).toBeDefined();
-      expect(banner?.className).toContain("bg-success/10");
-      expect(banner?.className).toContain("border-success/30");
-    });
-
-    it("does not show success banner on initial page load", () => {
+  describe("breadcrumb navigation", () => {
+    it("renders breadcrumbs with trip name", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -788,7 +743,31 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
-      expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
+      const breadcrumbNav = screen.getByLabelText("breadcrumb");
+      expect(within(breadcrumbNav).getByText("My Trips")).toBeDefined();
+      expect(
+        within(breadcrumbNav).getByText(mockTripDetail.name),
+      ).toBeDefined();
+    });
+
+    it("has a link to dashboard in breadcrumbs", () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      const myTripsLink = screen.getByText("My Trips");
+      expect(myTripsLink.closest("a")?.getAttribute("href")).toBe("/dashboard");
     });
   });
 
@@ -835,7 +814,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       expect(screen.queryByText("About this trip")).toBeNull();
@@ -858,7 +837,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
       });
 
       // Organizers section should not be rendered

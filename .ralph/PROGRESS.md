@@ -146,3 +146,57 @@ Tracking implementation progress for this project.
 - Test selectors using CSS class names with slashes (e.g., `bg-destructive/10`) need escaping in querySelector: `.bg-destructive\\/10`.
 - The `variant="gradient"` Button absorbs all gradient/shadow/color classes, so only layout classes (width, height, rounding, flex) should remain in className.
 - `autoComplete` in React JSX is camelCase (not `autocomplete`), matching the React DOM API.
+
+## Iteration 4 — Task 4.1: Add Sonner toast system, breadcrumbs, and replace inline notifications
+
+**Status**: COMPLETED
+**Date**: 2026-02-07
+
+### Changes Made
+
+3 new shadcn files, 5 source files modified, 3 test files updated:
+
+**New shadcn Components (installed via `pnpm dlx shadcn@latest add sonner breadcrumb skeleton`):**
+
+1. **`apps/web/src/components/ui/sonner.tsx`** — Toaster wrapper component for Sonner. Fixed for TypeScript `exactOptionalPropertyTypes` and ESLint `no-undef` rules.
+
+2. **`apps/web/src/components/ui/breadcrumb.tsx`** — Breadcrumb component with BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator. No modifications needed.
+
+3. **`apps/web/src/components/ui/skeleton.tsx`** — Skeleton loading placeholder component with `animate-pulse bg-primary/10 rounded-md`. Fixed ESLint `no-undef` by importing `ComponentProps` from React.
+
+**Source Files Modified:**
+
+4. **`apps/web/src/app/providers/providers.tsx`** — Added `<Toaster />` import from `@/components/ui/sonner` and rendered inside `QueryClientProvider` after `ReactQueryDevtools`.
+
+5. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** — Removed `showSuccessBanner` useState and the fixed-position success banner JSX. Replaced `onSuccess` callback with `toast.success("Trip updated successfully")`. Added Breadcrumb navigation above hero section with "My Trips" link to `/dashboard` and current trip name. Replaced hand-built `SkeletonDetail` divs with shadcn `<Skeleton>` components.
+
+6. **`apps/web/src/components/trip/create-trip-dialog.tsx`** — Added `import { toast } from "sonner"`. Replaced `form.clearErrors("root")` + `form.setError("root", ...)` pattern with `toast.error(...)` in `handleSubmit` `onError`. Removed root error `<p>` JSX block.
+
+7. **`apps/web/src/components/trip/edit-trip-dialog.tsx`** — Added `import { toast } from "sonner"`. Replaced `form.clearErrors("root")` + `form.setError("root", ...)` with `toast.error(...)` for both update and delete errors. Added `toast.success("Trip deleted successfully")` in `handleDelete` `onSuccess`. Removed root error `<p>` JSX block.
+
+8. **`apps/web/src/app/(app)/dashboard/dashboard-content.tsx`** — Added `import { Skeleton } from "@/components/ui/skeleton"`. Replaced hand-built `SkeletonCard` inner divs (`<div className="h-X bg-muted rounded ...">`) with `<Skeleton className="h-X w-Y">`. Removed `animate-pulse` from outer card wrapper (each Skeleton has its own animation).
+
+**Test Files Updated:**
+
+9. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`** — Added sonner mock via `vi.hoisted()` + `vi.mock("sonner")`. Replaced 4 success banner tests with 2 toast verification tests (toast called on success, not called on initial load). Added 2 breadcrumb tests (renders "My Trips" with trip name, link points to `/dashboard`). Tightened heading queries from `getByText` to `getByRole("heading", ...)` to disambiguate from breadcrumb text.
+
+10. **`apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx`** — Added sonner mock via `vi.hoisted()` + `vi.mock("sonner")`. Updated "shows error message on update failure" and "shows error message on delete failure" tests to verify `mockToast.error` instead of checking DOM text.
+
+11. **`apps/web/src/components/trip/__tests__/create-trip-dialog.test.tsx`** — Added sonner mock via `vi.hoisted()` + `vi.mock("sonner")` for future error toast testing.
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 3/3 packages clean
+- **Linting (`pnpm lint`)**: PASS — 3/3 packages clean
+- **Tests (`pnpm test`)**: PASS — 865 tests across 43 files (408 web, 374 API, 83 shared)
+- **Reviewer**: APPROVED — All 9 task requirements met, no dead code, correct imports, quality breadcrumb and skeleton implementations, thorough test coverage
+
+### Learnings for Future Iterations
+
+- shadcn-generated `sonner.tsx` and `skeleton.tsx` needed minor fixes for this project's strict TypeScript (`exactOptionalPropertyTypes`) and ESLint (`no-undef`) configs. Always check generated files after shadcn installation.
+- The `vi.hoisted()` pattern is required when Vitest mock factories reference variables defined outside the factory. Use `const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))` before `vi.mock("sonner", ...)`.
+- When both a breadcrumb and a heading display the same text (trip name), test selectors must be specific. Use `getByRole("heading", { name: "..." })` instead of `getByText("...")` to avoid ambiguity.
+- The `Toaster` component from shadcn imports `useTheme` from `next-themes`, but no `ThemeProvider` is configured. It falls back to system theme. If dark mode support is added later, a `ThemeProvider` from `next-themes` should be added to providers.
+- Field-level form validation (Zod `FormMessage` components) and client-side validation states (like `coOrganizerError`) are separate concerns from API error notifications and should NOT be replaced with toasts.
+- The `loading.tsx` files in dashboard and trip detail still use hardcoded `bg-slate-200` colors. These were not in scope for Task 4.1 and should be addressed in a future task.
+- Installing shadcn components can overwrite existing files like `button.tsx` — always verify the gradient variant is preserved after any shadcn installation. In this iteration, button.tsx was NOT overwritten.

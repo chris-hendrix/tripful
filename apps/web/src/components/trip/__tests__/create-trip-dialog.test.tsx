@@ -4,6 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CreateTripDialog } from "../create-trip-dialog";
 
+// Mock sonner
+const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({
+  toast: mockToast,
+}));
+
 // Mock the API module
 vi.mock("@/lib/api", () => ({
   apiRequest: vi.fn(),
@@ -31,6 +37,8 @@ describe("CreateTripDialog", () => {
 
   beforeEach(() => {
     mockOnOpenChange.mockClear();
+    mockToast.success.mockClear();
+    mockToast.error.mockClear();
 
     // Create a new QueryClient for each test
     queryClient = new QueryClient({

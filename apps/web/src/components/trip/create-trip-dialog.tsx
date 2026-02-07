@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTripSchema, type CreateTripInput } from "@tripful/shared";
+import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import {
   Dialog,
@@ -90,16 +91,14 @@ export function CreateTripDialog({
   };
 
   const handleSubmit = (data: CreateTripInput) => {
-    form.clearErrors("root");
     createTrip(data, {
       onSuccess: () => {
         onOpenChange(false);
       },
       onError: (error) => {
-        form.setError("root", {
-          message:
-            getCreateTripErrorMessage(error) ?? "An unexpected error occurred.",
-        });
+        toast.error(
+          getCreateTripErrorMessage(error) ?? "An unexpected error occurred.",
+        );
       },
     });
   };
@@ -533,13 +532,6 @@ export function CreateTripDialog({
                     );
                   }}
                 />
-
-                {/* Root error message */}
-                {form.formState.errors.root && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.root.message}
-                  </p>
-                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
