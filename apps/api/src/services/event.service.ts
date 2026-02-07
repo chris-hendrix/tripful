@@ -1,0 +1,388 @@
+import {
+  events,
+  trips,
+  type Event,
+} from "@/db/schema/index.js";
+import { eq, and, isNull } from "drizzle-orm";
+import type { CreateEventInput, UpdateEventInput } from "@tripful/shared/schemas";
+import type { AppDatabase } from "@/types/index.js";
+import type { IPermissionsService } from "./permissions.service.js";
+import {
+  EventNotFoundError,
+  PermissionDeniedError,
+  TripNotFoundError,
+  InvalidDateRangeError,
+} from "../errors.js";
+
+/**
+ * Event Service Interface
+ * Defines the contract for event management operations
+ */
+export interface IEventService {
+  /**
+   * Creates a new event for a trip
+   * @param userId - The ID of the user creating the event
+   * @param tripId - The ID of the trip
+   * @param data - The event creation data
+   * @returns Promise that resolves to the created event
+   * @throws TripNotFoundError if trip not found
+   * @throws PermissionDeniedError if user lacks permission
+   * @throws InvalidDateRangeError if endTime is before startTime
+   */
+  createEvent(
+    userId: string,
+    tripId: string,
+    data: CreateEventInput,
+  ): Promise<Event>;
+
+  /**
+   * Gets an event by ID
+   * @param eventId - The UUID of the event to retrieve
+   * @returns Promise that resolves to the event, or null if not found or soft-deleted
+   */
+  getEvent(eventId: string): Promise<Event | null>;
+
+  /**
+   * Gets all events for a trip
+   * @param tripId - The UUID of the trip
+   * @param includeDeleted - Whether to include soft-deleted events (default: false)
+   * @returns Promise that resolves to array of events
+   */
+  getEventsByTrip(tripId: string, includeDeleted?: boolean): Promise<Event[]>;
+
+  /**
+   * Updates an event
+   * @param userId - The ID of the user updating the event
+   * @param eventId - The UUID of the event to update
+   * @param data - The event update data
+   * @returns Promise that resolves to the updated event
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission
+   * @throws InvalidDateRangeError if endTime is before startTime
+   */
+  updateEvent(
+    userId: string,
+    eventId: string,
+    data: UpdateEventInput,
+  ): Promise<Event>;
+
+  /**
+   * Deletes an event (soft delete)
+   * @param userId - The ID of the user deleting the event
+   * @param eventId - The UUID of the event to delete
+   * @returns Promise that resolves when the event is deleted
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  deleteEvent(userId: string, eventId: string): Promise<void>;
+
+  /**
+   * Restores a soft-deleted event
+   * @param userId - The ID of the user restoring the event
+   * @param eventId - The UUID of the event to restore
+   * @returns Promise that resolves to the restored event
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission (organizer only)
+   */
+  restoreEvent(userId: string, eventId: string): Promise<Event>;
+}
+
+/**
+ * Event Service Implementation
+ * Handles event creation, management, and soft delete operations
+ */
+export class EventService implements IEventService {
+  constructor(
+    private db: AppDatabase,
+    private permissionsService: IPermissionsService,
+  ) {}
+
+  /**
+   * Creates a new event for a trip
+   * Checks permissions and validates date range before creating
+   * @param userId - The ID of the user creating the event
+   * @param tripId - The ID of the trip
+   * @param data - The event creation data
+   * @returns The created event
+   * @throws TripNotFoundError if trip not found
+   * @throws PermissionDeniedError if user lacks permission
+   * @throws InvalidDateRangeError if endTime is before startTime
+   */
+  async createEvent(
+    userId: string,
+    tripId: string,
+    data: CreateEventInput,
+  ): Promise<Event> {
+    // Check if user can add events to this trip
+    const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
+    if (!canAdd) {
+      // Check if trip exists for better error message
+      const tripExists = await this.db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1);
+
+      if (tripExists.length === 0) {
+        throw new TripNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers and members with status='going' can add events",
+      );
+    }
+
+    // Validate date range if endTime is provided
+    if (data.endTime) {
+      const startTime = new Date(data.startTime);
+      const endTime = new Date(data.endTime);
+      if (endTime <= startTime) {
+        throw new InvalidDateRangeError("End time must be after start time");
+      }
+    }
+
+    // Create the event
+    const [event] = await this.db
+      .insert(events)
+      .values({
+        tripId,
+        createdBy: userId,
+        name: data.name,
+        description: data.description || null,
+        eventType: data.eventType,
+        location: data.location || null,
+        startTime: new Date(data.startTime),
+        endTime: data.endTime ? new Date(data.endTime) : null,
+        allDay: data.allDay ?? false,
+        isOptional: data.isOptional ?? false,
+        links: data.links || null,
+      })
+      .returning();
+
+    if (!event) {
+      throw new Error("Failed to create event");
+    }
+
+    return event;
+  }
+
+  /**
+   * Gets an event by ID
+   * Returns null if event is soft-deleted
+   * @param eventId - The UUID of the event to retrieve
+   * @returns The event, or null if not found or soft-deleted
+   */
+  async getEvent(eventId: string): Promise<Event | null> {
+    const result = await this.db
+      .select()
+      .from(events)
+      .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Gets all events for a trip
+   * Excludes soft-deleted events by default
+   * @param tripId - The UUID of the trip
+   * @param includeDeleted - Whether to include soft-deleted events (default: false)
+   * @returns Array of events
+   */
+  async getEventsByTrip(
+    tripId: string,
+    includeDeleted = false,
+  ): Promise<Event[]> {
+    const conditions = [eq(events.tripId, tripId)];
+
+    if (!includeDeleted) {
+      conditions.push(isNull(events.deletedAt));
+    }
+
+    return this.db.select().from(events).where(and(...conditions));
+  }
+
+  /**
+   * Updates an event
+   * Checks permissions and validates date range before updating
+   * @param userId - The ID of the user updating the event
+   * @param eventId - The UUID of the event to update
+   * @param data - The event update data
+   * @returns The updated event
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission
+   * @throws InvalidDateRangeError if endTime is before startTime
+   */
+  async updateEvent(
+    userId: string,
+    eventId: string,
+    data: UpdateEventInput,
+  ): Promise<Event> {
+    // Check permissions
+    const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
+    if (!canEdit) {
+      // Check if event exists to provide better error message
+      const eventExists = await this.db
+        .select()
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+      if (eventExists.length === 0) {
+        throw new EventNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only event creator or trip organizers can edit events",
+      );
+    }
+
+    // Load existing event to validate date range
+    const [existingEvent] = await this.db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (!existingEvent) {
+      throw new EventNotFoundError();
+    }
+
+    // Validate date range if both times will be set after update
+    const finalStartTime = data.startTime
+      ? new Date(data.startTime)
+      : existingEvent.startTime;
+    const finalEndTime = data.endTime
+      ? new Date(data.endTime)
+      : existingEvent.endTime;
+
+    if (finalEndTime && finalEndTime <= finalStartTime) {
+      throw new InvalidDateRangeError("End time must be after start time");
+    }
+
+    // Build update data
+    const updateData: Record<string, unknown> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    // Convert date strings to Date objects if provided
+    if (data.startTime) {
+      updateData.startTime = new Date(data.startTime);
+    }
+    if (data.endTime) {
+      updateData.endTime = new Date(data.endTime);
+    }
+
+    // Perform update
+    const result = await this.db
+      .update(events)
+      .set(updateData)
+      .where(eq(events.id, eventId))
+      .returning();
+
+    const updatedEvent = result[0];
+    if (!updatedEvent) {
+      throw new EventNotFoundError();
+    }
+
+    return updatedEvent;
+  }
+
+  /**
+   * Deletes an event (soft delete - sets deletedAt and deletedBy)
+   * @param userId - The ID of the user deleting the event
+   * @param eventId - The UUID of the event to delete
+   * @returns Promise that resolves when the event is deleted
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  async deleteEvent(userId: string, eventId: string): Promise<void> {
+    // Check permissions
+    const canDelete = await this.permissionsService.canDeleteEvent(
+      userId,
+      eventId,
+    );
+    if (!canDelete) {
+      // Check if event exists for better error message
+      const eventExists = await this.db
+        .select()
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+      if (eventExists.length === 0) {
+        throw new EventNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only event creator or trip organizers can delete events",
+      );
+    }
+
+    // Perform soft delete
+    const result = await this.db
+      .update(events)
+      .set({
+        deletedAt: new Date(),
+        deletedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(events.id, eventId))
+      .returning();
+
+    if (!result[0]) {
+      throw new EventNotFoundError();
+    }
+  }
+
+  /**
+   * Restores a soft-deleted event
+   * Only organizers can restore events
+   * @param userId - The ID of the user restoring the event
+   * @param eventId - The UUID of the event to restore
+   * @returns The restored event
+   * @throws EventNotFoundError if event not found
+   * @throws PermissionDeniedError if user lacks permission (organizer only)
+   */
+  async restoreEvent(userId: string, eventId: string): Promise<Event> {
+    // Load event to get tripId
+    const [event] = await this.db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (!event) {
+      throw new EventNotFoundError();
+    }
+
+    // Check if user is organizer of the trip
+    const isOrganizer = await this.permissionsService.isOrganizer(
+      userId,
+      event.tripId,
+    );
+    if (!isOrganizer) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can restore events",
+      );
+    }
+
+    // Restore event
+    const result = await this.db
+      .update(events)
+      .set({
+        deletedAt: null,
+        deletedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(events.id, eventId))
+      .returning();
+
+    if (!result[0]) {
+      throw new EventNotFoundError();
+    }
+
+    return result[0];
+  }
+}

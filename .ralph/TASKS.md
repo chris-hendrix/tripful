@@ -96,7 +96,7 @@ Extend the existing PermissionsService to support fine-grained permissions for e
 
 ---
 
-- [ ] Task 4: Backend Services (Events, Accommodations, Member Travel)
+- [x] Task 4: Backend Services (Events, Accommodations, Member Travel)
 
 Implement service layer for all CRUD operations including soft delete and restore.
 

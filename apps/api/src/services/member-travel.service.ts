@@ -1,0 +1,383 @@
+import {
+  memberTravel,
+  members,
+  trips,
+  type MemberTravel,
+} from "@/db/schema/index.js";
+import { eq, and, isNull } from "drizzle-orm";
+import type {
+  CreateMemberTravelInput,
+  UpdateMemberTravelInput,
+} from "@tripful/shared/schemas";
+import type { AppDatabase } from "@/types/index.js";
+import type { IPermissionsService } from "./permissions.service.js";
+import {
+  MemberTravelNotFoundError,
+  PermissionDeniedError,
+  TripNotFoundError,
+} from "../errors.js";
+
+/**
+ * Member Travel Service Interface
+ * Defines the contract for member travel management operations
+ */
+export interface IMemberTravelService {
+  /**
+   * Creates a new member travel record for a trip
+   * @param userId - The ID of the user creating the member travel
+   * @param tripId - The ID of the trip
+   * @param data - The member travel creation data
+   * @returns Promise that resolves to the created member travel
+   * @throws TripNotFoundError if trip not found or user not a member
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  createMemberTravel(
+    userId: string,
+    tripId: string,
+    data: CreateMemberTravelInput,
+  ): Promise<MemberTravel>;
+
+  /**
+   * Gets a member travel record by ID
+   * @param memberTravelId - The UUID of the member travel to retrieve
+   * @returns Promise that resolves to the member travel, or null if not found or soft-deleted
+   */
+  getMemberTravel(memberTravelId: string): Promise<MemberTravel | null>;
+
+  /**
+   * Gets all member travel records for a trip
+   * @param tripId - The UUID of the trip
+   * @param includeDeleted - Whether to include soft-deleted records (default: false)
+   * @returns Promise that resolves to array of member travel records
+   */
+  getMemberTravelByTrip(
+    tripId: string,
+    includeDeleted?: boolean,
+  ): Promise<MemberTravel[]>;
+
+  /**
+   * Updates a member travel record
+   * @param userId - The ID of the user updating the member travel
+   * @param memberTravelId - The UUID of the member travel to update
+   * @param data - The member travel update data
+   * @returns Promise that resolves to the updated member travel
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  updateMemberTravel(
+    userId: string,
+    memberTravelId: string,
+    data: UpdateMemberTravelInput,
+  ): Promise<MemberTravel>;
+
+  /**
+   * Deletes a member travel record (soft delete)
+   * @param userId - The ID of the user deleting the member travel
+   * @param memberTravelId - The UUID of the member travel to delete
+   * @returns Promise that resolves when the member travel is deleted
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  deleteMemberTravel(userId: string, memberTravelId: string): Promise<void>;
+
+  /**
+   * Restores a soft-deleted member travel record
+   * @param userId - The ID of the user restoring the member travel
+   * @param memberTravelId - The UUID of the member travel to restore
+   * @returns Promise that resolves to the restored member travel
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission (organizer only)
+   */
+  restoreMemberTravel(
+    userId: string,
+    memberTravelId: string,
+  ): Promise<MemberTravel>;
+}
+
+/**
+ * Member Travel Service Implementation
+ * Handles member travel creation, management, and soft delete operations
+ * Member travel is linked to a specific member (not directly to userId)
+ */
+export class MemberTravelService implements IMemberTravelService {
+  constructor(
+    private db: AppDatabase,
+    private permissionsService: IPermissionsService,
+  ) {}
+
+  /**
+   * Creates a new member travel record for a trip
+   * Resolves the memberId from userId and tripId before creating
+   * @param userId - The ID of the user creating the member travel
+   * @param tripId - The ID of the trip
+   * @param data - The member travel creation data
+   * @returns The created member travel
+   * @throws TripNotFoundError if trip not found or user not a member
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  async createMemberTravel(
+    userId: string,
+    tripId: string,
+    data: CreateMemberTravelInput,
+  ): Promise<MemberTravel> {
+    // Check if user can add member travel to this trip (any member can)
+    const canAdd = await this.permissionsService.canAddMemberTravel(
+      userId,
+      tripId,
+    );
+    if (!canAdd) {
+      // Check if trip exists for better error message
+      const tripExists = await this.db
+        .select()
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1);
+
+      if (tripExists.length === 0) {
+        throw new TripNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only members can add member travel",
+      );
+    }
+
+    // Resolve memberId from userId and tripId
+    const [member] = await this.db
+      .select()
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    if (!member) {
+      throw new TripNotFoundError();
+    }
+
+    // Create the member travel
+    const [travel] = await this.db
+      .insert(memberTravel)
+      .values({
+        tripId,
+        memberId: member.id,
+        travelType: data.travelType,
+        time: new Date(data.time),
+        location: data.location || null,
+        details: data.details || null,
+      })
+      .returning();
+
+    if (!travel) {
+      throw new Error("Failed to create member travel");
+    }
+
+    return travel;
+  }
+
+  /**
+   * Gets a member travel record by ID
+   * Returns null if member travel is soft-deleted
+   * @param memberTravelId - The UUID of the member travel to retrieve
+   * @returns The member travel, or null if not found or soft-deleted
+   */
+  async getMemberTravel(memberTravelId: string): Promise<MemberTravel | null> {
+    const result = await this.db
+      .select()
+      .from(memberTravel)
+      .where(
+        and(
+          eq(memberTravel.id, memberTravelId),
+          isNull(memberTravel.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Gets all member travel records for a trip
+   * Excludes soft-deleted records by default
+   * @param tripId - The UUID of the trip
+   * @param includeDeleted - Whether to include soft-deleted records (default: false)
+   * @returns Array of member travel records
+   */
+  async getMemberTravelByTrip(
+    tripId: string,
+    includeDeleted = false,
+  ): Promise<MemberTravel[]> {
+    const conditions = [eq(memberTravel.tripId, tripId)];
+
+    if (!includeDeleted) {
+      conditions.push(isNull(memberTravel.deletedAt));
+    }
+
+    return this.db.select().from(memberTravel).where(and(...conditions));
+  }
+
+  /**
+   * Updates a member travel record
+   * User can update if they own the record or are an organizer
+   * @param userId - The ID of the user updating the member travel
+   * @param memberTravelId - The UUID of the member travel to update
+   * @param data - The member travel update data
+   * @returns The updated member travel
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  async updateMemberTravel(
+    userId: string,
+    memberTravelId: string,
+    data: UpdateMemberTravelInput,
+  ): Promise<MemberTravel> {
+    // Check permissions (owner or organizer)
+    const canEdit = await this.permissionsService.canEditMemberTravel(
+      userId,
+      memberTravelId,
+    );
+    if (!canEdit) {
+      // Check if member travel exists to provide better error message
+      const travelExists = await this.db
+        .select()
+        .from(memberTravel)
+        .where(eq(memberTravel.id, memberTravelId))
+        .limit(1);
+
+      if (travelExists.length === 0) {
+        throw new MemberTravelNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only the owner or trip organizers can edit member travel",
+      );
+    }
+
+    // Build update data
+    const updateData: Record<string, unknown> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    // Convert time string to Date object if provided
+    if (data.time) {
+      updateData.time = new Date(data.time);
+    }
+
+    // Perform update
+    const result = await this.db
+      .update(memberTravel)
+      .set(updateData)
+      .where(eq(memberTravel.id, memberTravelId))
+      .returning();
+
+    const updatedTravel = result[0];
+    if (!updatedTravel) {
+      throw new MemberTravelNotFoundError();
+    }
+
+    return updatedTravel;
+  }
+
+  /**
+   * Deletes a member travel record (soft delete - sets deletedAt and deletedBy)
+   * User can delete if they own the record or are an organizer
+   * @param userId - The ID of the user deleting the member travel
+   * @param memberTravelId - The UUID of the member travel to delete
+   * @returns Promise that resolves when the member travel is deleted
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission
+   */
+  async deleteMemberTravel(
+    userId: string,
+    memberTravelId: string,
+  ): Promise<void> {
+    // Check permissions (owner or organizer)
+    const canDelete = await this.permissionsService.canDeleteMemberTravel(
+      userId,
+      memberTravelId,
+    );
+    if (!canDelete) {
+      // Check if member travel exists for better error message
+      const travelExists = await this.db
+        .select()
+        .from(memberTravel)
+        .where(eq(memberTravel.id, memberTravelId))
+        .limit(1);
+
+      if (travelExists.length === 0) {
+        throw new MemberTravelNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only the owner or trip organizers can delete member travel",
+      );
+    }
+
+    // Perform soft delete
+    const result = await this.db
+      .update(memberTravel)
+      .set({
+        deletedAt: new Date(),
+        deletedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(memberTravel.id, memberTravelId))
+      .returning();
+
+    if (!result[0]) {
+      throw new MemberTravelNotFoundError();
+    }
+  }
+
+  /**
+   * Restores a soft-deleted member travel record
+   * Only organizers can restore member travel records
+   * @param userId - The ID of the user restoring the member travel
+   * @param memberTravelId - The UUID of the member travel to restore
+   * @returns The restored member travel
+   * @throws MemberTravelNotFoundError if member travel not found
+   * @throws PermissionDeniedError if user lacks permission (organizer only)
+   */
+  async restoreMemberTravel(
+    userId: string,
+    memberTravelId: string,
+  ): Promise<MemberTravel> {
+    // Load member travel to get tripId
+    const [travel] = await this.db
+      .select()
+      .from(memberTravel)
+      .where(eq(memberTravel.id, memberTravelId))
+      .limit(1);
+
+    if (!travel) {
+      throw new MemberTravelNotFoundError();
+    }
+
+    // Check if user is organizer of the trip
+    const isOrganizer = await this.permissionsService.isOrganizer(
+      userId,
+      travel.tripId,
+    );
+    if (!isOrganizer) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can restore member travel",
+      );
+    }
+
+    // Restore member travel
+    const result = await this.db
+      .update(memberTravel)
+      .set({
+        deletedAt: null,
+        deletedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(memberTravel.id, memberTravelId))
+      .returning();
+
+    if (!result[0]) {
+      throw new MemberTravelNotFoundError();
+    }
+
+    return result[0];
+  }
+}

@@ -489,3 +489,248 @@ Task 4 will implement the service layer for events, accommodations, and member t
 - MemberTravelService: CRUD operations + soft delete + restore
 - All services will use the new permission methods from Task 3
 - Comprehensive unit and integration tests for each service
+
+---
+
+## Ralph Iteration 4 - Task 4: Backend Services (Events, Accommodations, Member Travel)
+
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
+**Agent**: Ralph (orchestrator + 3 researchers + coder + verifier + reviewer)
+
+### Summary
+
+Successfully implemented complete service layer for events, accommodations, and member travel with full CRUD operations, soft delete, restore functionality, and comprehensive permission integration. All 91 new service tests pass (100%), and the implementation follows established patterns with production-ready code quality.
+
+### Implementation Details
+
+**Service Files Created** (3 files, 1,178 lines):
+
+1. **EventService** (`apps/api/src/services/event.service.ts` - 388 lines):
+   - Interface: `IEventService` with 6 methods
+   - Class: `EventService` with constructor dependency injection (db, permissionsService)
+   - Methods:
+     - `createEvent`: Check canAddEvent permission, validate endTime > startTime, insert event
+     - `getEvent`: Query by ID, return null if not found or soft-deleted
+     - `getEventsByTrip`: Query by tripId with optional includeDeleted parameter
+     - `updateEvent`: Check canEditEvent, merge partial updates, validate date ranges
+     - `deleteEvent`: Check canDeleteEvent, soft delete (set deletedAt/deletedBy)
+     - `restoreEvent`: Check isOrganizer, clear deletedAt/deletedBy
+
+2. **AccommodationService** (`apps/api/src/services/accommodation.service.ts` - 407 lines):
+   - Interface: `IAccommodationService` with 6 methods
+   - Class: `AccommodationService` (similar structure to EventService)
+   - All operations require organizer permissions (stricter than events)
+   - Date range validation: checkOut > checkIn on create and update
+   - Handles partial date updates correctly by merging with existing data
+
+3. **MemberTravelService** (`apps/api/src/services/member-travel.service.ts` - 383 lines):
+   - Interface: `IMemberTravelService` with 6 methods
+   - Class: `MemberTravelService` (similar structure)
+   - Special handling: Resolves memberId from userId + tripId on create
+   - Permissions: Any member can create, owner OR organizer can edit/delete
+   - Proper JOIN through members table for ownership checks
+
+**Plugin Files Created** (3 files, 75 lines):
+
+1. `apps/api/src/plugins/event-service.ts` (25 lines)
+2. `apps/api/src/plugins/accommodation-service.ts` (25 lines)
+3. `apps/api/src/plugins/member-travel-service.ts` (25 lines)
+
+All plugins follow the established pattern:
+- Use `fastify-plugin` wrapper
+- Instantiate service with dependencies (fastify.db, fastify.permissionsService)
+- Decorate fastify instance
+- Declare plugin name and dependencies: ["database", "permissions-service"]
+
+**Test Files Created** (3 files, 1,904 lines):
+
+1. **Event Service Tests** (`apps/api/tests/unit/event.service.test.ts` - 577 lines, 29 tests):
+   - createEvent: 6 tests (organizer, member, non-member, invalid trip, invalid date range, minimal fields)
+   - getEvent: 3 tests (by ID, non-existent, soft-deleted)
+   - getEventsByTrip: 4 tests (all events, exclude deleted, include deleted, empty)
+   - updateEvent: 6 tests (as creator, as organizer, unauthorized, non-existent, invalid date, partial)
+   - deleteEvent: 4 tests (as creator, as organizer, unauthorized, non-existent)
+   - restoreEvent: 3 tests (as organizer, unauthorized, non-existent)
+   - Edge cases: 3 tests (all-day flag, multiple links, time-only updates)
+
+2. **Accommodation Service Tests** (`apps/api/tests/unit/accommodation.service.test.ts` - 624 lines, 30 tests):
+   - createAccommodation: 6 tests (organizer, member denied, non-member denied, invalid trip, invalid date range, minimal fields)
+   - getAccommodation: 3 tests (by ID, non-existent, soft-deleted)
+   - getAccommodationsByTrip: 4 tests (all, exclude deleted, include deleted, empty)
+   - updateAccommodation: 7 tests (as organizer, member denied, non-member denied, non-existent, invalid date, partial, date range)
+   - deleteAccommodation: 4 tests (as organizer, member denied, non-member denied, non-existent)
+   - restoreAccommodation: 3 tests (as organizer, non-organizer denied, non-existent)
+   - Edge cases: 3 tests (multiple links, same-day invalid, long description)
+
+3. **Member Travel Service Tests** (`apps/api/tests/unit/member-travel.service.test.ts` - 703 lines, 32 tests):
+   - createMemberTravel: 5 tests (as member, any status, non-member denied, invalid trip, minimal fields)
+   - getMemberTravel: 3 tests (by ID, non-existent, soft-deleted)
+   - getMemberTravelByTrip: 4 tests (all, exclude deleted, include deleted, empty)
+   - updateMemberTravel: 7 tests (as owner, as organizer, different member denied, non-member denied, non-existent, partial, time update)
+   - deleteMemberTravel: 5 tests (as owner, as organizer, different member denied, non-member denied, non-existent)
+   - restoreMemberTravel: 5 tests (as organizer, non-organizer denied, non-member denied, non-existent, owner-organizer)
+   - Edge cases: 3 tests (long details, multiple records per member, different members)
+
+**Files Modified** (2 files):
+
+1. `apps/api/src/app.ts` (3 imports, 3 registrations added)
+2. `apps/api/src/types/index.ts` (3 interface imports, 3 service declarations added to Fastify module)
+
+### Key Technical Features
+
+**Soft Delete Pattern**:
+- All services use `deletedAt` and `deletedBy` columns (NOT `cancelled` like trips)
+- Delete operations set both fields with timestamp and userId
+- Restore operations clear both fields and update `updatedAt`
+- List methods exclude soft-deleted by default using `isNull(table.deletedAt)`
+- Optional `includeDeleted` parameter for admin/audit access
+
+**Permission Integration**:
+- All create/update/delete operations check permissions before database operations
+- Proper error handling: 404 if not found, 403 if permission denied
+- Uses PermissionsService methods from Task 3:
+  - Events: canAddEvent, canEditEvent, canDeleteEvent
+  - Accommodations: canAddAccommodation, canEditAccommodation, canDeleteAccommodation
+  - Member Travel: canAddMemberTravel, canEditMemberTravel, canDeleteMemberTravel
+
+**Date Range Validation**:
+- Events: Validates endTime > startTime (when both provided)
+- Accommodations: Validates checkOut > checkIn (always required)
+- Validation runs on both create and update operations
+- Partial updates correctly merge with existing data before validation
+
+**Member Travel Special Case**:
+- Resolves memberId from userId + tripId during create operation
+- Uses JOIN through members table for ownership verification
+- Proper error handling if user is not a member of the trip
+
+**Type Safety**:
+- Full TypeScript type safety throughout
+- Input types from shared Zod schemas (CreateEventInput, UpdateEventInput, etc.)
+- Return types from Drizzle schema inference (Event, Accommodation, MemberTravel)
+- Service interfaces properly declared for Fastify module augmentation
+
+### Verification Results
+
+**Unit Tests**: ✅ PASS (with pre-existing issues)
+- **Task 4 Tests**: 91/91 passed (100%)
+  - Event Service: 29/29 passed
+  - Accommodation Service: 30/30 passed
+  - Member Travel Service: 32/32 passed
+- **Total API Tests**: 539/539 passed (100%)
+- **Pre-existing Failures** (NOT Task 4 issues):
+  - Shared package: 1 test (trip schema URL validation - Phase 3 issue)
+  - Web package: 3 tests (trip card RSVP badge styling - Phase 3 issue)
+
+**TypeScript Type Checking**: ✅ PASS
+- No type errors across all packages
+- All service interfaces properly typed
+- Full type inference working correctly
+
+**Linting**: ✅ PASS (with pre-existing issues)
+- **Task 4 Code**: No errors or warnings
+- **Pre-existing Issues**:
+  - Web package: 14 errors in manual-verification.js (helper script, not production code)
+
+**Code Review**: ✅ APPROVED
+- Excellent code quality
+- Consistent patterns with TripService
+- Comprehensive test coverage
+- No blocking issues identified
+- Production-ready implementation
+
+### Architecture Highlights
+
+**Service Registration Flow**:
+1. Plugin instantiates service with dependencies from Fastify instance
+2. Service decorated on Fastify instance via `fastify.decorate()`
+3. TypeScript declaration augments Fastify module for autocomplete
+4. Plugin dependencies ensure correct initialization order
+
+**Error Handling Strategy**:
+- NotFoundError (404): Resource doesn't exist
+- PermissionDeniedError (403): User lacks authorization
+- InvalidDateRangeError (400): Date/time validation failed
+- Check resource existence after permission denial for better error messages
+
+**Query Optimization**:
+- All single-record queries use `.limit(1)` for performance
+- Soft delete filtering uses indexed `deletedAt` column
+- Proper foreign key indexes enable efficient JOIN operations
+- includeDeleted parameter implemented without query duplication
+
+### Files Changed Summary
+
+**New Files Created** (9 files, 3,157 lines):
+- Service implementations: 3 files, 1,178 lines
+- Plugin files: 3 files, 75 lines
+- Test files: 3 files, 1,904 lines
+
+**Files Modified** (2 files, minimal changes):
+- apps/api/src/app.ts: 9 lines added (imports + registrations)
+- apps/api/src/types/index.ts: 6 lines added (imports + declarations)
+
+### Key Learnings
+
+1. **Pattern Consistency**: Following TripService as a template ensured all three new services integrate seamlessly with the existing architecture. Constructor injection, method signatures, error handling, and test patterns all matched established conventions.
+
+2. **Soft Delete vs Cancelled**: Events, accommodations, and member travel use the soft delete pattern (`deletedAt`/`deletedBy`) rather than the `cancelled` boolean used by trips. This provides more detailed audit information and follows the specification for itinerary items.
+
+3. **Permission Check Timing**: Always check permissions BEFORE loading the full resource to avoid leaking information. However, if permission is denied, check if resource exists to return appropriate error (404 vs 403).
+
+4. **Partial Update Validation**: When updating with partial data, validation must merge with existing data to check cross-field constraints. For example, updating only `endTime` requires loading existing `startTime` to validate the relationship.
+
+5. **Member Travel Complexity**: The `member_travel` table's use of `memberId` (FK to members table) rather than direct `userId` requires additional JOIN logic. This trip-scoped reference pattern enables proper member-specific data isolation.
+
+6. **Test Isolation at Scale**: With 91 new tests running in parallel, using `generateUniquePhone()` for unique test data and proper cleanup sequencing prevents race conditions and conflicts.
+
+7. **Type Inference Chain**: TypeScript types flow seamlessly: Zod schemas (shared) → Input types → Service methods → Drizzle schema types → Return types. This ensures end-to-end type safety without manual type definitions.
+
+8. **includeDeleted Parameter**: Providing an optional parameter to include soft-deleted records in list queries is valuable for admin interfaces and audit trails without requiring separate endpoints.
+
+### Pre-Existing Issues (Documented for Future Resolution)
+
+These test failures existed before Task 4 and do NOT block itinerary functionality:
+
+1. **Shared Package URL Validation** (1 test failure):
+   - File: `shared/__tests__/trip-schemas.test.ts:353`
+   - Issue: Trip schema URL validation test expects rejection of invalid URLs but schema accepts them
+   - Impact: Phase 3 trip creation feature, not Phase 4 itinerary
+
+2. **Web Trip Card Styling** (3 test failures):
+   - File: `apps/web/src/components/trip/__tests__/trip-card.test.tsx:106,116,126`
+   - Issue: RSVP badge styling tests expect different CSS classes than component renders
+   - Impact: Phase 3 trip dashboard, not Phase 4 itinerary
+
+3. **Manual Verification Script Linting** (14 errors):
+   - File: `apps/web/manual-verification.js`
+   - Issue: Helper script uses `console` and `process` without proper ESLint environment config
+   - Impact: Non-production utility script, does not affect codebase
+
+### Next Steps
+
+Task 5 will implement REST API endpoints for the three services:
+
+**Event Routes** (`apps/api/src/routes/event.routes.ts`):
+- POST /trips/:tripId/events - Create event
+- GET /trips/:tripId/events - List events
+- GET /trips/:tripId/events/:eventId - Get event details
+- PUT /trips/:tripId/events/:eventId - Update event
+- DELETE /trips/:tripId/events/:eventId - Soft delete event
+- POST /trips/:tripId/events/:eventId/restore - Restore event
+
+**Accommodation Routes** (`apps/api/src/routes/accommodation.routes.ts`):
+- Similar structure to event routes
+- POST, GET (list), GET (detail), PUT, DELETE, POST (restore)
+
+**Member Travel Routes** (`apps/api/src/routes/member-travel.routes.ts`):
+- Similar structure to event routes
+- POST, GET (list), GET (detail), PUT, DELETE, POST (restore)
+
+Each route will:
+- Use Zod schemas for request validation
+- Use `authenticate` + `requireCompleteProfile` middleware for write operations
+- Delegate to service methods with proper error handling
+- Return consistent response format: `{ success: true/false, data/error }`
+- Include comprehensive integration tests

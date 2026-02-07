@@ -20,6 +20,9 @@ import databasePlugin from "./plugins/database.js";
 import authServicePlugin from "./plugins/auth-service.js";
 import permissionsServicePlugin from "./plugins/permissions-service.js";
 import tripServicePlugin from "./plugins/trip-service.js";
+import eventServicePlugin from "./plugins/event-service.js";
+import accommodationServicePlugin from "./plugins/accommodation-service.js";
+import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
@@ -146,6 +149,9 @@ export async function buildApp(
   await app.register(permissionsServicePlugin);
   await app.register(authServicePlugin);
   await app.register(tripServicePlugin);
+  await app.register(eventServicePlugin);
+  await app.register(accommodationServicePlugin);
+  await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
 
   // Register error handler
