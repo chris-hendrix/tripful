@@ -26,6 +26,7 @@ function VerifyPageContent() {
   const { verify, login } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<VerifyCodeInput>({
@@ -64,10 +65,9 @@ function VerifyPageContent() {
   async function handleResendCode() {
     try {
       setIsResending(true);
+      setResendSuccess(null);
       await login(phoneNumber);
-      form.setError("code", {
-        message: "A new code has been sent to your phone",
-      });
+      setResendSuccess("A new code has been sent to your phone");
       form.setValue("code", "");
     } catch (error) {
       form.setError("code", {
@@ -113,6 +113,10 @@ function VerifyPageContent() {
                         disabled={isSubmitting}
                         maxLength={6}
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setResendSuccess(null);
+                        }}
                         ref={(e) => {
                           field.ref(e);
                           inputRef.current = e;
@@ -123,6 +127,11 @@ function VerifyPageContent() {
                       Check your SMS messages for the code
                     </FormDescription>
                     <FormMessage />
+                    {resendSuccess && (
+                      <p className="text-sm text-emerald-600">
+                        {resendSuccess}
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />

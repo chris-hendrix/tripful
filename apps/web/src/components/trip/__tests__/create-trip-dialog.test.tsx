@@ -723,10 +723,10 @@ describe("CreateTripDialog", () => {
 
       await navigateToStep2(user);
 
-      const checkbox = screen.getByLabelText(
-        /allow members to add events/i,
-      ) as HTMLInputElement;
-      expect(checkbox.checked).toBe(true);
+      const checkbox = screen.getByRole("checkbox", {
+        name: /allow members to add events/i,
+      });
+      expect(checkbox.getAttribute("data-state")).toBe("checked");
     });
 
     it("can be toggled off", async () => {
@@ -737,14 +737,14 @@ describe("CreateTripDialog", () => {
 
       await navigateToStep2(user);
 
-      const checkbox = screen.getByLabelText(
-        /allow members to add events/i,
-      ) as HTMLInputElement;
-      expect(checkbox.checked).toBe(true);
+      const checkbox = screen.getByRole("checkbox", {
+        name: /allow members to add events/i,
+      });
+      expect(checkbox.getAttribute("data-state")).toBe("checked");
 
       await user.click(checkbox);
 
-      expect(checkbox.checked).toBe(false);
+      expect(checkbox.getAttribute("data-state")).toBe("unchecked");
     });
 
     it("can be toggled back on", async () => {
@@ -755,15 +755,15 @@ describe("CreateTripDialog", () => {
 
       await navigateToStep2(user);
 
-      const checkbox = screen.getByLabelText(
-        /allow members to add events/i,
-      ) as HTMLInputElement;
+      const checkbox = screen.getByRole("checkbox", {
+        name: /allow members to add events/i,
+      });
 
       await user.click(checkbox);
-      expect(checkbox.checked).toBe(false);
+      expect(checkbox.getAttribute("data-state")).toBe("unchecked");
 
       await user.click(checkbox);
-      expect(checkbox.checked).toBe(true);
+      expect(checkbox.getAttribute("data-state")).toBe("checked");
     });
 
     it("submits correct value when unchecked", async () => {
@@ -1131,10 +1131,10 @@ describe("CreateTripDialog", () => {
       ) as HTMLTextAreaElement;
       expect(descriptionInputAfterBack.value).toBe("Test description");
 
-      const checkboxAfterBack = screen.getByLabelText(
-        /allow members to add events/i,
-      ) as HTMLInputElement;
-      expect(checkboxAfterBack.checked).toBe(false);
+      const checkboxAfterBack = screen.getByRole("checkbox", {
+        name: /allow members to add events/i,
+      });
+      expect(checkboxAfterBack.getAttribute("data-state")).toBe("unchecked");
     });
   });
 
