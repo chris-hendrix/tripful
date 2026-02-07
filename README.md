@@ -453,22 +453,22 @@ See [scripts/README.md](scripts/README.md) for detailed documentation on each te
 
 The API requires the following environment variables:
 
-| Variable             | Description                                                   | Default                           | Required |
-| -------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
-| `NODE_ENV`           | Environment mode                                              | `development`                     | Yes      |
-| `PORT`               | API server port                                               | `8000`                            | Yes      |
-| `HOST`               | Server host binding                                           | `0.0.0.0`                         | Yes      |
-| `DATABASE_URL`       | PostgreSQL connection string                                  | See below                         | Yes      |
-| `TEST_DATABASE_URL`  | Test database connection string                               | See below                         | No       |
-| `JWT_SECRET`         | Secret key for JWT token signing                              | Must change in production         | Yes      |
-| `FRONTEND_URL`       | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
-| `LOG_LEVEL`          | Logging verbosity (fatal\|error\|warn\|info\|debug\|trace)    | `info`                            | No       |
-| `COOKIE_SECURE`      | Secure cookie flag                                            | `true` in production              | No       |
-| `EXPOSE_ERROR_DETAILS` | Include error details in responses                          | `true` in development             | No       |
-| `ENABLE_FIXED_VERIFICATION_CODE` | Allow fixed code "123456" for testing              | `true` in non-production          | No       |
-| `UPLOAD_DIR`         | Directory for uploaded files                                  | `uploads`                         | No       |
-| `MAX_FILE_SIZE`      | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
-| `ALLOWED_MIME_TYPES` | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
+| Variable                         | Description                                                   | Default                           | Required |
+| -------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| `NODE_ENV`                       | Environment mode                                              | `development`                     | Yes      |
+| `PORT`                           | API server port                                               | `8000`                            | Yes      |
+| `HOST`                           | Server host binding                                           | `0.0.0.0`                         | Yes      |
+| `DATABASE_URL`                   | PostgreSQL connection string                                  | See below                         | Yes      |
+| `TEST_DATABASE_URL`              | Test database connection string                               | See below                         | No       |
+| `JWT_SECRET`                     | Secret key for JWT token signing                              | Must change in production         | Yes      |
+| `FRONTEND_URL`                   | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
+| `LOG_LEVEL`                      | Logging verbosity (fatal\|error\|warn\|info\|debug\|trace)    | `info`                            | No       |
+| `COOKIE_SECURE`                  | Secure cookie flag                                            | `true` in production              | No       |
+| `EXPOSE_ERROR_DETAILS`           | Include error details in responses                            | `true` in development             | No       |
+| `ENABLE_FIXED_VERIFICATION_CODE` | Allow fixed code "123456" for testing                         | `true` in non-production          | No       |
+| `UPLOAD_DIR`                     | Directory for uploaded files                                  | `uploads`                         | No       |
+| `MAX_FILE_SIZE`                  | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
+| `ALLOWED_MIME_TYPES`             | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
 
 **Database URL Format**:
 
@@ -870,15 +870,15 @@ pnpm clean                      # Full clean
 
 ### Port Assignments
 
-| Service               | Port | URL                                   |
-| --------------------- | ---- | ------------------------------------- |
-| Web Frontend          | 3000 | http://localhost:3000                 |
-| API Backend           | 8000 | http://localhost:8000                 |
-| API Health            | 8000 | http://localhost:8000/api/health      |
-| API Liveness Probe    | 8000 | http://localhost:8000/api/health/live |
+| Service               | Port | URL                                    |
+| --------------------- | ---- | -------------------------------------- |
+| Web Frontend          | 3000 | http://localhost:3000                  |
+| API Backend           | 8000 | http://localhost:8000                  |
+| API Health            | 8000 | http://localhost:8000/api/health       |
+| API Liveness Probe    | 8000 | http://localhost:8000/api/health/live  |
 | API Readiness Probe   | 8000 | http://localhost:8000/api/health/ready |
-| PostgreSQL (external) | 5433 | localhost:5433                        |
-| PostgreSQL (internal) | 5432 | Container only                        |
+| PostgreSQL (external) | 5433 | localhost:5433                         |
+| PostgreSQL (internal) | 5432 | Container only                         |
 
 ### Technology Stack
 

@@ -533,7 +533,9 @@ The API uses a `buildApp()` factory pattern for testable server setup. All servi
 
 ```typescript
 // src/app.ts - Configures and returns a fully wired FastifyInstance
-export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp(
+  opts: BuildAppOptions,
+): Promise<FastifyInstance> {
   const fastify = Fastify(opts.fastify);
 
   // 1. Core plugins (config must be first, database depends on config)
@@ -541,12 +543,17 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await fastify.register(databasePlugin);
 
   // 2. Security & middleware plugins
-  await fastify.register(cors, { origin: fastify.config.FRONTEND_URL, credentials: true });
+  await fastify.register(cors, {
+    origin: fastify.config.FRONTEND_URL,
+    credentials: true,
+  });
   await fastify.register(helmet, { contentSecurityPolicy: false });
   await fastify.register(rateLimit, { max: 100, timeWindow: "15 minutes" });
   await fastify.register(jwt, { secret: fastify.config.JWT_SECRET });
   await fastify.register(cookie);
-  await fastify.register(multipart, { limits: { fileSize: fastify.config.MAX_FILE_SIZE } });
+  await fastify.register(multipart, {
+    limits: { fileSize: fastify.config.MAX_FILE_SIZE },
+  });
 
   // 3. Service plugins (decorated onto fastify instance)
   await fastify.register(authServicePlugin);
@@ -568,7 +575,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
 
 ```typescript
 // src/server.ts - Production entry point
-const app = await buildApp({ fastify: { logger: { level: config.LOG_LEVEL } } });
+const app = await buildApp({
+  fastify: { logger: { level: config.LOG_LEVEL } },
+});
 await app.listen({ port: config.PORT, host: config.HOST });
 
 // Graceful shutdown via close-with-grace
@@ -3094,10 +3103,14 @@ apps/web/
 
 ```typescript
 // Route-level Zod schema validation
-fastify.post("/request-code", {
-  schema: { body: requestCodeSchema },
-  preHandler: fastify.rateLimit(smsRateLimitConfig),
-}, authController.requestCode);
+fastify.post(
+  "/request-code",
+  {
+    schema: { body: requestCodeSchema },
+    preHandler: fastify.rateLimit(smsRateLimitConfig),
+  },
+  authController.requestCode,
+);
 
 // Typed errors (src/errors.ts)
 const TripNotFoundError = createError("TRIP_NOT_FOUND", "Trip not found", 404);

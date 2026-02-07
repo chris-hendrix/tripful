@@ -29,12 +29,12 @@ pnpm dev
 
 ### Ports & URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend (Next.js) | http://localhost:3000 |
-| Backend (Fastify API) | http://localhost:8000 |
-| PostgreSQL | localhost:5433 (external) → 5432 (container) |
-| Playwright UI | http://localhost:9323 (when using test:e2e:ui) |
+| Service               | URL                                            |
+| --------------------- | ---------------------------------------------- |
+| Frontend (Next.js)    | http://localhost:3000                          |
+| Backend (Fastify API) | http://localhost:8000                          |
+| PostgreSQL            | localhost:5433 (external) → 5432 (container)   |
+| Playwright UI         | http://localhost:9323 (when using test:e2e:ui) |
 
 ### Environment Variables
 
@@ -119,6 +119,7 @@ cd apps/web && npx playwright install --with-deps chromium
 ## Test Credentials
 
 The app uses phone-based OTP authentication. For local testing:
+
 - Use any valid phone number format (e.g., +15551234567)
 - The verification code is logged to the API server console in development mode
 - Check the API terminal output for the OTP code after requesting verification
@@ -133,19 +134,19 @@ No special seed data required. The app works with an empty database (shows empty
 
 ## Environment Validation (2026-02-07)
 
-| Check | Status | Details |
-|-------|--------|---------|
-| Dependencies (`node_modules`) | PASS | Installed |
-| API env (`apps/api/.env`) | PASS | Present |
-| Web env (`apps/web/.env.local`) | PASS | Present |
-| PostgreSQL (Docker) | PASS | Container `tripful-postgres` healthy |
-| Playwright npm package | PASS | `@playwright/test` v1.58.1 |
-| Playwright browsers | PASS | Chromium v1208 installed |
-| `pnpm typecheck` | PASS | No errors |
-| `pnpm lint` | PASS | No errors |
-| `pnpm test` | PASS | 385 tests, 16 files |
-| Next.js dev server (`:3000`) | PASS | HTTP 200 |
-| Fastify API server (`:8000`) | PASS | HTTP 200 |
+| Check                           | Status | Details                              |
+| ------------------------------- | ------ | ------------------------------------ |
+| Dependencies (`node_modules`)   | PASS   | Installed                            |
+| API env (`apps/api/.env`)       | PASS   | Present                              |
+| Web env (`apps/web/.env.local`) | PASS   | Present                              |
+| PostgreSQL (Docker)             | PASS   | Container `tripful-postgres` healthy |
+| Playwright npm package          | PASS   | `@playwright/test` v1.58.1           |
+| Playwright browsers             | PASS   | Chromium v1208 installed             |
+| `pnpm typecheck`                | PASS   | No errors                            |
+| `pnpm lint`                     | PASS   | No errors                            |
+| `pnpm test`                     | PASS   | 385 tests, 16 files                  |
+| Next.js dev server (`:3000`)    | PASS   | HTTP 200                             |
+| Fastify API server (`:8000`)    | PASS   | HTTP 200                             |
 
 All verification commands confirmed runnable. Environment ready for execution.
 

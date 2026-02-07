@@ -935,7 +935,14 @@ describe("EditTripDialog", () => {
 
       await user.click(screen.getByRole("button", { name: /yes, delete/i }));
 
-      expect(screen.getByText("Deleting...")).toBeDefined();
+      // After confirming delete, the AlertDialog closes and the Delete trip button
+      // becomes disabled while the API call is in progress
+      await waitFor(() => {
+        const deleteButton = screen.getByRole("button", {
+          name: /delete trip/i,
+        });
+        expect(deleteButton).toHaveProperty("disabled", true);
+      });
     });
 
     it("shows error message on delete failure", async () => {
@@ -992,6 +999,16 @@ describe("EditTripDialog", () => {
         ).toBeDefined();
       });
 
+      // Cancel the AlertDialog first (it's a modal overlay)
+      const cancelButton = screen.getByRole("button", { name: /cancel/i });
+      await user.click(cancelButton);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/are you sure you want to delete this trip/i),
+        ).toBeNull();
+      });
+
       // Click Back button
       const backButton = screen.getByRole("button", { name: /back/i });
       await user.click(backButton);
@@ -1007,7 +1024,7 @@ describe("EditTripDialog", () => {
         expect(screen.getByText("Step 2 of 2")).toBeDefined();
       });
 
-      // Confirmation should be reset
+      // AlertDialog confirmation should not be showing
       expect(
         screen.queryByText(/are you sure you want to delete this trip/i),
       ).toBeNull();
@@ -1044,8 +1061,8 @@ describe("EditTripDialog", () => {
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       expect(continueButton.className).toContain("bg-gradient-to-r");
-      expect(continueButton.className).toContain("from-blue-600");
-      expect(continueButton.className).toContain("to-cyan-600");
+      expect(continueButton.className).toContain("from-primary");
+      expect(continueButton.className).toContain("to-accent");
     });
 
     it("applies gradient styling to Update button", async () => {
@@ -1065,8 +1082,8 @@ describe("EditTripDialog", () => {
           name: /update trip/i,
         });
         expect(updateButton.className).toContain("bg-gradient-to-r");
-        expect(updateButton.className).toContain("from-blue-600");
-        expect(updateButton.className).toContain("to-cyan-600");
+        expect(updateButton.className).toContain("from-primary");
+        expect(updateButton.className).toContain("to-accent");
       });
     });
 

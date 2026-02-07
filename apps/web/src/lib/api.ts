@@ -2,7 +2,8 @@
  * API client for communicating with the Tripful backend
  */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 /**
  * Custom error class for API errors

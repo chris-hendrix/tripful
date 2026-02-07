@@ -23,7 +23,7 @@ test.describe("Complete Auth Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Verify we're on the login page
-    await expect(page.locator('h2:has-text("Get started")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Get started")')).toBeVisible();
 
     // Enter phone number
     const phoneInput = page.locator('input[type="tel"]');
@@ -39,7 +39,7 @@ test.describe("Complete Auth Flow", () => {
 
     // Verify we're on the verification page
     await expect(
-      page.locator('h2:has-text("Verify your number")'),
+      page.locator('h1:has-text("Verify your number")'),
     ).toBeVisible();
     await expect(page.locator(`text=${phone}`)).toBeVisible();
 
@@ -56,7 +56,7 @@ test.describe("Complete Auth Flow", () => {
 
     // Verify we're on the complete profile page
     await expect(
-      page.locator('h2:has-text("Complete your profile")'),
+      page.locator('h1:has-text("Complete your profile")'),
     ).toBeVisible();
 
     // Enter display name
@@ -160,7 +160,7 @@ test.describe("Complete Auth Flow", () => {
     expect(page.url()).toContain("/login");
 
     // Verify we're on the login page
-    await expect(page.locator('h2:has-text("Get started")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Get started")')).toBeVisible();
   });
 
   test("existing user skips complete profile and goes to dashboard", async ({

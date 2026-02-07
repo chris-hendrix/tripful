@@ -130,7 +130,10 @@ describe("useTrips", () => {
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
-      expect(apiRequest).toHaveBeenCalledWith("/trips", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/trips",
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
 
     it("returns empty array when no trips exist", async () => {
@@ -681,7 +684,10 @@ describe("useTripDetail", () => {
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
-      expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/trips/trip-123",
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
     });
 
     it("returns trip with organizers and member count", async () => {

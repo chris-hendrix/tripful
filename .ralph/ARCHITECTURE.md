@@ -10,36 +10,36 @@ Inspired by vintage Italian travel posters (Capri by Mario Puppo). Warm, vivid, 
 
 All colors defined as HSL values for CSS custom properties:
 
-| Token | Hex | HSL | Usage |
-|-------|-----|-----|-------|
-| `--color-primary` | #1A5F9E | 210 72% 36% | Primary actions, links, branding |
-| `--color-primary-foreground` | #FFFFFF | 0 0% 100% | Text on primary |
-| `--color-accent` | #D4603A | 16 62% 53% | Terracotta accent, secondary CTAs |
-| `--color-accent-foreground` | #FFFFFF | 0 0% 100% | Text on accent |
-| `--color-background` | #FAF5EE | 36 60% 96% | Page background (warm cream) |
-| `--color-foreground` | #3A2E22 | 27 27% 18% | Primary text (dark warm brown) |
-| `--color-card` | #FFFFFF | 0 0% 100% | Card surfaces |
-| `--color-card-foreground` | #3A2E22 | 27 27% 18% | Text on cards |
-| `--color-muted` | #F0EBE3 | 34 28% 91% | Muted backgrounds (warm gray) |
-| `--color-muted-foreground` | #8C8274 | 34 10% 50% | Secondary text (sandy gray) |
-| `--color-border` | #E5DDD2 | 34 28% 86% | Borders (warm) |
-| `--color-input` | #E5DDD2 | 34 28% 86% | Input borders |
-| `--color-ring` | #1A5F9E | 210 72% 36% | Focus rings |
-| `--color-secondary` | #F0EBE3 | 34 28% 91% | Secondary buttons |
-| `--color-secondary-foreground` | #3A2E22 | 27 27% 18% | Text on secondary |
-| `--color-destructive` | #C4382A | 5 65% 47% | Destructive actions (coral red) |
-| `--color-destructive-foreground` | #FFFFFF | 0 0% 100% | Text on destructive |
-| `--color-popover` | #FFFFFF | 0 0% 100% | Popover surfaces |
-| `--color-popover-foreground` | #3A2E22 | 27 27% 18% | Text on popovers |
+| Token                            | Hex     | HSL         | Usage                             |
+| -------------------------------- | ------- | ----------- | --------------------------------- |
+| `--color-primary`                | #1A5F9E | 210 72% 36% | Primary actions, links, branding  |
+| `--color-primary-foreground`     | #FFFFFF | 0 0% 100%   | Text on primary                   |
+| `--color-accent`                 | #D4603A | 16 62% 53%  | Terracotta accent, secondary CTAs |
+| `--color-accent-foreground`      | #FFFFFF | 0 0% 100%   | Text on accent                    |
+| `--color-background`             | #FAF5EE | 36 60% 96%  | Page background (warm cream)      |
+| `--color-foreground`             | #3A2E22 | 27 27% 18%  | Primary text (dark warm brown)    |
+| `--color-card`                   | #FFFFFF | 0 0% 100%   | Card surfaces                     |
+| `--color-card-foreground`        | #3A2E22 | 27 27% 18%  | Text on cards                     |
+| `--color-muted`                  | #F0EBE3 | 34 28% 91%  | Muted backgrounds (warm gray)     |
+| `--color-muted-foreground`       | #8C8274 | 34 10% 50%  | Secondary text (sandy gray)       |
+| `--color-border`                 | #E5DDD2 | 34 28% 86%  | Borders (warm)                    |
+| `--color-input`                  | #E5DDD2 | 34 28% 86%  | Input borders                     |
+| `--color-ring`                   | #1A5F9E | 210 72% 36% | Focus rings                       |
+| `--color-secondary`              | #F0EBE3 | 34 28% 91%  | Secondary buttons                 |
+| `--color-secondary-foreground`   | #3A2E22 | 27 27% 18%  | Text on secondary                 |
+| `--color-destructive`            | #C4382A | 5 65% 47%   | Destructive actions (coral red)   |
+| `--color-destructive-foreground` | #FFFFFF | 0 0% 100%   | Text on destructive               |
+| `--color-popover`                | #FFFFFF | 0 0% 100%   | Popover surfaces                  |
+| `--color-popover-foreground`     | #3A2E22 | 27 27% 18%  | Text on popovers                  |
 
 ### Additional Semantic Tokens
 
-| Token | Hex | HSL | Usage |
-|-------|-----|-----|-------|
-| `--color-success` | #4A7C59 | 140 27% 39% | Success/Going badges (olive green) |
-| `--color-success-foreground` | #FFFFFF | 0 0% 100% | Text on success |
-| `--color-warning` | #C48A2A | 38 66% 47% | Warning/Maybe badges (warm amber) |
-| `--color-warning-foreground` | #FFFFFF | 0 0% 100% | Text on warning |
+| Token                        | Hex     | HSL         | Usage                              |
+| ---------------------------- | ------- | ----------- | ---------------------------------- |
+| `--color-success`            | #4A7C59 | 140 27% 39% | Success/Going badges (olive green) |
+| `--color-success-foreground` | #FFFFFF | 0 0% 100%   | Text on success                    |
+| `--color-warning`            | #C48A2A | 38 66% 47%  | Warning/Maybe badges (warm amber)  |
+| `--color-warning-foreground` | #FFFFFF | 0 0% 100%   | Text on warning                    |
 
 ## Typography
 
@@ -69,14 +69,14 @@ export const dmSans = DM_Sans({
 
 ### Type Scale
 
-| Role | Classes | Font |
-|------|---------|------|
-| Page title | `text-4xl font-bold font-[family-name:var(--font-playfair)]` | Playfair Display |
-| Section title | `text-2xl font-semibold font-[family-name:var(--font-playfair)]` | Playfair Display |
-| Card title | `text-xl font-semibold font-[family-name:var(--font-playfair)]` | Playfair Display |
-| Body | `text-base` | DM Sans (default) |
-| Caption/label | `text-sm text-muted-foreground` | DM Sans |
-| Small | `text-xs text-muted-foreground` | DM Sans |
+| Role          | Classes                                                          | Font              |
+| ------------- | ---------------------------------------------------------------- | ----------------- |
+| Page title    | `text-4xl font-bold font-[family-name:var(--font-playfair)]`     | Playfair Display  |
+| Section title | `text-2xl font-semibold font-[family-name:var(--font-playfair)]` | Playfair Display  |
+| Card title    | `text-xl font-semibold font-[family-name:var(--font-playfair)]`  | Playfair Display  |
+| Body          | `text-base`                                                      | DM Sans (default) |
+| Caption/label | `text-sm text-muted-foreground`                                  | DM Sans           |
+| Small         | `text-xs text-muted-foreground`                                  | DM Sans           |
 
 ## Component Architecture
 
@@ -127,7 +127,10 @@ pnpm dlx shadcn@latest add tooltip
 #### Skip Link (`apps/web/src/components/skip-link.tsx`)
 
 ```tsx
-<a href="#main-content" className="sr-only focus:not-sr-only focus:absolute ...">
+<a
+  href="#main-content"
+  className="sr-only focus:not-sr-only focus:absolute ..."
+>
   Skip to main content
 </a>
 ```
@@ -173,6 +176,7 @@ Note: AppHeader is a client component imported into this server component layout
 #### Auth Layout (`apps/web/src/app/(auth)/layout.tsx`)
 
 Redesign with travel poster aesthetic:
+
 - Warm cream background instead of dark gradient
 - Subtle travel-poster-inspired illustration or pattern (geometric map lines, compass rose SVG)
 - Remove `animate-pulse` gradient orbs
@@ -189,6 +193,7 @@ Redesign with travel poster aesthetic:
 #### Landing Page (`apps/web/src/app/page.tsx`)
 
 Simple branded landing:
+
 - Travel poster aesthetic background
 - Tripful wordmark with Playfair Display
 - Tagline: "Plan and share your adventures"
@@ -215,6 +220,7 @@ Simple branded landing:
 ### Auth Pages Changes
 
 All three auth pages (`login`, `verify`, `complete-profile`):
+
 - Change `<h2>` to `<h1>` for proper heading hierarchy
 - Add `autocomplete` attributes (`autocomplete="tel"` on phone, `autocomplete="name"` on display name)
 - Replace hardcoded colors with design tokens
@@ -244,21 +250,21 @@ Replace the entire `@theme` block with the Vivid Capri palette. Remove dark mode
 
 ### Phase 2: Systematic Color Replacement
 
-| Hardcoded Pattern | Token Replacement |
-|-------------------|-------------------|
-| `text-slate-900` | `text-foreground` |
-| `text-slate-600`, `text-slate-500` | `text-muted-foreground` |
-| `bg-gray-50` | `bg-background` |
-| `bg-white` | `bg-card` |
-| `border-slate-200`, `border-slate-300` | `border-border` |
-| `bg-slate-200` (skeleton) | `bg-muted` |
-| `text-red-500`, `text-red-600`, `bg-red-50` | `text-destructive`, `bg-destructive/10` |
-| `bg-emerald-100 text-emerald-700` | `bg-success/15 text-success` |
-| `bg-amber-100 text-amber-700` | `bg-warning/15 text-warning` |
-| `from-blue-600 to-cyan-600` | Use `variant="gradient"` button |
-| `border-red-200` | `border-destructive/30` |
+| Hardcoded Pattern                           | Token Replacement                                   |
+| ------------------------------------------- | --------------------------------------------------- |
+| `text-slate-900`                            | `text-foreground`                                   |
+| `text-slate-600`, `text-slate-500`          | `text-muted-foreground`                             |
+| `bg-gray-50`                                | `bg-background`                                     |
+| `bg-white`                                  | `bg-card`                                           |
+| `border-slate-200`, `border-slate-300`      | `border-border`                                     |
+| `bg-slate-200` (skeleton)                   | `bg-muted`                                          |
+| `text-red-500`, `text-red-600`, `bg-red-50` | `text-destructive`, `bg-destructive/10`             |
+| `bg-emerald-100 text-emerald-700`           | `bg-success/15 text-success`                        |
+| `bg-amber-100 text-amber-700`               | `bg-warning/15 text-warning`                        |
+| `from-blue-600 to-cyan-600`                 | Use `variant="gradient"` button                     |
+| `border-red-200`                            | `border-destructive/30`                             |
 | `focus:border-blue-500 focus:ring-blue-500` | `focus-visible:border-ring focus-visible:ring-ring` |
-| `shadow-blue-500/30` | `shadow-primary/25` |
+| `shadow-blue-500/30`                        | `shadow-primary/25`                                 |
 
 ### Phase 3: Add Success/Warning Tokens
 
@@ -267,14 +273,17 @@ Add `--color-success` and `--color-warning` to `@theme` block in globals.css. Th
 ## Testing Strategy
 
 ### Unit Tests
+
 - Update existing component tests that assert on markup changes (TripCard div→Link, heading levels)
 - Add tests for new components: AppHeader, SkipLink, UserMenu
 
 ### Integration Tests
+
 - Update dashboard and trip detail page tests for new markup structure
 - Test breadcrumb navigation renders correctly
 
 ### E2E Tests (Playwright)
+
 - New: Test app header navigation (click Dashboard link, verify navigation)
 - New: Test user menu dropdown (open, click Profile, click Logout)
 - New: Test breadcrumbs on trip detail page
@@ -282,6 +291,7 @@ Add `--color-success` and `--color-warning` to `@theme` block in globals.css. Th
 - Existing: Ensure all existing E2E tests still pass
 
 ### Manual/Screenshot Tests
+
 - Screenshot the landing page, auth pages, dashboard, and trip detail page
 - Verify the travel poster aesthetic renders correctly
 - Test responsive breakpoints (mobile, tablet, desktop)
@@ -290,6 +300,7 @@ Add `--color-success` and `--color-warning` to `@theme` block in globals.css. Th
 ## Files Changed Summary
 
 ### New Files
+
 - `apps/web/src/components/app-header.tsx` - App shell header with navigation
 - `apps/web/src/components/skip-link.tsx` - Accessibility skip link
 - `apps/web/src/components/ui/sonner.tsx` - Sonner toast (via shadcn add)
@@ -302,6 +313,7 @@ Add `--color-success` and `--color-warning` to `@theme` block in globals.css. Th
 - `apps/web/src/components/ui/tooltip.tsx` - Tooltip (via shadcn add)
 
 ### Modified Files
+
 - `apps/web/src/app/globals.css` - New palette, remove dark mode
 - `apps/web/src/lib/fonts.ts` - Add DM Sans font
 - `apps/web/src/app/layout.tsx` - Skip link, font variables, Toaster
@@ -322,5 +334,6 @@ Add `--color-success` and `--color-warning` to `@theme` block in globals.css. Th
 - `apps/web/package.json` - New dependencies (sonner, radix packages)
 
 ### Test Files (Updated/New)
+
 - Existing test files updated for markup changes
 - New E2E tests for navigation, breadcrumbs, skip link

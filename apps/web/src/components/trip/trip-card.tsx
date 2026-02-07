@@ -33,19 +33,19 @@ function getRsvpBadge(status: "going" | "not_going" | "maybe" | "no_response") {
   switch (status) {
     case "going":
       return (
-        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+        <Badge className="bg-success/15 text-success border-success/30">
           Going
         </Badge>
       );
     case "maybe":
       return (
-        <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+        <Badge className="bg-warning/15 text-warning border-warning/30">
           Maybe
         </Badge>
       );
     case "not_going":
       return (
-        <Badge variant="outline" className="text-slate-600 border-slate-300">
+        <Badge variant="outline" className="text-muted-foreground border-input">
           Not going
         </Badge>
       );
@@ -54,7 +54,10 @@ function getRsvpBadge(status: "going" | "not_going" | "maybe" | "no_response") {
   }
 }
 
-export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProps) {
+export const TripCard = memo(function TripCard({
+  trip,
+  index = 0,
+}: TripCardProps) {
   const prefetchTrip = usePrefetchTrip(trip.id);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
@@ -72,7 +75,7 @@ export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProp
       href={`/trips/${trip.id}`}
       onMouseEnter={prefetchTrip}
       onFocus={prefetchTrip}
-      className="block bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500"
+      className="block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500"
       style={{ animationDelay: `${index * 100}ms` }}
     >
       {/* Cover image or placeholder */}
@@ -98,7 +101,7 @@ export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProp
           </div>
         </div>
       ) : (
-        <div className="relative h-40 overflow-hidden bg-gradient-to-br from-slate-100 to-blue-100">
+        <div className="relative h-40 overflow-hidden bg-gradient-to-br from-muted to-primary/10">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
           {/* Badges overlay */}
@@ -116,24 +119,22 @@ export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProp
       {/* Content */}
       <div className="p-4 space-y-3">
         <div>
-          <h3
-            className="text-lg font-semibold text-slate-900 mb-1 truncate font-[family-name:var(--font-playfair)]"
-          >
+          <h3 className="text-lg font-semibold text-foreground mb-1 truncate font-[family-name:var(--font-playfair)]">
             {trip.name}
           </h3>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="w-4 h-4 shrink-0" />
             <span className="truncate">{trip.destination}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="w-4 h-4 shrink-0" />
           <span>{dateRange}</span>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-between pt-3 border-t border-border">
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex -space-x-2 shrink-0">
               {displayedOrganizers.map((org) =>
@@ -149,19 +150,19 @@ export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProp
                 ) : (
                   <div
                     key={org.id}
-                    className="w-6 h-6 rounded-full ring-2 ring-white bg-slate-300 flex items-center justify-center text-[10px] font-medium text-slate-700"
+                    className="w-6 h-6 rounded-full ring-2 ring-white bg-muted flex items-center justify-center text-[10px] font-medium text-foreground"
                   >
                     {getInitials(org.displayName)}
                   </div>
                 ),
               )}
             </div>
-            <span className="text-xs text-slate-600 truncate">
+            <span className="text-xs text-muted-foreground truncate">
               {organizerLabel}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-slate-600 shrink-0">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
             <ClipboardList className="w-4 h-4" />
             <span>
               {trip.eventCount === 0

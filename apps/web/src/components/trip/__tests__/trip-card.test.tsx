@@ -98,23 +98,23 @@ describe("TripCard", () => {
   });
 
   describe("RSVP badge rendering", () => {
-    it("shows Going badge with emerald styling for going status", () => {
+    it("shows Going badge with success styling for going status", () => {
       render(<TripCard trip={baseTrip} />);
 
       const badge = screen.getByText("Going");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("bg-emerald-100");
-      expect(badge.className).toContain("text-emerald-700");
+      expect(badge.className).toContain("bg-success/15");
+      expect(badge.className).toContain("text-success");
     });
 
-    it("shows Maybe badge with amber styling for maybe status", () => {
+    it("shows Maybe badge with warning styling for maybe status", () => {
       const trip = { ...baseTrip, rsvpStatus: "maybe" as const };
       render(<TripCard trip={trip} />);
 
       const badge = screen.getByText("Maybe");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("bg-amber-100");
-      expect(badge.className).toContain("text-amber-700");
+      expect(badge.className).toContain("bg-warning/15");
+      expect(badge.className).toContain("text-warning");
     });
 
     it("shows Not going badge with outline styling for not_going status", () => {
@@ -123,7 +123,7 @@ describe("TripCard", () => {
 
       const badge = screen.getByText("Not going");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("text-slate-600");
+      expect(badge.className).toContain("text-muted-foreground");
     });
 
     it("does not show RSVP badge for no_response status", () => {
@@ -157,7 +157,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={trip} />);
 
       const placeholder = container.querySelector(
-        ".bg-gradient-to-br.from-slate-100.to-blue-100",
+        ".bg-gradient-to-br.from-muted.to-primary\\/10",
       );
       expect(placeholder).toBeDefined();
     });
@@ -283,7 +283,7 @@ describe("TripCard", () => {
       };
       const { container } = render(<TripCard trip={trip} />);
 
-      const initialsElement = container.querySelector(".bg-slate-300");
+      const initialsElement = container.querySelector(".bg-muted");
       expect(initialsElement).toBeDefined();
       expect(initialsElement?.textContent).toBe("JD");
     });

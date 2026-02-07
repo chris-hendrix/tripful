@@ -12,6 +12,7 @@ import Image from "next/image";
 import { Upload, AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 interface ImageUploadProps {
   value?: string | null;
@@ -206,7 +207,7 @@ export function ImageUpload({
 
       {previewUrl ? (
         <div className="relative group">
-          <div className="relative h-48 rounded-xl overflow-hidden border-2 border-slate-200">
+          <div className="relative h-48 rounded-xl overflow-hidden border-2 border-border">
             <Image
               src={previewUrl}
               alt="Preview"
@@ -215,27 +216,29 @@ export function ImageUpload({
               className="object-cover"
             />
             {isUploading && (
-              <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <div className="absolute inset-0 bg-card/80 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             )}
           </div>
 
           {!disabled && !isUploading && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={handleRemove}
-              className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-110"
+              className="absolute top-2 right-2 min-w-[44px] min-h-[44px] bg-card/90 hover:bg-card rounded-full shadow-md"
               aria-label="Remove image"
             >
-              <X className="w-4 h-4 text-slate-700" />
-            </button>
+              <X className="w-4 h-4 text-foreground" />
+            </Button>
           )}
 
           {selectedFile && (
-            <div className="mt-2 text-xs text-slate-600">
+            <div className="mt-2 text-xs text-muted-foreground">
               <span className="font-medium">{selectedFile.name}</span>
-              <span className="ml-2 text-slate-500">
+              <span className="ml-2 text-muted-foreground">
                 ({formatFileSize(selectedFile.size)})
               </span>
             </div>
@@ -259,25 +262,26 @@ export function ImageUpload({
           className={cn(
             "relative h-48 rounded-xl border-2 border-dashed transition-all duration-200",
             "flex flex-col items-center justify-center gap-3",
-            "bg-gradient-to-br from-slate-100 to-blue-100",
+            "bg-gradient-to-br from-muted to-primary/10",
             isDragging && !disabled
-              ? "border-blue-500 bg-blue-50"
-              : "border-slate-300",
-            !disabled && "cursor-pointer hover:border-blue-400 hover:shadow-md",
+              ? "border-primary bg-primary/10"
+              : "border-input",
+            !disabled &&
+              "cursor-pointer hover:border-primary/70 hover:shadow-md",
             disabled && "opacity-50 cursor-not-allowed",
           )}
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="p-3 rounded-full bg-white/80 shadow-sm">
-              <Upload className="w-6 h-6 text-slate-600" />
+            <div className="p-3 rounded-full bg-card/80 shadow-sm">
+              <Upload className="w-6 h-6 text-muted-foreground" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-slate-700">
+              <p className="text-sm font-medium text-foreground">
                 {isDragging
                   ? "Drop image here"
                   : "Click to upload or drag and drop"}
               </p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 JPG, PNG, or WEBP (max 5MB)
               </p>
             </div>
@@ -286,20 +290,21 @@ export function ImageUpload({
       )}
 
       {error && (
-        <div className="mt-2 p-3 rounded-lg bg-red-50 border border-red-200">
+        <div className="mt-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
           <div className="flex items-start gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700 flex-1">{error}</p>
+            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive flex-1">{error}</p>
           </div>
           {lastFailedFile && tripId && (
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={handleRetry}
               disabled={isUploading}
-              className="text-sm font-medium text-red-600 hover:text-red-700 underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-sm font-medium text-destructive hover:text-destructive/80 p-0 h-auto min-w-[44px] min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUploading ? "Retrying..." : "Try again"}
-            </button>
+            </Button>
           )}
         </div>
       )}

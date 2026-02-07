@@ -81,15 +81,15 @@ function VerifyPageContent() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 border border-slate-200/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">
+            <h1 className="text-3xl font-semibold text-foreground tracking-tight">
               Verify your number
-            </h2>
-            <p className="text-slate-600">
+            </h1>
+            <p className="text-muted-foreground">
               Enter the 6-digit code sent to{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-foreground">
                 {phoneNumber}
               </span>
             </p>
@@ -102,16 +102,18 @@ function VerifyPageContent() {
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-900">
+                    <FormLabel className="text-sm font-medium text-foreground">
                       Verification code
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="text"
                         placeholder="000000"
-                        className="h-14 text-2xl font-mono text-center tracking-widest border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="h-14 text-2xl font-mono text-center tracking-widest border-input focus-visible:border-ring focus-visible:ring-ring"
                         disabled={isSubmitting}
                         maxLength={6}
+                        autoComplete="one-time-code"
+                        aria-required="true"
                         {...field}
                         onChange={(e) => {
                           field.onChange(e);
@@ -123,14 +125,12 @@ function VerifyPageContent() {
                         }}
                       />
                     </FormControl>
-                    <FormDescription className="text-xs text-slate-500">
+                    <FormDescription className="text-xs text-muted-foreground">
                       Check your SMS messages for the code
                     </FormDescription>
                     <FormMessage />
                     {resendSuccess && (
-                      <p className="text-sm text-emerald-600">
-                        {resendSuccess}
-                      </p>
+                      <p className="text-sm text-success">{resendSuccess}</p>
                     )}
                   </FormItem>
                 )}
@@ -139,7 +139,8 @@ function VerifyPageContent() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+                variant="gradient"
+                className="w-full h-12 rounded-xl"
               >
                 {isSubmitting ? "Verifying..." : "Verify"}
               </Button>
@@ -149,21 +150,22 @@ function VerifyPageContent() {
           <div className="flex items-center justify-between text-sm">
             <Link
               href="/login"
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
             >
               Change number
             </Link>
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={handleResendCode}
               disabled={isResending}
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-primary hover:text-primary/80 font-medium p-0 h-auto"
             >
               {isResending ? "Sending..." : "Resend code"}
-            </button>
+            </Button>
           </div>
 
-          <p className="text-xs text-center text-slate-500">
+          <p className="text-xs text-center text-muted-foreground">
             Didn&apos;t receive the code? Wait a moment and try resending
           </p>
         </div>

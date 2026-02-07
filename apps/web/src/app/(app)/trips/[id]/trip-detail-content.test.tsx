@@ -261,7 +261,7 @@ describe("TripDetailContent", () => {
 
       // Check for gradient placeholder
       const placeholder = document.querySelector(
-        ".bg-gradient-to-br.from-slate-100.to-blue-100",
+        ".bg-gradient-to-br.from-muted.to-primary\\/10",
       );
       expect(placeholder).toBeDefined();
     });
@@ -768,8 +768,8 @@ describe("TripDetailContent", () => {
         /trip updated successfully/i,
       ).parentElement;
       expect(banner).toBeDefined();
-      expect(banner?.className).toContain("bg-green-50");
-      expect(banner?.className).toContain("border-green-200");
+      expect(banner?.className).toContain("bg-success/10");
+      expect(banner?.className).toContain("border-success/30");
     });
 
     it("does not show success banner on initial page load", () => {

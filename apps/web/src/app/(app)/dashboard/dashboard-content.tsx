@@ -21,17 +21,17 @@ const preloadCreateTripDialog = () =>
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 animate-pulse">
-      <div className="h-40 bg-slate-200" />
+    <div className="bg-card rounded-2xl overflow-hidden border border-border animate-pulse">
+      <div className="h-40 bg-muted" />
       <div className="p-4 space-y-3">
         <div className="space-y-2">
-          <div className="h-6 bg-slate-200 rounded w-3/4" />
-          <div className="h-4 bg-slate-200 rounded w-1/2" />
+          <div className="h-6 bg-muted rounded w-3/4" />
+          <div className="h-4 bg-muted rounded w-1/2" />
         </div>
-        <div className="h-4 bg-slate-200 rounded w-2/3" />
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          <div className="h-6 bg-slate-200 rounded w-24" />
-          <div className="h-4 bg-slate-200 rounded w-20" />
+        <div className="h-4 bg-muted rounded w-2/3" />
+        <div className="flex items-center justify-between pt-3 border-t border-border">
+          <div className="h-6 bg-muted rounded w-24" />
+          <div className="h-4 bg-muted rounded w-20" />
         </div>
       </div>
     </div>
@@ -90,17 +90,15 @@ export function DashboardContent() {
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-background pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
-          <h1
-            className="text-4xl font-bold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-          >
+          <h1 className="text-4xl font-bold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
             My Trips
           </h1>
           {!isPending && !isError && (
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               {tripCount} trip{tripCount !== 1 ? "s" : ""}
             </p>
           )}
@@ -108,13 +106,13 @@ export function DashboardContent() {
 
         {/* Search Bar */}
         <div className="relative mb-8">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search trips..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 pl-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+            className="h-12 pl-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
           />
         </div>
 
@@ -129,20 +127,19 @@ export function DashboardContent() {
 
         {/* Error State */}
         {isError && (
-          <div className="bg-white rounded-2xl border border-red-200 p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2
-              className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-            >
+          <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
               Failed to load trips
             </h2>
-            <p className="text-slate-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               {error?.message || "An unexpected error occurred"}
             </p>
             <Button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="gradient"
+              className="h-12 px-8 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isFetching && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {isFetching ? "Loading..." : "Try again"}
@@ -152,21 +149,20 @@ export function DashboardContent() {
 
         {/* Empty State (no trips at all) */}
         {isEmpty && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+          <div className="bg-card rounded-2xl border border-border p-12 text-center">
             <div className="max-w-md mx-auto">
-              <h2
-                className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-              >
+              <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
                 No trips yet
               </h2>
-              <p className="text-slate-600 mb-6">
+              <p className="text-muted-foreground mb-6">
                 Start planning your next adventure by creating your first trip.
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
                 onMouseEnter={preloadCreateTripDialog}
                 onFocus={preloadCreateTripDialog}
-                className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+                variant="gradient"
+                className="h-12 px-8 rounded-xl"
               >
                 <Plus className="w-5 h-5 mr-2" strokeWidth={2.5} />
                 Create your first trip
@@ -177,14 +173,12 @@ export function DashboardContent() {
 
         {/* No Search Results */}
         {noResults && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-            <Search className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h2
-              className="text-xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-            >
+          <div className="bg-card rounded-2xl border border-border p-8 text-center">
+            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
               No trips found
             </h2>
-            <p className="text-slate-600">
+            <p className="text-muted-foreground">
               Try searching with different keywords
             </p>
           </div>
@@ -192,13 +186,11 @@ export function DashboardContent() {
 
         {/* Trips Sections */}
         {!isPending && !isError && !isEmpty && !noResults && (
-          <>
+          <div aria-live="polite">
             {/* Upcoming Trips */}
             {upcomingTrips.length > 0 && (
               <section className="mb-12">
-                <h2
-                  className="text-2xl font-semibold text-slate-900 mb-4 font-[family-name:var(--font-playfair)]"
-                >
+                <h2 className="text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Upcoming trips
                 </h2>
                 <div className="space-y-4">
@@ -212,9 +204,7 @@ export function DashboardContent() {
             {/* Past Trips */}
             {pastTrips.length > 0 && (
               <section>
-                <h2
-                  className="text-2xl font-semibold text-slate-900 mb-4 font-[family-name:var(--font-playfair)]"
-                >
+                <h2 className="text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Past trips
                 </h2>
                 <div className="space-y-4">
@@ -224,20 +214,22 @@ export function DashboardContent() {
                 </div>
               </section>
             )}
-          </>
+          </div>
         )}
       </div>
 
       {/* Floating Action Button (FAB) */}
-      <button
+      <Button
         onClick={() => setCreateDialogOpen(true)}
         onMouseEnter={preloadCreateTripDialog}
         onFocus={preloadCreateTripDialog}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center text-white z-50"
+        variant="gradient"
+        size="icon"
+        className="fixed bottom-8 right-8 w-14 h-14 rounded-full z-50"
         aria-label="Create new trip"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </button>
+      </Button>
 
       {/* Create Trip Dialog */}
       <CreateTripDialog

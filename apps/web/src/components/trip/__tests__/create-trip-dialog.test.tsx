@@ -1422,8 +1422,8 @@ describe("CreateTripDialog", () => {
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       expect(continueButton.className).toContain("bg-gradient-to-r");
-      expect(continueButton.className).toContain("from-blue-600");
-      expect(continueButton.className).toContain("to-cyan-600");
+      expect(continueButton.className).toContain("from-primary");
+      expect(continueButton.className).toContain("to-accent");
     });
   });
 

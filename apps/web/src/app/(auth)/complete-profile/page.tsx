@@ -74,13 +74,13 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 border border-slate-200/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="space-y-6">
           <div className="space-y-2">
-            <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">
+            <h1 className="text-3xl font-semibold text-foreground tracking-tight">
               Complete your profile
-            </h2>
-            <p className="text-slate-600">
+            </h1>
+            <p className="text-muted-foreground">
               Tell us a bit about yourself to get started
             </p>
           </div>
@@ -92,15 +92,17 @@ export default function CompleteProfilePage() {
                 name="displayName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-900">
+                    <FormLabel className="text-sm font-medium text-foreground">
                       Display name
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="text"
                         placeholder="John Doe"
-                        className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
                         disabled={isSubmitting}
+                        autoComplete="name"
+                        aria-required="true"
                         {...field}
                         ref={(e) => {
                           field.ref(e);
@@ -108,7 +110,7 @@ export default function CompleteProfilePage() {
                         }}
                       />
                     </FormControl>
-                    <FormDescription className="text-xs text-slate-500">
+                    <FormDescription className="text-xs text-muted-foreground">
                       This is how others will see you on the platform
                     </FormDescription>
                     <FormMessage />
@@ -121,7 +123,7 @@ export default function CompleteProfilePage() {
                 name="timezone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-slate-900">
+                    <FormLabel className="text-sm font-medium text-foreground">
                       Timezone
                     </FormLabel>
                     <Select
@@ -130,7 +132,11 @@ export default function CompleteProfilePage() {
                       disabled={isSubmitting}
                     >
                       <FormControl>
-                        <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectTrigger
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                        >
                           <SelectValue placeholder="Select your timezone" />
                         </SelectTrigger>
                       </FormControl>
@@ -142,7 +148,7 @@ export default function CompleteProfilePage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription className="text-xs text-slate-500">
+                    <FormDescription className="text-xs text-muted-foreground">
                       Used to show you times in your local timezone
                     </FormDescription>
                     <FormMessage />
@@ -153,14 +159,15 @@ export default function CompleteProfilePage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+                variant="gradient"
+                className="w-full h-12 rounded-xl"
               >
                 {isSubmitting ? "Saving..." : "Complete profile"}
               </Button>
             </form>
           </Form>
 
-          <p className="text-xs text-center text-slate-500">
+          <p className="text-xs text-center text-muted-foreground">
             You can update this information later in your settings
           </p>
         </div>

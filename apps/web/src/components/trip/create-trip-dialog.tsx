@@ -145,9 +145,7 @@ export function CreateTripDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle
-            className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight"
-          >
+          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Create a new trip
           </DialogTitle>
           <DialogDescription>
@@ -158,10 +156,10 @@ export function CreateTripDialog({
         {/* Progress indicator */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-slate-900">
+            <span className="text-sm font-medium text-foreground">
               {currentStep === 1 ? "Basic information" : "Details & settings"}
             </span>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted-foreground">
               Step {currentStep} of 2
             </span>
           </div>
@@ -170,8 +168,8 @@ export function CreateTripDialog({
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
                 currentStep >= 1
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                  : "bg-slate-200 text-slate-600"
+                  ? "bg-gradient-to-r from-primary to-accent text-white"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               1
@@ -181,8 +179,8 @@ export function CreateTripDialog({
             <div
               className={`flex-1 h-0.5 transition-colors ${
                 currentStep >= 2
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600"
-                  : "bg-slate-200"
+                  ? "bg-gradient-to-r from-primary to-accent"
+                  : "bg-muted"
               }`}
             />
 
@@ -190,8 +188,8 @@ export function CreateTripDialog({
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
                 currentStep >= 2
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                  : "bg-slate-200 text-slate-600"
+                  ? "bg-gradient-to-r from-primary to-accent text-white"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               2
@@ -212,19 +210,19 @@ export function CreateTripDialog({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Trip name
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-destructive ml-1">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder="Bachelor Party in Miami"
-                          className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription className="text-sm text-slate-500">
+                      <FormDescription className="text-sm text-muted-foreground">
                         Choose something memorable (3-100 characters)
                       </FormDescription>
                       <FormMessage />
@@ -238,15 +236,15 @@ export function CreateTripDialog({
                   name="destination"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Destination
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-destructive ml-1">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder="Miami Beach, FL"
-                          className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           {...field}
                         />
                       </FormControl>
@@ -262,13 +260,13 @@ export function CreateTripDialog({
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Start date
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -283,13 +281,13 @@ export function CreateTripDialog({
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           End date
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -306,16 +304,20 @@ export function CreateTripDialog({
                   name="timezone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Trip timezone
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-destructive ml-1">*</span>
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base rounded-xl">
+                          <SelectTrigger
+                            ref={field.ref}
+                            onBlur={field.onBlur}
+                            className="h-12 text-base rounded-xl"
+                          >
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -327,7 +329,7 @@ export function CreateTripDialog({
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription className="text-sm text-slate-500">
+                      <FormDescription className="text-sm text-muted-foreground">
                         All trip times will be shown in this timezone
                       </FormDescription>
                       <FormMessage />
@@ -340,7 +342,8 @@ export function CreateTripDialog({
                   <Button
                     type="button"
                     onClick={handleContinue}
-                    className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+                    variant="gradient"
+                    className="h-12 px-8 rounded-xl"
                   >
                     Continue
                   </Button>
@@ -360,24 +363,24 @@ export function CreateTripDialog({
 
                     return (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Description
                         </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Tell your group about this trip..."
-                            className="h-32 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
+                            className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
                             disabled={isPending}
                             {...field}
                             value={field.value || ""}
                           />
                         </FormControl>
                         {showCounter && (
-                          <div className="text-xs text-slate-500 text-right">
+                          <div className="text-xs text-muted-foreground text-right">
                             {charCount} / 2000 characters
                           </div>
                         )}
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           Optional: Share details about the trip
                         </FormDescription>
                         <FormMessage />
@@ -392,7 +395,7 @@ export function CreateTripDialog({
                   name="coverImageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Cover image
                       </FormLabel>
                       <FormControl>
@@ -402,7 +405,7 @@ export function CreateTripDialog({
                           disabled={isPending}
                         />
                       </FormControl>
-                      <FormDescription className="text-sm text-slate-500">
+                      <FormDescription className="text-sm text-muted-foreground">
                         Optional: Upload a cover image for your trip
                       </FormDescription>
                       <FormMessage />
@@ -415,7 +418,7 @@ export function CreateTripDialog({
                   control={form.control}
                   name="allowMembersToAddEvents"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-4">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -428,10 +431,10 @@ export function CreateTripDialog({
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel className="text-base font-semibold text-slate-900 cursor-pointer">
+                        <FormLabel className="text-base font-semibold text-foreground cursor-pointer">
                           Allow members to add events
                         </FormLabel>
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           Let trip members create and propose events for the
                           itinerary
                         </FormDescription>
@@ -449,10 +452,10 @@ export function CreateTripDialog({
 
                     return (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Co-organizers
                         </FormLabel>
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           Add phone numbers of people who can help organize this
                           trip
                         </FormDescription>
@@ -463,20 +466,22 @@ export function CreateTripDialog({
                             {phones.map((phone, index) => (
                               <div
                                 key={`${phone}-${index}`}
-                                className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200"
+                                className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                               >
-                                <span className="text-sm font-medium text-slate-900">
+                                <span className="text-sm font-medium text-foreground">
                                   {phone}
                                 </span>
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => handleRemoveCoOrganizer(phone)}
                                   disabled={isPending}
-                                  className="p-1 rounded-full hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="min-w-[44px] min-h-[44px] rounded-full hover:bg-muted"
                                   aria-label={`Remove ${phone}`}
                                 >
-                                  <X className="w-4 h-4 text-slate-600" />
-                                </button>
+                                  <X className="w-4 h-4 text-muted-foreground" />
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -500,14 +505,14 @@ export function CreateTripDialog({
                                 }
                               }}
                               disabled={isPending}
-                              className="flex-1 h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                              className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                               aria-label="Co-organizer phone number"
                             />
                             <Button
                               type="button"
                               onClick={handleAddCoOrganizer}
                               disabled={isPending}
-                              className="h-12 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl"
+                              className="h-12 px-4 bg-muted hover:bg-muted text-foreground rounded-xl"
                               variant="outline"
                             >
                               <Plus className="w-5 h-5" />
@@ -518,7 +523,7 @@ export function CreateTripDialog({
                               {coOrganizerError}
                             </p>
                           )}
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Format: E.164 (e.g., +14155552671)
                           </p>
                         </div>
@@ -543,14 +548,15 @@ export function CreateTripDialog({
                     variant="outline"
                     onClick={handleBack}
                     disabled={isPending}
-                    className="flex-1 h-12 rounded-xl border-slate-300"
+                    className="flex-1 h-12 rounded-xl border-input"
                   >
                     Back
                   </Button>
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="gradient"
+                    className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isPending && (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />

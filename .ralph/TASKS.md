@@ -28,7 +28,7 @@
 
 ## Phase 3: Design Token Migration
 
-- [ ] Task 3.1: Migrate all hardcoded colors to design tokens across the entire app
+- [x] Task 3.1: Migrate all hardcoded colors to design tokens across the entire app
   - Implement: Update `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` — replace all `slate-*`, `gray-*`, `blue-*`, `red-*` hardcoded colors with design tokens (`text-foreground`, `text-muted-foreground`, `bg-background`, `bg-card`, `border-border`, `text-destructive`, etc.). Replace gradient button class strings with `<Button variant="gradient">`. Replace raw `<button>` FAB with `<Button variant="gradient" size="icon">`. Replace hand-written SkeletonCard with shadcn Skeleton if installed, or convert to use token colors. Add `aria-live="polite"` to the trip list container.
   - Implement: Update `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — replace all hardcoded colors with design tokens. Replace gradient button class strings with `<Button variant="gradient">`.
   - Implement: Update `apps/web/src/components/trip/trip-card.tsx` — replace hardcoded colors with tokens. Convert `<div role="button" tabIndex={0} onClick>` to Next.js `<Link href={/trips/${trip.id}}>`. Remove manual `onKeyDown` handler. Keep hover/active animations.
