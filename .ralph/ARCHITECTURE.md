@@ -1,339 +1,575 @@
-# Architecture: Frontend Design Overhaul
+# Phase 4: Itinerary View Modes - Architecture
 
-Redesign the Tripful web app frontend with a travel-poster-inspired visual identity (Capri/Mediterranean), proper design token system, app shell with navigation, and accessibility fixes. Addresses all findings from three audits: frontend-design, shadcn-ui, and web-design-guidelines.
+## Overview
 
-## Brand Direction
+Phase 4 implements the complete itinerary system for Tripful, enabling collaborative trip planning through events, accommodations, and member travel tracking. This phase builds on the existing Trip Management (Phase 3) to add:
 
-Inspired by vintage Italian travel posters (Capri by Mario Puppo). Warm, vivid, Mediterranean palette with classic serif typography. The CSS variable system is architected to support multiple travel-poster themes in the future (Alpine, Tropical, Nordic), but only the default Mediterranean theme is implemented now.
+1. **Events** - Itinerary items (meals, activities, group travel) with timezone support
+2. **Accommodations** - Multi-day lodging with date ranges
+3. **Member Travel** - Individual member arrivals/departures
+4. **View Modes** - Day-by-day and group-by-type itinerary display
+5. **Timezone Toggle** - Display times in trip's timezone or user's local timezone
+6. **Permissions** - Fine-grained control over who can create/edit/delete items
+7. **Soft Delete** - Recovery capability for accidentally deleted items
 
-## Color Palette (Vivid Capri)
+## Data Model
 
-All colors defined as HSL values for CSS custom properties:
+### New Tables
 
-| Token                            | Hex     | HSL         | Usage                             |
-| -------------------------------- | ------- | ----------- | --------------------------------- |
-| `--color-primary`                | #1A5F9E | 210 72% 36% | Primary actions, links, branding  |
-| `--color-primary-foreground`     | #FFFFFF | 0 0% 100%   | Text on primary                   |
-| `--color-accent`                 | #D4603A | 16 62% 53%  | Terracotta accent, secondary CTAs |
-| `--color-accent-foreground`      | #FFFFFF | 0 0% 100%   | Text on accent                    |
-| `--color-background`             | #FAF5EE | 36 60% 96%  | Page background (warm cream)      |
-| `--color-foreground`             | #3A2E22 | 27 27% 18%  | Primary text (dark warm brown)    |
-| `--color-card`                   | #FFFFFF | 0 0% 100%   | Card surfaces                     |
-| `--color-card-foreground`        | #3A2E22 | 27 27% 18%  | Text on cards                     |
-| `--color-muted`                  | #F0EBE3 | 34 28% 91%  | Muted backgrounds (warm gray)     |
-| `--color-muted-foreground`       | #8C8274 | 34 10% 50%  | Secondary text (sandy gray)       |
-| `--color-border`                 | #E5DDD2 | 34 28% 86%  | Borders (warm)                    |
-| `--color-input`                  | #E5DDD2 | 34 28% 86%  | Input borders                     |
-| `--color-ring`                   | #1A5F9E | 210 72% 36% | Focus rings                       |
-| `--color-secondary`              | #F0EBE3 | 34 28% 91%  | Secondary buttons                 |
-| `--color-secondary-foreground`   | #3A2E22 | 27 27% 18%  | Text on secondary                 |
-| `--color-destructive`            | #C4382A | 5 65% 47%   | Destructive actions (coral red)   |
-| `--color-destructive-foreground` | #FFFFFF | 0 0% 100%   | Text on destructive               |
-| `--color-popover`                | #FFFFFF | 0 0% 100%   | Popover surfaces                  |
-| `--color-popover-foreground`     | #3A2E22 | 27 27% 18%  | Text on popovers                  |
-
-### Additional Semantic Tokens
-
-| Token                        | Hex     | HSL         | Usage                              |
-| ---------------------------- | ------- | ----------- | ---------------------------------- |
-| `--color-success`            | #4A7C59 | 140 27% 39% | Success/Going badges (olive green) |
-| `--color-success-foreground` | #FFFFFF | 0 0% 100%   | Text on success                    |
-| `--color-warning`            | #C48A2A | 38 66% 47%  | Warning/Maybe badges (warm amber)  |
-| `--color-warning-foreground` | #FFFFFF | 0 0% 100%   | Text on warning                    |
-
-## Typography
-
-### Font Loading (`apps/web/src/lib/fonts.ts`)
+#### 1. Events Table
 
 ```typescript
-import { Playfair_Display, DM_Sans } from "next/font/google";
+export const eventTypeEnum = pgEnum("event_type", [
+  "travel",      // Group transportation (flights, buses, trains)
+  "meal",        // Dining events
+  "activity",    // Activities and experiences
+]);
 
-export const playfairDisplay = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-});
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    eventType: eventTypeEnum("event_type").notNull(),
+    location: text("location"),  // e.g., "Restaurant Name" or "JFK → LAX" for travel
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    endTime: timestamp("end_time", { withTimezone: true }),
+    allDay: boolean("all_day").notNull().default(false),
+    isOptional: boolean("is_optional").notNull().default(false),
+    links: text("links").array(),  // Array of URLs for bookings/confirmations
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("events_trip_id_idx").on(table.tripId),
+    createdByIdx: index("events_created_by_idx").on(table.createdBy),
+    startTimeIdx: index("events_start_time_idx").on(table.startTime),
+    deletedAtIdx: index("events_deleted_at_idx").on(table.deletedAt),
+  }),
+);
 
-export const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
+export type Event = typeof events.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;
 ```
 
-### Font Application
+**Key Design Decisions:**
+- `startTime`/`endTime` stored in UTC with timezone support (PostgreSQL `timestamp with time zone`)
+- `eventType` enum restricts to three categories (travel, meal, activity)
+- `allDay` flag for events without specific times
+- `isOptional` indicates members can skip this event
+- `links` as text array for multiple booking URLs
+- Soft delete via `deletedAt`/`deletedBy` for recovery
+- Indexes on `tripId`, `createdBy`, `startTime`, and `deletedAt` for efficient queries
 
-- Root `<html>` gets both font CSS variables: `className={cn(playfairDisplay.variable, dmSans.variable)}`
-- Body uses DM Sans as default: via `@theme { --font-sans: var(--font-dm-sans); }`
-- Display headings use Playfair: `font-[family-name:var(--font-playfair)]` (already used in codebase)
-
-### Type Scale
-
-| Role          | Classes                                                          | Font              |
-| ------------- | ---------------------------------------------------------------- | ----------------- |
-| Page title    | `text-4xl font-bold font-[family-name:var(--font-playfair)]`     | Playfair Display  |
-| Section title | `text-2xl font-semibold font-[family-name:var(--font-playfair)]` | Playfair Display  |
-| Card title    | `text-xl font-semibold font-[family-name:var(--font-playfair)]`  | Playfair Display  |
-| Body          | `text-base`                                                      | DM Sans (default) |
-| Caption/label | `text-sm text-muted-foreground`                                  | DM Sans           |
-| Small         | `text-xs text-muted-foreground`                                  | DM Sans           |
-
-## Component Architecture
-
-### New Components to Install (shadcn/ui)
-
-```bash
-pnpm dlx shadcn@latest add sonner
-pnpm dlx shadcn@latest add alert-dialog
-pnpm dlx shadcn@latest add skeleton
-pnpm dlx shadcn@latest add dropdown-menu
-pnpm dlx shadcn@latest add breadcrumb
-pnpm dlx shadcn@latest add avatar
-pnpm dlx shadcn@latest add separator
-pnpm dlx shadcn@latest add tooltip
-```
-
-### New Custom Components
-
-#### App Header (`apps/web/src/components/app-header.tsx`)
-
-```
-<header>
-  <nav aria-label="Main navigation">
-    <Link href="/dashboard">
-      <TripfulLogo /> (SVG wordmark or styled text)
-    </Link>
-    <nav-links: Dashboard (active state based on pathname)>
-    <UserMenu>
-      <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Avatar> (user initials fallback)
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem> Profile </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem> Log out </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </UserMenu>
-  </nav>
-</header>
-```
-
-- Uses `useAuth()` hook for user data and logout
-- Must be a client component ("use client") for auth context and dropdown interactivity
-- Active nav link styling based on `usePathname()`
-
-#### Skip Link (`apps/web/src/components/skip-link.tsx`)
-
-```tsx
-<a
-  href="#main-content"
-  className="sr-only focus:not-sr-only focus:absolute ..."
->
-  Skip to main content
-</a>
-```
-
-Added as first child of `<body>` in root layout.
-
-### Modified Components
-
-#### Button Variant (`apps/web/src/components/ui/button.tsx`)
-
-Add `gradient` variant to `buttonVariants`:
+#### 2. Accommodations Table
 
 ```typescript
-gradient:
-  "bg-gradient-to-r from-primary to-accent text-white hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 font-medium",
+export const accommodations = pgTable(
+  "accommodations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    address: text("address"),
+    description: text("description"),  // Check-in time, room details, confirmation number
+    checkIn: date("check_in").notNull(),
+    checkOut: date("check_out").notNull(),
+    links: text("links").array(),  // Booking URLs
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("accommodations_trip_id_idx").on(table.tripId),
+    createdByIdx: index("accommodations_created_by_idx").on(table.createdBy),
+    checkInIdx: index("accommodations_check_in_idx").on(table.checkIn),
+    deletedAtIdx: index("accommodations_deleted_at_idx").on(table.deletedAt),
+  }),
+);
+
+export type Accommodation = typeof accommodations.$inferSelect;
+export type NewAccommodation = typeof accommodations.$inferInsert;
 ```
 
-This replaces the 10+ instances of the hardcoded `from-blue-600 to-cyan-600` gradient string.
+**Key Design Decisions:**
+- Multi-day stays: `checkIn` and `checkOut` dates
+- Organizer-only creation (enforced at service layer)
+- Date-based (not timestamp) - accommodations span full days
+- Soft delete for recovery
 
-#### TripCard (`apps/web/src/components/trip/trip-card.tsx`)
+#### 3. Member Travel Table
 
-- Replace `<div role="button" tabIndex={0} onClick>` with Next.js `<Link href={/trips/${trip.id}}>`
-- Remove manual `onKeyDown` handler (Link handles it natively)
-- Supports middle-click/cmd-click to open in new tab
-- Keep hover/active animations on the Link wrapper
+```typescript
+export const memberTravelTypeEnum = pgEnum("member_travel_type", [
+  "arrival",
+  "departure",
+]);
 
-#### App Layout (`apps/web/src/app/(app)/layout.tsx`)
+export const memberTravel = pgTable(
+  "member_travel",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    travelType: memberTravelTypeEnum("travel_type").notNull(),
+    time: timestamp("time", { withTimezone: true }).notNull(),
+    location: text("location"),  // e.g., "JFK Airport" or "Miami Hotel"
+    details: text("details"),  // Flight number, train details, etc.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("member_travel_trip_id_idx").on(table.tripId),
+    memberIdIdx: index("member_travel_member_id_idx").on(table.memberId),
+    timeIdx: index("member_travel_time_idx").on(table.time),
+    deletedAtIdx: index("member_travel_deleted_at_idx").on(table.deletedAt),
+  }),
+);
 
-```tsx
-export default async function ProtectedLayout({ children }) {
-  // ... auth check ...
-  return (
-    <>
-      <AppHeader />
-      <main id="main-content">{children}</main>
-    </>
-  );
+export type MemberTravel = typeof memberTravel.$inferSelect;
+export type NewMemberTravel = typeof memberTravel.$inferInsert;
+```
+
+**Key Design Decisions:**
+- Separate table from events (not group transportation)
+- Linked to `members` table, not `users` (trip-specific context)
+- Two types: arrival and departure
+- Members + organizers can edit
+
+## Service Layer
+
+### Events Service
+
+```typescript
+export interface IEventService {
+  createEvent(tripId: string, userId: string, data: CreateEventInput): Promise<Event>;
+  getEvent(eventId: string): Promise<Event | null>;
+  getEventsByTrip(tripId: string, includeDeleted?: boolean): Promise<Event[]>;
+  updateEvent(eventId: string, userId: string, data: UpdateEventInput): Promise<Event>;
+  deleteEvent(eventId: string, userId: string): Promise<void>;
+  restoreEvent(eventId: string, userId: string): Promise<Event>;
+}
+
+export class EventService implements IEventService {
+  constructor(
+    private db: AppDatabase,
+    private permissionsService: IPermissionsService,
+  ) {}
+
+  async createEvent(tripId: string, userId: string, data: CreateEventInput): Promise<Event> {
+    // 1. Check if user can add events (organizer OR member with going status + allowMembersToAddEvents)
+    const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
+    if (!canAdd) throw new PermissionDeniedError("You don't have permission to add events");
+
+    // 2. Validate time range
+    if (data.endTime && new Date(data.endTime) <= new Date(data.startTime)) {
+      throw new ValidationError("End time must be after start time");
+    }
+
+    // 3. Insert event
+    const [event] = await this.db.insert(events).values({
+      tripId,
+      createdBy: userId,
+      ...data,
+    }).returning();
+
+    return event;
+  }
+
+  async updateEvent(eventId: string, userId: string, data: UpdateEventInput): Promise<Event> {
+    // 1. Check if user can edit (creator OR organizer)
+    const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
+    if (!canEdit) throw new PermissionDeniedError("You don't have permission to edit this event");
+
+    // 2. Update event
+    const [updated] = await this.db.update(events)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(events.id, eventId))
+      .returning();
+
+    if (!updated) throw new EventNotFoundError();
+    return updated;
+  }
+
+  async deleteEvent(eventId: string, userId: string): Promise<void> {
+    // Soft delete: set deletedAt and deletedBy
+    const canDelete = await this.permissionsService.canDeleteEvent(userId, eventId);
+    if (!canDelete) throw new PermissionDeniedError("You don't have permission to delete this event");
+
+    await this.db.update(events)
+      .set({ deletedAt: new Date(), deletedBy: userId })
+      .where(eq(events.id, eventId));
+  }
+
+  async restoreEvent(eventId: string, userId: string): Promise<Event> {
+    // Organizers only can restore
+    const event = await this.getEvent(eventId);
+    if (!event) throw new EventNotFoundError();
+
+    const isOrganizer = await this.permissionsService.isOrganizer(userId, event.tripId);
+    if (!isOrganizer) throw new PermissionDeniedError("Only organizers can restore events");
+
+    const [restored] = await this.db.update(events)
+      .set({ deletedAt: null, deletedBy: null })
+      .where(eq(events.id, eventId))
+      .returning();
+
+    return restored!;
+  }
 }
 ```
 
-Note: AppHeader is a client component imported into this server component layout.
+### Accommodations Service
 
-#### Auth Layout (`apps/web/src/app/(auth)/layout.tsx`)
+Similar structure to EventService, but:
+- **Organizer-only creation** (stricter permissions)
+- Date validation (checkOut must be after checkIn)
+- Multi-day range checks
 
-Redesign with travel poster aesthetic:
+### Member Travel Service
 
-- Warm cream background instead of dark gradient
-- Subtle travel-poster-inspired illustration or pattern (geometric map lines, compass rose SVG)
-- Remove `animate-pulse` gradient orbs
-- Wrap content in `<main id="main-content">`
-- Add Tripful wordmark above the auth card
+Similar structure, but:
+- **Member + organizers** can edit their own travel
+- Validation: arrival/departure times should align with trip dates
 
-#### Root Layout (`apps/web/src/app/layout.tsx`)
+### Extended Permissions Service
 
-- Add skip link component as first child of `<body>`
-- Add both font variables to `<html>` className
-- Add `<Toaster />` (from Sonner) inside Providers
-- Add `suppressHydrationWarning` on `<html>` (good practice for any future theming)
+```typescript
+export interface IPermissionsService {
+  // ... existing methods
 
-#### Landing Page (`apps/web/src/app/page.tsx`)
+  // NEW: Event permissions
+  canAddEvent(userId: string, tripId: string): Promise<boolean>;
+  canEditEvent(userId: string, eventId: string): Promise<boolean>;
+  canDeleteEvent(userId: string, eventId: string): Promise<boolean>;
 
-Simple branded landing:
+  // NEW: Accommodation permissions (organizer-only)
+  canAddAccommodation(userId: string, tripId: string): Promise<boolean>;
+  canEditAccommodation(userId: string, accommodationId: string): Promise<boolean>;
+  canDeleteAccommodation(userId: string, accommodationId: string): Promise<boolean>;
 
-- Travel poster aesthetic background
-- Tripful wordmark with Playfair Display
-- Tagline: "Plan and share your adventures"
-- CTA button to `/login`
-- Warm cream and azure palette
+  // NEW: Member travel permissions
+  canAddMemberTravel(userId: string, tripId: string): Promise<boolean>;
+  canEditMemberTravel(userId: string, memberTravelId: string): Promise<boolean>;
+  canDeleteMemberTravel(userId: string, memberTravelId: string): Promise<boolean>;
+}
+```
 
-### Dashboard Page Changes (`apps/web/src/app/(app)/dashboard/dashboard-content.tsx`)
+**Permission Rules:**
+- **Events**: Organizer OR (member with status='going' AND trip.allowMembersToAddEvents)
+- **Edit/Delete Event**: Creator OR organizer
+- **Accommodations**: Organizer only
+- **Member Travel**: Owner OR organizer
 
-- Replace `space-y-4` trip list with responsive grid: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
-- Replace all hardcoded `slate-*`, `gray-*`, `blue-*` colors with design tokens
-- Replace gradient button class strings with `<Button variant="gradient">`
-- Replace raw `<button>` FAB with `<Button variant="gradient" size="icon">`
-- Use Skeleton component for loading states
-- Add `aria-live="polite"` to the trips list container for search result updates
+## API Design
 
-### Trip Detail Page Changes (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`)
+### Event Endpoints
 
-- Add `<Breadcrumb>` component above trip title: "My Trips > {trip.name}"
-- Replace all hardcoded colors with design tokens
-- Replace success banner with `toast.success()` from Sonner
-- Add entrance animations to content sections
-- Use `<Separator>` component for visual dividers
+```
+POST   /trips/:tripId/events               Create event
+GET    /trips/:tripId/events               List events (exclude soft-deleted by default)
+GET    /trips/:tripId/events/:eventId      Get event details
+PUT    /trips/:tripId/events/:eventId      Update event
+DELETE /trips/:tripId/events/:eventId      Soft delete event
+POST   /trips/:tripId/events/:eventId/restore  Restore soft-deleted event
+```
 
-### Auth Pages Changes
+### Accommodation Endpoints
 
-All three auth pages (`login`, `verify`, `complete-profile`):
+```
+POST   /trips/:tripId/accommodations       Create accommodation
+GET    /trips/:tripId/accommodations       List accommodations
+GET    /trips/:tripId/accommodations/:id   Get accommodation details
+PUT    /trips/:tripId/accommodations/:id   Update accommodation
+DELETE /trips/:tripId/accommodations/:id   Soft delete accommodation
+POST   /trips/:tripId/accommodations/:id/restore  Restore accommodation
+```
 
-- Change `<h2>` to `<h1>` for proper heading hierarchy
-- Add `autocomplete` attributes (`autocomplete="tel"` on phone, `autocomplete="name"` on display name)
-- Replace hardcoded colors with design tokens
-- Add `aria-required="true"` to required form fields
+### Member Travel Endpoints
 
-### Create/Edit Trip Dialog Changes
+```
+POST   /trips/:tripId/member-travel        Create member travel
+GET    /trips/:tripId/member-travel        List member travel
+GET    /trips/:tripId/member-travel/:id    Get member travel details
+PUT    /trips/:tripId/member-travel/:id    Update member travel
+DELETE /trips/:tripId/member-travel/:id    Soft delete member travel
+POST   /trips/:tripId/member-travel/:id/restore  Restore member travel
+```
 
-- Replace native `<input type="checkbox">` with shadcn `<Checkbox>` (already installed)
-- Replace delete confirmation inline panel with `<AlertDialog>`
-- Replace inline error banners with `toast.error()` from Sonner
-- Replace gradient button class strings with `<Button variant="gradient">`
-- Replace all hardcoded colors with design tokens
-- Increase co-organizer remove button touch target to min 44x44px
+## Frontend Architecture
 
-### Image Upload Changes
+### Route Structure
 
-- Replace raw `<button>` elements with shadcn `<Button>`
-- Increase remove button touch target to min 44x44px
-- Replace hardcoded colors with design tokens
-- Add `<Tooltip>` on icon-only buttons
+Integrate itinerary into existing trip detail page:
 
-## Design Token Migration Strategy
+```
+/trips/[id]  →  apps/web/src/app/(app)/trips/[id]/page.tsx
+```
 
-### Phase 1: Update globals.css
+The page will contain:
+- Trip header (existing)
+- **NEW: Itinerary section** with:
+  - View mode toggle (day-by-day / group-by-type)
+  - Timezone toggle (trip's timezone / my timezone)
+  - Itinerary content area
 
-Replace the entire `@theme` block with the Vivid Capri palette. Remove dark mode CSS variables.
+### Component Structure
 
-### Phase 2: Systematic Color Replacement
+```
+components/
+  itinerary/
+    itinerary-view.tsx                  # Main container component
+    itinerary-header.tsx                # View mode + timezone toggles
+    day-by-day-view.tsx                 # Day-by-day grouped view
+    group-by-type-view.tsx              # Type-grouped view
+    event-card.tsx                      # Event display card (expandable)
+    accommodation-card.tsx              # Accommodation display (compact/expanded)
+    member-travel-card.tsx              # Arrival/departure display
+    create-event-dialog.tsx             # Event creation form
+    edit-event-dialog.tsx               # Event edit form
+    create-accommodation-dialog.tsx     # Accommodation creation form
+    edit-accommodation-dialog.tsx       # Accommodation edit form
+    create-member-travel-dialog.tsx     # Member travel creation form
+    edit-member-travel-dialog.tsx       # Member travel edit form
+```
 
-| Hardcoded Pattern                           | Token Replacement                                   |
-| ------------------------------------------- | --------------------------------------------------- |
-| `text-slate-900`                            | `text-foreground`                                   |
-| `text-slate-600`, `text-slate-500`          | `text-muted-foreground`                             |
-| `bg-gray-50`                                | `bg-background`                                     |
-| `bg-white`                                  | `bg-card`                                           |
-| `border-slate-200`, `border-slate-300`      | `border-border`                                     |
-| `bg-slate-200` (skeleton)                   | `bg-muted`                                          |
-| `text-red-500`, `text-red-600`, `bg-red-50` | `text-destructive`, `bg-destructive/10`             |
-| `bg-emerald-100 text-emerald-700`           | `bg-success/15 text-success`                        |
-| `bg-amber-100 text-amber-700`               | `bg-warning/15 text-warning`                        |
-| `from-blue-600 to-cyan-600`                 | Use `variant="gradient"` button                     |
-| `border-red-200`                            | `border-destructive/30`                             |
-| `focus:border-blue-500 focus:ring-blue-500` | `focus-visible:border-ring focus-visible:ring-ring` |
-| `shadow-blue-500/30`                        | `shadow-primary/25`                                 |
+### State Management (TanStack Query)
 
-### Phase 3: Add Success/Warning Tokens
+```typescript
+// apps/web/src/hooks/use-events.ts
+export const eventKeys = {
+  all: ["events"] as const,
+  byTrip: (tripId: string) => [...eventKeys.all, "trip", tripId] as const,
+  detail: (id: string) => [...eventKeys.all, "detail", id] as const,
+};
 
-Add `--color-success` and `--color-warning` to `@theme` block in globals.css. These need corresponding Tailwind utilities, which in Tailwind v4 are automatically generated from `@theme` CSS variables.
+export function useEvents(tripId: string) {
+  return useQuery({
+    queryKey: eventKeys.byTrip(tripId),
+    queryFn: () => apiClient.get(`/trips/${tripId}/events`),
+  });
+}
+
+export function useCreateEvent(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateEventInput) =>
+      apiClient.post(`/trips/${tripId}/events`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: eventKeys.byTrip(tripId) });
+      toast.success("Event created!");
+    },
+  });
+}
+```
+
+Similar hooks for accommodations and member travel.
+
+### View Mode Logic
+
+#### Day-by-Day View
+
+```typescript
+interface DayGroup {
+  date: string;  // YYYY-MM-DD
+  accommodation?: Accommodation;
+  arrivals: MemberTravel[];
+  departures: MemberTravel[];
+  events: Event[];  // Sorted by startTime
+}
+
+function groupByDay(
+  events: Event[],
+  accommodations: Accommodation[],
+  memberTravel: MemberTravel[],
+  timezone: string,
+): DayGroup[] {
+  // 1. Determine all dates (trip.startDate to trip.endDate)
+  // 2. For each date:
+  //    - Find accommodation that spans this date
+  //    - Find arrivals and departures for this date
+  //    - Find events for this date (filter by startTime in timezone)
+  //    - Sort events by time (all-day events first)
+  // 3. Return array of DayGroup
+}
+```
+
+#### Group-by-Type View
+
+```typescript
+interface TypeGroup {
+  type: "accommodation" | "travel" | "meal" | "activity";
+  items: Array<Event | Accommodation>;  // Sorted by date/time
+}
+
+function groupByType(
+  events: Event[],
+  accommodations: Accommodation[],
+): TypeGroup[] {
+  // 1. Group accommodations
+  // 2. Group events by eventType
+  // 3. Sort each group by date/time
+  // NOTE: Member Travel NOT included (stays in day-by-day context)
+}
+```
+
+### Timezone Conversion
+
+```typescript
+// Utility for converting timestamps to display timezone
+function formatInTimezone(
+  timestamp: Date | string,
+  timezone: string,
+  format: "date" | "time" | "datetime",
+): string {
+  const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    ...(format === "date" && { dateStyle: "medium" }),
+    ...(format === "time" && { timeStyle: "short" }),
+    ...(format === "datetime" && { dateStyle: "medium", timeStyle: "short" }),
+  }).format(date);
+}
+```
+
+Display times using:
+- `trip.preferredTimezone` (default)
+- `user.timezone` (when toggled)
 
 ## Testing Strategy
 
-### Unit Tests
+### Unit Tests (Vitest)
+- Service methods (create, update, delete, restore)
+- Permission checks
+- Timezone conversion utilities
+- Date grouping logic (day-by-day, group-by-type)
 
-- Update existing component tests that assert on markup changes (TripCard div→Link, heading levels)
-- Add tests for new components: AppHeader, SkipLink, UserMenu
+### Integration Tests (Vitest + Test DB)
+- API endpoints with authentication
+- Permission-based access control
+- Soft delete and restore flows
+- Cross-field validation (e.g., endTime > startTime)
 
-### Integration Tests
-
-- Update dashboard and trip detail page tests for new markup structure
-- Test breadcrumb navigation renders correctly
+### Component Tests (Vitest + React Testing Library)
+- Form validation (React Hook Form + Zod)
+- View mode switching
+- Timezone toggle
+- Card expand/collapse
 
 ### E2E Tests (Playwright)
+- Create event flow (authenticated member)
+- Create accommodation flow (organizer only)
+- Add member travel (member + organizer)
+- View mode switching (day-by-day ↔ group-by-type)
+- Timezone toggle (trip timezone ↔ user timezone)
+- Delete and restore event
+- Permission denial (non-member tries to add event)
 
-- New: Test app header navigation (click Dashboard link, verify navigation)
-- New: Test user menu dropdown (open, click Profile, click Logout)
-- New: Test breadcrumbs on trip detail page
-- New: Test skip link functionality
-- Existing: Ensure all existing E2E tests still pass
+### Manual Testing (Playwright + Screenshots)
+- Responsive layouts (mobile, tablet, desktop)
+- Itinerary views with real data
+- Timezone display accuracy
+- Event card collapsed/expanded states
+- Accommodation multi-day display
+- Member travel compact display
 
-### Manual/Screenshot Tests
+Screenshots to capture:
+- `day-by-day-view-desktop.png`
+- `day-by-day-view-mobile.png`
+- `group-by-type-view-desktop.png`
+- `timezone-toggle-before-after.png`
+- `create-event-dialog.png`
+- `accommodation-multi-day.png`
+- `member-travel-arrivals.png`
 
-- Screenshot the landing page, auth pages, dashboard, and trip detail page
-- Verify the travel poster aesthetic renders correctly
-- Test responsive breakpoints (mobile, tablet, desktop)
-- Verify toast notifications appear and dismiss correctly
+## Database Migrations
 
-## Files Changed Summary
+### Migration 1: Create Events Table
+- Create `event_type` enum
+- Create `events` table with indexes
+- Add foreign keys with cascade delete
 
-### New Files
+### Migration 2: Create Accommodations Table
+- Create `accommodations` table with indexes
+- Add foreign keys with cascade delete
 
-- `apps/web/src/components/app-header.tsx` - App shell header with navigation
-- `apps/web/src/components/skip-link.tsx` - Accessibility skip link
-- `apps/web/src/components/ui/sonner.tsx` - Sonner toast (via shadcn add)
-- `apps/web/src/components/ui/alert-dialog.tsx` - Alert dialog (via shadcn add)
-- `apps/web/src/components/ui/skeleton.tsx` - Skeleton loading (via shadcn add)
-- `apps/web/src/components/ui/dropdown-menu.tsx` - Dropdown menu (via shadcn add)
-- `apps/web/src/components/ui/breadcrumb.tsx` - Breadcrumb (via shadcn add)
-- `apps/web/src/components/ui/avatar.tsx` - Avatar (via shadcn add)
-- `apps/web/src/components/ui/separator.tsx` - Separator (via shadcn add)
-- `apps/web/src/components/ui/tooltip.tsx` - Tooltip (via shadcn add)
+### Migration 3: Create Member Travel Table
+- Create `member_travel_type` enum
+- Create `member_travel` table with indexes
+- Add foreign keys with cascade delete
 
-### Modified Files
+## Deployment Considerations
 
-- `apps/web/src/app/globals.css` - New palette, remove dark mode
-- `apps/web/src/lib/fonts.ts` - Add DM Sans font
-- `apps/web/src/app/layout.tsx` - Skip link, font variables, Toaster
-- `apps/web/src/app/(app)/layout.tsx` - App shell with header + main landmark
-- `apps/web/src/app/(auth)/layout.tsx` - Travel poster redesign
-- `apps/web/src/app/page.tsx` - Branded landing page
-- `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` - Token migration, grid, FAB
-- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` - Tokens, breadcrumbs, toast
-- `apps/web/src/app/(auth)/login/page.tsx` - Tokens, h1, autocomplete
-- `apps/web/src/app/(auth)/verify/page.tsx` - Tokens, h1, autocomplete
-- `apps/web/src/app/(auth)/complete-profile/page.tsx` - Tokens, h1, autocomplete
-- `apps/web/src/components/trip/trip-card.tsx` - Link conversion, tokens
-- `apps/web/src/components/trip/create-trip-dialog.tsx` - Checkbox, tokens, gradient button
-- `apps/web/src/components/trip/edit-trip-dialog.tsx` - AlertDialog, Checkbox, tokens
-- `apps/web/src/components/trip/image-upload.tsx` - Button, touch targets, tokens
-- `apps/web/src/components/ui/button.tsx` - Add gradient variant
-- `apps/web/src/app/providers/providers.tsx` - Possibly add Toaster here
-- `apps/web/package.json` - New dependencies (sonner, radix packages)
+- **No feature flags** - deploy directly when Phase 4 is complete
+- **Database migrations** must run before deploying new API code
+- **Zero-downtime deployment** - migrations are additive (new tables), no breaking changes
+- **API backward compatibility** - existing trip endpoints remain unchanged
 
-### Test Files (Updated/New)
+## Open Questions / Decisions Made
 
-- Existing test files updated for markup changes
-- New E2E tests for navigation, breadcrumbs, skip link
+1. **Data model**: ✅ Separate tables (events, accommodations, member_travel) for type safety
+2. **Soft delete**: ✅ Use deletedAt/deletedBy columns in each table
+3. **Route structure**: ✅ Integrate itinerary into /trips/[id] page
+4. **Timezone toggle**: ✅ Sticky header bar on itinerary view
+5. **Event permissions**: ✅ Extend PermissionsService with canAddEvent, canEditEvent, canDeleteEvent
+6. **Member travel permissions**: ✅ Member + organizers can edit
+7. **Testing**: ✅ All levels (unit, integration, component, E2E, manual with screenshots)
+8. **Feature flags**: ✅ No feature flag needed
+
+## Success Criteria
+
+Phase 4 is complete when:
+
+1. ✅ All database tables created with proper indexes and foreign keys
+2. ✅ Services implement full CRUD + restore for events, accommodations, member travel
+3. ✅ Permissions service extended with fine-grained checks
+4. ✅ API endpoints handle all operations with validation
+5. ✅ Frontend displays day-by-day view with accommodations, arrivals, departures, events
+6. ✅ Frontend displays group-by-type view with sorted items
+7. ✅ Timezone toggle works correctly (trip ↔ user timezone)
+8. ✅ Create/edit/delete dialogs work for all entity types
+9. ✅ Soft delete and restore functional for organizers
+10. ✅ All tests pass (unit, integration, component, E2E)
+11. ✅ Manual testing screenshots captured for all key states
+12. ✅ Permission checks prevent unauthorized actions
+
+---
+
+**Document Version**: 1.0
+**Last Updated**: 2026-02-07
+**Phase**: 4 (Itinerary View Modes)
