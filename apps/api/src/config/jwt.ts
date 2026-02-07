@@ -35,7 +35,8 @@ export function ensureJWTSecret(): string {
   const content = `\nJWT_SECRET=${secret}\n`;
   writeFileSync(envLocalPath, content, { flag: "a" });
 
-  console.log("✓ Generated JWT secret and saved to .env.local");
+  // Log via process.stderr since Fastify logger is not yet available
+  process.stderr.write("Generated JWT secret and saved to .env.local\n");
 
   // Set it in process.env
   process.env.JWT_SECRET = secret;

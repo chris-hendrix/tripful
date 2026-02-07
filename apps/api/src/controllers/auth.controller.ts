@@ -5,8 +5,6 @@ import {
   completeProfileSchema,
 } from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
-import { authService, AuthService } from "@/services/auth.service.js";
-import { smsService } from "@/services/sms.service.js";
 
 /**
  * Authentication Controller
@@ -55,6 +53,8 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
+      const { authService, smsService } = request.server;
+
       // Generate 6-digit verification code
       const code = authService.generateCode();
 
@@ -129,6 +129,8 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
+      const { authService } = request.server;
+
       // Verify code exists, matches, and hasn't expired
       const isValid = await authService.verifyCode(e164PhoneNumber, code);
 
@@ -145,9 +147,8 @@ export const authController = {
       // Get existing user or create new one
       const user = await authService.getOrCreateUser(e164PhoneNumber);
 
-      // Generate JWT token (need fastify instance for JWT)
-      const serviceWithFastify = new AuthService(request.server);
-      const token = serviceWithFastify.generateToken(user);
+      // Generate JWT token
+      const token = authService.generateToken(user);
 
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
@@ -218,6 +219,8 @@ export const authController = {
     const { displayName, timezone } = result.data;
 
     try {
+      const { authService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 
@@ -228,8 +231,7 @@ export const authController = {
       });
 
       // Generate new JWT token with updated profile info
-      const serviceWithFastify = new AuthService(request.server);
-      const token = serviceWithFastify.generateToken(updatedUser);
+      const token = authService.generateToken(updatedUser);
 
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
@@ -276,6 +278,8 @@ export const authController = {
    */
   async getMe(request: FastifyRequest, reply: FastifyReply) {
     try {
+      const { authService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 

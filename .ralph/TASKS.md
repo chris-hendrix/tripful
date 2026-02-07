@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation — Plugin Architecture & App Builder
 
-- [ ] Task 1.1: Refactor to Fastify plugin architecture with buildApp extraction and graceful shutdown
+- [x] Task 1.1: Refactor to Fastify plugin architecture with buildApp extraction and graceful shutdown
   - Implement: Install dependencies (`@fastify/type-provider-zod`, `@fastify/helmet`, `@fastify/error`, `@fastify/under-pressure`, `close-with-grace`, `pino-pretty`)
   - Implement: Create `src/plugins/config.ts` — wrap env config as Fastify plugin, decorate `fastify.config`
   - Implement: Create `src/plugins/database.ts` — wrap database as Fastify plugin, pass `schema` to `drizzle()`, decorate `fastify.db`, add `onClose` hook for pool cleanup

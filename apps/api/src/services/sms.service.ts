@@ -1,3 +1,8 @@
+interface Logger {
+  info(msg: string): void;
+  info(obj: Record<string, unknown>, msg: string): void;
+}
+
 /**
  * SMS Service Interface
  * Defines the contract for sending SMS messages
@@ -14,22 +19,28 @@ export interface ISMSService {
 
 /**
  * Mock SMS Service Implementation
- * Logs SMS messages to console instead of sending actual SMS
+ * Logs SMS messages using the provided logger instead of sending actual SMS
  * Used for development and testing environments
  */
 export class MockSMSService implements ISMSService {
+  private logger: Logger | undefined;
+
+  constructor(logger?: Logger) {
+    this.logger = logger;
+  }
+
   /**
-   * Sends a verification code by logging to console
+   * Sends a verification code by logging it
    * @param phoneNumber - The phone number to send the code to
    * @param code - The verification code to send
    */
   async sendVerificationCode(phoneNumber: string, code: string): Promise<void> {
-    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("📱 SMS Verification Code");
-    console.log(`Phone: ${phoneNumber}`);
-    console.log(`Code: ${code}`);
-    console.log("Expires: 5 minutes");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    if (this.logger) {
+      this.logger.info(
+        { phoneNumber, code, expiresIn: "5 minutes" },
+        "SMS Verification Code",
+      );
+    }
   }
 }
 

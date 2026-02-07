@@ -5,9 +5,6 @@ import {
   uuidSchema,
   addCoOrganizerSchema,
 } from "@tripful/shared/schemas";
-import { tripService } from "@/services/trip.service.js";
-import { uploadService } from "@/services/upload.service.js";
-import { permissionsService } from "@/services/permissions.service.js";
 
 /**
  * Trip Controller
@@ -43,6 +40,8 @@ export const tripController = {
     const data = result.data;
 
     try {
+      const { tripService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 
@@ -109,6 +108,7 @@ export const tripController = {
    */
   async getUserTrips(request: FastifyRequest, reply: FastifyReply) {
     try {
+      const { tripService } = request.server;
       const userId = request.user.sub;
       const trips = await tripService.getUserTrips(userId);
 
@@ -141,6 +141,7 @@ export const tripController = {
     reply: FastifyReply,
   ): Promise<void> {
     try {
+      const { tripService } = request.server;
       const { id } = request.params as { id: string };
       const userId = request.user.sub;
 
@@ -243,7 +244,11 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Call service to update trip
-      const trip = await tripService.updateTrip(id, userId, bodyResult.data);
+      const trip = await request.server.tripService.updateTrip(
+        id,
+        userId,
+        bodyResult.data,
+      );
 
       // Return success response
       return reply.status(200).send({
@@ -327,7 +332,7 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Call service to cancel trip (soft delete)
-      await tripService.cancelTrip(id, userId);
+      await request.server.tripService.cancelTrip(id, userId);
 
       // Return success response
       return reply.status(200).send({
@@ -424,7 +429,7 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Call service to add co-organizer (wrap phone in array)
-      await tripService.addCoOrganizers(id, userId, [
+      await request.server.tripService.addCoOrganizers(id, userId, [
         bodyValidation.data.phoneNumber,
       ]);
 
@@ -545,7 +550,11 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Call service to remove co-organizer
-      await tripService.removeCoOrganizer(id, userId, coOrgUserId);
+      await request.server.tripService.removeCoOrganizer(
+        id,
+        userId,
+        coOrgUserId,
+      );
 
       // Return success response
       return reply.status(200).send({
@@ -700,6 +709,7 @@ export const tripController = {
 
       // Extract user ID from JWT
       const userId = request.user.sub;
+      const { tripService, uploadService, permissionsService } = request.server;
 
       // Fetch trip to check permissions and get old image URL
       const trip = await tripService.getTripById(id, userId);
@@ -865,6 +875,7 @@ export const tripController = {
 
       // Extract user ID from JWT
       const userId = request.user.sub;
+      const { tripService, uploadService, permissionsService } = request.server;
 
       // Fetch trip to check permissions and get image URL
       const trip = await tripService.getTripById(id, userId);

@@ -1,5 +1,4 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { db } from "@/config/database.js";
 import { users } from "@/db/schema/index.js";
 import { eq } from "drizzle-orm";
 
@@ -49,7 +48,7 @@ export async function requireCompleteProfile(
   }
 
   // Fetch user from database to check profile completeness
-  const result = await db
+  const result = await request.server.db
     .select()
     .from(users)
     .where(eq(users.id, request.user.sub))

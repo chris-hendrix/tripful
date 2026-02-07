@@ -37,6 +37,9 @@ async function buildTestApp(): Promise<FastifyInstance> {
     cookie: { cookieName: "auth_token" },
   });
 
+  // Decorate with db for requireCompleteProfile middleware
+  app.decorate("db", db);
+
   app.setErrorHandler(errorHandler);
 
   // Register test routes with middleware
