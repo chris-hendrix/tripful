@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Upload, AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/api";
 
 interface ImageUploadProps {
   value?: string | null;
@@ -95,9 +96,7 @@ export function ImageUpload({
       const formData = new FormData();
       formData.append("file", file);
 
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      const response = await fetch(`${apiUrl}/trips/${tripId}/cover-image`, {
+      const response = await fetch(`${API_URL}/trips/${tripId}/cover-image`, {
         method: "POST",
         credentials: "include",
         body: formData,

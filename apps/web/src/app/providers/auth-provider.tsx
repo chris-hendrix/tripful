@@ -9,8 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@tripful/shared";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;

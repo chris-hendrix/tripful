@@ -766,10 +766,7 @@ describe("ImageUpload", () => {
       });
     });
 
-    it("uses NEXT_PUBLIC_API_URL when available", async () => {
-      const originalEnv = process.env.NEXT_PUBLIC_API_URL;
-      process.env.NEXT_PUBLIC_API_URL = "https://api.example.com";
-
+    it("uses centralized API_URL for upload requests", async () => {
       const mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
@@ -791,12 +788,10 @@ describe("ImageUpload", () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          "https://api.example.com/trips/trip-123/cover-image",
+          "http://localhost:8000/api/trips/trip-123/cover-image",
           expect.any(Object),
         );
       });
-
-      process.env.NEXT_PUBLIC_API_URL = originalEnv;
     });
 
     it("handles upload error gracefully", async () => {

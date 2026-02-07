@@ -39,3 +39,14 @@ export interface ErrorResponse {
 
 // Re-export user-related types
 export type { User, AuthResponse } from "./user";
+
+// Re-export trip-related types
+export type {
+  Trip,
+  TripSummary,
+  TripDetail,
+  GetTripsResponse,
+  GetTripResponse,
+  CreateTripResponse,
+  UpdateTripResponse,
+} from "./trip";

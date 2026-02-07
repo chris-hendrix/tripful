@@ -16,67 +16,7 @@ import { useAuth } from "@/app/providers/auth-provider";
 import { EditTripDialog } from "@/components/trip/edit-trip-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-function formatDateRange(start: string | null, end: string | null): string {
-  if (!start && !end) return "Dates TBD";
-
-  // Parse dates as UTC to avoid timezone issues
-  const parseDate = (dateStr: string) => {
-    const parts = dateStr.split("-").map(Number);
-    const year = parts[0];
-    const month = parts[1];
-    const day = parts[2];
-    if (!year || !month || !day) {
-      throw new Error(`Invalid date format: ${dateStr}`);
-    }
-    return new Date(Date.UTC(year, month - 1, day));
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(date);
-  };
-
-  if (!start && end) return `Ends ${formatDate(parseDate(end))}`;
-  if (start && !end) return `Starts ${formatDate(parseDate(start))}`;
-
-  // Both dates present
-  const startDate = parseDate(start!);
-  const endDate = parseDate(end!);
-
-  const startMonth = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    timeZone: "UTC",
-  }).format(startDate);
-  const startDay = startDate.getUTCDate();
-  const endMonth = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    timeZone: "UTC",
-  }).format(endDate);
-  const endDay = endDate.getUTCDate();
-  const year = endDate.getUTCFullYear();
-
-  // Same month
-  if (startMonth === endMonth) {
-    return `${startMonth} ${startDay} - ${endDay}, ${year}`;
-  }
-
-  // Different months
-  return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { formatDateRange, getInitials } from "@/lib/format";
 
 function SkeletonDetail() {
   return (

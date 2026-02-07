@@ -39,15 +39,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { Trash2, Loader2 } from "lucide-react";
-
-const TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-];
+import { TIMEZONES } from "@/lib/constants";
 
 interface EditTripDialogProps {
   open: boolean;

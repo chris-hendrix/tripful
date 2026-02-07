@@ -7,6 +7,13 @@ export type {
   ErrorResponse,
   User,
   AuthResponse,
+  Trip,
+  TripSummary,
+  TripDetail,
+  GetTripsResponse,
+  GetTripResponse,
+  CreateTripResponse,
+  UpdateTripResponse,
 } from "./types/index";
 
 // Schemas

@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation — Shared Types, Code Deduplication & Bundle Config
 
-- [ ] Task 1.1: Move trip types to shared package, extract duplicated utilities/constants, centralize API_URL, and configure bundle optimizations
+- [x] Task 1.1: Move trip types to shared package, extract duplicated utilities/constants, centralize API_URL, and configure bundle optimizations
   - Implement: Create `shared/types/trip.ts` with `TripSummary`, `TripDetail`, `GetTripsResponse`, `GetTripResponse`, `CreateTripResponse`, `UpdateTripResponse` interfaces. Export from `shared/types/index.ts`.
   - Implement: Update `apps/web/src/hooks/use-trips.ts` to import types from `@tripful/shared/types` instead of defining them locally. Remove the local type definitions.
   - Implement: Create `apps/web/src/lib/format.ts` — extract `formatDateRange` and `getInitials` from `trip-card.tsx` and `trips/[id]/page.tsx`. Hoist `Intl.DateTimeFormat` instances to module scope.

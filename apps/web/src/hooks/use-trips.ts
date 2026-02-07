@@ -2,78 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { apiRequest, APIError } from "@/lib/api";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
+import type {
+  Trip,
+  TripSummary,
+  TripDetail,
+  GetTripsResponse,
+  GetTripResponse,
+  CreateTripResponse,
+  UpdateTripResponse,
+} from "@tripful/shared/types";
 
-/**
- * Trip type from database schema
- * Matches the Trip type from apps/api/src/db/schema/index.ts
- */
-export interface Trip {
-  id: string;
-  name: string;
-  destination: string;
-  startDate: string | null;
-  endDate: string | null;
-  preferredTimezone: string;
-  description: string | null;
-  coverImageUrl: string | null;
-  createdBy: string;
-  allowMembersToAddEvents: boolean;
-  cancelled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Trip summary type returned by GET /api/trips
- * Used for dashboard display with minimal data
- */
-export interface TripSummary {
-  id: string;
-  name: string;
-  destination: string;
-  startDate: string | null;
-  endDate: string | null;
-  coverImageUrl: string | null;
-  isOrganizer: boolean;
-  rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
-  organizerInfo: Array<{
-    id: string;
-    displayName: string;
-    profilePhotoUrl: string | null;
-  }>;
-  memberCount: number;
-  eventCount: number;
-}
-
-/**
- * API response type for fetching trips list (paginated)
- */
-interface GetTripsResponse {
-  success: true;
-  data: TripSummary[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-/**
- * API response type for trip creation
- */
-interface CreateTripResponse {
-  success: true;
-  trip: Trip;
-}
-
-/**
- * API response type for trip update
- */
-interface UpdateTripResponse {
-  success: true;
-  trip: Trip;
-}
+// Re-export types for backward compatibility with existing imports
+export type { Trip, TripSummary, TripDetail };
 
 /**
  * API response type for trip cancellation
@@ -81,29 +21,6 @@ interface UpdateTripResponse {
 interface CancelTripResponse {
   success: true;
   message: string;
-}
-
-/**
- * Trip detail type returned by GET /api/trips/:id
- * Extends the base Trip type with organizers and member count
- */
-export interface TripDetail extends Trip {
-  organizers: Array<{
-    id: string;
-    displayName: string;
-    phoneNumber: string;
-    profilePhotoUrl: string | null;
-    timezone: string;
-  }>;
-  memberCount: number;
-}
-
-/**
- * API response type for fetching trip detail
- */
-interface GetTripDetailResponse {
-  success: true;
-  trip: TripDetail;
 }
 
 /**
@@ -161,7 +78,7 @@ export function useTripDetail(tripId: string) {
   return useQuery({
     queryKey: ["trips", tripId],
     queryFn: async () => {
-      const response = await apiRequest<GetTripDetailResponse>(
+      const response = await apiRequest<GetTripResponse>(
         `/trips/${tripId}`,
       );
       return response.trip;
