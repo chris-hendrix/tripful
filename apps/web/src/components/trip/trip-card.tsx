@@ -33,19 +33,19 @@ function getRsvpBadge(status: "going" | "not_going" | "maybe" | "no_response") {
   switch (status) {
     case "going":
       return (
-        <Badge className="bg-success/15 text-success border-success/30">
+        <Badge className="bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm">
           Going
         </Badge>
       );
     case "maybe":
       return (
-        <Badge className="bg-warning/15 text-warning border-warning/30">
+        <Badge className="bg-black/50 backdrop-blur-md text-amber-300 border-white/20 shadow-sm">
           Maybe
         </Badge>
       );
     case "not_going":
       return (
-        <Badge variant="outline" className="text-muted-foreground border-input">
+        <Badge className="bg-black/50 backdrop-blur-md text-neutral-300 border-white/20 shadow-sm">
           Not going
         </Badge>
       );
@@ -93,7 +93,7 @@ export const TripCard = memo(function TripCard({
           {/* Badges overlay */}
           <div className="absolute top-3 left-3 flex gap-2">
             {trip.isOrganizer && (
-              <Badge className="bg-white/20 backdrop-blur-md text-white border-white/30">
+              <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 shadow-sm">
                 Organizing
               </Badge>
             )}
@@ -107,7 +107,7 @@ export const TripCard = memo(function TripCard({
           {/* Badges overlay */}
           <div className="absolute top-3 left-3 flex gap-2">
             {trip.isOrganizer && (
-              <Badge className="bg-white/20 backdrop-blur-md text-white border-white/30">
+              <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 shadow-sm">
                 Organizing
               </Badge>
             )}
