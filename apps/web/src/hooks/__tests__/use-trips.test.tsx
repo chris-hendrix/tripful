@@ -91,11 +91,6 @@ describe("useTrips", () => {
           retry: false,
         },
       },
-      logger: {
-        log: () => {},
-        warn: () => {},
-        error: () => {},
-      },
     });
 
     wrapper = ({ children }: { children: ReactNode }) => (
@@ -122,7 +117,7 @@ describe("useTrips", () => {
       const { result } = renderHook(() => useTrips(), { wrapper });
 
       // Initially loading
-      expect(result.current.isLoading).toBe(true);
+      expect(result.current.isPending).toBe(true);
       expect(result.current.data).toBeUndefined();
 
       // Wait for query to complete
@@ -135,7 +130,7 @@ describe("useTrips", () => {
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
-      expect(apiRequest).toHaveBeenCalledWith("/trips");
+      expect(apiRequest).toHaveBeenCalledWith("/trips", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     });
 
     it("returns empty array when no trips exist", async () => {
@@ -291,11 +286,6 @@ describe("useCreateTrip", () => {
         mutations: {
           retry: false,
         },
-      },
-      logger: {
-        log: () => {},
-        warn: () => {},
-        error: () => {},
       },
     });
 
@@ -651,11 +641,6 @@ describe("useTripDetail", () => {
           retry: false,
         },
       },
-      logger: {
-        log: () => {},
-        warn: () => {},
-        error: () => {},
-      },
     });
 
     wrapper = ({ children }: { children: ReactNode }) => (
@@ -683,7 +668,7 @@ describe("useTripDetail", () => {
       });
 
       // Initially loading
-      expect(result.current.isLoading).toBe(true);
+      expect(result.current.isPending).toBe(true);
       expect(result.current.data).toBeUndefined();
 
       // Wait for query to complete
@@ -696,7 +681,7 @@ describe("useTripDetail", () => {
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
-      expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123");
+      expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     });
 
     it("returns trip with organizers and member count", async () => {

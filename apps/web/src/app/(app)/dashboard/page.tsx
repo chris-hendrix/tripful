@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
-import { useTrips } from "@/hooks/use-trips";
+import { useTrips, type TripSummary } from "@/hooks/use-trips";
 import { TripCard } from "@/components/trip/trip-card";
 import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ export default function DashboardPage() {
 
   const {
     data: trips = [],
-    isLoading,
+    isPending,
     isError,
     error,
     refetch,
@@ -56,26 +56,27 @@ export default function DashboardPage() {
   const { upcomingTrips, pastTrips } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    const upcomingTrips = filteredTrips.filter((trip) => {
-      if (!trip.startDate) return true; // Trips without start date are considered upcoming
+    const upcoming: TripSummary[] = [];
+    const past: TripSummary[] = [];
+    for (const trip of filteredTrips) {
+      if (!trip.startDate) {
+        upcoming.push(trip);
+        continue;
+      }
       const startDate = new Date(trip.startDate);
-      return startDate >= today;
-    });
-
-    const pastTrips = filteredTrips.filter((trip) => {
-      if (!trip.startDate) return false;
-      const startDate = new Date(trip.startDate);
-      return startDate < today;
-    });
-
-    return { upcomingTrips, pastTrips };
+      if (startDate >= today) {
+        upcoming.push(trip);
+      } else {
+        past.push(trip);
+      }
+    }
+    return { upcomingTrips: upcoming, pastTrips: past };
   }, [filteredTrips]);
 
   const tripCount = trips.length;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const noResults = filteredTrips.length === 0 && hasSearchQuery;
-  const isEmpty = trips.length === 0 && !isLoading;
+  const isEmpty = trips.length === 0 && !isPending;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -87,7 +88,7 @@ export default function DashboardPage() {
           >
             My Trips
           </h1>
-          {!isLoading && !isError && (
+          {!isPending && !isError && (
             <p className="text-slate-600">
               {tripCount} trip{tripCount !== 1 ? "s" : ""}
             </p>
@@ -107,7 +108,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {isPending && (
           <div className="space-y-4">
             <SkeletonCard />
             <SkeletonCard />
@@ -177,7 +178,7 @@ export default function DashboardPage() {
         )}
 
         {/* Trips Sections */}
-        {!isLoading && !isError && !isEmpty && !noResults && (
+        {!isPending && !isError && !isEmpty && !noResults && (
           <>
             {/* Upcoming Trips */}
             {upcomingTrips.length > 0 && (

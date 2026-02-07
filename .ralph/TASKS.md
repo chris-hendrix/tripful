@@ -33,7 +33,7 @@
 
 ## Phase 3: TanStack Query v5 & React Performance
 
-- [ ] Task 3.1: Implement TanStack Query best practices (isPending, queryOptions factory, query client config, devtools, ESLint plugin) and React performance optimizations (memo, useCallback, navigation, deduplication)
+- [x] Task 3.1: Implement TanStack Query best practices (isPending, queryOptions factory, query client config, devtools, ESLint plugin) and React performance optimizations (memo, useCallback, navigation, deduplication)
   - Implement: Install `@tanstack/react-query-devtools` and `@tanstack/eslint-plugin-query` as dev dependencies. Add ESLint plugin to `eslint.config.js`.
   - Implement: Create `apps/web/src/lib/get-query-client.ts` with server/browser singleton pattern, `dehydrate` config including `shouldDehydrateQuery` for pending queries.
   - Implement: Update `apps/web/src/app/providers/providers.tsx` — use `getQueryClient()`, add `<ReactQueryDevtools initialIsOpen={false} />`, remove inline `useState(() => new QueryClient(...))`.

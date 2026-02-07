@@ -141,7 +141,7 @@ describe("DashboardPage", () => {
     it("shows loading skeletons while fetching trips", () => {
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: true,
+        isPending: true,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -157,7 +157,7 @@ describe("DashboardPage", () => {
     it("does not show trip count during loading", () => {
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: true,
+        isPending: true,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -175,7 +175,7 @@ describe("DashboardPage", () => {
       const mockRefetch = vi.fn();
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: new Error("Network error"),
         refetch: mockRefetch,
@@ -193,7 +193,7 @@ describe("DashboardPage", () => {
       const mockRefetch = vi.fn();
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: new Error("Network error"),
         refetch: mockRefetch,
@@ -210,7 +210,7 @@ describe("DashboardPage", () => {
     it("shows generic error message when error has no message", () => {
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: null,
         refetch: vi.fn(),
@@ -226,7 +226,7 @@ describe("DashboardPage", () => {
     it("shows empty state when no trips exist", () => {
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -247,7 +247,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -268,7 +268,7 @@ describe("DashboardPage", () => {
     it("renders trips correctly", () => {
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -286,7 +286,7 @@ describe("DashboardPage", () => {
     it("shows singular 'trip' for one trip", () => {
       mockUseTrips.mockReturnValue({
         data: [mockTrips[0]],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -300,7 +300,7 @@ describe("DashboardPage", () => {
     it("splits trips into upcoming and past sections", () => {
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -315,7 +315,7 @@ describe("DashboardPage", () => {
     it("passes correct index to TripCard for animations", () => {
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -336,7 +336,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -358,7 +358,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -379,7 +379,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -399,7 +399,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -422,7 +422,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -458,7 +458,7 @@ describe("DashboardPage", () => {
 
       mockUseTrips.mockReturnValue({
         data: [tripWithoutDate],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -474,7 +474,7 @@ describe("DashboardPage", () => {
     it("only shows upcoming section when no past trips", () => {
       mockUseTrips.mockReturnValue({
         data: [mockTrips[0], mockTrips[1]],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -489,7 +489,7 @@ describe("DashboardPage", () => {
     it("only shows past section when no upcoming trips", () => {
       mockUseTrips.mockReturnValue({
         data: [mockTrips[2]],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -506,7 +506,7 @@ describe("DashboardPage", () => {
     it("renders FAB button", () => {
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -522,7 +522,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: mockTrips,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -544,7 +544,7 @@ describe("DashboardPage", () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
         data: [],
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),

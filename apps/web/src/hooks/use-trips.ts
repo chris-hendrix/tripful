@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, APIError } from "@/lib/api";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
@@ -24,6 +30,40 @@ interface CancelTripResponse {
 }
 
 /**
+ * Query key factory for trip-related queries
+ */
+export const tripKeys = {
+  all: ["trips"] as const,
+  detail: (id: string) => ["trips", id] as const,
+};
+
+/**
+ * Query options for fetching all trips
+ */
+export const tripsQueryOptions = queryOptions({
+  queryKey: tripKeys.all,
+  queryFn: async ({ signal }) => {
+    const response = await apiRequest<GetTripsResponse>("/trips", { signal });
+    return response.data;
+  },
+});
+
+/**
+ * Query options factory for fetching a single trip's details
+ */
+export const tripDetailQueryOptions = (tripId: string) =>
+  queryOptions({
+    queryKey: tripKeys.detail(tripId),
+    queryFn: async ({ signal }) => {
+      const response = await apiRequest<GetTripResponse>(`/trips/${tripId}`, {
+        signal,
+      });
+      return response.trip;
+    },
+    enabled: !!tripId,
+  });
+
+/**
  * Hook for fetching all trips for the current user
  *
  * Features:
@@ -35,22 +75,16 @@ interface CancelTripResponse {
  *
  * @example
  * ```tsx
- * const { data: trips, isLoading, isError, error, refetch } = useTrips();
+ * const { data: trips, isPending, isError, error, refetch } = useTrips();
  *
- * if (isLoading) return <div>Loading...</div>;
+ * if (isPending) return <div>Loading...</div>;
  * if (isError) return <div>Error: {error.message}</div>;
  *
  * return trips.map(trip => <TripCard key={trip.id} trip={trip} />);
  * ```
  */
 export function useTrips() {
-  return useQuery({
-    queryKey: ["trips"],
-    queryFn: async () => {
-      const response = await apiRequest<GetTripsResponse>("/trips");
-      return response.data;
-    },
-  });
+  return useQuery(tripsQueryOptions);
 }
 
 /**
@@ -66,24 +100,29 @@ export function useTrips() {
  *
  * @example
  * ```tsx
- * const { data: trip, isLoading, isError, error, refetch } = useTripDetail("trip-123");
+ * const { data: trip, isPending, isError, error, refetch } = useTripDetail("trip-123");
  *
- * if (isLoading) return <div>Loading...</div>;
+ * if (isPending) return <div>Loading...</div>;
  * if (isError) return <div>Error: {error.message}</div>;
  *
  * return <TripDetailPage trip={trip} />;
  * ```
  */
 export function useTripDetail(tripId: string) {
-  return useQuery({
-    queryKey: ["trips", tripId],
-    queryFn: async () => {
-      const response = await apiRequest<GetTripResponse>(
-        `/trips/${tripId}`,
-      );
-      return response.trip;
-    },
-  });
+  return useQuery(tripDetailQueryOptions(tripId));
+}
+
+/**
+ * Hook for prefetching a trip's details (e.g., on hover)
+ *
+ * @param tripId - The ID of the trip to prefetch
+ * @returns A callback that triggers the prefetch
+ */
+export function usePrefetchTrip(tripId: string) {
+  const queryClient = useQueryClient();
+  return useCallback(() => {
+    void queryClient.prefetchQuery(tripDetailQueryOptions(tripId));
+  }, [queryClient, tripId]);
 }
 
 /**
@@ -119,6 +158,7 @@ export function useCreateTrip() {
   const router = useRouter();
 
   return useMutation<Trip, Error, CreateTripInput, CreateTripContext>({
+    mutationKey: ["createTrip"],
     mutationFn: async (data: CreateTripInput) => {
       const response = await apiRequest<CreateTripResponse>("/trips", {
         method: "POST",
@@ -130,10 +170,10 @@ export function useCreateTrip() {
     // Optimistic update: Add trip to cache immediately
     onMutate: async (newTrip) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["trips"] });
+      await queryClient.cancelQueries({ queryKey: tripKeys.all });
 
       // Snapshot the previous value for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(["trips"]);
+      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
 
       // Optimistically update the cache with a temporary trip
       // Note: We create a temporary ID and placeholder data since we don't have the real ID yet
@@ -155,21 +195,18 @@ export function useCreateTrip() {
 
       // Add optimistic trip to the cache if trips list exists
       if (previousTrips) {
-        queryClient.setQueryData<Trip[]>(
-          ["trips"],
-          [optimisticTrip, ...previousTrips],
-        );
+        queryClient.setQueryData<Trip[]>(tripKeys.all, [
+          optimisticTrip,
+          ...previousTrips,
+        ]);
       }
 
       // Return context with previous data for rollback
       return { previousTrips: previousTrips || undefined };
     },
 
-    // On success: Invalidate queries and redirect
+    // On success: Redirect to trip detail page
     onSuccess: (trip) => {
-      // Invalidate trips list to refetch with real data from server
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-
       // Redirect to the trip detail page
       router.push(`/trips/${trip.id}`);
     },
@@ -178,14 +215,14 @@ export function useCreateTrip() {
     onError: (_error, _newTrip, context) => {
       // Rollback to previous trips list if we had one
       if (context?.previousTrips) {
-        queryClient.setQueryData(["trips"], context.previousTrips);
+        queryClient.setQueryData(tripKeys.all, context.previousTrips);
       }
     },
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
     },
   });
 }
@@ -264,6 +301,7 @@ export function useUpdateTrip() {
     { tripId: string; data: UpdateTripInput },
     UpdateTripContext
   >({
+    mutationKey: ["updateTrip"],
     mutationFn: async ({ tripId, data }) => {
       const response = await apiRequest<UpdateTripResponse>(
         `/trips/${tripId}`,
@@ -278,12 +316,14 @@ export function useUpdateTrip() {
     // Optimistic update: Update trip in cache immediately
     onMutate: async ({ tripId, data }) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["trips"] });
-      await queryClient.cancelQueries({ queryKey: ["trips", tripId] });
+      await queryClient.cancelQueries({ queryKey: tripKeys.all });
+      await queryClient.cancelQueries({ queryKey: tripKeys.detail(tripId) });
 
       // Snapshot the previous values for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(["trips"]);
-      const previousTrip = queryClient.getQueryData<Trip>(["trips", tripId]);
+      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
+      const previousTrip = queryClient.getQueryData<Trip>(
+        tripKeys.detail(tripId),
+      );
 
       // Optimistically update the individual trip cache
       if (previousTrip) {
@@ -315,12 +355,15 @@ export function useUpdateTrip() {
           updatedAt: new Date(),
         };
 
-        queryClient.setQueryData<Trip>(["trips", tripId], optimisticTrip);
+        queryClient.setQueryData<Trip>(
+          tripKeys.detail(tripId),
+          optimisticTrip,
+        );
 
         // Also update the trip in the trips list cache
         if (previousTrips) {
           queryClient.setQueryData<Trip[]>(
-            ["trips"],
+            tripKeys.all,
             previousTrips.map((trip) =>
               trip.id === tripId ? optimisticTrip : trip,
             ),
@@ -332,29 +375,22 @@ export function useUpdateTrip() {
       return { previousTrips, previousTrip };
     },
 
-    // On success: Invalidate queries to refetch with real data
-    onSuccess: (trip) => {
-      // Invalidate trips list and individual trip to refetch with real data from server
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-      queryClient.invalidateQueries({ queryKey: ["trips", trip.id] });
-    },
-
     // On error: Rollback optimistic update
     onError: (_error, { tripId }, context) => {
       // Rollback to previous state if we had one
       if (context?.previousTrip) {
-        queryClient.setQueryData(["trips", tripId], context.previousTrip);
+        queryClient.setQueryData(tripKeys.detail(tripId), context.previousTrip);
       }
       if (context?.previousTrips) {
-        queryClient.setQueryData(["trips"], context.previousTrips);
+        queryClient.setQueryData(tripKeys.all, context.previousTrips);
       }
     },
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
     onSettled: (_data, _error, { tripId }) => {
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-      queryClient.invalidateQueries({ queryKey: ["trips", tripId] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
     },
   });
 }
@@ -428,6 +464,7 @@ export function useCancelTrip() {
   const router = useRouter();
 
   return useMutation<void, Error, string, CancelTripContext>({
+    mutationKey: ["cancelTrip"],
     mutationFn: async (tripId: string) => {
       await apiRequest<CancelTripResponse>(`/trips/${tripId}`, {
         method: "DELETE",
@@ -437,15 +474,15 @@ export function useCancelTrip() {
     // Optimistic update: Remove trip from cache immediately
     onMutate: async (tripId) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["trips"] });
+      await queryClient.cancelQueries({ queryKey: tripKeys.all });
 
       // Snapshot the previous value for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(["trips"]);
+      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
 
       // Optimistically remove the trip from the cache
       if (previousTrips) {
         queryClient.setQueryData<Trip[]>(
-          ["trips"],
+          tripKeys.all,
           previousTrips.filter((trip) => trip.id !== tripId),
         );
       }
@@ -454,11 +491,8 @@ export function useCancelTrip() {
       return { previousTrips };
     },
 
-    // On success: Invalidate queries and redirect
+    // On success: Redirect to dashboard
     onSuccess: () => {
-      // Invalidate trips list to refetch with real data from server
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
-
       // Redirect to the dashboard
       router.push("/dashboard");
     },
@@ -467,14 +501,14 @@ export function useCancelTrip() {
     onError: (_error, _tripId, context) => {
       // Rollback to previous trips list if we had one
       if (context?.previousTrips) {
-        queryClient.setQueryData(["trips"], context.previousTrips);
+        queryClient.setQueryData(tripKeys.all, context.previousTrips);
       }
     },
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
     },
   });
 }

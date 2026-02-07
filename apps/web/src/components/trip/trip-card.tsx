@@ -1,10 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { memo } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { Calendar, MapPin, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { usePrefetchTrip } from "@/hooks/use-trips";
 
 interface TripCardProps {
   trip: {
@@ -52,12 +54,8 @@ function getRsvpBadge(status: "going" | "not_going" | "maybe" | "no_response") {
   }
 }
 
-export function TripCard({ trip, index = 0 }: TripCardProps) {
-  const router = useRouter();
-
-  const handleClick = () => {
-    router.push(`/trips/${trip.id}`);
-  };
+export const TripCard = memo(function TripCard({ trip, index = 0 }: TripCardProps) {
+  const prefetchTrip = usePrefetchTrip(trip.id);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const rsvpBadge = getRsvpBadge(trip.rsvpStatus);
@@ -70,17 +68,11 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
     : "";
 
   return (
-    <div
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
-      className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500"
+    <Link
+      href={`/trips/${trip.id}`}
+      onMouseEnter={prefetchTrip}
+      onFocus={prefetchTrip}
+      className="block bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md active:scale-[0.98] transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-500"
       style={{ animationDelay: `${index * 100}ms` }}
     >
       {/* Cover image or placeholder */}
@@ -179,6 +171,6 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
-}
+});

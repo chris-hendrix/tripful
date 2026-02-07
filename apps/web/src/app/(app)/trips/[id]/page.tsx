@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Calendar,
@@ -35,11 +36,10 @@ function SkeletonDetail() {
 
 export default function TripDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const tripId = params.id as string;
 
   const { user } = useAuth();
-  const { data: trip, isLoading, isError } = useTripDetail(tripId);
+  const { data: trip, isPending, isError } = useTripDetail(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
@@ -54,7 +54,7 @@ export default function TripDetailPage() {
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 
   // Loading state
-  if (isLoading) {
+  if (isPending) {
     return <SkeletonDetail />;
   }
 
@@ -72,12 +72,12 @@ export default function TripDetailPage() {
           <p className="text-slate-600 mb-6">
             This trip doesn't exist or you don't have access to it.
           </p>
-          <Button
-            onClick={() => router.push("/dashboard")}
-            className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
           >
             Return to dashboard
-          </Button>
+          </Link>
         </div>
       </div>
     );

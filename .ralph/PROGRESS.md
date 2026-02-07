@@ -109,3 +109,57 @@ Tracking implementation progress for this project.
 - **`unoptimized` for blob URLs**: `next/image` cannot optimize `blob:` URLs, so `unoptimized` prop is required for image upload previews.
 - **Error boundary conventions**: `global-error.tsx` must include its own `<html>/<body>` since it replaces the root layout. `not-found.tsx` is NOT a client component. All `error.tsx` files ARE client components.
 
+## Iteration 3 — Task 3.1: Implement TanStack Query best practices (isPending, queryOptions factory, query client config, devtools, ESLint plugin) and React performance optimizations (memo, useCallback, navigation, deduplication)
+
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
+
+### Changes Made
+
+**New files created (1):**
+- `apps/web/src/lib/get-query-client.ts` — Server/browser QueryClient singleton with dehydration support for SSR hydration (`shouldDehydrateQuery` includes pending queries)
+
+**Modified files (11):**
+- `apps/web/package.json` — Added `@tanstack/react-query-devtools` and `@tanstack/eslint-plugin-query` as devDependencies
+- `apps/web/.eslintrc.json` — Added `"plugin:@tanstack/query/recommended"` to extends array
+- `apps/web/src/app/providers/providers.tsx` — Replaced `useState(new QueryClient)` with `getQueryClient()`, added `ReactQueryDevtools`
+- `apps/web/src/hooks/use-trips.ts` — Added `tripKeys` factory, `tripsQueryOptions`/`tripDetailQueryOptions` using `queryOptions()`, `usePrefetchTrip` hook, `mutationKey` on all 3 mutations, removed duplicate `invalidateQueries` from `onSuccess` (kept only in `onSettled`), pass `signal` for abort support, updated JSDoc to `isPending`
+- `apps/web/src/components/trip/trip-card.tsx` — Wrapped with `React.memo`, replaced `useRouter`+`handleClick` with `<Link>` from `next/link`, added `usePrefetchTrip` for hover/focus prefetch, removed manual `role="button"`/`tabIndex`/`onKeyDown`
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Replaced `isLoading` with `isPending`, replaced double `.filter()` with single-loop partition
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Replaced `isLoading` with `isPending`, replaced "Return to dashboard" `router.push` with `<Link>`, removed unused `useRouter`
+- `apps/web/src/app/providers/auth-provider.tsx` — Wrapped `fetchUser`, `login`, `verify`, `completeProfile`, `logout` with `useCallback`, memoized context value with `useMemo`, added `fetchUser` to `useEffect` deps
+- `apps/web/src/app/(auth)/verify/page.tsx` — Removed `shouldNavigate` state + `useEffect`, navigate directly in `onSubmit`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — Removed `shouldNavigate` state + `useEffect`, navigate directly after `completeProfile()`
+
+**Test files updated (4):**
+- `apps/web/src/hooks/__tests__/use-trips.test.tsx` — Removed all 3 deprecated `logger` blocks from QueryClient, replaced `isLoading` assertions with `isPending`, added `signal` parameter assertions
+- `apps/web/src/app/(app)/dashboard/page.test.tsx` — Replaced all `isLoading` mock values with `isPending`
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — Replaced all `isLoading` mock values with `isPending`, added `next/link` mock, updated "Return to dashboard" test from `router.push` to link href check
+- `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — Added `next/link` mock, added `usePrefetchTrip` mock, replaced navigation tests from `role="button"` + `router.push` to `role="link"` + href checks, added prefetch-on-hover test
+
+### Verification Results
+
+- **Lint**: ✅ PASS — All 3 packages (shared, api, web) passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 834 tests across 39 test files (83 shared + 374 API + 377 web), 0 failures
+- **Dependencies**: ✅ PASS — `@tanstack/react-query-devtools` and `@tanstack/eslint-plugin-query` installed
+- **isLoading removal**: ✅ PASS — Zero `isLoading` references in dashboard/page.tsx and trips/[id]/page.tsx source
+- **New file**: ✅ PASS — `get-query-client.ts` exists
+
+### Reviewer Verdict
+
+**APPROVED** — All 10 task requirements correctly implemented. Only LOW severity notes:
+- `@tanstack/react-query-devtools` in devDependencies (standard community pattern; tree-shakes in production)
+- Default retry behavior changed from `retry: 1` to TanStack Query default `retry: 3` via `getQueryClient` (intentional configuration update)
+- Mutation keys use inline arrays rather than a factory (acceptable since mutation keys are primarily for devtools identification)
+
+### Learnings for Future Iterations
+
+- **queryOptions factory pattern**: `queryOptions()` from TanStack Query v5 provides type-safe, reusable query configurations. Export these alongside hooks so server components can use them for prefetching in Phase 4.
+- **Signal forwarding**: Destructure `{ signal }` from `queryFn` context and pass to `apiRequest` — enables automatic request cancellation on component unmount. The `apiRequest` function already spreads `RequestInit` options including `signal`.
+- **getQueryClient singleton**: Server-side creates a new client per request (avoids state leaks between SSR requests), browser-side reuses a module-level singleton. The `dehydrate` config with `shouldDehydrateQuery` including pending queries is essential for Phase 4 RSC hydration.
+- **Link vs router.push for navigation**: `<Link>` from `next/link` provides prefetching, accessibility (renders as `<a>`), and native browser behaviors (middle-click, right-click). Add `block` class for block-level display. Manual `role="button"`/`tabIndex`/`onKeyDown` can be removed since `<a>` handles keyboard navigation natively.
+- **useCallback dependency arrays**: Auth provider functions that only use module constants (`API_URL`) and stable state setters (`setUser`, `setLoading`) can safely use `[]` as dependencies. Only `logout` needs `[router]` since it calls `router.push`.
+- **shouldNavigate elimination**: The `shouldNavigate` state + `useEffect` pattern for post-async navigation is unnecessary in React 18+ — navigate directly in async handlers after `await`.
+- **ESLint legacy format**: The project uses `.eslintrc.json` (not flat config). TanStack Query plugin is added as `"plugin:@tanstack/query/recommended"` in the `extends` array.
+

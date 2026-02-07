@@ -27,6 +27,23 @@ vi.mock("next/image", () => ({
   ),
 }));
 
+// Mock next/link
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 const mockParams = { id: "trip-123" };
@@ -141,7 +158,7 @@ describe("TripDetailPage", () => {
     it("renders loading state initially", () => {
       mockUseTripDetail.mockReturnValue({
         data: undefined,
-        isLoading: true,
+        isPending: true,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -157,7 +174,7 @@ describe("TripDetailPage", () => {
     it("renders trip details when data loaded", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -178,7 +195,7 @@ describe("TripDetailPage", () => {
     it("shows cover image when available", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -199,7 +216,7 @@ describe("TripDetailPage", () => {
       const tripWithoutCover = { ...mockTripDetail, coverImageUrl: null };
       mockUseTripDetail.mockReturnValue({
         data: tripWithoutCover,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -221,7 +238,7 @@ describe("TripDetailPage", () => {
     it("displays trip name, destination, dates", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -239,7 +256,7 @@ describe("TripDetailPage", () => {
     it("shows organizer information", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -266,7 +283,7 @@ describe("TripDetailPage", () => {
     it("displays member count and event count", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -283,7 +300,7 @@ describe("TripDetailPage", () => {
     it("shows RSVP badge", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -299,7 +316,7 @@ describe("TripDetailPage", () => {
     it("shows description when available", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -319,7 +336,7 @@ describe("TripDetailPage", () => {
       const tripWithoutDescription = { ...mockTripDetail, description: null };
       mockUseTripDetail.mockReturnValue({
         data: tripWithoutDescription,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -340,7 +357,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -358,7 +375,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: coOrganizerUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -376,7 +393,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -395,7 +412,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -413,7 +430,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -433,7 +450,7 @@ describe("TripDetailPage", () => {
     it("shows error state on 404", async () => {
       mockUseTripDetail.mockReturnValue({
         data: undefined,
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: new Error("NOT_FOUND"),
         refetch: vi.fn(),
@@ -455,7 +472,7 @@ describe("TripDetailPage", () => {
     it("shows error state on network failure", async () => {
       mockUseTripDetail.mockReturnValue({
         data: undefined,
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: new Error("Network error"),
         refetch: vi.fn(),
@@ -468,26 +485,23 @@ describe("TripDetailPage", () => {
       });
     });
 
-    it("return to dashboard button navigates correctly", async () => {
+    it("return to dashboard link has correct href", async () => {
       mockUseTripDetail.mockReturnValue({
         data: undefined,
-        isLoading: false,
+        isPending: false,
         isError: true,
         error: new Error("NOT_FOUND"),
         refetch: vi.fn(),
       });
 
-      const user = userEvent.setup();
       render(<TripDetailPage />);
 
       await waitFor(() => {
         expect(screen.getByText("Trip not found")).toBeDefined();
       });
 
-      const returnButton = screen.getByText("Return to dashboard");
-      await user.click(returnButton);
-
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      const returnLink = screen.getByText("Return to dashboard");
+      expect(returnLink.closest("a")?.getAttribute("href")).toBe("/dashboard");
     });
   });
 
@@ -496,7 +510,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -523,7 +537,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -563,7 +577,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -591,7 +605,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -625,7 +639,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -655,7 +669,7 @@ describe("TripDetailPage", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -676,7 +690,7 @@ describe("TripDetailPage", () => {
       };
       mockUseTripDetail.mockReturnValue({
         data: tripWithoutDates,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -693,7 +707,7 @@ describe("TripDetailPage", () => {
       const tripWithoutDescription = { ...mockTripDetail, description: null };
       mockUseTripDetail.mockReturnValue({
         data: tripWithoutDescription,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -712,7 +726,7 @@ describe("TripDetailPage", () => {
       const tripWithoutOrganizers = { ...mockTripDetail, organizers: [] };
       mockUseTripDetail.mockReturnValue({
         data: tripWithoutOrganizers,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -732,7 +746,7 @@ describe("TripDetailPage", () => {
       const tripWithNoMembers = { ...mockTripDetail, memberCount: 0 };
       mockUseTripDetail.mockReturnValue({
         data: tripWithNoMembers,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -749,7 +763,7 @@ describe("TripDetailPage", () => {
       const tripWithOneMember = { ...mockTripDetail, memberCount: 1 };
       mockUseTripDetail.mockReturnValue({
         data: tripWithOneMember,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -770,7 +784,7 @@ describe("TripDetailPage", () => {
       };
       mockUseTripDetail.mockReturnValue({
         data: tripCrossMonth,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -791,7 +805,7 @@ describe("TripDetailPage", () => {
       };
       mockUseTripDetail.mockReturnValue({
         data: tripOnlyStart,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),
@@ -812,7 +826,7 @@ describe("TripDetailPage", () => {
       };
       mockUseTripDetail.mockReturnValue({
         data: tripOnlyEnd,
-        isLoading: false,
+        isPending: false,
         isError: false,
         error: null,
         refetch: vi.fn(),

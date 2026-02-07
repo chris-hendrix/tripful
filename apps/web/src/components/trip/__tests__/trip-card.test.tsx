@@ -19,17 +19,32 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-// Mock next/navigation
-const mockPush = vi.fn();
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
+// Mock next/link
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+// Mock usePrefetchTrip hook
+const mockPrefetch = vi.fn();
+vi.mock("@/hooks/use-trips", () => ({
+  usePrefetchTrip: () => mockPrefetch,
 }));
 
 describe("TripCard", () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    mockPrefetch.mockClear();
   });
 
   const baseTrip = {
@@ -318,36 +333,31 @@ describe("TripCard", () => {
   });
 
   describe("Navigation", () => {
-    it("navigates to trip detail page on click", async () => {
-      const user = userEvent.setup();
+    it("renders as a link to trip detail page", () => {
       render(<TripCard trip={baseTrip} />);
 
-      const card = screen.getByRole("button");
-      await user.click(card);
-
-      expect(mockPush).toHaveBeenCalledWith("/trips/trip-123");
+      const link = screen.getByRole("link");
+      expect(link.getAttribute("href")).toBe("/trips/trip-123");
     });
 
-    it("navigates on Enter key press", async () => {
-      const user = userEvent.setup();
-      render(<TripCard trip={baseTrip} />);
+    it("has correct href for different trip ids", () => {
+      const trip = { ...baseTrip, id: "trip-456" };
+      render(<TripCard trip={trip} />);
 
-      const card = screen.getByRole("button");
-      card.focus();
-      await user.keyboard("{Enter}");
-
-      expect(mockPush).toHaveBeenCalledWith("/trips/trip-123");
+      const link = screen.getByRole("link");
+      expect(link.getAttribute("href")).toBe("/trips/trip-456");
     });
+  });
 
-    it("navigates on Space key press", async () => {
+  describe("Prefetch on hover", () => {
+    it("triggers prefetch on mouse enter", async () => {
       const user = userEvent.setup();
       render(<TripCard trip={baseTrip} />);
 
-      const card = screen.getByRole("button");
-      card.focus();
-      await user.keyboard(" ");
+      const link = screen.getByRole("link");
+      await user.hover(link);
 
-      expect(mockPush).toHaveBeenCalledWith("/trips/trip-123");
+      expect(mockPrefetch).toHaveBeenCalled();
     });
   });
 
@@ -392,12 +402,11 @@ describe("TripCard", () => {
   });
 
   describe("Styling and accessibility", () => {
-    it("has appropriate role and tabIndex for keyboard navigation", () => {
+    it("renders as a link element", () => {
       render(<TripCard trip={baseTrip} />);
 
-      const card = screen.getByRole("button");
-      expect(card).toBeDefined();
-      expect(card.tabIndex).toBe(0);
+      const link = screen.getByRole("link");
+      expect(link).toBeDefined();
     });
 
     it("applies hover and active transition classes", () => {
