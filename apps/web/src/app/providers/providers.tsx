@@ -1,32 +1,18 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { getQueryClient } from "@/lib/get-query-client";
 import { AuthProvider } from "./auth-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Create a client instance per component tree to avoid sharing state between requests
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // With SSR, we usually want to set some default staleTime
-            // above 0 to avoid refetching immediately on the client
-            staleTime: 60 * 1000,
-            retry: 1,
-          },
-          mutations: {
-            retry: 0,
-          },
-        },
-      }),
-  );
+  const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>{children}</AuthProvider>
+      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
     </QueryClientProvider>
   );
 }

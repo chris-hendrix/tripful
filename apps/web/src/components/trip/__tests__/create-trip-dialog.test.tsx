@@ -1389,7 +1389,9 @@ describe("CreateTripDialog", () => {
       );
 
       const title = screen.getByText("Create a new trip");
-      expect(title.style.fontFamily).toContain("Playfair Display");
+      expect(title.className).toContain(
+        "font-[family-name:var(--font-playfair)]",
+      );
     });
 
     it("applies h-12 height to inputs", () => {

@@ -27,21 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-];
+import { TIMEZONES } from "@/lib/constants";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
-  const { completeProfile, user } = useAuth();
+  const { completeProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [shouldNavigate, setShouldNavigate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CompleteProfileInput>({
@@ -59,13 +50,6 @@ export default function CompleteProfilePage() {
     }
   }, []);
 
-  // Navigate to dashboard when user is set (after profile completion)
-  useEffect(() => {
-    if (shouldNavigate && user) {
-      router.push("/dashboard");
-    }
-  }, [shouldNavigate, user, router]);
-
   async function onSubmit(data: CompleteProfileInput) {
     try {
       setIsSubmitting(true);
@@ -76,8 +60,7 @@ export default function CompleteProfilePage() {
         payload.timezone = data.timezone;
       }
       await completeProfile(payload);
-      setShouldNavigate(true);
-      // Navigation happens in useEffect when user state updates
+      router.push("/dashboard");
     } catch (error) {
       form.setError("displayName", {
         message:
@@ -86,7 +69,6 @@ export default function CompleteProfilePage() {
             : "Failed to complete profile",
       });
       setIsSubmitting(false);
-      setShouldNavigate(false);
     }
   }
 

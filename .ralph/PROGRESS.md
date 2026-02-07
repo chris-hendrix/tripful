@@ -2,369 +2,281 @@
 
 Tracking implementation progress for this project.
 
-## Iteration 1 — Task 1.1: Refactor to Fastify plugin architecture with buildApp extraction and graceful shutdown
+## Iteration 1 — Task 1.1: Move trip types to shared package, extract duplicated utilities/constants, centralize API_URL, and configure bundle optimizations
 
-**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
 
-### What Was Done
+### Changes Made
 
-Refactored the monolithic `apps/api/src/server.ts` into a proper Fastify plugin architecture:
+**New files created (4):**
+- `shared/types/trip.ts` — Trip, TripSummary, TripDetail, and API response type interfaces
+- `apps/web/src/lib/format.ts` — Extracted `formatDateRange` and `getInitials` with hoisted `Intl.DateTimeFormat` instances
+- `apps/web/src/lib/format.test.ts` — 13 unit tests for formatDateRange and getInitials
+- `apps/web/src/lib/constants.ts` — Extracted `TIMEZONES` array with `as const`
 
-1. **Created `src/app.ts`** — `buildApp()` factory function that creates and configures the Fastify instance with all plugins, middleware, and routes. Used by both production server and tests.
-
-2. **Created 8 Fastify plugins** in `src/plugins/`:
-   - `config.ts` — decorates `fastify.config` with validated env config
-   - `database.ts` — decorates `fastify.db` with Drizzle instance, adds onClose hook
-   - `auth-service.ts` — decorates `fastify.authService` with JWT access (eliminates `new AuthService(request.server)` workaround)
-   - `trip-service.ts` — decorates `fastify.tripService`
-   - `permissions-service.ts` — decorates `fastify.permissionsService`
-   - `upload-service.ts` — decorates `fastify.uploadService`
-   - `sms-service.ts` — decorates `fastify.smsService` with logger injection
-   - `health-service.ts` — decorates `fastify.healthService`
-
-3. **Refactored `server.ts`** — Slimmed from 128 to ~55 lines, uses `buildApp()` + `close-with-grace` for graceful shutdown
-
-4. **Updated all controllers** — Access services via `request.server.*` instead of singleton imports
-
-5. **Updated middleware** — `auth.middleware.ts` uses `request.server.db` instead of importing `db` directly
-
-6. **Added type augmentation** — `declare module "fastify"` in `types/index.ts` for all decorated properties
-
-7. **Replaced console.log/console.error** — All replaced with structured pino logging (except `config/env.ts` which runs before Fastify)
-
-8. **Unified test helpers** — `tests/helpers.ts` imports `buildApp` from `@/app.js` with test-specific overrides
-
-9. **Installed dependencies** — `fastify-plugin`, `close-with-grace`, `pino-pretty` (devDep)
+**Modified files (11):**
+- `shared/types/index.ts` — Added trip type re-exports
+- `shared/index.ts` — Added trip types to barrel export
+- `apps/web/src/hooks/use-trips.ts` — Replaced 7 local type definitions with imports from `@tripful/shared/types`, re-exports Trip/TripSummary/TripDetail for backward compatibility
+- `apps/web/src/components/trip/trip-card.tsx` — Removed duplicate formatDateRange/getInitials, imported from `@/lib/format`
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Removed duplicate formatDateRange/getInitials, imported from `@/lib/format`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — Removed local TIMEZONES, imported from `@/lib/constants`
+- `apps/web/src/components/trip/create-trip-dialog.tsx` — Removed local TIMEZONES, hoisted phone regex to `PHONE_REGEX` module constant
+- `apps/web/src/components/trip/edit-trip-dialog.tsx` — Removed local TIMEZONES, imported from `@/lib/constants`
+- `apps/web/src/lib/api.ts` — Exported `API_URL` constant
+- `apps/web/src/app/providers/auth-provider.tsx` — Removed local API_URL, imported from `@/lib/api`
+- `apps/web/src/components/trip/image-upload.tsx` — Removed inline apiUrl, imported `API_URL` from `@/lib/api`
+- `apps/web/next.config.ts` — Added `experimental.optimizePackageImports: ["lucide-react"]` and `images.remotePatterns`
 
 ### Verification Results
 
-- **TypeScript**: PASS (0 errors)
-- **Tests**: PASS (790 total: 343 API, 83 shared, 364 web — 0 failures)
-- **Lint**: PASS (0 errors)
-- **Structural checks**: All pass (buildApp export, plugins directory, close-with-grace, helpers import, console.log removal)
+- **Lint**: ✅ PASS — All 3 packages (shared, api, web) passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 834 tests across 39 test files (83 shared + 374 API + 377 web), 0 failures
 
-### Reviewer Notes
+### Reviewer Verdict
 
-- APPROVED with only LOW severity observations:
-  - Services still import `db` directly from singleton module (intentional — full DI deferred to future task)
-  - Singleton exports remain in service files (backward compatibility, unused by controllers)
-  - Logger interface duplicated in sms.service.ts and database.ts (minor, could consolidate later)
+**APPROVED** — Clean implementation with only LOW severity notes:
+- `GetTripDetailResponse` renamed to `GetTripResponse` in shared (improvement, not a concern since it was never exported)
+- `CancelTripResponse` intentionally kept local in use-trips.ts (private, different shape)
+- Minor JSDoc style inconsistency vs user.ts (no per-property comments) — cosmetic, can address later
 
 ### Learnings for Future Iterations
 
-- **Pragmatic approach works**: Keeping service internals unchanged (still importing `db` singleton) while wrapping them as plugins avoids massive churn. Controllers now use decorators. Full DI can come later.
-- **Test helpers re-export pattern**: The backward-compatible `export { buildTestApp as buildApp }` in tests/helpers.ts means no test import changes needed.
-- **Auth middleware test needed db decoration**: Tests with custom `buildTestApp()` (like auth.middleware.test.ts) need explicit `app.decorate("db", db)` since middleware now uses `request.server.db`.
-- **Process.stderr.write for pre-Fastify logging**: In `jwt.ts`, `process.stderr.write` is appropriate when the Fastify logger isn't available yet.
+- **Backward compatibility via re-exports**: When moving types to a shared package, re-export them from the original location (`export type { Trip, TripSummary, TripDetail }`) to avoid breaking downstream consumers. This let us avoid modifying any test files.
+- **`as const` on TIMEZONES**: Adding `as const` provides readonly guarantees and literal types at no cost.
+- **Hoisted formatters**: `Intl.DateTimeFormat` instances are expensive to create. Module-scope hoisting is a clean pattern for shared utility files.
+- **API_URL centralization**: Simply adding `export` to the existing constant in `api.ts` and importing elsewhere was the simplest approach — no need for environment utility abstraction.
+- **image-upload test**: When centralizing module-level constants, tests that manipulated `process.env` at runtime need updating since the constant is captured at import time.
 
-## Iteration 2 — Task 2.1: Add Drizzle relations, unique constraint, transactions, count aggregate, pagination, and column selection
+## Iteration 2 — Task 2.1: Add next/font for Playfair Display, replace all `<img>` with next/image, create error boundaries, add metadata and loading files
 
-**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
 
-### What Was Done
+### Changes Made
 
-Improved the Tripful API's Drizzle ORM usage with relations, constraints, transactions, aggregates, pagination, and query optimization:
+**New files created (9):**
+- `apps/web/src/lib/fonts.ts` — Playfair Display font configuration using `next/font/google` with CSS variable `--font-playfair`
+- `apps/web/src/app/global-error.tsx` — Root-level error boundary with `<html>` and `<body>` tags (client component)
+- `apps/web/src/app/not-found.tsx` — Custom 404 page with link back to home (server component)
+- `apps/web/src/app/(app)/error.tsx` — App route group error boundary (client component)
+- `apps/web/src/app/(auth)/error.tsx` — Auth route group error boundary (client component)
+- `apps/web/src/app/robots.ts` — SEO robots.txt configuration disallowing `/dashboard` and `/trips`
+- `apps/web/src/app/sitemap.ts` — SEO sitemap with root and login pages
+- `apps/web/src/app/(app)/dashboard/loading.tsx` — Route-level loading skeleton for dashboard (3 skeleton cards in grid)
+- `apps/web/src/app/(app)/trips/[id]/loading.tsx` — Route-level loading skeleton for trip detail
 
-1. **Created `src/db/schema/relations.ts`** — Drizzle ORM relations for users, trips, and members tables (`usersRelations`, `tripsRelations`, `membersRelations`) enabling the `db.query.*` relational API.
+**Modified files (7):**
+- `apps/web/src/app/layout.tsx` — Added `playfairDisplay.variable` CSS class to `<html>`, updated metadata to title template `{ default: "Tripful", template: "%s | Tripful" }`
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Replaced 6 inline `style={{ fontFamily: "Playfair Display, serif" }}` with `font-[family-name:var(--font-playfair)]` className
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Replaced 3 inline font styles with className, replaced 2 `<img>` tags with `next/image` (cover with `fill`+`priority`, avatars with `width`/`height`)
+- `apps/web/src/components/trip/trip-card.tsx` — Replaced 1 inline font style, replaced 2 `<img>` tags with `next/image` (cover with `fill`+`sizes`, avatars with `width`/`height`)
+- `apps/web/src/components/trip/create-trip-dialog.tsx` — Replaced `font-serif` + inline style with `font-[family-name:var(--font-playfair)]`
+- `apps/web/src/components/trip/edit-trip-dialog.tsx` — Same as create-trip-dialog
+- `apps/web/src/components/trip/image-upload.tsx` — Replaced `<img>` with `next/image` using `unoptimized` for blob URL support
 
-2. **Added unique constraint on `members(trip_id, user_id)`** — Prevents duplicate trip memberships at the database level. Migration `0002_mysterious_hercules.sql` generated and applied.
-
-3. **Passed schema to `drizzle()` in `config/database.ts`** — Merged table schema + relations into `fullSchema`, passed to `drizzle(pool, { schema: fullSchema })`. Updated Fastify type augmentation in `types/index.ts` to `NodePgDatabase<FullSchema>`.
-
-4. **Wrapped `createTrip()` in `db.transaction()`** — Trip insert + creator member insert + co-organizer member inserts are now atomic. If any insert fails, the entire operation rolls back.
-
-5. **Wrapped `addCoOrganizers()` in `db.transaction()`** — Member count check + duplicate filter + inserts are atomic, preventing TOCTOU race conditions on the 25-member limit.
-
-6. **Wrapped `cancelTrip()` in `db.transaction()`** — For consistency (single UPDATE, but future-proofed for additional operations).
-
-7. **Fixed `getMemberCount()` to use SQL `COUNT(*)`** — Replaced fetch-all-then-count-in-JS with `select({ value: count() })`. Same fix applied to pagination total count.
-
-8. **Added pagination to `getUserTrips()`** — Accepts `page` and `limit` params, returns `{ data: TripSummary[], meta: { total, page, limit, totalPages } }`. Controller parses query params with clamping (page >= 1, 1 <= limit <= 100).
-
-9. **Fixed N+1 query in `getUserTrips()`** — Replaced per-trip loop (3 queries per trip) with batch queries: one query for all members, one for all organizer users. Reduces from O(3N) to O(3) queries.
-
-10. **Added column selection in auth middleware** — `requireCompleteProfile` now selects only `{ id, displayName }` instead of `SELECT *` on the hot path.
-
-11. **Created 5 new integration tests** in `tests/integration/drizzle-improvements.test.ts` covering unique constraint, pagination (default + custom params), transaction atomicity, and count aggregate.
-
-12. **Updated all existing tests** — Unit tests (`trip.service.test.ts`) and integration tests (`trip.routes.test.ts`) updated for the new paginated response shape (`body.data`/`body.meta` instead of `body.trips`).
-
-### Files Changed
-
-- `src/db/schema/relations.ts` — Created (Drizzle relations)
-- `src/db/schema/index.ts` — Modified (unique constraint, `unique` import)
-- `src/db/migrations/0002_mysterious_hercules.sql` — Generated (unique constraint migration)
-- `src/config/database.ts` — Modified (schema + relations passed to drizzle())
-- `src/types/index.ts` — Modified (db type updated to `NodePgDatabase<FullSchema>`)
-- `src/services/trip.service.ts` — Modified (transactions, count aggregate, pagination, N+1 fix)
-- `src/controllers/trip.controller.ts` — Modified (pagination query params, new response shape)
-- `src/middleware/auth.middleware.ts` — Modified (column selection)
-- `tests/integration/drizzle-improvements.test.ts` — Created (5 new tests)
-- `tests/unit/trip.service.test.ts` — Modified (pagination assertions)
-- `tests/integration/trip.routes.test.ts` — Modified (response shape assertions)
+**Test files updated (5):**
+- `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — Added `next/image` mock
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — Added `next/image` mock
+- `apps/web/src/components/trip/__tests__/image-upload.test.tsx` — Added `next/image` mock
+- `apps/web/src/components/trip/__tests__/create-trip-dialog.test.tsx` — Updated font assertion from `style.fontFamily` to `className` check
+- `apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx` — Same font assertion update
 
 ### Verification Results
 
-- **TypeScript**: PASS (0 errors across all 3 packages)
-- **Tests**: PASS (795 total: 348 API, 83 shared, 364 web — 0 failures)
-- **Lint**: PASS (0 errors)
-- **Structural checks**: All 9 pass (relations file, unique constraint, migration, schema in drizzle, 3 transactions, count aggregate, pagination, column selection, new tests)
+- **Lint**: ✅ PASS — All 3 packages passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 834 tests across 39 test files (83 shared + 374 API + 377 web), 0 failures
+- **File existence**: ✅ PASS — All 9 new files confirmed present
+- **Inline font removal**: ✅ PASS — Zero remaining `fontFamily: "Playfair Display"` in source
+- **Native `<img>` removal**: ✅ PASS — Zero remaining `<img>` tags in converted files
 
-### Reviewer Notes
+### Reviewer Verdict
 
-- APPROVED with only LOW severity observations:
-  - Redundant composite index: `tripUserIdx` and `tripUserUnique` are on the same columns — PostgreSQL auto-creates an index for unique constraints, making the explicit index redundant. Left as-is to avoid an extra migration.
-  - `cancelTrip` transaction wraps a single UPDATE which is already atomic — kept for consistency and future-proofing.
-  - GET `/api/trips` response shape changed from `{ success, trips }` to `{ success, data, meta }` — breaking change for frontend consumers (acceptable in early development).
+**APPROVED** — Clean implementation with only LOW severity notes:
+- `images.remotePatterns` uses wildcard `hostname: "**"` — acceptable for dev/early-stage, should be narrowed for production
+- Hardcoded `tripful.com` domain in `robots.ts` and `sitemap.ts` — could use env var for flexibility
+- `(app)/error.tsx` and `(auth)/error.tsx` are near-identical — acceptable since they may diverge as the app grows
+- `global-error.tsx` exposes `error.message` — mitigated by Next.js production error sanitization
 
 ### Learnings for Future Iterations
 
-- **Schema merging for drizzle**: drizzle-kit v0.28.1 uses CJS require and cannot resolve `.js` extensions to `.ts` in `export * from "./relations.js"`. Solution: import relations separately in `database.ts` and merge with spread `{ ...schema, ...relations }`.
-- **FullSchema type pattern**: Using `typeof schema & typeof relations` type intersection works well for Fastify type augmentation when tables and relations are in separate files.
-- **Batch queries over relational API**: For `getUserTrips`, explicit batch queries with Maps are more efficient and predictable than the Drizzle relational API for complex aggregations (member counts + organizer info + pagination).
-- **Count aggregate returns number**: Drizzle's `count()` from `drizzle-orm` returns a properly typed number, accessed as `result.value` when aliased with `select({ value: count() })`.
-- **Pagination math**: `totalPages = Math.ceil(total / limit)` and `offset = (page - 1) * limit` — standard offset-based pagination. Controller clamps inputs to prevent invalid values.
-- **Breaking API change management**: The response shape change from `{ trips }` to `{ data, meta }` needs frontend consumer updates. In a real production system, this would need versioning or a migration period.
+- **next/image mock pattern**: Mock `next/image` in vitest as `({ src, alt, fill, priority, unoptimized, sizes, ...props }) => <img src={src} alt={alt} {...props} />` — destructure known Image-specific props to prevent them being passed to DOM `<img>`, preserving all existing `.src` and `getAttribute("src")` assertions.
+- **Font CSS variable approach**: `font-[family-name:var(--font-playfair)]` is the correct Tailwind v4 arbitrary value syntax for CSS variable fonts. Applied via `playfairDisplay.variable` on `<html>` element.
+- **Skeleton dual-purpose**: Keep `SkeletonCard`/`SkeletonDetail` in page files for client-side TanStack Query loading state alongside the new `loading.tsx` files for route-level Suspense — they serve different purposes.
+- **`unoptimized` for blob URLs**: `next/image` cannot optimize `blob:` URLs, so `unoptimized` prop is required for image upload previews.
+- **Error boundary conventions**: `global-error.tsx` must include its own `<html>/<body>` since it replaces the root layout. `not-found.tsx` is NOT a client component. All `error.tsx` files ARE client components.
 
-## Iteration 3 — Task 3.1: Add Zod route schemas, @fastify/error typed errors, helmet, rate limiting, and security hardening
+## Iteration 3 — Task 3.1: Implement TanStack Query best practices (isPending, queryOptions factory, query client config, devtools, ESLint plugin) and React performance optimizations (memo, useCallback, navigation, deduplication)
 
-**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
 
-### What Was Done
+### Changes Made
 
-Replaced string-based error handling with typed errors, added Zod route schemas for automatic validation, and hardened the API with security headers and rate limiting:
+**New files created (1):**
+- `apps/web/src/lib/get-query-client.ts` — Server/browser QueryClient singleton with dehydration support for SSR hydration (`shouldDehydrateQuery` includes pending queries)
 
-1. **Created `src/errors.ts`** — 12 typed error classes using `@fastify/error`'s `createError()`: `UnauthorizedError`, `ProfileIncompleteError`, `TripNotFoundError`, `PermissionDeniedError`, `MemberLimitExceededError`, `CoOrganizerNotFoundError`, `CannotRemoveCreatorError`, `DuplicateMemberError`, `CoOrganizerNotInTripError`, `FileTooLargeError`, `InvalidFileTypeError`, `InvalidCodeError`. Each has a proper HTTP status code and error code.
+**Modified files (11):**
+- `apps/web/package.json` — Added `@tanstack/react-query-devtools` and `@tanstack/eslint-plugin-query` as devDependencies
+- `apps/web/.eslintrc.json` — Added `"plugin:@tanstack/query/recommended"` to extends array
+- `apps/web/src/app/providers/providers.tsx` — Replaced `useState(new QueryClient)` with `getQueryClient()`, added `ReactQueryDevtools`
+- `apps/web/src/hooks/use-trips.ts` — Added `tripKeys` factory, `tripsQueryOptions`/`tripDetailQueryOptions` using `queryOptions()`, `usePrefetchTrip` hook, `mutationKey` on all 3 mutations, removed duplicate `invalidateQueries` from `onSuccess` (kept only in `onSettled`), pass `signal` for abort support, updated JSDoc to `isPending`
+- `apps/web/src/components/trip/trip-card.tsx` — Wrapped with `React.memo`, replaced `useRouter`+`handleClick` with `<Link>` from `next/link`, added `usePrefetchTrip` for hover/focus prefetch, removed manual `role="button"`/`tabIndex`/`onKeyDown`
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Replaced `isLoading` with `isPending`, replaced double `.filter()` with single-loop partition
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Replaced `isLoading` with `isPending`, replaced "Return to dashboard" `router.push` with `<Link>`, removed unused `useRouter`
+- `apps/web/src/app/providers/auth-provider.tsx` — Wrapped `fetchUser`, `login`, `verify`, `completeProfile`, `logout` with `useCallback`, memoized context value with `useMemo`, added `fetchUser` to `useEffect` deps
+- `apps/web/src/app/(auth)/verify/page.tsx` — Removed `shouldNavigate` state + `useEffect`, navigate directly in `onSubmit`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — Removed `shouldNavigate` state + `useEffect`, navigate directly after `completeProfile()`
 
-2. **Updated services to throw typed errors** — `trip.service.ts` (16 error sites), `upload.service.ts` (2 error sites) now throw typed errors instead of `throw new Error("string")`. Internal invariant errors (e.g., "Failed to create trip") kept as generic `Error` since they become 500s.
-
-3. **Updated error middleware** — Added handling for `@fastify/error` typed errors (detected via `statusCode < 500 && code`), wrapping them in the standard `{ success: false, error: { code, message } }` envelope. Also added `hasZodFastifySchemaValidationErrors` handling for Zod route schema validation errors.
-
-4. **Removed manual `safeParse()` from controllers** — All 12 `schema.safeParse(request.body)` / `uuidSchema.safeParse(id)` calls removed from `auth.controller.ts` and `trip.controller.ts`. Fastify route schemas now handle validation automatically.
-
-5. **Removed string-based error matching from controllers** — All `error.message.startsWith(...)` / `error.message === ...` patterns in catch blocks replaced with typed error re-throw: `if (error && typeof error === "object" && "statusCode" in error) { throw error; }`.
-
-6. **Added Zod route schemas to all routes** — `auth.routes.ts` (3 routes with body schemas), `trip.routes.ts` (8 routes with params/body schemas). Multipart routes correctly skip body schema. Set up `validatorCompiler` and `serializerCompiler` from `fastify-type-provider-zod` in `app.ts`.
-
-7. **Registered `@fastify/helmet`** — Security headers with `contentSecurityPolicy: false` (API-only server).
-
-8. **Added rate limiting to verify-code** — 10 attempts per 15 minutes per phone number via `verifyCodeRateLimitConfig` in `rate-limit.middleware.ts`.
-
-9. **Registered `@fastify/under-pressure`** — Load shedding with sensible defaults (1s event loop delay, 1GB heap, 1.5GB RSS).
-
-10. **Added `setNotFoundHandler`** — Consistent 404 responses for unknown routes in the standard error envelope format.
-
-11. **Added `TRUST_PROXY` env variable** — Boolean (default false) in `config/env.ts`, used in Fastify constructor for correct `request.ip` behind load balancers.
-
-12. **Created 9 new integration tests** in `tests/integration/security.test.ts` — schema validation (invalid UUID, missing body), security headers (helmet), not-found handler, rate limiting on verify-code, error envelope consistency.
-
-13. **Updated existing tests** — `trip.routes.test.ts` updated `FORBIDDEN` → `PERMISSION_DENIED` for cover image permission errors, validation message format updates for schema-driven validation, `VALIDATION_ERROR` → `INVALID_FILE_TYPE` for file type checks.
-
-### Files Changed
-
-- `src/errors.ts` — Created (12 typed error classes)
-- `src/app.ts` — Modified (helmet, under-pressure, zod compilers, not-found handler, trust proxy)
-- `src/config/env.ts` — Modified (TRUST_PROXY env variable)
-- `src/middleware/error.middleware.ts` — Modified (typed error + Zod validation handling)
-- `src/middleware/rate-limit.middleware.ts` — Modified (verify-code rate limit config)
-- `src/services/trip.service.ts` — Modified (typed errors)
-- `src/services/upload.service.ts` — Modified (typed errors)
-- `src/controllers/auth.controller.ts` — Modified (removed safeParse, typed error handling)
-- `src/controllers/trip.controller.ts` — Modified (removed safeParse, string matching, simplified catch blocks)
-- `src/routes/auth.routes.ts` — Modified (Zod route schemas, verify-code rate limit)
-- `src/routes/trip.routes.ts` — Modified (Zod route schemas for params/body)
-- `tests/integration/security.test.ts` — Created (9 new tests)
-- `tests/integration/trip.routes.test.ts` — Modified (error code updates)
-- `package.json` — Modified (new dependencies)
-- `pnpm-lock.yaml` — Updated
+**Test files updated (4):**
+- `apps/web/src/hooks/__tests__/use-trips.test.tsx` — Removed all 3 deprecated `logger` blocks from QueryClient, replaced `isLoading` assertions with `isPending`, added `signal` parameter assertions
+- `apps/web/src/app/(app)/dashboard/page.test.tsx` — Replaced all `isLoading` mock values with `isPending`
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — Replaced all `isLoading` mock values with `isPending`, added `next/link` mock, updated "Return to dashboard" test from `router.push` to link href check
+- `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — Added `next/link` mock, added `usePrefetchTrip` mock, replaced navigation tests from `role="button"` + `router.push` to `role="link"` + href checks, added prefetch-on-hover test
 
 ### Verification Results
 
-- **TypeScript**: PASS (0 errors across all 3 packages)
-- **Tests**: PASS (804 total: 357 API, 83 shared, 364 web — 0 failures)
-- **Lint**: PASS (0 errors)
-- **Structural checks**: All 17 pass (errors.ts, helmet, under-pressure, not-found handler, TRUST_PROXY, no safeParse in controllers, no string error matching in controllers, Zod compilers, route schemas, security tests, verify-code rate limit, typed errors in services, packages installed)
+- **Lint**: ✅ PASS — All 3 packages (shared, api, web) passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 834 tests across 39 test files (83 shared + 374 API + 377 web), 0 failures
+- **Dependencies**: ✅ PASS — `@tanstack/react-query-devtools` and `@tanstack/eslint-plugin-query` installed
+- **isLoading removal**: ✅ PASS — Zero `isLoading` references in dashboard/page.tsx and trips/[id]/page.tsx source
+- **New file**: ✅ PASS — `get-query-client.ts` exists
 
-### Reviewer Notes
+### Reviewer Verdict
 
-- APPROVED with only LOW severity observations:
-  - `TripNotFoundError` and `CoOrganizerNotInTripError` share error code `NOT_FOUND` — acceptable, differentiated by message
-  - `DuplicateMemberError` defined but not yet used (pre-defined for future constraint handling)
-  - `GET /api/trips` querystring (page/limit) still manually parsed in controller rather than via route schema — functional, non-blocking
-  - `as` type casts on `request.body`/`request.params` remain since handlers are separate functions without generic type params — idiomatic Fastify pattern when not using inline handlers
+**APPROVED** — All 10 task requirements correctly implemented. Only LOW severity notes:
+- `@tanstack/react-query-devtools` in devDependencies (standard community pattern; tree-shakes in production)
+- Default retry behavior changed from `retry: 1` to TanStack Query default `retry: 3` via `getQueryClient` (intentional configuration update)
+- Mutation keys use inline arrays rather than a factory (acceptable since mutation keys are primarily for devtools identification)
 
 ### Learnings for Future Iterations
 
-- **`fastify-type-provider-zod` v4 for Zod 3 compatibility**: The codebase uses Zod 3.24.1. The `@fastify/type-provider-zod` v6+ requires Zod 4. Using `fastify-type-provider-zod@4.0.2` (community package) provides Zod 3 compatibility.
-- **`hasZodFastifySchemaValidationErrors` for error detection**: The `fastify-type-provider-zod` package exports `hasZodFastifySchemaValidationErrors(error)` to distinguish Zod schema validation errors from other Fastify errors in the error handler.
-- **Typed error re-throw pattern**: In controller catch blocks, checking `"statusCode" in error` and re-throwing lets typed errors propagate to the centralized error handler while keeping 500 fallback for unexpected errors.
-- **Multipart routes skip body schema**: Routes using `@fastify/multipart` (cover-image upload) cannot use JSON body schemas since the body is a multipart stream. Only params schema applies.
-- **Error code backward compatibility**: Using `NOT_FOUND` instead of `TRIP_NOT_FOUND` preserved existing test expectations. When introducing typed errors, matching existing error codes minimizes test churn.
-- **Controller code reduction**: Removing manual `safeParse()` and string-based error matching significantly reduced controller boilerplate (trip controller from ~970 to ~620 lines). Centralized error handling is cleaner.
-- **Rate limit test isolation**: Tests for route-specific rate limits need their own app instance without global rate limit disabled (`buildApp({ fastify: { logger: false } })` without `rateLimit: { global: false }`).
+- **queryOptions factory pattern**: `queryOptions()` from TanStack Query v5 provides type-safe, reusable query configurations. Export these alongside hooks so server components can use them for prefetching in Phase 4.
+- **Signal forwarding**: Destructure `{ signal }` from `queryFn` context and pass to `apiRequest` — enables automatic request cancellation on component unmount. The `apiRequest` function already spreads `RequestInit` options including `signal`.
+- **getQueryClient singleton**: Server-side creates a new client per request (avoids state leaks between SSR requests), browser-side reuses a module-level singleton. The `dehydrate` config with `shouldDehydrateQuery` including pending queries is essential for Phase 4 RSC hydration.
+- **Link vs router.push for navigation**: `<Link>` from `next/link` provides prefetching, accessibility (renders as `<a>`), and native browser behaviors (middle-click, right-click). Add `block` class for block-level display. Manual `role="button"`/`tabIndex`/`onKeyDown` can be removed since `<a>` handles keyboard navigation natively.
+- **useCallback dependency arrays**: Auth provider functions that only use module constants (`API_URL`) and stable state setters (`setUser`, `setLoading`) can safely use `[]` as dependencies. Only `logout` needs `[router]` since it calls `router.push`.
+- **shouldNavigate elimination**: The `shouldNavigate` state + `useEffect` pattern for post-async navigation is unnecessary in React 18+ — navigate directly in async handlers after `await`.
+- **ESLint legacy format**: The project uses `.eslintrc.json` (not flat config). TanStack Query plugin is added as `"plugin:@tanstack/query/recommended"` in the `extends` array.
 
-## Iteration 4 — Task 4.1: Add explicit config flags, logger improvements, scoped hooks, multipart limits, and health checks
+## Iteration 4 — Task 4.1: Convert protected layout to server component auth guard, migrate dashboard and trip detail pages to RSC with TanStack Query hydration, add dynamic imports with preloading
 
-**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
 
-### What Was Done
+### Changes Made
 
-Replaced environment-dependent behavior with explicit config flags, improved logging, refactored route auth hooks, and added Kubernetes-style health check endpoints:
+**New files created (3):**
+- `apps/web/src/lib/server-api.ts` — Server-side API client that reads `auth_token` cookie via `cookies()` from `next/headers` and forwards as `Authorization: Bearer` header. Uses `process.env.API_URL` (non-public, server-side only).
+- `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` — Extracted `"use client"` component with all dashboard logic (search, filtering, trip cards, dialogs, state). Uses `next/dynamic` for `CreateTripDialog` with `ssr: false`. Adds `preloadCreateTripDialog` on `onMouseEnter`/`onFocus` for FAB and "Create your first trip" buttons.
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Extracted `"use client"` component with all trip detail logic. Accepts `tripId` as prop (no more `useParams()`). Uses `next/dynamic` for `EditTripDialog` with `ssr: false`. Adds `preloadEditTripDialog` on `onMouseEnter`/`onFocus` for "Edit trip" button.
 
-1. **Added 3 new config flags** to `config/env.ts`:
-   - `COOKIE_SECURE` — `z.coerce.boolean().default(process.env.NODE_ENV === "production")` — controls cookie `secure` flag
-   - `EXPOSE_ERROR_DETAILS` — `z.coerce.boolean().default(process.env.NODE_ENV === "development")` — controls error message/stack exposure
-   - `ENABLE_FIXED_VERIFICATION_CODE` — `z.coerce.boolean().default(process.env.NODE_ENV !== "production")` — controls fixed "123456" code for dev/test
+**Rewritten files (3):**
+- `apps/web/src/app/(app)/layout.tsx` — Converted from `"use client"` component (using `useAuth()` + `useEffect` + `useRouter`) to async server component using `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Checks for `auth_token` cookie presence, redirects to `/login` if missing.
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Converted to RSC. Uses `serverApiRequest` to fetch trips server-side with cookie forwarding, populates TanStack Query cache via `setQueryData(tripKeys.all, ...)`, wraps `DashboardContent` in `HydrationBoundary`. Exports `metadata = { title: "Dashboard" }`.
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Converted to async RSC. Awaits `params` (Next.js 15+ Promise pattern), uses `serverApiRequest` to fetch trip detail server-side, populates cache via `setQueryData(tripKeys.detail(id), ...)`, wraps `TripDetailContent` in `HydrationBoundary`. Exports `generateMetadata` for page title.
 
-2. **Replaced all `process.env.NODE_ENV` checks** in source code (4 locations):
-   - `auth.controller.ts` (2 locations): cookie `secure` flag → `request.server.config.COOKIE_SECURE`
-   - `error.middleware.ts`: error detail exposure → `request.server.config.EXPOSE_ERROR_DETAILS`
-   - `auth.service.ts`: fixed verification code → `this.fastify?.config.ENABLE_FIXED_VERIFICATION_CODE`
-   - `utils/phone.ts`: test phone acceptance → `env.ENABLE_FIXED_VERIFICATION_CODE`
+**Modified files (2):**
+- `apps/web/.env.local` — Added `API_URL=http://localhost:8000/api` (server-side only)
+- `apps/web/.env.local.example` — Added `API_URL` with documentation comments
 
-3. **Replaced all `process.cwd()` calls** with `import.meta.dirname` (3 locations):
-   - `config/jwt.ts`: `resolve(import.meta.dirname, "..", "..", ".env.local")`
-   - `app.ts`: `resolve(import.meta.dirname, "..", app.config.UPLOAD_DIR)`
-   - `services/upload.service.ts`: `resolve(import.meta.dirname, "..", "..", env.UPLOAD_DIR)`
-
-4. **Added logger redaction and pino-pretty** in `server.ts`:
-   - Development: `pino-pretty` transport with `debug` level
-   - Non-development: `redact` array for `req.headers.authorization`, `req.headers.cookie`, `req.body.phoneNumber`
-
-5. **Refactored trip.routes.ts with scoped auth hooks**:
-   - GET routes (`GET /`, `GET /:id`) remain at top level with only `preHandler: authenticate`
-   - Write routes (POST, PUT, DELETE — 7 routes) wrapped in `fastify.register(async (scope) => { ... })` with `scope.addHook("preHandler", authenticate)` and `scope.addHook("preHandler", requireCompleteProfile)`
-
-6. **Added multipart limits** in `app.ts`:
-   - `throwFileSizeLimit: true`, `fieldNameSize: 100`, `fields: 10`, `headerPairs: 2000`
-
-7. **Added health check endpoints**:
-   - `GET /api/health/live` — Liveness probe: always returns `200 { status: "ok" }`
-   - `GET /api/health/ready` — Readiness probe: checks DB, returns `200` or `503`
-
-8. **Updated `.env.example`** with new config flags and documentation comments.
-
-9. **Created 17 new integration tests** in `tests/integration/config-and-improvements.test.ts`:
-   - Config flag defaults (5 tests)
-   - Health live endpoint (2 tests)
-   - Health ready endpoint (3 tests)
-   - Scoped auth hooks (6 tests: GET without profile, POST/PUT/DELETE require profile, auth required)
-   - Multipart limits (1 test)
-
-### Files Changed
-
-- `src/config/env.ts` — Modified (3 new config flags)
-- `src/controllers/auth.controller.ts` — Modified (COOKIE_SECURE flag)
-- `src/middleware/error.middleware.ts` — Modified (EXPOSE_ERROR_DETAILS flag)
-- `src/services/auth.service.ts` — Modified (ENABLE_FIXED_VERIFICATION_CODE flag)
-- `src/utils/phone.ts` — Modified (ENABLE_FIXED_VERIFICATION_CODE flag)
-- `src/config/jwt.ts` — Modified (import.meta.dirname)
-- `src/app.ts` — Modified (import.meta.dirname, multipart limits)
-- `src/services/upload.service.ts` — Modified (import.meta.dirname)
-- `src/server.ts` — Modified (pino-pretty + redaction)
-- `src/routes/trip.routes.ts` — Modified (scoped auth hooks)
-- `src/controllers/health.controller.ts` — Modified (live + ready handlers)
-- `src/routes/health.routes.ts` — Modified (live + ready routes)
-- `.env.example` — Modified (new config flags)
-- `tests/integration/config-and-improvements.test.ts` — Created (17 tests)
+**Test files updated (3):**
+- `apps/web/src/app/(app)/layout.test.tsx` — Completely rewritten for server component testing. Mocks `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Calls `ProtectedLayout()` directly as async function. Tests: auth cookie present (renders children), cookie missing (redirects), empty cookie value (redirects), correct cookie name verification.
+- `apps/web/src/app/(app)/dashboard/page.test.tsx` — Changed import from `DashboardPage` to `DashboardContent`. Added `next/dynamic` mock using `React.lazy`/`React.Suspense`. Added `Suspense` wrapper in `renderWithClient`. All 22 test cases preserved.
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — Changed import from `TripDetailPage` to `TripDetailContent`. Added `next/dynamic` mock. Removed `useParams` mock. Passes `tripId="trip-123"` as prop with `Suspense` wrapper. All 32 test cases preserved.
 
 ### Verification Results
 
-- **TypeScript**: PASS (0 errors across all 3 packages)
-- **Tests**: PASS (821 total: 374 API, 83 shared, 364 web — 0 failures)
-- **Lint**: PASS (0 errors)
-- **Structural checks**: All 8 pass (no process.env.NODE_ENV in source except env.ts, no process.cwd() in source, config flags exist, health endpoints exist, scoped hooks exist, multipart limits exist, logger redaction exists, new test file exists)
+- **Lint**: ✅ PASS — All 3 packages (shared, api, web) passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 833 tests across all test files (83 shared + 374 API + 376 web), 0 failures
 
-### Reviewer Notes
+### Reviewer Verdict
 
-- APPROVED with only LOW severity observations:
-  - Logger redaction not applied in development mode (pino-pretty branch has no `redact`) — intentional trade-off for debug convenience
-  - Multipart limits test only verifies app starts successfully, doesn't test actual limit enforcement — acceptable given the complexity of crafting multipart test payloads
-  - `EXPOSE_ERROR_DETAILS` defaults to `false` in test environment (`NODE_ENV=test`), which matches production behavior but could make debugging test failures harder
-  - `healthService.getStatus()` returns `status: "ok"` even with disconnected DB — the `ready` endpoint handles this correctly by checking `health.database` independently
+**APPROVED** (second review, after fixes) — First review returned NEEDS_WORK with two issues:
+1. Layout test file not updated for server component (4 test failures)
+2. `server-api.ts` created but not integrated into RSC prefetch flow
+
+Both issues were fixed in the same iteration:
+- Layout tests rewritten for async server component pattern
+- RSC pages switched from `prefetchQuery(clientQueryOptions)` to `serverApiRequest` + `setQueryData` for proper server-side cookie forwarding
+- `server-api.ts` updated with `await` before `response.json()`
+
+Only LOW severity suggestion remaining: Consider adding tests that call the RSC page functions directly (similar to layout tests) to verify the `serverApiRequest` + `setQueryData` + `dehydrate` pipeline.
 
 ### Learnings for Future Iterations
 
-- **Config flag defaults use process.env.NODE_ENV intentionally**: The env.ts Zod schema is the single source of truth for NODE_ENV-based defaults. The rest of the app reads boolean config flags instead.
-- **env singleton and fastify.config are the same object**: The config plugin does `fastify.decorate("config", env)`, so utility functions that import `env` directly (like `phone.ts`) can access the new flags without needing the Fastify instance.
-- **import.meta.dirname paths are relative to the source file**: Unlike `process.cwd()` which gives the project root, `import.meta.dirname` gives the directory of the current file. Need `..` traversal to reach the project root (e.g., `src/config/` needs `../..`).
-- **Fastify scoped plugins for shared hooks**: `fastify.register(async (scope) => { scope.addHook(...); })` creates an encapsulated context where hooks only apply to routes defined within. This eliminates the need to repeat `[authenticate, requireCompleteProfile]` on every write route.
-- **Pino redaction in non-dev only**: pino-pretty in development doesn't support the same redaction paths format. Keeping redaction for production/test while allowing full debug output in development is a practical trade-off.
-- **Health endpoint convention**: Liveness probes should be stateless (always 200 if process is up), while readiness probes check dependencies (DB). The liveness endpoint should never call the database to avoid false negatives during transient DB issues.
+- **Async server component testing**: Call the component function directly with `await ProtectedLayout({ children: ... })` rather than using `render()`. Mock `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Next.js's `redirect()` throws a `NEXT_REDIRECT` error — test with `rejects.toThrow()`.
+- **Server-side cookie forwarding**: `apiRequest` with `credentials: "include"` only works in browser context. For RSC pages, use `serverApiRequest` which reads cookies via `next/headers` `cookies()` and forwards as `Authorization: Bearer` header.
+- **setQueryData vs prefetchQuery for RSC**: When server-side data fetching uses a different API client (not the client-side `queryFn`), use `queryClient.setQueryData()` to populate the cache directly rather than `prefetchQuery()` which would try to use the client-side `queryFn`.
+- **try/catch for RSC prefetch**: Always wrap server-side data fetching in try/catch. If it fails (e.g., cookie not available, network issue), the client component will re-fetch on mount via its own `useQuery` hook.
+- **next/dynamic mock for tests**: Mock `next/dynamic` with `React.lazy` + `React.Suspense` wrapper. Since `vi.mock` intercepts all module imports regardless of loading method, existing component mocks work with dynamic imports. Wrap test renders in `<Suspense fallback={null}>`.
+- **Named exports with next/dynamic**: Use `.then((mod) => ({ default: mod.NamedExport }))` pattern since `next/dynamic` expects a default export.
+- **Next.js 15+ params Promise**: In the App Router, `params` is a `Promise<{ id: string }>` that must be awaited. Both `page.tsx` and `generateMetadata` receive it as a Promise.
+- **Preload pattern for dynamic imports**: Create a module-level function `const preloadX = () => void import("@/components/path")` and attach to `onMouseEnter`/`onFocus` on trigger buttons.
+- **Test count may vary**: After RSC migration, some tests test the extracted client component directly rather than the page wrapper. The total test count may decrease by 1 (from 834 to 833) if a test file structure changes.
 
 ## Iteration 5 — Task 5.1: Full regression check and E2E validation
 
-**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
 
-### What Was Done
+### Issues Found and Fixed
 
-Performed a comprehensive final regression check across the entire API codebase, discovered and fixed 24 `as` type cast violations, and validated all quality gates:
+Four issues were discovered and resolved during the full regression check:
 
-1. **Ran 3 parallel researchers** to audit the codebase for violations:
-   - **LOCATING**: Identified all 32 source files, 20 test files, 2 E2E test files, confirmed Docker/PostgreSQL running, env file present
-   - **ANALYZING**: Checked 5 code quality rules — found 24 `as` type cast violations in controllers (all other checks passed)
-   - **PATTERNS**: Verified all 10 architectural patterns (plugins, buildApp, type augmentation, errors, route schemas, security, health endpoints, scoped hooks, config flags) — all PASS
+**Issue 1 — Production build failure (Turbopack server/client boundary)**:
+- `pnpm build` failed because `use-trips.ts` imports `useRouter` from `next/navigation` (client-only), but was also imported by RSC server components (`dashboard/page.tsx`, `trips/[id]/page.tsx`) for `tripKeys`.
+- **Fix**: Split into `trip-queries.ts` (server-safe: `tripKeys`, `tripsQueryOptions`, `tripDetailQueryOptions`) and kept `use-trips.ts` (client-only hooks). Updated RSC pages to import from `@/hooks/trip-queries`. Re-exports in `use-trips.ts` preserve backward compatibility.
 
-2. **Fixed 24 `as` type cast violations** in controller files:
-   - `auth.controller.ts`: Replaced 3 `request.body as {...}` casts with `FastifyRequest<{ Body: {...} }>` generics on handler signatures
-   - `trip.controller.ts`: Replaced 21 `request.params as {...}` / `request.body as {...}` / `request.query as {...}` casts with proper `FastifyRequest<{ Params/Body/Querystring }>` generics on all 10 handler signatures
-   - `auth.routes.ts`: Added 1 generic type parameter to `complete-profile` route registration
-   - `trip.routes.ts`: Added 2 generic type parameters to GET route registrations
+**Issue 2 — E2E failures: DevTools overlapping FAB button (9 test failures)**:
+- TanStack Query DevTools floating button rendered in bottom-right corner, overlapping the "Create new trip" FAB. Playwright could not click the FAB due to pointer event interception.
+- **Fix**: Added `buttonPosition="bottom-left"` to `ReactQueryDevtools` in `providers.tsx`.
 
-3. **Verified all quality gates pass**:
-   - TypeScript: PASS (0 errors across all 3 packages)
-   - Tests: PASS (821 total: 374 API, 83 shared, 364 web — 0 failures)
-   - Lint: PASS (0 errors)
-   - Format: PASS (Prettier check clean)
-   - Code pattern checks: All 5 PASS (no `as` casts, no console.log, no process.env.NODE_ENV, no error.message.startsWith, no safeParse)
-   - API health check: PASS (server starts cleanly, `GET /api/health` returns 200)
+**Issue 3 — E2E failures: Query retry causing infinite loading (2 test failures)**:
+- Non-member trip access returned 403/404 from API, but TanStack Query's default retry=3 with exponential backoff kept the query in `isPending` state, showing a loading skeleton instead of the "Trip not found" error page within the E2E test's 5-second timeout.
+- **Fix**: Added smart `retry` configuration to `get-query-client.ts` that skips retrying on deterministic client error codes (`NOT_FOUND`, `FORBIDDEN`, `UNAUTHORIZED`, `VALIDATION_ERROR`, `BAD_REQUEST`). Retries server errors once (`failureCount < 1`).
 
-### Files Changed
+**Issue 4 — E2E test selector mismatch (1 test failure)**:
+- Test looked for `button:has-text("Return to dashboard")` but Phase 3 changed the "Return to dashboard" element from a `<button>` with `router.push` to a `<Link>` (rendered as `<a>`).
+- **Fix**: Updated E2E test selector in `trip-flow.spec.ts` from `button:has-text("Return to dashboard")` to `a:has-text("Return to dashboard")`.
 
-- `src/controllers/auth.controller.ts` — Modified (3 handler signatures with FastifyRequest generics)
-- `src/controllers/trip.controller.ts` — Modified (10 handler signatures with FastifyRequest generics, removed 21 `as` casts)
-- `src/routes/auth.routes.ts` — Modified (1 route registration generic added)
-- `src/routes/trip.routes.ts` — Modified (2 route registration generics added)
+### Changes Made
+
+**New files created (1):**
+- `apps/web/src/hooks/trip-queries.ts` — Server-safe module with `tripKeys`, `tripsQueryOptions`, `tripDetailQueryOptions`. No React hooks, no `"use client"` directive.
+
+**Modified files (6):**
+- `apps/web/src/hooks/use-trips.ts` — Added `"use client"` directive. Imports and re-exports from `./trip-queries`. Removed inline definitions of `tripKeys`, `tripsQueryOptions`, `tripDetailQueryOptions`.
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Import of `tripKeys` changed from `@/hooks/use-trips` to `@/hooks/trip-queries`.
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Same import change for `tripKeys`.
+- `apps/web/src/app/providers/providers.tsx` — Added `buttonPosition="bottom-left"` to `ReactQueryDevtools`.
+- `apps/web/src/lib/get-query-client.ts` — Added `retry` function that skips 4xx client errors, added `APIError` import from `@/lib/api`.
+- `apps/web/tests/e2e/trip-flow.spec.ts` — Updated "Return to dashboard" selector from `button` to `a` (link).
 
 ### Verification Results
 
-- **TypeScript**: PASS (0 errors across all 3 packages)
-- **Tests**: PASS (821 total: 374 API, 83 shared, 364 web — 0 failures)
-- **Lint**: PASS (0 errors)
-- **Format**: PASS (all files use Prettier code style)
-- **Code pattern checks**: All 5 PASS
-  - No `as` type casts on request.params/body/query in controllers
-  - No console.log/console.error outside env.ts
-  - No process.env.NODE_ENV outside env.ts
-  - No error.message.startsWith patterns in controllers
-  - No .safeParse() in controllers
-- **API health check**: PASS (200 OK with `{"status":"ok","database":"connected"}`)
-- **E2E tests**: SKIPPED (require dual-server orchestration — not practical in automated verification)
+- **Lint**: ✅ PASS — All 3 packages passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 833 tests across all test files (83 shared + 374 API + 376 web), 0 failures
+- **Build**: ✅ PASS — Next.js 16.1.6 (Turbopack) compiled successfully, 9 routes generated (7 static, 2 dynamic)
+- **E2E**: ✅ PASS — 13 passed, 3 skipped (expected: logout not implemented, co-organizer creation bug, delete trip bug), 0 failures
 
-### Reviewer Notes
+### Reviewer Verdict
 
-- APPROVED with only LOW severity observations:
-  - Two `as` casts remain in `rate-limit.middleware.ts` — acceptable, outside controllers, and `@fastify/rate-limit` types don't support generics on `keyGenerator`
-  - One `as` cast in `error.middleware.ts` — necessary at error-handling boundaries
-  - Minor inconsistency: `complete-profile` route has explicit generic while `request-code`/`verify-code` don't — cosmetic only, type safety maintained via schema inference
-  - Suggestion: Could use shared Zod-inferred types (`RequestCodeInput`, etc.) instead of inline type literals for auth controller generics — not blocking
+**APPROVED** — All four fixes are correct, minimal, and targeted. Only LOW severity note:
+- Retry config lists `"FORBIDDEN"` (which the API doesn't use) but misses `"PERMISSION_DENIED"` (which the API does use for 403 errors). This causes one unnecessary retry for permission-denied errors but is functionally correct. A status-code-based retry check would be more robust long-term.
 
 ### Learnings for Future Iterations
 
-- **FastifyRequest generics for separate handlers**: When handlers are defined as standalone functions (not inline in route registration), the Fastify type provider can't infer types automatically. Use `FastifyRequest<{ Body/Params/Querystring }>` generics on function signatures.
-- **Route registration generics may also be needed**: When a handler has typed generics, the route registration call (`fastify.get<{...}>()`) sometimes needs matching generics to satisfy TypeScript's type compatibility.
-- **Rate-limit middleware casts are unavoidable**: The `@fastify/rate-limit` package's `keyGenerator` callback doesn't support typed request generics. `as` casts in middleware like this are an acceptable exception.
-- **Comprehensive code auditing with parallel researchers**: Running 3 researchers in parallel (locating, analyzing, patterns) efficiently covers different verification dimensions without sequential bottlenecks.
-- **Final regression as a "fix + verify" task**: Even "verification-only" tasks may discover issues that need fixing. The 24 type cast violations were a legitimate finding that improved code quality.
+- **Turbopack production build is stricter than dev server**: The dev server allows server components to import from modules that contain client-only imports (it tree-shakes unused exports). Turbopack's production build correctly flags this as an error. Always run `pnpm build` as part of verification.
+- **Server/client module splitting pattern**: When a module contains both server-safe exports (query keys, query options) and client-only hooks, split into two files. Keep the server-safe exports in a separate file without `"use client"`. Re-export from the original file for backward compatibility.
+- **TanStack Query DevTools position**: Default position is bottom-right, which can overlap with FAB buttons. Use `buttonPosition="bottom-left"` to avoid conflicts.
+- **Retry configuration for client errors**: TanStack Query defaults to `retry: 3` which causes multi-second delays for deterministic 4xx errors. Configure retry to skip client error codes. Consider matching on HTTP status code ranges instead of specific error code strings for robustness.
+- **E2E tests must track component changes**: When changing `<button>` to `<Link>` in components, E2E test selectors must be updated from `button:has-text(...)` to `a:has-text(...)`. Run E2E tests after any navigation/link refactoring.
+- **CI environment variable**: The test environment has `CI=true` set, which causes `reuseExistingServer: !process.env.CI` to be `false`. When running Playwright locally with existing servers, use `CI= npx playwright test` to override.
 
-### All Phases Summary
-
-| Phase | Task | Status |
-|-------|------|--------|
-| 1 | Fastify plugin architecture with buildApp | ✅ COMPLETE |
-| 2 | Drizzle relations, transactions, pagination | ✅ COMPLETE |
-| 3 | Zod route schemas, typed errors, security | ✅ COMPLETE |
-| 4 | Config flags, logging, scoped hooks, health | ✅ COMPLETE |
-| 5 | Final regression check and E2E validation | ✅ COMPLETE |
-
-**All 5 phases complete. API audit and fix project is DONE.**

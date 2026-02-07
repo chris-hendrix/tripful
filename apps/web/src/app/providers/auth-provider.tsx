@@ -2,15 +2,16 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@tripful/shared";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { API_URL } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -35,12 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Fetch current user on mount
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  async function fetchUser() {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         credentials: "include",
@@ -57,9 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function login(phoneNumber: string) {
+  // Fetch current user on mount
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  const login = useCallback(async (phoneNumber: string) => {
     const response = await fetch(`${API_URL}/auth/request-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,9 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const errorData = await response.json();
       throw new Error(errorData.error?.message || "Request failed");
     }
-  }
+  }, []);
 
-  async function verify(phoneNumber: string, code: string) {
+  const verify = useCallback(async (phoneNumber: string, code: string) => {
     const response = await fetch(`${API_URL}/auth/verify-code`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -92,29 +93,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return { requiresProfile: data.requiresProfile };
-  }
+  }, []);
 
-  async function completeProfile(profileData: {
-    displayName: string;
-    timezone?: string;
-  }) {
-    const response = await fetch(`${API_URL}/auth/complete-profile`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(profileData),
-    });
+  const completeProfile = useCallback(
+    async (profileData: { displayName: string; timezone?: string }) => {
+      const response = await fetch(`${API_URL}/auth/complete-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profileData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || "Request failed");
-    }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Request failed");
+      }
 
-    const data = await response.json();
-    setUser(data.user);
-  }
+      const data = await response.json();
+      setUser(data.user);
+    },
+    [],
+  );
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await fetch(`${API_URL}/auth/logout`, {
       method: "POST",
       credentials: "include",
@@ -122,20 +123,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(null);
     router.push("/login");
-  }
+  }, [router]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      verify,
+      completeProfile,
+      logout,
+      refetch: fetchUser,
+    }),
+    [user, loading, login, verify, completeProfile, logout, fetchUser],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        verify,
-        completeProfile,
-        logout,
-        refetch: fetchUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

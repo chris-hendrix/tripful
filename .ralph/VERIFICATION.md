@@ -1,87 +1,77 @@
-# Verification: API Audit & Fix
+# Verification: Frontend Best Practices
 
 ## Environment Setup
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 9+
+- Node.js >= 22.0.0
+- pnpm >= 10.0.0
 - Docker (for PostgreSQL)
+- Running PostgreSQL instance (`pnpm db:up` from root)
+
+### Environment Variables
+
+**Backend** (`apps/api/.env`):
+- `DATABASE_URL=postgresql://tripful:tripful_dev@localhost:5433/tripful`
+- `JWT_SECRET=<min 32 char string>`
+- `FRONTEND_URL=http://localhost:3000`
+
+**Frontend** (`apps/web/.env.local`):
+- `NEXT_PUBLIC_API_URL=http://localhost:8000/api`
+- `API_URL=http://localhost:8000/api` (new — server-side only, for RSC prefetching)
+
+### Install Dependencies
+
+```bash
+pnpm install
+```
 
 ### Start Services
 
 ```bash
-# Start PostgreSQL
-pnpm docker:up
+# Terminal 1: PostgreSQL
+pnpm db:up
 
-# Verify database is running
-docker compose ps
+# Terminal 2: API server (port 8000)
+pnpm dev:api
+
+# Terminal 3: Web server (port 3000)
+pnpm dev:web
 ```
 
-### Environment Variables
-
-Copy from example if not present:
-
-```bash
-cp apps/api/.env.example apps/api/.env  # if missing
-```
-
-Required variables in `apps/api/.env`:
-
-```
-DATABASE_URL=postgresql://tripful:tripful@localhost:5433/tripful
-JWT_SECRET=<min 32 chars, auto-generated if missing>
-FRONTEND_URL=http://localhost:3000
-```
-
-New variables added by this work (all have defaults):
-
-```
-COOKIE_SECURE=false          # Set true in production
-EXPOSE_ERROR_DETAILS=true    # Set false in production
-ENABLE_FIXED_VERIFICATION_CODE=true  # Set false in production
-TRUST_PROXY=false            # Set true if behind load balancer
-```
-
-### Database Migration
-
-```bash
-cd apps/api
-pnpm db:migrate
-```
+---
 
 ## Test Commands
 
-### All Tests (primary verification)
+### Unit & Integration Tests (Vitest)
 
 ```bash
+# All tests (API + Web + Shared)
 pnpm test
+
+# Web tests only
+pnpm --filter=@tripful/web test
+
+# API tests only
+pnpm --filter=@tripful/api test
+
+# Watch mode (web)
+pnpm --filter=@tripful/web test:watch
 ```
 
-### Unit Tests Only
+### E2E Tests (Playwright)
+
+Requires both API and Web servers running.
 
 ```bash
-cd apps/api && pnpm vitest run --reporter=verbose
-```
-
-### Integration Tests Only
-
-```bash
-cd apps/api && pnpm vitest run tests/integration/ --reporter=verbose
-```
-
-### E2E Tests
-
-```bash
-# Requires both web and api running
-pnpm dev &   # Start both servers
+# Run all E2E tests
 pnpm test:e2e
-```
 
-### Type Checking
+# Run with browser UI
+pnpm test:e2e:ui
 
-```bash
-pnpm typecheck
+# Run headed (visible browser)
+pnpm --filter=@tripful/web test:e2e:headed
 ```
 
 ### Linting
@@ -90,66 +80,96 @@ pnpm typecheck
 pnpm lint
 ```
 
-### Formatting Check
+### Type Checking
 
 ```bash
-pnpm format --check
+pnpm typecheck
 ```
 
-## Ports and URLs
+### Production Build
 
-| Service        | URL                                    | Port                               |
-| -------------- | -------------------------------------- | ---------------------------------- |
-| API (dev)      | http://localhost:8000                  | 8000                               |
-| Frontend (dev) | http://localhost:3000                  | 3000                               |
-| PostgreSQL     | localhost:5433                         | 5433 (external) → 5432 (container) |
-| Health check   | http://localhost:8000/api/health       | 8000                               |
-| Health live    | http://localhost:8000/api/health/live  | 8000                               |
-| Health ready   | http://localhost:8000/api/health/ready | 8000                               |
+```bash
+pnpm build
+```
+
+### Format Check
+
+```bash
+pnpm format:check
+```
+
+---
+
+## Ports & URLs
+
+| Service     | URL                          | Notes                          |
+|-------------|------------------------------|--------------------------------|
+| Web (Next.js) | http://localhost:3000      | Frontend dev server            |
+| API (Fastify) | http://localhost:8000      | Backend API                    |
+| API Base     | http://localhost:8000/api   | API prefix                     |
+| PostgreSQL   | localhost:5433              | External port → 5432 container |
+| Playwright UI| http://localhost:9323       | When using `test:e2e:ui`       |
+
+---
 
 ## Test Credentials
 
-- **Phone number for testing**: Any valid format (e.g., `+1234567890`)
-- **Fixed verification code** (non-production): `123456`
-- **Database**: `tripful:tripful@localhost:5433/tripful`
+- **SMS verification code**: `123456` (hardcoded in test/dev environment)
+- **Phone number format**: E.164 (e.g., `+15551234567`)
+- Each E2E test uses unique phone numbers for isolation
 
-## Verification Checklist
+---
 
-After each task, run:
+## Key Verification Points Per Phase
 
-1. `pnpm typecheck` — TypeScript compilation
-2. `pnpm test` — All unit + integration tests
-3. `pnpm lint` — ESLint checks
+### Phase 1: Foundation
 
-After final task, additionally run: 4. `pnpm test:e2e` — Playwright E2E tests 5. `pnpm format --check` — Prettier formatting
+- `pnpm typecheck` passes — shared types resolve from `@tripful/shared/types`
+- `pnpm test` passes — no regressions from import path changes
+- `pnpm lint` passes — no unused imports from deduplication
 
-## Manual Verification
+### Phase 2: Next.js Features
 
-### API Smoke Test
+- `pnpm typecheck` passes — `next/image` and `next/font` imports are valid
+- `pnpm test` passes — updated tests match new `Image` component markup
+- Font loads correctly — check browser devtools for Playfair Display (no longer falls back to generic serif)
+- Error boundaries render — navigate to invalid routes to verify `not-found.tsx` works
+- Loading files render — route transitions show skeleton UI
+
+### Phase 3: TanStack Query & React Performance
+
+- `pnpm typecheck` passes
+- `pnpm test` passes — all `isPending` assertions work, no `isLoading` references remain
+- `pnpm lint` passes — TanStack Query ESLint plugin catches no errors
+- React Query DevTools visible — floating panel appears in bottom-right during dev
+- TripCard uses `<Link>` — verify prefetching on hover via browser network tab
+
+### Phase 4: RSC Migration
+
+- `pnpm typecheck` passes
+- `pnpm test` passes — updated page/component tests work with new structure
+- `pnpm test:e2e` passes — auth flow, dashboard, trip CRUD all functional
+- `pnpm build` succeeds — critical for catching SSR/RSC serialization issues
+- Auth guard works — unauthenticated users redirected to `/login` without client-side flash
+- Server prefetching works — dashboard loads without showing loading skeleton on first visit (data pre-populated)
+- Dynamic imports work — `CreateTripDialog`/`EditTripDialog` load on button click, preload on hover
+
+### Phase 5: Final Verification
 
 ```bash
-# Start API
-cd apps/api && pnpm dev
-
-# Health check
-curl http://localhost:8000/api/health
-
-# Verify security headers (helmet)
-curl -I http://localhost:8000/api/health
-
-# Verify 404 handler
-curl http://localhost:8000/api/nonexistent
-
-# Verify schema validation (should return 400)
-curl -X POST http://localhost:8000/api/auth/request-code \
-  -H "Content-Type: application/json" \
-  -d '{"phoneNumber": "invalid"}'
+pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm build
 ```
+
+All must pass with zero failures.
+
+---
 
 ## Feature Flags
 
-No external feature flag service required. All feature toggles are environment variables with sensible defaults.
+None required for this work. All changes are direct code improvements with no feature flag gating.
+
+---
 
 ## Seed Data
 
-No special seed data needed. Tests create their own test data. Database should be empty or in a clean state.
+No special seed data needed. E2E tests create their own test data via the API during test execution.

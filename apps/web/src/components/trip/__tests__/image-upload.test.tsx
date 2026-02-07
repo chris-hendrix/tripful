@@ -3,6 +3,22 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ImageUpload } from "../image-upload";
 
+// Mock next/image
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    fill,
+    priority,
+    unoptimized,
+    sizes,
+    ...props
+  }: Record<string, unknown>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img src={src as string} alt={alt as string} {...props} />
+  ),
+}));
+
 describe("ImageUpload", () => {
   let mockOnChange: ReturnType<typeof vi.fn>;
   let mockCreateObjectURL: ReturnType<typeof vi.fn>;
@@ -766,10 +782,7 @@ describe("ImageUpload", () => {
       });
     });
 
-    it("uses NEXT_PUBLIC_API_URL when available", async () => {
-      const originalEnv = process.env.NEXT_PUBLIC_API_URL;
-      process.env.NEXT_PUBLIC_API_URL = "https://api.example.com";
-
+    it("uses centralized API_URL for upload requests", async () => {
       const mockFetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
@@ -791,12 +804,10 @@ describe("ImageUpload", () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          "https://api.example.com/trips/trip-123/cover-image",
+          "http://localhost:8000/api/trips/trip-123/cover-image",
           expect.any(Object),
         );
       });
-
-      process.env.NEXT_PUBLIC_API_URL = originalEnv;
     });
 
     it("handles upload error gracefully", async () => {

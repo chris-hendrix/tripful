@@ -1028,7 +1028,9 @@ describe("EditTripDialog", () => {
       );
 
       const title = screen.getByText("Edit trip");
-      expect(title.style.fontFamily).toContain("Playfair Display");
+      expect(title.className).toContain(
+        "font-[family-name:var(--font-playfair)]",
+      );
     });
 
     it("applies gradient styling to Continue button", () => {

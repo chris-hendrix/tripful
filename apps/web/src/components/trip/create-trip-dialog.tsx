@@ -33,15 +33,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { Plus, X, Loader2 } from "lucide-react";
+import { TIMEZONES } from "@/lib/constants";
 
-const TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-];
+const PHONE_REGEX = /^\+[1-9]\d{6,13}$/;
 
 interface CreateTripDialogProps {
   open: boolean;
@@ -107,8 +101,7 @@ export function CreateTripDialog({
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    const phoneRegex = /^\+[1-9]\d{6,13}$/;
-    return phoneRegex.test(phone);
+    return PHONE_REGEX.test(phone);
   };
 
   const handleAddCoOrganizer = () => {
@@ -149,8 +142,7 @@ export function CreateTripDialog({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle
-            className="text-3xl font-serif tracking-tight"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight"
           >
             Create a new trip
           </DialogTitle>

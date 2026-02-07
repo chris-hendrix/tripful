@@ -1,493 +1,715 @@
-# Architecture: API Audit & Fix
+# Architecture: Frontend Best Practices
 
-Comprehensive refactor of the Tripful API based on Drizzle ORM and Fastify best practices audits. Backend-only changes — no UI modifications.
+Comprehensive frontend improvements for the Tripful web app based on three audit reports (Next.js best practices, React performance, TanStack Query). Covers bundle optimization, Next.js features adoption, RSC migration with server-side prefetching, TanStack Query v5 patterns, code deduplication, and error handling.
 
 ## Overview
 
-Address all findings from two code audits:
+The web app (`apps/web`) currently treats nearly every page as a client component, missing Next.js optimization features. This work migrates key pages to server components, adds server-side data prefetching via TanStack Query hydration, adopts Next.js features (fonts, images, error boundaries, metadata), optimizes bundle size, and applies React/TanStack Query best practices.
 
-1. **Drizzle ORM audit** — transactions, unique constraints, relations, count aggregates, pagination, schema improvements
-2. **Fastify best practices audit** — plugin architecture, route schemas with Zod type provider, typed errors, security headers, logging, configuration, graceful shutdown
+## Scope
 
-## Dependencies to Install
+All P0-P4 items from three audits:
+- **Next.js audit**: 19 findings across 14 categories
+- **React performance audit**: 16 findings across 9 categories
+- **TanStack Query audit**: findings across 9 categories
 
-```bash
-# Fastify plugins & type provider
-pnpm add @fastify/type-provider-zod @fastify/helmet @fastify/error @fastify/under-pressure close-with-grace
+---
 
-# Logging
-pnpm add -D pino-pretty
-```
+## 1. Shared Types Migration
 
-## 1. Fastify Plugin Architecture
+Move frontend-only Trip types to the shared package for reuse in server-side fetching.
 
-Refactor from module singletons to Fastify plugin/decorator pattern.
+### Types to Move
 
-### Database Plugin (`src/plugins/database.ts`)
+From `apps/web/src/hooks/use-trips.ts` (lines 10-101) to `shared/types/trip.ts`:
 
 ```typescript
-import fp from "fastify-plugin";
-import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
-import Pool from "pg";
-import * as schema from "../db/schema/index.js";
+// shared/types/trip.ts
+export interface TripSummary {
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  coverImageUrl: string | null;
+  isOrganizer: boolean;
+  rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
+  organizerInfo: Array<{
+    id: string;
+    displayName: string;
+    profilePhotoUrl: string | null;
+  }>;
+  memberCount: number;
+  eventCount: number;
+}
 
-export default fp(async (fastify) => {
-  const pool = new Pool({ connectionString: fastify.config.DATABASE_URL, ... });
-  const db = drizzle(pool, { schema }); // Pass schema to enable relational API
+export interface TripDetail {
+  id: string;
+  name: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  preferredTimezone: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  createdBy: string;
+  allowMembersToAddEvents: boolean;
+  cancelled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  organizers: Array<{
+    id: string;
+    displayName: string;
+    phoneNumber: string;
+    profilePhotoUrl: string | null;
+    timezone: string;
+  }>;
+  memberCount: number;
+}
 
-  fastify.decorate("db", db);
-  fastify.addHook("onClose", async () => { await pool.end(); });
-}, { name: "database" });
+// API response wrappers
+export interface GetTripsResponse {
+  success: true;
+  data: TripSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface GetTripResponse {
+  success: true;
+  trip: TripDetail;
+}
+
+export interface CreateTripResponse {
+  success: true;
+  trip: TripDetail;
+}
+
+export interface UpdateTripResponse {
+  success: true;
+  trip: TripDetail;
+}
 ```
 
-### Config Plugin (`src/plugins/config.ts`)
+Export from `shared/types/index.ts` barrel file.
 
-Decorates `fastify.config` with validated env variables. Replaces direct import of `env` singleton.
+---
 
-### Service Plugins
+## 2. Bundle Optimization
 
-Each service becomes a plugin that declares dependencies:
+### 2.1 optimizePackageImports for lucide-react
+
+**File**: `apps/web/next.config.ts`
+
+Add `experimental.optimizePackageImports` to prevent loading all 1,583 lucide-react modules:
 
 ```typescript
-// src/plugins/auth-service.ts
-export default fp(
-  async (fastify) => {
-    fastify.decorate("authService", new AuthService(fastify.db, fastify.jwt));
+const nextConfig: NextConfig = {
+  transpilePackages: ["@tripful/shared"],
+  reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
   },
-  { name: "auth-service", dependencies: ["database"] },
+};
+```
+
+### 2.2 Dynamic Imports for Dialog Components
+
+**Files**: `apps/web/src/app/(app)/dashboard/page.tsx`, `apps/web/src/app/(app)/trips/[id]/page.tsx`
+
+Use `next/dynamic` for dialogs that only render when user clicks a button:
+
+```typescript
+import dynamic from "next/dynamic";
+
+const CreateTripDialog = dynamic(
+  () => import("@/components/trip/create-trip-dialog").then((m) => m.CreateTripDialog),
+  { ssr: false }
 );
 ```
 
-Services to convert:
+### 2.3 Preload on Hover/Focus
 
-- `auth.service.ts` → `plugins/auth-service.ts` (depends on: database, jwt)
-- `trip.service.ts` → `plugins/trip-service.ts` (depends on: database)
-- `permissions.service.ts` → `plugins/permissions-service.ts` (depends on: database)
-- `upload.service.ts` → `plugins/upload-service.ts` (depends on: config)
-- `sms.service.ts` → `plugins/sms-service.ts` (no deps)
-- `health.service.ts` → `plugins/health-service.ts` (depends on: database)
-
-### Type Augmentation (`src/types/index.ts`)
+After dynamic imports, add preload functions for buttons that open dialogs:
 
 ```typescript
-declare module "fastify" {
-  interface FastifyInstance {
-    db: NodePgDatabase<typeof schema>;
-    config: EnvConfig;
-    authService: AuthService;
-    tripService: TripService;
-    permissionsService: PermissionsService;
-    uploadService: UploadService;
-    smsService: SMSService;
-    healthService: HealthService;
+const preloadCreateTrip = () => void import("@/components/trip/create-trip-dialog");
+
+<button
+  onMouseEnter={preloadCreateTrip}
+  onFocus={preloadCreateTrip}
+  onClick={() => setCreateDialogOpen(true)}
+>
+```
+
+---
+
+## 3. next/font Optimization
+
+### Font Declaration
+
+**New file**: `apps/web/src/lib/fonts.ts`
+
+```typescript
+import { Playfair_Display } from "next/font/google";
+
+export const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+```
+
+### Root Layout Integration
+
+**File**: `apps/web/src/app/layout.tsx`
+
+Apply the font CSS variable on `<html>`:
+
+```typescript
+import { playfairDisplay } from "@/lib/fonts";
+
+<html lang="en" className={playfairDisplay.variable}>
+```
+
+### Replace Inline Styles
+
+Remove all `style={{ fontFamily: "Playfair Display, serif" }}` usages across 6 files (12+ locations) and replace with the CSS variable class `font-[family-name:var(--font-playfair)]` or add a Tailwind utility.
+
+**Files affected**:
+- `apps/web/src/app/(app)/dashboard/page.tsx` (6 occurrences)
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` (3 occurrences)
+- `apps/web/src/components/trip/trip-card.tsx` (1 occurrence)
+- `apps/web/src/components/trip/create-trip-dialog.tsx` (1 occurrence)
+- `apps/web/src/components/trip/edit-trip-dialog.tsx` (1 occurrence)
+
+---
+
+## 4. next/image Optimization
+
+### Remote Patterns Configuration
+
+**File**: `apps/web/next.config.ts`
+
+```typescript
+images: {
+  remotePatterns: [
+    {
+      protocol: "https",
+      hostname: "**",  // Adjust to specific domains in production
+    },
+  ],
+},
+```
+
+### Replace `<img>` Tags
+
+Replace all native `<img>` tags with `next/image` `Image` component:
+
+**Files**:
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` (lines 160, 228 -- cover image + avatars)
+- `apps/web/src/components/trip/trip-card.tsx` (lines 148, 207 -- cover image + avatars)
+- `apps/web/src/components/trip/image-upload.tsx` (line 210 -- preview with `unoptimized` for blob URLs)
+
+For cover images (hero sections), use `fill` layout with `sizes` attribute and `priority` for above-the-fold images.
+
+---
+
+## 5. Error Handling
+
+### Error Boundary Files
+
+Create Next.js App Router error boundaries:
+
+**New files**:
+- `apps/web/src/app/global-error.tsx` -- Root error boundary (must include `<html>` and `<body>`)
+- `apps/web/src/app/not-found.tsx` -- Custom 404 page
+- `apps/web/src/app/(app)/error.tsx` -- Protected section error boundary
+- `apps/web/src/app/(auth)/error.tsx` -- Auth section error boundary
+
+All `error.tsx` files must be client components (`"use client"`). They receive `error` and `reset` props for error recovery.
+
+### TanStack Query Error Boundaries
+
+Add `throwOnError` for 5xx server errors so they bubble to Next.js error boundaries:
+
+```typescript
+// In query client defaults or individual queries
+throwOnError: (error) => {
+  if (error instanceof APIError) {
+    return error.code === "INTERNAL_SERVER_ERROR";
   }
+  return true; // Unknown errors should always throw
 }
 ```
 
-### App Builder Pattern (`src/app.ts`)
+---
 
-Extract `buildApp()` from `server.ts`. Both `server.ts` and `tests/helpers.ts` call it:
+## 6. Metadata
+
+### Root Layout Title Template
+
+**File**: `apps/web/src/app/layout.tsx`
 
 ```typescript
-// src/app.ts
-export async function buildApp(opts?: FastifyServerOptions) {
-  const app = Fastify(opts);
-  // Register all plugins, routes, hooks
-  return app;
-}
-
-// src/server.ts
-import { buildApp } from "./app.js";
-import closeWithGrace from "close-with-grace";
-
-const app = await buildApp({ logger: { ... } });
-await app.listen({ port, host });
-closeWithGrace(async ({ signal, err }) => { await app.close(); });
+export const metadata: Metadata = {
+  title: { default: "Tripful", template: "%s | Tripful" },
+  description: "Plan and share your adventures",
+};
 ```
 
-## 2. Route Schemas with @fastify/type-provider-zod
+### Static Metadata Files
 
-### Setup
+**New files** (in `apps/web/src/app/`):
+- `robots.ts` -- Search engine directives
+- `sitemap.ts` -- Sitemap for public pages
+- Place `favicon.ico` in `apps/web/src/app/` or `apps/web/public/`
 
-Register the Zod type provider on the Fastify instance:
+### Page-Specific Metadata
+
+Once pages become server components (Phase 4), export `generateMetadata` for dynamic pages:
+
+```typescript
+// trips/[id]/page.tsx (server component)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  // Fetch trip name for title
+  return { title: tripName };
+}
+```
+
+---
+
+## 7. Loading & File Conventions
+
+### Loading Files
+
+**New files**:
+- `apps/web/src/app/(app)/dashboard/loading.tsx` -- Dashboard skeleton
+- `apps/web/src/app/(app)/trips/[id]/loading.tsx` -- Trip detail skeleton
+
+These create automatic Suspense boundaries for route transitions. Extract existing `SkeletonCard` and `SkeletonDetail` into these files.
+
+---
+
+## 8. Navigation Improvements
+
+### Replace router.push with Link
+
+**File**: `apps/web/src/components/trip/trip-card.tsx`
+- Replace `router.push(\`/trips/${trip.id}\`)` with wrapping content in `<Link href={...}>` for prefetching and accessibility.
+
+**File**: `apps/web/src/app/(app)/trips/[id]/page.tsx`
+- Replace "Return to dashboard" `router.push("/dashboard")` with `<Link href="/dashboard">`.
+
+---
+
+## 9. Code Deduplication
+
+### Extract Shared Utilities
+
+**New file**: `apps/web/src/lib/format.ts`
+
+Extract from `trip-card.tsx` and `trips/[id]/page.tsx`:
+- `formatDateRange(startDate, endDate)` -- Date range formatting
+- `getInitials(name)` -- Avatar initials from name
+
+Hoist `Intl.DateTimeFormat` instances to module scope for performance.
+
+### Extract Shared Constants
+
+**New file**: `apps/web/src/lib/constants.ts`
+
+Extract from `complete-profile/page.tsx`, `create-trip-dialog.tsx`, `edit-trip-dialog.tsx`:
+- `TIMEZONES` array (duplicated in 3 files)
+
+### Centralize API_URL
+
+**File**: `apps/web/src/lib/api.ts`
+
+Export `API_URL` constant. Remove duplicates from:
+- `apps/web/src/app/providers/auth-provider.tsx` (line 13)
+- `apps/web/src/components/trip/image-upload.tsx` (lines 98-99)
+
+---
+
+## 10. React Performance Optimizations
+
+### React.memo for TripCard
+
+**File**: `apps/web/src/components/trip/trip-card.tsx`
+
+Wrap `TripCard` in `React.memo()` to prevent unnecessary re-renders when parent state changes (e.g., search query) but individual trip data hasn't changed.
+
+### AuthContext Value Stability
+
+**File**: `apps/web/src/app/providers/auth-provider.tsx`
+
+Wrap function declarations in `useCallback` and memoize context value with `useMemo`:
+
+```typescript
+const login = useCallback(async (phoneNumber: string) => { ... }, []);
+const logout = useCallback(async () => { ... }, [router]);
+const value = useMemo(() => ({
+  user, loading, login, verify, completeProfile, logout, refetch: fetchUser
+}), [user, loading, login, verify, completeProfile, logout, fetchUser]);
+```
+
+### Combine Array Iterations
+
+**File**: `apps/web/src/app/(app)/dashboard/page.tsx`
+
+Replace double `.filter()` for upcoming/past trips with a single loop.
+
+### Simplify Navigation State
+
+**Files**: `apps/web/src/app/(auth)/verify/page.tsx`, `complete-profile/page.tsx`
+
+Remove `shouldNavigate` state + useEffect pattern. Navigate directly in async handlers.
+
+### Hoist Regex
+
+**File**: `apps/web/src/components/trip/create-trip-dialog.tsx`
+
+Hoist phone validation regex to module scope.
+
+---
+
+## 11. TanStack Query v5 Improvements
+
+### Replace isLoading with isPending
+
+Replace all `isLoading` usage with `isPending` across:
+- `apps/web/src/hooks/use-trips.ts` (JSDoc)
+- `apps/web/src/app/(app)/dashboard/page.tsx`
+- `apps/web/src/app/(app)/trips/[id]/page.tsx`
+- All corresponding test files
+
+### Query Options Factory
+
+**File**: `apps/web/src/hooks/use-trips.ts`
+
+Introduce `queryOptions` factory pattern:
+
+```typescript
+import { queryOptions } from "@tanstack/react-query";
+
+export const tripKeys = {
+  all: ["trips"] as const,
+  detail: (id: string) => ["trips", id] as const,
+};
+
+export const tripsQueryOptions = queryOptions({
+  queryKey: tripKeys.all,
+  queryFn: async () => {
+    const response = await apiRequest<GetTripsResponse>("/trips");
+    return response.data;
+  },
+});
+
+export const tripDetailQueryOptions = (tripId: string) =>
+  queryOptions({
+    queryKey: tripKeys.detail(tripId),
+    queryFn: async () => {
+      const response = await apiRequest<GetTripResponse>(`/trips/${tripId}`);
+      return response.trip;
+    },
+    enabled: !!tripId,
+  });
+```
+
+### Query Client Configuration
+
+**File**: `apps/web/src/app/providers/providers.tsx`
+
+- Add `gcTime: 1000 * 60 * 60` (1 hour)
+- Add `refetchOnWindowFocus: false`
+- Add smart retry that skips 404s:
+
+```typescript
+retry: (failureCount, error) => {
+  if (error instanceof APIError && error.code === "NOT_FOUND") return false;
+  return failureCount < 1;
+}
+```
+
+### Remove Duplicate Invalidations
+
+Remove `invalidateQueries` from `onSuccess` in all three mutation hooks (keep only in `onSettled`).
+
+### Install DevTools
+
+Install `@tanstack/react-query-devtools` as dev dependency. Add to providers:
+
+```typescript
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+<QueryClientProvider client={queryClient}>
+  {children}
+  <ReactQueryDevtools initialIsOpen={false} />
+</QueryClientProvider>
+```
+
+### Install ESLint Plugin
+
+Install `@tanstack/eslint-plugin-query` as dev dependency and add to ESLint config.
+
+### Signal Forwarding
+
+Update `apiRequest` in `apps/web/src/lib/api.ts` to accept and forward `AbortSignal`:
+
+```typescript
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit & { signal?: AbortSignal } = {}
+): Promise<T>
+```
+
+Update query hooks to pass signal from query context.
+
+### Remove Deprecated Logger
+
+Remove `logger` option from test QueryClient instances in `use-trips.test.tsx`.
+
+### Add Mutation Keys
+
+Add `mutationKey` to all three mutation hooks for cross-component tracking.
+
+### Add Prefetch Hook
+
+Add `usePrefetchTrip(tripId)` hook for hover prefetching on trip cards.
+
+---
+
+## 12. RSC Migration & Server-Side Prefetching
+
+### getQueryClient Utility
+
+**New file**: `apps/web/src/lib/get-query-client.ts`
 
 ```typescript
 import {
-  serializerCompiler,
-  validatorCompiler,
-  ZodTypeProvider,
-} from "@fastify/type-provider-zod";
+  isServer,
+  QueryClient,
+  defaultShouldDehydrateQuery,
+} from "@tanstack/react-query";
 
-const app = Fastify().withTypeProvider<ZodTypeProvider>();
-app.setValidatorCompiler(validatorCompiler);
-app.setSerializerCompiler(serializerCompiler);
-```
-
-### Route Schema Pattern
-
-Every route gets `schema` with `params`, `body`, `querystring`, and `response`:
-
-```typescript
-// Example: GET /api/trips/:id
-fastify.get(
-  "/:id",
-  {
-    schema: {
-      params: z.object({ id: z.string().uuid() }),
-      response: {
-        200: tripDetailResponseSchema,
-        404: errorResponseSchema,
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000,
+        gcTime: 1000 * 60 * 60,
+        refetchOnWindowFocus: false,
+      },
+      dehydrate: {
+        shouldDehydrateQuery: (query) =>
+          defaultShouldDehydrateQuery(query) ||
+          query.state.status === "pending",
+        shouldRedactErrors: () => false,
       },
     },
-  },
-  tripController.getTripById,
-);
-```
+  });
+}
 
-Reuse existing Zod schemas from `@tripful/shared/schemas` where possible. Create new response schemas as needed.
+let browserQueryClient: QueryClient | undefined = undefined;
 
-### Routes to Add Schemas
-
-| Route                                         | Params            | Body                   | Query         | Response           |
-| --------------------------------------------- | ----------------- | ---------------------- | ------------- | ------------------ |
-| `GET /api/health`                             | -                 | -                      | -             | 200                |
-| `POST /api/auth/request-code`                 | -                 | phone                  | -             | 200, 400, 429      |
-| `POST /api/auth/verify-code`                  | -                 | phone, code            | -             | 200, 400, 401      |
-| `POST /api/auth/complete-profile`             | -                 | displayName, timezone? | -             | 200, 400           |
-| `GET /api/auth/me`                            | -                 | -                      | -             | 200, 401           |
-| `POST /api/auth/logout`                       | -                 | -                      | -             | 200                |
-| `GET /api/trips`                              | -                 | -                      | page?, limit? | 200                |
-| `POST /api/trips`                             | -                 | createTrip             | -             | 201, 400, 409      |
-| `GET /api/trips/:id`                          | id (uuid)         | -                      | -             | 200, 404           |
-| `PUT /api/trips/:id`                          | id (uuid)         | updateTrip             | -             | 200, 400, 403, 404 |
-| `DELETE /api/trips/:id`                       | id (uuid)         | -                      | -             | 200, 403, 404      |
-| `POST /api/trips/:id/co-organizers`           | id (uuid)         | phone                  | -             | 200, 400, 403      |
-| `DELETE /api/trips/:id/co-organizers/:userId` | id, userId (uuid) | -                      | -             | 200, 400, 403, 404 |
-| `POST /api/trips/:id/cover-image`             | id (uuid)         | multipart              | -             | 200, 400, 403      |
-| `DELETE /api/trips/:id/cover-image`           | id (uuid)         | -                      | -             | 200, 403, 404      |
-
-### Controller Simplification
-
-With route schemas handling validation, controllers no longer need:
-
-- Manual `safeParse()` calls
-- UUID format checks
-- `as` type casts on `request.params`
-
-Fastify auto-returns 400 for schema violations.
-
-## 3. Typed Errors with @fastify/error
-
-Replace string-based error matching with typed error classes.
-
-### Error Definitions (`src/errors.ts`)
-
-```typescript
-import createError from "@fastify/error";
-
-// Auth errors
-export const UnauthorizedError = createError("UNAUTHORIZED", "%s", 401);
-export const ProfileIncompleteError = createError(
-  "PROFILE_INCOMPLETE",
-  "%s",
-  403,
-);
-
-// Trip errors
-export const TripNotFoundError = createError("TRIP_NOT_FOUND", "%s", 404);
-export const PermissionDeniedError = createError(
-  "PERMISSION_DENIED",
-  "%s",
-  403,
-);
-export const MemberLimitExceededError = createError(
-  "MEMBER_LIMIT_EXCEEDED",
-  "%s",
-  409,
-);
-export const CoOrganizerNotFoundError = createError(
-  "CO_ORGANIZER_NOT_FOUND",
-  "%s",
-  400,
-);
-export const CannotRemoveCreatorError = createError(
-  "CANNOT_REMOVE_CREATOR",
-  "%s",
-  400,
-);
-export const DuplicateMemberError = createError("DUPLICATE_MEMBER", "%s", 409);
-
-// Upload errors
-export const FileTooLargeError = createError("FILE_TOO_LARGE", "%s", 400);
-export const InvalidFileTypeError = createError("INVALID_FILE_TYPE", "%s", 400);
-```
-
-Services throw typed errors. Controllers catch them or let the error handler deal with them. The centralized error handler handles `@fastify/error` instances by reading `.statusCode` and `.code`.
-
-## 4. Drizzle ORM Improvements
-
-### Transactions (`trip.service.ts`)
-
-Wrap multi-step mutations in `db.transaction()`:
-
-```typescript
-const trip = await fastify.db.transaction(async (tx) => {
-  const [trip] = await tx.insert(trips).values({ ... }).returning();
-  await tx.insert(members).values({ tripId: trip.id, userId, status: "going" });
-  if (coOrganizerUserIds.length > 0) {
-    await tx.insert(members).values(coOrganizerUserIds.map(...));
+export function getQueryClient() {
+  if (isServer) {
+    return makeQueryClient();
+  } else {
+    if (!browserQueryClient) browserQueryClient = makeQueryClient();
+    return browserQueryClient;
   }
-  return trip;
-});
-```
-
-Methods needing transactions:
-
-- `createTrip()` — trip + creator member + co-organizer members
-- `addCoOrganizers()` — member count check + inserts (race condition)
-- `cancelTrip()` — could be wrapped for consistency
-
-### Unique Constraint on Members
-
-Add to schema:
-
-```typescript
-// In members table definition
-uniqueTripUser: unique("members_trip_user_unique").on(table.tripId, table.userId),
-```
-
-Generate and apply migration.
-
-### Drizzle Relations (`src/db/schema/relations.ts`)
-
-```typescript
-import { relations } from "drizzle-orm";
-
-export const usersRelations = relations(users, ({ many }) => ({
-  createdTrips: many(trips),
-  memberships: many(members),
-}));
-
-export const tripsRelations = relations(trips, ({ one, many }) => ({
-  creator: one(users, { fields: [trips.createdBy], references: [users.id] }),
-  members: many(members),
-}));
-
-export const membersRelations = relations(members, ({ one }) => ({
-  trip: one(trips, { fields: [members.tripId], references: [trips.id] }),
-  user: one(users, { fields: [members.userId], references: [users.id] }),
-}));
-```
-
-### Count Aggregate Fix
-
-```typescript
-// getMemberCount — use SQL COUNT instead of fetching all rows
-const [{ value }] = await db
-  .select({ value: count() })
-  .from(members)
-  .where(eq(members.tripId, tripId));
-```
-
-### Pagination on getUserTrips
-
-```typescript
-// Add pagination params
-async getUserTrips(userId: string, page = 1, limit = 20) {
-  const offset = (page - 1) * limit;
-  // Use relational API for efficient loading
-  // Return { data: TripSummary[], meta: { total, page, limit, totalPages } }
 }
 ```
 
-### Column Selection on Auth Middleware Hot Path
+### Server-Side API Client
+
+**New file**: `apps/web/src/lib/server-api.ts`
 
 ```typescript
-// Select only needed columns in user lookup
-db.select({ id: users.id, displayName: users.displayName })
-  .from(users)
-  .where(eq(users.id, userId))
-  .limit(1);
-```
+import { cookies } from "next/headers";
 
-## 5. Security Improvements
+const API_URL = process.env.API_URL || "http://localhost:8000/api";
 
-### @fastify/helmet
+export async function serverApiRequest<T>(endpoint: string): Promise<T> {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token")?.value;
 
-Register in `buildApp()`:
-
-```typescript
-await app.register(helmet, {
-  contentSecurityPolicy: false, // Disable CSP for API-only server
-});
-```
-
-### Rate Limit on verify-code
-
-Add rate limiting to `POST /api/auth/verify-code`:
-
-```typescript
-// 10 attempts per 15 minutes per phone number
-preHandler: [
-  fastify.rateLimit({
-    max: 10,
-    timeWindow: "15 minutes",
-    keyGenerator: (request) => request.body?.phoneNumber || request.ip,
-  }),
-];
-```
-
-### @fastify/under-pressure
-
-```typescript
-await app.register(underPressure, {
-  maxEventLoopDelay: 1000,
-  maxHeapUsedBytes: 1_000_000_000,
-  maxRssBytes: 1_500_000_000,
-  retryAfter: 50,
-});
-```
-
-## 6. Logging Improvements
-
-### Replace console.log
-
-All `console.log`/`console.error` calls → `fastify.log.info()`/`fastify.log.error()`. Files:
-
-- `config/database.ts` (lines 23-24, 28, 34) — becomes plugin, uses `fastify.log`
-- `config/env.ts` (lines 69-72) — runs before Fastify, keep `console.error` here only
-- `config/jwt.ts` (line 38) — use `fastify.log` after plugin refactor
-- `services/sms.service.ts` (lines 27-33) — use `fastify.log`
-
-### Logger Redaction
-
-```typescript
-const app = Fastify({
-  logger: {
-    level: config.LOG_LEVEL,
-    redact: [
-      "req.headers.authorization",
-      "req.headers.cookie",
-      "req.body.phoneNumber",
-    ],
-  },
-});
-```
-
-### pino-pretty for Development
-
-```typescript
-logger: env.NODE_ENV === "development"
-  ? { transport: { target: "pino-pretty" }, level: "debug" }
-  : { level: config.LOG_LEVEL, redact: [...] }
-```
-
-## 7. Configuration Improvements
-
-### Explicit Feature Flags
-
-Add to env schema:
-
-```typescript
-COOKIE_SECURE: z.coerce.boolean().default(process.env.NODE_ENV === "production"),
-EXPOSE_ERROR_DETAILS: z.coerce.boolean().default(process.env.NODE_ENV === "development"),
-ENABLE_FIXED_VERIFICATION_CODE: z.coerce.boolean().default(process.env.NODE_ENV !== "production"),
-```
-
-Replace all `process.env.NODE_ENV` checks in services/controllers with these flags.
-
-### process.cwd() → import.meta.dirname
-
-Replace in:
-
-- `config/jwt.ts` line 17
-- `server.ts` line 80 (static file serving)
-
-## 8. Additional Improvements
-
-### Scoped Auth Hooks
-
-Use plugin encapsulation for trip routes:
-
-```typescript
-// trip.routes.ts
-fastify.register(async (scope) => {
-  scope.addHook("preHandler", authenticate);
-  scope.addHook("preHandler", requireCompleteProfile);
-  // All routes in this scope are protected
-  scope.post("/", tripController.createTrip);
-  scope.put("/:id", tripController.updateTrip);
-  // ...
-});
-```
-
-Read-only routes (GET) remain outside the scoped plugin.
-
-### Multipart Limits
-
-```typescript
-await app.register(multipart, {
-  limits: {
-    fileSize: config.MAX_FILE_SIZE,
-    files: 1,
-    fieldNameSize: 100,
-    fields: 10,
-    headerPairs: 2000,
-  },
-  throwFileSizeLimit: true,
-});
-```
-
-### Liveness/Readiness Health Checks
-
-```typescript
-// GET /api/health/live — always 200 if process is running
-// GET /api/health/ready — checks DB connectivity
-```
-
-### Not Found Handler
-
-```typescript
-fastify.setNotFoundHandler((request, reply) => {
-  reply.status(404).send({
-    success: false,
-    error: {
-      code: "NOT_FOUND",
-      message: `Route ${request.method} ${request.url} not found`,
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
+    cache: "no-store",
   });
-});
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
 ```
 
-### trustProxy Configuration
+### Auth Layout Guard (Server Component)
 
-Add `TRUST_PROXY` env variable (default: false). Set on Fastify instance for correct `request.ip` behind load balancers.
+**File**: `apps/web/src/app/(app)/layout.tsx`
+
+Convert from client component to server component:
+
+```typescript
+// Remove "use client"
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token");
+
+  if (!authToken?.value) {
+    redirect("/login");
+  }
+
+  return <>{children}</>;
+}
+```
+
+### Dashboard Page (Server Component with Hydration)
+
+**File**: `apps/web/src/app/(app)/dashboard/page.tsx`
+
+Split into server component (page) + client component (interactive content):
+
+```typescript
+// page.tsx (server component)
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/get-query-client";
+import { tripsQueryOptions } from "@/hooks/use-trips";
+import { DashboardContent } from "./dashboard-content";
+
+export const metadata = { title: "Dashboard" };
+
+export default function DashboardPage() {
+  const queryClient = getQueryClient();
+  void queryClient.prefetchQuery(tripsQueryOptions);
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DashboardContent />
+    </HydrationBoundary>
+  );
+}
+```
+
+**New file**: `apps/web/src/app/(app)/dashboard/dashboard-content.tsx`
+
+Move all existing dashboard logic (search, filtering, trip cards, dialogs) to this `"use client"` component. The component uses `useTrips()` which will immediately have cached data from the server prefetch -- no loading skeleton on first render.
+
+### Trip Detail Page (Server Component with Hydration)
+
+Same pattern for `apps/web/src/app/(app)/trips/[id]/page.tsx`:
+
+```typescript
+// page.tsx (server component)
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/get-query-client";
+import { tripDetailQueryOptions } from "@/hooks/use-trips";
+import { TripDetailContent } from "./trip-detail-content";
+
+export async function generateMetadata({ params }: Props) {
+  const { id } = await params;
+  return { title: "Trip Details" };
+}
+
+export default async function TripDetailPage({ params }: Props) {
+  const { id } = await params;
+  const queryClient = getQueryClient();
+  void queryClient.prefetchQuery(tripDetailQueryOptions(id));
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <TripDetailContent tripId={id} />
+    </HydrationBoundary>
+  );
+}
+```
+
+**New file**: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
+
+Move existing trip detail logic to this `"use client"` component. Receives `tripId` as prop instead of using `useParams()`.
+
+### Provider Update
+
+**File**: `apps/web/src/app/providers/providers.tsx`
+
+Update to use `getQueryClient()` instead of inline `useState(() => new QueryClient(...))`:
+
+```typescript
+"use client";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { getQueryClient } from "@/lib/get-query-client";
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const queryClient = getQueryClient();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+### Environment Variable
+
+Add `API_URL` (non-public, server-side only) to `apps/web/.env.local.example`:
+
+```
+API_URL=http://localhost:8000/api
+```
+
+---
+
+## 13. Auth Provider Adjustments
+
+The `AuthProvider` remains a client component and continues to manage auth state via Context. The server layout guard handles initial auth redirects, but the client-side `useAuth()` hook is still needed for:
+- Client-side navigation after login/logout
+- Providing user info to components (organizer checks, etc.)
+- Login/verify/completeProfile/logout methods
+
+No migration to TanStack Query for auth state at this time -- this is a deliberate scope decision to keep the change manageable.
+
+---
 
 ## Testing Strategy
 
 ### Unit Tests
-
-- Service methods (with mocked db via plugin decoration)
-- Error class instantiation and properties
-- Env config validation
-- Phone validation utilities
+- Update existing tests in `use-trips.test.tsx` to reflect `isPending` instead of `isLoading`
+- Remove deprecated `logger` option from test QueryClient instances
+- Update dashboard/trip detail page tests for new component structure (mock the `*Content` components or test the content components directly)
+- Test new utilities: `formatDateRange`, `getInitials`, `TIMEZONES`
 
 ### Integration Tests
-
-- All API endpoints with route schema validation (400 on bad input)
-- Transaction rollback behavior (create trip with invalid co-organizer)
-- Unique constraint enforcement (duplicate member)
-- Pagination responses
-- Rate limiting on verify-code
-- Security headers present (helmet)
-- Graceful shutdown behavior
+- Test `getQueryClient` server/client behavior
+- Test `serverApiRequest` with cookie forwarding
 
 ### E2E Tests
+- Update existing E2E tests if component structure changes affect selectors
+- Verify auth flow still works with server layout guard
+- Verify dashboard and trip detail pages load with prefetched data (no loading skeleton flash)
 
-- Existing Playwright E2E tests must continue passing
-- No new E2E tests needed (backend-only changes)
-
-### Regression
-
-- All existing tests updated to use `buildApp()` from `src/app.ts`
-- Full test suite run after each task
+### Type Checking
+- Verify shared types compile correctly after migration
+- Ensure no type regressions from RSC refactoring
