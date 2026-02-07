@@ -134,7 +134,7 @@ Implement service layer for all CRUD operations including soft delete and restor
 
 ---
 
-- [ ] Task 5: API Endpoints
+- [x] Task 5: API Endpoints
 
 Create REST API routes for events, accommodations, and member travel.
 

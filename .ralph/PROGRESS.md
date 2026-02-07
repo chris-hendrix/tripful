@@ -734,3 +734,184 @@ Each route will:
 - Delegate to service methods with proper error handling
 - Return consistent response format: `{ success: true/false, data/error }`
 - Include comprehensive integration tests
+
+---
+
+## Iteration 5: Task 5 - API Endpoints
+
+**Date**: 2026-02-07
+**Status**: ✅ COMPLETE
+**Verifier**: PASSED
+**Reviewer**: APPROVED
+
+### What Was Implemented
+
+Created complete REST API endpoints for events, accommodations, and member travel with full CRUD + soft delete/restore functionality.
+
+#### Files Created
+
+**Route Files** (3 files):
+- `apps/api/src/routes/event.routes.ts` (152 lines)
+  - POST `/api/trips/:tripId/events` - Create event
+  - GET `/api/trips/:tripId/events` - List events (with `type` and `includeDeleted` query params)
+  - GET `/api/events/:id` - Get event details
+  - PUT `/api/events/:id` - Update event
+  - DELETE `/api/events/:id` - Soft delete event
+  - POST `/api/events/:id/restore` - Restore event
+
+- `apps/api/src/routes/accommodation.routes.ts` (151 lines)
+  - Similar structure to event routes (no `type` query param)
+  - All CRUD + restore operations
+
+- `apps/api/src/routes/member-travel.routes.ts` (151 lines)
+  - Similar structure to event routes (no `type` query param)
+  - All CRUD + restore operations
+
+**Controller Files** (3 files):
+- `apps/api/src/controllers/event.controller.ts` (363 lines)
+  - 6 handlers: createEvent, getEvents, getEvent, updateEvent, deleteEvent, restoreEvent
+  - Proper error handling with typed error re-throwing
+  - Consistent response format: `{ success: true, data }` or `{ success: false, error: { code, message } }`
+  - Comprehensive logging with context (userId, eventId)
+
+- `apps/api/src/controllers/accommodation.controller.ts` (376 lines)
+  - 6 handlers following same pattern as event controller
+  - Organizer-only permission enforcement
+
+- `apps/api/src/controllers/member-travel.controller.ts` (373 lines)
+  - 6 handlers following same pattern as event controller
+  - Member + organizer permission enforcement
+
+**Test Files** (3 files):
+- `apps/api/tests/integration/event.routes.test.ts` (773 lines, 13 tests)
+- `apps/api/tests/integration/accommodation.routes.test.ts` (647 lines, 11 tests)
+- `apps/api/tests/integration/member-travel.routes.test.ts` (664 lines, 11 tests)
+
+**Modified Files**:
+- `apps/api/src/app.ts` - Registered three new route modules (lines 37-39, 167-169)
+
+### Implementation Highlights
+
+1. **Pattern Consistency**: All routes and controllers follow the exact patterns from `trip.routes.ts` and `trip.controller.ts`:
+   - GET routes use `authenticate` middleware only
+   - Write routes use scoped plugins with both `authenticate` and `requireCompleteProfile`
+   - Consistent schema validation with Zod
+   - Proper TypeScript typing throughout
+
+2. **Middleware Application**:
+   - GET requests: `authenticate` only (allows incomplete profiles to view)
+   - POST/PUT/DELETE requests: Both `authenticate` and `requireCompleteProfile`
+   - Used Fastify scoped registration for shared middleware on write routes
+
+3. **Error Handling**:
+   - Typed errors (EventNotFoundError, AccommodationNotFoundError, etc.) properly re-thrown
+   - Unexpected errors logged with context and return 500
+   - Error messages provide clear feedback for debugging
+
+4. **Service Integration**:
+   - Services accessed via `request.server.{serviceName}` (EventService, AccommodationService, MemberTravelService)
+   - All services already existed from Task 4
+   - Permission checking properly delegated to services
+
+5. **Query Parameters**:
+   - Events: Support `type` filter (travel/meal/activity) and `includeDeleted` boolean
+   - Accommodations & Member Travel: Support `includeDeleted` boolean
+   - Proper Zod schema validation for query params
+
+6. **Response Format**:
+   - Success: `{ success: true, [resourceName]: data }` with status 200/201
+   - Error: `{ success: false, error: { code, message } }` with appropriate status codes
+
+### Test Results
+
+**All Tests Passing**:
+- API Tests: 574/574 passed (100%)
+  - Event routes: 13/13 passed
+  - Accommodation routes: 11/11 passed
+  - Member-travel routes: 11/11 passed
+  - Event service unit: 29/29 passed
+  - Accommodation service unit: 30/30 passed
+  - Member-travel service unit: 32/32 passed
+
+**Test Coverage**:
+- Success cases (201 for create, 200 for list/get/update/delete/restore)
+- Validation errors (400 - missing fields, invalid formats, date range errors)
+- Unauthorized (401 - missing/invalid token)
+- Forbidden (403 - incomplete profile, insufficient permissions)
+- Not found (404 - resource doesn't exist)
+- Soft delete and restore verification
+- Query parameter handling
+
+**Static Analysis**:
+- TypeScript compilation: ✅ PASSED (no errors)
+- Linting: ✅ PASSED (no errors in Task 5 code)
+- Build: ✅ PASSED (API server builds successfully)
+
+### Pre-Existing Issues (Not Blocking)
+
+These failures existed BEFORE Task 5 and do NOT affect Task 5 functionality:
+
+1. **Shared Package URL Validation** (1 test failure):
+   - File: `shared/__tests__/trip-schemas.test.ts:353`
+   - Issue: Trip schema URL validation test (Phase 3)
+   - Impact: None on Task 5
+
+2. **Web Trip Card Styling** (3 test failures):
+   - File: `apps/web/src/components/trip/__tests__/trip-card.test.tsx:106,116,126`
+   - Issue: RSVP badge styling tests (Phase 3)
+   - Impact: None on Task 5
+
+3. **Manual Verification Script Linting** (14 errors):
+   - File: `apps/web/manual-verification.js`
+   - Issue: Utility script ESLint errors
+   - Impact: None on production code
+
+### Verification Report
+
+**Verifier Status**: ✅ PASSED
+- All 35 new integration tests pass
+- All 91 service unit tests pass
+- All 83 schema validation tests pass
+- TypeScript compilation successful
+- No linting errors in Task 5 code
+- API server builds successfully
+- No new test failures introduced
+
+**Reviewer Status**: ✅ APPROVED
+- Pattern consistency: Excellent
+- Error handling: Correct
+- Type safety: No `any` types
+- Middleware application: Correct
+- Response format: Consistent
+- Service integration: Proper
+- Test coverage: Comprehensive (35 tests)
+- Code quality: High
+- API specification compliance: Yes
+- Route registration: Correct
+
+### Key Learnings
+
+1. **Route Structure**: Nested routes under `/api/trips/:tripId/{resource}` for CREATE/LIST operations, and direct routes at `/api/{resource}/:id` for UPDATE/DELETE/RESTORE operations. This avoids deeply nested route parameters.
+
+2. **Scoped Middleware**: Using `fastify.register(async (scope) => {...})` to apply shared middleware (authenticate + requireCompleteProfile) to multiple write routes is cleaner than repeating middleware on each route.
+
+3. **Error Propagation**: Controllers should re-throw typed errors (with `statusCode` property) for the global error handler, while logging unexpected errors with context before returning 500.
+
+4. **Query Parameter Validation**: Zod schemas work seamlessly for query parameters, providing type-safe validation with default values (e.g., `includeDeleted: z.boolean().default(false)`).
+
+5. **Type Safety**: TypeScript generics on Fastify route handlers (`FastifyRequest<{ Body: CreateEventInput }>`) provide excellent IntelliSense and compile-time safety.
+
+6. **Test Patterns**: Integration tests should cover not just success paths but also all error scenarios (401, 403, 404, 400) to ensure proper error handling and status codes.
+
+7. **Soft Delete Architecture**: The soft delete pattern (setting `deletedAt` and `deletedBy` columns) works well with the `includeDeleted` query parameter, allowing flexibility without separate "trash" endpoints.
+
+### Next Steps
+
+Task 6 will implement frontend data hooks (TanStack Query) for fetching and mutating events, accommodations, and member travel data. These hooks will:
+- Use the API endpoints created in Task 5
+- Implement optimistic updates for instant UI feedback
+- Handle loading/error states consistently
+- Provide query invalidation on mutations
+- Display toast notifications for success/error
+
+**Ready for**: Task 6 - Frontend Data Hooks (TanStack Query)

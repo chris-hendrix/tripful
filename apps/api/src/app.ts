@@ -34,6 +34,9 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { tripRoutes } from "./routes/trip.routes.js";
+import { eventRoutes } from "./routes/event.routes.js";
+import { accommodationRoutes } from "./routes/accommodation.routes.js";
+import { memberTravelRoutes } from "./routes/member-travel.routes.js";
 
 // Config
 import { env } from "./config/env.js";
@@ -161,6 +164,9 @@ export async function buildApp(
   await app.register(healthRoutes, { prefix: "/api/health" });
   await app.register(authRoutes, { prefix: "/api/auth" });
   await app.register(tripRoutes, { prefix: "/api/trips" });
+  await app.register(eventRoutes, { prefix: "/api" });
+  await app.register(accommodationRoutes, { prefix: "/api" });
+  await app.register(memberTravelRoutes, { prefix: "/api" });
 
   // Not-found handler for unmatched routes
   app.setNotFoundHandler((request, reply) => {
