@@ -1,4 +1,9 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
+import type {
+  RequestCodeInput,
+  VerifyCodeInput,
+  CompleteProfileInput,
+} from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
 import { InvalidCodeError } from "../errors.js";
 
@@ -17,7 +22,7 @@ export const authController = {
    * @returns Success response with message
    */
   async requestCode(
-    request: FastifyRequest<{ Body: { phoneNumber: string } }>,
+    request: FastifyRequest<{ Body: RequestCodeInput }>,
     reply: FastifyReply,
   ) {
     // Body is validated by Fastify route schema
@@ -88,7 +93,7 @@ export const authController = {
    * @returns Success response with user and requiresProfile flag
    */
   async verifyCode(
-    request: FastifyRequest<{ Body: { phoneNumber: string; code: string } }>,
+    request: FastifyRequest<{ Body: VerifyCodeInput }>,
     reply: FastifyReply,
   ) {
     // Body is validated by Fastify route schema
@@ -182,9 +187,7 @@ export const authController = {
    * @returns Success response with updated user
    */
   async completeProfile(
-    request: FastifyRequest<{
-      Body: { displayName: string; timezone?: string };
-    }>,
+    request: FastifyRequest<{ Body: CompleteProfileInput }>,
     reply: FastifyReply,
   ) {
     // Body is validated by Fastify route schema

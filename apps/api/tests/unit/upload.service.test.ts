@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, readdirSync, unlinkSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { uploadService } from "@/services/upload.service.js";
+import { UploadService } from "@/services/upload.service.js";
+
+// Create service instance for testing
+const uploadService = new UploadService();
 
 describe("upload.service", () => {
   const testUploadsDir = resolve(process.cwd(), "uploads");

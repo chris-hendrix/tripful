@@ -2,8 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
 import { users, trips, members } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
-import { permissionsService } from "@/services/permissions.service.js";
+import { PermissionsService } from "@/services/permissions.service.js";
 import { generateUniquePhone } from "../test-utils.js";
+
+// Create service instance with db for testing
+const permissionsService = new PermissionsService(db);
 
 describe("permissions.service", () => {
   // Use unique test data for each test run to enable parallel execution

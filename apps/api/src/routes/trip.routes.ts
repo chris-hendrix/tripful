@@ -9,6 +9,13 @@ import {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
+  paginationSchema,
+} from "@tripful/shared/schemas";
+import type {
+  PaginationInput,
+  CreateTripInput,
+  UpdateTripInput,
+  AddCoOrganizerInput,
 } from "@tripful/shared/schemas";
 
 // Reusable param schemas
@@ -37,9 +44,12 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Get user's trips
    * Requires authentication only (not complete profile)
    */
-  fastify.get<{ Querystring: { page?: string; limit?: string } }>(
+  fastify.get<{ Querystring: PaginationInput }>(
     "/",
     {
+      schema: {
+        querystring: paginationSchema,
+      },
       preHandler: authenticate,
     },
     tripController.getUserTrips,
@@ -74,7 +84,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * POST /
      * Create a new trip
      */
-    scope.post(
+    scope.post<{ Body: CreateTripInput }>(
       "/",
       {
         schema: {
@@ -89,7 +99,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Update trip details
      * Only organizers can update trips
      */
-    scope.put(
+    scope.put<{ Params: { id: string }; Body: UpdateTripInput }>(
       "/:id",
       {
         schema: {
@@ -105,7 +115,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Cancel trip (soft delete)
      * Only organizers can cancel trips
      */
-    scope.delete(
+    scope.delete<{ Params: { id: string } }>(
       "/:id",
       {
         schema: {
@@ -120,7 +130,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Add co-organizer to trip
      * Only organizers can add co-organizers
      */
-    scope.post(
+    scope.post<{ Params: { id: string }; Body: AddCoOrganizerInput }>(
       "/:id/co-organizers",
       {
         schema: {
@@ -136,7 +146,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Remove co-organizer from trip
      * Only organizers can remove co-organizers
      */
-    scope.delete(
+    scope.delete<{ Params: { id: string; userId: string } }>(
       "/:id/co-organizers/:userId",
       {
         schema: {
@@ -152,7 +162,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Only organizers can upload cover images
      * Note: No body schema for multipart routes
      */
-    scope.post(
+    scope.post<{ Params: { id: string } }>(
       "/:id/cover-image",
       {
         schema: {
@@ -167,7 +177,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
      * Delete cover image from trip
      * Only organizers can delete cover images
      */
-    scope.delete(
+    scope.delete<{ Params: { id: string } }>(
       "/:id/cover-image",
       {
         schema: {

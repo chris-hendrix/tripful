@@ -10,7 +10,8 @@ import type { IPermissionsService } from "@/services/permissions.service.js";
 import type { IUploadService } from "@/services/upload.service.js";
 import type { ISMSService } from "@/services/sms.service.js";
 
-type FullSchema = typeof schema & typeof relations;
+export type FullSchema = typeof schema & typeof relations;
+export type AppDatabase = NodePgDatabase<FullSchema>;
 
 export interface HealthCheckResponse {
   status: "ok" | "error";

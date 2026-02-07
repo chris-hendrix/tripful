@@ -5,9 +5,12 @@ import jwt from "@fastify/jwt";
 import { db } from "@/config/database.js";
 import { users, verificationCodes } from "@/db/schema/index.js";
 import { eq } from "drizzle-orm";
-import { authService, AuthService } from "@/services/auth.service.js";
+import { AuthService } from "@/services/auth.service.js";
 import { env } from "@/config/env.js";
 import { generateUniquePhone } from "../test-utils.js";
+
+// Create service instance with db for testing
+const authService = new AuthService(db);
 
 describe("auth.service", () => {
   // Use unique phone numbers per test run to enable parallel execution
@@ -514,7 +517,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create test user
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -544,7 +547,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create test user with default values (empty displayName)
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -565,7 +568,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create test user
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -595,7 +598,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       const user = await authService.getOrCreateUser(testPhoneNumber);
       const beforeGenerate = Math.floor(Date.now() / 1000);
@@ -612,7 +615,7 @@ describe("auth.service", () => {
     });
 
     it("should throw error when FastifyInstance not available", () => {
-      const serviceWithoutFastify = new AuthService();
+      const serviceWithoutFastify = new AuthService(db);
       const mockUser = {
         id: testUserId,
         phoneNumber: testPhoneNumber,
@@ -637,7 +640,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create user with empty displayName
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -670,7 +673,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create user and generate token
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -704,7 +707,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create user and generate token with 1ms expiry
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -728,7 +731,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       const invalidToken = "this.is.not.a.valid.jwt";
 
@@ -746,7 +749,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create a token with different secret
       const differentSecretApp = Fastify({ logger: false });
@@ -779,7 +782,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       const malformedToken = "not-a-token";
 
@@ -789,7 +792,7 @@ describe("auth.service", () => {
     });
 
     it("should throw error when FastifyInstance not available", () => {
-      const serviceWithoutFastify = new AuthService();
+      const serviceWithoutFastify = new AuthService(db);
 
       expect(() => serviceWithoutFastify.verifyToken("any-token")).toThrow(
         "FastifyInstance not available",
@@ -805,7 +808,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create user with empty displayName
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -839,7 +842,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // Create user with full profile
       const user = await authService.getOrCreateUser(testPhoneNumber);
@@ -882,7 +885,7 @@ describe("auth.service", () => {
       });
       await app.ready();
 
-      testAuthService = new AuthService(app);
+      testAuthService = new AuthService(db, app);
 
       // 1. Generate and store verification code
       const code = authService.generateCode();

@@ -1,7 +1,4 @@
-interface Logger {
-  info(msg: string): void;
-  info(obj: Record<string, unknown>, msg: string): void;
-}
+import type { Logger } from "@/types/logger.js";
 
 /**
  * SMS Service Interface
@@ -43,9 +40,3 @@ export class MockSMSService implements ISMSService {
     }
   }
 }
-
-/**
- * Singleton instance of the SMS service
- * Use this instance throughout the application
- */
-export const smsService = new MockSMSService();

@@ -42,7 +42,9 @@ export {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
+  paginationSchema,
   type CreateTripInput,
   type UpdateTripInput,
   type AddCoOrganizerInput,
+  type PaginationInput,
 } from "./trip";

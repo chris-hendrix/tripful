@@ -162,9 +162,3 @@ export class UploadService implements IUploadService {
     }
   }
 }
-
-/**
- * Singleton instance of the upload service
- * Use this instance throughout the application
- */
-export const uploadService = new UploadService();

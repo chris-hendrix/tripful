@@ -9,7 +9,7 @@ import { AuthService } from "@/services/auth.service.js";
  */
 export default fp(
   async function authServicePlugin(fastify: FastifyInstance) {
-    const authService = new AuthService(fastify);
+    const authService = new AuthService(fastify.db, fastify);
     fastify.decorate("authService", authService);
   },
   {

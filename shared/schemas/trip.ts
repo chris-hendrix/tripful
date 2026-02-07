@@ -114,7 +114,19 @@ export const addCoOrganizerSchema = z.object({
   phoneNumber: phoneNumberSchema,
 });
 
+/**
+ * Validates pagination query parameters
+ * - page: integer >= 1, defaults to 1
+ * - limit: integer 1-100, defaults to 20
+ * Uses z.coerce to handle string query params from URLs
+ */
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 // Inferred TypeScript types from schemas
 export type CreateTripInput = z.infer<typeof createTripSchema>;
 export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 export type AddCoOrganizerInput = z.infer<typeof addCoOrganizerSchema>;
+export type PaginationInput = z.infer<typeof paginationSchema>;

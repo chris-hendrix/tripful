@@ -9,20 +9,17 @@ import { closeDatabase, testConnection } from "./config/database.js";
 
 const app = await buildApp({
   fastify: {
-    logger:
-      env.NODE_ENV === "development"
-        ? {
-            transport: { target: "pino-pretty" },
-            level: "debug",
-          }
-        : {
-            level: env.LOG_LEVEL,
-            redact: [
-              "req.headers.authorization",
-              "req.headers.cookie",
-              "req.body.phoneNumber",
-            ],
-          },
+    logger: {
+      level: env.NODE_ENV === "development" ? "debug" : env.LOG_LEVEL,
+      redact: [
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "req.body.phoneNumber",
+      ],
+      ...(env.NODE_ENV === "development" && {
+        transport: { target: "pino-pretty" },
+      }),
+    },
     requestIdHeader: "x-request-id",
     requestIdLogLabel: "reqId",
     connectionTimeout: 30000,

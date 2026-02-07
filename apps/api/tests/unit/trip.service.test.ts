@@ -2,9 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
 import { trips, members, users, type User } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
-import { tripService, type TripSummary } from "@/services/trip.service.js";
+import { TripService, type TripSummary } from "@/services/trip.service.js";
+import { PermissionsService } from "@/services/permissions.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import type { CreateTripInput } from "@tripful/shared/schemas";
+
+// Create service instances with db for testing
+const permissionsService = new PermissionsService(db);
+const tripService = new TripService(db, permissionsService);
 
 describe("trip.service", () => {
   // Use unique phone numbers per test run to enable parallel execution
