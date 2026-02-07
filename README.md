@@ -18,19 +18,22 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 with:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 plus a frontend design overhaul:
 
-- **Frontend**: Next.js 16 web application with React 19 and Tailwind CSS 4
+- **Frontend**: Next.js 16 web application with React 19, Tailwind CSS 4, and a Mediterranean-inspired design system
 - **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
 - **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Current Scope (Phases 1-3)
+### Current Scope (Phases 1-3 + Design Overhaul)
 
 The current implementation includes:
 
 - Complete monorepo setup with pnpm workspaces and Turbo
 - Full development environment with Docker Compose
-- Next.js frontend with modern UI components (shadcn/ui)
+- Next.js frontend with modern UI components (shadcn/ui) and Vivid Capri design system
+- App shell with header navigation, user dropdown menu, and skip link
+- Playfair Display + DM Sans typography via `next/font/google`
+- Toast notifications (Sonner), breadcrumbs, skeleton loading states
 - Fastify backend with plugin architecture and `buildApp()` factory pattern
 - SMS authentication with JWT, phone verification, and profile completion
 - Trip management with CRUD operations, co-organizers, and image uploads
@@ -342,7 +345,11 @@ tripful/
 │   └── README.md              # Scripts documentation
 │
 ├── docs/                      # Additional documentation
-│   └── GIT_HOOKS.md           # Git hooks setup guide
+│   ├── GIT_HOOKS.md           # Git hooks setup guide
+│   └── 2026-02-01-tripful-mvp/  # MVP documentation
+│       ├── ARCHITECTURE.md    # High-level architecture (implementation progress)
+│       ├── DESIGN.md          # UI/UX design system documentation
+│       └── PRD.md             # Product requirements document
 │
 ├── .husky/                    # Git hooks (Husky)
 │   └── pre-commit             # Pre-commit hook script
