@@ -10,6 +10,11 @@ import {
   verifyCodeSchema,
   completeProfileSchema,
 } from "@tripful/shared/schemas";
+import type {
+  RequestCodeInput,
+  VerifyCodeInput,
+  CompleteProfileInput,
+} from "@tripful/shared/schemas";
 
 /**
  * Authentication Routes
@@ -23,7 +28,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Request a verification code via SMS
    * Rate limited to 5 requests per phone number per hour
    */
-  fastify.post(
+  fastify.post<{ Body: RequestCodeInput }>(
     "/request-code",
     {
       schema: {
@@ -39,7 +44,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Verify a code and authenticate user
    * Rate limited to 10 attempts per phone number per 15 minutes
    */
-  fastify.post(
+  fastify.post<{ Body: VerifyCodeInput }>(
     "/verify-code",
     {
       schema: {
@@ -55,7 +60,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Complete user profile with display name and timezone
    * Requires authentication via JWT token
    */
-  fastify.post<{ Body: { displayName: string; timezone?: string } }>(
+  fastify.post<{ Body: CompleteProfileInput }>(
     "/complete-profile",
     {
       schema: {

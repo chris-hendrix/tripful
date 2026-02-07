@@ -1,8 +1,7 @@
 import { randomInt } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { db } from "@/config/database.js";
 import { users, verificationCodes, type User } from "@/db/schema/index.js";
-import type { JWTPayload } from "@/types/index.js";
+import type { JWTPayload, AppDatabase } from "@/types/index.js";
 import { eq } from "drizzle-orm";
 
 /**
@@ -89,7 +88,10 @@ export interface IAuthService {
 export class AuthService implements IAuthService {
   private fastify: FastifyInstance | undefined;
 
-  constructor(fastify?: FastifyInstance) {
+  constructor(
+    private db: AppDatabase,
+    fastify?: FastifyInstance,
+  ) {
     this.fastify = fastify;
   }
   /**
@@ -118,7 +120,7 @@ export class AuthService implements IAuthService {
   async storeCode(phoneNumber: string, code: string): Promise<void> {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
-    await db
+    await this.db
       .insert(verificationCodes)
       .values({
         phoneNumber,
@@ -143,7 +145,7 @@ export class AuthService implements IAuthService {
    * @returns true if the code is valid and not expired, false otherwise
    */
   async verifyCode(phoneNumber: string, code: string): Promise<boolean> {
-    const result = await db
+    const result = await this.db
       .select()
       .from(verificationCodes)
       .where(eq(verificationCodes.phoneNumber, phoneNumber))
@@ -171,7 +173,7 @@ export class AuthService implements IAuthService {
    * @param phoneNumber - The phone number whose code should be deleted
    */
   async deleteCode(phoneNumber: string): Promise<void> {
-    await db
+    await this.db
       .delete(verificationCodes)
       .where(eq(verificationCodes.phoneNumber, phoneNumber));
   }
@@ -185,7 +187,7 @@ export class AuthService implements IAuthService {
    */
   async getOrCreateUser(phoneNumber: string): Promise<User> {
     // Try to find existing user
-    const existingResult = await db
+    const existingResult = await this.db
       .select()
       .from(users)
       .where(eq(users.phoneNumber, phoneNumber))
@@ -198,7 +200,7 @@ export class AuthService implements IAuthService {
     }
 
     // Create new user with default values
-    const newUserResult = await db
+    const newUserResult = await this.db
       .insert(users)
       .values({
         phoneNumber,
@@ -220,7 +222,7 @@ export class AuthService implements IAuthService {
    * @returns The user record or null if not found
    */
   async getUserById(userId: string): Promise<User | null> {
-    const result = await db
+    const result = await this.db
       .select()
       .from(users)
       .where(eq(users.id, userId))
@@ -246,7 +248,7 @@ export class AuthService implements IAuthService {
       updatedAt: new Date(),
     };
 
-    const result = await db
+    const result = await this.db
       .update(users)
       .set(updateData)
       .where(eq(users.id, userId))
@@ -302,8 +304,3 @@ export class AuthService implements IAuthService {
   }
 }
 
-/**
- * Singleton instance of the authentication service
- * Use this instance throughout the application
- */
-export const authService = new AuthService();

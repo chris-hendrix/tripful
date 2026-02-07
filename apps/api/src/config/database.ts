@@ -3,14 +3,9 @@ import { Pool } from "pg";
 import { env } from "./env.js";
 import * as schema from "@/db/schema/index.js";
 import * as relations from "@/db/schema/relations.js";
+import type { Logger } from "@/types/logger.js";
 
 const fullSchema = { ...schema, ...relations };
-
-interface Logger {
-  info(msg: string): void;
-  error(msg: string): void;
-  error(obj: unknown, msg: string): void;
-}
 
 // Create connection pool
 // Tests use unique phone numbers for isolation, not separate databases

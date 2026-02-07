@@ -8,7 +8,7 @@ import { PermissionsService } from "@/services/permissions.service.js";
  */
 export default fp(
   async function permissionsServicePlugin(fastify: FastifyInstance) {
-    const permissionsService = new PermissionsService();
+    const permissionsService = new PermissionsService(fastify.db);
     fastify.decorate("permissionsService", permissionsService);
   },
   {

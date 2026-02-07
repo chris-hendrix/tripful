@@ -1,4 +1,3 @@
-import { db } from "@/config/database.js";
 import {
   trips,
   members,
@@ -9,7 +8,8 @@ import {
 } from "@/db/schema/index.js";
 import { eq, inArray, and, asc, sql, count } from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
-import { permissionsService } from "./permissions.service.js";
+import type { AppDatabase } from "@/types/index.js";
+import type { IPermissionsService } from "./permissions.service.js";
 import {
   TripNotFoundError,
   PermissionDeniedError,
@@ -17,6 +17,7 @@ import {
   CoOrganizerNotFoundError,
   CannotRemoveCreatorError,
   CoOrganizerNotInTripError,
+  DuplicateMemberError,
 } from "../errors.js";
 
 /**
@@ -174,6 +175,11 @@ export interface ITripService {
  * Handles trip creation, management, and member operations
  */
 export class TripService implements ITripService {
+  constructor(
+    private db: AppDatabase,
+    private permissionsService: IPermissionsService,
+  ) {}
+
   /**
    * Creates a new trip with the creator as the first member
    * Validates co-organizers and checks member limits before creating
@@ -196,7 +202,7 @@ export class TripService implements ITripService {
       }
 
       // Lookup users by phone number
-      const coOrganizerUsers = await db
+      const coOrganizerUsers = await this.db
         .select()
         .from(users)
         .where(inArray(users.phoneNumber, data.coOrganizerPhones));
@@ -216,7 +222,7 @@ export class TripService implements ITripService {
     }
 
     // Wrap all inserts in a transaction for atomicity
-    const trip = await db.transaction(async (tx) => {
+    const trip = await this.db.transaction(async (tx) => {
       // Insert trip record
       const [newTrip] = await tx
         .insert(trips)
@@ -286,7 +292,7 @@ export class TripService implements ITripService {
     | null
   > {
     // Check if user is a member of the trip
-    const membershipCheck = await db
+    const membershipCheck = await this.db
       .select()
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
@@ -298,7 +304,7 @@ export class TripService implements ITripService {
     }
 
     // Load the trip
-    const tripResult = await db
+    const tripResult = await this.db
       .select()
       .from(trips)
       .where(eq(trips.id, tripId))
@@ -313,7 +319,7 @@ export class TripService implements ITripService {
 
     // Load organizers: creator + all members with status='going' (co-organizers are added with status='going')
     // Get all members with status='going' (includes creator and co-organizers)
-    const organizerMembers = await db
+    const organizerMembers = await this.db
       .select()
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.status, "going")));
@@ -321,7 +327,7 @@ export class TripService implements ITripService {
     const organizerUserIds = organizerMembers.map((m) => m.userId);
 
     // Load user information for all organizers
-    const organizerUsers = await db
+    const organizerUsers = await this.db
       .select({
         id: users.id,
         displayName: users.displayName,
@@ -364,7 +370,7 @@ export class TripService implements ITripService {
     limit = 20,
   ): Promise<PaginatedTripsResult> {
     // Get all trip memberships for user
-    const userMemberships = await db
+    const userMemberships = await this.db
       .select({
         tripId: members.tripId,
         status: members.status,
@@ -383,7 +389,7 @@ export class TripService implements ITripService {
     const tripIds = userMemberships.map((m) => m.tripId);
 
     // Count total non-cancelled trips for pagination meta
-    const [totalResult] = await db
+    const [totalResult] = await this.db
       .select({ value: count() })
       .from(trips)
       .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)));
@@ -392,7 +398,7 @@ export class TripService implements ITripService {
     const offset = (page - 1) * limit;
 
     // Load paginated trips
-    const userTrips = await db
+    const userTrips = await this.db
       .select()
       .from(trips)
       .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
@@ -414,7 +420,7 @@ export class TripService implements ITripService {
     // Batch: get all members for all trips on this page (fix N+1)
     const pageTripIds = userTrips.map((t) => t.id);
 
-    const allMembers = await db
+    const allMembers = await this.db
       .select()
       .from(members)
       .where(inArray(members.tripId, pageTripIds));
@@ -449,7 +455,7 @@ export class TripService implements ITripService {
 
     const organizerUsers =
       allOrganizerUserIds.size > 0
-        ? await db
+        ? await this.db
             .select({
               id: users.id,
               displayName: users.displayName,
@@ -514,10 +520,10 @@ export class TripService implements ITripService {
     data: UpdateTripInput,
   ): Promise<Trip> {
     // Check permissions
-    const canEdit = await permissionsService.canEditTrip(userId, tripId);
+    const canEdit = await this.permissionsService.canEditTrip(userId, tripId);
     if (!canEdit) {
       // Check if trip exists to provide better error message
-      const tripExists = await db
+      const tripExists = await this.db
         .select()
         .from(trips)
         .where(eq(trips.id, tripId))
@@ -545,7 +551,7 @@ export class TripService implements ITripService {
     }
 
     // Perform update
-    const result = await db
+    const result = await this.db
       .update(trips)
       .set(updateData)
       .where(eq(trips.id, tripId))
@@ -566,10 +572,10 @@ export class TripService implements ITripService {
    */
   async cancelTrip(tripId: string, userId: string): Promise<void> {
     // 1. Check permissions - only organizers can cancel trips
-    const canDelete = await permissionsService.canDeleteTrip(userId, tripId);
+    const canDelete = await this.permissionsService.canDeleteTrip(userId, tripId);
     if (!canDelete) {
       // Check if trip exists for better error message
-      const tripExists = await db
+      const tripExists = await this.db
         .select()
         .from(trips)
         .where(eq(trips.id, tripId))
@@ -585,7 +591,7 @@ export class TripService implements ITripService {
     }
 
     // 2. Perform soft delete in a transaction for consistency
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       const result = await tx
         .update(trips)
         .set({
@@ -618,13 +624,13 @@ export class TripService implements ITripService {
     phoneNumbers: string[],
   ): Promise<void> {
     // 1. Check permissions - only organizers can manage co-organizers
-    const canManage = await permissionsService.canManageCoOrganizers(
+    const canManage = await this.permissionsService.canManageCoOrganizers(
       userId,
       tripId,
     );
     if (!canManage) {
       // Check if trip exists for better error message
-      const tripExists = await db
+      const tripExists = await this.db
         .select()
         .from(trips)
         .where(eq(trips.id, tripId))
@@ -640,7 +646,7 @@ export class TripService implements ITripService {
     }
 
     // 2. Lookup users by phone numbers
-    const newCoOrganizerUsers = await db
+    const newCoOrganizerUsers = await this.db
       .select()
       .from(users)
       .where(inArray(users.phoneNumber, phoneNumbers));
@@ -657,7 +663,7 @@ export class TripService implements ITripService {
     }
 
     // 3-6. Wrap count check + insert in transaction to prevent race conditions
-    await db.transaction(async (tx) => {
+    await this.db.transaction(async (tx) => {
       // 3. Get current member count
       const [countResult] = await tx
         .select({ value: count() })
@@ -689,13 +695,26 @@ export class TripService implements ITripService {
 
       // 6. Insert new co-organizers as members with status='going'
       if (newCoOrganizerUserIds.length > 0) {
-        await tx.insert(members).values(
-          newCoOrganizerUserIds.map((coOrgUserId) => ({
-            tripId: tripId,
-            userId: coOrgUserId,
-            status: "going" as const,
-          })),
-        );
+        try {
+          await tx.insert(members).values(
+            newCoOrganizerUserIds.map((coOrgUserId) => ({
+              tripId: tripId,
+              userId: coOrgUserId,
+              status: "going" as const,
+            })),
+          );
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            "code" in error &&
+            (error as Error & { code: string }).code === "23505"
+          ) {
+            throw new DuplicateMemberError(
+              "User is already a member of this trip",
+            );
+          }
+          throw error;
+        }
       }
     });
   }
@@ -719,13 +738,13 @@ export class TripService implements ITripService {
     coOrgUserId: string,
   ): Promise<void> {
     // 1. Check permissions - only organizers can manage co-organizers
-    const canManage = await permissionsService.canManageCoOrganizers(
+    const canManage = await this.permissionsService.canManageCoOrganizers(
       userId,
       tripId,
     );
     if (!canManage) {
       // Check if trip exists for better error message
-      const tripExists = await db
+      const tripExists = await this.db
         .select()
         .from(trips)
         .where(eq(trips.id, tripId))
@@ -741,7 +760,7 @@ export class TripService implements ITripService {
     }
 
     // 2. Load trip to check creator
-    const [trip] = await db
+    const [trip] = await this.db
       .select()
       .from(trips)
       .where(eq(trips.id, tripId))
@@ -757,7 +776,7 @@ export class TripService implements ITripService {
     }
 
     // 4. Verify co-organizer is a member of the trip
-    const [memberRecord] = await db
+    const [memberRecord] = await this.db
       .select()
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, coOrgUserId)))
@@ -768,7 +787,7 @@ export class TripService implements ITripService {
     }
 
     // 5. Delete member record
-    await db
+    await this.db
       .delete(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, coOrgUserId)));
   }
@@ -781,7 +800,7 @@ export class TripService implements ITripService {
    */
   async getCoOrganizers(tripId: string): Promise<User[]> {
     // Get all members with status='going' for this trip
-    const organizerMembers = await db
+    const organizerMembers = await this.db
       .select()
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.status, "going")));
@@ -794,7 +813,7 @@ export class TripService implements ITripService {
     const organizerUserIds = organizerMembers.map((m) => m.userId);
 
     // Load full user information for all organizers
-    const organizerUsers = await db
+    const organizerUsers = await this.db
       .select()
       .from(users)
       .where(inArray(users.id, organizerUserIds));
@@ -817,7 +836,7 @@ export class TripService implements ITripService {
    * @returns Promise that resolves to the member count
    */
   async getMemberCount(tripId: string): Promise<number> {
-    const [result] = await db
+    const [result] = await this.db
       .select({ value: count() })
       .from(members)
       .where(eq(members.tripId, tripId));
@@ -825,8 +844,3 @@ export class TripService implements ITripService {
   }
 }
 
-/**
- * Singleton instance of the trip service
- * Use this instance throughout the application
- */
-export const tripService = new TripService();

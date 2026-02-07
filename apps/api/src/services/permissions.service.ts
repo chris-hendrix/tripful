@@ -1,6 +1,6 @@
-import { db } from "@/config/database.js";
 import { trips, members } from "@/db/schema/index.js";
 import { eq, and, or } from "drizzle-orm";
+import type { AppDatabase } from "@/types/index.js";
 
 /**
  * Permissions Service Interface
@@ -58,6 +58,8 @@ export interface IPermissionsService {
  * Handles authorization and permission checking for trip-related operations
  */
 export class PermissionsService implements IPermissionsService {
+  constructor(private db: AppDatabase) {}
+
   /**
    * Checks if a user is an organizer of a trip
    * A user is an organizer if:
@@ -70,7 +72,7 @@ export class PermissionsService implements IPermissionsService {
    * @returns true if user is an organizer, false otherwise
    */
   async isOrganizer(userId: string, tripId: string): Promise<boolean> {
-    const result = await db
+    const result = await this.db
       .select({
         tripId: trips.id,
         createdBy: trips.createdBy,
@@ -108,7 +110,7 @@ export class PermissionsService implements IPermissionsService {
    * @returns true if user is a member, false otherwise
    */
   async isMember(userId: string, tripId: string): Promise<boolean> {
-    const result = await db
+    const result = await this.db
       .select()
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
@@ -120,9 +122,6 @@ export class PermissionsService implements IPermissionsService {
   /**
    * Checks if a user can edit a trip
    * Delegates to isOrganizer - only organizers can edit trips
-   * @param userId - The UUID of the user to check
-   * @param tripId - The UUID of the trip to check
-   * @returns true if user can edit, false otherwise
    */
   async canEditTrip(userId: string, tripId: string): Promise<boolean> {
     return this.isOrganizer(userId, tripId);
@@ -131,9 +130,6 @@ export class PermissionsService implements IPermissionsService {
   /**
    * Checks if a user can delete a trip
    * Delegates to isOrganizer - only organizers can delete trips
-   * @param userId - The UUID of the user to check
-   * @param tripId - The UUID of the trip to check
-   * @returns true if user can delete, false otherwise
    */
   async canDeleteTrip(userId: string, tripId: string): Promise<boolean> {
     return this.isOrganizer(userId, tripId);
@@ -142,9 +138,6 @@ export class PermissionsService implements IPermissionsService {
   /**
    * Checks if a user can manage co-organizers for a trip
    * Delegates to isOrganizer - only organizers can manage co-organizers
-   * @param userId - The UUID of the user to check
-   * @param tripId - The UUID of the trip to check
-   * @returns true if user can manage co-organizers, false otherwise
    */
   async canManageCoOrganizers(
     userId: string,
@@ -153,9 +146,3 @@ export class PermissionsService implements IPermissionsService {
     return this.isOrganizer(userId, tripId);
   }
 }
-
-/**
- * Singleton instance of the permissions service
- * Use this instance throughout the application
- */
-export const permissionsService = new PermissionsService();

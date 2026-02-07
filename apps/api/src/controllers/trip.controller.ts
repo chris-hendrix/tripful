@@ -1,5 +1,10 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
+import type {
+  CreateTripInput,
+  UpdateTripInput,
+  AddCoOrganizerInput,
+  PaginationInput,
+} from "@tripful/shared/schemas";
 import { TripNotFoundError, PermissionDeniedError } from "../errors.js";
 
 /**
@@ -73,22 +78,15 @@ export const tripController = {
    * @returns Success response with user's trips
    */
   async getUserTrips(
-    request: FastifyRequest<{
-      Querystring: { page?: string; limit?: string };
-    }>,
+    request: FastifyRequest<{ Querystring: PaginationInput }>,
     reply: FastifyReply,
   ) {
     try {
       const { tripService } = request.server;
       const userId = request.user.sub;
 
-      // Parse pagination query params
-      const query = request.query;
-      const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
-      const limit = Math.min(
-        100,
-        Math.max(1, parseInt(query.limit ?? "20", 10) || 20),
-      );
+      // Pagination params are validated and coerced by Fastify route schema
+      const { page, limit } = request.query;
 
       const result = await tripService.getUserTrips(userId, page, limit);
 
@@ -289,7 +287,7 @@ export const tripController = {
   async addCoOrganizer(
     request: FastifyRequest<{
       Params: { id: string };
-      Body: { phoneNumber: string };
+      Body: AddCoOrganizerInput;
     }>,
     reply: FastifyReply,
   ): Promise<void> {
