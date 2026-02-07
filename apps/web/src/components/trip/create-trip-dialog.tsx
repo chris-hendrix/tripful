@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -50,8 +51,7 @@ export function CreateTripDialog({
   const [newCoOrganizerPhone, setNewCoOrganizerPhone] = useState("");
   const [coOrganizerError, setCoOrganizerError] = useState<string | null>(null);
 
-  const { mutate: createTrip, isPending, error } = useCreateTrip();
-  const errorMessage = getCreateTripErrorMessage(error);
+  const { mutate: createTrip, isPending } = useCreateTrip();
 
   const form = useForm<CreateTripInput>({
     resolver: zodResolver(createTripSchema),
@@ -90,12 +90,16 @@ export function CreateTripDialog({
   };
 
   const handleSubmit = (data: CreateTripInput) => {
-    // Create trip via TanStack Query mutation
-    // This will trigger optimistic update, API call, and redirect on success
+    form.clearErrors("root");
     createTrip(data, {
       onSuccess: () => {
-        // Close dialog on successful creation (before redirect)
         onOpenChange(false);
+      },
+      onError: (error) => {
+        form.setError("root", {
+          message:
+            getCreateTripErrorMessage(error) ?? "An unexpected error occurred.",
+        });
       },
     });
   };
@@ -308,10 +312,10 @@ export function CreateTripDialog({
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-12 text-base rounded-xl">
+                          <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base rounded-xl">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -413,12 +417,13 @@ export function CreateTripDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-4">
                       <FormControl>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={field.value}
-                          onChange={field.onChange}
+                          onCheckedChange={field.onChange}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          name={field.name}
                           disabled={isPending}
-                          className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Allow members to add events"
                         />
                       </FormControl>
@@ -509,7 +514,7 @@ export function CreateTripDialog({
                             </Button>
                           </div>
                           {coOrganizerError && (
-                            <p className="text-sm text-red-600">
+                            <p className="text-sm text-destructive">
                               {coOrganizerError}
                             </p>
                           )}
@@ -524,11 +529,11 @@ export function CreateTripDialog({
                   }}
                 />
 
-                {/* Error message */}
-                {errorMessage && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200">
-                    <p className="text-sm text-red-600">{errorMessage}</p>
-                  </div>
+                {/* Root error message */}
+                {form.formState.errors.root && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.root.message}
+                  </p>
                 )}
 
                 {/* Action Buttons */}

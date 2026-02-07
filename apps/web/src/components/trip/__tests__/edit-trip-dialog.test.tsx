@@ -180,10 +180,10 @@ describe("EditTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /continue/i }));
 
       await waitFor(() => {
-        const checkbox = screen.getByLabelText(
-          /allow members to add events/i,
-        ) as HTMLInputElement;
-        expect(checkbox.checked).toBe(true);
+        const checkbox = screen.getByRole("checkbox", {
+          name: /allow members to add events/i,
+        });
+        expect(checkbox.getAttribute("data-state")).toBe("checked");
       });
     });
 

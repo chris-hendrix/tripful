@@ -126,11 +126,11 @@ export default function CompleteProfilePage() {
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      {...(field.value ? { defaultValue: field.value } : {})}
+                      value={field.value ?? ""}
                       disabled={isSubmitting}
                     >
                       <FormControl>
-                        <SelectTrigger className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="Select your timezone" />
                         </SelectTrigger>
                       </FormControl>

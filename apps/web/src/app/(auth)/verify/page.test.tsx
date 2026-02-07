@@ -290,13 +290,9 @@ describe("VerifyPage", () => {
     await user.click(resendButton);
 
     await waitFor(() => {
-      const successMessage = screen.queryByText((content, element) => {
-        return (
-          element?.getAttribute("data-slot") === "form-message" &&
-          content.includes("new code has been sent")
-        );
-      });
-      expect(successMessage).toBeTruthy();
+      expect(
+        screen.getByText(/new code has been sent/i),
+      ).toBeDefined();
     });
   });
 

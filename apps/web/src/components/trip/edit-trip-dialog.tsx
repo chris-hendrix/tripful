@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { Trash2, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -57,15 +58,8 @@ export function EditTripDialog({
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { mutate: updateTrip, isPending, error } = useUpdateTrip();
-  const {
-    mutate: cancelTrip,
-    isPending: isDeleting,
-    error: deleteError,
-  } = useCancelTrip();
-
-  const errorMessage = getUpdateTripErrorMessage(error);
-  const deleteErrorMessage = getCancelTripErrorMessage(deleteError);
+  const { mutate: updateTrip, isPending } = useUpdateTrip();
+  const { mutate: cancelTrip, isPending: isDeleting } = useCancelTrip();
 
   const form = useForm<UpdateTripInput>({
     resolver: zodResolver(updateTripSchema),
@@ -123,16 +117,20 @@ export function EditTripDialog({
   };
 
   const handleSubmit = (data: UpdateTripInput) => {
-    // Update trip via TanStack Query mutation
-    // This will trigger optimistic update, API call, and close dialog on success
+    form.clearErrors("root");
     updateTrip(
       { tripId: trip.id, data },
       {
         onSuccess: () => {
-          // Close dialog on successful update
           onOpenChange(false);
-          // Call optional success callback
           onSuccess?.();
+        },
+        onError: (error) => {
+          form.setError("root", {
+            message:
+              getUpdateTripErrorMessage(error) ??
+              "An unexpected error occurred.",
+          });
         },
       },
     );
@@ -144,9 +142,14 @@ export function EditTripDialog({
       return;
     }
 
-    // Delete trip via TanStack Query mutation
-    // This will trigger optimistic update, API call, and redirect on success
-    cancelTrip(trip.id);
+    cancelTrip(trip.id, {
+      onError: (error) => {
+        form.setError("root", {
+          message:
+            getCancelTripErrorMessage(error) ?? "An unexpected error occurred.",
+        });
+      },
+    });
   };
 
   const handleCancelDelete = () => {
@@ -321,9 +324,6 @@ export function EditTripDialog({
                   control={form.control}
                   name="timezone"
                   render={({ field }) => {
-                    const selectProps = field.value
-                      ? { value: field.value }
-                      : {};
                     return (
                       <FormItem>
                         <FormLabel className="text-base font-semibold text-slate-900">
@@ -332,11 +332,11 @@ export function EditTripDialog({
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          {...selectProps}
+                          value={field.value ?? ""}
                           disabled={isPending || isDeleting}
                         >
                           <FormControl>
-                            <SelectTrigger className="h-12 text-base rounded-xl">
+                            <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base rounded-xl">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
@@ -441,12 +441,13 @@ export function EditTripDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-4">
                       <FormControl>
-                        <input
-                          type="checkbox"
-                          checked={field.value}
-                          onChange={field.onChange}
+                        <Checkbox
+                          checked={field.value ?? false}
+                          onCheckedChange={field.onChange}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          name={field.name}
                           disabled={isPending || isDeleting}
-                          className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Allow members to add events"
                         />
                       </FormControl>
@@ -463,17 +464,11 @@ export function EditTripDialog({
                   )}
                 />
 
-                {/* Error messages */}
-                {errorMessage && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200">
-                    <p className="text-sm text-red-600">{errorMessage}</p>
-                  </div>
-                )}
-
-                {deleteErrorMessage && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200">
-                    <p className="text-sm text-red-600">{deleteErrorMessage}</p>
-                  </div>
+                {/* Root error message */}
+                {form.formState.errors.root && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.root.message}
+                  </p>
                 )}
 
                 {/* Delete confirmation */}
