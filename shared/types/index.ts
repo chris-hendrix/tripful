@@ -50,3 +50,33 @@ export type {
   CreateTripResponse,
   UpdateTripResponse,
 } from "./trip";
+
+// Re-export event-related types
+export type {
+  Event,
+  GetEventsResponse,
+  GetEventResponse,
+  CreateEventResponse,
+  UpdateEventResponse,
+  RestoreEventResponse,
+} from "./event";
+
+// Re-export accommodation-related types
+export type {
+  Accommodation,
+  GetAccommodationsResponse,
+  GetAccommodationResponse,
+  CreateAccommodationResponse,
+  UpdateAccommodationResponse,
+  RestoreAccommodationResponse,
+} from "./accommodation";
+
+// Re-export member travel-related types
+export type {
+  MemberTravel,
+  GetMemberTravelsResponse,
+  GetMemberTravelResponse,
+  CreateMemberTravelResponse,
+  UpdateMemberTravelResponse,
+  RestoreMemberTravelResponse,
+} from "./member-travel";

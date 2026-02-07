@@ -175,7 +175,7 @@ Create REST API routes for events, accommodations, and member travel.
 
 ---
 
-- [ ] Task 6: Frontend Data Hooks (TanStack Query)
+- [x] Task 6: Frontend Data Hooks (TanStack Query)
 
 Create React hooks for fetching and mutating events, accommodations, and member travel data.
 
