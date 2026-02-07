@@ -7,10 +7,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   images: {
+    // Production: add actual image CDN domains here
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "**",
+        protocol: "http",
+        hostname: "localhost",
       },
     ],
   },

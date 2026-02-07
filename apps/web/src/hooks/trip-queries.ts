@@ -8,6 +8,9 @@ import type { GetTripsResponse, GetTripResponse } from "@tripful/shared/types";
 export const tripKeys = {
   all: ["trips"] as const,
   detail: (id: string) => ["trips", id] as const,
+  create: () => ["trips", "create"] as const,
+  update: () => ["trips", "update"] as const,
+  cancel: () => ["trips", "cancel"] as const,
 };
 
 /**

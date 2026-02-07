@@ -1,15 +1,16 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripful.com";
   return [
     {
-      url: "https://tripful.com",
+      url: siteUrl,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: "https://tripful.com/login",
+      url: `${siteUrl}/login`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,

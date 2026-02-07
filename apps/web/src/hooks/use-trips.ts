@@ -129,7 +129,7 @@ export function useCreateTrip() {
   const router = useRouter();
 
   return useMutation<Trip, Error, CreateTripInput, CreateTripContext>({
-    mutationKey: ["createTrip"],
+    mutationKey: tripKeys.create(),
     mutationFn: async (data: CreateTripInput) => {
       const response = await apiRequest<CreateTripResponse>("/trips", {
         method: "POST",
@@ -272,7 +272,7 @@ export function useUpdateTrip() {
     { tripId: string; data: UpdateTripInput },
     UpdateTripContext
   >({
-    mutationKey: ["updateTrip"],
+    mutationKey: tripKeys.update(),
     mutationFn: async ({ tripId, data }) => {
       const response = await apiRequest<UpdateTripResponse>(
         `/trips/${tripId}`,
@@ -435,7 +435,7 @@ export function useCancelTrip() {
   const router = useRouter();
 
   return useMutation<void, Error, string, CancelTripContext>({
-    mutationKey: ["cancelTrip"],
+    mutationKey: tripKeys.cancel(),
     mutationFn: async (tripId: string) => {
       await apiRequest<CancelTripResponse>(`/trips/${tripId}`, {
         method: "DELETE",

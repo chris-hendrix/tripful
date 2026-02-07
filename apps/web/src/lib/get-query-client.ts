@@ -13,16 +13,25 @@ function makeQueryClient() {
         gcTime: 1000 * 60 * 60,
         refetchOnWindowFocus: false,
         retry: (failureCount, error) => {
-          // Don't retry on client errors (4xx) — they won't succeed on retry
+          // Don't retry on deterministic errors — they won't succeed on retry
+          // Codes from apps/api/src/errors.ts plus Fastify built-in validation codes
           if (error instanceof APIError) {
-            const clientErrorCodes = [
+            const nonRetriableErrorCodes = [
               "NOT_FOUND",
-              "FORBIDDEN",
+              "PERMISSION_DENIED",
               "UNAUTHORIZED",
+              "PROFILE_INCOMPLETE",
               "VALIDATION_ERROR",
               "BAD_REQUEST",
+              "CO_ORGANIZER_NOT_FOUND",
+              "CANNOT_REMOVE_CREATOR",
+              "FILE_TOO_LARGE",
+              "INVALID_FILE_TYPE",
+              "INVALID_CODE",
+              "MEMBER_LIMIT_EXCEEDED",
+              "DUPLICATE_MEMBER",
             ];
-            if (clientErrorCodes.includes(error.code)) return false;
+            if (nonRetriableErrorCodes.includes(error.code)) return false;
           }
           return failureCount < 1;
         },
