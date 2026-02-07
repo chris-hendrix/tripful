@@ -572,7 +572,10 @@ export class TripService implements ITripService {
    */
   async cancelTrip(tripId: string, userId: string): Promise<void> {
     // 1. Check permissions - only organizers can cancel trips
-    const canDelete = await this.permissionsService.canDeleteTrip(userId, tripId);
+    const canDelete = await this.permissionsService.canDeleteTrip(
+      userId,
+      tripId,
+    );
     if (!canDelete) {
       // Check if trip exists for better error message
       const tripExists = await this.db
@@ -843,4 +846,3 @@ export class TripService implements ITripService {
     return result?.value ?? 0;
   }
 }
-

@@ -290,9 +290,7 @@ describe("VerifyPage", () => {
     await user.click(resendButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/new code has been sent/i),
-      ).toBeDefined();
+      expect(screen.getByText(/new code has been sent/i)).toBeDefined();
     });
   });
 

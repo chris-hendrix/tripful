@@ -1,715 +1,339 @@
-# Architecture: Frontend Best Practices
+# Architecture: Frontend Design Overhaul
 
-Comprehensive frontend improvements for the Tripful web app based on three audit reports (Next.js best practices, React performance, TanStack Query). Covers bundle optimization, Next.js features adoption, RSC migration with server-side prefetching, TanStack Query v5 patterns, code deduplication, and error handling.
+Redesign the Tripful web app frontend with a travel-poster-inspired visual identity (Capri/Mediterranean), proper design token system, app shell with navigation, and accessibility fixes. Addresses all findings from three audits: frontend-design, shadcn-ui, and web-design-guidelines.
 
-## Overview
+## Brand Direction
 
-The web app (`apps/web`) currently treats nearly every page as a client component, missing Next.js optimization features. This work migrates key pages to server components, adds server-side data prefetching via TanStack Query hydration, adopts Next.js features (fonts, images, error boundaries, metadata), optimizes bundle size, and applies React/TanStack Query best practices.
+Inspired by vintage Italian travel posters (Capri by Mario Puppo). Warm, vivid, Mediterranean palette with classic serif typography. The CSS variable system is architected to support multiple travel-poster themes in the future (Alpine, Tropical, Nordic), but only the default Mediterranean theme is implemented now.
 
-## Scope
+## Color Palette (Vivid Capri)
 
-All P0-P4 items from three audits:
-- **Next.js audit**: 19 findings across 14 categories
-- **React performance audit**: 16 findings across 9 categories
-- **TanStack Query audit**: findings across 9 categories
+All colors defined as HSL values for CSS custom properties:
 
----
+| Token                            | Hex     | HSL         | Usage                             |
+| -------------------------------- | ------- | ----------- | --------------------------------- |
+| `--color-primary`                | #1A5F9E | 210 72% 36% | Primary actions, links, branding  |
+| `--color-primary-foreground`     | #FFFFFF | 0 0% 100%   | Text on primary                   |
+| `--color-accent`                 | #D4603A | 16 62% 53%  | Terracotta accent, secondary CTAs |
+| `--color-accent-foreground`      | #FFFFFF | 0 0% 100%   | Text on accent                    |
+| `--color-background`             | #FAF5EE | 36 60% 96%  | Page background (warm cream)      |
+| `--color-foreground`             | #3A2E22 | 27 27% 18%  | Primary text (dark warm brown)    |
+| `--color-card`                   | #FFFFFF | 0 0% 100%   | Card surfaces                     |
+| `--color-card-foreground`        | #3A2E22 | 27 27% 18%  | Text on cards                     |
+| `--color-muted`                  | #F0EBE3 | 34 28% 91%  | Muted backgrounds (warm gray)     |
+| `--color-muted-foreground`       | #8C8274 | 34 10% 50%  | Secondary text (sandy gray)       |
+| `--color-border`                 | #E5DDD2 | 34 28% 86%  | Borders (warm)                    |
+| `--color-input`                  | #E5DDD2 | 34 28% 86%  | Input borders                     |
+| `--color-ring`                   | #1A5F9E | 210 72% 36% | Focus rings                       |
+| `--color-secondary`              | #F0EBE3 | 34 28% 91%  | Secondary buttons                 |
+| `--color-secondary-foreground`   | #3A2E22 | 27 27% 18%  | Text on secondary                 |
+| `--color-destructive`            | #C4382A | 5 65% 47%   | Destructive actions (coral red)   |
+| `--color-destructive-foreground` | #FFFFFF | 0 0% 100%   | Text on destructive               |
+| `--color-popover`                | #FFFFFF | 0 0% 100%   | Popover surfaces                  |
+| `--color-popover-foreground`     | #3A2E22 | 27 27% 18%  | Text on popovers                  |
 
-## 1. Shared Types Migration
+### Additional Semantic Tokens
 
-Move frontend-only Trip types to the shared package for reuse in server-side fetching.
+| Token                        | Hex     | HSL         | Usage                              |
+| ---------------------------- | ------- | ----------- | ---------------------------------- |
+| `--color-success`            | #4A7C59 | 140 27% 39% | Success/Going badges (olive green) |
+| `--color-success-foreground` | #FFFFFF | 0 0% 100%   | Text on success                    |
+| `--color-warning`            | #C48A2A | 38 66% 47%  | Warning/Maybe badges (warm amber)  |
+| `--color-warning-foreground` | #FFFFFF | 0 0% 100%   | Text on warning                    |
 
-### Types to Move
+## Typography
 
-From `apps/web/src/hooks/use-trips.ts` (lines 10-101) to `shared/types/trip.ts`:
-
-```typescript
-// shared/types/trip.ts
-export interface TripSummary {
-  id: string;
-  name: string;
-  destination: string;
-  startDate: string | null;
-  endDate: string | null;
-  coverImageUrl: string | null;
-  isOrganizer: boolean;
-  rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
-  organizerInfo: Array<{
-    id: string;
-    displayName: string;
-    profilePhotoUrl: string | null;
-  }>;
-  memberCount: number;
-  eventCount: number;
-}
-
-export interface TripDetail {
-  id: string;
-  name: string;
-  destination: string;
-  startDate: string | null;
-  endDate: string | null;
-  preferredTimezone: string;
-  description: string | null;
-  coverImageUrl: string | null;
-  createdBy: string;
-  allowMembersToAddEvents: boolean;
-  cancelled: boolean;
-  createdAt: string;
-  updatedAt: string;
-  organizers: Array<{
-    id: string;
-    displayName: string;
-    phoneNumber: string;
-    profilePhotoUrl: string | null;
-    timezone: string;
-  }>;
-  memberCount: number;
-}
-
-// API response wrappers
-export interface GetTripsResponse {
-  success: true;
-  data: TripSummary[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-export interface GetTripResponse {
-  success: true;
-  trip: TripDetail;
-}
-
-export interface CreateTripResponse {
-  success: true;
-  trip: TripDetail;
-}
-
-export interface UpdateTripResponse {
-  success: true;
-  trip: TripDetail;
-}
-```
-
-Export from `shared/types/index.ts` barrel file.
-
----
-
-## 2. Bundle Optimization
-
-### 2.1 optimizePackageImports for lucide-react
-
-**File**: `apps/web/next.config.ts`
-
-Add `experimental.optimizePackageImports` to prevent loading all 1,583 lucide-react modules:
+### Font Loading (`apps/web/src/lib/fonts.ts`)
 
 ```typescript
-const nextConfig: NextConfig = {
-  transpilePackages: ["@tripful/shared"],
-  reactStrictMode: true,
-  experimental: {
-    optimizePackageImports: ["lucide-react"],
-  },
-};
-```
-
-### 2.2 Dynamic Imports for Dialog Components
-
-**Files**: `apps/web/src/app/(app)/dashboard/page.tsx`, `apps/web/src/app/(app)/trips/[id]/page.tsx`
-
-Use `next/dynamic` for dialogs that only render when user clicks a button:
-
-```typescript
-import dynamic from "next/dynamic";
-
-const CreateTripDialog = dynamic(
-  () => import("@/components/trip/create-trip-dialog").then((m) => m.CreateTripDialog),
-  { ssr: false }
-);
-```
-
-### 2.3 Preload on Hover/Focus
-
-After dynamic imports, add preload functions for buttons that open dialogs:
-
-```typescript
-const preloadCreateTrip = () => void import("@/components/trip/create-trip-dialog");
-
-<button
-  onMouseEnter={preloadCreateTrip}
-  onFocus={preloadCreateTrip}
-  onClick={() => setCreateDialogOpen(true)}
->
-```
-
----
-
-## 3. next/font Optimization
-
-### Font Declaration
-
-**New file**: `apps/web/src/lib/fonts.ts`
-
-```typescript
-import { Playfair_Display } from "next/font/google";
+import { Playfair_Display, DM_Sans } from "next/font/google";
 
 export const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
   display: "swap",
 });
-```
 
-### Root Layout Integration
-
-**File**: `apps/web/src/app/layout.tsx`
-
-Apply the font CSS variable on `<html>`:
-
-```typescript
-import { playfairDisplay } from "@/lib/fonts";
-
-<html lang="en" className={playfairDisplay.variable}>
-```
-
-### Replace Inline Styles
-
-Remove all `style={{ fontFamily: "Playfair Display, serif" }}` usages across 6 files (12+ locations) and replace with the CSS variable class `font-[family-name:var(--font-playfair)]` or add a Tailwind utility.
-
-**Files affected**:
-- `apps/web/src/app/(app)/dashboard/page.tsx` (6 occurrences)
-- `apps/web/src/app/(app)/trips/[id]/page.tsx` (3 occurrences)
-- `apps/web/src/components/trip/trip-card.tsx` (1 occurrence)
-- `apps/web/src/components/trip/create-trip-dialog.tsx` (1 occurrence)
-- `apps/web/src/components/trip/edit-trip-dialog.tsx` (1 occurrence)
-
----
-
-## 4. next/image Optimization
-
-### Remote Patterns Configuration
-
-**File**: `apps/web/next.config.ts`
-
-```typescript
-images: {
-  remotePatterns: [
-    {
-      protocol: "https",
-      hostname: "**",  // Adjust to specific domains in production
-    },
-  ],
-},
-```
-
-### Replace `<img>` Tags
-
-Replace all native `<img>` tags with `next/image` `Image` component:
-
-**Files**:
-- `apps/web/src/app/(app)/trips/[id]/page.tsx` (lines 160, 228 -- cover image + avatars)
-- `apps/web/src/components/trip/trip-card.tsx` (lines 148, 207 -- cover image + avatars)
-- `apps/web/src/components/trip/image-upload.tsx` (line 210 -- preview with `unoptimized` for blob URLs)
-
-For cover images (hero sections), use `fill` layout with `sizes` attribute and `priority` for above-the-fold images.
-
----
-
-## 5. Error Handling
-
-### Error Boundary Files
-
-Create Next.js App Router error boundaries:
-
-**New files**:
-- `apps/web/src/app/global-error.tsx` -- Root error boundary (must include `<html>` and `<body>`)
-- `apps/web/src/app/not-found.tsx` -- Custom 404 page
-- `apps/web/src/app/(app)/error.tsx` -- Protected section error boundary
-- `apps/web/src/app/(auth)/error.tsx` -- Auth section error boundary
-
-All `error.tsx` files must be client components (`"use client"`). They receive `error` and `reset` props for error recovery.
-
-### TanStack Query Error Boundaries
-
-Add `throwOnError` for 5xx server errors so they bubble to Next.js error boundaries:
-
-```typescript
-// In query client defaults or individual queries
-throwOnError: (error) => {
-  if (error instanceof APIError) {
-    return error.code === "INTERNAL_SERVER_ERROR";
-  }
-  return true; // Unknown errors should always throw
-}
-```
-
----
-
-## 6. Metadata
-
-### Root Layout Title Template
-
-**File**: `apps/web/src/app/layout.tsx`
-
-```typescript
-export const metadata: Metadata = {
-  title: { default: "Tripful", template: "%s | Tripful" },
-  description: "Plan and share your adventures",
-};
-```
-
-### Static Metadata Files
-
-**New files** (in `apps/web/src/app/`):
-- `robots.ts` -- Search engine directives
-- `sitemap.ts` -- Sitemap for public pages
-- Place `favicon.ico` in `apps/web/src/app/` or `apps/web/public/`
-
-### Page-Specific Metadata
-
-Once pages become server components (Phase 4), export `generateMetadata` for dynamic pages:
-
-```typescript
-// trips/[id]/page.tsx (server component)
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  // Fetch trip name for title
-  return { title: tripName };
-}
-```
-
----
-
-## 7. Loading & File Conventions
-
-### Loading Files
-
-**New files**:
-- `apps/web/src/app/(app)/dashboard/loading.tsx` -- Dashboard skeleton
-- `apps/web/src/app/(app)/trips/[id]/loading.tsx` -- Trip detail skeleton
-
-These create automatic Suspense boundaries for route transitions. Extract existing `SkeletonCard` and `SkeletonDetail` into these files.
-
----
-
-## 8. Navigation Improvements
-
-### Replace router.push with Link
-
-**File**: `apps/web/src/components/trip/trip-card.tsx`
-- Replace `router.push(\`/trips/${trip.id}\`)` with wrapping content in `<Link href={...}>` for prefetching and accessibility.
-
-**File**: `apps/web/src/app/(app)/trips/[id]/page.tsx`
-- Replace "Return to dashboard" `router.push("/dashboard")` with `<Link href="/dashboard">`.
-
----
-
-## 9. Code Deduplication
-
-### Extract Shared Utilities
-
-**New file**: `apps/web/src/lib/format.ts`
-
-Extract from `trip-card.tsx` and `trips/[id]/page.tsx`:
-- `formatDateRange(startDate, endDate)` -- Date range formatting
-- `getInitials(name)` -- Avatar initials from name
-
-Hoist `Intl.DateTimeFormat` instances to module scope for performance.
-
-### Extract Shared Constants
-
-**New file**: `apps/web/src/lib/constants.ts`
-
-Extract from `complete-profile/page.tsx`, `create-trip-dialog.tsx`, `edit-trip-dialog.tsx`:
-- `TIMEZONES` array (duplicated in 3 files)
-
-### Centralize API_URL
-
-**File**: `apps/web/src/lib/api.ts`
-
-Export `API_URL` constant. Remove duplicates from:
-- `apps/web/src/app/providers/auth-provider.tsx` (line 13)
-- `apps/web/src/components/trip/image-upload.tsx` (lines 98-99)
-
----
-
-## 10. React Performance Optimizations
-
-### React.memo for TripCard
-
-**File**: `apps/web/src/components/trip/trip-card.tsx`
-
-Wrap `TripCard` in `React.memo()` to prevent unnecessary re-renders when parent state changes (e.g., search query) but individual trip data hasn't changed.
-
-### AuthContext Value Stability
-
-**File**: `apps/web/src/app/providers/auth-provider.tsx`
-
-Wrap function declarations in `useCallback` and memoize context value with `useMemo`:
-
-```typescript
-const login = useCallback(async (phoneNumber: string) => { ... }, []);
-const logout = useCallback(async () => { ... }, [router]);
-const value = useMemo(() => ({
-  user, loading, login, verify, completeProfile, logout, refetch: fetchUser
-}), [user, loading, login, verify, completeProfile, logout, fetchUser]);
-```
-
-### Combine Array Iterations
-
-**File**: `apps/web/src/app/(app)/dashboard/page.tsx`
-
-Replace double `.filter()` for upcoming/past trips with a single loop.
-
-### Simplify Navigation State
-
-**Files**: `apps/web/src/app/(auth)/verify/page.tsx`, `complete-profile/page.tsx`
-
-Remove `shouldNavigate` state + useEffect pattern. Navigate directly in async handlers.
-
-### Hoist Regex
-
-**File**: `apps/web/src/components/trip/create-trip-dialog.tsx`
-
-Hoist phone validation regex to module scope.
-
----
-
-## 11. TanStack Query v5 Improvements
-
-### Replace isLoading with isPending
-
-Replace all `isLoading` usage with `isPending` across:
-- `apps/web/src/hooks/use-trips.ts` (JSDoc)
-- `apps/web/src/app/(app)/dashboard/page.tsx`
-- `apps/web/src/app/(app)/trips/[id]/page.tsx`
-- All corresponding test files
-
-### Query Options Factory
-
-**File**: `apps/web/src/hooks/use-trips.ts`
-
-Introduce `queryOptions` factory pattern:
-
-```typescript
-import { queryOptions } from "@tanstack/react-query";
-
-export const tripKeys = {
-  all: ["trips"] as const,
-  detail: (id: string) => ["trips", id] as const,
-};
-
-export const tripsQueryOptions = queryOptions({
-  queryKey: tripKeys.all,
-  queryFn: async () => {
-    const response = await apiRequest<GetTripsResponse>("/trips");
-    return response.data;
-  },
+export const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
 });
-
-export const tripDetailQueryOptions = (tripId: string) =>
-  queryOptions({
-    queryKey: tripKeys.detail(tripId),
-    queryFn: async () => {
-      const response = await apiRequest<GetTripResponse>(`/trips/${tripId}`);
-      return response.trip;
-    },
-    enabled: !!tripId,
-  });
 ```
 
-### Query Client Configuration
+### Font Application
 
-**File**: `apps/web/src/app/providers/providers.tsx`
+- Root `<html>` gets both font CSS variables: `className={cn(playfairDisplay.variable, dmSans.variable)}`
+- Body uses DM Sans as default: via `@theme { --font-sans: var(--font-dm-sans); }`
+- Display headings use Playfair: `font-[family-name:var(--font-playfair)]` (already used in codebase)
 
-- Add `gcTime: 1000 * 60 * 60` (1 hour)
-- Add `refetchOnWindowFocus: false`
-- Add smart retry that skips 404s:
+### Type Scale
 
-```typescript
-retry: (failureCount, error) => {
-  if (error instanceof APIError && error.code === "NOT_FOUND") return false;
-  return failureCount < 1;
-}
+| Role          | Classes                                                          | Font              |
+| ------------- | ---------------------------------------------------------------- | ----------------- |
+| Page title    | `text-4xl font-bold font-[family-name:var(--font-playfair)]`     | Playfair Display  |
+| Section title | `text-2xl font-semibold font-[family-name:var(--font-playfair)]` | Playfair Display  |
+| Card title    | `text-xl font-semibold font-[family-name:var(--font-playfair)]`  | Playfair Display  |
+| Body          | `text-base`                                                      | DM Sans (default) |
+| Caption/label | `text-sm text-muted-foreground`                                  | DM Sans           |
+| Small         | `text-xs text-muted-foreground`                                  | DM Sans           |
+
+## Component Architecture
+
+### New Components to Install (shadcn/ui)
+
+```bash
+pnpm dlx shadcn@latest add sonner
+pnpm dlx shadcn@latest add alert-dialog
+pnpm dlx shadcn@latest add skeleton
+pnpm dlx shadcn@latest add dropdown-menu
+pnpm dlx shadcn@latest add breadcrumb
+pnpm dlx shadcn@latest add avatar
+pnpm dlx shadcn@latest add separator
+pnpm dlx shadcn@latest add tooltip
 ```
 
-### Remove Duplicate Invalidations
+### New Custom Components
 
-Remove `invalidateQueries` from `onSuccess` in all three mutation hooks (keep only in `onSettled`).
+#### App Header (`apps/web/src/components/app-header.tsx`)
 
-### Install DevTools
-
-Install `@tanstack/react-query-devtools` as dev dependency. Add to providers:
-
-```typescript
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-<QueryClientProvider client={queryClient}>
-  {children}
-  <ReactQueryDevtools initialIsOpen={false} />
-</QueryClientProvider>
+```
+<header>
+  <nav aria-label="Main navigation">
+    <Link href="/dashboard">
+      <TripfulLogo /> (SVG wordmark or styled text)
+    </Link>
+    <nav-links: Dashboard (active state based on pathname)>
+    <UserMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Avatar> (user initials fallback)
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem> Profile </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem> Log out </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </UserMenu>
+  </nav>
+</header>
 ```
 
-### Install ESLint Plugin
+- Uses `useAuth()` hook for user data and logout
+- Must be a client component ("use client") for auth context and dropdown interactivity
+- Active nav link styling based on `usePathname()`
 
-Install `@tanstack/eslint-plugin-query` as dev dependency and add to ESLint config.
+#### Skip Link (`apps/web/src/components/skip-link.tsx`)
 
-### Signal Forwarding
-
-Update `apiRequest` in `apps/web/src/lib/api.ts` to accept and forward `AbortSignal`:
-
-```typescript
-async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit & { signal?: AbortSignal } = {}
-): Promise<T>
+```tsx
+<a
+  href="#main-content"
+  className="sr-only focus:not-sr-only focus:absolute ..."
+>
+  Skip to main content
+</a>
 ```
 
-Update query hooks to pass signal from query context.
+Added as first child of `<body>` in root layout.
 
-### Remove Deprecated Logger
+### Modified Components
 
-Remove `logger` option from test QueryClient instances in `use-trips.test.tsx`.
+#### Button Variant (`apps/web/src/components/ui/button.tsx`)
 
-### Add Mutation Keys
-
-Add `mutationKey` to all three mutation hooks for cross-component tracking.
-
-### Add Prefetch Hook
-
-Add `usePrefetchTrip(tripId)` hook for hover prefetching on trip cards.
-
----
-
-## 12. RSC Migration & Server-Side Prefetching
-
-### getQueryClient Utility
-
-**New file**: `apps/web/src/lib/get-query-client.ts`
+Add `gradient` variant to `buttonVariants`:
 
 ```typescript
-import {
-  isServer,
-  QueryClient,
-  defaultShouldDehydrateQuery,
-} from "@tanstack/react-query";
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-        gcTime: 1000 * 60 * 60,
-        refetchOnWindowFocus: false,
-      },
-      dehydrate: {
-        shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) ||
-          query.state.status === "pending",
-        shouldRedactErrors: () => false,
-      },
-    },
-  });
-}
-
-let browserQueryClient: QueryClient | undefined = undefined;
-
-export function getQueryClient() {
-  if (isServer) {
-    return makeQueryClient();
-  } else {
-    if (!browserQueryClient) browserQueryClient = makeQueryClient();
-    return browserQueryClient;
-  }
-}
+gradient:
+  "bg-gradient-to-r from-primary to-accent text-white hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 font-medium",
 ```
 
-### Server-Side API Client
+This replaces the 10+ instances of the hardcoded `from-blue-600 to-cyan-600` gradient string.
 
-**New file**: `apps/web/src/lib/server-api.ts`
+#### TripCard (`apps/web/src/components/trip/trip-card.tsx`)
 
-```typescript
-import { cookies } from "next/headers";
+- Replace `<div role="button" tabIndex={0} onClick>` with Next.js `<Link href={/trips/${trip.id}}>`
+- Remove manual `onKeyDown` handler (Link handles it natively)
+- Supports middle-click/cmd-click to open in new tab
+- Keep hover/active animations on the Link wrapper
 
-const API_URL = process.env.API_URL || "http://localhost:8000/api";
+#### App Layout (`apps/web/src/app/(app)/layout.tsx`)
 
-export async function serverApiRequest<T>(endpoint: string): Promise<T> {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get("auth_token")?.value;
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
-  }
-
-  return response.json();
-}
-```
-
-### Auth Layout Guard (Server Component)
-
-**File**: `apps/web/src/app/(app)/layout.tsx`
-
-Convert from client component to server component:
-
-```typescript
-// Remove "use client"
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get("auth_token");
-
-  if (!authToken?.value) {
-    redirect("/login");
-  }
-
-  return <>{children}</>;
-}
-```
-
-### Dashboard Page (Server Component with Hydration)
-
-**File**: `apps/web/src/app/(app)/dashboard/page.tsx`
-
-Split into server component (page) + client component (interactive content):
-
-```typescript
-// page.tsx (server component)
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient } from "@/lib/get-query-client";
-import { tripsQueryOptions } from "@/hooks/use-trips";
-import { DashboardContent } from "./dashboard-content";
-
-export const metadata = { title: "Dashboard" };
-
-export default function DashboardPage() {
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(tripsQueryOptions);
-
+```tsx
+export default async function ProtectedLayout({ children }) {
+  // ... auth check ...
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <DashboardContent />
-    </HydrationBoundary>
+    <>
+      <AppHeader />
+      <main id="main-content">{children}</main>
+    </>
   );
 }
 ```
 
-**New file**: `apps/web/src/app/(app)/dashboard/dashboard-content.tsx`
+Note: AppHeader is a client component imported into this server component layout.
 
-Move all existing dashboard logic (search, filtering, trip cards, dialogs) to this `"use client"` component. The component uses `useTrips()` which will immediately have cached data from the server prefetch -- no loading skeleton on first render.
+#### Auth Layout (`apps/web/src/app/(auth)/layout.tsx`)
 
-### Trip Detail Page (Server Component with Hydration)
+Redesign with travel poster aesthetic:
 
-Same pattern for `apps/web/src/app/(app)/trips/[id]/page.tsx`:
+- Warm cream background instead of dark gradient
+- Subtle travel-poster-inspired illustration or pattern (geometric map lines, compass rose SVG)
+- Remove `animate-pulse` gradient orbs
+- Wrap content in `<main id="main-content">`
+- Add Tripful wordmark above the auth card
 
-```typescript
-// page.tsx (server component)
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient } from "@/lib/get-query-client";
-import { tripDetailQueryOptions } from "@/hooks/use-trips";
-import { TripDetailContent } from "./trip-detail-content";
+#### Root Layout (`apps/web/src/app/layout.tsx`)
 
-export async function generateMetadata({ params }: Props) {
-  const { id } = await params;
-  return { title: "Trip Details" };
-}
+- Add skip link component as first child of `<body>`
+- Add both font variables to `<html>` className
+- Add `<Toaster />` (from Sonner) inside Providers
+- Add `suppressHydrationWarning` on `<html>` (good practice for any future theming)
 
-export default async function TripDetailPage({ params }: Props) {
-  const { id } = await params;
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(tripDetailQueryOptions(id));
+#### Landing Page (`apps/web/src/app/page.tsx`)
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <TripDetailContent tripId={id} />
-    </HydrationBoundary>
-  );
-}
-```
+Simple branded landing:
 
-**New file**: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
+- Travel poster aesthetic background
+- Tripful wordmark with Playfair Display
+- Tagline: "Plan and share your adventures"
+- CTA button to `/login`
+- Warm cream and azure palette
 
-Move existing trip detail logic to this `"use client"` component. Receives `tripId` as prop instead of using `useParams()`.
+### Dashboard Page Changes (`apps/web/src/app/(app)/dashboard/dashboard-content.tsx`)
 
-### Provider Update
+- Replace `space-y-4` trip list with responsive grid: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
+- Replace all hardcoded `slate-*`, `gray-*`, `blue-*` colors with design tokens
+- Replace gradient button class strings with `<Button variant="gradient">`
+- Replace raw `<button>` FAB with `<Button variant="gradient" size="icon">`
+- Use Skeleton component for loading states
+- Add `aria-live="polite"` to the trips list container for search result updates
 
-**File**: `apps/web/src/app/providers/providers.tsx`
+### Trip Detail Page Changes (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`)
 
-Update to use `getQueryClient()` instead of inline `useState(() => new QueryClient(...))`:
+- Add `<Breadcrumb>` component above trip title: "My Trips > {trip.name}"
+- Replace all hardcoded colors with design tokens
+- Replace success banner with `toast.success()` from Sonner
+- Add entrance animations to content sections
+- Use `<Separator>` component for visual dividers
 
-```typescript
-"use client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { getQueryClient } from "@/lib/get-query-client";
+### Auth Pages Changes
 
-export function Providers({ children }: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
+All three auth pages (`login`, `verify`, `complete-profile`):
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
-}
-```
+- Change `<h2>` to `<h1>` for proper heading hierarchy
+- Add `autocomplete` attributes (`autocomplete="tel"` on phone, `autocomplete="name"` on display name)
+- Replace hardcoded colors with design tokens
+- Add `aria-required="true"` to required form fields
 
-### Environment Variable
+### Create/Edit Trip Dialog Changes
 
-Add `API_URL` (non-public, server-side only) to `apps/web/.env.local.example`:
+- Replace native `<input type="checkbox">` with shadcn `<Checkbox>` (already installed)
+- Replace delete confirmation inline panel with `<AlertDialog>`
+- Replace inline error banners with `toast.error()` from Sonner
+- Replace gradient button class strings with `<Button variant="gradient">`
+- Replace all hardcoded colors with design tokens
+- Increase co-organizer remove button touch target to min 44x44px
 
-```
-API_URL=http://localhost:8000/api
-```
+### Image Upload Changes
 
----
+- Replace raw `<button>` elements with shadcn `<Button>`
+- Increase remove button touch target to min 44x44px
+- Replace hardcoded colors with design tokens
+- Add `<Tooltip>` on icon-only buttons
 
-## 13. Auth Provider Adjustments
+## Design Token Migration Strategy
 
-The `AuthProvider` remains a client component and continues to manage auth state via Context. The server layout guard handles initial auth redirects, but the client-side `useAuth()` hook is still needed for:
-- Client-side navigation after login/logout
-- Providing user info to components (organizer checks, etc.)
-- Login/verify/completeProfile/logout methods
+### Phase 1: Update globals.css
 
-No migration to TanStack Query for auth state at this time -- this is a deliberate scope decision to keep the change manageable.
+Replace the entire `@theme` block with the Vivid Capri palette. Remove dark mode CSS variables.
 
----
+### Phase 2: Systematic Color Replacement
+
+| Hardcoded Pattern                           | Token Replacement                                   |
+| ------------------------------------------- | --------------------------------------------------- |
+| `text-slate-900`                            | `text-foreground`                                   |
+| `text-slate-600`, `text-slate-500`          | `text-muted-foreground`                             |
+| `bg-gray-50`                                | `bg-background`                                     |
+| `bg-white`                                  | `bg-card`                                           |
+| `border-slate-200`, `border-slate-300`      | `border-border`                                     |
+| `bg-slate-200` (skeleton)                   | `bg-muted`                                          |
+| `text-red-500`, `text-red-600`, `bg-red-50` | `text-destructive`, `bg-destructive/10`             |
+| `bg-emerald-100 text-emerald-700`           | `bg-success/15 text-success`                        |
+| `bg-amber-100 text-amber-700`               | `bg-warning/15 text-warning`                        |
+| `from-blue-600 to-cyan-600`                 | Use `variant="gradient"` button                     |
+| `border-red-200`                            | `border-destructive/30`                             |
+| `focus:border-blue-500 focus:ring-blue-500` | `focus-visible:border-ring focus-visible:ring-ring` |
+| `shadow-blue-500/30`                        | `shadow-primary/25`                                 |
+
+### Phase 3: Add Success/Warning Tokens
+
+Add `--color-success` and `--color-warning` to `@theme` block in globals.css. These need corresponding Tailwind utilities, which in Tailwind v4 are automatically generated from `@theme` CSS variables.
 
 ## Testing Strategy
 
 ### Unit Tests
-- Update existing tests in `use-trips.test.tsx` to reflect `isPending` instead of `isLoading`
-- Remove deprecated `logger` option from test QueryClient instances
-- Update dashboard/trip detail page tests for new component structure (mock the `*Content` components or test the content components directly)
-- Test new utilities: `formatDateRange`, `getInitials`, `TIMEZONES`
+
+- Update existing component tests that assert on markup changes (TripCard div→Link, heading levels)
+- Add tests for new components: AppHeader, SkipLink, UserMenu
 
 ### Integration Tests
-- Test `getQueryClient` server/client behavior
-- Test `serverApiRequest` with cookie forwarding
 
-### E2E Tests
-- Update existing E2E tests if component structure changes affect selectors
-- Verify auth flow still works with server layout guard
-- Verify dashboard and trip detail pages load with prefetched data (no loading skeleton flash)
+- Update dashboard and trip detail page tests for new markup structure
+- Test breadcrumb navigation renders correctly
 
-### Type Checking
-- Verify shared types compile correctly after migration
-- Ensure no type regressions from RSC refactoring
+### E2E Tests (Playwright)
+
+- New: Test app header navigation (click Dashboard link, verify navigation)
+- New: Test user menu dropdown (open, click Profile, click Logout)
+- New: Test breadcrumbs on trip detail page
+- New: Test skip link functionality
+- Existing: Ensure all existing E2E tests still pass
+
+### Manual/Screenshot Tests
+
+- Screenshot the landing page, auth pages, dashboard, and trip detail page
+- Verify the travel poster aesthetic renders correctly
+- Test responsive breakpoints (mobile, tablet, desktop)
+- Verify toast notifications appear and dismiss correctly
+
+## Files Changed Summary
+
+### New Files
+
+- `apps/web/src/components/app-header.tsx` - App shell header with navigation
+- `apps/web/src/components/skip-link.tsx` - Accessibility skip link
+- `apps/web/src/components/ui/sonner.tsx` - Sonner toast (via shadcn add)
+- `apps/web/src/components/ui/alert-dialog.tsx` - Alert dialog (via shadcn add)
+- `apps/web/src/components/ui/skeleton.tsx` - Skeleton loading (via shadcn add)
+- `apps/web/src/components/ui/dropdown-menu.tsx` - Dropdown menu (via shadcn add)
+- `apps/web/src/components/ui/breadcrumb.tsx` - Breadcrumb (via shadcn add)
+- `apps/web/src/components/ui/avatar.tsx` - Avatar (via shadcn add)
+- `apps/web/src/components/ui/separator.tsx` - Separator (via shadcn add)
+- `apps/web/src/components/ui/tooltip.tsx` - Tooltip (via shadcn add)
+
+### Modified Files
+
+- `apps/web/src/app/globals.css` - New palette, remove dark mode
+- `apps/web/src/lib/fonts.ts` - Add DM Sans font
+- `apps/web/src/app/layout.tsx` - Skip link, font variables, Toaster
+- `apps/web/src/app/(app)/layout.tsx` - App shell with header + main landmark
+- `apps/web/src/app/(auth)/layout.tsx` - Travel poster redesign
+- `apps/web/src/app/page.tsx` - Branded landing page
+- `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` - Token migration, grid, FAB
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` - Tokens, breadcrumbs, toast
+- `apps/web/src/app/(auth)/login/page.tsx` - Tokens, h1, autocomplete
+- `apps/web/src/app/(auth)/verify/page.tsx` - Tokens, h1, autocomplete
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` - Tokens, h1, autocomplete
+- `apps/web/src/components/trip/trip-card.tsx` - Link conversion, tokens
+- `apps/web/src/components/trip/create-trip-dialog.tsx` - Checkbox, tokens, gradient button
+- `apps/web/src/components/trip/edit-trip-dialog.tsx` - AlertDialog, Checkbox, tokens
+- `apps/web/src/components/trip/image-upload.tsx` - Button, touch targets, tokens
+- `apps/web/src/components/ui/button.tsx` - Add gradient variant
+- `apps/web/src/app/providers/providers.tsx` - Possibly add Toaster here
+- `apps/web/package.json` - New dependencies (sonner, radix packages)
+
+### Test Files (Updated/New)
+
+- Existing test files updated for markup changes
+- New E2E tests for navigation, breadcrumbs, skip link

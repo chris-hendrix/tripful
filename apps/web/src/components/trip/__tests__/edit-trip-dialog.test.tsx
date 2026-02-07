@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EditTripDialog } from "../edit-trip-dialog";
 import type { Trip } from "@/hooks/use-trips";
 
+// Mock sonner
+const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({
+  toast: mockToast,
+}));
+
 // Mock the API module
 vi.mock("@/lib/api", () => ({
   apiRequest: vi.fn(),
@@ -48,6 +54,8 @@ describe("EditTripDialog", () => {
 
   beforeEach(() => {
     mockOnOpenChange.mockClear();
+    mockToast.success.mockClear();
+    mockToast.error.mockClear();
 
     // Create a new QueryClient for each test
     queryClient = new QueryClient({
@@ -616,9 +624,9 @@ describe("EditTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/you don't have permission to edit this trip/i),
-        ).toBeDefined();
+        expect(mockToast.error).toHaveBeenCalledWith(
+          expect.stringMatching(/you don't have permission to edit this trip/i),
+        );
       });
 
       expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -729,7 +737,7 @@ describe("EditTripDialog", () => {
       expect(checkbox).toHaveProperty("disabled", true);
     });
 
-    it("shows error message on update failure", async () => {
+    it("shows error toast on update failure", async () => {
       const { apiRequest, APIError } = await import("@/lib/api");
       vi.mocked(apiRequest).mockRejectedValueOnce(
         new APIError("PERMISSION_DENIED", "Permission denied"),
@@ -753,9 +761,9 @@ describe("EditTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/you don't have permission to edit this trip/i),
-        ).toBeDefined();
+        expect(mockToast.error).toHaveBeenCalledWith(
+          expect.stringMatching(/you don't have permission to edit this trip/i),
+        );
       });
     });
   });
@@ -935,10 +943,17 @@ describe("EditTripDialog", () => {
 
       await user.click(screen.getByRole("button", { name: /yes, delete/i }));
 
-      expect(screen.getByText("Deleting...")).toBeDefined();
+      // After confirming delete, the AlertDialog closes and the Delete trip button
+      // becomes disabled while the API call is in progress
+      await waitFor(() => {
+        const deleteButton = screen.getByRole("button", {
+          name: /delete trip/i,
+        });
+        expect(deleteButton).toHaveProperty("disabled", true);
+      });
     });
 
-    it("shows error message on delete failure", async () => {
+    it("shows error toast on delete failure", async () => {
       const { apiRequest, APIError } = await import("@/lib/api");
       vi.mocked(apiRequest).mockRejectedValueOnce(
         new APIError("PERMISSION_DENIED", "Permission denied"),
@@ -966,9 +981,9 @@ describe("EditTripDialog", () => {
       await user.click(screen.getByRole("button", { name: /yes, delete/i }));
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/you don't have permission to delete this trip/i),
-        ).toBeDefined();
+        expect(mockToast.error).toHaveBeenCalledWith(
+          expect.stringMatching(/you don't have permission to delete this trip/i),
+        );
       });
     });
 
@@ -992,6 +1007,16 @@ describe("EditTripDialog", () => {
         ).toBeDefined();
       });
 
+      // Cancel the AlertDialog first (it's a modal overlay)
+      const cancelButton = screen.getByRole("button", { name: /cancel/i });
+      await user.click(cancelButton);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/are you sure you want to delete this trip/i),
+        ).toBeNull();
+      });
+
       // Click Back button
       const backButton = screen.getByRole("button", { name: /back/i });
       await user.click(backButton);
@@ -1007,7 +1032,7 @@ describe("EditTripDialog", () => {
         expect(screen.getByText("Step 2 of 2")).toBeDefined();
       });
 
-      // Confirmation should be reset
+      // AlertDialog confirmation should not be showing
       expect(
         screen.queryByText(/are you sure you want to delete this trip/i),
       ).toBeNull();
@@ -1044,8 +1069,8 @@ describe("EditTripDialog", () => {
 
       const continueButton = screen.getByRole("button", { name: /continue/i });
       expect(continueButton.className).toContain("bg-gradient-to-r");
-      expect(continueButton.className).toContain("from-blue-600");
-      expect(continueButton.className).toContain("to-cyan-600");
+      expect(continueButton.className).toContain("from-primary");
+      expect(continueButton.className).toContain("to-accent");
     });
 
     it("applies gradient styling to Update button", async () => {
@@ -1065,8 +1090,8 @@ describe("EditTripDialog", () => {
           name: /update trip/i,
         });
         expect(updateButton.className).toContain("bg-gradient-to-r");
-        expect(updateButton.className).toContain("from-blue-600");
-        expect(updateButton.className).toContain("to-cyan-600");
+        expect(updateButton.className).toContain("from-primary");
+        expect(updateButton.className).toContain("to-accent");
       });
     });
 

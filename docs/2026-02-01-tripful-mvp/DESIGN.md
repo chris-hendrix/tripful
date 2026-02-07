@@ -1,34 +1,46 @@
 ---
 date: 2026-02-01
 topic: Tripful - UI/UX Design Documentation
+last_updated: 2026-02-07
 ---
 
 # Tripful - Design System & Page Overview
 
 ## Design Philosophy
 
-**Modern Travel Editorial** - A design language that balances sophistication with warmth, optimized for collaborative trip planning.
+**Vintage Travel Poster (Vivid Capri)** - Inspired by classic Italian travel posters (Capri by Mario Puppo), the design uses a warm, vivid Mediterranean palette with classic serif typography. The CSS variable system supports future theme variants (Alpine, Tropical, Nordic), but only the default Mediterranean theme is implemented.
 
 ### Core Principles
 
 - **Clarity First**: Information hierarchy that makes complex itineraries scannable
 - **Touch-Optimized**: Mobile-first with large touch targets (min 44px)
 - **Delightful Motion**: Subtle animations that guide attention without distraction
-- **Editorial Typography**: Playfair Display headlines with system sans-serif body
-- **Warm Gradients**: Ocean-to-sunset color palette (slate → blue → amber)
+- **Editorial Typography**: Playfair Display headlines with DM Sans body
+- **Warm Mediterranean Palette**: Warm cream backgrounds, azure blue primary, terracotta accents
 
 ### Visual Language
 
-- **Color Palette**:
-  - Primary: Blue-600 to Cyan-600 gradient
-  - Backgrounds: Subtle multi-stop gradients (slate-50 → blue-50/30 → amber-50/30)
+- **Color Palette** (Vivid Capri - defined as CSS custom properties via Tailwind v4 `@theme`):
+  - Primary: Azure blue (`#1A5F9E`) for actions, links, branding
+  - Accent: Terracotta (`#D4603A`) for secondary CTAs
+  - Gradient: Primary-to-accent gradient for key CTAs (`variant="gradient"`)
+  - Background: Warm cream (`#FAF5EE`)
+  - Foreground: Dark warm brown (`#3A2E22`)
+  - Card surfaces: White (`#FFFFFF`)
+  - Muted: Warm gray (`#F0EBE3`) backgrounds, sandy gray (`#8C8274`) text
+  - Borders: Warm (`#E5DDD2`)
+  - Success: Olive green (`#4A7C59`) for Going badges
+  - Warning: Warm amber (`#C48A2A`) for Maybe badges
+  - Destructive: Coral red (`#C4382A`)
   - Event Types: Blue (travel), Purple (accommodation), Amber (meals), Emerald (activities)
-  - Neutrals: Slate scale for text and UI elements
 
 - **Typography**:
-  - Headlines: Playfair Display (serif)
-  - Body: System sans-serif stack
-  - Weights: Semibold (600) for headlines, Medium (500) for labels
+  - Headlines: Playfair Display (serif) via `next/font/google`
+  - Body: DM Sans via `next/font/google` (set as `--font-sans` in `@theme`)
+  - Page titles: `text-4xl font-bold font-[family-name:var(--font-playfair)]`
+  - Card titles: `text-xl font-semibold font-[family-name:var(--font-playfair)]`
+  - Body: `text-base` (DM Sans default)
+  - Captions: `text-sm text-muted-foreground`
 
 - **Spacing**:
   - Base unit: 4px (Tailwind scale)
@@ -36,69 +48,63 @@ topic: Tripful - UI/UX Design Documentation
   - Section spacing: 32-48px
 
 - **Borders & Shadows**:
-  - Subtle borders: 1px slate-200
-  - Elevation: Soft shadows with colored tints (blue-500/30)
+  - Subtle borders: 1px `border-border` (warm `#E5DDD2`)
+  - Elevation: Soft shadows with colored tints (`shadow-primary/25`)
   - Border radius: 12-24px for cards, 999px for pills
+
+> **Important (Tailwind v4)**: All colors in `@theme` blocks must use **hex values**, not `hsl()`. Tailwind v4 strips the `hsl()` wrapper, leaving raw channel values that are invalid CSS. See `apps/web/src/app/globals.css`.
 
 ---
 
 ## Page Inventory
 
-### 1. Home / Index (`/`)
+### 1. Landing Page (`/`)
 
-**Purpose**: Design mockup navigation hub
+**Purpose**: Branded landing page for unauthenticated users
 
 **Layout**:
 
 ```
 ┌─────────────────────────────────────┐
-│ Header                              │
-│ [Logo] Tripful                  [v1.0]│
-├─────────────────────────────────────┤
 │                                     │
-│ Modern Travel Editorial             │
-│ Production-grade UI mockups...      │
+│     [Warm cream background]         │
+│     [Gradient overlay]              │
 │                                     │
-│ ┌────┐ ┌────┐ ┌────┐               │
-│ │ 🔐 │ │ 📱 │ │ ✨ │               │
-│ └────┘ └────┘ └────┘               │
-│ Auth   Dashboard Create             │
+│         ✦ Tripful                   │
+│   Plan and share your adventures    │
 │                                     │
-│ ┌────┐ ┌────┐ ┌────┐               │
-│ │ 👀 │ │ 📅 │ │ ➕ │               │
-│ └────┘ └────┘ └────┘               │
-│ Preview Itinerary Add Event         │
+│       [Get Started →]               │
+│                                     │
 └─────────────────────────────────────┘
 ```
 
 **Components**:
 
-- **Header**: Glass-morphic sticky header with logo and version badge
-- **Hero**: Large serif headline with gradient background
-- **Grid**: 3-column responsive grid (2-col tablet, 1-col mobile)
-- **Cards**: Hover-lift effect with arrow indicator
+- **Background**: Warm cream (`bg-background`) with gradient overlays using `from-primary/5` and `from-accent/5`
+- **Wordmark**: Playfair Display, large serif headline
+- **Tagline**: "Plan and share your adventures" in `text-muted-foreground`
+- **CTA**: `<Button variant="gradient">` linking to `/login`
 
 **Interactions**:
 
-- Staggered fade-in animations (100ms delay between cards)
-- Hover: shadow-xl, border-blue-300, arrow translation
-- Click: Navigate to mockup page
+- Staggered fade-in animations (wordmark → tagline → CTA)
+- Authenticated users redirect to `/dashboard`
 
 ---
 
-### 2. Authentication (`/auth`)
+### 2. Authentication (`/login`, `/verify`, `/complete-profile`)
 
-**Purpose**: Phone verification flow (2 steps)
+**Purpose**: Phone verification flow (3 pages)
 
 **Layout**:
 
 ```
 ┌─────────────────────────────────────┐
 │                                     │
-│          [Gradient orbs]            │
+│     [Warm cream background]         │
+│     [Compass rose SVG pattern]      │
 │                                     │
-│       Plan trips, together          │
-│   Collaborative trip planning...    │
+│         ✦ Tripful                   │
 │                                     │
 │ ┌─────────────────────────────┐    │
 │ │  Get started                │    │
@@ -116,35 +122,39 @@ topic: Tripful - UI/UX Design Documentation
 
 **Background**:
 
-- Dark gradient: slate-950 → blue-950 → amber-950
-- Animated gradient orbs (pulse effect)
-- Subtle texture overlay (SVG pattern at 1.5% opacity)
+- Warm cream background (`bg-background`)
+- Subtle geometric map/compass pattern (SVG)
+- No dark gradients or animated orbs
 
 **Card**:
 
-- White rounded-3xl with shadow-2xl
-- Padding: 32-48px (responsive)
-- Centered in viewport
+- White `bg-card` rounded-2xl with `shadow-sm` and `border-border`
+- Padding: 24-32px (responsive)
+- Centered in viewport with Tripful wordmark above
 
-**Step 1 - Phone Entry**:
+**Step 1 - Phone Entry** (`/login`):
 
-- Headline: "Get started" (3xl semibold)
-- Phone input: Large (h-12), tel type, placeholder with format
-- Button: Full-width gradient (blue-600 → cyan-600)
-- Helper: SMS disclaimer in small text
+- Heading: `<h1>` "Get started" (proper heading hierarchy)
+- Phone input: `autocomplete="tel"`, design token colors
+- Button: `variant="gradient"` (primary → accent gradient)
+- Helper: SMS disclaimer in `text-muted-foreground`
 
-**Step 2 - Verification**:
+**Step 2 - Verification** (`/verify`):
 
-- Headline: "Verify your number"
-- Shows entered phone number (bold)
-- Code input: Centered, 2xl, monospace, tracking-widest, maxLength=6
-- Primary: "Verify & Continue"
-- Secondary: "Change number" (outline)
-- Link: "Resend code" (text-blue-600)
+- Heading: `<h1>` "Verify your number"
+- Code input: Centered, 2xl, monospace, tracking-widest
+- Primary: `variant="gradient"` "Verify & Continue"
+- Secondary: outline "Change number"
+
+**Step 3 - Complete Profile** (`/complete-profile`):
+
+- Heading: `<h1>` "Complete your profile"
+- Display name input: `autocomplete="name"`, `aria-required="true"`
+- Timezone selector
 
 **Transitions**:
 
-- Smooth fade between steps
+- Smooth fade between pages
 - Slide-in animation from bottom
 - Staggered delays (branding → form)
 
@@ -192,45 +202,43 @@ topic: Tripful - UI/UX Design Documentation
 
 **Components**:
 
-**Header** (sticky):
+**App Header** (sticky, via `app-header.tsx`):
 
-- Title: "My Trips" (Playfair Display 3xl)
-- Subtitle: Event count
-- Profile avatar button (slate-100 circle)
-- Search: Full-width with icon, slate-100 background
+- Tripful wordmark (Playfair Display) linking to `/dashboard`
+- "Dashboard" nav link with active state based on `usePathname()`
+- User avatar dropdown (DropdownMenu): Profile, Log out
+- Uses `useAuth()` hook for user data
 
-**Trip Cards** (upcoming):
+**Page Header**:
 
-- Cover image: 160px height with gradient overlay
-- Badges: Overlay top-left (Organizing, RSVP status)
-- Content: 16px padding
-  - Title: lg semibold
-  - Location: Icon + text (slate-600)
-  - Dates: Icon + range
+- Title: "My Trips" (Playfair Display `text-4xl font-bold`)
+- Subtitle: Trip count in `text-muted-foreground`
+- Search: Full-width with icon, `bg-muted` background
+
+**Trip Cards** (responsive grid: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`):
+
+- Cover image: 192px height with gradient overlay
+- Badges: Overlay top-left with dark frosted glass (`bg-black/50 backdrop-blur-md`)
+  - Organizing: white text
+  - Going: `text-emerald-300`
+  - Maybe: `text-amber-300`
+  - Not going: `text-neutral-300`
+- Wrapped in Next.js `<Link>` (native keyboard + middle-click support)
+- Content: 16px padding, design token colors
+  - Title: lg semibold Playfair Display
+  - Location: `MapPin` icon + `text-muted-foreground`
+  - Dates: `Calendar` icon + range
   - Footer: Organizer avatars (stacked) + event count
-- States: active:scale-[0.98]
-- Animation: Staggered fade-in (100ms delays)
-
-**Trip Cards** (past):
-
-- Reduced opacity (bg-white/60)
-- Horizontal layout: Thumbnail (80px) + compact info
-- No badges
+- States: `active:scale-[0.98]`, `hover:shadow-md`
+- Animation: Staggered `fade-in slide-in-from-bottom-4` (100ms delays)
+- Loading: Skeleton components
 
 **FAB** (Floating Action Button):
 
-- Position: fixed bottom-24 right-4
-- Size: 56×56px
-- Gradient: blue-600 → cyan-600
-- Icon: Plus (6×6)
-- Shadow: 2xl with blue-500/40 tint
-
-**Bottom Navigation**:
-
-- Fixed bottom bar
-- 4 items: Trips (active/blue), Search, Alerts, Profile (inactive/slate)
-- Icon + label stacked
-- Active state: Blue-600
+- Position: fixed bottom-8 right-8
+- `<Button variant="gradient" size="icon">` (56×56px)
+- Icon: Plus
+- Shadow: `shadow-primary/25`
 
 ---
 
@@ -822,21 +830,32 @@ topic: Tripful - UI/UX Design Documentation
 
 ### Semantic HTML:
 
-- Proper heading hierarchy (h1 → h2 → h3)
-- Landmark regions (header, nav, main)
-- Button vs link distinction
+- Proper heading hierarchy (`<h1>` on each page, `<h2>` → `<h3>` within)
+- Landmark regions: `<header>` (app header), `<nav aria-label="Main navigation">`, `<main id="main-content">`
+- Button vs link distinction (TripCard uses `<Link>`, not `<div role="button">`)
+- `autocomplete` attributes on form inputs (`tel`, `name`)
+- `aria-required="true"` on required fields
+- `aria-live="polite"` on dynamic content (search results)
 
 ### Keyboard Navigation:
 
+- **Skip link** (`skip-link.tsx`): First focusable element, jumps to `#main-content`
 - Focusable interactive elements
-- Focus visible states (ring-2 ring-blue-500)
+- Focus visible states (`focus-visible:border-ring focus-visible:ring-ring`)
 - Tab order follows visual order
 
 ### Color Contrast:
 
 - Text: Minimum 4.5:1 ratio
 - Large text: Minimum 3:1 ratio
+- Image overlay badges use dark frosted glass (`bg-black/50`) for contrast
 - Interactive elements: Clear visual states
+
+### Touch Targets:
+
+- Minimum 44×44px for all interactive elements
+- Icon-only buttons sized with adequate padding
+- Co-organizer remove buttons sized to meet minimum
 
 ### Screen Readers:
 
@@ -851,8 +870,13 @@ topic: Tripful - UI/UX Design Documentation
 ### Badges:
 
 ```tsx
-// RSVP status
-<Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+// RSVP status (on image overlays — dark frosted glass)
+<Badge className="bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm">
+  Going
+</Badge>
+
+// RSVP status (on card surfaces — semantic tokens)
+<Badge className="bg-success/15 text-success border-success/30">
   Going
 </Badge>
 
@@ -862,7 +886,7 @@ topic: Tripful - UI/UX Design Documentation
 </Badge>
 
 // Optional
-<Badge variant="outline" className="text-slate-600 border-slate-300">
+<Badge variant="outline" className="text-muted-foreground border-input">
   Optional
 </Badge>
 ```
@@ -870,7 +894,7 @@ topic: Tripful - UI/UX Design Documentation
 ### Chips (Location/Count):
 
 ```tsx
-<div className="inline-flex items-center gap-1.5 bg-slate-100 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
+<div className="inline-flex items-center gap-1.5 bg-muted rounded-full px-3 py-1 text-xs font-medium text-foreground">
   <svg>...</svg>
   <span>Miami Beach</span>
 </div>
@@ -879,7 +903,7 @@ topic: Tripful - UI/UX Design Documentation
 ### Cards:
 
 ```tsx
-<div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6">
+<div className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all p-6">
   {/* Content */}
 </div>
 ```
@@ -887,35 +911,69 @@ topic: Tripful - UI/UX Design Documentation
 ### Buttons:
 
 ```tsx
-// Primary
-<Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+// Primary gradient (primary → accent)
+<Button variant="gradient">
   Continue
 </Button>
 
 // Secondary
-<Button variant="outline" className="border-slate-300 hover:bg-slate-50">
+<Button variant="outline">
   Cancel
 </Button>
+```
+
+### Toast Notifications:
+
+```tsx
+import { toast } from "sonner";
+
+// Success
+toast.success("Trip created successfully");
+
+// Error
+toast.error("Failed to update trip");
 ```
 
 ---
 
 ## Design Tokens
 
-### Colors:
+All colors are defined as CSS custom properties in `apps/web/src/app/globals.css` via Tailwind v4 `@theme`. Use **hex values only** (never `hsl()`) due to Tailwind v4 stripping the wrapper.
+
+### Colors (Vivid Capri Palette):
+
+```css
+/* Core */
+--color-primary: #1A5F9E;         /* Azure blue */
+--color-accent: #D4603A;          /* Terracotta */
+--color-background: #FAF5EE;      /* Warm cream */
+--color-foreground: #3A2E22;      /* Dark warm brown */
+--color-card: #FFFFFF;
+--color-muted: #F0EBE3;           /* Warm gray */
+--color-muted-foreground: #8C8274; /* Sandy gray */
+--color-border: #E5DDD2;          /* Warm border */
+--color-destructive: #C4382A;     /* Coral red */
+
+/* Semantic */
+--color-success: #4A7C59;         /* Olive green (Going) */
+--color-warning: #C48A2A;         /* Warm amber (Maybe) */
+```
+
+### Usage Patterns:
 
 ```js
-primary: {
-  gradient: 'from-blue-600 to-cyan-600',
-  hover: 'from-blue-700 to-cyan-700',
-  shadow: 'shadow-blue-500/30',
-}
+// Gradient button (uses Button variant="gradient")
+gradient: 'bg-gradient-to-r from-primary to-accent text-white'
 
-background: {
-  page: 'from-slate-50 via-blue-50/30 to-amber-50/30',
-  dark: 'from-slate-950 via-blue-950 to-amber-950',
-}
+// Backgrounds
+page: 'bg-background'        // Warm cream
+card: 'bg-card'               // White
 
+// Text
+primary: 'text-foreground'    // Dark warm brown
+secondary: 'text-muted-foreground' // Sandy gray
+
+// Event types (unchanged)
 eventTypes: {
   travel: 'bg-blue-100 text-blue-700 border-blue-200',
   accommodation: 'bg-purple-100 text-purple-700 border-purple-200',
@@ -923,10 +981,11 @@ eventTypes: {
   activity: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 }
 
+// RSVP badges (on image overlays — frosted glass)
 rsvp: {
-  going: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  maybe: 'bg-amber-100 text-amber-700 border-amber-200',
-  notGoing: 'border-slate-300 text-slate-600',
+  going: 'bg-black/50 backdrop-blur-md text-emerald-300',
+  maybe: 'bg-black/50 backdrop-blur-md text-amber-300',
+  notGoing: 'bg-black/50 backdrop-blur-md text-neutral-300',
 }
 ```
 
@@ -951,9 +1010,13 @@ rsvp: {
 
 ## Next Steps
 
+### Completed:
+
+- ✅ Create event page
+- ✅ Frontend design overhaul (Vivid Capri palette, app shell, accessibility)
+
 ### MVP Phase 2:
 
-- ✅ Create event page (completed)
 - Edit event page
 - Group by type view
 - Member list UI
@@ -962,7 +1025,8 @@ rsvp: {
 
 ### Future Enhancements:
 
-- Dark mode support
+- Dark mode support (CSS variable system is ready for it)
+- Additional travel-poster themes (Alpine, Tropical, Nordic)
 - Advanced animations (page transitions)
 - Map integration
 - Rich text editor
@@ -973,7 +1037,12 @@ rsvp: {
 
 ## File References
 
-- Demo: `/demo`
-- Components: `/demo/components/ui`
-- Pages: `/demo/app/*/page.tsx`
-- PRD: `/docs/2026-02-01-tripful-mvp/PRD.md`
+- Design tokens: `apps/web/src/app/globals.css`
+- Fonts: `apps/web/src/lib/fonts.ts`
+- App shell: `apps/web/src/components/app-header.tsx`
+- Skip link: `apps/web/src/components/skip-link.tsx`
+- UI components: `apps/web/src/components/ui/`
+- Trip components: `apps/web/src/components/trip/`
+- Pages: `apps/web/src/app/*/page.tsx`
+- Design overhaul architecture: `.ralph/ARCHITECTURE.md`
+- PRD: `docs/2026-02-01-tripful-mvp/PRD.md`

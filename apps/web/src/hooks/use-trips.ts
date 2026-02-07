@@ -326,10 +326,7 @@ export function useUpdateTrip() {
           updatedAt: new Date(),
         };
 
-        queryClient.setQueryData<Trip>(
-          tripKeys.detail(tripId),
-          optimisticTrip,
-        );
+        queryClient.setQueryData<Trip>(tripKeys.detail(tripId), optimisticTrip);
 
         // Also update the trip in the trips list cache
         if (previousTrips) {

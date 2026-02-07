@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { AppHeader } from "@/components/app-header";
 
 export default async function ProtectedLayout({
   children,
@@ -14,5 +15,10 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <AppHeader />
+      <main id="main-content">{children}</main>
+    </>
+  );
 }

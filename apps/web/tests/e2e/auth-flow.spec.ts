@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import {
+  authenticateUser,
+  authenticateUserViaBrowser,
+} from "./helpers/auth";
 
 /**
  * E2E Test Suite: Complete Authentication Flow
@@ -23,7 +27,7 @@ test.describe("Complete Auth Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Verify we're on the login page
-    await expect(page.locator('h2:has-text("Get started")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Get started")')).toBeVisible();
 
     // Enter phone number
     const phoneInput = page.locator('input[type="tel"]');
@@ -39,7 +43,7 @@ test.describe("Complete Auth Flow", () => {
 
     // Verify we're on the verification page
     await expect(
-      page.locator('h2:has-text("Verify your number")'),
+      page.locator('h1:has-text("Verify your number")'),
     ).toBeVisible();
     await expect(page.locator(`text=${phone}`)).toBeVisible();
 
@@ -56,7 +60,7 @@ test.describe("Complete Auth Flow", () => {
 
     // Verify we're on the complete profile page
     await expect(
-      page.locator('h2:has-text("Complete your profile")'),
+      page.locator('h1:has-text("Complete your profile")'),
     ).toBeVisible();
 
     // Enter display name
@@ -83,41 +87,9 @@ test.describe("Complete Auth Flow", () => {
     expect(authCookie?.value).toBeTruthy();
   });
 
-  // TODO: Un-skip when logout functionality is implemented (no logout button/endpoint exists yet)
-  test.skip("logout clears session and redirects to login", async ({
-    page,
-  }) => {
-    const phone = `+1555${Date.now()}`;
-
+  test("logout clears session and redirects to login", async ({ page }) => {
     // Complete auth flow first to get logged in
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    // Login
-    const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill(phone);
-    await page.locator('button:has-text("Continue")').click();
-
-    // Verify
-    await page.waitForURL("**/verify**");
-    const codeInput = page.locator('input[type="text"]').first();
-    await codeInput.fill("123456");
-    await page.locator('button:has-text("Verify")').click();
-
-    // Wait for navigation to either complete-profile or dashboard
-    await Promise.race([
-      page.waitForURL("**/dashboard"),
-      page.waitForURL("**/complete-profile"),
-    ]);
-
-    // Complete profile if needed
-    const currentUrl = await page.url();
-    if (currentUrl.includes("/complete-profile")) {
-      const displayNameInput = page.locator('input[type="text"]').first();
-      await displayNameInput.fill("Test User");
-      await page.locator('button:has-text("Complete profile")').click();
-      await page.waitForURL("**/dashboard");
-    }
+    await authenticateUserViaBrowser(page);
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
 
     // Verify we have an auth cookie
@@ -125,9 +97,12 @@ test.describe("Complete Auth Flow", () => {
     let authCookie = cookies.find((c) => c.name === "auth_token");
     expect(authCookie?.value).toBeTruthy();
 
-    // Click logout button
-    const logoutButton = page.locator('button:has-text("Logout")');
-    await logoutButton.click();
+    // Open user menu and click Log out
+    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    await userMenuButton.click();
+    const logoutItem = page.locator('text="Log out"');
+    await expect(logoutItem).toBeVisible();
+    await logoutItem.click();
 
     // Verify redirect to login
     await page.waitForURL("**/login");
@@ -160,50 +135,15 @@ test.describe("Complete Auth Flow", () => {
     expect(page.url()).toContain("/login");
 
     // Verify we're on the login page
-    await expect(page.locator('h2:has-text("Get started")')).toBeVisible();
+    await expect(page.locator('h1:has-text("Get started")')).toBeVisible();
   });
 
   test("existing user skips complete profile and goes to dashboard", async ({
     page,
     request,
   }) => {
-    const phone = `+1555${Date.now()}`;
-
-    // Create existing user with completed profile via API
-    await request.post("http://localhost:8000/api/auth/request-code", {
-      data: { phoneNumber: phone },
-    });
-
-    const verifyResponse = await request.post(
-      "http://localhost:8000/api/auth/verify-code",
-      {
-        data: { phoneNumber: phone, code: "123456" },
-      },
-    );
-
-    const cookies = verifyResponse.headers()["set-cookie"];
-
-    await request.post("http://localhost:8000/api/auth/complete-profile", {
-      data: { displayName: "Existing User", timezone: "UTC" },
-      headers: { cookie: cookies || "" },
-    });
-
-    // Now test login with existing user - should skip complete-profile
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill(phone);
-    await page.locator('button:has-text("Continue")').click();
-
-    // Verify
-    await page.waitForURL("**/verify**");
-    const codeInput = page.locator('input[type="text"]').first();
-    await codeInput.fill("123456");
-    await page.locator('button:has-text("Verify")').click();
-
-    // Should go directly to dashboard (user already has complete profile)
-    await page.waitForURL("**/dashboard", { timeout: 5000 });
+    // Create existing user with completed profile via API, then login via browser
+    await authenticateUser(page, request, "Existing User");
 
     // Verify we're on dashboard
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();

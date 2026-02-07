@@ -1,26 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: 0 0% 100%;
-  --color-foreground: 222.2 84% 4.9%;
-  --color-card: 0 0% 100%;
-  --color-card-foreground: 222.2 84% 4.9%;
-  --color-popover: 0 0% 100%;
-  --color-popover-foreground: 222.2 84% 4.9%;
-  --color-primary: 222.2 47.4% 11.2%;
-  --color-primary-foreground: 210 40% 98%;
-  --color-secondary: 210 40% 96.1%;
-  --color-secondary-foreground: 222.2 47.4% 11.2%;
-  --color-muted: 210 40% 96.1%;
-  --color-muted-foreground: 215.4 16.3% 46.9%;
-  --color-accent: 210 40% 96.1%;
-  --color-accent-foreground: 222.2 47.4% 11.2%;
-  --color-destructive: 0 84.2% 60.2%;
-  --color-destructive-foreground: 210 40% 98%;
-  --color-border: 214.3 31.8% 91.4%;
-  --color-input: 214.3 31.8% 91.4%;
-  --color-ring: 222.2 84% 4.9%;
+  --color-background: #fbf6ef;
+  --color-foreground: #3a2d22;
+  --color-card: #ffffff;
+  --color-card-foreground: #3a2d22;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #3a2d22;
+  --color-primary: #1a5c9e;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eee9e2;
+  --color-secondary-foreground: #3a2d22;
+  --color-muted: #eee9e2;
+  --color-muted-foreground: #8c8173;
+  --color-accent: #d1643d;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #c6372a;
+  --color-destructive-foreground: #ffffff;
+  --color-success: #497e5a;
+  --color-success-foreground: #ffffff;
+  --color-warning: #c78d29;
+  --color-warning-foreground: #ffffff;
+  --color-border: #e5ddd1;
+  --color-input: #e5ddd1;
+  --color-ring: #1a5c9e;
   --radius: 0.5rem;
+  --font-sans: var(--font-dm-sans);
 }
 
 @layer base {
@@ -30,27 +35,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-
-  :root[class~="dark"] {
-    --color-background: 222.2 84% 4.9%;
-    --color-foreground: 210 40% 98%;
-    --color-card: 222.2 84% 4.9%;
-    --color-card-foreground: 210 40% 98%;
-    --color-popover: 222.2 84% 4.9%;
-    --color-popover-foreground: 210 40% 98%;
-    --color-primary: 210 40% 98%;
-    --color-primary-foreground: 222.2 47.4% 11.2%;
-    --color-secondary: 217.2 32.6% 17.5%;
-    --color-secondary-foreground: 210 40% 98%;
-    --color-muted: 217.2 32.6% 17.5%;
-    --color-muted-foreground: 215 20.2% 65.1%;
-    --color-accent: 217.2 32.6% 17.5%;
-    --color-accent-foreground: 210 40% 98%;
-    --color-destructive: 0 62.8% 30.6%;
-    --color-destructive-foreground: 210 40% 98%;
-    --color-border: 217.2 32.6% 17.5%;
-    --color-input: 217.2 32.6% 17.5%;
-    --color-ring: 212.7 26.8% 83.9%;
   }
 }

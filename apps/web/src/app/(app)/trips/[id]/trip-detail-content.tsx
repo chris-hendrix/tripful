@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import {
   Calendar,
   MapPin,
@@ -17,6 +18,15 @@ import { useTripDetail } from "@/hooks/use-trips";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
 
 const EditTripDialog = dynamic(
@@ -32,13 +42,13 @@ const preloadEditTripDialog = () =>
 
 function SkeletonDetail() {
   return (
-    <div className="animate-pulse">
-      <div className="h-80 bg-slate-200" />
+    <div>
+      <Skeleton className="h-80 w-full rounded-none" />
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div className="h-10 bg-slate-200 rounded w-1/2" />
-        <div className="h-6 bg-slate-200 rounded w-1/3" />
-        <div className="h-6 bg-slate-200 rounded w-1/4" />
-        <div className="h-20 bg-slate-200 rounded" />
+        <Skeleton className="h-10 w-1/2" />
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-6 w-1/4" />
+        <Skeleton className="h-20 w-full" />
       </div>
     </div>
   );
@@ -49,7 +59,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: trip, isPending, isError } = useTripDetail(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // Determine if user is an organizer
   const isOrganizer =
@@ -68,38 +77,39 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   // Error state
   if (isError || !trip) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-red-200 p-8 text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2
-            className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-          >
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
             Trip not found
           </h2>
-          <p className="text-slate-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             This trip doesn't exist or you don't have access to it.
           </p>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
-          >
-            Return to dashboard
-          </Link>
+          <Button variant="gradient" asChild className="h-12 px-8 rounded-xl">
+            <Link href="/dashboard">Return to dashboard</Link>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Success Banner */}
-      {showSuccessBanner && (
-        <div className="fixed top-4 right-4 z-50 p-4 rounded-xl bg-green-50 border border-green-200 shadow-lg">
-          <p className="text-sm text-green-600 font-medium">
-            ✓ Trip updated successfully
-          </p>
-        </div>
-      )}
+    <div className="min-h-screen bg-background">
+      {/* Breadcrumb navigation */}
+      <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard">My Trips</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{trip.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
@@ -115,7 +125,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
       ) : (
-        <div className="relative h-80 overflow-hidden bg-gradient-to-br from-slate-100 to-blue-100">
+        <div className="relative h-80 overflow-hidden bg-gradient-to-br from-muted to-primary/10">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
       )}
@@ -125,9 +135,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         {/* Trip header */}
         <div className="mb-8">
           <div className="flex items-start justify-between mb-4">
-            <h1
-              className="text-4xl font-bold text-slate-900 font-[family-name:var(--font-playfair)]"
-            >
+            <h1 className="text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
             {isOrganizer && (
@@ -136,7 +144,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                 onMouseEnter={preloadEditTripDialog}
                 onFocus={preloadEditTripDialog}
                 variant="outline"
-                className="h-10 px-4 rounded-xl border-slate-300 hover:bg-slate-50"
+                className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Edit trip
@@ -144,23 +152,23 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-lg text-slate-600 mb-4">
+          <div className="flex items-center gap-2 text-lg text-muted-foreground mb-4">
             <MapPin className="w-5 h-5 shrink-0" />
             <span>{trip.destination}</span>
           </div>
 
-          <div className="flex items-center gap-2 text-slate-600 mb-4">
+          <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <Calendar className="w-5 h-5 shrink-0" />
             <span>{dateRange}</span>
           </div>
 
           {/* Badges */}
           <div className="flex items-center gap-2 mb-6">
-            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+            <Badge className="bg-success/15 text-success border-success/30">
               Going
             </Badge>
             {isOrganizer && (
-              <Badge className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+              <Badge className="bg-gradient-to-r from-primary to-accent text-white">
                 Organizing
               </Badge>
             )}
@@ -169,7 +177,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           {/* Organizers */}
           {trip.organizers.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-900 mb-2">
+              <h3 className="text-sm font-semibold text-foreground mb-2">
                 Organizers
               </h3>
               <div className="flex items-center gap-3">
@@ -187,14 +195,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                     ) : (
                       <div
                         key={org.id}
-                        className="w-8 h-8 rounded-full ring-2 ring-white bg-slate-300 flex items-center justify-center text-xs font-medium text-slate-700"
+                        className="w-8 h-8 rounded-full ring-2 ring-white bg-muted flex items-center justify-center text-xs font-medium text-foreground"
                       >
                         {getInitials(org.displayName)}
                       </div>
                     ),
                   )}
                 </div>
-                <span className="text-sm text-slate-600">
+                <span className="text-sm text-muted-foreground">
                   {trip.organizers.map((org) => org.displayName).join(", ")}
                 </span>
               </div>
@@ -203,13 +211,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Stats */}
           <div className="flex items-center gap-6 mb-6">
-            <div className="flex items-center gap-2 text-slate-600">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Users className="w-5 h-5" />
               <span className="text-sm">
                 {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-slate-600">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <ClipboardList className="w-5 h-5" />
               <span className="text-sm">0 events</span>
             </div>
@@ -217,11 +225,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Description */}
           {trip.description && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            <div className="bg-card rounded-2xl border border-border p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 About this trip
               </h3>
-              <p className="text-slate-600 whitespace-pre-wrap">
+              <p className="text-muted-foreground whitespace-pre-wrap">
                 {trip.description}
               </p>
             </div>
@@ -229,14 +237,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Events section */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-          <CalendarX className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h2
-            className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
-          >
+        <div className="bg-card rounded-2xl border border-border p-8 text-center">
+          <CalendarX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
             No events yet
           </h2>
-          <p className="text-slate-600">Events coming in Phase 5!</p>
+          <p className="text-muted-foreground">Events coming in Phase 5!</p>
         </div>
       </div>
 
@@ -247,8 +253,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
           onSuccess={() => {
-            setShowSuccessBanner(true);
-            setTimeout(() => setShowSuccessBanner(false), 5000);
+            toast.success("Trip updated successfully");
           }}
         />
       )}

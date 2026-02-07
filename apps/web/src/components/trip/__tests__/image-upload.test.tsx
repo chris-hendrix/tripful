@@ -163,7 +163,7 @@ describe("ImageUpload", () => {
         dataTransfer: { files: [] },
       });
 
-      expect(uploadZone.className).toContain("border-blue-500");
+      expect(uploadZone.className).toContain("border-primary");
       expect(screen.getByText("Drop image here")).toBeDefined();
     });
 
@@ -584,7 +584,7 @@ describe("ImageUpload", () => {
 
       fireEvent.dragOver(uploadZone);
 
-      expect(uploadZone.className).not.toContain("border-blue-500");
+      expect(uploadZone.className).not.toContain("border-primary");
     });
 
     it("sets tabIndex to -1 when disabled", () => {
@@ -680,7 +680,7 @@ describe("ImageUpload", () => {
           "Invalid file type. Only JPG, PNG, and WEBP are allowed",
         );
         expect(errorMessage).toBeDefined();
-        expect(errorMessage.className).toContain("text-red-700");
+        expect(errorMessage.className).toContain("text-destructive");
       });
     });
 
@@ -695,7 +695,7 @@ describe("ImageUpload", () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
 
       await waitFor(() => {
-        const errorContainer = container.querySelector(".bg-red-50");
+        const errorContainer = container.querySelector(".bg-destructive\\/10");
         expect(errorContainer).toBeDefined();
       });
     });

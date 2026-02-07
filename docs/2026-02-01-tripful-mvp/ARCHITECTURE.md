@@ -1,8 +1,8 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-3 Implemented | Phase 4-8 Documented (Not Yet Implemented)
-last_updated: 2026-02-06
+status: Phase 1-3 Implemented | Frontend Design Overhaul Complete | Phase 4-8 Documented (Not Yet Implemented)
+last_updated: 2026-02-07
 ---
 
 # Tripful - High-Level Architecture
@@ -12,6 +12,7 @@ last_updated: 2026-02-06
 > - ✅ **Phase 1 Complete**: Monorepo setup with pnpm + Turbo + TypeScript
 > - ✅ **Phase 2 Complete**: SMS authentication with full E2E testing
 > - ✅ **Phase 3 Complete**: Trip management with CRUD, permissions, co-organizers, and image uploads
+> - ✅ **Frontend Design Overhaul Complete**: Mediterranean design system, app shell, accessibility, toast notifications
 > - 🚧 **Phase 4-8**: Pending (Invitations, itinerary features, advanced features)
 >
 > **Important**: This document describes both implemented features (Phases 1-3) and planned features (Phases 4-8). Features, tables, routes, and components marked as 🚧 or described in Phase 4-8 sections do not yet exist in the codebase.
@@ -126,6 +127,66 @@ last_updated: 2026-02-06
 - `DELETE /api/trips/:id/co-organizers/:userId` - Remove co-organizer
 - `POST /api/trips/:id/cover-image` - Upload cover image
 - `DELETE /api/trips/:id/cover-image` - Delete cover image
+
+### ✅ Frontend Design Overhaul (Complete)
+
+**Branch**: `ralph/20260207-1019-frontend-design-overhaul`
+
+Comprehensive redesign of the web frontend with a travel-poster-inspired visual identity (Vivid Capri / Mediterranean palette), proper design token system, app shell with navigation, and accessibility fixes.
+
+**Design System:**
+
+- [x] Vivid Capri color palette with CSS custom properties (`@theme` in Tailwind v4)
+- [x] Typography: Playfair Display (headlines) + DM Sans (body) via `next/font/google`
+- [x] Gradient button variant added to shadcn/ui Button component
+- [x] Semantic tokens: `--color-success` (olive green), `--color-warning` (warm amber)
+- [x] All hardcoded slate-/gray-/blue- colors migrated to design tokens
+- [x] Dark mode CSS variables removed (light-only for now)
+
+**New Components:**
+
+- [x] App shell header (`app-header.tsx`) with navigation, user avatar dropdown, active link states
+- [x] Skip link (`skip-link.tsx`) for keyboard accessibility
+- [x] shadcn/ui additions: Sonner toasts, AlertDialog, Skeleton, DropdownMenu, Breadcrumb, Avatar, Separator, Tooltip
+
+**Page Redesigns:**
+
+- [x] Landing page: Travel poster aesthetic with Playfair Display wordmark
+- [x] Auth layout: Warm cream background replacing dark gradient orbs
+- [x] Auth pages: Proper `<h1>` hierarchy, `autocomplete` attributes, design token colors
+- [x] Dashboard: Responsive grid layout (1/2/3 columns), Skeleton loading states
+- [x] Trip detail: Breadcrumb navigation ("My Trips > {trip.name}"), Sonner toast for success messages
+
+**Accessibility Fixes:**
+
+- [x] Skip link for keyboard navigation
+- [x] `<main id="main-content">` landmark on all pages
+- [x] Proper heading hierarchy (`<h1>` on auth pages)
+- [x] `autocomplete` attributes on form inputs
+- [x] `aria-live="polite"` on dynamic content
+- [x] Minimum 44px touch targets on icon buttons
+
+**Component Upgrades:**
+
+- [x] TripCard: `<div role="button">` replaced with Next.js `<Link>` (native keyboard + middle-click)
+- [x] Trip card badges: Dark frosted glass overlays for readability over images
+- [x] Edit trip dialog: Native checkbox replaced with shadcn `<Checkbox>`, inline delete replaced with `<AlertDialog>`
+- [x] Image upload: Raw `<button>` replaced with shadcn `<Button>`, increased touch targets
+- [x] Inline error/success banners replaced with Sonner `toast.success()` / `toast.error()`
+
+**Testing:**
+
+- [x] New E2E test suite: App shell navigation, user menu, breadcrumbs, skip link (`app-shell.spec.ts`)
+- [x] Extracted reusable E2E auth helper (`helpers/auth.ts`)
+- [x] Updated existing component tests for markup changes
+- [x] Visual regression screenshots for all pages at mobile/tablet/desktop breakpoints
+
+**Bug Fixes:**
+
+- [x] Tailwind v4 `@theme` stripping `hsl()` wrappers → migrated all colors to hex values
+- [x] Fixed gradient colors using design tokens
+- [x] Fixed DELETE HTTP method in API client
+- [x] `coverImageUrl` schema updated to accept relative paths (`/uploads/...`)
 
 ### 🚧 Phase 4-8: Remaining Features (Planned)
 
@@ -533,7 +594,9 @@ The API uses a `buildApp()` factory pattern for testable server setup. All servi
 
 ```typescript
 // src/app.ts - Configures and returns a fully wired FastifyInstance
-export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp(
+  opts: BuildAppOptions,
+): Promise<FastifyInstance> {
   const fastify = Fastify(opts.fastify);
 
   // 1. Core plugins (config must be first, database depends on config)
@@ -541,12 +604,17 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await fastify.register(databasePlugin);
 
   // 2. Security & middleware plugins
-  await fastify.register(cors, { origin: fastify.config.FRONTEND_URL, credentials: true });
+  await fastify.register(cors, {
+    origin: fastify.config.FRONTEND_URL,
+    credentials: true,
+  });
   await fastify.register(helmet, { contentSecurityPolicy: false });
   await fastify.register(rateLimit, { max: 100, timeWindow: "15 minutes" });
   await fastify.register(jwt, { secret: fastify.config.JWT_SECRET });
   await fastify.register(cookie);
-  await fastify.register(multipart, { limits: { fileSize: fastify.config.MAX_FILE_SIZE } });
+  await fastify.register(multipart, {
+    limits: { fileSize: fastify.config.MAX_FILE_SIZE },
+  });
 
   // 3. Service plugins (decorated onto fastify instance)
   await fastify.register(authServicePlugin);
@@ -568,7 +636,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
 
 ```typescript
 // src/server.ts - Production entry point
-const app = await buildApp({ fastify: { logger: { level: config.LOG_LEVEL } } });
+const app = await buildApp({
+  fastify: { logger: { level: config.LOG_LEVEL } },
+});
 await app.listen({ port: config.PORT, host: config.HOST });
 
 // Graceful shutdown via close-with-grace
@@ -3094,10 +3164,14 @@ apps/web/
 
 ```typescript
 // Route-level Zod schema validation
-fastify.post("/request-code", {
-  schema: { body: requestCodeSchema },
-  preHandler: fastify.rateLimit(smsRateLimitConfig),
-}, authController.requestCode);
+fastify.post(
+  "/request-code",
+  {
+    schema: { body: requestCodeSchema },
+    preHandler: fastify.rateLimit(smsRateLimitConfig),
+  },
+  authController.requestCode,
+);
 
 // Typed errors (src/errors.ts)
 const TripNotFoundError = createError("TRIP_NOT_FOUND", "Trip not found", 404);

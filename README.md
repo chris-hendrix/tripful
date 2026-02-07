@@ -18,19 +18,22 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 with:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 plus a frontend design overhaul:
 
-- **Frontend**: Next.js 16 web application with React 19 and Tailwind CSS 4
+- **Frontend**: Next.js 16 web application with React 19, Tailwind CSS 4, and a Mediterranean-inspired design system
 - **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
 - **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Current Scope (Phases 1-3)
+### Current Scope (Phases 1-3 + Design Overhaul)
 
 The current implementation includes:
 
 - Complete monorepo setup with pnpm workspaces and Turbo
 - Full development environment with Docker Compose
-- Next.js frontend with modern UI components (shadcn/ui)
+- Next.js frontend with modern UI components (shadcn/ui) and Vivid Capri design system
+- App shell with header navigation, user dropdown menu, and skip link
+- Playfair Display + DM Sans typography via `next/font/google`
+- Toast notifications (Sonner), breadcrumbs, skeleton loading states
 - Fastify backend with plugin architecture and `buildApp()` factory pattern
 - SMS authentication with JWT, phone verification, and profile completion
 - Trip management with CRUD operations, co-organizers, and image uploads
@@ -342,7 +345,11 @@ tripful/
 │   └── README.md              # Scripts documentation
 │
 ├── docs/                      # Additional documentation
-│   └── GIT_HOOKS.md           # Git hooks setup guide
+│   ├── GIT_HOOKS.md           # Git hooks setup guide
+│   └── 2026-02-01-tripful-mvp/  # MVP documentation
+│       ├── ARCHITECTURE.md    # High-level architecture (implementation progress)
+│       ├── DESIGN.md          # UI/UX design system documentation
+│       └── PRD.md             # Product requirements document
 │
 ├── .husky/                    # Git hooks (Husky)
 │   └── pre-commit             # Pre-commit hook script
@@ -453,22 +460,22 @@ See [scripts/README.md](scripts/README.md) for detailed documentation on each te
 
 The API requires the following environment variables:
 
-| Variable             | Description                                                   | Default                           | Required |
-| -------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
-| `NODE_ENV`           | Environment mode                                              | `development`                     | Yes      |
-| `PORT`               | API server port                                               | `8000`                            | Yes      |
-| `HOST`               | Server host binding                                           | `0.0.0.0`                         | Yes      |
-| `DATABASE_URL`       | PostgreSQL connection string                                  | See below                         | Yes      |
-| `TEST_DATABASE_URL`  | Test database connection string                               | See below                         | No       |
-| `JWT_SECRET`         | Secret key for JWT token signing                              | Must change in production         | Yes      |
-| `FRONTEND_URL`       | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
-| `LOG_LEVEL`          | Logging verbosity (fatal\|error\|warn\|info\|debug\|trace)    | `info`                            | No       |
-| `COOKIE_SECURE`      | Secure cookie flag                                            | `true` in production              | No       |
-| `EXPOSE_ERROR_DETAILS` | Include error details in responses                          | `true` in development             | No       |
-| `ENABLE_FIXED_VERIFICATION_CODE` | Allow fixed code "123456" for testing              | `true` in non-production          | No       |
-| `UPLOAD_DIR`         | Directory for uploaded files                                  | `uploads`                         | No       |
-| `MAX_FILE_SIZE`      | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
-| `ALLOWED_MIME_TYPES` | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
+| Variable                         | Description                                                   | Default                           | Required |
+| -------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| `NODE_ENV`                       | Environment mode                                              | `development`                     | Yes      |
+| `PORT`                           | API server port                                               | `8000`                            | Yes      |
+| `HOST`                           | Server host binding                                           | `0.0.0.0`                         | Yes      |
+| `DATABASE_URL`                   | PostgreSQL connection string                                  | See below                         | Yes      |
+| `TEST_DATABASE_URL`              | Test database connection string                               | See below                         | No       |
+| `JWT_SECRET`                     | Secret key for JWT token signing                              | Must change in production         | Yes      |
+| `FRONTEND_URL`                   | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
+| `LOG_LEVEL`                      | Logging verbosity (fatal\|error\|warn\|info\|debug\|trace)    | `info`                            | No       |
+| `COOKIE_SECURE`                  | Secure cookie flag                                            | `true` in production              | No       |
+| `EXPOSE_ERROR_DETAILS`           | Include error details in responses                            | `true` in development             | No       |
+| `ENABLE_FIXED_VERIFICATION_CODE` | Allow fixed code "123456" for testing                         | `true` in non-production          | No       |
+| `UPLOAD_DIR`                     | Directory for uploaded files                                  | `uploads`                         | No       |
+| `MAX_FILE_SIZE`                  | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
+| `ALLOWED_MIME_TYPES`             | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
 
 **Database URL Format**:
 
@@ -870,15 +877,15 @@ pnpm clean                      # Full clean
 
 ### Port Assignments
 
-| Service               | Port | URL                                   |
-| --------------------- | ---- | ------------------------------------- |
-| Web Frontend          | 3000 | http://localhost:3000                 |
-| API Backend           | 8000 | http://localhost:8000                 |
-| API Health            | 8000 | http://localhost:8000/api/health      |
-| API Liveness Probe    | 8000 | http://localhost:8000/api/health/live |
+| Service               | Port | URL                                    |
+| --------------------- | ---- | -------------------------------------- |
+| Web Frontend          | 3000 | http://localhost:3000                  |
+| API Backend           | 8000 | http://localhost:8000                  |
+| API Health            | 8000 | http://localhost:8000/api/health       |
+| API Liveness Probe    | 8000 | http://localhost:8000/api/health/live  |
 | API Readiness Probe   | 8000 | http://localhost:8000/api/health/ready |
-| PostgreSQL (external) | 5433 | localhost:5433                        |
-| PostgreSQL (internal) | 5432 | Container only                        |
+| PostgreSQL (external) | 5433 | localhost:5433                         |
+| PostgreSQL (internal) | 5432 | Container only                         |
 
 ### Technology Stack
 

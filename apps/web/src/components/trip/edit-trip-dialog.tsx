@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
+import { toast } from "sonner";
 import {
   useUpdateTrip,
   getUpdateTripErrorMessage,
@@ -38,6 +39,17 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { Trash2, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -56,7 +68,6 @@ export function EditTripDialog({
   onSuccess,
 }: EditTripDialogProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { mutate: updateTrip, isPending } = useUpdateTrip();
   const { mutate: cancelTrip, isPending: isDeleting } = useCancelTrip();
@@ -90,7 +101,6 @@ export function EditTripDialog({
       });
       // Reset step to 1 when dialog opens
       setCurrentStep(1);
-      setShowDeleteConfirm(false);
     }
   }, [open, trip, form]);
 
@@ -113,11 +123,9 @@ export function EditTripDialog({
 
   const handleBack = () => {
     setCurrentStep(1);
-    setShowDeleteConfirm(false);
   };
 
   const handleSubmit = (data: UpdateTripInput) => {
-    form.clearErrors("root");
     updateTrip(
       { tripId: trip.id, data },
       {
@@ -126,43 +134,33 @@ export function EditTripDialog({
           onSuccess?.();
         },
         onError: (error) => {
-          form.setError("root", {
-            message:
-              getUpdateTripErrorMessage(error) ??
+          toast.error(
+            getUpdateTripErrorMessage(error) ??
               "An unexpected error occurred.",
-          });
+          );
         },
       },
     );
   };
 
   const handleDelete = () => {
-    if (!showDeleteConfirm) {
-      setShowDeleteConfirm(true);
-      return;
-    }
-
     cancelTrip(trip.id, {
+      onSuccess: () => {
+        toast.success("Trip deleted successfully");
+      },
       onError: (error) => {
-        form.setError("root", {
-          message:
-            getCancelTripErrorMessage(error) ?? "An unexpected error occurred.",
-        });
+        toast.error(
+          getCancelTripErrorMessage(error) ?? "An unexpected error occurred.",
+        );
       },
     });
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle
-            className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight"
-          >
+          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit trip
           </DialogTitle>
           <DialogDescription>
@@ -173,10 +171,10 @@ export function EditTripDialog({
         {/* Progress indicator */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-slate-900">
+            <span className="text-sm font-medium text-foreground">
               {currentStep === 1 ? "Basic information" : "Details & settings"}
             </span>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-muted-foreground">
               Step {currentStep} of 2
             </span>
           </div>
@@ -185,8 +183,8 @@ export function EditTripDialog({
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
                 currentStep >= 1
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                  : "bg-slate-200 text-slate-600"
+                  ? "bg-gradient-to-r from-primary to-accent text-white"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               1
@@ -196,8 +194,8 @@ export function EditTripDialog({
             <div
               className={`flex-1 h-0.5 transition-colors ${
                 currentStep >= 2
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600"
-                  : "bg-slate-200"
+                  ? "bg-gradient-to-r from-primary to-accent"
+                  : "bg-muted"
               }`}
             />
 
@@ -205,8 +203,8 @@ export function EditTripDialog({
             <div
               className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
                 currentStep >= 2
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                  : "bg-slate-200 text-slate-600"
+                  ? "bg-gradient-to-r from-primary to-accent text-white"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               2
@@ -227,20 +225,20 @@ export function EditTripDialog({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Trip name
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-destructive ml-1">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder="Bachelor Party in Miami"
-                          className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           disabled={isPending || isDeleting}
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription className="text-sm text-slate-500">
+                      <FormDescription className="text-sm text-muted-foreground">
                         Choose something memorable (3-100 characters)
                       </FormDescription>
                       <FormMessage />
@@ -254,15 +252,15 @@ export function EditTripDialog({
                   name="destination"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Destination
-                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-destructive ml-1">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder="Miami Beach, FL"
-                          className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           disabled={isPending || isDeleting}
                           {...field}
                         />
@@ -279,13 +277,13 @@ export function EditTripDialog({
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Start date
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             disabled={isPending || isDeleting}
                             {...field}
                             value={field.value ?? ""}
@@ -301,13 +299,13 @@ export function EditTripDialog({
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           End date
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="date"
-                            className="h-12 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             disabled={isPending || isDeleting}
                             {...field}
                             value={field.value ?? ""}
@@ -326,9 +324,9 @@ export function EditTripDialog({
                   render={({ field }) => {
                     return (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Trip timezone
-                          <span className="text-red-500 ml-1">*</span>
+                          <span className="text-destructive ml-1">*</span>
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -336,7 +334,11 @@ export function EditTripDialog({
                           disabled={isPending || isDeleting}
                         >
                           <FormControl>
-                            <SelectTrigger ref={field.ref} onBlur={field.onBlur} className="h-12 text-base rounded-xl">
+                            <SelectTrigger
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              className="h-12 text-base rounded-xl"
+                            >
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
@@ -348,7 +350,7 @@ export function EditTripDialog({
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           All trip times will be shown in this timezone
                         </FormDescription>
                         <FormMessage />
@@ -363,7 +365,8 @@ export function EditTripDialog({
                     type="button"
                     onClick={handleContinue}
                     disabled={isPending || isDeleting}
-                    className="h-12 px-8 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="gradient"
+                    className="h-12 px-8 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue
                   </Button>
@@ -383,24 +386,24 @@ export function EditTripDialog({
 
                     return (
                       <FormItem>
-                        <FormLabel className="text-base font-semibold text-slate-900">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Description
                         </FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder="Tell your group about this trip..."
-                            className="h-32 text-base border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
+                            className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
                             disabled={isPending || isDeleting}
                             {...field}
                             value={field.value || ""}
                           />
                         </FormControl>
                         {showCounter && (
-                          <div className="text-xs text-slate-500 text-right">
+                          <div className="text-xs text-muted-foreground text-right">
                             {charCount} / 2000 characters
                           </div>
                         )}
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           Optional: Share details about the trip
                         </FormDescription>
                         <FormMessage />
@@ -415,7 +418,7 @@ export function EditTripDialog({
                   name="coverImageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-semibold text-slate-900">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Cover image
                       </FormLabel>
                       <FormControl>
@@ -426,7 +429,7 @@ export function EditTripDialog({
                           disabled={isPending || isDeleting}
                         />
                       </FormControl>
-                      <FormDescription className="text-sm text-slate-500">
+                      <FormDescription className="text-sm text-muted-foreground">
                         Optional: Upload a cover image for your trip
                       </FormDescription>
                       <FormMessage />
@@ -439,7 +442,7 @@ export function EditTripDialog({
                   control={form.control}
                   name="allowMembersToAddEvents"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-4">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value ?? false}
@@ -452,10 +455,10 @@ export function EditTripDialog({
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel className="text-base font-semibold text-slate-900 cursor-pointer">
+                        <FormLabel className="text-base font-semibold text-foreground cursor-pointer">
                           Allow members to add events
                         </FormLabel>
-                        <FormDescription className="text-sm text-slate-500">
+                        <FormDescription className="text-sm text-muted-foreground">
                           Let trip members create and propose events for the
                           itinerary
                         </FormDescription>
@@ -464,61 +467,47 @@ export function EditTripDialog({
                   )}
                 />
 
-                {/* Root error message */}
-                {form.formState.errors.root && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.root.message}
-                  </p>
-                )}
-
-                {/* Delete confirmation */}
-                {showDeleteConfirm && (
-                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                    <p className="text-sm font-medium text-amber-900 mb-3">
-                      Are you sure you want to delete this trip? This action
-                      cannot be undone.
-                    </p>
-                    <div className="flex gap-2">
+                {/* Delete Button with AlertDialog */}
+                <div className="pt-4 border-t border-border">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
                       <Button
                         type="button"
-                        onClick={handleCancelDelete}
-                        disabled={isDeleting}
-                        variant="outline"
-                        className="flex-1 h-10 rounded-xl border-slate-300"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
+                        disabled={isPending || isDeleting}
                         variant="destructive"
-                        className="flex-1 h-10 rounded-xl"
+                        className="w-full h-12 rounded-xl"
                       >
-                        {isDeleting && (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        )}
-                        {isDeleting ? "Deleting..." : "Yes, delete"}
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete trip
                       </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Delete Button */}
-                {!showDeleteConfirm && (
-                  <div className="pt-4 border-t border-slate-200">
-                    <Button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={isPending || isDeleting}
-                      variant="destructive"
-                      className="w-full h-12 rounded-xl"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete trip
-                    </Button>
-                  </div>
-                )}
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you sure you want to delete this trip?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting && (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          )}
+                          {isDeleting ? "Deleting..." : "Yes, delete"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
@@ -527,14 +516,15 @@ export function EditTripDialog({
                     variant="outline"
                     onClick={handleBack}
                     disabled={isPending || isDeleting}
-                    className="flex-1 h-12 rounded-xl border-slate-300"
+                    className="flex-1 h-12 rounded-xl border-input"
                   >
                     Back
                   </Button>
                   <Button
                     type="submit"
                     disabled={isPending || isDeleting}
-                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="gradient"
+                    className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isPending && (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />

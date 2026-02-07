@@ -52,8 +52,8 @@ const baseTripSchema = z.object({
     .optional(),
   coverImageUrl: z
     .string()
-    .url({
-      message: "Cover image URL must be a valid URL",
+    .refine((val) => val.startsWith("/") || URL.canParse(val), {
+      message: "Cover image must be a valid URL or path",
     })
     .nullable()
     .optional(),
