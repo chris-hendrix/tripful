@@ -99,9 +99,9 @@ export class AuthService implements IAuthService {
    * @returns A 6-digit string code (e.g., "123456")
    */
   generateCode(): string {
-    // Use fixed code in non-production environments (development and test)
+    // Use fixed code when enabled (typically in development and test environments)
     // This makes manual testing and E2E tests easier with a predictable code
-    if (process.env.NODE_ENV !== "production") {
+    if (this.fastify?.config.ENABLE_FIXED_VERIFICATION_CODE) {
       return "123456";
     }
 

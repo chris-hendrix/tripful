@@ -14,7 +14,7 @@ export function ensureJWTSecret(): string {
     return process.env.JWT_SECRET;
   }
 
-  const envLocalPath = resolve(process.cwd(), ".env.local");
+  const envLocalPath = resolve(import.meta.dirname, "..", "..", ".env.local");
 
   // Check if .env.local exists and contains JWT_SECRET
   if (existsSync(envLocalPath)) {

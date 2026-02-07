@@ -59,7 +59,7 @@ export class UploadService implements IUploadService {
   };
 
   constructor() {
-    this.uploadsDir = resolve(process.cwd(), env.UPLOAD_DIR);
+    this.uploadsDir = resolve(import.meta.dirname, "..", "..", env.UPLOAD_DIR);
     this.MAX_FILE_SIZE = env.MAX_FILE_SIZE;
     this.ALLOWED_MIME_TYPES = env.ALLOWED_MIME_TYPES;
     this.ensureUploadsDirExists();

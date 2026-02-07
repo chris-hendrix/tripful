@@ -123,14 +123,14 @@ export async function errorHandler(
     });
   }
 
-  // Default error (hide internal details in production)
-  const isDevelopment = process.env.NODE_ENV === "development";
+  // Default error (hide internal details unless configured to expose)
+  const exposeDetails = request.server.config.EXPOSE_ERROR_DETAILS;
   return reply.status(error.statusCode || 500).send({
     success: false,
     error: {
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: isDevelopment ? error.message : "An unexpected error occurred",
-      ...(isDevelopment && { stack: error.stack }),
+      message: exposeDetails ? error.message : "An unexpected error occurred",
+      ...(exposeDetails && { stack: error.stack }),
     },
   });
 }

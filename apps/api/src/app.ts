@@ -118,12 +118,16 @@ export async function buildApp(
     limits: {
       fileSize: app.config.MAX_FILE_SIZE,
       files: 1,
+      fieldNameSize: 100,
+      fields: 10,
+      headerPairs: 2000,
     },
+    throwFileSizeLimit: true,
   });
 
   // Register static file serving plugin (for uploaded images)
   await app.register(fastifyStatic, {
-    root: resolve(process.cwd(), app.config.UPLOAD_DIR),
+    root: resolve(import.meta.dirname, "..", app.config.UPLOAD_DIR),
     prefix: "/uploads/",
     decorateReply: false,
   });

@@ -9,9 +9,20 @@ import { closeDatabase, testConnection } from "./config/database.js";
 
 const app = await buildApp({
   fastify: {
-    logger: {
-      level: env.LOG_LEVEL,
-    },
+    logger:
+      env.NODE_ENV === "development"
+        ? {
+            transport: { target: "pino-pretty" },
+            level: "debug",
+          }
+        : {
+            level: env.LOG_LEVEL,
+            redact: [
+              "req.headers.authorization",
+              "req.headers.cookie",
+              "req.body.phoneNumber",
+            ],
+          },
     requestIdHeader: "x-request-id",
     requestIdLogLabel: "reqId",
     connectionTimeout: 30000,

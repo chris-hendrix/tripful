@@ -202,3 +202,92 @@ Replaced string-based error handling with typed errors, added Zod route schemas 
 - **Error code backward compatibility**: Using `NOT_FOUND` instead of `TRIP_NOT_FOUND` preserved existing test expectations. When introducing typed errors, matching existing error codes minimizes test churn.
 - **Controller code reduction**: Removing manual `safeParse()` and string-based error matching significantly reduced controller boilerplate (trip controller from ~970 to ~620 lines). Centralized error handling is cleaner.
 - **Rate limit test isolation**: Tests for route-specific rate limits need their own app instance without global rate limit disabled (`buildApp({ fastify: { logger: false } })` without `rateLimit: { global: false }`).
+
+## Iteration 4 — Task 4.1: Add explicit config flags, logger improvements, scoped hooks, multipart limits, and health checks
+
+**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+
+### What Was Done
+
+Replaced environment-dependent behavior with explicit config flags, improved logging, refactored route auth hooks, and added Kubernetes-style health check endpoints:
+
+1. **Added 3 new config flags** to `config/env.ts`:
+   - `COOKIE_SECURE` — `z.coerce.boolean().default(process.env.NODE_ENV === "production")` — controls cookie `secure` flag
+   - `EXPOSE_ERROR_DETAILS` — `z.coerce.boolean().default(process.env.NODE_ENV === "development")` — controls error message/stack exposure
+   - `ENABLE_FIXED_VERIFICATION_CODE` — `z.coerce.boolean().default(process.env.NODE_ENV !== "production")` — controls fixed "123456" code for dev/test
+
+2. **Replaced all `process.env.NODE_ENV` checks** in source code (4 locations):
+   - `auth.controller.ts` (2 locations): cookie `secure` flag → `request.server.config.COOKIE_SECURE`
+   - `error.middleware.ts`: error detail exposure → `request.server.config.EXPOSE_ERROR_DETAILS`
+   - `auth.service.ts`: fixed verification code → `this.fastify?.config.ENABLE_FIXED_VERIFICATION_CODE`
+   - `utils/phone.ts`: test phone acceptance → `env.ENABLE_FIXED_VERIFICATION_CODE`
+
+3. **Replaced all `process.cwd()` calls** with `import.meta.dirname` (3 locations):
+   - `config/jwt.ts`: `resolve(import.meta.dirname, "..", "..", ".env.local")`
+   - `app.ts`: `resolve(import.meta.dirname, "..", app.config.UPLOAD_DIR)`
+   - `services/upload.service.ts`: `resolve(import.meta.dirname, "..", "..", env.UPLOAD_DIR)`
+
+4. **Added logger redaction and pino-pretty** in `server.ts`:
+   - Development: `pino-pretty` transport with `debug` level
+   - Non-development: `redact` array for `req.headers.authorization`, `req.headers.cookie`, `req.body.phoneNumber`
+
+5. **Refactored trip.routes.ts with scoped auth hooks**:
+   - GET routes (`GET /`, `GET /:id`) remain at top level with only `preHandler: authenticate`
+   - Write routes (POST, PUT, DELETE — 7 routes) wrapped in `fastify.register(async (scope) => { ... })` with `scope.addHook("preHandler", authenticate)` and `scope.addHook("preHandler", requireCompleteProfile)`
+
+6. **Added multipart limits** in `app.ts`:
+   - `throwFileSizeLimit: true`, `fieldNameSize: 100`, `fields: 10`, `headerPairs: 2000`
+
+7. **Added health check endpoints**:
+   - `GET /api/health/live` — Liveness probe: always returns `200 { status: "ok" }`
+   - `GET /api/health/ready` — Readiness probe: checks DB, returns `200` or `503`
+
+8. **Updated `.env.example`** with new config flags and documentation comments.
+
+9. **Created 17 new integration tests** in `tests/integration/config-and-improvements.test.ts`:
+   - Config flag defaults (5 tests)
+   - Health live endpoint (2 tests)
+   - Health ready endpoint (3 tests)
+   - Scoped auth hooks (6 tests: GET without profile, POST/PUT/DELETE require profile, auth required)
+   - Multipart limits (1 test)
+
+### Files Changed
+
+- `src/config/env.ts` — Modified (3 new config flags)
+- `src/controllers/auth.controller.ts` — Modified (COOKIE_SECURE flag)
+- `src/middleware/error.middleware.ts` — Modified (EXPOSE_ERROR_DETAILS flag)
+- `src/services/auth.service.ts` — Modified (ENABLE_FIXED_VERIFICATION_CODE flag)
+- `src/utils/phone.ts` — Modified (ENABLE_FIXED_VERIFICATION_CODE flag)
+- `src/config/jwt.ts` — Modified (import.meta.dirname)
+- `src/app.ts` — Modified (import.meta.dirname, multipart limits)
+- `src/services/upload.service.ts` — Modified (import.meta.dirname)
+- `src/server.ts` — Modified (pino-pretty + redaction)
+- `src/routes/trip.routes.ts` — Modified (scoped auth hooks)
+- `src/controllers/health.controller.ts` — Modified (live + ready handlers)
+- `src/routes/health.routes.ts` — Modified (live + ready routes)
+- `.env.example` — Modified (new config flags)
+- `tests/integration/config-and-improvements.test.ts` — Created (17 tests)
+
+### Verification Results
+
+- **TypeScript**: PASS (0 errors across all 3 packages)
+- **Tests**: PASS (821 total: 374 API, 83 shared, 364 web — 0 failures)
+- **Lint**: PASS (0 errors)
+- **Structural checks**: All 8 pass (no process.env.NODE_ENV in source except env.ts, no process.cwd() in source, config flags exist, health endpoints exist, scoped hooks exist, multipart limits exist, logger redaction exists, new test file exists)
+
+### Reviewer Notes
+
+- APPROVED with only LOW severity observations:
+  - Logger redaction not applied in development mode (pino-pretty branch has no `redact`) — intentional trade-off for debug convenience
+  - Multipart limits test only verifies app starts successfully, doesn't test actual limit enforcement — acceptable given the complexity of crafting multipart test payloads
+  - `EXPOSE_ERROR_DETAILS` defaults to `false` in test environment (`NODE_ENV=test`), which matches production behavior but could make debugging test failures harder
+  - `healthService.getStatus()` returns `status: "ok"` even with disconnected DB — the `ready` endpoint handles this correctly by checking `health.database` independently
+
+### Learnings for Future Iterations
+
+- **Config flag defaults use process.env.NODE_ENV intentionally**: The env.ts Zod schema is the single source of truth for NODE_ENV-based defaults. The rest of the app reads boolean config flags instead.
+- **env singleton and fastify.config are the same object**: The config plugin does `fastify.decorate("config", env)`, so utility functions that import `env` directly (like `phone.ts`) can access the new flags without needing the Fastify instance.
+- **import.meta.dirname paths are relative to the source file**: Unlike `process.cwd()` which gives the project root, `import.meta.dirname` gives the directory of the current file. Need `..` traversal to reach the project root (e.g., `src/config/` needs `../..`).
+- **Fastify scoped plugins for shared hooks**: `fastify.register(async (scope) => { scope.addHook(...); })` creates an encapsulated context where hooks only apply to routes defined within. This eliminates the need to repeat `[authenticate, requireCompleteProfile]` on every write route.
+- **Pino redaction in non-dev only**: pino-pretty in development doesn't support the same redaction paths format. Keeping redaction for production/test while allowing full debug output in development is a practical trade-off.
+- **Health endpoint convention**: Liveness probes should be stateless (always 200 if process is up), while readiness probes check dependencies (DB). The liveness endpoint should never call the database to avoid false negatives during transient DB issues.

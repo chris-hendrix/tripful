@@ -72,7 +72,7 @@
 
 ## Phase 4: Configuration, Logging & Remaining Improvements
 
-- [ ] Task 4.1: Add explicit config flags, logger improvements, scoped hooks, multipart limits, and health checks
+- [x] Task 4.1: Add explicit config flags, logger improvements, scoped hooks, multipart limits, and health checks
   - Implement: Add env variables to config schema: `COOKIE_SECURE`, `EXPOSE_ERROR_DETAILS`, `ENABLE_FIXED_VERIFICATION_CODE`, `TRUST_PROXY`
   - Implement: Replace all `process.env.NODE_ENV` checks in services/controllers/middleware with explicit config flags from `fastify.config`
   - Implement: Replace `process.cwd()` with `import.meta.dirname` in `config/jwt.ts` and static file serving

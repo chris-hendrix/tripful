@@ -39,6 +39,17 @@ const envSchema = z.object({
   // Proxy
   TRUST_PROXY: z.coerce.boolean().default(false),
 
+  // Security & Behavior Flags
+  COOKIE_SECURE: z.coerce
+    .boolean()
+    .default(process.env.NODE_ENV === "production"),
+  EXPOSE_ERROR_DETAILS: z.coerce
+    .boolean()
+    .default(process.env.NODE_ENV === "development"),
+  ENABLE_FIXED_VERIFICATION_CODE: z.coerce
+    .boolean()
+    .default(process.env.NODE_ENV !== "production"),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
