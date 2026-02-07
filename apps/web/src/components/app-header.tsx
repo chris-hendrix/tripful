@@ -46,7 +46,7 @@ export function AppHeader() {
               href="/dashboard"
               className={cn(
                 "text-sm font-medium transition-colors hover:text-foreground/80",
-                pathname === "/dashboard"
+                pathname.startsWith("/dashboard")
                   ? "text-foreground"
                   : "text-foreground/60",
               )}

@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import {
+  authenticateUser,
+  authenticateUserViaBrowser,
+} from "./helpers/auth";
 
 /**
  * E2E Test Suite: Complete Authentication Flow
@@ -84,37 +88,8 @@ test.describe("Complete Auth Flow", () => {
   });
 
   test("logout clears session and redirects to login", async ({ page }) => {
-    const phone = `+1555${Date.now()}`;
-
     // Complete auth flow first to get logged in
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    // Login
-    const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill(phone);
-    await page.locator('button:has-text("Continue")').click();
-
-    // Verify
-    await page.waitForURL("**/verify**");
-    const codeInput = page.locator('input[type="text"]').first();
-    await codeInput.fill("123456");
-    await page.locator('button:has-text("Verify")').click();
-
-    // Wait for navigation to either complete-profile or dashboard
-    await Promise.race([
-      page.waitForURL("**/dashboard"),
-      page.waitForURL("**/complete-profile"),
-    ]);
-
-    // Complete profile if needed
-    const currentUrl = await page.url();
-    if (currentUrl.includes("/complete-profile")) {
-      const displayNameInput = page.locator('input[type="text"]').first();
-      await displayNameInput.fill("Test User");
-      await page.locator('button:has-text("Complete profile")').click();
-      await page.waitForURL("**/dashboard");
-    }
+    await authenticateUserViaBrowser(page);
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
 
     // Verify we have an auth cookie
@@ -167,43 +142,8 @@ test.describe("Complete Auth Flow", () => {
     page,
     request,
   }) => {
-    const phone = `+1555${Date.now()}`;
-
-    // Create existing user with completed profile via API
-    await request.post("http://localhost:8000/api/auth/request-code", {
-      data: { phoneNumber: phone },
-    });
-
-    const verifyResponse = await request.post(
-      "http://localhost:8000/api/auth/verify-code",
-      {
-        data: { phoneNumber: phone, code: "123456" },
-      },
-    );
-
-    const cookies = verifyResponse.headers()["set-cookie"];
-
-    await request.post("http://localhost:8000/api/auth/complete-profile", {
-      data: { displayName: "Existing User", timezone: "UTC" },
-      headers: { cookie: cookies || "" },
-    });
-
-    // Now test login with existing user - should skip complete-profile
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill(phone);
-    await page.locator('button:has-text("Continue")').click();
-
-    // Verify
-    await page.waitForURL("**/verify**");
-    const codeInput = page.locator('input[type="text"]').first();
-    await codeInput.fill("123456");
-    await page.locator('button:has-text("Verify")').click();
-
-    // Should go directly to dashboard (user already has complete profile)
-    await page.waitForURL("**/dashboard", { timeout: 5000 });
+    // Create existing user with completed profile via API, then login via browser
+    await authenticateUser(page, request, "Existing User");
 
     // Verify we're on dashboard
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();

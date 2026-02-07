@@ -42,9 +42,6 @@ describe("apiRequest", () => {
       expect.stringContaining("/auth/me"),
       expect.objectContaining({
         credentials: "include",
-        headers: expect.objectContaining({
-          "Content-Type": "application/json",
-        }),
       }),
     );
   });
@@ -65,13 +62,13 @@ describe("apiRequest", () => {
     );
   });
 
-  it("sets Content-Type: application/json header by default", async () => {
+  it("sets Content-Type: application/json header when body is present", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ success: true }),
     } as Response);
 
-    await apiRequest("/test");
+    await apiRequest("/test", { body: JSON.stringify({ key: "value" }) });
 
     expect(fetch).toHaveBeenCalledWith(
       expect.any(String),
@@ -81,6 +78,19 @@ describe("apiRequest", () => {
         }),
       }),
     );
+  });
+
+  it("does not set Content-Type header when no body is present", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    } as Response);
+
+    await apiRequest("/test", { method: "DELETE" });
+
+    const callArgs = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
+    const headers = callArgs.headers as Record<string, string>;
+    expect(headers["Content-Type"]).toBeUndefined();
   });
 
   it("allows custom headers to override defaults", async () => {

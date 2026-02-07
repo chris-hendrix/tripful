@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { authenticateUser } from "./helpers/auth";
 
 /**
  * E2E Test Suite: App Shell (Header, Navigation, Skip Link, Main Landmark)
@@ -7,48 +8,6 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("App Shell", () => {
-  // Helper to complete full auth flow and land on dashboard
-  async function loginAndNavigateToDashboard(
-    page: import("@playwright/test").Page,
-    request: import("@playwright/test").APIRequestContext,
-  ) {
-    const phone = `+1555${Date.now()}`;
-
-    // Create user via API for speed
-    await request.post("http://localhost:8000/api/auth/request-code", {
-      data: { phoneNumber: phone },
-    });
-
-    const verifyResponse = await request.post(
-      "http://localhost:8000/api/auth/verify-code",
-      {
-        data: { phoneNumber: phone, code: "123456" },
-      },
-    );
-
-    const cookies = verifyResponse.headers()["set-cookie"];
-
-    await request.post("http://localhost:8000/api/auth/complete-profile", {
-      data: { displayName: "Test User", timezone: "UTC" },
-      headers: { cookie: cookies || "" },
-    });
-
-    // Login via the browser
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    const phoneInput = page.locator('input[type="tel"]');
-    await phoneInput.fill(phone);
-    await page.locator('button:has-text("Continue")').click();
-
-    await page.waitForURL("**/verify**");
-    const codeInput = page.locator('input[type="text"]').first();
-    await codeInput.fill("123456");
-    await page.locator('button:has-text("Verify")').click();
-
-    await page.waitForURL("**/dashboard", { timeout: 10000 });
-  }
-
   test.beforeEach(async ({ page }) => {
     await page.context().clearCookies();
   });
@@ -57,7 +16,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     // Verify header is visible
     const header = page.locator('header:has(nav[aria-label="Main navigation"])');
@@ -72,7 +31,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     const nav = page.locator('nav[aria-label="Main navigation"]');
     await expect(nav).toBeVisible();
@@ -85,7 +44,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     const main = page.locator("main#main-content");
     await expect(main).toBeVisible();
@@ -95,7 +54,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     // Click user menu button
     const userMenuButton = page.locator('button[aria-label="User menu"]');
@@ -114,7 +73,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     // Open user menu
     const userMenuButton = page.locator('button[aria-label="User menu"]');
@@ -134,7 +93,7 @@ test.describe("App Shell", () => {
     page,
     request,
   }) => {
-    await loginAndNavigateToDashboard(page, request);
+    await authenticateUser(page, request);
 
     // Skip link should exist in the DOM (even if visually hidden)
     const skipLink = page.locator('a[href="#main-content"]');

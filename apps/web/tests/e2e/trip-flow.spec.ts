@@ -1,4 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  authenticateUserViaBrowser,
+  authenticateUserViaBrowserWithPhone,
+  createUserViaAPI,
+} from "./helpers/auth";
 
 /**
  * E2E Test Suite: Trip Creation Flow
@@ -6,100 +11,6 @@ import { test, expect, type Page } from "@playwright/test";
  * Tests the complete journey from authentication through trip creation
  * to viewing the trip detail page and verifying it appears in the dashboard.
  */
-
-/**
- * Helper function to authenticate a user through the full flow
- * Returns the phone number used for authentication
- */
-async function authenticateUser(
-  page: Page,
-  displayName: string = "Test User",
-): Promise<string> {
-  const phone = `+1555${Date.now()}`;
-
-  // Navigate to login page
-  await page.goto("/login");
-  await page.waitForLoadState("networkidle");
-
-  // Enter phone number
-  const phoneInput = page.locator('input[type="tel"]');
-  await phoneInput.fill(phone);
-
-  // Click Continue button
-  await page.locator('button:has-text("Continue")').click();
-
-  // Wait for navigation to verify page
-  await page.waitForURL("**/verify**");
-
-  // Enter verification code (fixed code for test environment)
-  const codeInput = page.locator('input[type="text"]').first();
-  await codeInput.fill("123456");
-
-  // Click Verify button
-  await page.locator('button:has-text("Verify")').click();
-
-  // Wait for navigation (either to complete-profile or dashboard)
-  await Promise.race([
-    page.waitForURL("**/dashboard"),
-    page.waitForURL("**/complete-profile"),
-  ]);
-
-  // Complete profile if needed
-  const currentUrl = page.url();
-  if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.locator('input[type="text"]').first();
-    await displayNameInput.fill(displayName);
-    await page.locator('button:has-text("Complete profile")').click();
-    await page.waitForURL("**/dashboard");
-  }
-
-  return phone;
-}
-
-/**
- * Helper function to authenticate a user with a specific phone number
- */
-async function authenticateUserWithPhone(
-  page: Page,
-  phone: string,
-  displayName: string = "Test User",
-): Promise<void> {
-  // Navigate to login page
-  await page.goto("/login");
-  await page.waitForLoadState("networkidle");
-
-  // Enter phone number
-  const phoneInput = page.locator('input[type="tel"]');
-  await phoneInput.fill(phone);
-
-  // Click Continue button
-  await page.locator('button:has-text("Continue")').click();
-
-  // Wait for navigation to verify page
-  await page.waitForURL("**/verify**");
-
-  // Enter verification code (fixed code for test environment)
-  const codeInput = page.locator('input[type="text"]').first();
-  await codeInput.fill("123456");
-
-  // Click Verify button
-  await page.locator('button:has-text("Verify")').click();
-
-  // Wait for navigation (either to complete-profile or dashboard)
-  await Promise.race([
-    page.waitForURL("**/dashboard"),
-    page.waitForURL("**/complete-profile"),
-  ]);
-
-  // Complete profile if needed
-  const currentUrl = page.url();
-  if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.locator('input[type="text"]').first();
-    await displayNameInput.fill(displayName);
-    await page.locator('button:has-text("Complete profile")').click();
-    await page.waitForURL("**/dashboard");
-  }
-}
 
 test.describe("Trip Flow", () => {
   test.beforeEach(async ({ page }) => {
@@ -111,7 +22,7 @@ test.describe("Trip Flow", () => {
     page,
   }) => {
     // Step 1: Authenticate user
-    await authenticateUser(page, "Trip Creator");
+    await authenticateUserViaBrowser(page, "Trip Creator");
 
     // Step 2: Verify we're on the dashboard
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
@@ -206,17 +117,22 @@ test.describe("Trip Flow", () => {
     await expect(page.locator(`h1:has-text("${tripName}")`)).toBeVisible();
   });
 
-  // TODO: Fix test to create co-organizer user first (API requires existing users). See line 747 for comprehensive co-organizer test.
-  test.skip("create trip with co-organizer", async ({ page }) => {
-    // Authenticate
-    await authenticateUser(page, "Co-Org Trip Creator");
+  test("create trip with co-organizer", async ({ page, request }) => {
+    // Authenticate the trip creator
+    await authenticateUserViaBrowser(page, "Co-Org Trip Creator");
+
+    // Create co-organizer user via API first (API requires existing users)
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-7);
+    const coOrgPhone = `+1555${shortTimestamp}`;
+    await createUserViaAPI(request, coOrgPhone, "Co-Organizer User");
 
     // Open create dialog
     await page.locator('button[aria-label="Create new trip"]').click();
     await page.waitForTimeout(300); // Allow dialog animation
 
     // Fill Step 1
-    const tripName = `Co-Org Trip ${Date.now()}`;
+    const tripName = `Co-Org Trip ${timestamp}`;
     await page.locator('input[name="name"]').fill(tripName);
     await page.locator('input[name="destination"]').fill("Tokyo, Japan");
     await page.locator('input[name="startDate"]').fill("2026-11-01");
@@ -226,10 +142,7 @@ test.describe("Trip Flow", () => {
     await page.locator('button:has-text("Continue")').click();
     await page.waitForTimeout(200); // Allow step transition
 
-    // Add a co-organizer by phone number (ensure E.164 format with max 15 digits)
-    const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-7); // Use last 7 digits to keep within E.164 limit
-    const coOrgPhone = `+1555${shortTimestamp}`;
+    // Add a co-organizer by phone number
     const coOrgInput = page.locator(
       'input[aria-label="Co-organizer phone number"]',
     );
@@ -253,7 +166,7 @@ test.describe("Trip Flow", () => {
 
   test("create trip with minimal required fields only", async ({ page }) => {
     // Authenticate
-    await authenticateUser(page, "Minimal Trip Creator");
+    await authenticateUserViaBrowser(page, "Minimal Trip Creator");
 
     // Open create dialog
     await page.locator('button[aria-label="Create new trip"]').click();
@@ -287,7 +200,7 @@ test.describe("Trip Flow", () => {
 
   test("validation prevents incomplete trip submission", async ({ page }) => {
     // Authenticate
-    await authenticateUser(page, "Validation Test User");
+    await authenticateUserViaBrowser(page, "Validation Test User");
 
     // Open create dialog
     await page.locator('button[aria-label="Create new trip"]').click();
@@ -308,7 +221,7 @@ test.describe("Trip Flow", () => {
 
   test("can navigate back from Step 2 to Step 1", async ({ page }) => {
     // Authenticate
-    await authenticateUser(page, "Navigation Test User");
+    await authenticateUserViaBrowser(page, "Navigation Test User");
 
     // Open create dialog
     await page.locator('button[aria-label="Create new trip"]').click();
@@ -342,7 +255,7 @@ test.describe("Trip Flow", () => {
     page,
   }) => {
     // Authenticate new user (no trips)
-    await authenticateUser(page, "New User");
+    await authenticateUserViaBrowser(page, "New User");
 
     // Verify dashboard shows empty state
     await expect(page.locator('h2:has-text("No trips yet")')).toBeVisible();
@@ -368,7 +281,7 @@ test.describe("Trip Flow", () => {
 
   test("edit trip basic information", async ({ page }) => {
     // Step 1: Authenticate and create a trip
-    await authenticateUser(page, "Trip Editor");
+    await authenticateUserViaBrowser(page, "Trip Editor");
 
     // Create a trip first
     const originalName = `Original Trip ${Date.now()}`;
@@ -480,7 +393,7 @@ test.describe("Trip Flow", () => {
     page,
   }) => {
     // Authenticate and create a trip
-    await authenticateUser(page, "Step Navigator");
+    await authenticateUserViaBrowser(page, "Step Navigator");
 
     const tripName = `Step Test Trip ${Date.now()}`;
     await page.locator('button[aria-label="Create new trip"]').click();
@@ -544,13 +457,9 @@ test.describe("Trip Flow", () => {
     await expect(page.locator(`text=${newDescription}`)).toBeVisible();
   });
 
-  // TODO: Fix API client bug - DELETE requests with Content-Type: application/json but no body cause Fastify error
-  // Error: "Body cannot be empty when content-type is set to 'application/json'"
-  // This is a pre-existing issue in /apps/web/src/lib/api.ts apiRequest function
-  // The function always sets Content-Type header even for DELETE requests without body
-  test.skip("delete trip confirmation flow", async ({ page }) => {
+  test("delete trip confirmation flow", async ({ page }) => {
     // Step 1: Authenticate and create a trip to delete
-    await authenticateUser(page, "Trip Deleter");
+    await authenticateUserViaBrowser(page, "Trip Deleter");
 
     const tripName = `Trip To Delete ${Date.now()}`;
     const tripDestination = "Austin, TX";
@@ -633,7 +542,7 @@ test.describe("Trip Flow", () => {
 
   test("edit trip - validation prevents invalid updates", async ({ page }) => {
     // Authenticate and create a trip
-    await authenticateUser(page, "Validation Editor");
+    await authenticateUserViaBrowser(page, "Validation Editor");
 
     const tripName = `Validation Trip ${Date.now()}`;
     await page.locator('button[aria-label="Create new trip"]').click();
@@ -677,7 +586,7 @@ test.describe("Trip Flow", () => {
     page,
   }) => {
     // Step 1: User A creates a trip
-    await authenticateUser(page, "User A");
+    await authenticateUserViaBrowser(page, "User A");
 
     const tripName = `Private Trip ${Date.now()}`;
     const tripDestination = "Barcelona, Spain";
@@ -711,7 +620,7 @@ test.describe("Trip Flow", () => {
     await page.context().clearCookies();
 
     // Step 3: User B logs in (different user, not a member)
-    await authenticateUser(page, "User B");
+    await authenticateUserViaBrowser(page, "User B");
 
     // Verify User B is on dashboard
     await expect(page.locator('h1:has-text("My Trips")')).toBeVisible();
@@ -757,7 +666,7 @@ test.describe("Trip Flow", () => {
     const userBPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
 
     // Authenticate User A
-    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
 
     const tripName = `Co-Org Test Trip ${timestamp}`;
     const tripDestination = "Amsterdam, Netherlands";
@@ -793,11 +702,11 @@ test.describe("Trip Flow", () => {
 
     // Step 2: Create User B by authenticating them first
     await page.context().clearCookies();
-    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
 
     // Step 3: Switch back to User A to add User B as co-organizer
     await page.context().clearCookies();
-    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
 
     // Navigate back to the trip
     await page.goto(`/trips/${tripId}`);
@@ -818,7 +727,7 @@ test.describe("Trip Flow", () => {
 
     // Step 4: Switch to User B and verify co-organizer permissions
     await page.context().clearCookies();
-    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
 
     // Navigate to the trip
     await page.goto(`/trips/${tripId}`);
@@ -861,7 +770,7 @@ test.describe("Trip Flow", () => {
 
     // Step 6: Switch back to User A to remove User B as co-organizer
     await page.context().clearCookies();
-    await authenticateUserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
 
     // Navigate to trip and get User B's ID from trip data
     const tripResponse = await page.request.get(
@@ -886,7 +795,7 @@ test.describe("Trip Flow", () => {
 
     // Step 7: Switch to User B and verify co-organizer permissions removed
     await page.context().clearCookies();
-    await authenticateUserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
 
     // Attempt to access the trip
     await page.goto(`/trips/${tripId}`);

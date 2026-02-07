@@ -1,5 +1,8 @@
 "use client";
 
+import { playfairDisplay, dmSans } from "@/lib/fonts";
+import { cn } from "@/lib/utils";
+
 export default function GlobalError({
   reset,
 }: {
@@ -7,7 +10,11 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn(playfairDisplay.variable, dmSans.variable)}
+    >
       <body>
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center space-y-4">

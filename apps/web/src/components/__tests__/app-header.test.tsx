@@ -204,6 +204,15 @@ describe("AppHeader", () => {
     expect(dashboardLink.className).not.toContain("text-foreground/60");
   });
 
+  it("applies active styling to Dashboard link on nested dashboard routes", () => {
+    mockPathname = "/dashboard/settings";
+    render(<AppHeader />);
+
+    const dashboardLink = screen.getByText("Dashboard");
+    expect(dashboardLink.className).toContain("text-foreground");
+    expect(dashboardLink.className).not.toContain("text-foreground/60");
+  });
+
   it("applies inactive styling to Dashboard link when on a different page", () => {
     mockPathname = "/trips/123";
     render(<AppHeader />);
