@@ -1,9 +1,6 @@
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, APIError } from "@/lib/api";
@@ -12,11 +9,19 @@ import type {
   Trip,
   TripSummary,
   TripDetail,
-  GetTripsResponse,
-  GetTripResponse,
   CreateTripResponse,
   UpdateTripResponse,
 } from "@tripful/shared/types";
+
+// Import query keys and options from server-safe module for use in hooks
+import {
+  tripKeys,
+  tripsQueryOptions,
+  tripDetailQueryOptions,
+} from "./trip-queries";
+
+// Re-export for backward compatibility
+export { tripKeys, tripsQueryOptions, tripDetailQueryOptions };
 
 // Re-export types for backward compatibility with existing imports
 export type { Trip, TripSummary, TripDetail };
@@ -28,40 +33,6 @@ interface CancelTripResponse {
   success: true;
   message: string;
 }
-
-/**
- * Query key factory for trip-related queries
- */
-export const tripKeys = {
-  all: ["trips"] as const,
-  detail: (id: string) => ["trips", id] as const,
-};
-
-/**
- * Query options for fetching all trips
- */
-export const tripsQueryOptions = queryOptions({
-  queryKey: tripKeys.all,
-  queryFn: async ({ signal }) => {
-    const response = await apiRequest<GetTripsResponse>("/trips", { signal });
-    return response.data;
-  },
-});
-
-/**
- * Query options factory for fetching a single trip's details
- */
-export const tripDetailQueryOptions = (tripId: string) =>
-  queryOptions({
-    queryKey: tripKeys.detail(tripId),
-    queryFn: async ({ signal }) => {
-      const response = await apiRequest<GetTripResponse>(`/trips/${tripId}`, {
-        signal,
-      });
-      return response.trip;
-    },
-    enabled: !!tripId,
-  });
 
 /**
  * Hook for fetching all trips for the current user

@@ -732,10 +732,10 @@ test.describe("Trip Flow", () => {
       page.locator('button:has-text("Edit trip")'),
     ).not.toBeVisible();
 
-    // Step 7: Verify "Return to dashboard" button works
-    const returnButton = page.locator('button:has-text("Return to dashboard")');
-    await expect(returnButton).toBeVisible();
-    await returnButton.click();
+    // Step 7: Verify "Return to dashboard" link works
+    const returnLink = page.locator('a:has-text("Return to dashboard")');
+    await expect(returnLink).toBeVisible();
+    await returnLink.click();
 
     // Verify navigation back to dashboard
     await page.waitForURL("**/dashboard");

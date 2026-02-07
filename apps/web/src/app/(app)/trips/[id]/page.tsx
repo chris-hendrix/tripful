@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/get-query-client";
-import { tripKeys } from "@/hooks/use-trips";
+import { tripKeys } from "@/hooks/trip-queries";
 import { serverApiRequest } from "@/lib/server-api";
 import { TripDetailContent } from "./trip-detail-content";
 import type { GetTripResponse } from "@tripful/shared/types";
