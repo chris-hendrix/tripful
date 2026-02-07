@@ -211,7 +211,7 @@ Create React hooks for fetching and mutating events, accommodations, and member 
 
 ---
 
-- [ ] Task 7: Itinerary View Components (Day-by-Day & Group-by-Type)
+- [x] Task 7: Itinerary View Components (Day-by-Day & Group-by-Type)
 
 Build the itinerary display components with view mode switching and timezone toggle.
 

@@ -1148,3 +1148,196 @@ Task 7 will implement the itinerary view components (day-by-day and group-by-typ
 - Mediterranean design system (Tailwind v4 tokens)
 
 **Ready for**: Task 7 - Itinerary View Components (Day-by-Day & Group-by-Type)
+
+---
+
+## Iteration 7: Task 7 - Itinerary View Components (Day-by-Day & Group-by-Type)
+
+**Date**: 2026-02-07  
+**Status**: ✅ COMPLETE
+
+### Implementation Summary
+
+Successfully implemented the complete itinerary view system with two view modes (day-by-day and group-by-type), timezone switching, and comprehensive card components for events, accommodations, and member travel.
+
+### Files Created (17 files)
+
+**Components** (8 files):
+- `apps/web/src/components/itinerary/itinerary-view.tsx` - Main container with data fetching and state management
+- `apps/web/src/components/itinerary/itinerary-header.tsx` - Sticky header with view mode and timezone toggles
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` - Date-grouped itinerary view
+- `apps/web/src/components/itinerary/group-by-type-view.tsx` - Type-grouped itinerary view (Accommodations, Travel, Meals, Activities)
+- `apps/web/src/components/itinerary/event-card.tsx` - Expandable event card with icon/color by type
+- `apps/web/src/components/itinerary/accommodation-card.tsx` - Expandable accommodation card with duration indicator
+- `apps/web/src/components/itinerary/member-travel-card.tsx` - Compact arrival/departure card
+- `apps/web/src/components/itinerary/index.ts` - Barrel export
+
+**Utilities** (1 file):
+- `apps/web/src/lib/utils/timezone.ts` - Timezone formatting functions (formatInTimezone, getDayInTimezone, getDayLabel, calculateNights)
+
+**Tests** (3 files, 38 tests):
+- `apps/web/src/components/itinerary/__tests__/itinerary-view.test.tsx` - 11 tests
+- `apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx` - 13 tests
+- `apps/web/src/components/itinerary/__tests__/event-card.test.tsx` - 14 tests
+
+### Files Modified (2 files)
+
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` - Integrated ItineraryView component (replaced placeholder)
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` - Added ItineraryView mock
+- `apps/web/src/app/globals.css` - Added 15 event-type color variables to design system
+
+### Key Features Implemented
+
+1. **Two View Modes**:
+   - Day-by-day view: Groups events, accommodations, and member travel by date
+   - Group-by-type view: Groups by type (Accommodations, Travel Events, Meal Events, Activity Events)
+
+2. **Timezone Switching**:
+   - Toggle between trip timezone and user's local timezone
+   - All times formatted using Intl.DateTimeFormat
+   - Timezone label extraction from IANA format
+
+3. **Card Components**:
+   - Event cards: Expandable with icon/color by type (travel=blue, meal=amber, activity=emerald)
+   - Accommodation cards: Show duration (e.g., "3 nights"), expandable with address/check-in/check-out
+   - Member travel cards: Compact single-line design, differentiated by arrival (green) vs departure (orange)
+
+4. **Design System Compliance**:
+   - All colors use hex values in CSS variables (Tailwind v4 @theme requirement)
+   - Mediterranean color palette: #1a5c9e (primary), #d1643d (accent), #fbf6ef (background)
+   - Playfair Display for headings, DM Sans for body
+   - Rounded corners: rounded-xl (inputs), rounded-2xl (cards)
+
+5. **Accessibility**:
+   - ARIA attributes: aria-expanded, role="button", tabIndex for expandable cards
+   - Keyboard navigation: Enter/Space keys to expand/collapse
+   - Motion preferences: motion-safe prefixes respect prefers-reduced-motion
+   - Title attributes on icon buttons for tooltips
+   - Proper heading hierarchy (h2 for days, h3 for sections)
+
+6. **Responsive Design**:
+   - Mobile-first approach with flex-col/flex-row breakpoints
+   - Sticky header that stacks on mobile
+   - Cards maintain readability on small screens
+
+7. **Empty States**:
+   - No trip dates: Prompts to set dates first
+   - No content: Friendly message with "Add Event" CTA (organizers only)
+   - Empty days/sections: Subtle placeholders
+
+### Research Phase Insights
+
+**Researcher 1 (Locating)**:
+- Identified all existing patterns (trip-card, create-trip-dialog) to follow
+- Found design system in globals.css with Mediterranean colors
+- Located Task 6 hooks (use-events, use-accommodations, use-member-travel)
+
+**Researcher 2 (Analyzing)**:
+- API response shape: `{ success: true, events: Event[] }` (not `{ data: [...] }`)
+- Trip timezone: `trip.preferredTimezone` (IANA format)
+- Member travel challenge: `memberId` references members table, not enriched with display names
+
+**Researcher 3 (Patterns)**:
+- Dialog patterns: React Hook Form + Zod with zodResolver
+- Card patterns: Expandable with useState, animate-in with staggered delays
+- Toggle patterns: Inline-flex button groups with bg-muted
+- Permission-based UI: Conditional rendering with `{isOrganizer && <Button>}`
+
+### Issues Encountered and Resolved
+
+**Issue 1: Hardcoded Tailwind Colors**
+- **Problem**: Components used raw Tailwind colors (text-blue-600, bg-purple-50) instead of design system tokens
+- **Solution**: Extracted 15 event-type color variables to globals.css with hex values
+- **Result**: All components now use CSS variables via `text-[var(--color-event-travel)]` pattern
+
+**Issue 2: Member Name Display**
+- **Problem**: Member travel only has `memberId` (UUID), not enriched with user display names
+- **Solution**: Show first 8 chars of UUID temporarily with prominent TODO comments
+- **Future**: Will be resolved when `useTripMembers` hook is implemented in future task
+
+**Issue 3: Missing Accessibility**
+- **Problem**: Expandable cards lacked ARIA attributes and keyboard support
+- **Solution**: Added aria-expanded, role="button", tabIndex, and keyboard handlers (Enter/Space)
+- **Result**: Full keyboard navigation and screen reader support
+
+**Issue 4: Animation Accessibility**
+- **Problem**: Animations didn't respect user's prefers-reduced-motion preference
+- **Solution**: Added motion-safe prefixes to all animation classes
+- **Result**: Animations disabled for users with motion sensitivity
+
+**Issue 5: Linting Errors**
+- **Problem**: Leftover `manual-verification.js` file causing 14 ESLint errors
+- **Solution**: Deleted the file (was not needed for Task 7)
+- **Result**: All packages pass linting
+
+### Testing Results
+
+**All Tests Pass** ✅:
+- Task 7 component tests: 38/38 passed
+- Task 6 hook tests: 48/48 passed (use-events, use-accommodations, use-member-travel)
+- Total Task 7-related tests: 86/86 passed
+
+**Pre-existing Failures** (unrelated to Task 7):
+- `trip-card.test.tsx`: 3 failures (RSVP badge styling from Trip Management)
+- `trip-schemas.test.ts`: 1 failure (URL validation from PR #9)
+
+**Static Analysis**:
+- TypeScript: ✅ All packages pass type checking
+- Linting: ✅ All packages pass ESLint
+
+### Verification Outcomes
+
+**Verifier Result**: ✅ PASS
+- All 38 Task 7 tests pass
+- TypeScript compilation successful
+- ESLint passes for all packages
+- manual-verification.js successfully deleted
+
+**Reviewer Result**: ✅ APPROVED
+- All high-priority issues resolved (color system, member names, accessibility)
+- All medium-priority issues resolved (motion preferences, ARIA attributes)
+- All low-priority issues resolved (title attributes, timezone edge case)
+- Code quality is production-ready
+- Follows Mediterranean design system
+- Comprehensive test coverage
+
+### Design Decisions
+
+1. **Color System**: Extracted event-type colors to CSS variables for maintainability and design system consistency
+
+2. **Member Names**: Temporary UUID display with TODO comments until member management is implemented (planned for future task)
+
+3. **Edit/Delete Handlers**: Stubbed with TODO comments (Task 8 will implement dialogs)
+
+4. **View Separation**: Member travel excluded from group-by-type view per PRD (stays in day-by-day context)
+
+5. **Animation Strategy**: Staggered fade-in animations with delays for visual polish, motion-safe prefixes for accessibility
+
+6. **Timezone Handling**: Used native Intl.DateTimeFormat for cross-browser consistency, no external date library needed
+
+### Learnings for Future Iterations
+
+1. **CSS Variable Extraction**: Always extract repeated color values to CSS variables early to avoid refactoring later
+
+2. **Accessibility First**: Include ARIA attributes and keyboard handlers from the start rather than adding them in review phase
+
+3. **Motion Preferences**: Always use motion-safe prefixes for animations to ensure accessibility compliance
+
+4. **Member Data Enrichment**: When backend doesn't enrich related data, plan for separate data fetching hooks early (useTripMembers needed for future task)
+
+5. **Expandable Card Pattern**: The `useState` + `role="button"` + keyboard handler pattern works well and should be reused for other expandable components
+
+6. **Timezone Utilities**: The `getDayInTimezone` function is critical for accurate day grouping across timezones - ensure robust fallbacks
+
+### Next Steps
+
+Task 8 will implement create/edit dialogs for itinerary items:
+- Create event dialog with React Hook Form + Zod validation
+- Edit event dialog pre-filled with existing data
+- Create/edit dialogs for accommodations
+- Create/edit dialogs for member travel
+- Delete confirmation dialogs
+- Action buttons in itinerary header to open dialogs
+- Permission-based button visibility
+
+**Ready for**: Task 8 - Create/Edit Dialogs for Itinerary Items

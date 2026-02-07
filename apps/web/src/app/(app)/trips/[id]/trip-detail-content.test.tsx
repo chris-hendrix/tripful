@@ -91,6 +91,13 @@ vi.mock("@/hooks/use-trips", () => ({
   useTripDetail: (tripId: string) => mockUseTripDetail(tripId),
 }));
 
+// Mock ItineraryView component
+vi.mock("@/components/itinerary", () => ({
+  ItineraryView: ({ tripId }: { tripId: string }) => (
+    <div data-testid="itinerary-view">Itinerary View for trip {tripId}</div>
+  ),
+}));
+
 // Mock EditTripDialog component
 vi.mock("@/components/trip/edit-trip-dialog", () => ({
   EditTripDialog: ({

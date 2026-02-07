@@ -26,6 +26,26 @@
   --color-ring: #1a5c9e;
   --radius: 0.5rem;
   --font-sans: var(--font-dm-sans);
+
+  /* Event type colors */
+  --color-event-travel: #2563eb;
+  --color-event-travel-light: #eff6ff;
+  --color-event-travel-border: #bfdbfe;
+  --color-event-meal: #d97706;
+  --color-event-meal-light: #fffbeb;
+  --color-event-meal-border: #fde68a;
+  --color-event-activity: #059669;
+  --color-event-activity-light: #ecfdf5;
+  --color-event-activity-border: #a7f3d0;
+  --color-accommodation: #9333ea;
+  --color-accommodation-light: #faf5ff;
+  --color-accommodation-border: #e9d5ff;
+  --color-arrival: #059669;
+  --color-arrival-light: #f0fdf4;
+  --color-arrival-border: #bbf7d0;
+  --color-departure: #ea580c;
+  --color-departure-light: #fff7ed;
+  --color-departure-border: #fed7aa;
 }
 
 @layer base {
