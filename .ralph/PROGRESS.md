@@ -200,3 +200,55 @@ Tracking implementation progress for this project.
 - Field-level form validation (Zod `FormMessage` components) and client-side validation states (like `coOrganizerError`) are separate concerns from API error notifications and should NOT be replaced with toasts.
 - The `loading.tsx` files in dashboard and trip detail still use hardcoded `bg-slate-200` colors. These were not in scope for Task 4.1 and should be addressed in a future task.
 - Installing shadcn components can overwrite existing files like `button.tsx` — always verify the gradient variant is preserved after any shadcn installation. In this iteration, button.tsx was NOT overwritten.
+
+## Iteration 5 — Task 5.1: Redesign auth layout, landing page, and dashboard grid layout
+
+**Status**: COMPLETED
+**Date**: 2026-02-07
+
+### Changes Made
+
+7 source files modified, 1 test file updated:
+
+**Source Files Modified:**
+
+1. **`apps/web/src/app/(auth)/layout.tsx`** — Complete redesign: replaced dark gradient background (`from-slate-950 via-blue-950 to-amber-950`) with warm cream `bg-background`. Removed animated pulse orbs. Added two decorative SVG compass-rose patterns at 4% opacity using `currentColor` with `text-primary` and `text-accent` classes (fully themeable). Added Tripful wordmark in Playfair Display as `<p>` element (not `<h1>` to avoid duplicate headings with child pages). Preserved `<main id="main-content">` landmark. Changed layout to `flex-col` to stack wordmark above auth card.
+
+2. **`apps/web/src/app/page.tsx`** — Complete redesign from minimal placeholder to branded landing page. Server component with warm cream `bg-background`, decorative accent bar (`bg-accent/20`), border line, and subtle border circle. Tripful wordmark in Playfair Display `<h1>` (responsive `text-5xl sm:text-7xl`). Tagline "Plan and share your adventures" in `text-muted-foreground`. Gradient CTA button linking to `/login` via `asChild` pattern with `<Link>`. All colors use design tokens.
+
+3. **`apps/web/src/app/(app)/dashboard/dashboard-content.tsx`** — Changed all three trip list containers from `space-y-4` vertical stack to `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6` responsive grid (skeleton loading, upcoming trips, past trips sections). Updated inline `SkeletonCard` image placeholder from `h-40` to `h-48` to match TripCard and loading.tsx. Adjusted FAB position from `fixed bottom-8 right-8` to `fixed bottom-6 right-6 sm:bottom-8 sm:right-8` for mobile safety.
+
+4. **`apps/web/src/components/trip/trip-card.tsx`** — Increased cover image container height from `h-40` to `h-48` for magazine-style presentation. Updated placeholder gradient (no cover image) from `from-muted to-primary/10` to `from-accent/20 via-primary/10 to-muted` for warmer travel-poster aesthetic.
+
+5. **`apps/web/src/app/(app)/dashboard/loading.tsx`** — Complete design token migration: replaced `bg-slate-200` → `bg-muted`, `border-slate-200` → `border-border`, `border-slate-100` → `border-border`, `bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50` → `bg-background`, `bg-white` → `bg-card`. Updated skeleton image height to `h-48` to match TripCard.
+
+6. **`apps/web/src/app/(app)/trips/[id]/loading.tsx`** — Replaced all `bg-slate-200` with `bg-muted` design token.
+
+**Test File Updated:**
+
+7. **`apps/web/src/components/trip/__tests__/trip-card.test.tsx`** — Updated placeholder gradient CSS selector assertion from `.from-muted.to-primary\\/10` to `.from-accent\\/20.via-primary\\/10.to-muted` to match new warm gradient classes.
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 3/3 packages clean
+- **Linting (`pnpm lint`)**: PASS — 3/3 packages clean
+- **Tests (`pnpm test`)**: PASS — 865 tests across 43 files (408 web, 374 API, 83 shared)
+- **Hardcoded color check**: PASS — zero hardcoded colors in any modified file
+- **Reviewer**: APPROVED (after one fix round)
+
+### Fix Round
+
+The initial review identified two issues:
+1. **SkeletonCard height mismatch**: The inline `SkeletonCard` in `dashboard-content.tsx` still used `h-40` while TripCard and loading.tsx used `h-48`. Fixed by changing to `h-48`.
+2. **Duplicate `<h1>` on auth pages**: The auth layout wordmark was an `<h1>`, but each child auth page (login, verify, complete-profile) also has its own `<h1>`. Fixed by changing the wordmark to a `<p>` element, keeping only the page-level heading as `<h1>`.
+
+Both fixes verified and approved in the second review round.
+
+### Learnings for Future Iterations
+
+- When changing element dimensions (like image height `h-40` → `h-48`), check ALL places where a matching skeleton/placeholder exists: the component itself, inline skeletons in parent pages, and dedicated `loading.tsx` files. All three must be kept in sync.
+- Auth layout wordmarks/branding should use non-heading elements (`<p>`, `<span>`, `<div>`) when child pages provide their own `<h1>`. Multiple `<h1>` elements on a page is an accessibility concern.
+- The `loading.tsx` files were not addressed in Task 3.1 (token migration) and contained stale hardcoded colors. This task cleaned them up as a bonus.
+- SVG decorative elements using `currentColor` with Tailwind text color classes (`text-primary`, `text-accent`) are fully themeable and follow the design token system.
+- The `asChild` pattern on shadcn `<Button>` works well for wrapping `<Link>` — the button styles are applied to the link element, maintaining both button appearance and link navigation.
+- The dashboard `loading.tsx` already had a 3-column grid layout, which was inconsistent with the `space-y-4` stack in `dashboard-content.tsx`. Now both use the same grid, eliminating layout shift during loading transitions.

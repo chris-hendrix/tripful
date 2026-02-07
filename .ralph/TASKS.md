@@ -60,7 +60,7 @@
 
 ## Phase 5: Visual Design & Layout
 
-- [ ] Task 5.1: Redesign auth layout, landing page, and dashboard grid layout
+- [x] Task 5.1: Redesign auth layout, landing page, and dashboard grid layout
   - Implement: Redesign `apps/web/src/app/(auth)/layout.tsx` — replace dark gradient + animate-pulse orbs with travel-poster-inspired layout. Use warm cream background, subtle geometric pattern or compass-rose SVG decoration, Tripful wordmark above auth card. Keep `<main>` landmark.
   - Implement: Redesign `apps/web/src/app/page.tsx` — create a simple branded landing page with travel poster aesthetic. Include Tripful wordmark in Playfair Display, tagline "Plan and share your adventures", and a CTA button to `/login`. Use the warm cream background with azure/terracotta accent.
   - Implement: Update `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` — change trip list from `space-y-4` vertical stack to responsive grid `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`. Adjust TripCard to work well in a grid layout (taller cover images for magazine-style feel).

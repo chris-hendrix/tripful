@@ -2,23 +2,69 @@ import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-amber-950">
-      {/* Texture overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Gradient orbs for depth */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+      {/* Decorative compass rose pattern */}
+      <div className="absolute inset-0 opacity-[0.04]">
+        <svg
+          className="absolute top-12 right-12 w-64 h-64 text-primary"
+          viewBox="0 0 200 200"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r="90"
+            stroke="currentColor"
+            strokeWidth="1"
+          />
+          <circle
+            cx="100"
+            cy="100"
+            r="60"
+            stroke="currentColor"
+            strokeWidth="0.5"
+          />
+          <path d="M100 10L105 100L100 190L95 100Z" fill="currentColor" />
+          <path d="M10 100L100 95L190 100L100 105Z" fill="currentColor" />
+          <path
+            d="M30 30L103 97L170 30L97 103Z"
+            fill="currentColor"
+            opacity="0.5"
+          />
+          <path
+            d="M30 170L103 103L170 170L97 97Z"
+            fill="currentColor"
+            opacity="0.5"
+          />
+        </svg>
+        <svg
+          className="absolute bottom-16 left-16 w-48 h-48 text-accent"
+          viewBox="0 0 200 200"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="100"
+            cy="100"
+            r="90"
+            stroke="currentColor"
+            strokeWidth="1"
+          />
+          <path d="M100 10L105 100L100 190L95 100Z" fill="currentColor" />
+          <path d="M10 100L100 95L190 100L100 105Z" fill="currentColor" />
+        </svg>
+      </div>
 
       <main
         id="main-content"
-        className="relative z-10 flex min-h-screen items-center justify-center p-4"
+        className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4"
       >
+        {/* Tripful wordmark */}
+        <p className="mb-8 text-4xl font-bold tracking-tight text-foreground font-[family-name:var(--font-playfair)]">
+          Tripful
+        </p>
+
         {children}
       </main>
     </div>

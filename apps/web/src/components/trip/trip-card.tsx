@@ -80,7 +80,7 @@ export const TripCard = memo(function TripCard({
     >
       {/* Cover image or placeholder */}
       {trip.coverImageUrl ? (
-        <div className="relative h-40 overflow-hidden">
+        <div className="relative h-48 overflow-hidden">
           <Image
             src={trip.coverImageUrl}
             alt={trip.name}
@@ -101,7 +101,7 @@ export const TripCard = memo(function TripCard({
           </div>
         </div>
       ) : (
-        <div className="relative h-40 overflow-hidden bg-gradient-to-br from-muted to-primary/10">
+        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-accent/20 via-primary/10 to-muted">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
           {/* Badges overlay */}

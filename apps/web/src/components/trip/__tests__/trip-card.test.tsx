@@ -157,7 +157,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={trip} />);
 
       const placeholder = container.querySelector(
-        ".bg-gradient-to-br.from-muted.to-primary\\/10",
+        ".bg-gradient-to-br.from-accent\\/20.via-primary\\/10.to-muted",
       );
       expect(placeholder).toBeDefined();
     });

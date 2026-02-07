@@ -23,7 +23,7 @@ const preloadCreateTripDialog = () =>
 function SkeletonCard() {
   return (
     <div className="bg-card rounded-2xl overflow-hidden border border-border">
-      <Skeleton className="h-40 w-full rounded-none" />
+      <Skeleton className="h-48 w-full rounded-none" />
       <div className="p-4 space-y-3">
         <div className="space-y-2">
           <Skeleton className="h-6 w-3/4" />
@@ -119,7 +119,7 @@ export function DashboardContent() {
 
         {/* Loading State */}
         {isPending && (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -194,7 +194,7 @@ export function DashboardContent() {
                 <h2 className="text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Upcoming trips
                 </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcomingTrips.map((trip, index) => (
                     <TripCard key={trip.id} trip={trip} index={index} />
                   ))}
@@ -208,7 +208,7 @@ export function DashboardContent() {
                 <h2 className="text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Past trips
                 </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pastTrips.map((trip, index) => (
                     <TripCard key={trip.id} trip={trip} index={index} />
                   ))}
@@ -226,7 +226,7 @@ export function DashboardContent() {
         onFocus={preloadCreateTripDialog}
         variant="gradient"
         size="icon"
-        className="fixed bottom-8 right-8 w-14 h-14 rounded-full z-50"
+        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 rounded-full z-50"
         aria-label="Create new trip"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
