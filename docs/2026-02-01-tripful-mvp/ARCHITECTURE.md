@@ -469,116 +469,123 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ```
 apps/api/
 ├── src/
-│   ├── server.ts                 # Fastify app initialization
+│   ├── app.ts                    # buildApp() factory - configures and returns FastifyInstance
+│   ├── server.ts                 # Production server entry (calls buildApp, listens, graceful shutdown)
+│   ├── errors.ts                 # Typed errors via @fastify/error (UnauthorizedError, TripNotFoundError, etc.)
 │   ├── config/
 │   │   ├── database.ts           # Drizzle config
-│   │   ├── redis.ts              # Redis config
-│   │   └── env.ts                # Environment variables
+│   │   ├── env.ts                # Zod-validated environment variables
+│   │   └── jwt.ts                # JWT configuration
+│   ├── plugins/                  # Fastify plugins (dependency injection via fastify.decorate)
+│   │   ├── config.ts             # fastify.config - validated env
+│   │   ├── database.ts           # fastify.db - Drizzle instance
+│   │   ├── auth-service.ts       # fastify.authService
+│   │   ├── permissions-service.ts # fastify.permissionsService
+│   │   ├── trip-service.ts       # fastify.tripService
+│   │   ├── upload-service.ts     # fastify.uploadService
+│   │   ├── sms-service.ts        # fastify.smsService
+│   │   └── health-service.ts     # fastify.healthService
 │   ├── routes/
-│   │   ├── auth.routes.ts
-│   │   ├── trips.routes.ts
-│   │   ├── events.routes.ts
-│   │   ├── accommodations.routes.ts
-│   │   ├── travel.routes.ts      # Member travel (arrivals/departures)
-│   │   └── rsvp.routes.ts
+│   │   ├── auth.routes.ts        # Zod schema validation + rate limiting
+│   │   ├── trip.routes.ts        # Scoped hooks for auth + profile completion
+│   │   ├── health.routes.ts      # /health, /health/live, /health/ready
+│   │   ├── events.routes.ts      # 🚧 Future
+│   │   ├── accommodations.routes.ts # 🚧 Future
+│   │   ├── travel.routes.ts      # 🚧 Future
+│   │   └── rsvp.routes.ts        # 🚧 Future
 │   ├── controllers/
 │   │   ├── auth.controller.ts
-│   │   ├── trips.controller.ts
-│   │   ├── events.controller.ts
+│   │   ├── trip.controller.ts
+│   │   ├── health.controller.ts
 │   │   └── ...
 │   ├── services/
 │   │   ├── auth.service.ts
-│   │   ├── trips.service.ts
-│   │   ├── events.service.ts
-│   │   ├── sms.service.ts        # Abstract SMS interface
-│   │   ├── storage.service.ts    # Abstract storage interface
+│   │   ├── trip.service.ts       # Transactions, pagination, column selection
+│   │   ├── sms.service.ts        # Mock SMS (console logging for dev/test)
+│   │   ├── upload.service.ts     # File upload with validation
 │   │   └── permissions.service.ts
 │   ├── middleware/
-│   │   ├── auth.middleware.ts    # JWT verification
-│   │   ├── validate.middleware.ts # Zod validation
-│   │   ├── error.middleware.ts
-│   │   └── rate-limit.middleware.ts
+│   │   ├── auth.middleware.ts    # JWT verification + profile completion check
+│   │   ├── error.middleware.ts   # Handles Zod, rate limit, JWT, multipart, DB constraint errors
+│   │   └── rate-limit.middleware.ts # SMS (5/hr) and verify code (10/15min) rate limits
 │   ├── db/
 │   │   ├── schema/
-│   │   │   └── index.ts           # ✅ All schemas in single file (users, verification_codes, trips, members)
+│   │   │   ├── index.ts           # ✅ Table definitions (users, verification_codes, trips, members)
+│   │   │   └── relations.ts       # ✅ Drizzle relations (users↔trips↔members)
 │   │   │                          # 🚧 Future: invitations, events, accommodations, travel tables
-│   │   ├── migrations/
-│   │   └── seed.ts
+│   │   └── migrations/
 │   ├── types/
-│   │   └── index.ts
+│   │   └── index.ts              # FastifyInstance type augmentation (config, db, services)
 │   └── utils/
-│       ├── jwt.ts
-│       ├── timezone.ts
-│       └── validation.ts
+│       └── phone.ts              # Phone number formatting
 ├── tests/
 │   ├── unit/
-│   └── integration/
+│   ├── integration/
+│   └── helpers.ts                # Test helpers using buildApp()
 └── package.json
 ```
 
 #### Fastify Configuration
 
-**Server Setup**
+**Plugin Architecture with `buildApp()`**
+
+The API uses a `buildApp()` factory pattern for testable server setup. All services are registered as Fastify plugins using `fastify-plugin` and injected via `fastify.decorate()`.
 
 ```typescript
-// src/server.ts
-import Fastify from "fastify";
-import cors from "@fastify/cors";
-import jwt from "@fastify/jwt";
-import rateLimit from "@fastify/rate-limit";
+// src/app.ts - Configures and returns a fully wired FastifyInstance
+export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
+  const fastify = Fastify(opts.fastify);
 
-const fastify = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || "info",
-  },
-});
+  // 1. Core plugins (config must be first, database depends on config)
+  await fastify.register(configPlugin);
+  await fastify.register(databasePlugin);
 
-// Plugins
-await fastify.register(cors, {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true,
-});
+  // 2. Security & middleware plugins
+  await fastify.register(cors, { origin: fastify.config.FRONTEND_URL, credentials: true });
+  await fastify.register(helmet, { contentSecurityPolicy: false });
+  await fastify.register(rateLimit, { max: 100, timeWindow: "15 minutes" });
+  await fastify.register(jwt, { secret: fastify.config.JWT_SECRET });
+  await fastify.register(cookie);
+  await fastify.register(multipart, { limits: { fileSize: fastify.config.MAX_FILE_SIZE } });
 
-await fastify.register(jwt, {
-  secret: process.env.JWT_SECRET!,
-  sign: {
-    expiresIn: "7d",
-  },
-});
+  // 3. Service plugins (decorated onto fastify instance)
+  await fastify.register(authServicePlugin);
+  await fastify.register(tripServicePlugin);
+  await fastify.register(permissionsServicePlugin);
+  await fastify.register(uploadServicePlugin);
+  await fastify.register(smsServicePlugin);
+  await fastify.register(healthServicePlugin);
 
-await fastify.register(rateLimit, {
-  max: 100,
-  timeWindow: "15 minutes",
-});
+  // 4. Error handler + routes
+  fastify.setErrorHandler(errorHandler);
+  await fastify.register(authRoutes, { prefix: "/api/auth" });
+  await fastify.register(tripRoutes, { prefix: "/api/trips" });
+  await fastify.register(healthRoutes, { prefix: "/api/health" });
 
-// Routes
-await fastify.register(authRoutes, { prefix: "/api/auth" });
-await fastify.register(tripsRoutes, { prefix: "/api/trips" });
-await fastify.register(eventsRoutes, { prefix: "/api/events" });
-// ... other routes
-
-const start = async () => {
-  try {
-    await fastify.listen({
-      port: Number(process.env.PORT) || 8000,
-      host: "0.0.0.0",
-    });
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
+  return fastify;
+}
 ```
 
-**Plugin Architecture**
+```typescript
+// src/server.ts - Production entry point
+const app = await buildApp({ fastify: { logger: { level: config.LOG_LEVEL } } });
+await app.listen({ port: config.PORT, host: config.HOST });
 
-- `@fastify/cors` - CORS handling
-- `@fastify/jwt` - JWT authentication
-- `@fastify/rate-limit` - Rate limiting for SMS endpoints
+// Graceful shutdown via close-with-grace
+```
+
+**Registered Fastify Plugins**
+
+- `@fastify/cors` - CORS handling (allows frontend origin)
+- `@fastify/jwt` - JWT authentication with httpOnly cookies
+- `@fastify/rate-limit` - Rate limiting (global + per-endpoint)
+- `@fastify/helmet` - Security headers (CSP, HSTS, etc.)
+- `@fastify/multipart` - File uploads with size limits
+- `@fastify/cookie` - Cookie parsing for JWT
+- `@fastify/under-pressure` - Health monitoring
+- `@fastify/static` - Static file serving (uploads)
+- `@fastify/error` - Typed error creation
 - `@fastify/swagger` - API documentation (future)
-- `@fastify/multipart` - File uploads
 
 ### 3. Database Layer (PostgreSQL + Drizzle ORM)
 
@@ -3080,23 +3087,27 @@ apps/web/
 
 ### 3. Input Validation
 
-- **Zod Schemas**: Shared between frontend and backend
-- **Sanitization**: Strip HTML/scripts from text inputs
-- **File Uploads**: Validate MIME types, file size limits (5MB)
+- **Zod Route Schemas**: Routes use `fastify-type-provider-zod` for schema validation at the route level
+- **Shared Schemas**: Zod schemas shared between frontend and backend (`@tripful/shared/schemas`)
+- **Typed Errors**: All API errors use `@fastify/error` with specific error codes and HTTP status codes
+- **File Uploads**: Validate MIME types, file size limits (configurable via `MAX_FILE_SIZE`)
 
 ```typescript
-// Shared validation schema
-import { z } from "zod";
+// Route-level Zod schema validation
+fastify.post("/request-code", {
+  schema: { body: requestCodeSchema },
+  preHandler: fastify.rateLimit(smsRateLimitConfig),
+}, authController.requestCode);
 
-export const createEventSchema = z.object({
-  title: z.string().min(3).max(200),
-  startDate: z.string().date(),
-  startTime: z.string().time().optional(),
-  location: z.string().max(500).optional(),
-  description: z.string().max(2000).optional(),
-  links: z.array(z.string().url()).max(10).optional(),
-});
+// Typed errors (src/errors.ts)
+const TripNotFoundError = createError("TRIP_NOT_FOUND", "Trip not found", 404);
+const PermissionDeniedError = createError("PERMISSION_DENIED", "...", 403);
 ```
+
+### 3a. Security Headers
+
+- **Helmet**: `@fastify/helmet` adds security headers (X-Content-Type-Options, X-Frame-Options, HSTS, etc.)
+- **CSP**: Content Security Policy disabled for development (configurable)
 
 ### 4. Data Privacy
 
@@ -3122,19 +3133,21 @@ fastify.register(cors, {
 ### 7. Rate Limiting
 
 ```typescript
-// Global rate limit
-fastify.register(rateLimit, {
-  max: 100,
-  timeWindow: "15 minutes",
-});
+// Global rate limit (registered in buildApp)
+fastify.register(rateLimit, { max: 100, timeWindow: "15 minutes" });
 
-// SMS endpoint rate limit (stricter)
-fastify.register(rateLimit, {
-  max: 5,
-  timeWindow: "1 hour",
-  keyGenerator: (req) => req.body.phoneNumber,
-});
+// Per-endpoint rate limits (src/middleware/rate-limit.middleware.ts)
+smsRateLimitConfig:     // 5 requests/hour per phone number
+verifyCodeRateLimitConfig: // 10 attempts/15 minutes per phone number
 ```
+
+### 8. Health Endpoints
+
+Three health endpoints for monitoring and orchestration:
+
+- `GET /api/health` - Full status with database connection check
+- `GET /api/health/live` - Liveness probe (instant 200)
+- `GET /api/health/ready` - Readiness probe (503 if DB unavailable)
 
 ---
 
