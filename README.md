@@ -159,16 +159,19 @@ You should see: `localhost:5432 - accepting connections`
 ### 5. Set Up Pre-commit Hooks (Automatic)
 
 Pre-commit hooks are already configured with Husky! They will automatically:
+
 - **Scan for secrets**: Uses GitGuardian ggshield via Docker to detect hardcoded credentials
 - **Prevent sensitive data commits**: Blocks commits if secrets are found
 
 **No setup required** - the hooks are automatically installed when you run `pnpm install`.
 
 **Requirements**:
+
 - Docker must be installed and running (already needed for the database)
 - If Docker is not available, the hook will skip with a warning
 
 **Manual scan** (test the hook):
+
 ```bash
 # Scan staged changes
 docker run --rm -v "$(pwd):/data" gitguardian/ggshield:latest ggshield secret scan pre-commit
@@ -178,6 +181,7 @@ docker run --rm -v "$(pwd):/data" gitguardian/ggshield:latest ggshield secret sc
 ```
 
 **Optional: GitGuardian API key** (for dashboard features):
+
 ```bash
 # Sign up at dashboard.gitguardian.com to get a key
 export GITGUARDIAN_API_KEY="your-api-key-here"
@@ -441,16 +445,19 @@ See [scripts/README.md](scripts/README.md) for detailed documentation on each te
 
 The API requires the following environment variables:
 
-| Variable            | Description                      | Default                   | Required |
-| ------------------- | -------------------------------- | ------------------------- | -------- |
-| `NODE_ENV`          | Environment mode                 | `development`             | Yes      |
-| `PORT`              | API server port                  | `8000`                    | Yes      |
-| `HOST`              | Server host binding              | `0.0.0.0`                 | Yes      |
-| `DATABASE_URL`      | PostgreSQL connection string     | See below                 | Yes      |
-| `TEST_DATABASE_URL` | Test database connection string  | See below                 | No       |
-| `JWT_SECRET`        | Secret key for JWT token signing | Must change in production | Yes      |
-| `FRONTEND_URL`      | Frontend URL for CORS            | `http://localhost:3000`   | Yes      |
-| `LOG_LEVEL`         | Logging verbosity                | `info`                    | No       |
+| Variable             | Description                                                   | Default                           | Required |
+| -------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| `NODE_ENV`           | Environment mode                                              | `development`                     | Yes      |
+| `PORT`               | API server port                                               | `8000`                            | Yes      |
+| `HOST`               | Server host binding                                           | `0.0.0.0`                         | Yes      |
+| `DATABASE_URL`       | PostgreSQL connection string                                  | See below                         | Yes      |
+| `TEST_DATABASE_URL`  | Test database connection string                               | See below                         | No       |
+| `JWT_SECRET`         | Secret key for JWT token signing                              | Must change in production         | Yes      |
+| `FRONTEND_URL`       | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
+| `LOG_LEVEL`          | Logging verbosity                                             | `info`                            | No       |
+| `UPLOAD_DIR`         | Directory for uploaded files                                  | `uploads`                         | No       |
+| `MAX_FILE_SIZE`      | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
+| `ALLOWED_MIME_TYPES` | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
 
 **Database URL Format**:
 

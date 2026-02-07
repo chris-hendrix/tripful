@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { requestCodeSchema, type RequestCodeInput } from '@tripful/shared';
-import { useAuth } from '@/app/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { requestCodeSchema, type RequestCodeInput } from "@tripful/shared";
+import { useAuth } from "@/app/providers/auth-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -16,7 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function LoginPage() {
   const form = useForm<RequestCodeInput>({
     resolver: zodResolver(requestCodeSchema),
     defaultValues: {
-      phoneNumber: '',
+      phoneNumber: "",
     },
   });
 
@@ -36,8 +36,8 @@ export default function LoginPage() {
       await login(data.phoneNumber);
       router.push(`/verify?phone=${encodeURIComponent(data.phoneNumber)}`);
     } catch (error) {
-      form.setError('phoneNumber', {
-        message: error instanceof Error ? error.message : 'Request failed',
+      form.setError("phoneNumber", {
+        message: error instanceof Error ? error.message : "Request failed",
       });
     } finally {
       setIsSubmitting(false);
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
               >
-                {isSubmitting ? 'Sending...' : 'Continue'}
+                {isSubmitting ? "Sending..." : "Continue"}
               </Button>
             </form>
           </Form>

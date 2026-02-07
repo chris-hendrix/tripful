@@ -62,9 +62,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl" />
               <div>
-                <h1 className="text-4xl font-serif tracking-tight">
-                  Tripful
-                </h1>
+                <h1 className="text-4xl font-serif tracking-tight">Tripful</h1>
                 <p className="text-sm text-slate-600">Design Mockups</p>
               </div>
             </div>
@@ -80,8 +78,8 @@ export default function Home() {
             Modern Travel Editorial
           </h2>
           <p className="text-xl text-slate-600 leading-relaxed">
-            Production-grade UI mockups for collaborative trip planning.
-            Click any screen below to view the full interactive mockup.
+            Production-grade UI mockups for collaborative trip planning. Click
+            any screen below to view the full interactive mockup.
           </p>
         </div>
 

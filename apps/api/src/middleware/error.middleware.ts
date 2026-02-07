@@ -1,9 +1,9 @@
-import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 
 export async function errorHandler(
   error: FastifyError,
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
 ) {
   // Log error with context
   request.log.error({
@@ -21,8 +21,8 @@ export async function errorHandler(
     return reply.status(400).send({
       success: false,
       error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
+        code: "VALIDATION_ERROR",
+        message: "Invalid request data",
         details: error.validation,
       },
     });
@@ -34,8 +34,10 @@ export async function errorHandler(
     return reply.status(429).send({
       success: false,
       error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: rateLimitError.customRateLimitMessage || 'Too many requests. Please try again later.',
+        code: "RATE_LIMIT_EXCEEDED",
+        message:
+          rateLimitError.customRateLimitMessage ||
+          "Too many requests. Please try again later.",
       },
     });
   }
@@ -45,30 +47,65 @@ export async function errorHandler(
     return reply.status(401).send({
       success: false,
       error: {
-        code: 'UNAUTHORIZED',
-        message: 'Invalid or expired token',
+        code: "UNAUTHORIZED",
+        message: "Invalid or expired token",
+      },
+    });
+  }
+
+  // Multipart file upload errors - file too large
+  if (
+    error.code === "FST_REQ_FILE_TOO_LARGE" ||
+    error.code === "FST_FILES_LIMIT" ||
+    error.code === "FST_PARTS_LIMIT" ||
+    error.code === "FST_FIELDS_LIMIT" ||
+    error.message?.toLowerCase().includes("body is too large") ||
+    error.message?.toLowerCase().includes("file too large") ||
+    error.message?.toLowerCase().includes("files limit") ||
+    error.message?.toLowerCase().includes("parts limit") ||
+    error.statusCode === 413
+  ) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Image must be under 5MB. Please choose a smaller file",
+      },
+    });
+  }
+
+  // Multipart content-type errors
+  if (
+    error.code === "FST_INVALID_MULTIPART_CONTENT_TYPE" ||
+    error.message?.includes("the request is not multipart")
+  ) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "No file uploaded",
       },
     });
   }
 
   // Database errors (PostgreSQL constraint violations)
-  if (error.code?.startsWith('23')) {
+  if (error.code?.startsWith("23")) {
     return reply.status(409).send({
       success: false,
       error: {
-        code: 'DATABASE_CONSTRAINT_VIOLATION',
-        message: 'Database constraint violation',
+        code: "DATABASE_CONSTRAINT_VIOLATION",
+        message: "Database constraint violation",
       },
     });
   }
 
   // Default error (hide internal details in production)
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV === "development";
   return reply.status(error.statusCode || 500).send({
     success: false,
     error: {
-      code: error.code || 'INTERNAL_SERVER_ERROR',
-      message: isDevelopment ? error.message : 'An unexpected error occurred',
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: isDevelopment ? error.message : "An unexpected error occurred",
       ...(isDevelopment && { stack: error.stack }),
     },
   });

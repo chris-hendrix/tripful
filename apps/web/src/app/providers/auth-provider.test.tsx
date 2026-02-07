@@ -1,26 +1,26 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { renderHook, act } from '@testing-library/react';
-import { AuthProvider, useAuth } from './auth-provider';
-import type { User } from '@tripful/shared';
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
+import { AuthProvider, useAuth } from "./auth-provider";
+import type { User } from "@tripful/shared";
 
 // Mock Next.js router
-vi.mock('next/navigation', () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
 }));
 
 const mockUser: User = {
-  id: '123',
-  phoneNumber: '+15551234567',
-  displayName: 'Test User',
-  timezone: 'America/New_York',
+  id: "123",
+  phoneNumber: "+15551234567",
+  displayName: "Test User",
+  timezone: "America/New_York",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };
 
-describe('AuthProvider', () => {
+describe("AuthProvider", () => {
   beforeEach(() => {
     global.fetch = vi.fn();
   });
@@ -29,7 +29,7 @@ describe('AuthProvider', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders children', () => {
+  it("renders children", () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -38,13 +38,13 @@ describe('AuthProvider', () => {
     render(
       <AuthProvider>
         <div>Test Child</div>
-      </AuthProvider>
+      </AuthProvider>,
     );
 
-    expect(screen.getByText('Test Child')).toBeDefined();
+    expect(screen.getByText("Test Child")).toBeDefined();
   });
 
-  it('fetches user on mount', async () => {
+  it("fetches user on mount", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ user: mockUser }),
@@ -62,12 +62,12 @@ describe('AuthProvider', () => {
 
     expect(result.current.user).toEqual(mockUser);
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/me'),
-      expect.objectContaining({ credentials: 'include' })
+      expect.stringContaining("/auth/me"),
+      expect.objectContaining({ credentials: "include" }),
     );
   });
 
-  it('handles fetch user failure gracefully', async () => {
+  it("handles fetch user failure gracefully", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -86,14 +86,14 @@ describe('AuthProvider', () => {
     expect(result.current.user).toBeNull();
   });
 
-  it('throws error when useAuth is used outside provider', () => {
+  it("throws error when useAuth is used outside provider", () => {
     expect(() => {
       renderHook(() => useAuth());
-    }).toThrow('useAuth must be used within AuthProvider');
+    }).toThrow("useAuth must be used within AuthProvider");
   });
 
-  describe('login', () => {
-    it('calls POST /auth/request-code', async () => {
+  describe("login", () => {
+    it("calls POST /auth/request-code", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -111,24 +111,24 @@ describe('AuthProvider', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ success: true, message: 'Code sent' }),
+        json: async () => ({ success: true, message: "Code sent" }),
       } as Response);
 
       await act(async () => {
-        await result.current.login('+15551234567');
+        await result.current.login("+15551234567");
       });
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/request-code'),
+        expect.stringContaining("/auth/request-code"),
         expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: '+15551234567' }),
-        })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: "+15551234567" }),
+        }),
       );
     });
 
-    it('throws error on failed login', async () => {
+    it("throws error on failed login", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -146,19 +146,19 @@ describe('AuthProvider', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: { message: 'Invalid phone number' } }),
+        json: async () => ({ error: { message: "Invalid phone number" } }),
       } as Response);
 
       await expect(
         act(async () => {
-          await result.current.login('invalid');
-        })
-      ).rejects.toThrow('Invalid phone number');
+          await result.current.login("invalid");
+        }),
+      ).rejects.toThrow("Invalid phone number");
     });
   });
 
-  describe('verify', () => {
-    it('calls POST /auth/verify-code and updates user state', async () => {
+  describe("verify", () => {
+    it("calls POST /auth/verify-code and updates user state", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -181,23 +181,23 @@ describe('AuthProvider', () => {
 
       let verifyResult;
       await act(async () => {
-        verifyResult = await result.current.verify('+15551234567', '123456');
+        verifyResult = await result.current.verify("+15551234567", "123456");
       });
 
       expect(verifyResult).toEqual({ requiresProfile: false });
       expect(result.current.user).toEqual(mockUser);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/verify-code'),
+        expect.stringContaining("/auth/verify-code"),
         expect.objectContaining({
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: '+15551234567', code: '123456' }),
-        })
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: "+15551234567", code: "123456" }),
+        }),
       );
     });
 
-    it('does not update user state when profile is required', async () => {
+    it("does not update user state when profile is required", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -220,14 +220,14 @@ describe('AuthProvider', () => {
 
       let verifyResult;
       await act(async () => {
-        verifyResult = await result.current.verify('+15551234567', '123456');
+        verifyResult = await result.current.verify("+15551234567", "123456");
       });
 
       expect(verifyResult).toEqual({ requiresProfile: true });
       expect(result.current.user).toBeNull();
     });
 
-    it('throws error on failed verification', async () => {
+    it("throws error on failed verification", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -245,19 +245,19 @@ describe('AuthProvider', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: { message: 'Invalid code' } }),
+        json: async () => ({ error: { message: "Invalid code" } }),
       } as Response);
 
       await expect(
         act(async () => {
-          await result.current.verify('+15551234567', '000000');
-        })
-      ).rejects.toThrow('Invalid code');
+          await result.current.verify("+15551234567", "000000");
+        }),
+      ).rejects.toThrow("Invalid code");
     });
   });
 
-  describe('completeProfile', () => {
-    it('calls POST /auth/complete-profile and updates user state', async () => {
+  describe("completeProfile", () => {
+    it("calls POST /auth/complete-profile and updates user state", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -280,27 +280,27 @@ describe('AuthProvider', () => {
 
       await act(async () => {
         await result.current.completeProfile({
-          displayName: 'Test User',
-          timezone: 'America/New_York',
+          displayName: "Test User",
+          timezone: "America/New_York",
         });
       });
 
       expect(result.current.user).toEqual(mockUser);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/complete-profile'),
+        expect.stringContaining("/auth/complete-profile"),
         expect.objectContaining({
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            displayName: 'Test User',
-            timezone: 'America/New_York',
+            displayName: "Test User",
+            timezone: "America/New_York",
           }),
-        })
+        }),
       );
     });
 
-    it('throws error on failed profile completion', async () => {
+    it("throws error on failed profile completion", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -318,21 +318,21 @@ describe('AuthProvider', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: { message: 'Invalid display name' } }),
+        json: async () => ({ error: { message: "Invalid display name" } }),
       } as Response);
 
       await expect(
         act(async () => {
           await result.current.completeProfile({
-            displayName: '',
+            displayName: "",
           });
-        })
-      ).rejects.toThrow('Invalid display name');
+        }),
+      ).rejects.toThrow("Invalid display name");
     });
   });
 
-  describe('logout', () => {
-    it('calls POST /auth/logout and clears user state', async () => {
+  describe("logout", () => {
+    it("calls POST /auth/logout and clears user state", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ user: mockUser }),
@@ -350,7 +350,7 @@ describe('AuthProvider', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ success: true, message: 'Logged out' }),
+        json: async () => ({ success: true, message: "Logged out" }),
       } as Response);
 
       await act(async () => {
@@ -359,17 +359,17 @@ describe('AuthProvider', () => {
 
       expect(result.current.user).toBeNull();
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/logout'),
+        expect.stringContaining("/auth/logout"),
         expect.objectContaining({
-          method: 'POST',
-          credentials: 'include',
-        })
+          method: "POST",
+          credentials: "include",
+        }),
       );
     });
   });
 
-  describe('refetch', () => {
-    it('refetches user data', async () => {
+  describe("refetch", () => {
+    it("refetches user data", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 401,

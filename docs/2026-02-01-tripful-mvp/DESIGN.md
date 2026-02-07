@@ -10,6 +10,7 @@ topic: Tripful - UI/UX Design Documentation
 **Modern Travel Editorial** - A design language that balances sophistication with warmth, optimized for collaborative trip planning.
 
 ### Core Principles
+
 - **Clarity First**: Information hierarchy that makes complex itineraries scannable
 - **Touch-Optimized**: Mobile-first with large touch targets (min 44px)
 - **Delightful Motion**: Subtle animations that guide attention without distraction
@@ -17,6 +18,7 @@ topic: Tripful - UI/UX Design Documentation
 - **Warm Gradients**: Ocean-to-sunset color palette (slate → blue → amber)
 
 ### Visual Language
+
 - **Color Palette**:
   - Primary: Blue-600 to Cyan-600 gradient
   - Backgrounds: Subtle multi-stop gradients (slate-50 → blue-50/30 → amber-50/30)
@@ -47,6 +49,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Design mockup navigation hub
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ Header                              │
@@ -69,12 +72,14 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 **Components**:
+
 - **Header**: Glass-morphic sticky header with logo and version badge
 - **Hero**: Large serif headline with gradient background
 - **Grid**: 3-column responsive grid (2-col tablet, 1-col mobile)
 - **Cards**: Hover-lift effect with arrow indicator
 
 **Interactions**:
+
 - Staggered fade-in animations (100ms delay between cards)
 - Hover: shadow-xl, border-blue-300, arrow translation
 - Click: Navigate to mockup page
@@ -86,6 +91,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Phone verification flow (2 steps)
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │                                     │
@@ -109,22 +115,26 @@ topic: Tripful - UI/UX Design Documentation
 **Design Details**:
 
 **Background**:
+
 - Dark gradient: slate-950 → blue-950 → amber-950
 - Animated gradient orbs (pulse effect)
 - Subtle texture overlay (SVG pattern at 1.5% opacity)
 
 **Card**:
+
 - White rounded-3xl with shadow-2xl
 - Padding: 32-48px (responsive)
 - Centered in viewport
 
 **Step 1 - Phone Entry**:
+
 - Headline: "Get started" (3xl semibold)
 - Phone input: Large (h-12), tel type, placeholder with format
 - Button: Full-width gradient (blue-600 → cyan-600)
 - Helper: SMS disclaimer in small text
 
 **Step 2 - Verification**:
+
 - Headline: "Verify your number"
 - Shows entered phone number (bold)
 - Code input: Centered, 2xl, monospace, tracking-widest, maxLength=6
@@ -133,6 +143,7 @@ topic: Tripful - UI/UX Design Documentation
 - Link: "Resend code" (text-blue-600)
 
 **Transitions**:
+
 - Smooth fade between steps
 - Slide-in animation from bottom
 - Staggered delays (branding → form)
@@ -144,6 +155,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Mobile-first trip list with search
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ My Trips              [👤]          │
@@ -181,12 +193,14 @@ topic: Tripful - UI/UX Design Documentation
 **Components**:
 
 **Header** (sticky):
+
 - Title: "My Trips" (Playfair Display 3xl)
 - Subtitle: Event count
 - Profile avatar button (slate-100 circle)
 - Search: Full-width with icon, slate-100 background
 
 **Trip Cards** (upcoming):
+
 - Cover image: 160px height with gradient overlay
 - Badges: Overlay top-left (Organizing, RSVP status)
 - Content: 16px padding
@@ -198,11 +212,13 @@ topic: Tripful - UI/UX Design Documentation
 - Animation: Staggered fade-in (100ms delays)
 
 **Trip Cards** (past):
+
 - Reduced opacity (bg-white/60)
 - Horizontal layout: Thumbnail (80px) + compact info
 - No badges
 
 **FAB** (Floating Action Button):
+
 - Position: fixed bottom-24 right-4
 - Size: 56×56px
 - Gradient: blue-600 → cyan-600
@@ -210,6 +226,7 @@ topic: Tripful - UI/UX Design Documentation
 - Shadow: 2xl with blue-500/40 tint
 
 **Bottom Navigation**:
+
 - Fixed bottom bar
 - 4 items: Trips (active/blue), Search, Alerts, Profile (inactive/slate)
 - Icon + label stacked
@@ -222,6 +239,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Multi-step form with live preview
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Create Trip                       │
@@ -253,6 +271,7 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 **Form Fields**:
+
 - **Trip Name**: Required, 3-100 chars, large input
 - **Destination**: Required, with location icon
 - **Dates**: Optional date range picker
@@ -261,11 +280,13 @@ topic: Tripful - UI/UX Design Documentation
 - **Cover Image**: File upload (5MB max) or URL input
 
 **Validation**:
+
 - Real-time validation on blur
 - Error states: Red border + error message
 - Success: Green checkmark
 
 **Preview** (desktop):
+
 - Split screen: Form left, preview right
 - Live updates as user types
 - Shows how trip will appear to invitees
@@ -277,6 +298,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Public trip view before RSVP (partial preview)
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │                                     │
@@ -306,20 +328,24 @@ topic: Tripful - UI/UX Design Documentation
 **Sections**:
 
 **Hero**:
+
 - Cover image: Full-width, 320px height
 - Gradient overlay: bottom fade to white
 
 **Trip Info**:
+
 - Title: 3xl Playfair Display
 - Location: Icon + text
 - Dates: Icon + range (in trip timezone)
 - Description: Prose format, line breaks preserved
 
 **Organizer**:
+
 - Avatar + name
 - Multiple organizers: Stacked avatars with "+N"
 
 **RSVP Card**:
+
 - White card with border
 - Question: "Will you be attending?"
 - Buttons: 3-up grid
@@ -329,6 +355,7 @@ topic: Tripful - UI/UX Design Documentation
 - Large touch targets (min h-12)
 
 **Hidden** (until RSVP "Going"):
+
 - Itinerary events
 - Member list
 - Event details
@@ -340,6 +367,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Core feature - day-by-day timeline with location grouping
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ [🔷] Bachelor Party Weekend    [⋮]  │
@@ -378,10 +406,12 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 **Header** (sticky):
+
 - Logo + Trip name (2xl Playfair)
 - Settings button (dots menu)
 
 **Controls** (responsive):
+
 - **Desktop**: Horizontal row
   - Toggles left: [Day by day | By type] [Trip time | My time]
   - Timezone text right: "Showing times in..."
@@ -390,11 +420,13 @@ topic: Tripful - UI/UX Design Documentation
   - Timezone text below
 
 **Trip Meta**:
+
 - Location, dates, event count
 - Responsive: Horizontal row (sm+), stacked (mobile)
 - Separator dots between items (hidden mobile)
 
 **Date Header**:
+
 - Date badge: 64×64px, blue gradient, rounded-2xl
   - Number: 2xl bold
   - Day: xs uppercase
@@ -406,11 +438,13 @@ topic: Tripful - UI/UX Design Documentation
   - Horizontal flow with wrapping
 
 **Event Sorting**:
+
 - All-day events always appear first
 - Timed events sorted by start time
 - Within same time, maintain creation order
 
 **Timeline**:
+
 - Left border: 2px slate-200
 - Left padding:
   - Mobile: 40px (ml-4 pl-6)
@@ -418,6 +452,7 @@ topic: Tripful - UI/UX Design Documentation
 - Spacing: 16px between events (space-y-4)
 
 **Timeline Dots**:
+
 - Position:
   - Mobile: absolute -left-[29px]
   - Desktop: sm:-left-[33px]
@@ -426,6 +461,7 @@ topic: Tripful - UI/UX Design Documentation
 - Hover: scale-150
 
 **Event Cards**:
+
 - White background, rounded-xl
 - Border: 1px slate-200
 - Padding: 16px
@@ -433,6 +469,7 @@ topic: Tripful - UI/UX Design Documentation
 - Click: Expand for details
 
 **Event Card Structure**:
+
 - Gap between sections: 8px mobile (gap-2), 12px desktop (sm:gap-3)
 - **Time** (right-aligned, min-w-[70px]):
   - All day: Badge "All day" (slate-600)
@@ -452,6 +489,7 @@ topic: Tripful - UI/UX Design Documentation
 - **Expand icon**: Chevron, rotates 180° when expanded
 
 **Expanded Event**:
+
 - Border-top: slate-100
 - Padding-top: 16px
 - Description: Prose format
@@ -462,6 +500,7 @@ topic: Tripful - UI/UX Design Documentation
 - Footer: Creator avatar (6×6) + edit button
 
 **Event Type Colors**:
+
 - Travel: Blue (✈️)
 - Meal: Amber (🍽️)
 - Activity: Emerald (🎉)
@@ -469,6 +508,7 @@ topic: Tripful - UI/UX Design Documentation
 **Note**: Accommodation (🏨 Purple) is a separate entity type with its own form, not an event type.
 
 **FAB**:
+
 - Position: fixed bottom-8 right-8
 - Size: 64×64px
 - Gradient: blue-600 → cyan-600
@@ -476,11 +516,13 @@ topic: Tripful - UI/UX Design Documentation
 - Shadow: 2xl with blue-500/40
 
 **Location Change Design**:
+
 - Travel events with arrow notation (e.g., "Miami → Key West")
 - Appear in location chips at day level
 - Show transitions between cities in timeline
 
 **Multi-Day Events**:
+
 - Events with end dates (e.g., accommodation Oct 12-15)
 - Appear once on the start date with a "Multi-day" badge showing the date range
 - Do NOT duplicate across each day
@@ -493,6 +535,7 @@ topic: Tripful - UI/UX Design Documentation
 **Purpose**: Add itinerary events (group activities, meals, travel)
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────┐
 │ ← Add Event                         │
@@ -545,6 +588,7 @@ topic: Tripful - UI/UX Design Documentation
 **Form Sections**:
 
 **Event Type** (required):
+
 - 3 types only: Travel, Meal, Activity
   - Travel: Group transportation (drives, ferries, etc.)
   - Meal: Dining reservations, group meals
@@ -563,6 +607,7 @@ topic: Tripful - UI/UX Design Documentation
 **Note**: Accommodation and individual member arrivals/departures use separate dedicated forms
 
 **Event Name** (required):
+
 - Large input (h-12)
 - Placeholder: Based on event type
   - Travel: "e.g., Flight to Miami"
@@ -572,6 +617,7 @@ topic: Tripful - UI/UX Design Documentation
 - Validation: Real-time on blur
 
 **Date** (required):
+
 - Start date picker: Native or custom with calendar popup
 - Full-width input
 - "Add end date" button below for multi-day events (activities)
@@ -582,6 +628,7 @@ topic: Tripful - UI/UX Design Documentation
   - Multi-day events appear once on the start date with a "Multi-day" badge
 
 **Time** (optional):
+
 - Two-column layout: [Start time] — [End time]
 - Helper labels below each: "Start time" and "End time (optional)"
 - Layout:
@@ -593,6 +640,7 @@ topic: Tripful - UI/UX Design Documentation
 - All day: Checkbox below time inputs, disables both time pickers when checked
 
 **Location** (optional):
+
 - Text input with location icon
 - Helper text for travel events: "💡 For travel, use → to show route (e.g., JFK → MIA)"
 - Max 500 chars
@@ -602,17 +650,20 @@ topic: Tripful - UI/UX Design Documentation
   - Activity: "Venue or meeting point"
 
 **Meetup Location** (optional):
+
 - Text input
 - Max 200 chars
 - Placeholder: "e.g., Hotel lobby, Coffee shop at 123 Main St"
 - Helper text: "Where the group will meet before the event"
 
 **Meetup Time** (optional):
+
 - Time input
 - Helper text: "When to meet (can be before the event start time)"
 - Displayed in blue info box in itinerary expanded view
 
 **Description** (optional):
+
 - Textarea, 4 rows min
 - Auto-expand as user types
 - Max 2000 chars
@@ -621,6 +672,7 @@ topic: Tripful - UI/UX Design Documentation
 - Placeholder: "Add details, confirmation numbers, special instructions..."
 
 **Links** (optional):
+
 - URL input with globe icon
 - "Add another link" button (max 10)
 - Each link can be removed with × button
@@ -628,11 +680,13 @@ topic: Tripful - UI/UX Design Documentation
 - Display as: [Icon] [Input] [× Remove]
 
 **Optional Event**:
+
 - Checkbox with label: "Optional event"
 - Helper text: "Members can choose whether to attend"
 - All events are visible to all accepted members
 
 **Form Actions**:
+
 - Cancel: Outline button, left-aligned
 - Add Event: Primary gradient button, right-aligned
 - Both buttons: min h-12, mobile full-width stacked
@@ -641,31 +695,37 @@ topic: Tripful - UI/UX Design Documentation
 **Design Details**:
 
 **Header** (sticky on scroll):
+
 - Back arrow + "Add Event" title
 - Saves scroll position when switching between fields
 
 **Field Labels**:
+
 - Semibold, slate-700
-- Required fields marked with red asterisk (*)
+- Required fields marked with red asterisk (\*)
 - Optional fields: "(optional)" in slate-500
 
 **Validation States**:
+
 - Error: Red border (border-red-300) + error message below
 - Success: Green checkmark icon in input
 - Focus: Blue ring (ring-2 ring-blue-500)
 
 **Helper Text**:
+
 - Small text (xs) below inputs
 - Slate-500 for hints
 - Red-600 for errors
 
 **Interactions**:
+
 - Auto-focus on Event Name after type selected
 - Enter key: Move to next field (not submit)
 - Tab navigation follows logical order
 - Smooth transitions between validation states (200ms)
 
 **Mobile Optimizations**:
+
 - Full-screen view
 - Larger inputs (h-12)
 - Sticky footer with action buttons
@@ -673,6 +733,7 @@ topic: Tripful - UI/UX Design Documentation
 - No floating labels (labels stay on top)
 
 **Success State**:
+
 - After adding event: Toast notification "✓ Event added"
 - Returns to itinerary view
 - Smooth page transition
@@ -687,6 +748,7 @@ topic: Tripful - UI/UX Design Documentation
 - **Desktop**: > 1024px (lg+)
 
 ### Mobile Adaptations:
+
 - Single column layouts
 - Stacked controls and chips
 - Larger touch targets (min 44px)
@@ -694,11 +756,13 @@ topic: Tripful - UI/UX Design Documentation
 - Simplified cards (less information density)
 
 ### Tablet Adaptations:
+
 - 2-column grids
 - Horizontal layouts for meta information
 - Progressive disclosure (collapsed by default)
 
 ### Desktop Enhancements:
+
 - Side-by-side layouts (form + preview)
 - Hover states and tooltips
 - Keyboard navigation
@@ -709,6 +773,7 @@ topic: Tripful - UI/UX Design Documentation
 ## Animation Patterns
 
 ### Entry Animations:
+
 ```css
 .animate-in {
   animation: fadeInSlide 0.7s ease-out;
@@ -727,12 +792,14 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 **Usage**:
+
 - Stagger delays: 100ms increments
 - Page content: 700ms duration
 - Cards: 500ms duration
 - Chips/badges: 300ms duration
 
 ### Interaction Animations:
+
 - **Hover**: 200ms ease
   - Shadows: From sm to xl
   - Translations: 1-4px
@@ -744,6 +811,7 @@ topic: Tripful - UI/UX Design Documentation
   - Slide: 200ms
 
 ### Loading States:
+
 - Pulse animation for gradient orbs
 - Skeleton screens (not implemented in demo)
 - Spinner: Rotating gradient ring
@@ -753,21 +821,25 @@ topic: Tripful - UI/UX Design Documentation
 ## Accessibility
 
 ### Semantic HTML:
+
 - Proper heading hierarchy (h1 → h2 → h3)
 - Landmark regions (header, nav, main)
 - Button vs link distinction
 
 ### Keyboard Navigation:
+
 - Focusable interactive elements
 - Focus visible states (ring-2 ring-blue-500)
 - Tab order follows visual order
 
 ### Color Contrast:
+
 - Text: Minimum 4.5:1 ratio
 - Large text: Minimum 3:1 ratio
 - Interactive elements: Clear visual states
 
 ### Screen Readers:
+
 - Alt text for images
 - ARIA labels where needed
 - Hidden helper text for context
@@ -777,6 +849,7 @@ topic: Tripful - UI/UX Design Documentation
 ## Component Patterns
 
 ### Badges:
+
 ```tsx
 // RSVP status
 <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
@@ -795,6 +868,7 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 ### Chips (Location/Count):
+
 ```tsx
 <div className="inline-flex items-center gap-1.5 bg-slate-100 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
   <svg>...</svg>
@@ -803,6 +877,7 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 ### Cards:
+
 ```tsx
 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6">
   {/* Content */}
@@ -810,6 +885,7 @@ topic: Tripful - UI/UX Design Documentation
 ```
 
 ### Buttons:
+
 ```tsx
 // Primary
 <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
@@ -827,6 +903,7 @@ topic: Tripful - UI/UX Design Documentation
 ## Design Tokens
 
 ### Colors:
+
 ```js
 primary: {
   gradient: 'from-blue-600 to-cyan-600',
@@ -854,6 +931,7 @@ rsvp: {
 ```
 
 ### Spacing Scale:
+
 - xs: 8px (2 units)
 - sm: 12px (3 units)
 - base: 16px (4 units)
@@ -862,6 +940,7 @@ rsvp: {
 - 2xl: 48px (12 units)
 
 ### Border Radius:
+
 - sm: 8px
 - base: 12px
 - lg: 16px
@@ -873,6 +952,7 @@ rsvp: {
 ## Next Steps
 
 ### MVP Phase 2:
+
 - ✅ Create event page (completed)
 - Edit event page
 - Group by type view
@@ -881,6 +961,7 @@ rsvp: {
 - Notification center
 
 ### Future Enhancements:
+
 - Dark mode support
 - Advanced animations (page transitions)
 - Map integration

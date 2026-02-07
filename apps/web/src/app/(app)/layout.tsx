@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/providers/auth-provider';
+import { useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/providers/auth-provider";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -10,7 +10,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [user, loading, router]);
 

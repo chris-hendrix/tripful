@@ -1,6 +1,6 @@
 // Authentication validation schemas for the Tripful platform
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Validates phone number for requesting verification code
@@ -8,11 +8,14 @@ import { z } from 'zod';
  * - Used for SMS-based authentication
  */
 export const requestCodeSchema = z.object({
-  phoneNumber: z.string().min(10, {
-    message: 'Phone number must be at least 10 characters',
-  }).max(20, {
-    message: 'Phone number must not exceed 20 characters',
-  }),
+  phoneNumber: z
+    .string()
+    .min(10, {
+      message: "Phone number must be at least 10 characters",
+    })
+    .max(20, {
+      message: "Phone number must not exceed 20 characters",
+    }),
 });
 
 /**
@@ -21,16 +24,22 @@ export const requestCodeSchema = z.object({
  * - Code: exactly 6 digits
  */
 export const verifyCodeSchema = z.object({
-  phoneNumber: z.string().min(10, {
-    message: 'Phone number must be at least 10 characters',
-  }).max(20, {
-    message: 'Phone number must not exceed 20 characters',
-  }),
-  code: z.string().length(6, {
-    message: 'Verification code must be exactly 6 characters',
-  }).regex(/^\d{6}$/, {
-    message: 'Verification code must contain only digits',
-  }),
+  phoneNumber: z
+    .string()
+    .min(10, {
+      message: "Phone number must be at least 10 characters",
+    })
+    .max(20, {
+      message: "Phone number must not exceed 20 characters",
+    }),
+  code: z
+    .string()
+    .length(6, {
+      message: "Verification code must be exactly 6 characters",
+    })
+    .regex(/^\d{6}$/, {
+      message: "Verification code must contain only digits",
+    }),
 });
 
 /**
@@ -39,11 +48,14 @@ export const verifyCodeSchema = z.object({
  * - Timezone: IANA timezone string (optional)
  */
 export const completeProfileSchema = z.object({
-  displayName: z.string().min(3, {
-    message: 'Display name must be at least 3 characters',
-  }).max(50, {
-    message: 'Display name must not exceed 50 characters',
-  }),
+  displayName: z
+    .string()
+    .min(3, {
+      message: "Display name must be at least 3 characters",
+    })
+    .max(50, {
+      message: "Display name must not exceed 50 characters",
+    }),
   timezone: z.string().optional(),
 });
 

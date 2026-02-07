@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { completeProfileSchema, type CompleteProfileInput } from '@tripful/shared';
-import { useAuth } from '@/app/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import {
+  completeProfileSchema,
+  type CompleteProfileInput,
+} from "@tripful/shared";
+import { useAuth } from "@/app/providers/auth-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -16,34 +19,35 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 const TIMEZONES = [
-  { value: 'America/New_York', label: 'Eastern Time (ET)' },
-  { value: 'America/Chicago', label: 'Central Time (CT)' },
-  { value: 'America/Denver', label: 'Mountain Time (MT)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-  { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
-  { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' },
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
 ];
 
 export default function CompleteProfilePage() {
   const router = useRouter();
   const { completeProfile, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CompleteProfileInput>({
     resolver: zodResolver(completeProfileSchema),
     defaultValues: {
-      displayName: '',
+      displayName: "",
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
@@ -57,10 +61,10 @@ export default function CompleteProfilePage() {
 
   // Navigate to dashboard when user is set (after profile completion)
   useEffect(() => {
-    if (user && isSubmitting) {
-      router.push('/dashboard');
+    if (shouldNavigate && user) {
+      router.push("/dashboard");
     }
-  }, [user, isSubmitting, router]);
+  }, [shouldNavigate, user, router]);
 
   async function onSubmit(data: CompleteProfileInput) {
     try {
@@ -72,12 +76,17 @@ export default function CompleteProfilePage() {
         payload.timezone = data.timezone;
       }
       await completeProfile(payload);
+      setShouldNavigate(true);
       // Navigation happens in useEffect when user state updates
     } catch (error) {
-      form.setError('displayName', {
-        message: error instanceof Error && error.message ? error.message : 'Failed to complete profile',
+      form.setError("displayName", {
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : "Failed to complete profile",
       });
       setIsSubmitting(false);
+      setShouldNavigate(false);
     }
   }
 
@@ -164,7 +173,7 @@ export default function CompleteProfilePage() {
                 disabled={isSubmitting}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/40"
               >
-                {isSubmitting ? 'Saving...' : 'Complete profile'}
+                {isSubmitting ? "Saving..." : "Complete profile"}
               </Button>
             </form>
           </Form>

@@ -1,0 +1,138 @@
+import type { FastifyInstance } from "fastify";
+import { tripController } from "@/controllers/trip.controller.js";
+import {
+  authenticate,
+  requireCompleteProfile,
+} from "@/middleware/auth.middleware.js";
+
+/**
+ * Trip Routes
+ * Registers all trip-related endpoints
+ *
+ * @param fastify - Fastify instance
+ */
+export async function tripRoutes(fastify: FastifyInstance) {
+  /**
+   * GET /
+   * Get user's trips
+   * Requires authentication only (not complete profile)
+   */
+  fastify.get(
+    "/",
+    {
+      preHandler: authenticate,
+    },
+    tripController.getUserTrips,
+  );
+
+  /**
+   * POST /
+   * Create a new trip
+   * Requires authentication and complete profile
+   */
+  fastify.post(
+    "/",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.createTrip,
+  );
+
+  /**
+   * GET /:id
+   * Get trip by ID
+   * Requires authentication only (not complete profile)
+   * Returns 404 for both non-existent trips and trips user is not a member of
+   */
+  fastify.get(
+    "/:id",
+    {
+      preHandler: authenticate,
+    },
+    tripController.getTripById,
+  );
+
+  /**
+   * PUT /:id
+   * Update trip details
+   * Requires authentication and complete profile
+   * Only organizers can update trips
+   */
+  fastify.put(
+    "/:id",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.updateTrip,
+  );
+
+  /**
+   * DELETE /:id
+   * Cancel trip (soft delete)
+   * Requires authentication and complete profile
+   * Only organizers can cancel trips
+   */
+  fastify.delete(
+    "/:id",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.cancelTrip,
+  );
+
+  /**
+   * POST /:id/co-organizers
+   * Add co-organizer to trip
+   * Requires authentication and complete profile
+   * Only organizers can add co-organizers
+   */
+  fastify.post(
+    "/:id/co-organizers",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.addCoOrganizer,
+  );
+
+  /**
+   * DELETE /:id/co-organizers/:userId
+   * Remove co-organizer from trip
+   * Requires authentication and complete profile
+   * Only organizers can remove co-organizers
+   */
+  fastify.delete(
+    "/:id/co-organizers/:userId",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.removeCoOrganizer,
+  );
+
+  /**
+   * POST /:id/cover-image
+   * Upload cover image for trip
+   * Requires authentication and complete profile
+   * Only organizers can upload cover images
+   */
+  fastify.post(
+    "/:id/cover-image",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.uploadCoverImage,
+  );
+
+  /**
+   * DELETE /:id/cover-image
+   * Delete cover image from trip
+   * Requires authentication and complete profile
+   * Only organizers can delete cover images
+   */
+  fastify.delete(
+    "/:id/cover-image",
+    {
+      preHandler: [authenticate, requireCompleteProfile],
+    },
+    tripController.deleteCoverImage,
+  );
+}

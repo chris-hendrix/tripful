@@ -44,6 +44,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Claude
+.claude/
+
 # IDEs
 .vscode/
 .idea/
@@ -68,3 +71,6 @@ Thumbs.db
 .cache/
 temp/
 tmp/
+
+# Uploads
+apps/api/uploads/

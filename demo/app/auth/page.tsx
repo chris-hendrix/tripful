@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 /**
  * Authentication Screen - Phone Verification
@@ -10,15 +10,15 @@
  * - Smooth animations on state transitions
  */
 
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Field, FieldLabel, FieldDescription } from "@/components/ui/field"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 
 export default function AuthenticationScreen() {
-  const [step, setStep] = useState<'phone' | 'code'>('phone')
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
+  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-amber-950">
@@ -26,7 +26,7 @@ export default function AuthenticationScreen() {
       <div
         className="absolute inset-0 opacity-[0.015]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
       />
 
@@ -36,14 +36,13 @@ export default function AuthenticationScreen() {
 
       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8">
-
           {/* Branding */}
           <div className="text-center space-y-4 text-white animate-in fade-in slide-in-from-bottom-4 duration-700">
             <h1
               className="text-5xl font-serif leading-tight tracking-tight"
-              style={{ fontFamily: 'Playfair Display, serif' }}
+              style={{ fontFamily: "Playfair Display, serif" }}
             >
-              Plan trips,{' '}
+              Plan trips,{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-amber-300">
                 together
               </span>
@@ -56,8 +55,7 @@ export default function AuthenticationScreen() {
           {/* Auth form */}
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
             <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-12 max-w-md mx-auto border border-slate-200/50">
-
-              {step === 'phone' ? (
+              {step === "phone" ? (
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">
@@ -70,13 +68,16 @@ export default function AuthenticationScreen() {
 
                   <form
                     onSubmit={(e) => {
-                      e.preventDefault()
-                      setStep('code')
+                      e.preventDefault();
+                      setStep("code");
                     }}
                     className="space-y-6"
                   >
                     <Field>
-                      <FieldLabel htmlFor="phone" className="text-sm font-medium text-slate-900">
+                      <FieldLabel
+                        htmlFor="phone"
+                        className="text-sm font-medium text-slate-900"
+                      >
                         Phone number
                       </FieldLabel>
                       <Input
@@ -102,7 +103,8 @@ export default function AuthenticationScreen() {
                   </form>
 
                   <p className="text-xs text-center text-slate-500">
-                    By continuing, you agree to our Terms of Service and Privacy Policy
+                    By continuing, you agree to our Terms of Service and Privacy
+                    Policy
                   </p>
                 </div>
               ) : (
@@ -112,8 +114,11 @@ export default function AuthenticationScreen() {
                       Verify your number
                     </h2>
                     <p className="text-slate-600">
-                      Enter the 6-digit code sent to<br />
-                      <span className="font-medium text-slate-900">{phone}</span>
+                      Enter the 6-digit code sent to
+                      <br />
+                      <span className="font-medium text-slate-900">
+                        {phone}
+                      </span>
                     </p>
                   </div>
 
@@ -122,7 +127,10 @@ export default function AuthenticationScreen() {
                     className="space-y-6"
                   >
                     <Field>
-                      <FieldLabel htmlFor="code" className="text-sm font-medium text-slate-900">
+                      <FieldLabel
+                        htmlFor="code"
+                        className="text-sm font-medium text-slate-900"
+                      >
                         Verification code
                       </FieldLabel>
                       <Input
@@ -148,7 +156,7 @@ export default function AuthenticationScreen() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setStep('phone')}
+                        onClick={() => setStep("phone")}
                         className="w-full h-12 border-slate-300 hover:bg-slate-50 rounded-xl"
                       >
                         Change number
@@ -163,9 +171,8 @@ export default function AuthenticationScreen() {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>
-  )
+  );
 }

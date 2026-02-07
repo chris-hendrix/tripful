@@ -1,16 +1,19 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import cookie from '@fastify/cookie';
-import jwt from '@fastify/jwt';
-import { authenticate, requireCompleteProfile } from '@/middleware/auth.middleware.js';
-import { db } from '@/config/database.js';
-import { users } from '@/db/schema/index.js';
-import { eq } from 'drizzle-orm';
-import { env } from '@/config/env.js';
-import { errorHandler } from '@/middleware/error.middleware.js';
-import { generateUniquePhone } from '../test-utils.js';
+import { describe, it, expect, afterEach } from "vitest";
+import type { FastifyInstance } from "fastify";
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
+import jwt from "@fastify/jwt";
+import {
+  authenticate,
+  requireCompleteProfile,
+} from "@/middleware/auth.middleware.js";
+import { db } from "@/config/database.js";
+import { users } from "@/db/schema/index.js";
+import { eq } from "drizzle-orm";
+import { env } from "@/config/env.js";
+import { errorHandler } from "@/middleware/error.middleware.js";
+import { generateUniquePhone } from "../test-utils.js";
 
 /**
  * Build a minimal Fastify app for testing middleware
@@ -30,14 +33,14 @@ async function buildTestApp(): Promise<FastifyInstance> {
 
   await app.register(jwt, {
     secret: env.JWT_SECRET,
-    sign: { expiresIn: '7d' },
-    cookie: { cookieName: 'auth_token' },
+    sign: { expiresIn: "7d" },
+    cookie: { cookieName: "auth_token" },
   });
 
   app.setErrorHandler(errorHandler);
 
   // Register test routes with middleware
-  app.get('/test-auth', { preHandler: authenticate }, async (request) => {
+  app.get("/test-auth", { preHandler: authenticate }, async (request) => {
     return {
       success: true,
       user: request.user,
@@ -45,14 +48,14 @@ async function buildTestApp(): Promise<FastifyInstance> {
   });
 
   app.get(
-    '/test-complete-profile',
+    "/test-complete-profile",
     { preHandler: [authenticate, requireCompleteProfile] },
     async (request) => {
       return {
         success: true,
         user: request.user,
       };
-    }
+    },
   );
 
   await app.ready();
@@ -60,7 +63,7 @@ async function buildTestApp(): Promise<FastifyInstance> {
   return app;
 }
 
-describe('Authentication Middleware', () => {
+describe("Authentication Middleware", () => {
   let app: FastifyInstance;
 
   afterEach(async () => {
@@ -69,8 +72,8 @@ describe('Authentication Middleware', () => {
     }
   });
 
-  describe('authenticate() middleware', () => {
-    it('should accept valid token in cookie and populate request.user', async () => {
+  describe("authenticate() middleware", () => {
+    it("should accept valid token in cookie and populate request.user", async () => {
       app = await buildTestApp();
 
       // Create a test user
@@ -78,8 +81,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: 'Test User',
-          timezone: 'America/New_York',
+          displayName: "Test User",
+          timezone: "America/New_York",
         })
         .returning();
 
@@ -94,8 +97,8 @@ describe('Authentication Middleware', () => {
 
       // Make request with token in cookie
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-auth',
+        method: "GET",
+        url: "/test-auth",
         cookies: {
           auth_token: token,
         },
@@ -112,7 +115,7 @@ describe('Authentication Middleware', () => {
       await db.delete(users).where(eq(users.id, user.id));
     });
 
-    it('should accept valid token in Authorization header and populate request.user', async () => {
+    it("should accept valid token in Authorization header and populate request.user", async () => {
       app = await buildTestApp();
 
       // Create a test user
@@ -120,8 +123,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: 'Test User 2',
-          timezone: 'UTC',
+          displayName: "Test User 2",
+          timezone: "UTC",
         })
         .returning();
 
@@ -136,8 +139,8 @@ describe('Authentication Middleware', () => {
 
       // Make request with token in Authorization header
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-auth',
+        method: "GET",
+        url: "/test-auth",
         headers: {
           authorization: `Bearer ${token}`,
         },
@@ -154,12 +157,12 @@ describe('Authentication Middleware', () => {
       await db.delete(users).where(eq(users.id, user.id));
     });
 
-    it('should return 401 UNAUTHORIZED when token is missing', async () => {
+    it("should return 401 UNAUTHORIZED when token is missing", async () => {
       app = await buildTestApp();
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-auth',
+        method: "GET",
+        url: "/test-auth",
       });
 
       expect(response.statusCode).toBe(401);
@@ -168,20 +171,20 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired token',
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired token",
         },
       });
     });
 
-    it('should return 401 UNAUTHORIZED when token format is invalid', async () => {
+    it("should return 401 UNAUTHORIZED when token format is invalid", async () => {
       app = await buildTestApp();
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-auth',
+        method: "GET",
+        url: "/test-auth",
         headers: {
-          authorization: 'Bearer invalid.token.format',
+          authorization: "Bearer invalid.token.format",
         },
       });
 
@@ -191,13 +194,13 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired token',
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired token",
         },
       });
     });
 
-    it('should return 401 UNAUTHORIZED when token is expired', async () => {
+    it("should return 401 UNAUTHORIZED when token is expired", async () => {
       app = await buildTestApp();
 
       // Create a test user with unique phone number
@@ -205,8 +208,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: 'Test User 3',
-          timezone: 'UTC',
+          displayName: "Test User 3",
+          timezone: "UTC",
         })
         .returning();
 
@@ -221,16 +224,16 @@ describe('Authentication Middleware', () => {
             name: user.displayName,
           },
           {
-            expiresIn: '1ms', // Very short expiry
-          }
+            expiresIn: "1ms", // Very short expiry
+          },
         );
 
         // Wait for token to expire
         await new Promise((resolve) => setTimeout(resolve, 10));
 
         const response = await app.inject({
-          method: 'GET',
-          url: '/test-auth',
+          method: "GET",
+          url: "/test-auth",
           cookies: {
             auth_token: token,
           },
@@ -242,8 +245,8 @@ describe('Authentication Middleware', () => {
         expect(body).toEqual({
           success: false,
           error: {
-            code: 'UNAUTHORIZED',
-            message: 'Invalid or expired token',
+            code: "UNAUTHORIZED",
+            message: "Invalid or expired token",
           },
         });
       } finally {
@@ -252,16 +255,16 @@ describe('Authentication Middleware', () => {
       }
     });
 
-    it('should return 401 UNAUTHORIZED when token has wrong signature', async () => {
+    it("should return 401 UNAUTHORIZED when token has wrong signature", async () => {
       app = await buildTestApp();
 
       // Create a token with a different secret
       const fakeToken =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicGhvbmUiOiIrMTIzNDU2Nzg5MCIsImlhdCI6MTUxNjIzOTAyMn0.wrongsignaturehere';
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicGhvbmUiOiIrMTIzNDU2Nzg5MCIsImlhdCI6MTUxNjIzOTAyMn0.wrongsignaturehere";
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-auth',
+        method: "GET",
+        url: "/test-auth",
         cookies: {
           auth_token: fakeToken,
         },
@@ -273,15 +276,15 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired token',
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired token",
         },
       });
     });
   });
 
-  describe('requireCompleteProfile() middleware', () => {
-    it('should allow authenticated user with complete profile', async () => {
+  describe("requireCompleteProfile() middleware", () => {
+    it("should allow authenticated user with complete profile", async () => {
       app = await buildTestApp();
 
       // Create a test user with complete profile
@@ -289,8 +292,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: 'Complete User',
-          timezone: 'UTC',
+          displayName: "Complete User",
+          timezone: "UTC",
         })
         .returning();
 
@@ -304,8 +307,8 @@ describe('Authentication Middleware', () => {
       });
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-complete-profile',
+        method: "GET",
+        url: "/test-complete-profile",
         cookies: {
           auth_token: token,
         },
@@ -322,7 +325,7 @@ describe('Authentication Middleware', () => {
       await db.delete(users).where(eq(users.id, user.id));
     });
 
-    it('should return 403 PROFILE_INCOMPLETE when user has empty displayName', async () => {
+    it("should return 403 PROFILE_INCOMPLETE when user has empty displayName", async () => {
       app = await buildTestApp();
 
       // Create a test user with incomplete profile (empty displayName)
@@ -330,8 +333,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: '', // Empty display name
-          timezone: 'UTC',
+          displayName: "", // Empty display name
+          timezone: "UTC",
         })
         .returning();
 
@@ -344,8 +347,8 @@ describe('Authentication Middleware', () => {
       });
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-complete-profile',
+        method: "GET",
+        url: "/test-complete-profile",
         cookies: {
           auth_token: token,
         },
@@ -357,8 +360,8 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'PROFILE_INCOMPLETE',
-          message: 'Profile setup required. Please complete your profile.',
+          code: "PROFILE_INCOMPLETE",
+          message: "Profile setup required. Please complete your profile.",
         },
       });
 
@@ -366,7 +369,7 @@ describe('Authentication Middleware', () => {
       await db.delete(users).where(eq(users.id, user.id));
     });
 
-    it('should return 403 PROFILE_INCOMPLETE when user has whitespace-only displayName', async () => {
+    it("should return 403 PROFILE_INCOMPLETE when user has whitespace-only displayName", async () => {
       app = await buildTestApp();
 
       // Create a test user with incomplete profile (whitespace-only displayName)
@@ -374,8 +377,8 @@ describe('Authentication Middleware', () => {
         .insert(users)
         .values({
           phoneNumber: generateUniquePhone(),
-          displayName: '   ', // Whitespace-only display name
-          timezone: 'UTC',
+          displayName: "   ", // Whitespace-only display name
+          timezone: "UTC",
         })
         .returning();
 
@@ -388,8 +391,8 @@ describe('Authentication Middleware', () => {
       });
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-complete-profile',
+        method: "GET",
+        url: "/test-complete-profile",
         cookies: {
           auth_token: token,
         },
@@ -401,8 +404,8 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'PROFILE_INCOMPLETE',
-          message: 'Profile setup required. Please complete your profile.',
+          code: "PROFILE_INCOMPLETE",
+          message: "Profile setup required. Please complete your profile.",
         },
       });
 
@@ -410,13 +413,13 @@ describe('Authentication Middleware', () => {
       await db.delete(users).where(eq(users.id, user.id));
     });
 
-    it('should return 401 when unauthenticated request tries to access', async () => {
+    it("should return 401 when unauthenticated request tries to access", async () => {
       app = await buildTestApp();
 
       // Make request without token
       const response = await app.inject({
-        method: 'GET',
-        url: '/test-complete-profile',
+        method: "GET",
+        url: "/test-complete-profile",
       });
 
       expect(response.statusCode).toBe(401);
@@ -425,8 +428,8 @@ describe('Authentication Middleware', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired token',
+          code: "UNAUTHORIZED",
+          message: "Invalid or expired token",
         },
       });
     });

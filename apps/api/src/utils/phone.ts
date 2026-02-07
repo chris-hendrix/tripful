@@ -1,7 +1,10 @@
 // Phone number validation utilities
 
-import { parsePhoneNumberWithError, isValidPhoneNumber } from 'libphonenumber-js';
-import { env } from '@/config/env.js';
+import {
+  parsePhoneNumberWithError,
+  isValidPhoneNumber,
+} from "libphonenumber-js";
+import { env } from "@/config/env.js";
 
 /**
  * Validates a phone number and returns it in E.164 format
@@ -25,13 +28,17 @@ export function validatePhoneNumber(phone: string): {
     // In non-production environments, accept 555 numbers for testing
     // This includes development and test modes
     // But still require proper format - reject clearly invalid formats
-    if (env.NODE_ENV !== 'production' && phone.startsWith('+') && phone.includes('555')) {
+    if (
+      env.NODE_ENV !== "production" &&
+      phone.startsWith("+") &&
+      phone.includes("555")
+    ) {
       // Check for invalid characters (letters, multiple +, etc)
       // Allow: digits, spaces, hyphens, parentheses, plus at start
       if (!/^\+[\d\s\-()]+$/.test(phone)) {
         return {
           isValid: false,
-          error: 'Invalid phone number format',
+          error: "Invalid phone number format",
         };
       }
 
@@ -45,7 +52,7 @@ export function validatePhoneNumber(phone: string): {
       } catch {
         // If parsing fails but format looks correct, accept it
         // Remove formatting and check if it's valid E.164-like
-        const digitsOnly = phone.replace(/[\s\-()]/g, '');
+        const digitsOnly = phone.replace(/[\s\-()]/g, "");
         if (/^\+[1-9]\d{7,14}$/.test(digitsOnly)) {
           return {
             isValid: true,
@@ -54,7 +61,7 @@ export function validatePhoneNumber(phone: string): {
         }
         return {
           isValid: false,
-          error: 'Invalid phone number format',
+          error: "Invalid phone number format",
         };
       }
     }
@@ -63,7 +70,7 @@ export function validatePhoneNumber(phone: string): {
     if (!isValidPhoneNumber(phone)) {
       return {
         isValid: false,
-        error: 'Invalid phone number format',
+        error: "Invalid phone number format",
       };
     }
 
@@ -77,7 +84,7 @@ export function validatePhoneNumber(phone: string): {
   } catch {
     return {
       isValid: false,
-      error: 'Invalid phone number format',
+      error: "Invalid phone number format",
     };
   }
 }

@@ -1,12 +1,12 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../helpers.js';
-import { db } from '@/config/database.js';
-import { verificationCodes } from '@/db/schema/index.js';
-import { eq } from 'drizzle-orm';
-import { generateUniquePhone } from '../test-utils.js';
+import { describe, it, expect, afterEach } from "vitest";
+import type { FastifyInstance } from "fastify";
+import { buildApp } from "../helpers.js";
+import { db } from "@/config/database.js";
+import { verificationCodes } from "@/db/schema/index.js";
+import { eq } from "drizzle-orm";
+import { generateUniquePhone } from "../test-utils.js";
 
-describe('POST /api/auth/request-code', () => {
+describe("POST /api/auth/request-code", () => {
   let app: FastifyInstance;
 
   // No cleanup needed - transaction rollback handles it automatically
@@ -17,13 +17,13 @@ describe('POST /api/auth/request-code', () => {
     }
   });
 
-  describe('Success Cases', () => {
-    it('should return 200 and send verification code for valid phone number', async () => {
+  describe("Success Cases", () => {
+    it("should return 200 and send verification code for valid phone number", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber: generateUniquePhone(),
         },
@@ -34,18 +34,18 @@ describe('POST /api/auth/request-code', () => {
       const body = JSON.parse(response.body);
       expect(body).toEqual({
         success: true,
-        message: 'Verification code sent',
+        message: "Verification code sent",
       });
     });
 
-    it('should store verification code in database in E.164 format', async () => {
+    it("should store verification code in database in E.164 format", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
 
       await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },
@@ -71,19 +71,19 @@ describe('POST /api/auth/request-code', () => {
       expect(timeDiff).toBeLessThan(5000); // Within 5 seconds tolerance
     });
 
-    it('should accept phone numbers in various valid formats', async () => {
+    it("should accept phone numbers in various valid formats", async () => {
       app = await buildApp();
 
       const validPhoneNumbers = [
         generateUniquePhone(),
-        '+442071838750',
-        '+61291234567',
+        "+442071838750",
+        "+61291234567",
       ];
 
       for (const phoneNumber of validPhoneNumbers) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/api/auth/request-code',
+          method: "POST",
+          url: "/api/auth/request-code",
           payload: {
             phoneNumber,
           },
@@ -96,15 +96,15 @@ describe('POST /api/auth/request-code', () => {
       }
     });
 
-    it('should update existing code if phone number already has one', async () => {
+    it("should update existing code if phone number already has one", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
 
       // First request
       const response1 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },
@@ -126,8 +126,8 @@ describe('POST /api/auth/request-code', () => {
 
       // Second request
       const response2 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },
@@ -147,17 +147,19 @@ describe('POST /api/auth/request-code', () => {
 
       // Timestamp should be updated (upsert refreshes the record)
       const secondCreatedAt = result2[0].createdAt;
-      expect(secondCreatedAt.getTime()).toBeGreaterThan(firstCreatedAt.getTime());
+      expect(secondCreatedAt.getTime()).toBeGreaterThan(
+        firstCreatedAt.getTime(),
+      );
     });
   });
 
-  describe('Validation Errors', () => {
-    it('should return 400 when phoneNumber is missing', async () => {
+  describe("Validation Errors", () => {
+    it("should return 400 when phoneNumber is missing", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {},
       });
 
@@ -167,21 +169,21 @@ describe('POST /api/auth/request-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: expect.any(Array),
         },
       });
     });
 
-    it('should return 400 when phoneNumber is too short', async () => {
+    it("should return 400 when phoneNumber is too short", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
-          phoneNumber: '+123',
+          phoneNumber: "+123",
         },
       });
 
@@ -189,17 +191,17 @@ describe('POST /api/auth/request-code', () => {
 
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.code).toBe("VALIDATION_ERROR");
     });
 
-    it('should return 400 when phoneNumber is too long', async () => {
+    it("should return 400 when phoneNumber is too long", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
-          phoneNumber: '+123456789012345678901', // 21 chars (exceeds 20 limit)
+          phoneNumber: "+123456789012345678901", // 21 chars (exceeds 20 limit)
         },
       });
 
@@ -207,23 +209,23 @@ describe('POST /api/auth/request-code', () => {
 
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.code).toBe("VALIDATION_ERROR");
     });
 
-    it('should return 400 when phoneNumber has invalid format', async () => {
+    it("should return 400 when phoneNumber has invalid format", async () => {
       app = await buildApp();
 
       const invalidPhoneNumbers = [
-        'not-a-phone-number',
-        'abcdefghijkl',
-        '+1234567890123', // Passes length check but invalid format
-        '+99999999999999', // Invalid country code
+        "not-a-phone-number",
+        "abcdefghijkl",
+        "+1234567890123", // Passes length check but invalid format
+        "+99999999999999", // Invalid country code
       ];
 
       for (const phoneNumber of invalidPhoneNumbers) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/api/auth/request-code',
+          method: "POST",
+          url: "/api/auth/request-code",
           payload: {
             phoneNumber,
           },
@@ -235,21 +237,21 @@ describe('POST /api/auth/request-code', () => {
         expect(body).toEqual({
           success: false,
           error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid phone number format',
+            code: "VALIDATION_ERROR",
+            message: "Invalid phone number format",
           },
         });
       }
     });
 
-    it('should return 400 with proper error structure for validation errors', async () => {
+    it("should return 400 with proper error structure for validation errors", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
-          phoneNumber: 'invalid',
+          phoneNumber: "invalid",
         },
       });
 
@@ -258,18 +260,18 @@ describe('POST /api/auth/request-code', () => {
       const body = JSON.parse(response.body);
 
       // Verify exact structure
-      expect(body).toHaveProperty('success', false);
-      expect(body).toHaveProperty('error');
-      expect(body.error).toHaveProperty('code', 'VALIDATION_ERROR');
-      expect(body.error).toHaveProperty('message');
+      expect(body).toHaveProperty("success", false);
+      expect(body).toHaveProperty("error");
+      expect(body.error).toHaveProperty("code", "VALIDATION_ERROR");
+      expect(body.error).toHaveProperty("message");
 
       // Ensure no extra top-level properties
-      expect(Object.keys(body)).toEqual(['success', 'error']);
+      expect(Object.keys(body)).toEqual(["success", "error"]);
     });
   });
 
-  describe('Rate Limiting', () => {
-    it('should allow 5 requests per phone number within time window', async () => {
+  describe("Rate Limiting", () => {
+    it("should allow 5 requests per phone number within time window", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
@@ -277,8 +279,8 @@ describe('POST /api/auth/request-code', () => {
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/api/auth/request-code',
+          method: "POST",
+          url: "/api/auth/request-code",
           payload: {
             phoneNumber,
           },
@@ -291,7 +293,7 @@ describe('POST /api/auth/request-code', () => {
       }
     });
 
-    it('should reject 6th request with 429 RATE_LIMIT_EXCEEDED', async () => {
+    it("should reject 6th request with 429 RATE_LIMIT_EXCEEDED", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
@@ -299,8 +301,8 @@ describe('POST /api/auth/request-code', () => {
       // Make 5 requests - all should succeed
       for (let i = 0; i < 5; i++) {
         await app.inject({
-          method: 'POST',
-          url: '/api/auth/request-code',
+          method: "POST",
+          url: "/api/auth/request-code",
           payload: {
             phoneNumber,
           },
@@ -309,8 +311,8 @@ describe('POST /api/auth/request-code', () => {
 
       // 6th request should be rate limited
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },
@@ -322,13 +324,14 @@ describe('POST /api/auth/request-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Too many verification code requests. Please try again later.',
+          code: "RATE_LIMIT_EXCEEDED",
+          message:
+            "Too many verification code requests. Please try again later.",
         },
       });
     });
 
-    it('should track rate limits independently per phone number', async () => {
+    it("should track rate limits independently per phone number", async () => {
       app = await buildApp();
 
       const phoneNumber1 = generateUniquePhone();
@@ -337,8 +340,8 @@ describe('POST /api/auth/request-code', () => {
       // Make 5 requests for first phone number
       for (let i = 0; i < 5; i++) {
         await app.inject({
-          method: 'POST',
-          url: '/api/auth/request-code',
+          method: "POST",
+          url: "/api/auth/request-code",
           payload: {
             phoneNumber: phoneNumber1,
           },
@@ -347,8 +350,8 @@ describe('POST /api/auth/request-code', () => {
 
       // 6th request for first phone number should be rate limited
       const response1 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber: phoneNumber1,
         },
@@ -358,8 +361,8 @@ describe('POST /api/auth/request-code', () => {
 
       // First request for second phone number should succeed
       const response2 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber: phoneNumber2,
         },
@@ -372,8 +375,8 @@ describe('POST /api/auth/request-code', () => {
     });
   });
 
-  describe('Error Handling', () => {
-    it('should handle errors gracefully and return 500', async () => {
+  describe("Error Handling", () => {
+    it("should handle errors gracefully and return 500", async () => {
       app = await buildApp();
 
       // Create a scenario that might cause database error
@@ -382,8 +385,8 @@ describe('POST /api/auth/request-code', () => {
       const phoneNumber = generateUniquePhone();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },
@@ -392,25 +395,25 @@ describe('POST /api/auth/request-code', () => {
       // Should succeed or fail gracefully with proper error structure
       if (response.statusCode !== 200) {
         const body = JSON.parse(response.body);
-        expect(body).toHaveProperty('success', false);
-        expect(body).toHaveProperty('error');
-        expect(body.error).toHaveProperty('code');
-        expect(body.error).toHaveProperty('message');
+        expect(body).toHaveProperty("success", false);
+        expect(body).toHaveProperty("error");
+        expect(body.error).toHaveProperty("code");
+        expect(body.error).toHaveProperty("message");
       } else {
         expect(response.statusCode).toBe(200);
       }
     });
   });
 
-  describe('SMS Service Integration', () => {
-    it('should call SMS service with E.164 formatted phone number', async () => {
+  describe("SMS Service Integration", () => {
+    it("should call SMS service with E.164 formatted phone number", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/request-code',
+        method: "POST",
+        url: "/api/auth/request-code",
         payload: {
           phoneNumber,
         },

@@ -1,12 +1,12 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../helpers.js';
-import { db } from '@/config/database.js';
-import { verificationCodes, users } from '@/db/schema/index.js';
-import { eq } from 'drizzle-orm';
-import { generateUniquePhone } from '../test-utils.js';
+import { describe, it, expect, afterEach } from "vitest";
+import type { FastifyInstance } from "fastify";
+import { buildApp } from "../helpers.js";
+import { db } from "@/config/database.js";
+import { verificationCodes, users } from "@/db/schema/index.js";
+import { eq } from "drizzle-orm";
+import { generateUniquePhone } from "../test-utils.js";
 
-describe('POST /api/auth/verify-code', () => {
+describe("POST /api/auth/verify-code", () => {
   let app: FastifyInstance;
 
   // No cleanup needed - unique phone numbers prevent conflicts
@@ -17,12 +17,12 @@ describe('POST /api/auth/verify-code', () => {
     }
   });
 
-  describe('Success Cases', () => {
-    it('should return 200 and create new user with requiresProfile: true', async () => {
+  describe("Success Cases", () => {
+    it("should return 200 and create new user with requiresProfile: true", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '123456';
+      const code = "123456";
 
       // Create verification code in database
       await db.insert(verificationCodes).values({
@@ -32,8 +32,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -43,30 +43,30 @@ describe('POST /api/auth/verify-code', () => {
       expect(response.statusCode).toBe(200);
 
       const body = JSON.parse(response.body);
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('user');
-      expect(body).toHaveProperty('requiresProfile', true);
+      expect(body).toHaveProperty("success", true);
+      expect(body).toHaveProperty("user");
+      expect(body).toHaveProperty("requiresProfile", true);
 
       // Verify user structure
-      expect(body.user).toHaveProperty('id');
-      expect(body.user).toHaveProperty('phoneNumber', phoneNumber);
-      expect(body.user).toHaveProperty('displayName', '');
-      expect(body.user).toHaveProperty('timezone', 'UTC');
-      expect(body.user).toHaveProperty('createdAt');
-      expect(body.user).toHaveProperty('updatedAt');
+      expect(body.user).toHaveProperty("id");
+      expect(body.user).toHaveProperty("phoneNumber", phoneNumber);
+      expect(body.user).toHaveProperty("displayName", "");
+      expect(body.user).toHaveProperty("timezone", "UTC");
+      expect(body.user).toHaveProperty("createdAt");
+      expect(body.user).toHaveProperty("updatedAt");
     });
 
-    it('should return 200 for existing user with displayName (requiresProfile: false)', async () => {
+    it("should return 200 for existing user with displayName (requiresProfile: false)", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '654321';
+      const code = "654321";
 
       // Create existing user with displayName
       await db.insert(users).values({
         phoneNumber,
-        displayName: 'John Doe',
-        timezone: 'America/New_York',
+        displayName: "John Doe",
+        timezone: "America/New_York",
       });
 
       // Create verification code
@@ -77,8 +77,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -88,23 +88,23 @@ describe('POST /api/auth/verify-code', () => {
       expect(response.statusCode).toBe(200);
 
       const body = JSON.parse(response.body);
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('requiresProfile', false);
-      expect(body.user.displayName).toBe('John Doe');
-      expect(body.user.timezone).toBe('America/New_York');
+      expect(body).toHaveProperty("success", true);
+      expect(body).toHaveProperty("requiresProfile", false);
+      expect(body.user.displayName).toBe("John Doe");
+      expect(body.user.timezone).toBe("America/New_York");
     });
 
-    it('should return 200 for existing user without displayName (requiresProfile: true)', async () => {
+    it("should return 200 for existing user without displayName (requiresProfile: true)", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '111111';
+      const code = "111111";
 
       // Create existing user without displayName
       await db.insert(users).values({
         phoneNumber,
-        displayName: '',
-        timezone: 'UTC',
+        displayName: "",
+        timezone: "UTC",
       });
 
       // Create verification code
@@ -115,8 +115,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -126,16 +126,16 @@ describe('POST /api/auth/verify-code', () => {
       expect(response.statusCode).toBe(200);
 
       const body = JSON.parse(response.body);
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('requiresProfile', true);
-      expect(body.user.displayName).toBe('');
+      expect(body).toHaveProperty("success", true);
+      expect(body).toHaveProperty("requiresProfile", true);
+      expect(body.user.displayName).toBe("");
     });
 
-    it('should set auth_token cookie', async () => {
+    it("should set auth_token cookie", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '222222';
+      const code = "222222";
 
       // Create verification code
       await db.insert(verificationCodes).values({
@@ -145,8 +145,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -158,22 +158,22 @@ describe('POST /api/auth/verify-code', () => {
       // Check cookie is set
       const cookies = response.cookies;
       expect(cookies).toHaveLength(1);
-      expect(cookies[0]).toHaveProperty('name', 'auth_token');
-      expect(cookies[0]).toHaveProperty('value');
+      expect(cookies[0]).toHaveProperty("name", "auth_token");
+      expect(cookies[0]).toHaveProperty("value");
       expect(cookies[0].value).toBeTruthy();
 
       // Verify cookie settings
-      expect(cookies[0]).toHaveProperty('httpOnly', true);
-      expect(cookies[0]).toHaveProperty('path', '/');
-      expect(cookies[0]).toHaveProperty('sameSite', 'Lax');
-      expect(cookies[0]).toHaveProperty('maxAge', 7 * 24 * 60 * 60);
+      expect(cookies[0]).toHaveProperty("httpOnly", true);
+      expect(cookies[0]).toHaveProperty("path", "/");
+      expect(cookies[0]).toHaveProperty("sameSite", "Lax");
+      expect(cookies[0]).toHaveProperty("maxAge", 7 * 24 * 60 * 60);
     });
 
-    it('should delete verification code after success', async () => {
+    it("should delete verification code after success", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '333333';
+      const code = "333333";
 
       // Create verification code
       await db.insert(verificationCodes).values({
@@ -183,8 +183,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -203,11 +203,11 @@ describe('POST /api/auth/verify-code', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('should return valid JWT token in cookie', async () => {
+    it("should return valid JWT token in cookie", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '444444';
+      const code = "444444";
 
       // Create verification code
       await db.insert(verificationCodes).values({
@@ -217,8 +217,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -228,26 +228,26 @@ describe('POST /api/auth/verify-code', () => {
       expect(response.statusCode).toBe(200);
 
       const cookies = response.cookies;
-      const authCookie = cookies.find((c) => c.name === 'auth_token');
+      const authCookie = cookies.find((c) => c.name === "auth_token");
       expect(authCookie).toBeDefined();
       expect(authCookie!.value).toBeTruthy();
 
       // Verify JWT can be decoded
       const decoded = app.jwt.verify(authCookie!.value);
-      expect(decoded).toHaveProperty('sub'); // user id
-      expect(decoded).toHaveProperty('phone', phoneNumber);
+      expect(decoded).toHaveProperty("sub"); // user id
+      expect(decoded).toHaveProperty("phone", phoneNumber);
     });
   });
 
-  describe('Validation Errors', () => {
-    it('should return 400 when phoneNumber is missing', async () => {
+  describe("Validation Errors", () => {
+    it("should return 400 when phoneNumber is missing", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
-          code: '123456',
+          code: "123456",
         },
       });
 
@@ -257,19 +257,19 @@ describe('POST /api/auth/verify-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: expect.any(Array),
         },
       });
     });
 
-    it('should return 400 when code is missing', async () => {
+    it("should return 400 when code is missing", async () => {
       app = await buildApp();
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber: generateUniquePhone(),
         },
@@ -281,29 +281,29 @@ describe('POST /api/auth/verify-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request data',
+          code: "VALIDATION_ERROR",
+          message: "Invalid request data",
           details: expect.any(Array),
         },
       });
     });
 
-    it('should return 400 for invalid phone format', async () => {
+    it("should return 400 for invalid phone format", async () => {
       app = await buildApp();
 
       const invalidPhoneNumbers = [
-        'not-a-phone-number',
-        'abcdefghijkl',
-        '+99999999999999',
+        "not-a-phone-number",
+        "abcdefghijkl",
+        "+99999999999999",
       ];
 
       for (const phoneNumber of invalidPhoneNumbers) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/api/auth/verify-code',
+          method: "POST",
+          url: "/api/auth/verify-code",
           payload: {
             phoneNumber,
-            code: '123456',
+            code: "123456",
           },
         });
 
@@ -313,23 +313,23 @@ describe('POST /api/auth/verify-code', () => {
         expect(body).toEqual({
           success: false,
           error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid phone number format',
+            code: "VALIDATION_ERROR",
+            message: "Invalid phone number format",
           },
         });
       }
     });
 
-    it('should return 400 when code is not 6 digits', async () => {
+    it("should return 400 when code is not 6 digits", async () => {
       app = await buildApp();
 
-      const invalidCodes = ['12345', '1234567', 'abcdef', '12345a'];
+      const invalidCodes = ["12345", "1234567", "abcdef", "12345a"];
       const phoneNumber = generateUniquePhone();
 
       for (const code of invalidCodes) {
         const response = await app.inject({
-          method: 'POST',
-          url: '/api/auth/verify-code',
+          method: "POST",
+          url: "/api/auth/verify-code",
           payload: {
             phoneNumber,
             code,
@@ -340,18 +340,18 @@ describe('POST /api/auth/verify-code', () => {
 
         const body = JSON.parse(response.body);
         expect(body.success).toBe(false);
-        expect(body.error.code).toBe('VALIDATION_ERROR');
+        expect(body.error.code).toBe("VALIDATION_ERROR");
       }
     });
   });
 
-  describe('Invalid Code Cases', () => {
-    it('should return 400 for wrong code', async () => {
+  describe("Invalid Code Cases", () => {
+    it("should return 400 for wrong code", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const correctCode = '123456';
-      const wrongCode = '654321';
+      const correctCode = "123456";
+      const wrongCode = "654321";
 
       // Create verification code
       await db.insert(verificationCodes).values({
@@ -361,8 +361,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code: wrongCode,
@@ -375,17 +375,17 @@ describe('POST /api/auth/verify-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'INVALID_CODE',
-          message: 'Invalid or expired verification code',
+          code: "INVALID_CODE",
+          message: "Invalid or expired verification code",
         },
       });
     });
 
-    it('should return 400 for expired code', async () => {
+    it("should return 400 for expired code", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '123456';
+      const code = "123456";
 
       // Create expired verification code (expired 1 minute ago)
       await db.insert(verificationCodes).values({
@@ -395,8 +395,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -409,23 +409,23 @@ describe('POST /api/auth/verify-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'INVALID_CODE',
-          message: 'Invalid or expired verification code',
+          code: "INVALID_CODE",
+          message: "Invalid or expired verification code",
         },
       });
     });
 
-    it('should return 400 for non-existent code', async () => {
+    it("should return 400 for non-existent code", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '123456';
+      const code = "123456";
 
       // Don't create any verification code
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -438,19 +438,19 @@ describe('POST /api/auth/verify-code', () => {
       expect(body).toEqual({
         success: false,
         error: {
-          code: 'INVALID_CODE',
-          message: 'Invalid or expired verification code',
+          code: "INVALID_CODE",
+          message: "Invalid or expired verification code",
         },
       });
     });
   });
 
-  describe('Database Verification', () => {
-    it('should create new user with empty displayName and UTC timezone', async () => {
+  describe("Database Verification", () => {
+    it("should create new user with empty displayName and UTC timezone", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code = '123456';
+      const code = "123456";
 
       // Create verification code
       await db.insert(verificationCodes).values({
@@ -460,8 +460,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code,
@@ -480,27 +480,27 @@ describe('POST /api/auth/verify-code', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toBeDefined();
       expect(result[0].phoneNumber).toBe(phoneNumber);
-      expect(result[0].displayName).toBe('');
-      expect(result[0].timezone).toBe('UTC');
+      expect(result[0].displayName).toBe("");
+      expect(result[0].timezone).toBe("UTC");
       expect(result[0].id).toBeTruthy();
       expect(result[0].createdAt).toBeInstanceOf(Date);
       expect(result[0].updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should not duplicate existing users', async () => {
+    it("should not duplicate existing users", async () => {
       app = await buildApp();
 
       const phoneNumber = generateUniquePhone();
-      const code1 = '111111';
-      const code2 = '222222';
+      const code1 = "111111";
+      const code2 = "222222";
 
       // Create existing user
       const existingUserResult = await db
         .insert(users)
         .values({
           phoneNumber,
-          displayName: 'Original User',
-          timezone: 'America/Los_Angeles',
+          displayName: "Original User",
+          timezone: "America/Los_Angeles",
         })
         .returning();
 
@@ -514,8 +514,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response1 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code: code1,
@@ -532,8 +532,8 @@ describe('POST /api/auth/verify-code', () => {
       });
 
       const response2 = await app.inject({
-        method: 'POST',
-        url: '/api/auth/verify-code',
+        method: "POST",
+        url: "/api/auth/verify-code",
         payload: {
           phoneNumber,
           code: code2,
@@ -550,8 +550,8 @@ describe('POST /api/auth/verify-code', () => {
 
       expect(allUsers).toHaveLength(1);
       expect(allUsers[0].id).toBe(existingUser.id);
-      expect(allUsers[0].displayName).toBe('Original User');
-      expect(allUsers[0].timezone).toBe('America/Los_Angeles');
+      expect(allUsers[0].displayName).toBe("Original User");
+      expect(allUsers[0].timezone).toBe("America/Los_Angeles");
     });
   });
 });

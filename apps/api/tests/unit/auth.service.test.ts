@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Fastify from 'fastify';
-import type { FastifyInstance } from 'fastify';
-import jwt from '@fastify/jwt';
-import { db } from '@/config/database.js';
-import { users, verificationCodes } from '@/db/schema/index.js';
-import { eq } from 'drizzle-orm';
-import { authService, AuthService } from '@/services/auth.service.js';
-import { env } from '@/config/env.js';
-import { generateUniquePhone } from '../test-utils.js';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import Fastify from "fastify";
+import type { FastifyInstance } from "fastify";
+import jwt from "@fastify/jwt";
+import { db } from "@/config/database.js";
+import { users, verificationCodes } from "@/db/schema/index.js";
+import { eq } from "drizzle-orm";
+import { authService, AuthService } from "@/services/auth.service.js";
+import { env } from "@/config/env.js";
+import { generateUniquePhone } from "../test-utils.js";
 
-describe('auth.service', () => {
+describe("auth.service", () => {
   // Use unique phone numbers per test run to enable parallel execution
   // Targeted cleanup needed - unit tests verify specific database states
   const testPhoneNumber = generateUniquePhone();
@@ -17,8 +17,12 @@ describe('auth.service', () => {
 
   // Clean up only this test file's data (safe for parallel execution)
   const cleanup = async () => {
-    await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber));
-    await db.delete(verificationCodes).where(eq(verificationCodes.phoneNumber, testPhoneNumber2));
+    await db
+      .delete(verificationCodes)
+      .where(eq(verificationCodes.phoneNumber, testPhoneNumber));
+    await db
+      .delete(verificationCodes)
+      .where(eq(verificationCodes.phoneNumber, testPhoneNumber2));
     await db.delete(users).where(eq(users.phoneNumber, testPhoneNumber));
     await db.delete(users).where(eq(users.phoneNumber, testPhoneNumber2));
   };
@@ -26,13 +30,13 @@ describe('auth.service', () => {
   beforeEach(cleanup);
   afterEach(cleanup);
 
-  describe('generateCode', () => {
-    it('should generate a 6-digit numeric code', () => {
+  describe("generateCode", () => {
+    it("should generate a 6-digit numeric code", () => {
       const code = authService.generateCode();
       expect(code).toMatch(/^\d{6}$/);
     });
 
-    it('should generate different codes on successive calls', () => {
+    it("should generate different codes on successive calls", () => {
       const code1 = authService.generateCode();
       const code2 = authService.generateCode();
       const code3 = authService.generateCode();
@@ -44,7 +48,7 @@ describe('auth.service', () => {
       expect(code3).toMatch(/^\d{6}$/);
     });
 
-    it('should generate codes in valid range (100000-999999)', () => {
+    it("should generate codes in valid range (100000-999999)", () => {
       const code = authService.generateCode();
       const numericCode = parseInt(code, 10);
       expect(numericCode).toBeGreaterThanOrEqual(100000);
@@ -52,9 +56,9 @@ describe('auth.service', () => {
     });
   });
 
-  describe('storeCode', () => {
-    it('should store a verification code for a phone number', async () => {
-      const code = '123456';
+  describe("storeCode", () => {
+    it("should store a verification code for a phone number", async () => {
+      const code = "123456";
       await authService.storeCode(testPhoneNumber, code);
 
       const result = await db
@@ -70,8 +74,8 @@ describe('auth.service', () => {
       expect(result[0].createdAt).toBeInstanceOf(Date);
     });
 
-    it('should set expiry to 5 minutes from now', async () => {
-      const code = '123456';
+    it("should set expiry to 5 minutes from now", async () => {
+      const code = "123456";
       const beforeStore = Date.now();
       await authService.storeCode(testPhoneNumber, code);
       const afterStore = Date.now();
@@ -90,9 +94,9 @@ describe('auth.service', () => {
       expect(expiresAt).toBeLessThanOrEqual(expectedMax);
     });
 
-    it('should update existing code for same phone number (upsert)', async () => {
-      const code1 = '111111';
-      const code2 = '222222';
+    it("should update existing code for same phone number (upsert)", async () => {
+      const code1 = "111111";
+      const code2 = "222222";
 
       // Store first code
       await authService.storeCode(testPhoneNumber, code1);
@@ -116,9 +120,9 @@ describe('auth.service', () => {
       expect(result2[0].code).toBe(code2);
     });
 
-    it('should reset createdAt timestamp on update', async () => {
-      const code1 = '111111';
-      const code2 = '222222';
+    it("should reset createdAt timestamp on update", async () => {
+      const code1 = "111111";
+      const code2 = "222222";
 
       await authService.storeCode(testPhoneNumber, code1);
       const result1 = await db
@@ -143,31 +147,31 @@ describe('auth.service', () => {
     });
   });
 
-  describe('verifyCode', () => {
-    it('should return true for valid code', async () => {
-      const code = '123456';
+  describe("verifyCode", () => {
+    it("should return true for valid code", async () => {
+      const code = "123456";
       await authService.storeCode(testPhoneNumber, code);
 
       const isValid = await authService.verifyCode(testPhoneNumber, code);
       expect(isValid).toBe(true);
     });
 
-    it('should return false when no code exists for phone number', async () => {
-      const isValid = await authService.verifyCode(testPhoneNumber, '123456');
+    it("should return false when no code exists for phone number", async () => {
+      const isValid = await authService.verifyCode(testPhoneNumber, "123456");
       expect(isValid).toBe(false);
     });
 
-    it('should return false when code does not match', async () => {
-      const storedCode = '123456';
-      const wrongCode = '654321';
+    it("should return false when code does not match", async () => {
+      const storedCode = "123456";
+      const wrongCode = "654321";
       await authService.storeCode(testPhoneNumber, storedCode);
 
       const isValid = await authService.verifyCode(testPhoneNumber, wrongCode);
       expect(isValid).toBe(false);
     });
 
-    it('should return false when code has expired', async () => {
-      const code = '123456';
+    it("should return false when code has expired", async () => {
+      const code = "123456";
       const expiredTime = new Date(Date.now() - 1000); // 1 second ago
 
       // Manually insert expired code
@@ -181,8 +185,8 @@ describe('auth.service', () => {
       expect(isValid).toBe(false);
     });
 
-    it('should return true when code is about to expire but still valid', async () => {
-      const code = '123456';
+    it("should return true when code is about to expire but still valid", async () => {
+      const code = "123456";
       const almostExpiredTime = new Date(Date.now() + 1000); // 1 second from now
 
       // Manually insert code about to expire
@@ -196,9 +200,9 @@ describe('auth.service', () => {
       expect(isValid).toBe(true);
     });
 
-    it('should check codes independently for different phone numbers', async () => {
-      const code1 = '111111';
-      const code2 = '222222';
+    it("should check codes independently for different phone numbers", async () => {
+      const code1 = "111111";
+      const code2 = "222222";
 
       await authService.storeCode(testPhoneNumber, code1);
       await authService.storeCode(testPhoneNumber2, code2);
@@ -211,9 +215,9 @@ describe('auth.service', () => {
     });
   });
 
-  describe('deleteCode', () => {
-    it('should delete a verification code', async () => {
-      const code = '123456';
+  describe("deleteCode", () => {
+    it("should delete a verification code", async () => {
+      const code = "123456";
       await authService.storeCode(testPhoneNumber, code);
 
       // Verify code exists
@@ -236,13 +240,15 @@ describe('auth.service', () => {
       expect(afterDelete).toHaveLength(0);
     });
 
-    it('should not throw error when deleting non-existent code', async () => {
-      await expect(authService.deleteCode(testPhoneNumber)).resolves.not.toThrow();
+    it("should not throw error when deleting non-existent code", async () => {
+      await expect(
+        authService.deleteCode(testPhoneNumber),
+      ).resolves.not.toThrow();
     });
 
-    it('should only delete code for specified phone number', async () => {
-      const code1 = '111111';
-      const code2 = '222222';
+    it("should only delete code for specified phone number", async () => {
+      const code1 = "111111";
+      const code2 = "222222";
 
       await authService.storeCode(testPhoneNumber, code1);
       await authService.storeCode(testPhoneNumber2, code2);
@@ -269,21 +275,21 @@ describe('auth.service', () => {
     });
   });
 
-  describe('getOrCreateUser', () => {
-    it('should create a new user when one does not exist', async () => {
+  describe("getOrCreateUser", () => {
+    it("should create a new user when one does not exist", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
 
       expect(user).toBeDefined();
       expect(user.id).toBeDefined();
       expect(user.phoneNumber).toBe(testPhoneNumber);
-      expect(user.displayName).toBe('');
-      expect(user.timezone).toBe('UTC');
+      expect(user.displayName).toBe("");
+      expect(user.timezone).toBe("UTC");
       expect(user.profilePhotoUrl).toBeNull();
       expect(user.createdAt).toBeInstanceOf(Date);
       expect(user.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should return existing user when one already exists', async () => {
+    it("should return existing user when one already exists", async () => {
       // Create user first time
       const user1 = await authService.getOrCreateUser(testPhoneNumber);
 
@@ -296,7 +302,7 @@ describe('auth.service', () => {
       expect(user2.createdAt.getTime()).toBe(user1.createdAt.getTime());
     });
 
-    it('should not create duplicate users for same phone number', async () => {
+    it("should not create duplicate users for same phone number", async () => {
       await authService.getOrCreateUser(testPhoneNumber);
       await authService.getOrCreateUser(testPhoneNumber);
 
@@ -309,7 +315,7 @@ describe('auth.service', () => {
       expect(allUsers).toHaveLength(1);
     });
 
-    it('should create different users for different phone numbers', async () => {
+    it("should create different users for different phone numbers", async () => {
       const user1 = await authService.getOrCreateUser(testPhoneNumber);
       const user2 = await authService.getOrCreateUser(testPhoneNumber2);
 
@@ -319,10 +325,10 @@ describe('auth.service', () => {
     });
   });
 
-  describe('updateProfile', () => {
-    it('should update display name', async () => {
+  describe("updateProfile", () => {
+    it("should update display name", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
-      const newDisplayName = 'John Doe';
+      const newDisplayName = "John Doe";
 
       const updatedUser = await authService.updateProfile(user.id, {
         displayName: newDisplayName,
@@ -330,12 +336,12 @@ describe('auth.service', () => {
 
       expect(updatedUser.id).toBe(user.id);
       expect(updatedUser.displayName).toBe(newDisplayName);
-      expect(updatedUser.timezone).toBe('UTC'); // Should remain unchanged
+      expect(updatedUser.timezone).toBe("UTC"); // Should remain unchanged
     });
 
-    it('should update timezone', async () => {
+    it("should update timezone", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
-      const newTimezone = 'America/New_York';
+      const newTimezone = "America/New_York";
 
       const updatedUser = await authService.updateProfile(user.id, {
         timezone: newTimezone,
@@ -343,13 +349,13 @@ describe('auth.service', () => {
 
       expect(updatedUser.id).toBe(user.id);
       expect(updatedUser.timezone).toBe(newTimezone);
-      expect(updatedUser.displayName).toBe(''); // Should remain unchanged
+      expect(updatedUser.displayName).toBe(""); // Should remain unchanged
     });
 
-    it('should update both display name and timezone', async () => {
+    it("should update both display name and timezone", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
-      const newDisplayName = 'Jane Smith';
-      const newTimezone = 'Europe/London';
+      const newDisplayName = "Jane Smith";
+      const newTimezone = "Europe/London";
 
       const updatedUser = await authService.updateProfile(user.id, {
         displayName: newDisplayName,
@@ -361,7 +367,7 @@ describe('auth.service', () => {
       expect(updatedUser.timezone).toBe(newTimezone);
     });
 
-    it('should update the updatedAt timestamp', async () => {
+    it("should update the updatedAt timestamp", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
       const originalUpdatedAt = user.updatedAt.getTime();
 
@@ -369,17 +375,19 @@ describe('auth.service', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       const updatedUser = await authService.updateProfile(user.id, {
-        displayName: 'Updated Name',
+        displayName: "Updated Name",
       });
 
-      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt);
+      expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(
+        originalUpdatedAt,
+      );
     });
 
-    it('should not affect other user fields', async () => {
+    it("should not affect other user fields", async () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
 
       const updatedUser = await authService.updateProfile(user.id, {
-        displayName: 'New Name',
+        displayName: "New Name",
       });
 
       expect(updatedUser.phoneNumber).toBe(user.phoneNumber);
@@ -388,8 +396,8 @@ describe('auth.service', () => {
     });
   });
 
-  describe('integration: complete auth flow', () => {
-    it('should handle complete verification flow', async () => {
+  describe("integration: complete auth flow", () => {
+    it("should handle complete verification flow", async () => {
       // 1. Generate and store code
       const code = authService.generateCode();
       await authService.storeCode(testPhoneNumber, code);
@@ -413,20 +421,20 @@ describe('auth.service', () => {
 
       // 5. Update user profile
       const updatedUser = await authService.updateProfile(user.id, {
-        displayName: 'Test User',
-        timezone: 'America/Los_Angeles',
+        displayName: "Test User",
+        timezone: "America/Los_Angeles",
       });
-      expect(updatedUser.displayName).toBe('Test User');
-      expect(updatedUser.timezone).toBe('America/Los_Angeles');
+      expect(updatedUser.displayName).toBe("Test User");
+      expect(updatedUser.timezone).toBe("America/Los_Angeles");
     });
 
-    it('should handle failed verification flow', async () => {
+    it("should handle failed verification flow", async () => {
       // 1. Generate and store code
       const code = authService.generateCode();
       await authService.storeCode(testPhoneNumber, code);
 
       // 2. Try to verify with wrong code
-      const isValid = await authService.verifyCode(testPhoneNumber, '000000');
+      const isValid = await authService.verifyCode(testPhoneNumber, "000000");
       expect(isValid).toBe(false);
 
       // 3. Code should still exist for retry
@@ -442,7 +450,7 @@ describe('auth.service', () => {
       expect(isValidRetry).toBe(true);
     });
 
-    it('should handle code resend (overwrite)', async () => {
+    it("should handle code resend (overwrite)", async () => {
       // 1. Generate and store first code
       const code1 = authService.generateCode();
       await authService.storeCode(testPhoneNumber, code1);
@@ -473,8 +481,12 @@ describe('auth.service', () => {
       // 4. Timestamps should be updated (upsert refreshes the record)
       const secondCreatedAt = allCodes[0].createdAt;
       const secondExpiresAt = allCodes[0].expiresAt;
-      expect(secondCreatedAt.getTime()).toBeGreaterThan(firstCreatedAt.getTime());
-      expect(secondExpiresAt.getTime()).toBeGreaterThan(firstExpiresAt.getTime());
+      expect(secondCreatedAt.getTime()).toBeGreaterThan(
+        firstCreatedAt.getTime(),
+      );
+      expect(secondExpiresAt.getTime()).toBeGreaterThan(
+        firstExpiresAt.getTime(),
+      );
 
       // 5. Code should still work (in non-production, codes are fixed to '123456')
       const isValid = await authService.verifyCode(testPhoneNumber, code2);
@@ -482,10 +494,10 @@ describe('auth.service', () => {
     });
   });
 
-  describe('generateToken', () => {
+  describe("generateToken", () => {
     let app: FastifyInstance;
     let testAuthService: AuthService;
-    const testUserId = '123e4567-e89b-12d3-a456-426614174000';
+    const testUserId = "123e4567-e89b-12d3-a456-426614174000";
 
     afterEach(async () => {
       if (app) {
@@ -493,12 +505,12 @@ describe('auth.service', () => {
       }
     });
 
-    it('should generate a valid JWT token for user with complete profile', async () => {
+    it("should generate a valid JWT token for user with complete profile", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -507,8 +519,8 @@ describe('auth.service', () => {
       // Create test user
       const user = await authService.getOrCreateUser(testPhoneNumber);
       await authService.updateProfile(user.id, {
-        displayName: 'Test User',
-        timezone: 'America/New_York',
+        displayName: "Test User",
+        timezone: "America/New_York",
       });
       const updatedUser = await db
         .select()
@@ -519,16 +531,16 @@ describe('auth.service', () => {
       const token = testAuthService.generateToken(updatedUser[0]);
 
       expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3); // JWT format: header.payload.signature
+      expect(typeof token).toBe("string");
+      expect(token.split(".")).toHaveLength(3); // JWT format: header.payload.signature
     });
 
-    it('should generate a valid JWT token for user with incomplete profile', async () => {
+    it("should generate a valid JWT token for user with incomplete profile", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -540,16 +552,16 @@ describe('auth.service', () => {
       const token = testAuthService.generateToken(user);
 
       expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3);
+      expect(typeof token).toBe("string");
+      expect(token.split(".")).toHaveLength(3);
     });
 
-    it('should include correct payload in generated token', async () => {
+    it("should include correct payload in generated token", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -557,7 +569,7 @@ describe('auth.service', () => {
 
       // Create test user
       const user = await authService.getOrCreateUser(testPhoneNumber);
-      await authService.updateProfile(user.id, { displayName: 'John Doe' });
+      await authService.updateProfile(user.id, { displayName: "John Doe" });
       const updatedUser = await db
         .select()
         .from(users)
@@ -569,17 +581,17 @@ describe('auth.service', () => {
 
       expect(decoded.sub).toBe(updatedUser[0].id);
       expect(decoded.phone).toBe(testPhoneNumber);
-      expect(decoded.name).toBe('John Doe');
+      expect(decoded.name).toBe("John Doe");
       expect(decoded.iat).toBeDefined();
       expect(decoded.exp).toBeDefined();
     });
 
-    it('should set token expiry to 7 days from now', async () => {
+    it("should set token expiry to 7 days from now", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -599,29 +611,29 @@ describe('auth.service', () => {
       expect(decoded.exp).toBeLessThanOrEqual(expectedExpiryMax);
     });
 
-    it('should throw error when FastifyInstance not available', () => {
+    it("should throw error when FastifyInstance not available", () => {
       const serviceWithoutFastify = new AuthService();
       const mockUser = {
         id: testUserId,
         phoneNumber: testPhoneNumber,
-        displayName: 'Test User',
+        displayName: "Test User",
         profilePhotoUrl: null,
-        timezone: 'UTC',
+        timezone: "UTC",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       expect(() => serviceWithoutFastify.generateToken(mockUser)).toThrow(
-        'FastifyInstance not available'
+        "FastifyInstance not available",
       );
     });
 
-    it('should omit name field when displayName is empty', async () => {
+    it("should omit name field when displayName is empty", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -639,7 +651,7 @@ describe('auth.service', () => {
     });
   });
 
-  describe('verifyToken', () => {
+  describe("verifyToken", () => {
     let app: FastifyInstance;
     let testAuthService: AuthService;
 
@@ -649,12 +661,12 @@ describe('auth.service', () => {
       }
     });
 
-    it('should verify a valid token and return payload', async () => {
+    it("should verify a valid token and return payload", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -662,7 +674,7 @@ describe('auth.service', () => {
 
       // Create user and generate token
       const user = await authService.getOrCreateUser(testPhoneNumber);
-      await authService.updateProfile(user.id, { displayName: 'Test User' });
+      await authService.updateProfile(user.id, { displayName: "Test User" });
       const updatedUser = await db
         .select()
         .from(users)
@@ -677,18 +689,18 @@ describe('auth.service', () => {
       expect(payload).toBeDefined();
       expect(payload.sub).toBe(updatedUser[0].id);
       expect(payload.phone).toBe(testPhoneNumber);
-      expect(payload.name).toBe('Test User');
+      expect(payload.name).toBe("Test User");
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
     });
 
-    it('should throw error for expired token', async () => {
+    it("should throw error for expired token", async () => {
       // Setup Fastify with JWT for signing with short expiry
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '1ms', algorithm: 'HS256' }, // 1 millisecond
-        verify: { algorithms: ['HS256'] },
+        sign: { expiresIn: "1ms", algorithm: "HS256" }, // 1 millisecond
+        verify: { algorithms: ["HS256"] },
       });
       await app.ready();
 
@@ -702,31 +714,35 @@ describe('auth.service', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Now verify should fail
-      expect(() => testAuthService.verifyToken(token)).toThrow('Token verification failed');
+      expect(() => testAuthService.verifyToken(token)).toThrow(
+        "Token verification failed",
+      );
     });
 
-    it('should throw error for invalid token format', async () => {
+    it("should throw error for invalid token format", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
       testAuthService = new AuthService(app);
 
-      const invalidToken = 'this.is.not.a.valid.jwt';
+      const invalidToken = "this.is.not.a.valid.jwt";
 
-      expect(() => testAuthService.verifyToken(invalidToken)).toThrow('Token verification failed');
+      expect(() => testAuthService.verifyToken(invalidToken)).toThrow(
+        "Token verification failed",
+      );
     });
 
-    it('should throw error for token with wrong signature', async () => {
+    it("should throw error for token with wrong signature", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -735,8 +751,8 @@ describe('auth.service', () => {
       // Create a token with different secret
       const differentSecretApp = Fastify({ logger: false });
       await differentSecretApp.register(jwt, {
-        secret: 'different-secret-key-for-testing-purposes-only',
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        secret: "different-secret-key-for-testing-purposes-only",
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await differentSecretApp.ready();
 
@@ -749,41 +765,43 @@ describe('auth.service', () => {
 
       await differentSecretApp.close();
 
-      expect(() => testAuthService.verifyToken(tokenWithWrongSignature)).toThrow(
-        'Token verification failed'
-      );
+      expect(() =>
+        testAuthService.verifyToken(tokenWithWrongSignature),
+      ).toThrow("Token verification failed");
     });
 
-    it('should throw error for malformed token', async () => {
+    it("should throw error for malformed token", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
       testAuthService = new AuthService(app);
 
-      const malformedToken = 'not-a-token';
+      const malformedToken = "not-a-token";
 
-      expect(() => testAuthService.verifyToken(malformedToken)).toThrow('Token verification failed');
-    });
-
-    it('should throw error when FastifyInstance not available', () => {
-      const serviceWithoutFastify = new AuthService();
-
-      expect(() => serviceWithoutFastify.verifyToken('any-token')).toThrow(
-        'FastifyInstance not available'
+      expect(() => testAuthService.verifyToken(malformedToken)).toThrow(
+        "Token verification failed",
       );
     });
 
-    it('should handle token without name field (optional field)', async () => {
+    it("should throw error when FastifyInstance not available", () => {
+      const serviceWithoutFastify = new AuthService();
+
+      expect(() => serviceWithoutFastify.verifyToken("any-token")).toThrow(
+        "FastifyInstance not available",
+      );
+    });
+
+    it("should handle token without name field (optional field)", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
       });
       await app.ready();
 
@@ -801,7 +819,7 @@ describe('auth.service', () => {
     });
   });
 
-  describe('integration: token round-trip', () => {
+  describe("integration: token round-trip", () => {
     let app: FastifyInstance;
     let testAuthService: AuthService;
 
@@ -811,13 +829,13 @@ describe('auth.service', () => {
       }
     });
 
-    it('should successfully generate and verify a token round-trip', async () => {
+    it("should successfully generate and verify a token round-trip", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
-        verify: { algorithms: ['HS256'] },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
+        verify: { algorithms: ["HS256"] },
       });
       await app.ready();
 
@@ -826,8 +844,8 @@ describe('auth.service', () => {
       // Create user with full profile
       const user = await authService.getOrCreateUser(testPhoneNumber);
       await authService.updateProfile(user.id, {
-        displayName: 'Integration Test User',
-        timezone: 'Europe/London',
+        displayName: "Integration Test User",
+        timezone: "Europe/London",
       });
       const updatedUser = await db
         .select()
@@ -845,7 +863,7 @@ describe('auth.service', () => {
       // Verify all fields match
       expect(payload.sub).toBe(updatedUser[0].id);
       expect(payload.phone).toBe(updatedUser[0].phoneNumber);
-      expect(payload.name).toBe('Integration Test User');
+      expect(payload.name).toBe("Integration Test User");
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
 
@@ -854,13 +872,13 @@ describe('auth.service', () => {
       expect(payload.exp - payload.iat).toBeCloseTo(sevenDays, -2); // Within ~100 seconds
     });
 
-    it('should handle complete auth flow with token generation', async () => {
+    it("should handle complete auth flow with token generation", async () => {
       // Setup Fastify with JWT
       app = Fastify({ logger: false });
       await app.register(jwt, {
         secret: env.JWT_SECRET,
-        sign: { expiresIn: '7d', algorithm: 'HS256' },
-        verify: { algorithms: ['HS256'] },
+        sign: { expiresIn: "7d", algorithm: "HS256" },
+        verify: { algorithms: ["HS256"] },
       });
       await app.ready();
 
@@ -892,7 +910,7 @@ describe('auth.service', () => {
 
       // 7. Update profile
       await authService.updateProfile(user.id, {
-        displayName: 'Complete Flow User',
+        displayName: "Complete Flow User",
       });
 
       // 8. Verify token still works after profile update
