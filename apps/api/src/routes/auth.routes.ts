@@ -55,7 +55,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Complete user profile with display name and timezone
    * Requires authentication via JWT token
    */
-  fastify.post(
+  fastify.post<{ Body: { displayName: string; timezone?: string } }>(
     "/complete-profile",
     {
       schema: {

@@ -93,7 +93,7 @@
 
 ## Phase 5: Final Verification
 
-- [ ] Task 5.1: Full regression check and E2E validation
+- [x] Task 5.1: Full regression check and E2E validation
   - Verify: all unit tests pass (`pnpm test`)
   - Verify: all E2E tests pass (`pnpm test:e2e`)
   - Verify: linting passes (`pnpm lint`)

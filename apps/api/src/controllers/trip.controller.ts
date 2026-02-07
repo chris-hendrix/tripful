@@ -18,9 +18,12 @@ export const tripController = {
    * @param reply - Fastify reply object
    * @returns Success response with created trip
    */
-  async createTrip(request: FastifyRequest, reply: FastifyReply) {
+  async createTrip(
+    request: FastifyRequest<{ Body: CreateTripInput }>,
+    reply: FastifyReply,
+  ) {
     // Body is validated by Fastify route schema
-    const data = request.body as CreateTripInput;
+    const data = request.body;
 
     try {
       const { tripService } = request.server;
@@ -69,13 +72,18 @@ export const tripController = {
    * @param reply - Fastify reply object
    * @returns Success response with user's trips
    */
-  async getUserTrips(request: FastifyRequest, reply: FastifyReply) {
+  async getUserTrips(
+    request: FastifyRequest<{
+      Querystring: { page?: string; limit?: string };
+    }>,
+    reply: FastifyReply,
+  ) {
     try {
       const { tripService } = request.server;
       const userId = request.user.sub;
 
       // Parse pagination query params
-      const query = request.query as { page?: string; limit?: string };
+      const query = request.query;
       const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
       const limit = Math.min(
         100,
@@ -115,13 +123,13 @@ export const tripController = {
    * Returns trip details for members only
    */
   async getTripById(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       const { tripService } = request.server;
       // Params are validated by Fastify route schema (UUID format)
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
       const userId = request.user.sub;
 
       // Get trip from service
@@ -147,7 +155,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to get trip",
       );
@@ -171,13 +179,13 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async updateTrip(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string }; Body: UpdateTripInput }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params and body are validated by Fastify route schema
-      const { id } = request.params as { id: string };
-      const data = request.body as UpdateTripInput;
+      const { id } = request.params;
+      const data = request.body;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
@@ -205,7 +213,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to update trip",
       );
@@ -228,12 +236,12 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async cancelTrip(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params are validated by Fastify route schema
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
@@ -256,7 +264,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to cancel trip",
       );
@@ -279,13 +287,16 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async addCoOrganizer(
-    request: FastifyRequest,
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: { phoneNumber: string };
+    }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params and body are validated by Fastify route schema
-      const { id } = request.params as { id: string };
-      const { phoneNumber } = request.body as { phoneNumber: string };
+      const { id } = request.params;
+      const { phoneNumber } = request.body;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
@@ -310,7 +321,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to add co-organizer",
       );
@@ -333,15 +344,12 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async removeCoOrganizer(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string; userId: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params are validated by Fastify route schema
-      const { id, userId: coOrgUserId } = request.params as {
-        id: string;
-        userId: string;
-      };
+      const { id, userId: coOrgUserId } = request.params;
 
       // Extract requesting user ID from JWT
       const userId = request.user.sub;
@@ -368,8 +376,8 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
-          coOrgUserId: (request.params as { userId: string }).userId,
+          tripId: request.params.id,
+          coOrgUserId: request.params.userId,
         },
         "Failed to remove co-organizer",
       );
@@ -392,12 +400,12 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async uploadCoverImage(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params are validated by Fastify route schema
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       // Get file from request
       let data;
@@ -528,7 +536,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to upload cover image",
       );
@@ -551,12 +559,12 @@ export const tripController = {
    * @middleware authenticate, requireCompleteProfile
    */
   async deleteCoverImage(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
       // Params are validated by Fastify route schema
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
@@ -604,7 +612,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to delete cover image",
       );

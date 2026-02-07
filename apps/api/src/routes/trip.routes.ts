@@ -37,7 +37,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Get user's trips
    * Requires authentication only (not complete profile)
    */
-  fastify.get(
+  fastify.get<{ Querystring: { page?: string; limit?: string } }>(
     "/",
     {
       preHandler: authenticate,
@@ -51,7 +51,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Requires authentication only (not complete profile)
    * Returns 404 for both non-existent trips and trips user is not a member of
    */
-  fastify.get(
+  fastify.get<{ Params: { id: string } }>(
     "/:id",
     {
       schema: {

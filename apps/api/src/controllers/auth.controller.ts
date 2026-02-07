@@ -16,9 +16,12 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with message
    */
-  async requestCode(request: FastifyRequest, reply: FastifyReply) {
+  async requestCode(
+    request: FastifyRequest<{ Body: { phoneNumber: string } }>,
+    reply: FastifyReply,
+  ) {
     // Body is validated by Fastify route schema
-    const { phoneNumber } = request.body as { phoneNumber: string };
+    const { phoneNumber } = request.body;
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -84,12 +87,12 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with user and requiresProfile flag
    */
-  async verifyCode(request: FastifyRequest, reply: FastifyReply) {
+  async verifyCode(
+    request: FastifyRequest<{ Body: { phoneNumber: string; code: string } }>,
+    reply: FastifyReply,
+  ) {
     // Body is validated by Fastify route schema
-    const { phoneNumber, code } = request.body as {
-      phoneNumber: string;
-      code: string;
-    };
+    const { phoneNumber, code } = request.body;
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -178,12 +181,14 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with updated user
    */
-  async completeProfile(request: FastifyRequest, reply: FastifyReply) {
+  async completeProfile(
+    request: FastifyRequest<{
+      Body: { displayName: string; timezone?: string };
+    }>,
+    reply: FastifyReply,
+  ) {
     // Body is validated by Fastify route schema
-    const { displayName, timezone } = request.body as {
-      displayName: string;
-      timezone?: string;
-    };
+    const { displayName, timezone } = request.body;
 
     try {
       const { authService } = request.server;
