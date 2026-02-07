@@ -52,6 +52,7 @@ pnpm format           # Prettier format
 pnpm typecheck        # TypeScript validation
 pnpm test             # All tests
 pnpm test:e2e         # Playwright E2E tests
+pnpm test:e2e:ui      # Playwright E2E tests with UI (port 9323)
 
 # Database (run from apps/api)
 cd apps/api
