@@ -17,7 +17,7 @@
 
 ## Phase 2: Next.js Features — Fonts, Images, Error Boundaries, Metadata, Loading
 
-- [ ] Task 2.1: Add next/font for Playfair Display, replace all `<img>` with next/image, create error boundaries, add metadata and loading files
+- [x] Task 2.1: Add next/font for Playfair Display, replace all `<img>` with next/image, create error boundaries, add metadata and loading files
   - Implement: Create `apps/web/src/lib/fonts.ts` with `Playfair_Display` from `next/font/google`, exported as `playfairDisplay` with CSS variable `--font-playfair`.
   - Implement: Update `apps/web/src/app/layout.tsx` — import `playfairDisplay`, add `className={playfairDisplay.variable}` to `<html>`. Update metadata to use title template: `title: { default: "Tripful", template: "%s | Tripful" }`.
   - Implement: Replace all `style={{ fontFamily: "Playfair Display, serif" }}` with `className="font-[family-name:var(--font-playfair)]"` across dashboard page (6), trip detail page (3), trip-card (1), create-trip-dialog (1), edit-trip-dialog (1).

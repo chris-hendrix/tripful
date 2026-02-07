@@ -142,8 +142,7 @@ export function CreateTripDialog({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle
-            className="text-3xl font-serif tracking-tight"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight"
           >
             Create a new trip
           </DialogTitle>

@@ -3,6 +3,22 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ImageUpload } from "../image-upload";
 
+// Mock next/image
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    fill,
+    priority,
+    unoptimized,
+    sizes,
+    ...props
+  }: Record<string, unknown>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img src={src as string} alt={alt as string} {...props} />
+  ),
+}));
+
 describe("ImageUpload", () => {
   let mockOnChange: ReturnType<typeof vi.fn>;
   let mockCreateObjectURL: ReturnType<typeof vi.fn>;

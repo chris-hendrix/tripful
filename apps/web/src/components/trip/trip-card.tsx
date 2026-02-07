@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Calendar, MapPin, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateRange, getInitials } from "@/lib/format";
@@ -85,10 +86,12 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
       {/* Cover image or placeholder */}
       {trip.coverImageUrl ? (
         <div className="relative h-40 overflow-hidden">
-          <img
+          <Image
             src={trip.coverImageUrl}
             alt={trip.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
@@ -122,8 +125,7 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
       <div className="p-4 space-y-3">
         <div>
           <h3
-            className="text-lg font-semibold text-slate-900 mb-1 truncate"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-lg font-semibold text-slate-900 mb-1 truncate font-[family-name:var(--font-playfair)]"
           >
             {trip.name}
           </h3>
@@ -144,11 +146,13 @@ export function TripCard({ trip, index = 0 }: TripCardProps) {
             <div className="flex -space-x-2 shrink-0">
               {displayedOrganizers.map((org) =>
                 org.profilePhotoUrl ? (
-                  <img
+                  <Image
                     key={org.id}
                     src={org.profilePhotoUrl}
                     alt={org.displayName}
-                    className="w-6 h-6 rounded-full ring-2 ring-white"
+                    width={24}
+                    height={24}
+                    className="rounded-full ring-2 ring-white"
                   />
                 ) : (
                   <div

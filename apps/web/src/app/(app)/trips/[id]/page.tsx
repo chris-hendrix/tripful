@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Calendar,
   MapPin,
@@ -64,8 +65,7 @@ export default function TripDetailPage() {
         <div className="bg-white rounded-2xl border border-red-200 p-8 text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2
-            className="text-2xl font-semibold text-slate-900 mb-2"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
           >
             Trip not found
           </h2>
@@ -97,10 +97,13 @@ export default function TripDetailPage() {
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
         <div className="relative h-80 overflow-hidden">
-          <img
+          <Image
             src={trip.coverImageUrl}
             alt={trip.name}
-            className="w-full h-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
@@ -116,8 +119,7 @@ export default function TripDetailPage() {
         <div className="mb-8">
           <div className="flex items-start justify-between mb-4">
             <h1
-              className="text-4xl font-bold text-slate-900"
-              style={{ fontFamily: "Playfair Display, serif" }}
+              className="text-4xl font-bold text-slate-900 font-[family-name:var(--font-playfair)]"
             >
               {trip.name}
             </h1>
@@ -165,11 +167,13 @@ export default function TripDetailPage() {
                 <div className="flex -space-x-2">
                   {trip.organizers.map((org) =>
                     org.profilePhotoUrl ? (
-                      <img
+                      <Image
                         key={org.id}
                         src={org.profilePhotoUrl}
                         alt={org.displayName}
-                        className="w-8 h-8 rounded-full ring-2 ring-white"
+                        width={32}
+                        height={32}
+                        className="rounded-full ring-2 ring-white"
                       />
                     ) : (
                       <div
@@ -219,8 +223,7 @@ export default function TripDetailPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
           <CalendarX className="w-12 h-12 text-slate-400 mx-auto mb-4" />
           <h2
-            className="text-2xl font-semibold text-slate-900 mb-2"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
           >
             No events yet
           </h2>

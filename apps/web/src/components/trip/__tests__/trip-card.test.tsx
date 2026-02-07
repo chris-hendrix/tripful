@@ -3,6 +3,22 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TripCard } from "../trip-card";
 
+// Mock next/image
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    fill,
+    priority,
+    unoptimized,
+    sizes,
+    ...props
+  }: Record<string, unknown>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img src={src as string} alt={alt as string} {...props} />
+  ),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({

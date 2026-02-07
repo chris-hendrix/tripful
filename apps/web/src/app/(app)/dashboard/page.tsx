@@ -83,8 +83,7 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="mb-8">
           <h1
-            className="text-4xl font-bold text-slate-900 mb-2"
-            style={{ fontFamily: "Playfair Display, serif" }}
+            className="text-4xl font-bold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
           >
             My Trips
           </h1>
@@ -121,8 +120,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-red-200 p-8 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2
-              className="text-2xl font-semibold text-slate-900 mb-2"
-              style={{ fontFamily: "Playfair Display, serif" }}
+              className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
             >
               Failed to load trips
             </h2>
@@ -145,8 +143,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <div className="max-w-md mx-auto">
               <h2
-                className="text-2xl font-semibold text-slate-900 mb-2"
-                style={{ fontFamily: "Playfair Display, serif" }}
+                className="text-2xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
               >
                 No trips yet
               </h2>
@@ -169,8 +166,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
             <Search className="w-12 h-12 text-slate-400 mx-auto mb-4" />
             <h2
-              className="text-xl font-semibold text-slate-900 mb-2"
-              style={{ fontFamily: "Playfair Display, serif" }}
+              className="text-xl font-semibold text-slate-900 mb-2 font-[family-name:var(--font-playfair)]"
             >
               No trips found
             </h2>
@@ -187,8 +183,7 @@ export default function DashboardPage() {
             {upcomingTrips.length > 0 && (
               <section className="mb-12">
                 <h2
-                  className="text-2xl font-semibold text-slate-900 mb-4"
-                  style={{ fontFamily: "Playfair Display, serif" }}
+                  className="text-2xl font-semibold text-slate-900 mb-4 font-[family-name:var(--font-playfair)]"
                 >
                   Upcoming trips
                 </h2>
@@ -204,8 +199,7 @@ export default function DashboardPage() {
             {pastTrips.length > 0 && (
               <section>
                 <h2
-                  className="text-2xl font-semibold text-slate-900 mb-4"
-                  style={{ fontFamily: "Playfair Display, serif" }}
+                  className="text-2xl font-semibold text-slate-900 mb-4 font-[family-name:var(--font-playfair)]"
                 >
                   Past trips
                 </h2>

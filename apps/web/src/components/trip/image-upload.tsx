@@ -8,6 +8,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
 } from "react";
+import Image from "next/image";
 import { Upload, AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/api";
@@ -206,10 +207,12 @@ export function ImageUpload({
       {previewUrl ? (
         <div className="relative group">
           <div className="relative h-48 rounded-xl overflow-hidden border-2 border-slate-200">
-            <img
+            <Image
               src={previewUrl}
               alt="Preview"
-              className="w-full h-full object-cover"
+              fill
+              unoptimized
+              className="object-cover"
             />
             {isUploading && (
               <div className="absolute inset-0 bg-white/80 flex items-center justify-center">

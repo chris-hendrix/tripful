@@ -11,6 +11,22 @@ import TripDetailPage from "./page";
 import type { TripDetail } from "@/hooks/use-trips";
 import type { User } from "@tripful/shared";
 
+// Mock next/image
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    fill,
+    priority,
+    unoptimized,
+    sizes,
+    ...props
+  }: Record<string, unknown>) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img src={src as string} alt={alt as string} {...props} />
+  ),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 const mockParams = { id: "trip-123" };
