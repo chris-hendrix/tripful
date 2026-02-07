@@ -1,12 +1,16 @@
 // API-specific types
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type * as schema from "@/db/schema/index.js";
+import type * as relations from "@/db/schema/relations.js";
 import type { Env } from "@/config/env.js";
 import type { IAuthService } from "@/services/auth.service.js";
 import type { ITripService } from "@/services/trip.service.js";
 import type { IPermissionsService } from "@/services/permissions.service.js";
 import type { IUploadService } from "@/services/upload.service.js";
 import type { ISMSService } from "@/services/sms.service.js";
+
+type FullSchema = typeof schema & typeof relations;
 
 export interface HealthCheckResponse {
   status: "ok" | "error";
@@ -36,7 +40,7 @@ declare module "@fastify/jwt" {
 declare module "fastify" {
   interface FastifyInstance {
     config: Env;
-    db: NodePgDatabase;
+    db: NodePgDatabase<FullSchema>;
     authService: IAuthService;
     tripService: ITripService;
     permissionsService: IPermissionsService;

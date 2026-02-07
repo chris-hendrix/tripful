@@ -1,7 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { env } from "./env.js";
+import * as schema from "@/db/schema/index.js";
+import * as relations from "@/db/schema/relations.js";
+
+const fullSchema = { ...schema, ...relations };
 
 interface Logger {
   info(msg: string): void;
@@ -18,8 +21,8 @@ export const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// Initialize Drizzle with pool
-export const db: NodePgDatabase = drizzle(pool);
+// Initialize Drizzle with pool and schema (enables db.query.* relational API)
+export const db = drizzle(pool, { schema: fullSchema });
 
 // Test connection
 export async function testConnection(logger?: Logger): Promise<boolean> {

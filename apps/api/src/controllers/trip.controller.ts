@@ -110,11 +110,18 @@ export const tripController = {
     try {
       const { tripService } = request.server;
       const userId = request.user.sub;
-      const trips = await tripService.getUserTrips(userId);
+
+      // Parse pagination query params
+      const query = request.query as { page?: string; limit?: string };
+      const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? "20", 10) || 20));
+
+      const result = await tripService.getUserTrips(userId, page, limit);
 
       return reply.status(200).send({
         success: true,
-        trips,
+        data: result.data,
+        meta: result.meta,
       });
     } catch (error) {
       request.log.error(

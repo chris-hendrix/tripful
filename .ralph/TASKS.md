@@ -23,7 +23,7 @@
 
 ## Phase 2: Drizzle ORM Improvements — Schema, Relations, Transactions, Queries
 
-- [ ] Task 2.1: Add Drizzle relations, unique constraint, transactions, count aggregate, pagination, and column selection
+- [x] Task 2.1: Add Drizzle relations, unique constraint, transactions, count aggregate, pagination, and column selection
   - Implement: Create `src/db/schema/relations.ts` — define `relations()` for users, trips, members (usersRelations, tripsRelations, membersRelations)
   - Implement: Export relations from `src/db/schema/index.ts`
   - Implement: Add unique constraint on members table: `unique("members_trip_user_unique").on(table.tripId, table.userId)`

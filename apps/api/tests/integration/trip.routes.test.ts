@@ -799,9 +799,13 @@ describe("GET /api/trips", () => {
       expect(response.statusCode).toBe(200);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
-        success: true,
-        trips: [],
+      expect(body.success).toBe(true);
+      expect(body.data).toEqual([]);
+      expect(body.meta).toEqual({
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
       });
     });
 
@@ -861,8 +865,8 @@ describe("GET /api/trips", () => {
 
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.trips).toHaveLength(1);
-      expect(body.trips[0]).toMatchObject({
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]).toMatchObject({
         id: trip.id,
         name: "Summer Adventure",
         destination: "Paris, France",
@@ -873,9 +877,11 @@ describe("GET /api/trips", () => {
         memberCount: 1,
         eventCount: 0,
       });
-      expect(body.trips[0]).toHaveProperty("coverImageUrl");
-      expect(body.trips[0]).toHaveProperty("organizerInfo");
-      expect(Array.isArray(body.trips[0].organizerInfo)).toBe(true);
+      expect(body.data[0]).toHaveProperty("coverImageUrl");
+      expect(body.data[0]).toHaveProperty("organizerInfo");
+      expect(Array.isArray(body.data[0].organizerInfo)).toBe(true);
+      expect(body.meta).toBeDefined();
+      expect(body.meta.total).toBe(1);
     });
 
     it("should return 200 with multiple trips ordered by startDate", async () => {
@@ -949,10 +955,11 @@ describe("GET /api/trips", () => {
 
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.trips).toHaveLength(2);
+      expect(body.data).toHaveLength(2);
       // Should be ordered by startDate, so earlier trip first
-      expect(body.trips[0].name).toBe("Trip 2 - Earlier");
-      expect(body.trips[1].name).toBe("Trip 1 - Later");
+      expect(body.data[0].name).toBe("Trip 2 - Earlier");
+      expect(body.data[1].name).toBe("Trip 1 - Later");
+      expect(body.meta.total).toBe(2);
     });
 
     it("should not return cancelled trips", async () => {
@@ -1027,8 +1034,9 @@ describe("GET /api/trips", () => {
 
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.trips).toHaveLength(1);
-      expect(body.trips[0].name).toBe("Active Trip");
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].name).toBe("Active Trip");
+      expect(body.meta.total).toBe(1);
     });
   });
 

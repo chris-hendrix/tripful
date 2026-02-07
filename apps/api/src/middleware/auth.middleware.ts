@@ -49,7 +49,7 @@ export async function requireCompleteProfile(
 
   // Fetch user from database to check profile completeness
   const result = await request.server.db
-    .select()
+    .select({ id: users.id, displayName: users.displayName })
     .from(users)
     .where(eq(users.id, request.user.sub))
     .limit(1);
