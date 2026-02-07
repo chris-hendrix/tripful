@@ -75,7 +75,7 @@
 
 ## Phase 6: Final Verification
 
-- [ ] Task 6.1: Full regression check and visual verification
+- [x] Task 6.1: Full regression check and visual verification
   - Verify: All unit tests pass (`pnpm test` from repo root)
   - Verify: TypeScript compilation passes (`pnpm typecheck`)
   - Verify: Linting passes (`pnpm lint`)

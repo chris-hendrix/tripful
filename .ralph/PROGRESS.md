@@ -252,3 +252,65 @@ Both fixes verified and approved in the second review round.
 - SVG decorative elements using `currentColor` with Tailwind text color classes (`text-primary`, `text-accent`) are fully themeable and follow the design token system.
 - The `asChild` pattern on shadcn `<Button>` works well for wrapping `<Link>` — the button styles are applied to the link element, maintaining both button appearance and link navigation.
 - The dashboard `loading.tsx` already had a 3-column grid layout, which was inconsistent with the `space-y-4` stack in `dashboard-content.tsx`. Now both use the same grid, eliminating layout shift during loading transitions.
+
+## Iteration 6 — Task 6.1: Full regression check and visual verification
+
+**Status**: COMPLETED
+**Date**: 2026-02-07
+
+### Changes Made
+
+5 files modified (4 source files + 1 E2E test):
+
+**Hardcoded Color Fixes (found during verification):**
+
+1. **`apps/web/src/app/not-found.tsx`** — Replaced `text-slate-600` with `text-muted-foreground`, replaced `bg-blue-600 text-white hover:bg-blue-700` with `bg-primary text-primary-foreground hover:bg-primary/90`.
+
+2. **`apps/web/src/app/(auth)/error.tsx`** — Same 2 replacements as not-found.tsx.
+
+3. **`apps/web/src/app/(app)/error.tsx`** — Same 2 replacements as not-found.tsx.
+
+4. **`apps/web/src/app/global-error.tsx`** — Same 2 replacements. Uses inline token classes (not component imports) since this file wraps `<html>` and `<body>` directly and cannot rely on providers.
+
+**E2E Test Fix (found during E2E regression):**
+
+5. **`apps/web/tests/e2e/app-shell.spec.ts`** (line 63) — Changed `page.locator("header")` to `page.locator('header:has(nav[aria-label="Main navigation"])')` to fix strict mode violation where two `<header>` elements existed on the dashboard page (app shell header + dashboard content section header).
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 3/3 packages, 0 errors
+- **Linting (`pnpm lint`)**: PASS — 3/3 packages, 0 errors
+- **Unit tests (`pnpm test`)**: PASS — 865 tests across 43 files (408 web, 374 API, 83 shared)
+- **E2E tests**: PASS — 20 passed, 2 skipped (pre-existing: co-organizer creation, delete trip)
+- **Hardcoded colors**: PASS — Zero `slate-*`, `blue-600`, `blue-700`, `gray-50`, `cyan-600` in any source file under `apps/web/src/`
+- **Visual verification**: PASS — 22 screenshots captured across all pages and 3 viewports (mobile 375px, tablet 768px, desktop 1280px)
+- **Keyboard navigation**: PASS — Skip link focuses on Tab and jumps to main content; tab order is logical (skip link → wordmark → dashboard → user menu → search → content); user menu opens/closes with Enter/Escape; focus rings visible on inputs
+- **Reviewer**: APPROVED — All replacements consistent with architecture doc migration table, E2E fix correctly scoped, no blocking issues
+
+### Screenshots Captured (22 total in `.ralph/screenshots/`)
+
+- Landing page: mobile, tablet, desktop
+- Login page: mobile, tablet, desktop
+- Verify page: desktop
+- Complete profile page: desktop
+- Dashboard empty state: mobile, tablet, desktop
+- Dashboard with trips: mobile, tablet, desktop
+- Create trip dialog (step 1 & step 2): desktop
+- Trip detail page: mobile, tablet, desktop
+- Edit trip dialog: desktop
+- User menu dropdown: desktop
+- Skip link focused: desktop
+- Keyboard menu open: desktop
+- Focus ring on input: desktop
+
+### Known Pre-existing Issues (Not Regressions)
+
+- **Gradient button rendering**: The `from-primary to-accent` gradient renders as transparent in headless Chromium due to Tailwind v4's `@theme` color values being raw HSL strings (`210 72% 36%`) without `hsl()` wrappers. The CSS variables resolve but the gradient computation produces `rgba(0,0,0,0)`. This affects the landing page CTA button and all `variant="gradient"` buttons equally. This is a pre-existing issue from Task 1.1 and affects all iterations. Buttons remain functional (links navigate correctly, E2E tests pass) but lack visible gradient background in screenshots. Fixing would require changing `@theme` color format, which is outside the scope of Task 6.1.
+- **2 E2E tests skipped**: "create trip with co-organizer" (API requires existing users) and "delete trip confirmation flow" (DELETE Content-Type bug) — pre-existing from before the design overhaul.
+
+### Learnings
+
+- Error boundary files (`error.tsx`, `global-error.tsx`) and `not-found.tsx` were missed in Task 3.1's color migration scope. Future design token migrations should include ALL `.tsx` files under `src/`, not just the explicitly listed ones.
+- When a page has multiple `<header>` elements (common with semantic HTML sectioning), E2E locators for `page.locator("header")` will fail with strict mode violations. Use `:has()` CSS pseudo-selector or more specific locators.
+- The `CI=true` environment variable causes Playwright's `reuseExistingServer: !process.env.CI` to be `false`, blocking local E2E test execution when dev servers are already running. Use `CI= npx playwright test` to override.
+- The `global-error.tsx` does NOT include font CSS variables on its `<html>`, so error pages fall back to browser default sans-serif. This is cosmetically minor since it only renders during catastrophic errors.

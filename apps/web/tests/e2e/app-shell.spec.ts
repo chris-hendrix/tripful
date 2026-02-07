@@ -60,7 +60,7 @@ test.describe("App Shell", () => {
     await loginAndNavigateToDashboard(page, request);
 
     // Verify header is visible
-    const header = page.locator("header");
+    const header = page.locator('header:has(nav[aria-label="Main navigation"])');
     await expect(header).toBeVisible();
 
     // Verify Tripful wordmark
