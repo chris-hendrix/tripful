@@ -46,11 +46,17 @@ export interface TripSummary {
 }
 
 /**
- * API response type for fetching trips list
+ * API response type for fetching trips list (paginated)
  */
 interface GetTripsResponse {
   success: true;
-  trips: TripSummary[];
+  data: TripSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 /**
@@ -125,7 +131,7 @@ export function useTrips() {
     queryKey: ["trips"],
     queryFn: async () => {
       const response = await apiRequest<GetTripsResponse>("/trips");
-      return response.trips;
+      return response.data;
     },
   });
 }

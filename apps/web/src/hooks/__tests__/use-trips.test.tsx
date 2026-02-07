@@ -115,7 +115,8 @@ describe("useTrips", () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
-        trips: mockTrips,
+        data: mockTrips,
+        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -141,7 +142,8 @@ describe("useTrips", () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
-        trips: [],
+        data: [],
+        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -157,7 +159,8 @@ describe("useTrips", () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
-        trips: mockTrips,
+        data: mockTrips,
+        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
       });
 
       renderHook(() => useTrips(), { wrapper });
@@ -205,7 +208,8 @@ describe("useTrips", () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
-        trips: mockTrips,
+        data: mockTrips,
+        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -220,7 +224,8 @@ describe("useTrips", () => {
       // Mock a different response for refetch
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
-        trips: [mockTrips[0]],
+        data: [mockTrips[0]],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       });
 
       // Trigger refetch
