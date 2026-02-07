@@ -216,7 +216,7 @@ export function ImageUpload({
               className="object-cover"
             />
             {isUploading && (
-              <div className="absolute inset-0 bg-card/80 flex items-center justify-center">
+              <div className="absolute inset-0 bg-card/95 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
             )}
@@ -228,7 +228,7 @@ export function ImageUpload({
               variant="ghost"
               size="icon"
               onClick={handleRemove}
-              className="absolute top-2 right-2 min-w-[44px] min-h-[44px] bg-card/90 hover:bg-card rounded-full shadow-md"
+              className="absolute top-2 right-2 min-w-[44px] min-h-[44px] bg-card hover:bg-card rounded-full shadow-md"
               aria-label="Remove image"
             >
               <X className="w-4 h-4 text-foreground" />
@@ -272,7 +272,7 @@ export function ImageUpload({
           )}
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="p-3 rounded-full bg-card/80 shadow-sm">
+            <div className="p-3 rounded-full bg-card shadow-sm">
               <Upload className="w-6 h-6 text-muted-foreground" />
             </div>
             <div className="text-center">
