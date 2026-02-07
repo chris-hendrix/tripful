@@ -7,9 +7,17 @@ import {
   type Member,
   type User,
 } from "@/db/schema/index.js";
-import { eq, inArray, and, asc, sql } from "drizzle-orm";
+import { eq, inArray, and, asc, sql, count } from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
 import { permissionsService } from "./permissions.service.js";
+import {
+  TripNotFoundError,
+  PermissionDeniedError,
+  MemberLimitExceededError,
+  CoOrganizerNotFoundError,
+  CannotRemoveCreatorError,
+  CoOrganizerNotInTripError,
+} from "../errors.js";
 
 /**
  * Trip Summary Type
@@ -33,6 +41,16 @@ export type TripSummary = {
   eventCount: number;
 };
 
+export type PaginatedTripsResult = {
+  data: TripSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+};
+
 /**
  * Trip Service Interface
  * Defines the contract for trip management operations
@@ -43,7 +61,8 @@ export interface ITripService {
    * @param userId - The ID of the user creating the trip
    * @param data - The trip creation data
    * @returns Promise that resolves to the created trip
-   * @throws Error if co-organizer not found or member limit exceeded
+   * @throws MemberLimitExceededError if co-organizer count exceeds limit
+   * @throws CoOrganizerNotFoundError if co-organizer phone not found
    */
   createTrip(userId: string, data: CreateTripInput): Promise<Trip>;
 
@@ -75,7 +94,11 @@ export interface ITripService {
    * @param userId - The UUID of the user
    * @returns Promise that resolves to array of trip summaries
    */
-  getUserTrips(userId: string): Promise<TripSummary[]>;
+  getUserTrips(
+    userId: string,
+    page?: number,
+    limit?: number,
+  ): Promise<PaginatedTripsResult>;
 
   /**
    * Updates a trip (to be implemented)
@@ -157,7 +180,8 @@ export class TripService implements ITripService {
    * @param userId - The ID of the user creating the trip
    * @param data - The trip creation data
    * @returns The created trip
-   * @throws Error if co-organizer not found or member limit exceeded
+   * @throws MemberLimitExceededError if member limit exceeded
+   * @throws CoOrganizerNotFoundError if co-organizer not found
    */
   async createTrip(userId: string, data: CreateTripInput): Promise<Trip> {
     // Validate co-organizers and check member limit
@@ -166,7 +190,7 @@ export class TripService implements ITripService {
     if (data.coOrganizerPhones && data.coOrganizerPhones.length > 0) {
       // Check member limit: creator (1) + co-organizers must be <= 25
       if (1 + data.coOrganizerPhones.length > 25) {
-        throw new Error(
+        throw new MemberLimitExceededError(
           "Member limit exceeded: maximum 25 members allowed (including creator)",
         );
       }
@@ -183,50 +207,57 @@ export class TripService implements ITripService {
         const missingPhones = data.coOrganizerPhones.filter(
           (phone: string) => !foundPhones.includes(phone),
         );
-        throw new Error(`Co-organizer not found: ${missingPhones[0]}`);
+        throw new CoOrganizerNotFoundError(
+          `Co-organizer not found: ${missingPhones[0]}`,
+        );
       }
 
       coOrganizerUserIds = coOrganizerUsers.map((u) => u.id);
     }
 
-    // Insert trip record
-    const [trip] = await db
-      .insert(trips)
-      .values({
-        name: data.name,
-        destination: data.destination,
-        startDate: data.startDate || null,
-        endDate: data.endDate || null,
-        preferredTimezone: data.timezone, // Map timezone -> preferredTimezone
-        description: data.description || null,
-        coverImageUrl:
-          data.coverImageUrl === null ? null : data.coverImageUrl || null,
-        createdBy: userId,
-        allowMembersToAddEvents: data.allowMembersToAddEvents,
-      })
-      .returning();
+    // Wrap all inserts in a transaction for atomicity
+    const trip = await db.transaction(async (tx) => {
+      // Insert trip record
+      const [newTrip] = await tx
+        .insert(trips)
+        .values({
+          name: data.name,
+          destination: data.destination,
+          startDate: data.startDate || null,
+          endDate: data.endDate || null,
+          preferredTimezone: data.timezone,
+          description: data.description || null,
+          coverImageUrl:
+            data.coverImageUrl === null ? null : data.coverImageUrl || null,
+          createdBy: userId,
+          allowMembersToAddEvents: data.allowMembersToAddEvents,
+        })
+        .returning();
 
-    if (!trip) {
-      throw new Error("Failed to create trip");
-    }
+      if (!newTrip) {
+        throw new Error("Failed to create trip");
+      }
 
-    // Insert creator as member with status='going'
-    await db.insert(members).values({
-      tripId: trip.id,
-      userId: userId,
-      status: "going",
+      // Insert creator as member with status='going'
+      await tx.insert(members).values({
+        tripId: newTrip.id,
+        userId: userId,
+        status: "going",
+      });
+
+      // Insert co-organizers as members with status='going'
+      if (coOrganizerUserIds.length > 0) {
+        await tx.insert(members).values(
+          coOrganizerUserIds.map((coOrgUserId) => ({
+            tripId: newTrip.id,
+            userId: coOrgUserId,
+            status: "going" as const,
+          })),
+        );
+      }
+
+      return newTrip;
     });
-
-    // Insert co-organizers as members with status='going'
-    if (coOrganizerUserIds.length > 0) {
-      await db.insert(members).values(
-        coOrganizerUserIds.map((coOrgUserId) => ({
-          tripId: trip.id,
-          userId: coOrgUserId,
-          status: "going" as const,
-        })),
-      );
-    }
 
     return trip;
   }
@@ -327,8 +358,12 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user
    * @returns Promise that resolves to array of trip summaries ordered by start date
    */
-  async getUserTrips(userId: string): Promise<TripSummary[]> {
-    // Get all trips where user is a member
+  async getUserTrips(
+    userId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedTripsResult> {
+    // Get all trip memberships for user
     const userMemberships = await db
       .select({
         tripId: members.tripId,
@@ -337,62 +372,112 @@ export class TripService implements ITripService {
       .from(members)
       .where(eq(members.userId, userId));
 
-    // Return empty array if user has no trips
+    // Return empty result if user has no trips
     if (userMemberships.length === 0) {
-      return [];
+      return {
+        data: [],
+        meta: { total: 0, page, limit, totalPages: 0 },
+      };
     }
 
     const tripIds = userMemberships.map((m) => m.tripId);
 
-    // Load all trips for the user
+    // Count total non-cancelled trips for pagination meta
+    const [totalResult] = await db
+      .select({ value: count() })
+      .from(trips)
+      .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)));
+    const total = totalResult?.value ?? 0;
+    const totalPages = Math.ceil(total / limit);
+    const offset = (page - 1) * limit;
+
+    // Load paginated trips
     const userTrips = await db
       .select()
       .from(trips)
       .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
       .orderBy(
-        // Order by startDate ascending (upcoming first), NULL last
         sql`CASE WHEN ${trips.startDate} IS NULL THEN 1 ELSE 0 END`,
         asc(trips.startDate),
+      )
+      .limit(limit)
+      .offset(offset);
+
+    // If no trips on this page, return empty
+    if (userTrips.length === 0) {
+      return {
+        data: [],
+        meta: { total, page, limit, totalPages },
+      };
+    }
+
+    // Batch: get all members for all trips on this page (fix N+1)
+    const pageTripIds = userTrips.map((t) => t.id);
+
+    const allMembers = await db
+      .select()
+      .from(members)
+      .where(inArray(members.tripId, pageTripIds));
+
+    // Batch: get organizer user IDs (members with status='going')
+    const organizerMembersByTrip = new Map<string, string[]>();
+    const memberCountByTrip = new Map<string, number>();
+
+    for (const m of allMembers) {
+      // Count all members per trip
+      memberCountByTrip.set(
+        m.tripId,
+        (memberCountByTrip.get(m.tripId) ?? 0) + 1,
       );
 
+      // Track organizer userIds (status='going')
+      if (m.status === "going") {
+        if (!organizerMembersByTrip.has(m.tripId)) {
+          organizerMembersByTrip.set(m.tripId, []);
+        }
+        organizerMembersByTrip.get(m.tripId)!.push(m.userId);
+      }
+    }
+
+    // Batch: get all organizer user info
+    const allOrganizerUserIds = new Set<string>();
+    for (const ids of organizerMembersByTrip.values()) {
+      for (const id of ids) {
+        allOrganizerUserIds.add(id);
+      }
+    }
+
+    const organizerUsers =
+      allOrganizerUserIds.size > 0
+        ? await db
+            .select({
+              id: users.id,
+              displayName: users.displayName,
+              profilePhotoUrl: users.profilePhotoUrl,
+            })
+            .from(users)
+            .where(inArray(users.id, [...allOrganizerUserIds]))
+        : [];
+
+    const organizerUserMap = new Map(organizerUsers.map((u) => [u.id, u]));
+
     // Build trip summaries
-    const summaries: TripSummary[] = [];
+    const membershipMap = new Map(
+      userMemberships.map((m) => [m.tripId, m.status]),
+    );
 
-    for (const trip of userTrips) {
-      // Get user's RSVP status from memberships
-      const userMembership = userMemberships.find((m) => m.tripId === trip.id);
-      const rsvpStatus = userMembership!.status;
-
-      // Determine if user is organizer:
-      // - True if user is creator OR
-      // - True if user is co-organizer (member with status='going')
+    const summaries: TripSummary[] = userTrips.map((trip) => {
+      const rsvpStatus = membershipMap.get(trip.id) ?? "no_response";
       const isCreator = trip.createdBy === userId;
       const isCoOrganizer = !isCreator && rsvpStatus === "going";
       const isOrganizer = isCreator || isCoOrganizer;
 
-      // Load organizers: all members with status='going'
-      const organizerMembers = await db
-        .select()
-        .from(members)
-        .where(and(eq(members.tripId, trip.id), eq(members.status, "going")));
+      const tripOrganizerIds = organizerMembersByTrip.get(trip.id) ?? [];
+      const organizerInfo = tripOrganizerIds
+        .map((id) => organizerUserMap.get(id))
+        .filter((u): u is NonNullable<typeof u> => u != null);
 
-      const organizerUserIds = organizerMembers.map((m) => m.userId);
-
-      // Load organizer user information
-      const organizerUsers = await db
-        .select({
-          id: users.id,
-          displayName: users.displayName,
-          profilePhotoUrl: users.profilePhotoUrl,
-        })
-        .from(users)
-        .where(inArray(users.id, organizerUserIds));
-
-      // Get member count
-      const memberCount = await this.getMemberCount(trip.id);
-
-      // Build summary
-      summaries.push({
+      return {
         id: trip.id,
         name: trip.name,
         destination: trip.destination,
@@ -401,13 +486,16 @@ export class TripService implements ITripService {
         coverImageUrl: trip.coverImageUrl,
         isOrganizer,
         rsvpStatus,
-        organizerInfo: organizerUsers,
-        memberCount,
-        eventCount: 0, // Events in Phase 5
-      });
-    }
+        organizerInfo,
+        memberCount: memberCountByTrip.get(trip.id) ?? 0,
+        eventCount: 0,
+      };
+    });
 
-    return summaries;
+    return {
+      data: summaries,
+      meta: { total, page, limit, totalPages },
+    };
   }
 
   /**
@@ -417,7 +505,8 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user requesting the update
    * @param data - The trip update data
    * @returns Promise that resolves to the updated trip
-   * @throws Error if user lacks permission or trip not found
+   * @throws TripNotFoundError if trip not found
+   * @throws PermissionDeniedError if user lacks permission
    */
   async updateTrip(
     tripId: string,
@@ -435,10 +524,12 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error("Permission denied: only organizers can update trips");
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can update trips",
+      );
     }
 
     // Build update data with field mapping
@@ -461,7 +552,7 @@ export class TripService implements ITripService {
       .returning();
 
     if (!result[0]) {
-      throw new Error("Trip not found");
+      throw new TripNotFoundError();
     }
 
     return result[0];
@@ -485,25 +576,29 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error("Permission denied: only organizers can cancel trips");
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can cancel trips",
+      );
     }
 
-    // 2. Perform soft delete (set cancelled=true)
-    const result = await db
-      .update(trips)
-      .set({
-        cancelled: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(trips.id, tripId))
-      .returning();
+    // 2. Perform soft delete in a transaction for consistency
+    await db.transaction(async (tx) => {
+      const result = await tx
+        .update(trips)
+        .set({
+          cancelled: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(trips.id, tripId))
+        .returning();
 
-    if (!result[0]) {
-      throw new Error("Trip not found");
-    }
+      if (!result[0]) {
+        throw new TripNotFoundError();
+      }
+    });
   }
 
   /**
@@ -513,7 +608,9 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user adding co-organizers
    * @param phoneNumbers - Array of phone numbers to add as co-organizers
    * @returns Promise that resolves when co-organizers are added
-   * @throws Error if permission denied, phone not found, or member limit exceeded
+   * @throws PermissionDeniedError if permission denied
+   * @throws CoOrganizerNotFoundError if phone not found
+   * @throws MemberLimitExceededError if member limit exceeded
    */
   async addCoOrganizers(
     tripId: string,
@@ -534,10 +631,10 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error(
+      throw new PermissionDeniedError(
         "Permission denied: only organizers can manage co-organizers",
       );
     }
@@ -554,42 +651,53 @@ export class TripService implements ITripService {
       const missingPhones = phoneNumbers.filter(
         (phone: string) => !foundPhones.includes(phone),
       );
-      throw new Error(`Co-organizer not found: ${missingPhones[0]}`);
-    }
-
-    // 3. Get current member count
-    const currentMemberCount = await this.getMemberCount(tripId);
-
-    // 4. Get existing member user IDs to filter out duplicates
-    const existingMembers = await db
-      .select()
-      .from(members)
-      .where(eq(members.tripId, tripId));
-
-    const existingMemberUserIds = new Set(existingMembers.map((m) => m.userId));
-
-    // Filter out users who are already members
-    const newCoOrganizerUserIds = newCoOrganizerUsers
-      .filter((u) => !existingMemberUserIds.has(u.id))
-      .map((u) => u.id);
-
-    // 5. Check member limit: current + new members must be <= 25
-    if (currentMemberCount + newCoOrganizerUserIds.length > 25) {
-      throw new Error(
-        "Member limit exceeded: maximum 25 members allowed (including creator)",
+      throw new CoOrganizerNotFoundError(
+        `Co-organizer not found: ${missingPhones[0]}`,
       );
     }
 
-    // 6. Insert new co-organizers as members with status='going'
-    if (newCoOrganizerUserIds.length > 0) {
-      await db.insert(members).values(
-        newCoOrganizerUserIds.map((coOrgUserId) => ({
-          tripId: tripId,
-          userId: coOrgUserId,
-          status: "going" as const,
-        })),
+    // 3-6. Wrap count check + insert in transaction to prevent race conditions
+    await db.transaction(async (tx) => {
+      // 3. Get current member count
+      const [countResult] = await tx
+        .select({ value: count() })
+        .from(members)
+        .where(eq(members.tripId, tripId));
+      const currentMemberCount = countResult?.value ?? 0;
+
+      // 4. Get existing member user IDs to filter out duplicates
+      const existingMembers = await tx
+        .select()
+        .from(members)
+        .where(eq(members.tripId, tripId));
+
+      const existingMemberUserIds = new Set(
+        existingMembers.map((m) => m.userId),
       );
-    }
+
+      // Filter out users who are already members
+      const newCoOrganizerUserIds = newCoOrganizerUsers
+        .filter((u) => !existingMemberUserIds.has(u.id))
+        .map((u) => u.id);
+
+      // 5. Check member limit: current + new members must be <= 25
+      if (currentMemberCount + newCoOrganizerUserIds.length > 25) {
+        throw new MemberLimitExceededError(
+          "Member limit exceeded: maximum 25 members allowed (including creator)",
+        );
+      }
+
+      // 6. Insert new co-organizers as members with status='going'
+      if (newCoOrganizerUserIds.length > 0) {
+        await tx.insert(members).values(
+          newCoOrganizerUserIds.map((coOrgUserId) => ({
+            tripId: tripId,
+            userId: coOrgUserId,
+            status: "going" as const,
+          })),
+        );
+      }
+    });
   }
 
   /**
@@ -600,7 +708,10 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user requesting removal
    * @param coOrgUserId - The UUID of the co-organizer to remove
    * @returns Promise that resolves when the co-organizer is removed
-   * @throws Error if permission denied, user not found, or trying to remove creator
+   * @throws PermissionDeniedError if permission denied
+   * @throws TripNotFoundError if trip not found
+   * @throws CannotRemoveCreatorError if trying to remove creator
+   * @throws CoOrganizerNotInTripError if co-organizer not in trip
    */
   async removeCoOrganizer(
     tripId: string,
@@ -621,10 +732,10 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error(
+      throw new PermissionDeniedError(
         "Permission denied: only organizers can manage co-organizers",
       );
     }
@@ -637,12 +748,12 @@ export class TripService implements ITripService {
       .limit(1);
 
     if (!trip) {
-      throw new Error("Trip not found");
+      throw new TripNotFoundError();
     }
 
     // 3. Prevent removing trip creator
     if (trip.createdBy === coOrgUserId) {
-      throw new Error("Cannot remove trip creator as co-organizer");
+      throw new CannotRemoveCreatorError();
     }
 
     // 4. Verify co-organizer is a member of the trip
@@ -653,7 +764,7 @@ export class TripService implements ITripService {
       .limit(1);
 
     if (!memberRecord) {
-      throw new Error("Co-organizer not found in trip");
+      throw new CoOrganizerNotInTripError();
     }
 
     // 5. Delete member record
@@ -706,11 +817,11 @@ export class TripService implements ITripService {
    * @returns Promise that resolves to the member count
    */
   async getMemberCount(tripId: string): Promise<number> {
-    const memberRecords = await db
-      .select()
+    const [result] = await db
+      .select({ value: count() })
       .from(members)
       .where(eq(members.tripId, tripId));
-    return memberRecords.length;
+    return result?.value ?? 0;
   }
 }
 

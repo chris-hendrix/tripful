@@ -1,12 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import {
-  requestCodeSchema,
-  verifyCodeSchema,
-  completeProfileSchema,
-} from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
-import { authService, AuthService } from "@/services/auth.service.js";
-import { smsService } from "@/services/sms.service.js";
+import { InvalidCodeError } from "../errors.js";
 
 /**
  * Authentication Controller
@@ -22,22 +16,12 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with message
    */
-  async requestCode(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = requestCodeSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { phoneNumber } = result.data;
+  async requestCode(
+    request: FastifyRequest<{ Body: { phoneNumber: string } }>,
+    reply: FastifyReply,
+  ) {
+    // Body is validated by Fastify route schema
+    const { phoneNumber } = request.body;
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -55,6 +39,8 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
+      const { authService, smsService } = request.server;
+
       // Generate 6-digit verification code
       const code = authService.generateCode();
 
@@ -70,6 +56,11 @@ export const authController = {
         message: "Verification code sent",
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, phoneNumber: e164PhoneNumber },
@@ -96,22 +87,12 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with user and requiresProfile flag
    */
-  async verifyCode(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = verifyCodeSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { phoneNumber, code } = result.data;
+  async verifyCode(
+    request: FastifyRequest<{ Body: { phoneNumber: string; code: string } }>,
+    reply: FastifyReply,
+  ) {
+    // Body is validated by Fastify route schema
+    const { phoneNumber, code } = request.body;
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -129,30 +110,25 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
+      const { authService } = request.server;
+
       // Verify code exists, matches, and hasn't expired
       const isValid = await authService.verifyCode(e164PhoneNumber, code);
 
       if (!isValid) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "INVALID_CODE",
-            message: "Invalid or expired verification code",
-          },
-        });
+        throw new InvalidCodeError("Invalid or expired verification code");
       }
 
       // Get existing user or create new one
       const user = await authService.getOrCreateUser(e164PhoneNumber);
 
-      // Generate JWT token (need fastify instance for JWT)
-      const serviceWithFastify = new AuthService(request.server);
-      const token = serviceWithFastify.generateToken(user);
+      // Generate JWT token
+      const token = authService.generateToken(user);
 
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: request.server.config.COOKIE_SECURE,
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
@@ -172,6 +148,11 @@ export const authController = {
         requiresProfile,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, phoneNumber: e164PhoneNumber },
@@ -200,24 +181,18 @@ export const authController = {
    * @param reply - Fastify reply object
    * @returns Success response with updated user
    */
-  async completeProfile(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = completeProfileSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { displayName, timezone } = result.data;
+  async completeProfile(
+    request: FastifyRequest<{
+      Body: { displayName: string; timezone?: string };
+    }>,
+    reply: FastifyReply,
+  ) {
+    // Body is validated by Fastify route schema
+    const { displayName, timezone } = request.body;
 
     try {
+      const { authService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 
@@ -228,13 +203,12 @@ export const authController = {
       });
 
       // Generate new JWT token with updated profile info
-      const serviceWithFastify = new AuthService(request.server);
-      const token = serviceWithFastify.generateToken(updatedUser);
+      const token = authService.generateToken(updatedUser);
 
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: request.server.config.COOKIE_SECURE,
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
@@ -246,6 +220,11 @@ export const authController = {
         user: updatedUser,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, userId: request.user.sub },
@@ -276,6 +255,8 @@ export const authController = {
    */
   async getMe(request: FastifyRequest, reply: FastifyReply) {
     try {
+      const { authService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 
@@ -298,6 +279,11 @@ export const authController = {
         user: result,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, userId: request.user.sub },

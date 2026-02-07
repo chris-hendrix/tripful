@@ -1,0 +1,1 @@
+ALTER TABLE "members" ADD CONSTRAINT "members_trip_user_unique" UNIQUE("trip_id","user_id");

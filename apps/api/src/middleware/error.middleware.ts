@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 
 export async function errorHandler(
   error: FastifyError,
@@ -16,7 +17,19 @@ export async function errorHandler(
     },
   });
 
-  // Validation errors (Zod, Fastify schema)
+  // Zod validation errors from fastify-type-provider-zod
+  if (hasZodFastifySchemaValidationErrors(error)) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid request data",
+        details: error.validation,
+      },
+    });
+  }
+
+  // Validation errors (Fastify native schema)
   if (error.validation) {
     return reply.status(400).send({
       success: false,
@@ -99,14 +112,25 @@ export async function errorHandler(
     });
   }
 
-  // Default error (hide internal details in production)
-  const isDevelopment = process.env.NODE_ENV === "development";
+  // Handle custom @fastify/error instances (typed errors with statusCode and code)
+  if (error.statusCode && error.statusCode < 500 && error.code) {
+    return reply.status(error.statusCode).send({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message,
+      },
+    });
+  }
+
+  // Default error (hide internal details unless configured to expose)
+  const exposeDetails = request.server.config.EXPOSE_ERROR_DETAILS;
   return reply.status(error.statusCode || 500).send({
     success: false,
     error: {
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: isDevelopment ? error.message : "An unexpected error occurred",
-      ...(isDevelopment && { stack: error.stack }),
+      message: exposeDetails ? error.message : "An unexpected error occurred",
+      ...(exposeDetails && { stack: error.stack }),
     },
   });
 }

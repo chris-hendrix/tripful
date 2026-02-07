@@ -1,7 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { authController } from "@/controllers/auth.controller.js";
-import { smsRateLimitConfig } from "@/middleware/rate-limit.middleware.js";
+import {
+  smsRateLimitConfig,
+  verifyCodeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
 import { authenticate } from "@/middleware/auth.middleware.js";
+import {
+  requestCodeSchema,
+  verifyCodeSchema,
+  completeProfileSchema,
+} from "@tripful/shared/schemas";
 
 /**
  * Authentication Routes
@@ -18,6 +26,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/request-code",
     {
+      schema: {
+        body: requestCodeSchema,
+      },
       preHandler: fastify.rateLimit(smsRateLimitConfig),
     },
     authController.requestCode,
@@ -26,18 +37,30 @@ export async function authRoutes(fastify: FastifyInstance) {
   /**
    * POST /verify-code
    * Verify a code and authenticate user
-   * No rate limiting applied
+   * Rate limited to 10 attempts per phone number per 15 minutes
    */
-  fastify.post("/verify-code", authController.verifyCode);
+  fastify.post(
+    "/verify-code",
+    {
+      schema: {
+        body: verifyCodeSchema,
+      },
+      preHandler: fastify.rateLimit(verifyCodeRateLimitConfig),
+    },
+    authController.verifyCode,
+  );
 
   /**
    * POST /complete-profile
    * Complete user profile with display name and timezone
    * Requires authentication via JWT token
    */
-  fastify.post(
+  fastify.post<{ Body: { displayName: string; timezone?: string } }>(
     "/complete-profile",
     {
+      schema: {
+        body: completeProfileSchema,
+      },
       preHandler: authenticate,
     },
     authController.completeProfile,

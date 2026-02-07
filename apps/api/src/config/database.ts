@@ -1,35 +1,51 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { env } from "./env.js";
+import * as schema from "@/db/schema/index.js";
+import * as relations from "@/db/schema/relations.js";
+
+const fullSchema = { ...schema, ...relations };
+
+interface Logger {
+  info(msg: string): void;
+  error(msg: string): void;
+  error(obj: unknown, msg: string): void;
+}
 
 // Create connection pool
 // Tests use unique phone numbers for isolation, not separate databases
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
 
-// Initialize Drizzle with pool
-export const db: NodePgDatabase = drizzle(pool);
+// Initialize Drizzle with pool and schema (enables db.query.* relational API)
+export const db = drizzle(pool, { schema: fullSchema });
 
 // Test connection
-export async function testConnection(): Promise<boolean> {
+export async function testConnection(logger?: Logger): Promise<boolean> {
   try {
     const result = await pool.query("SELECT NOW()");
-    console.log("✓ Database connected successfully");
-    console.log(`  Timestamp: ${result.rows[0]?.now}`);
+    const msg = `Database connected successfully (${result.rows[0]?.now})`;
+    if (logger) {
+      logger.info(msg);
+    }
     return true;
   } catch (error) {
-    console.error("✗ Database connection failed:", error);
+    const msg = "Database connection failed";
+    if (logger) {
+      logger.error(error, msg);
+    }
     return false;
   }
 }
 
 // Close pool (for graceful shutdown)
-export async function closeDatabase(): Promise<void> {
+export async function closeDatabase(logger?: Logger): Promise<void> {
   await pool.end();
-  console.log("✓ Database connection pool closed");
+  if (logger) {
+    logger.info("Database connection pool closed");
+  }
 }

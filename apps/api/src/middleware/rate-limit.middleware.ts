@@ -31,3 +31,31 @@ export const smsRateLimitConfig: RateLimitOptions = {
     return error;
   },
 };
+
+/**
+ * Rate limiting configuration for verification code verification attempts.
+ *
+ * Limits each phone number to 10 verification attempts per 15 minutes
+ * to prevent brute-force attacks on verification codes.
+ */
+export const verifyCodeRateLimitConfig: RateLimitOptions = {
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) => {
+    const { phoneNumber } = request.body as { phoneNumber?: string };
+    return phoneNumber || request.ip;
+  },
+  errorResponseBuilder: (_request, context) => {
+    const error = new Error(
+      `Too many verification attempts. Please wait ${Math.ceil((context.ttl || 0) / 1000)} seconds`,
+    ) as Error & {
+      statusCode: number;
+      code: string;
+      customRateLimitMessage: string;
+    };
+    error.statusCode = context.statusCode;
+    error.code = "RATE_LIMIT_EXCEEDED";
+    error.customRateLimitMessage = `Too many verification attempts. Please wait ${Math.ceil((context.ttl || 0) / 1000)} seconds`;
+    return error;
+  },
+};

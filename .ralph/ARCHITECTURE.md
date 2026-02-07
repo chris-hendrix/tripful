@@ -1,990 +1,493 @@
-# Architecture: Phase 3 - Trip Management
+# Architecture: API Audit & Fix
+
+Comprehensive refactor of the Tripful API based on Drizzle ORM and Fastify best practices audits. Backend-only changes — no UI modifications.
 
 ## Overview
 
-Phase 3 implements full CRUD operations for trip management, enabling users to create, view, edit, and cancel trips. This includes co-organizer management, cover image uploads, and a dashboard with trip listing. The implementation follows the established patterns from Phase 2 (authentication) while introducing new features like file uploads and permissions management.
+Address all findings from two code audits:
 
-## Goals
+1. **Drizzle ORM audit** — transactions, unique constraints, relations, count aggregates, pagination, schema improvements
+2. **Fastify best practices audit** — plugin architecture, route schemas with Zod type provider, typed errors, security headers, logging, configuration, graceful shutdown
 
-1. **Trip CRUD Operations**: Users can create, read, update, and soft-delete trips
-2. **Co-Organizer Management**: Trip creators can add co-organizers who have full management permissions
-3. **Image Upload**: Mock file upload service for trip cover images (5MB max, JPG/PNG/WEBP)
-4. **Dashboard & Detail Views**: User-friendly interfaces for browsing trips and viewing details
-5. **Permissions System**: Service-based authorization for trip operations
-6. **Comprehensive Testing**: Unit, integration, and E2E tests matching Phase 2 quality standards
+## Dependencies to Install
 
-## System Architecture
+```bash
+# Fastify plugins & type provider
+pnpm add @fastify/type-provider-zod @fastify/helmet @fastify/error @fastify/under-pressure close-with-grace
 
-### Backend Components
+# Logging
+pnpm add -D pino-pretty
+```
 
-#### 1. Trip Service (`apps/api/src/services/trip.service.ts`)
+## 1. Fastify Plugin Architecture
 
-**Interface:**
+Refactor from module singletons to Fastify plugin/decorator pattern.
+
+### Database Plugin (`src/plugins/database.ts`)
 
 ```typescript
-export interface ITripService {
-  // CRUD operations
-  createTrip(userId: string, data: CreateTripInput): Promise<Trip>;
-  getTripById(tripId: string, userId: string): Promise<Trip | null>;
-  getUserTrips(userId: string): Promise<TripSummary[]>;
-  updateTrip(
-    tripId: string,
-    userId: string,
-    data: UpdateTripInput,
-  ): Promise<Trip>;
-  cancelTrip(tripId: string, userId: string): Promise<void>;
+import fp from "fastify-plugin";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
+import Pool from "pg";
+import * as schema from "../db/schema/index.js";
 
-  // Co-organizer management
-  addCoOrganizers(
-    tripId: string,
-    userId: string,
-    phoneNumbers: string[],
-  ): Promise<void>;
-  removeCoOrganizer(
-    tripId: string,
-    userId: string,
-    coOrgUserId: string,
-  ): Promise<void>;
-  getCoOrganizers(tripId: string): Promise<User[]>;
+export default fp(async (fastify) => {
+  const pool = new Pool({ connectionString: fastify.config.DATABASE_URL, ... });
+  const db = drizzle(pool, { schema }); // Pass schema to enable relational API
 
-  // Member management
-  getTripMembers(tripId: string): Promise<Member[]>;
-  getMemberCount(tripId: string): Promise<number>;
-}
+  fastify.decorate("db", db);
+  fastify.addHook("onClose", async () => { await pool.end(); });
+}, { name: "database" });
 ```
 
-**Key Methods:**
+### Config Plugin (`src/plugins/config.ts`)
 
-- `createTrip`: Creates trip record, adds creator as member with RSVP='going', handles co-organizers
-- `getTripById`: Returns full trip details with organizers and member count
-- `getUserTrips`: Returns trip summaries for dashboard (upcoming/past, with filters)
-- `updateTrip`: Updates trip details after permission check
-- `cancelTrip`: Soft delete (sets `cancelled: true`)
-- `addCoOrganizers`: Validates phone numbers, creates member records, enforces 25-member limit
-- `getMemberCount`: Counts non-cancelled members for limit enforcement
+Decorates `fastify.config` with validated env variables. Replaces direct import of `env` singleton.
 
-#### 2. Permissions Service (`apps/api/src/services/permissions.service.ts`)
+### Service Plugins
 
-**Interface:**
+Each service becomes a plugin that declares dependencies:
 
 ```typescript
-export interface IPermissionsService {
-  canEditTrip(userId: string, tripId: string): Promise<boolean>;
-  canDeleteTrip(userId: string, tripId: string): Promise<boolean>;
-  canManageCoOrganizers(userId: string, tripId: string): Promise<boolean>;
-  isOrganizer(userId: string, tripId: string): Promise<boolean>;
-  isMember(userId: string, tripId: string): Promise<boolean>;
-}
-```
-
-**Authorization Logic:**
-
-- **Edit/Delete Trip**: Creator OR co-organizer (member with RSVP='going' AND userId in trip.createdBy or members.userId where member joined at creation)
-- **Manage Co-Organizers**: Creator OR existing co-organizer
-- **View Trip**: Must be a member (non-cancelled member record exists)
-
-**Implementation Approach:**
-
-- Query members table to check relationships
-- Cache results during request lifecycle (consider future optimization)
-- Reusable across all trip-related routes
-
-#### 3. Upload Service (`apps/api/src/services/upload.service.ts`)
-
-**Interface:**
-
-```typescript
-export interface IUploadService {
-  uploadImage(
-    file: Buffer,
-    filename: string,
-    mimetype: string,
-  ): Promise<string>;
-  deleteImage(url: string): Promise<void>;
-  validateImage(file: Buffer, mimetype: string): Promise<void>;
-}
-```
-
-**Implementation Details:**
-
-- **Storage**: Local filesystem in `apps/api/uploads/` (gitignored)
-- **Validation**: Max 5MB, MIME types: `image/jpeg`, `image/png`, `image/webp`
-- **URL Pattern**: `/uploads/{uuid}.{ext}` (e.g., `/uploads/123e4567-e89b-12d3-a456-426614174000.jpg`)
-- **Serving**: Static file endpoint `GET /uploads/:filename`
-- **Future-Proof**: Abstract interface allows swapping in S3/CloudFlare without changing consumers
-
-**Validation:**
-
-```typescript
-async validateImage(file: Buffer, mimetype: string): Promise<void> {
-  // Check MIME type
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimetype)) {
-    throw new Error('Invalid file type. Only JPG, PNG, and WEBP are allowed');
-  }
-
-  // Check file size (5MB)
-  if (file.length > 5 * 1024 * 1024) {
-    throw new Error('Image must be under 5MB. Please choose a smaller file');
-  }
-}
-```
-
-#### 4. Trip Controller (`apps/api/src/controllers/trip.controller.ts`)
-
-**Endpoints:**
-
-```typescript
-// CRUD operations
-POST   /trips              - Create trip (with optional co-organizers)
-GET    /trips              - List user's trips (upcoming/past)
-GET    /trips/:id          - Get trip details
-PUT    /trips/:id          - Update trip
-DELETE /trips/:id          - Cancel trip (soft delete)
-
-// Co-organizer management
-POST   /trips/:id/co-organizers      - Add co-organizers
-DELETE /trips/:id/co-organizers/:userId - Remove co-organizer
-
-// Image upload
-POST   /trips/:id/cover-image  - Upload cover image
-DELETE /trips/:id/cover-image  - Delete cover image
-
-// Static file serving
-GET    /uploads/:filename     - Serve uploaded images
-```
-
-**Request/Response Examples:**
-
-**POST /trips**
-
-```json
-// Request
-{
-  "name": "Bachelor Party in Miami",
-  "destination": "Miami Beach, FL",
-  "startDate": "2026-10-12",
-  "endDate": "2026-10-14",
-  "timezone": "America/New_York",
-  "description": "Epic weekend celebration",
-  "coverImageUrl": null,
-  "allowMembersToAddEvents": true,
-  "coOrganizerPhones": ["+15551234567"]
-}
-
-// Response (201 Created)
-{
-  "id": "uuid",
-  "name": "Bachelor Party in Miami",
-  "destination": "Miami Beach, FL",
-  "startDate": "2026-10-12",
-  "endDate": "2026-10-14",
-  "preferredTimezone": "America/New_York",
-  "description": "Epic weekend celebration",
-  "coverImageUrl": null,
-  "createdBy": "userId",
-  "allowMembersToAddEvents": true,
-  "cancelled": false,
-  "createdAt": "2026-02-04T...",
-  "updatedAt": "2026-02-04T..."
-}
-```
-
-**GET /trips**
-
-```json
-// Response (200 OK)
-{
-  "trips": [
-    {
-      "id": "uuid",
-      "name": "Bachelor Party in Miami",
-      "destination": "Miami Beach, FL",
-      "startDate": "2026-10-12",
-      "endDate": "2026-10-14",
-      "coverImageUrl": "/uploads/abc123.jpg",
-      "isOrganizer": true,
-      "rsvpStatus": "going",
-      "organizerInfo": [
-        { "id": "uuid", "displayName": "Mike Johnson", "profilePhotoUrl": null }
-      ],
-      "memberCount": 5,
-      "eventCount": 0
-    }
-  ]
-}
-```
-
-**GET /trips/:id**
-
-```json
-// Response (200 OK)
-{
-  "id": "uuid",
-  "name": "Bachelor Party in Miami",
-  "destination": "Miami Beach, FL",
-  "startDate": "2026-10-12",
-  "endDate": "2026-10-14",
-  "preferredTimezone": "America/New_York",
-  "description": "Epic weekend celebration",
-  "coverImageUrl": "/uploads/abc123.jpg",
-  "createdBy": "userId",
-  "allowMembersToAddEvents": true,
-  "cancelled": false,
-  "organizers": [
-    { "id": "uuid", "displayName": "Mike Johnson", "phoneNumber": "+15551234567" }
-  ],
-  "members": [...],
-  "memberCount": 5,
-  "eventCount": 0,
-  "createdAt": "2026-02-04T...",
-  "updatedAt": "2026-02-04T..."
-}
-```
-
-**Error Responses:**
-
-- `400 Bad Request`: Validation errors (name too short, invalid dates, etc.)
-- `401 Unauthorized`: Missing or invalid auth token
-- `403 Forbidden`: User lacks permission (can't edit/delete trip)
-- `404 Not Found`: Trip doesn't exist or user not a member
-- `409 Conflict`: Member limit exceeded (25 max)
-
-#### 5. Database Schema Usage
-
-**Trips Table** (already defined in ARCHITECTURE.md):
-
-```typescript
-{
-  id: uuid (PK),
-  name: varchar(100) NOT NULL,
-  destination: text NOT NULL,
-  startDate: date,
-  endDate: date,
-  preferredTimezone: varchar(100) NOT NULL,
-  description: text,
-  coverImageUrl: text,
-  createdBy: uuid (FK to users),
-  allowMembersToAddEvents: boolean DEFAULT true,
-  cancelled: boolean DEFAULT false,
-  createdAt: timestamp,
-  updatedAt: timestamp
-}
-```
-
-**Members Table** (already defined):
-
-```typescript
-{
-  id: uuid (PK),
-  tripId: uuid (FK to trips, CASCADE),
-  userId: uuid (FK to users, CASCADE),
-  status: enum('going', 'maybe', 'not_going', 'no_response') DEFAULT 'no_response',
-  updatedAt: timestamp,
-  createdAt: timestamp
-}
-```
-
-**Member Creation Logic:**
-
-1. When trip is created:
-   - Insert member record for creator: `{ tripId, userId: createdBy, status: 'going' }`
-   - For each co-organizer phone number:
-     - Look up user by phone
-     - If found: Insert member record with `status: 'going'`
-     - If not found: Return error (co-organizer must have account)
-
-2. Member limit enforcement:
-   - Before adding co-organizers, count existing members: `SELECT COUNT(*) FROM members WHERE tripId = ?`
-   - If `count + new_co_organizers.length > 25`, reject with `409 Conflict`
-
-**Queries:**
-
-```typescript
-// Create trip with creator as member
-const trip = await db.insert(trips).values(tripData).returning();
-await db.insert(members).values({
-  tripId: trip.id,
-  userId: createdBy,
-  status: "going",
-});
-
-// Get trip with organizers
-const result = await db
-  .select({
-    trip: trips,
-    creator: users,
-    coOrgs: sql`json_agg(DISTINCT ${users})`, // Get all organizers
-  })
-  .from(trips)
-  .leftJoin(users, eq(trips.createdBy, users.id))
-  .leftJoin(
-    members,
-    and(eq(members.tripId, trips.id), eq(members.status, "going")),
-  )
-  .where(eq(trips.id, tripId));
-
-// Check if user is organizer (creator or co-org with 'going' status)
-const isOrganizer = await db
-  .select()
-  .from(trips)
-  .leftJoin(
-    members,
-    and(
-      eq(members.tripId, trips.id),
-      eq(members.userId, userId),
-      eq(members.status, "going"),
-    ),
-  )
-  .where(
-    and(
-      eq(trips.id, tripId),
-      or(eq(trips.createdBy, userId), eq(members.userId, userId)),
-    ),
-  );
-```
-
-### Frontend Components
-
-#### 1. Dashboard Page (`apps/web/src/app/(app)/dashboard/page.tsx`)
-
-**Replaces Current Simple Dashboard:**
-
-- Redesign with demo aesthetic (Playfair Display font, gradient accents)
-- Two sections: "Upcoming trips" and "Past trips"
-- Trip cards showing: cover image, name, destination, dates, organizer avatars, RSVP badge, event count
-- Floating Action Button (FAB) for "Create Trip" (fixed bottom-right)
-- Search bar in header
-- Empty states with CTA
-
-**UI Structure:**
-
-```tsx
-<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-amber-50/30">
-  <header>
-    <h1>My Trips</h1>
-    <SearchBar />
-  </header>
-
-  <section>
-    <h2>Upcoming trips</h2>
-    {upcomingTrips.map((trip) => (
-      <TripCard trip={trip} />
-    ))}
-  </section>
-
-  <section>
-    <h2>Past trips</h2>
-    {pastTrips.map((trip) => (
-      <TripCard trip={trip} />
-    ))}
-  </section>
-
-  <FloatingActionButton onClick={openCreateDialog} />
-  <CreateTripDialog open={isOpen} onClose={closeDialog} />
-</div>
-```
-
-**Data Fetching:**
-
-```tsx
-const { data: trips, isLoading } = useQuery({
-  queryKey: ["trips"],
-  queryFn: () => fetch("/api/trips").then((r) => r.json()),
-});
-
-const upcomingTrips = trips?.filter((t) => new Date(t.startDate) >= new Date());
-const pastTrips = trips?.filter((t) => new Date(t.startDate) < new Date());
-```
-
-#### 2. Create Trip Dialog (`apps/web/src/components/trip/create-trip-dialog.tsx`)
-
-**Dialog Component (shadcn Dialog):**
-
-- Multi-step form (Step 1: Basic info, Step 2: Optional details & co-organizers)
-- Progress indicator (Step 1 of 2, Step 2 of 2)
-- Form fields match demo design:
-  - Trip name (required, 3-100 chars)
-  - Destination (required)
-  - Start/End dates (optional, grid layout)
-  - Timezone select (required, defaults to user's timezone)
-  - Description (optional, 2000 char max, textarea)
-  - Cover image upload (optional, 5MB max)
-  - "Allow members to add events" checkbox (default checked)
-  - Co-organizer phone numbers (optional, multi-input)
-
-**Validation:**
-
-- Real-time validation with Zod schema
-- Display inline errors
-- Disable submit until valid
-
-**Form Submission:**
-
-```tsx
-const createTripMutation = useMutation({
-  mutationFn: (data: CreateTripInput) =>
-    fetch("/api/trips", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  onSuccess: (newTrip) => {
-    queryClient.invalidateQueries({ queryKey: ["trips"] });
-    router.push(`/trips/${newTrip.id}`);
+// src/plugins/auth-service.ts
+export default fp(
+  async (fastify) => {
+    fastify.decorate("authService", new AuthService(fastify.db, fastify.jwt));
   },
-});
+  { name: "auth-service", dependencies: ["database"] },
+);
 ```
 
-**Optimistic Updates:**
+Services to convert:
 
-```tsx
-const createTripMutation = useMutation({
-  mutationFn: createTrip,
-  onMutate: async (newTrip) => {
-    await queryClient.cancelQueries({ queryKey: ["trips"] });
-    const previousTrips = queryClient.getQueryData(["trips"]);
+- `auth.service.ts` → `plugins/auth-service.ts` (depends on: database, jwt)
+- `trip.service.ts` → `plugins/trip-service.ts` (depends on: database)
+- `permissions.service.ts` → `plugins/permissions-service.ts` (depends on: database)
+- `upload.service.ts` → `plugins/upload-service.ts` (depends on: config)
+- `sms.service.ts` → `plugins/sms-service.ts` (no deps)
+- `health.service.ts` → `plugins/health-service.ts` (depends on: database)
 
-    queryClient.setQueryData(["trips"], (old) => [
-      ...old,
-      {
-        ...newTrip,
-        id: "temp-id",
-        isOptimistic: true,
+### Type Augmentation (`src/types/index.ts`)
+
+```typescript
+declare module "fastify" {
+  interface FastifyInstance {
+    db: NodePgDatabase<typeof schema>;
+    config: EnvConfig;
+    authService: AuthService;
+    tripService: TripService;
+    permissionsService: PermissionsService;
+    uploadService: UploadService;
+    smsService: SMSService;
+    healthService: HealthService;
+  }
+}
+```
+
+### App Builder Pattern (`src/app.ts`)
+
+Extract `buildApp()` from `server.ts`. Both `server.ts` and `tests/helpers.ts` call it:
+
+```typescript
+// src/app.ts
+export async function buildApp(opts?: FastifyServerOptions) {
+  const app = Fastify(opts);
+  // Register all plugins, routes, hooks
+  return app;
+}
+
+// src/server.ts
+import { buildApp } from "./app.js";
+import closeWithGrace from "close-with-grace";
+
+const app = await buildApp({ logger: { ... } });
+await app.listen({ port, host });
+closeWithGrace(async ({ signal, err }) => { await app.close(); });
+```
+
+## 2. Route Schemas with @fastify/type-provider-zod
+
+### Setup
+
+Register the Zod type provider on the Fastify instance:
+
+```typescript
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from "@fastify/type-provider-zod";
+
+const app = Fastify().withTypeProvider<ZodTypeProvider>();
+app.setValidatorCompiler(validatorCompiler);
+app.setSerializerCompiler(serializerCompiler);
+```
+
+### Route Schema Pattern
+
+Every route gets `schema` with `params`, `body`, `querystring`, and `response`:
+
+```typescript
+// Example: GET /api/trips/:id
+fastify.get(
+  "/:id",
+  {
+    schema: {
+      params: z.object({ id: z.string().uuid() }),
+      response: {
+        200: tripDetailResponseSchema,
+        404: errorResponseSchema,
       },
-    ]);
+    },
+  },
+  tripController.getTripById,
+);
+```
 
-    return { previousTrips };
-  },
-  onError: (err, newTrip, context) => {
-    queryClient.setQueryData(["trips"], context.previousTrips);
-  },
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: ["trips"] });
-  },
+Reuse existing Zod schemas from `@tripful/shared/schemas` where possible. Create new response schemas as needed.
+
+### Routes to Add Schemas
+
+| Route                                         | Params            | Body                   | Query         | Response           |
+| --------------------------------------------- | ----------------- | ---------------------- | ------------- | ------------------ |
+| `GET /api/health`                             | -                 | -                      | -             | 200                |
+| `POST /api/auth/request-code`                 | -                 | phone                  | -             | 200, 400, 429      |
+| `POST /api/auth/verify-code`                  | -                 | phone, code            | -             | 200, 400, 401      |
+| `POST /api/auth/complete-profile`             | -                 | displayName, timezone? | -             | 200, 400           |
+| `GET /api/auth/me`                            | -                 | -                      | -             | 200, 401           |
+| `POST /api/auth/logout`                       | -                 | -                      | -             | 200                |
+| `GET /api/trips`                              | -                 | -                      | page?, limit? | 200                |
+| `POST /api/trips`                             | -                 | createTrip             | -             | 201, 400, 409      |
+| `GET /api/trips/:id`                          | id (uuid)         | -                      | -             | 200, 404           |
+| `PUT /api/trips/:id`                          | id (uuid)         | updateTrip             | -             | 200, 400, 403, 404 |
+| `DELETE /api/trips/:id`                       | id (uuid)         | -                      | -             | 200, 403, 404      |
+| `POST /api/trips/:id/co-organizers`           | id (uuid)         | phone                  | -             | 200, 400, 403      |
+| `DELETE /api/trips/:id/co-organizers/:userId` | id, userId (uuid) | -                      | -             | 200, 400, 403, 404 |
+| `POST /api/trips/:id/cover-image`             | id (uuid)         | multipart              | -             | 200, 400, 403      |
+| `DELETE /api/trips/:id/cover-image`           | id (uuid)         | -                      | -             | 200, 403, 404      |
+
+### Controller Simplification
+
+With route schemas handling validation, controllers no longer need:
+
+- Manual `safeParse()` calls
+- UUID format checks
+- `as` type casts on `request.params`
+
+Fastify auto-returns 400 for schema violations.
+
+## 3. Typed Errors with @fastify/error
+
+Replace string-based error matching with typed error classes.
+
+### Error Definitions (`src/errors.ts`)
+
+```typescript
+import createError from "@fastify/error";
+
+// Auth errors
+export const UnauthorizedError = createError("UNAUTHORIZED", "%s", 401);
+export const ProfileIncompleteError = createError(
+  "PROFILE_INCOMPLETE",
+  "%s",
+  403,
+);
+
+// Trip errors
+export const TripNotFoundError = createError("TRIP_NOT_FOUND", "%s", 404);
+export const PermissionDeniedError = createError(
+  "PERMISSION_DENIED",
+  "%s",
+  403,
+);
+export const MemberLimitExceededError = createError(
+  "MEMBER_LIMIT_EXCEEDED",
+  "%s",
+  409,
+);
+export const CoOrganizerNotFoundError = createError(
+  "CO_ORGANIZER_NOT_FOUND",
+  "%s",
+  400,
+);
+export const CannotRemoveCreatorError = createError(
+  "CANNOT_REMOVE_CREATOR",
+  "%s",
+  400,
+);
+export const DuplicateMemberError = createError("DUPLICATE_MEMBER", "%s", 409);
+
+// Upload errors
+export const FileTooLargeError = createError("FILE_TOO_LARGE", "%s", 400);
+export const InvalidFileTypeError = createError("INVALID_FILE_TYPE", "%s", 400);
+```
+
+Services throw typed errors. Controllers catch them or let the error handler deal with them. The centralized error handler handles `@fastify/error` instances by reading `.statusCode` and `.code`.
+
+## 4. Drizzle ORM Improvements
+
+### Transactions (`trip.service.ts`)
+
+Wrap multi-step mutations in `db.transaction()`:
+
+```typescript
+const trip = await fastify.db.transaction(async (tx) => {
+  const [trip] = await tx.insert(trips).values({ ... }).returning();
+  await tx.insert(members).values({ tripId: trip.id, userId, status: "going" });
+  if (coOrganizerUserIds.length > 0) {
+    await tx.insert(members).values(coOrganizerUserIds.map(...));
+  }
+  return trip;
 });
 ```
 
-#### 3. Trip Detail Page (`apps/web/src/app/(app)/trips/[id]/page.tsx`)
+Methods needing transactions:
 
-**Layout:**
+- `createTrip()` — trip + creator member + co-organizer members
+- `addCoOrganizers()` — member count check + inserts (race condition)
+- `cancelTrip()` — could be wrapped for consistency
 
-- Cover image hero section (if available)
-- Trip header: name, destination, dates, organizer info
-- RSVP badge (Going/Maybe/Not Going/No Response)
-- Event count (placeholder - no events until Phase 5)
-- Settings button (organizers only) → Opens edit dialog
-- Empty state: "No events yet. Events coming in Phase 5!"
+### Unique Constraint on Members
 
-**Access Control:**
+Add to schema:
 
-```tsx
-const { data: trip, error } = useQuery({
-  queryKey: ["trips", id],
-  queryFn: () =>
-    fetch(`/api/trips/${id}`).then((r) => {
-      if (r.status === 404) throw new Error("Trip not found");
-      if (r.status === 403)
-        throw new Error("You do not have access to this trip");
-      return r.json();
-    }),
-});
+```typescript
+// In members table definition
+uniqueTripUser: unique("members_trip_user_unique").on(table.tripId, table.userId),
+```
 
-if (
-  error?.message === "Trip not found" ||
-  error?.message === "You do not have access to this trip"
-) {
-  return <ErrorPage message={error.message} />;
+Generate and apply migration.
+
+### Drizzle Relations (`src/db/schema/relations.ts`)
+
+```typescript
+import { relations } from "drizzle-orm";
+
+export const usersRelations = relations(users, ({ many }) => ({
+  createdTrips: many(trips),
+  memberships: many(members),
+}));
+
+export const tripsRelations = relations(trips, ({ one, many }) => ({
+  creator: one(users, { fields: [trips.createdBy], references: [users.id] }),
+  members: many(members),
+}));
+
+export const membersRelations = relations(members, ({ one }) => ({
+  trip: one(trips, { fields: [members.tripId], references: [trips.id] }),
+  user: one(users, { fields: [members.userId], references: [users.id] }),
+}));
+```
+
+### Count Aggregate Fix
+
+```typescript
+// getMemberCount — use SQL COUNT instead of fetching all rows
+const [{ value }] = await db
+  .select({ value: count() })
+  .from(members)
+  .where(eq(members.tripId, tripId));
+```
+
+### Pagination on getUserTrips
+
+```typescript
+// Add pagination params
+async getUserTrips(userId: string, page = 1, limit = 20) {
+  const offset = (page - 1) * limit;
+  // Use relational API for efficient loading
+  // Return { data: TripSummary[], meta: { total, page, limit, totalPages } }
 }
 ```
 
-#### 4. Edit Trip Dialog (`apps/web/src/components/trip/edit-trip-dialog.tsx`)
-
-**Similar to Create Dialog:**
-
-- Pre-populated with current trip data
-- Same validation rules
-- Additional features:
-  - Manage co-organizers (add/remove)
-  - Delete/Cancel trip button (confirmation required)
-
-**Update Mutation:**
-
-```tsx
-const updateTripMutation = useMutation({
-  mutationFn: ({ id, data }) =>
-    fetch(`/api/trips/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  onMutate: async ({ id, data }) => {
-    // Optimistic update
-    await queryClient.cancelQueries({ queryKey: ["trips", id] });
-    const previousTrip = queryClient.getQueryData(["trips", id]);
-    queryClient.setQueryData(["trips", id], { ...previousTrip, ...data });
-    return { previousTrip };
-  },
-  onError: (err, variables, context) => {
-    queryClient.setQueryData(["trips", variables.id], context.previousTrip);
-  },
-  onSettled: (data, error, variables) => {
-    queryClient.invalidateQueries({ queryKey: ["trips", variables.id] });
-    queryClient.invalidateQueries({ queryKey: ["trips"] });
-  },
-});
-```
-
-#### 5. Image Upload Component (`apps/web/src/components/trip/image-upload.tsx`)
-
-**UI:**
-
-- Drag-and-drop zone or file input
-- Preview uploaded image
-- Validation: 5MB max, JPG/PNG/WEBP only
-- Loading state during upload
-- Error display
-
-**Upload Logic:**
-
-```tsx
-const uploadImage = async (file: File) => {
-  const formData = new FormData();
-  formData.append("image", file);
-
-  const response = await fetch(`/api/trips/${tripId}/cover-image`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message);
-  }
-
-  const { url } = await response.json();
-  return url;
-};
-
-const { mutate: uploadCoverImage, isLoading } = useMutation({
-  mutationFn: uploadImage,
-  onSuccess: (url) => {
-    // Update form state or trip data
-    setValue("coverImageUrl", url);
-  },
-  onError: (error) => {
-    setError(error.message);
-  },
-});
-```
-
-### Shared Schemas (`shared/schemas/trip.ts`)
-
-**Trip Validation Schemas:**
+### Column Selection on Auth Middleware Hot Path
 
 ```typescript
-import { z } from "zod";
+// Select only needed columns in user lookup
+db.select({ id: users.id, displayName: users.displayName })
+  .from(users)
+  .where(eq(users.id, userId))
+  .limit(1);
+```
 
-// Timezone validation using IANA timezone database
-const timezones = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Anchorage",
-  "Pacific/Honolulu",
-  // ... full IANA list
-];
+## 5. Security Improvements
 
-export const createTripSchema = z
-  .object({
-    name: z
-      .string()
-      .min(3, "Trip name must be at least 3 characters")
-      .max(100, "Trip name must not exceed 100 characters"),
-    destination: z.string().min(1, "Destination is required"),
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
-    timezone: z.enum(timezones, {
-      errorMap: () => ({ message: "Invalid timezone" }),
-    }),
-    description: z
-      .string()
-      .max(2000, "Description must not exceed 2000 characters")
-      .optional(),
-    coverImageUrl: z.string().url().optional().nullable(),
-    allowMembersToAddEvents: z.boolean().default(true),
-    coOrganizerPhones: z.array(z.string().min(10).max(20)).optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.startDate && data.endDate) {
-        return new Date(data.endDate) >= new Date(data.startDate);
-      }
-      return true;
-    },
-    {
-      message: "End date must be on or after start date",
-      path: ["endDate"],
-    },
-  );
+### @fastify/helmet
 
-export const updateTripSchema = createTripSchema.partial();
+Register in `buildApp()`:
 
-export const addCoOrganizerSchema = z.object({
-  phoneNumbers: z
-    .array(z.string().min(10).max(20))
-    .min(1, "At least one phone number required"),
+```typescript
+await app.register(helmet, {
+  contentSecurityPolicy: false, // Disable CSP for API-only server
 });
-
-// Type inference
-export type CreateTripInput = z.infer<typeof createTripSchema>;
-export type UpdateTripInput = z.infer<typeof updateTripSchema>;
-export type AddCoOrganizerInput = z.infer<typeof addCoOrganizerSchema>;
 ```
 
-## Technical Decisions
+### Rate Limit on verify-code
 
-### 1. Soft Delete vs Hard Delete
+Add rate limiting to `POST /api/auth/verify-code`:
 
-- **Decision**: Soft delete only (set `cancelled: true`)
-- **Rationale**: Preserves data for audit trails, allows potential restoration, prevents cascade deletions of events/members
-
-### 2. Co-Organizer Model
-
-- **Decision**: Co-organizers are members with `status='going'` + special logic to distinguish from regular members
-- **Alternative Considered**: Separate `trip_organizers` table
-- **Rationale**: Reuses existing members table, simpler schema, co-organizers should RSVP'd anyway
-
-### 3. Image Upload Approach
-
-- **Decision**: Mock local storage service with interface allowing future S3 swap
-- **Rationale**: Keeps Phase 3 focused, provides working feature, easy to replace later
-- **Trade-offs**: Local storage not suitable for production, but good for MVP
-
-### 4. Permissions Architecture
-
-- **Decision**: Dedicated PermissionsService rather than inline checks
-- **Rationale**: Reusable logic, testable in isolation, single source of truth for authorization rules
-
-### 5. Frontend State Management
-
-- **Decision**: TanStack Query with optimistic updates
-- **Rationale**: Matches Phase 2 patterns, better UX with instant feedback, handles caching/invalidation
-
-### 6. Member Limit Enforcement
-
-- **Decision**: Enforce 25-member limit at API level, count includes creator + co-organizers
-- **Rationale**: Prevents data integrity issues, matches PRD spec, server-side validation is authoritative
-
-## File Structure
-
+```typescript
+// 10 attempts per 15 minutes per phone number
+preHandler: [
+  fastify.rateLimit({
+    max: 10,
+    timeWindow: "15 minutes",
+    keyGenerator: (request) => request.body?.phoneNumber || request.ip,
+  }),
+];
 ```
-apps/api/src/
-├── controllers/
-│   └── trip.controller.ts           # Trip CRUD endpoints
-├── services/
-│   ├── trip.service.ts              # Trip business logic
-│   ├── permissions.service.ts       # Authorization logic
-│   └── upload.service.ts            # File upload handling
-├── routes/
-│   └── trip.routes.ts               # Trip route registration
-├── middleware/
-│   └── permissions.middleware.ts    # Permission check middleware (optional)
-└── uploads/                         # Local image storage (gitignored)
 
-apps/web/src/
-├── app/(app)/
-│   ├── dashboard/
-│   │   └── page.tsx                 # Redesigned dashboard with trip list
-│   └── trips/
-│       └── [id]/
-│           └── page.tsx             # Trip detail view
-├── components/trip/
-│   ├── create-trip-dialog.tsx       # Create trip modal
-│   ├── edit-trip-dialog.tsx         # Edit trip modal
-│   ├── trip-card.tsx                # Trip card component
-│   └── image-upload.tsx             # Image upload component
-└── hooks/
-    └── use-trips.ts                 # Trip-related React Query hooks
+### @fastify/under-pressure
 
-shared/
-└── schemas/
-    └── trip.ts                      # Trip validation schemas
-
-apps/api/tests/
-├── unit/
-│   ├── trip.service.test.ts         # Trip service unit tests
-│   ├── permissions.service.test.ts  # Permissions service tests
-│   └── upload.service.test.ts       # Upload service tests
-└── integration/
-    └── trip.routes.test.ts          # Trip API integration tests
-
-apps/web/tests/e2e/
-└── trip-flow.spec.ts                # E2E test: Create & view trip
+```typescript
+await app.register(underPressure, {
+  maxEventLoopDelay: 1000,
+  maxHeapUsedBytes: 1_000_000_000,
+  maxRssBytes: 1_500_000_000,
+  retryAfter: 50,
+});
 ```
+
+## 6. Logging Improvements
+
+### Replace console.log
+
+All `console.log`/`console.error` calls → `fastify.log.info()`/`fastify.log.error()`. Files:
+
+- `config/database.ts` (lines 23-24, 28, 34) — becomes plugin, uses `fastify.log`
+- `config/env.ts` (lines 69-72) — runs before Fastify, keep `console.error` here only
+- `config/jwt.ts` (line 38) — use `fastify.log` after plugin refactor
+- `services/sms.service.ts` (lines 27-33) — use `fastify.log`
+
+### Logger Redaction
+
+```typescript
+const app = Fastify({
+  logger: {
+    level: config.LOG_LEVEL,
+    redact: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "req.body.phoneNumber",
+    ],
+  },
+});
+```
+
+### pino-pretty for Development
+
+```typescript
+logger: env.NODE_ENV === "development"
+  ? { transport: { target: "pino-pretty" }, level: "debug" }
+  : { level: config.LOG_LEVEL, redact: [...] }
+```
+
+## 7. Configuration Improvements
+
+### Explicit Feature Flags
+
+Add to env schema:
+
+```typescript
+COOKIE_SECURE: z.coerce.boolean().default(process.env.NODE_ENV === "production"),
+EXPOSE_ERROR_DETAILS: z.coerce.boolean().default(process.env.NODE_ENV === "development"),
+ENABLE_FIXED_VERIFICATION_CODE: z.coerce.boolean().default(process.env.NODE_ENV !== "production"),
+```
+
+Replace all `process.env.NODE_ENV` checks in services/controllers with these flags.
+
+### process.cwd() → import.meta.dirname
+
+Replace in:
+
+- `config/jwt.ts` line 17
+- `server.ts` line 80 (static file serving)
+
+## 8. Additional Improvements
+
+### Scoped Auth Hooks
+
+Use plugin encapsulation for trip routes:
+
+```typescript
+// trip.routes.ts
+fastify.register(async (scope) => {
+  scope.addHook("preHandler", authenticate);
+  scope.addHook("preHandler", requireCompleteProfile);
+  // All routes in this scope are protected
+  scope.post("/", tripController.createTrip);
+  scope.put("/:id", tripController.updateTrip);
+  // ...
+});
+```
+
+Read-only routes (GET) remain outside the scoped plugin.
+
+### Multipart Limits
+
+```typescript
+await app.register(multipart, {
+  limits: {
+    fileSize: config.MAX_FILE_SIZE,
+    files: 1,
+    fieldNameSize: 100,
+    fields: 10,
+    headerPairs: 2000,
+  },
+  throwFileSizeLimit: true,
+});
+```
+
+### Liveness/Readiness Health Checks
+
+```typescript
+// GET /api/health/live — always 200 if process is running
+// GET /api/health/ready — checks DB connectivity
+```
+
+### Not Found Handler
+
+```typescript
+fastify.setNotFoundHandler((request, reply) => {
+  reply.status(404).send({
+    success: false,
+    error: {
+      code: "NOT_FOUND",
+      message: `Route ${request.method} ${request.url} not found`,
+    },
+  });
+});
+```
+
+### trustProxy Configuration
+
+Add `TRUST_PROXY` env variable (default: false). Set on Fastify instance for correct `request.ip` behind load balancers.
 
 ## Testing Strategy
 
-### Unit Tests (Vitest)
+### Unit Tests
 
-**Trip Service Tests:**
+- Service methods (with mocked db via plugin decoration)
+- Error class instantiation and properties
+- Env config validation
+- Phone validation utilities
 
-- `createTrip`: Creates trip with creator as member
-- `createTrip` with co-organizers: Validates phones, creates member records
-- `createTrip`: Enforces 25-member limit
-- `getTripById`: Returns trip with organizers and member count
-- `getUserTrips`: Filters upcoming/past trips correctly
-- `updateTrip`: Updates trip details
-- `cancelTrip`: Sets cancelled flag
-- `addCoOrganizers`: Validates existing users, enforces limit
-- `removeCoOrganizer`: Removes member record
+### Integration Tests
 
-**Permissions Service Tests:**
+- All API endpoints with route schema validation (400 on bad input)
+- Transaction rollback behavior (create trip with invalid co-organizer)
+- Unique constraint enforcement (duplicate member)
+- Pagination responses
+- Rate limiting on verify-code
+- Security headers present (helmet)
+- Graceful shutdown behavior
 
-- `canEditTrip`: Returns true for creator
-- `canEditTrip`: Returns true for co-organizer
-- `canEditTrip`: Returns false for non-organizer
-- `canDeleteTrip`: Same as edit permissions
-- `isOrganizer`: Correctly identifies organizers
-- `isMember`: Checks member table
+### E2E Tests
 
-**Upload Service Tests:**
+- Existing Playwright E2E tests must continue passing
+- No new E2E tests needed (backend-only changes)
 
-- `validateImage`: Accepts valid JPG/PNG/WEBP
-- `validateImage`: Rejects files over 5MB
-- `validateImage`: Rejects invalid MIME types
-- `uploadImage`: Saves to uploads directory
-- `deleteImage`: Removes file from disk
+### Regression
 
-### Integration Tests (Vitest + Supertest)
-
-**Trip Routes Tests:**
-
-- `POST /trips`: Creates trip, returns 201 with trip data
-- `POST /trips`: Returns 400 for invalid data (name too short, dates invalid)
-- `POST /trips`: Returns 401 without auth token
-- `POST /trips`: Creates member record for creator
-- `POST /trips` with co-organizers: Creates member records for co-organizers
-- `POST /trips`: Returns 409 when exceeding member limit
-- `GET /trips`: Returns user's trips (upcoming/past)
-- `GET /trips`: Returns empty array for user with no trips
-- `GET /trips/:id`: Returns trip details
-- `GET /trips/:id`: Returns 404 for non-existent trip
-- `GET /trips/:id`: Returns 403 for non-member
-- `PUT /trips/:id`: Updates trip
-- `PUT /trips/:id`: Returns 403 for non-organizer
-- `DELETE /trips/:id`: Soft deletes trip
-- `DELETE /trips/:id`: Returns 403 for non-organizer
-- `POST /trips/:id/co-organizers`: Adds co-organizers
-- `POST /trips/:id/co-organizers`: Returns 400 for non-existent user
-- `DELETE /trips/:id/co-organizers/:userId`: Removes co-organizer
-
-### E2E Tests (Playwright)
-
-**Test Scenario 1: Create and View Trip**
-
-```typescript
-test("user can create a trip and view it on dashboard", async ({ page }) => {
-  // Login
-  await loginUser(page, testPhone);
-
-  // Navigate to dashboard
-  await page.goto("/dashboard");
-
-  // Click FAB
-  await page.click('[data-testid="create-trip-fab"]');
-
-  // Fill trip form
-  await page.fill('input[name="name"]', "Test Trip");
-  await page.fill('input[name="destination"]', "Test Destination");
-  await page.selectOption('select[name="timezone"]', "America/New_York");
-
-  // Submit
-  await page.click('button:has-text("Create Trip")');
-
-  // Verify redirect to trip detail page
-  await page.waitForURL("**/trips/**");
-
-  // Verify trip details
-  await expect(page.locator('h1:has-text("Test Trip")')).toBeVisible();
-  await expect(page.locator("text=Test Destination")).toBeVisible();
-
-  // Go back to dashboard
-  await page.goto("/dashboard");
-
-  // Verify trip appears in list
-  await expect(page.locator("text=Test Trip")).toBeVisible();
-});
-```
-
-**Test Scenario 2: Edit Trip as Organizer**
-
-```typescript
-test("organizer can edit trip details", async ({ page }) => {
-  // Setup: Create trip via API
-  const trip = await createTestTrip(testPhone);
-
-  // Login as organizer
-  await loginUser(page, testPhone);
-
-  // Navigate to trip detail
-  await page.goto(`/trips/${trip.id}`);
-
-  // Click edit button
-  await page.click('button:has-text("Edit Trip")');
-
-  // Update trip name
-  await page.fill('input[name="name"]', "Updated Trip Name");
-
-  // Submit
-  await page.click('button:has-text("Save Changes")');
-
-  // Verify update
-  await expect(page.locator('h1:has-text("Updated Trip Name")')).toBeVisible();
-});
-```
-
-**Test Scenario 3: Upload Cover Image**
-
-```typescript
-test("user can upload cover image", async ({ page }) => {
-  const trip = await createTestTrip(testPhone);
-  await loginUser(page, testPhone);
-  await page.goto(`/trips/${trip.id}`);
-
-  // Click edit
-  await page.click('button:has-text("Edit Trip")');
-
-  // Upload image
-  const fileInput = page.locator('input[type="file"]');
-  await fileInput.setInputFiles("tests/fixtures/test-image.jpg");
-
-  // Wait for upload
-  await page.waitForSelector('img[src^="/uploads/"]');
-
-  // Submit
-  await page.click('button:has-text("Save Changes")');
-
-  // Verify cover image displayed
-  await expect(page.locator('img[src^="/uploads/"]')).toBeVisible();
-});
-```
-
-**Test Scenario 4: Non-Organizer Cannot Edit**
-
-```typescript
-test("non-organizer cannot edit trip", async ({ page }) => {
-  const trip = await createTestTrip(otherUserPhone);
-  await loginUser(page, testPhone);
-
-  // Navigate to trip (not a member)
-  await page.goto(`/trips/${trip.id}`);
-
-  // Verify no access
-  await expect(
-    page.locator("text=You do not have access to this trip"),
-  ).toBeVisible();
-
-  // OR if member but not organizer, no edit button
-  // await expect(page.locator('button:has-text("Edit Trip")')).not.toBeVisible();
-});
-```
-
-## Migration Path
-
-### Database Migrations
-
-No new migrations needed - `trips` and `members` tables already exist from demo implementation. Verify schemas match expectations:
-
-```sql
--- Verify trips table
-SELECT column_name, data_type, is_nullable
-FROM information_schema.columns
-WHERE table_name = 'trips';
-
--- Verify members table
-SELECT column_name, data_type, is_nullable
-FROM information_schema.columns
-WHERE table_name = 'members';
-```
-
-If schema changes needed (e.g., adding indexes), generate migration:
-
-```bash
-cd apps/api
-pnpm db:generate
-pnpm db:migrate
-```
-
-### Backwards Compatibility
-
-Phase 3 introduces new endpoints but doesn't modify existing Phase 2 auth endpoints. No breaking changes expected.
-
-## Environment Configuration
-
-Add to `apps/api/.env`:
-
-```bash
-# File upload settings
-UPLOAD_DIR=./uploads
-MAX_FILE_SIZE=5242880  # 5MB in bytes
-ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp
-```
-
-Add to `apps/api/.gitignore`:
-
-```
-/uploads
-```
-
-## Dependencies
-
-**Backend:**
-
-- No new dependencies needed (Fastify multipart already available via `@fastify/multipart`)
-
-**Frontend:**
-
-- Consider `react-dropzone` for drag-and-drop image upload (optional)
-- All other dependencies already present (TanStack Query, Zod, shadcn/ui)
-
-## Performance Considerations
-
-1. **Image Upload**: Limit concurrent uploads, consider progress indicators
-2. **Trip Listing**: Paginate if user has >50 trips (future optimization)
-3. **Member Count**: Cache in trips table (future optimization via trigger)
-4. **Permissions Checks**: Cache during request lifecycle to avoid duplicate queries
-
-## Security Considerations
-
-1. **Authentication**: All endpoints require JWT auth (reuse Phase 2 middleware)
-2. **Authorization**: Permissions service enforces who can edit/delete trips
-3. **File Upload**: Validate MIME types server-side (don't trust client)
-4. **Path Traversal**: Sanitize filenames, use UUIDs for storage
-5. **DOS Prevention**: Rate limit file uploads (consider in future phases)
-6. **SQL Injection**: Drizzle ORM provides protection via parameterized queries
-
-## Success Criteria
-
-Phase 3 is complete when:
-
-- [ ] Users can create trips with all required fields
-- [ ] Users can add co-organizers during creation or after
-- [ ] Cover images can be uploaded (5MB max, JPG/PNG/WEBP)
-- [ ] Dashboard displays upcoming and past trips
-- [ ] Trip detail page shows full trip information
-- [ ] Organizers can edit trip details
-- [ ] Organizers can cancel trips (soft delete)
-- [ ] Non-organizers cannot edit/delete trips
-- [ ] 25-member limit is enforced
-- [ ] All unit tests pass (target: 15+ tests)
-- [ ] All integration tests pass (target: 20+ tests)
-- [ ] All E2E tests pass (target: 4 scenarios)
-- [ ] Code coverage >80% for new services
-
-## Out of Scope (Future Phases)
-
-- Trip invitations (Phase 4)
-- RSVP management (Phase 4)
-- Events and itinerary (Phase 5)
-- Member travel and accommodations (Phase 6)
-- Real S3/CloudFlare image storage (Post-MVP)
-- Trip search and filtering beyond upcoming/past (Post-MVP)
+- All existing tests updated to use `buildApp()` from `src/app.ts`
+- Full test suite run after each task

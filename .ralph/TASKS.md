@@ -1,771 +1,106 @@
-# Tasks: Phase 3 - Trip Management
-
-## Task Overview
-
-This phase implements trip CRUD operations, co-organizer management, image uploads, and UI for dashboard and trip detail views. Tasks are broken down into small, verifiable chunks following **Test-Driven Development (TDD)** - unit and integration tests are written BEFORE implementation code to ensure quality and design.
-
-**Total Estimated Tasks**: 31 (down from 35 - unit/integration tests now integrated into implementation tasks)
-
----
-
-## 1. Backend Foundation
-
-- [x] Task 1.1: Create trip schemas in shared package
-  - Create `shared/schemas/trip.ts`
-  - Define `createTripSchema` with Zod (name, destination, dates, timezone, description, coverImageUrl, allowMembersToAddEvents, coOrganizerPhones)
-  - Define `updateTripSchema` (partial of createTripSchema)
-  - Define `addCoOrganizerSchema`
-  - Add IANA timezone validation
-  - Add date validation (end >= start)
-  - Export TypeScript types via `z.infer`
-  - Add unit tests for schema validation edge cases
-  - **Acceptance Criteria:**
-    - Schemas validate all required fields correctly
-    - Timezone validation rejects invalid IANA strings
-    - Date validation ensures end >= start
-    - Schema tests cover all edge cases (name length, date ranges, etc.)
-
-- [x] Task 1.2: Create upload service for image handling
-  - Create `apps/api/src/services/upload.service.ts`
-  - Implement `IUploadService` interface (uploadImage, deleteImage, validateImage)
-  - Implement file validation (5MB max, MIME type check: image/jpeg, image/png, image/webp)
-  - Implement local storage in `apps/api/uploads/` with UUID filenames
-  - Implement file deletion
-  - Create upload directory if not exists
-  - Add comprehensive unit tests
-  - **Acceptance Criteria:**
-    - Validates file size correctly (rejects > 5MB)
-    - Validates MIME types correctly (only JPG/PNG/WEBP)
-    - Saves files to uploads/ directory with UUID names
-    - Returns correct URL path (/uploads/{uuid}.{ext})
-    - Deletes files correctly
-    - All unit tests pass
-
-- [x] Task 1.3: Create permissions service for authorization
-  - Create `apps/api/src/services/permissions.service.ts`
-  - Implement `IPermissionsService` interface
-  - Implement `canEditTrip(userId, tripId)`: Check if user is creator OR co-organizer
-  - Implement `canDeleteTrip(userId, tripId)`: Same as canEditTrip
-  - Implement `canManageCoOrganizers(userId, tripId)`: Same as canEditTrip
-  - Implement `isOrganizer(userId, tripId)`: Check creator OR member with status='going' added at creation
-  - Implement `isMember(userId, tripId)`: Check if member record exists
-  - Add comprehensive unit tests with database setup/teardown
-
-  **Acceptance Criteria:**
-  - Creator can edit/delete their trips
-  - Co-organizers can edit/delete trips they co-organize
-  - Non-organizers cannot edit/delete
-  - Permission checks query database correctly
-  - All unit tests pass with clean test data
-
----
-
-## 2. Trip Service Implementation
-
-- [x] Task 2.1: Implement createTrip in trip service (TDD)
-  - Create test file: `apps/api/tests/unit/trip.service.test.ts`
-  - Write failing tests for `createTrip`:
-    - Test: Creates trip record with correct data
-    - Test: Automatically adds creator as member with status='going'
-    - Test: Adds co-organizers as members when provided
-    - Test: Returns trip object with all fields populated
-  - Create `apps/api/src/services/trip.service.ts`
-  - Implement `ITripService` interface (define all method signatures)
-  - Implement `createTrip(userId, data)` to make tests pass:
-    - Insert trip record
-    - Insert creator as member with status='going'
-    - Validate and insert co-organizers if provided
-    - Return trip with organizers
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (4+ tests)
-  - Trip record created with correct data
-  - Creator automatically added as member
-  - Co-organizers added as members with status='going'
-  - Returns trip object with all fields
-  - Tests use unique phone numbers for parallel execution
-
----
-
-- [x] Task 2.2: Implement co-organizer validation and member limit (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: Rejects co-organizer phone that doesn't exist in users table
-    - Test: Correctly counts current members via getMemberCount()
-    - Test: Rejects adding co-organizers when limit (25) would be exceeded
-    - Test: Returns appropriate error messages for each validation failure
-  - Implement in `trip.service.ts`:
-    - In `createTrip` and `addCoOrganizers`: Validate co-organizer phone numbers
-    - Look up users by phone number
-    - Throw error if phone not found in system
-    - Implement `getMemberCount(tripId)` helper
-    - Enforce 25-member limit (creator + co-organizers + future invitees)
-    - Throw error if limit exceeded
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (4+ new tests)
-  - Rejects co-organizer phones that don't exist
-  - Correctly counts current members
-  - Rejects adding co-organizers if limit exceeded
-  - Returns appropriate error messages
-
----
-
-- [x] Task 2.3: Implement getTripById (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: Returns full trip details when user is a member
-    - Test: Returns null when trip doesn't exist
-    - Test: Returns null when user is not a member
-    - Test: Includes organizer information (creator + co-organizers)
-    - Test: Includes member count
-  - Implement `getTripById(tripId, userId)`:
-    - Query trip with creator info
-    - Load organizers (creator + co-organizers)
-    - Load member count
-    - Return null if trip not found or user not member
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (5+ tests)
-  - Returns full trip details for members
-  - Returns null for non-members
-  - Includes organizer information
-  - Includes member count
-
----
-
-- [x] Task 2.4: Implement getUserTrips for dashboard (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: Returns all trips where user is a member
-    - Test: Returns empty array when user has no trips
-    - Test: Summary includes all required fields (id, name, destination, dates, coverImageUrl, isOrganizer, rsvpStatus, organizerInfo, memberCount, eventCount)
-    - Test: isOrganizer flag is true for creator and co-organizers
-    - Test: Trips ordered by startDate (upcoming first)
-  - Implement `getUserTrips(userId)`:
-    - Query all trips where user is a member
-    - Build trip summaries with all required fields
-    - Order by startDate (upcoming first, then past)
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (5+ tests)
-  - Returns all trips user is member of
-  - Summary includes all required fields
-  - isOrganizer flag set correctly
-  - Ordered by start date
-
----
-
-- [x] Task 2.5: Implement updateTrip (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: Organizer can update trip successfully
-    - Test: Non-organizer receives permission error
-    - Test: Only provided fields are updated (partial update)
-    - Test: updatedAt timestamp is refreshed
-  - Implement `updateTrip(tripId, userId, data)`:
-    - Check permissions via permissionsService.canEditTrip()
-    - Throw error if not authorized
-    - Update trip record with provided fields
-    - Return updated trip
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (4+ tests)
-  - Organizers can update trip
-  - Non-organizers receive permission error
-  - Only provided fields are updated
-  - updatedAt timestamp refreshed
-
----
-
-- [x] Task 2.6: Implement cancelTrip - soft delete (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: Organizer can cancel trip successfully
-    - Test: Non-organizer receives permission error when attempting to cancel
-    - Test: Trip marked as cancelled (cancelled=true) in database
-    - Test: Trip record still exists in database (not hard deleted)
-  - Implement `cancelTrip(tripId, userId)`:
-    - Check permissions via permissionsService.canDeleteTrip()
-    - Throw error if not authorized
-    - Set cancelled=true
-    - Set updatedAt to now
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (4+ tests)
-  - Organizers can cancel trip
-  - Non-organizers cannot cancel
-  - Trip marked as cancelled in database
-  - Trip not deleted from database (soft delete)
-
----
-
-- [x] Task 2.7: Implement co-organizer management methods (TDD)
-  - Write failing tests in `trip.service.test.ts`:
-    - Test: addCoOrganizers succeeds when called by organizer
-    - Test: addCoOrganizers fails when called by non-organizer
-    - Test: addCoOrganizers creates member records with status='going'
-    - Test: addCoOrganizers enforces 25-member limit
-    - Test: removeCoOrganizer succeeds when called by organizer
-    - Test: removeCoOrganizer prevents removing trip creator
-    - Test: getCoOrganizers returns all co-organizers
-  - Implement `addCoOrganizers(tripId, userId, phoneNumbers)`:
-    - Check permissions via permissionsService.canManageCoOrganizers()
-    - Validate phone numbers (users exist)
-    - Check member limit
-    - Create member records with status='going'
-  - Implement `removeCoOrganizer(tripId, userId, coOrgUserId)`:
-    - Check permissions
-    - Prevent removing trip creator
-    - Delete member record
-  - Implement `getCoOrganizers(tripId)`
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All unit tests pass (7+ tests)
-  - Co-organizers can be added by organizers
-  - Member limit enforced
-  - Co-organizers can be removed
-  - Creator cannot be removed
-
----
-
-## 3. Trip Controller & Routes
-
-- [x] Task 3.1: Create trip controller with POST /trips endpoint (TDD)
-  - Create test file: `apps/api/tests/integration/trip.routes.test.ts`
-  - Write failing integration tests:
-    - Test: POST /trips returns 201 with trip data on success
-    - Test: POST /trips returns 400 for invalid data (name too short, invalid dates)
-    - Test: POST /trips returns 409 when member limit exceeded
-    - Test: POST /trips returns 401 without auth token
-    - Test: POST /trips creates member record for creator
-  - Create `apps/api/src/controllers/trip.controller.ts`
-  - Implement `createTrip` handler to make tests pass:
-    - Validate request body with createTripSchema
-    - Extract userId from JWT (request.user)
-    - Call tripService.createTrip(userId, data)
-    - Return 201 with trip data
-    - Handle errors (400 validation, 409 member limit)
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (5+ tests)
-  - POST /trips returns 201 on success
-  - Returns 400 for invalid data
-  - Returns 409 for member limit exceeded
-  - Returns 401 without auth
-
----
-
-- [x] Task 3.2: Add GET /trips endpoint (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: GET /trips returns user's trips with correct structure
-    - Test: GET /trips returns empty array when user has no trips
-    - Test: GET /trips returns 401 without auth token
-  - Implement `getUserTrips` handler to make tests pass:
-    - Extract userId from JWT (request.user)
-    - Call tripService.getUserTrips(userId)
-    - Return 200 with trips array
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (3+ tests)
-  - GET /trips returns user's trips
-  - Returns empty array if no trips
-  - Returns 401 without auth
-
----
-
-- [x] Task 3.3: Add GET /trips/:id endpoint (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: GET /trips/:id returns 200 with trip data for members
-    - Test: GET /trips/:id returns 404 for non-existent trip
-    - Test: GET /trips/:id returns 403 for non-members
-    - Test: GET /trips/:id returns 401 without auth token
-  - Implement `getTripById` handler to make tests pass:
-    - Validate tripId param (UUID format)
-    - Extract userId from JWT
-    - Call tripService.getTripById(tripId, userId)
-    - Return 200 with trip data OR 404 if null/403 if not member
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (4+ tests)
-  - GET /trips/:id returns trip for members
-  - Returns 404 for non-existent trip
-  - Returns 403 for non-members
-  - Returns 401 without auth
-
----
-
-- [x] Task 3.4: Add PUT /trips/:id endpoint (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: PUT /trips/:id returns 200 with updated trip for organizers
-    - Test: PUT /trips/:id returns 403 for non-organizers
-    - Test: PUT /trips/:id returns 400 for invalid data
-    - Test: PUT /trips/:id returns 404 for non-existent trip
-    - Test: PUT /trips/:id returns 401 without auth token
-  - Implement `updateTrip` handler to make tests pass:
-    - Validate request body with updateTripSchema
-    - Extract userId from JWT
-    - Call tripService.updateTrip(tripId, userId, data)
-    - Return 200 with updated trip
-    - Handle errors (400 validation, 403 forbidden, 404 not found)
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (5+ tests)
-  - PUT /trips/:id updates trip for organizers
-  - Returns 403 for non-organizers
-  - Returns 400 for invalid data
-  - Returns 404 for non-existent trip
-
----
-
-- [x] Task 3.5: Add DELETE /trips/:id endpoint (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: DELETE /trips/:id returns 204 for organizers
-    - Test: DELETE /trips/:id soft-deletes trip (cancelled=true in DB)
-    - Test: DELETE /trips/:id returns 403 for non-organizers
-    - Test: DELETE /trips/:id returns 404 for non-existent trip
-    - Test: DELETE /trips/:id returns 401 without auth token
-  - Implement `cancelTrip` handler to make tests pass:
-    - Extract userId from JWT
-    - Call tripService.cancelTrip(tripId, userId)
-    - Return 204 No Content
-    - Handle errors (403 forbidden, 404 not found)
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (5+ tests)
-  - DELETE /trips/:id cancels trip for organizers
-  - Returns 403 for non-organizers
-  - Returns 404 for non-existent trip
-  - Trip soft-deleted (cancelled=true)
-
----
-
-- [x] Task 3.6: Add co-organizer management endpoints (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: POST /trips/:id/co-organizers returns 200 and adds co-organizers
-    - Test: POST /trips/:id/co-organizers returns 403 for non-organizers
-    - Test: POST /trips/:id/co-organizers returns 400 for non-existent user phone
-    - Test: DELETE /trips/:id/co-organizers/:userId returns 204 and removes co-organizer
-    - Test: DELETE /trips/:id/co-organizers/:userId returns 403 for non-organizers
-    - Test: Both endpoints return 401 without auth
-  - Implement handlers to make tests pass:
-    - `POST /trips/:id/co-organizers`: Validate body, call tripService.addCoOrganizers
-    - `DELETE /trips/:id/co-organizers/:userId`: Call tripService.removeCoOrganizer
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (6+ tests)
-  - POST endpoint adds co-organizers
-  - DELETE endpoint removes co-organizer
-  - Both require organizer permissions
-  - Returns appropriate status codes
-
----
-
-- [x] Task 3.7: Add image upload endpoints (TDD)
-  - Write failing integration tests in `trip.routes.test.ts`:
-    - Test: POST /trips/:id/cover-image uploads image and returns updated trip
-    - Test: POST /trips/:id/cover-image validates file size (rejects >5MB)
-    - Test: POST /trips/:id/cover-image validates MIME type (rejects invalid types)
-    - Test: DELETE /trips/:id/cover-image removes image and clears coverImageUrl
-    - Test: GET /uploads/:filename serves uploaded images
-    - Test: Upload endpoints return 403 for non-organizers
-    - Test: Upload endpoints return 401 without auth
-  - Implement handlers to make tests pass:
-    - `POST /trips/:id/cover-image`: Use @fastify/multipart, validate with uploadService, save file, update trip
-    - `DELETE /trips/:id/cover-image`: Delete file via uploadService, clear trip.coverImageUrl
-    - `GET /uploads/:filename`: Serve static files from uploads directory
-  - Verify all tests pass
-
-  **Acceptance Criteria:**
-  - All integration tests pass (7+ tests)
-  - POST endpoint uploads and saves image
-  - Returns updated trip with coverImageUrl
-  - DELETE endpoint removes image and clears URL
-  - GET /uploads/:filename serves images
-  - Validates file size and type
-
----
-
-- [x] Task 3.8: Register trip routes
-  - Create `apps/api/src/routes/trip.routes.ts`
-  - Register all trip endpoints with authentication middleware
-  - Export route registration function
-  - Import and register in main server file
-
-  **Acceptance Criteria:**
-  - All routes registered correctly
-  - Authentication middleware applied to all routes
-  - Server starts without errors
-  - Routes accessible at /trips endpoints
-
----
-
-## 4. Frontend Components
-
-- [x] Task 4.1: Create trip card component
-  - Create `apps/web/src/components/trip/trip-card.tsx`
-  - Display: cover image, name, destination, dates, RSVP badge, organizer avatars, event count
-  - Match demo design (rounded corners, shadows, hover effects)
-  - Add click handler to navigate to trip detail
-  - Handle missing cover image (show placeholder or gradient)
-
-  **Acceptance Criteria:**
-  - Card displays all trip summary data
-  - Matches demo aesthetic
-  - Clickable to navigate to detail page
-  - Handles edge cases (no image, no dates, etc.)
-
----
-
-- [x] Task 4.2: Create image upload component
-  - Create `apps/web/src/components/trip/image-upload.tsx`
-  - Implement file input with drag-and-drop
-  - Show image preview
-  - Validate file size (5MB) and type (JPG/PNG/WEBP) on client
-  - Display upload progress/loading state
-  - Handle upload errors
-
-  **Acceptance Criteria:**
-  - Supports file input and drag-and-drop
-  - Shows preview before upload
-  - Validates file constraints client-side
-  - Displays loading state during upload
-  - Shows error messages clearly
-
----
-
-- [x] Task 4.3: Create create trip dialog (Step 1: Basic Info)
-  - Create `apps/web/src/components/trip/create-trip-dialog.tsx`
-  - Implement dialog with shadcn Dialog component
-  - Step 1 form: name, destination, start/end dates, timezone
-  - Progress indicator (Step 1 of 2)
-  - Validation with createTripSchema
-  - Display inline errors
-  - "Continue" button to go to Step 2
-
-  **Acceptance Criteria:**
-  - Dialog opens/closes correctly
-  - Form validates all fields
-  - Inline errors display for invalid inputs
-  - Progress indicator shows "Step 1 of 2"
-  - Navigates to Step 2 on continue
-
----
-
-- [x] Task 4.4: Create create trip dialog (Step 2: Details & Co-Orgs)
-  - Step 2 form: description, cover image upload, allowMembersToAddEvents checkbox, co-organizer phones
-  - Progress indicator (Step 2 of 2)
-  - Multi-input for co-organizer phone numbers
-  - "Back" button to return to Step 1
-  - "Create Trip" button to submit
-  - Handle loading state during creation
-
-  **Acceptance Criteria:**
-  - Step 2 form includes all optional fields
-  - Co-organizer input allows multiple phone numbers
-  - Can navigate back to Step 1
-  - Submit button creates trip via API
-  - Loading state shown during creation
-
----
-
-- [x] Task 4.5: Implement create trip mutation with optimistic updates
-  - Create `apps/web/src/hooks/use-trips.ts`
-  - Implement `useCreateTrip` hook with useMutation
-  - Optimistic update: Add trip to cache immediately
-  - On success: Invalidate trips query, redirect to trip detail page
-  - On error: Rollback optimistic update, show error message
-  - Add error boundary
-
-  **Acceptance Criteria:**
-  - Trip appears immediately in UI
-  - Redirects to trip detail on success
-  - Rollback on error with clear error message
-  - Network errors handled gracefully
-
----
-
-- [x] Task 4.6: Create edit trip dialog
-  - Create `apps/web/src/components/trip/edit-trip-dialog.tsx`
-  - Pre-populate form with existing trip data
-  - Use same two-step structure as create dialog
-  - Add "Delete Trip" button with confirmation
-  - Implement update mutation with optimistic updates
-
-  **Acceptance Criteria:**
-  - Dialog pre-fills with current trip data
-  - Updates trip on submit
-  - Optimistic update works correctly
-  - Delete button shows confirmation dialog
-  - Only organizers see edit UI
-
----
-
-## 5. Dashboard & Detail Pages
-
-- [x] Task 5.1: Redesign dashboard page
-  - Update `apps/web/src/app/(app)/dashboard/page.tsx`
-  - Replace simple user info with trip listing
-  - Implement "Upcoming trips" and "Past trips" sections
-  - Use TripCard component for each trip
-  - Add search bar (placeholder, no functionality yet)
-  - Empty states with CTAs
-
-  **Acceptance Criteria:**
-  - Dashboard shows two sections: upcoming and past
-  - Trips display in TripCard components
-  - Empty state shows when no trips
-  - Search bar present (placeholder)
-  - Matches demo design
-
----
-
-- [x] Task 5.2: Add floating action button for create trip
-  - Add FAB (fixed bottom-right position)
-  - Click opens CreateTripDialog
-  - Match demo design (gradient, shadow, plus icon)
-  - Responsive (hide on mobile in favor of header button if needed)
-
-  **Acceptance Criteria:**
-  - FAB visible and positioned correctly
-  - Opens create dialog on click
-  - Matches demo styling
-  - Works on mobile and desktop
-
----
-
-- [x] Task 5.3: Implement trip data fetching in dashboard
-  - Use `useTrips` hook with useQuery
-  - Fetch from GET /trips endpoint
-  - Filter trips into upcoming/past based on startDate
-  - Handle loading state (skeleton cards)
-  - Handle error state
-  - Auto-refresh on window focus
-
-  **Acceptance Criteria:**
-  - Trips load on page mount
-  - Loading skeleton shows during fetch
-  - Error state displays if fetch fails
-  - Trips correctly filtered by date
-  - Auto-refresh works
-
----
-
-- [x] Task 5.4: Create trip detail page
-  - Create `apps/web/src/app/(app)/trips/[id]/page.tsx`
-  - Display cover image hero section (if available)
-  - Trip header: name, destination, dates
-  - Organizer info with avatars
-  - RSVP badge (placeholder - always "Going" for creator/co-org in Phase 3)
-  - Event count display (0 events)
-  - Empty state: "No events yet"
-  - Settings/Edit button (organizers only)
-
-  **Acceptance Criteria:**
-  - Trip details display correctly
-  - Cover image shown if available
-  - Organizers see edit button
-  - Non-organizers don't see edit button
-  - Empty state for events shown
-  - Matches demo design
-
----
-
-- [x] Task 5.5: Implement trip detail data fetching
-  - Use `useTripDetail(id)` hook with useQuery
-  - Fetch from GET /trips/:id endpoint
-  - Handle loading state
-  - Handle error states (404, 403)
-  - Show error page for non-existent or inaccessible trips
-
-  **Acceptance Criteria:**
-  - Trip details load correctly
-  - 404 error shows "Trip not found" page
-  - 403 error shows "No access" page
-  - Loading state shown while fetching
-  - Error states handled gracefully
-
----
-
-- [x] Task 5.6: Integrate edit dialog into trip detail page
-  - Add edit button (organizers only)
-  - Open EditTripDialog on click
-  - Pass trip data to dialog for pre-population
-  - Refresh trip detail after successful edit
-  - Show success toast/message
-
-  **Acceptance Criteria:**
-  - Edit button visible to organizers only
-  - Dialog opens with pre-filled data
-  - Trip detail refreshes after update
-  - Success message shown on update
-  - Works with optimistic updates
-
----
-
-## 6. E2E Testing
-
-- [x] Task 6.1: Write E2E test for create trip flow
-  - Create test file: `apps/web/tests/e2e/trip-flow.spec.ts`
-  - Write test: Login → Dashboard → Click FAB → Fill form (2 steps) → Create trip → View trip detail
-  - Use Playwright with test fixtures
-  - Verify trip appears in dashboard
-  - Verify trip detail page shows correct data
-  - Verify cover image displays if uploaded
-
-  **Acceptance Criteria:**
-  - E2E test covers full create flow
-  - Test creates real trip in test database
-  - Verifies UI at each step
-  - Test passes consistently
-
----
-
-- [x] Task 6.2: Write E2E test for edit trip flow
-  - Write test in `trip-flow.spec.ts`: Login → Dashboard → Click trip → Click edit → Update fields → Save → Verify changes
-  - Include image upload test (upload new cover image)
-  - Verify optimistic updates (UI updates before API response)
-  - Test edit dialog pre-population
-
-  **Acceptance Criteria:**
-  - E2E test covers edit flow
-  - Image upload tested
-  - Changes persist correctly
-  - Test passes consistently
-  - Optimistic updates verified
-
----
-
-- [x] Task 6.3: Write E2E test for permissions
-  - Write test in `trip-flow.spec.ts`:
-    - Create trip as user A
-    - Logout and login as user B (not a member)
-    - Attempt to access trip detail URL directly
-    - Verify error page: "You do not have access to this trip" OR "Trip not found"
-  - Verify edit button not visible to non-organizers
-
-  **Acceptance Criteria:**
-  - E2E test verifies access control
-  - Non-members cannot view trip
-  - Non-organizers cannot edit
-  - Error messages display correctly
-
----
-
-- [x] Task 6.4: Write E2E test for co-organizer management
-  - Test: Create trip → Add co-organizer → Verify co-org can edit trip
-  - Test removing co-organizer
-
-  **Acceptance Criteria:**
-  - E2E test covers co-org addition
-  - Verifies co-org permissions
-  - Tests co-org removal
-  - Test passes consistently
-
----
-
-## 7. Final Polish
-
-- [x] Task 7.1: Add loading states and error handling
-  - Loading skeletons for dashboard trip cards
-  - Loading spinners for dialogs during submission
-  - Error toasts for failed operations
-  - Retry logic for failed uploads
-  - Network error handling
-
-  **Acceptance Criteria:**
-  - All async operations show loading states
-  - Errors display clear messages
-  - User can retry failed operations
-  - UI remains responsive during loads
-
----
-
-- [x] Task 7.2: Add environment configuration
-  - Add UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_MIME_TYPES to .env.example
-  - Update README with new env vars
-  - Add uploads/ to .gitignore
-  - Verify environment validation
-
-  **Acceptance Criteria:**
-  - .env.example updated
-  - .gitignore includes uploads/
-  - README documents new config
-  - Env validation passes
-
----
-
-- [x] Task 7.3: Code review and cleanup
-  - Review all code for consistency
-  - Remove console.logs and debug code
-  - Ensure TypeScript strict mode compliance
-  - Run linter and fix issues
-  - Format code with Prettier
-
-  **Acceptance Criteria:**
-  - No linter errors
-  - No TypeScript errors in strict mode
-  - Code formatted consistently
-  - No debug code remains
-
----
-
-- [x] Task 7.4: Update documentation
-  - Update ARCHITECTURE.md with implementation notes
-  - Document any deviations from plan
-  - Add API endpoint documentation to README
-  - Update DEVELOPMENT.md with Phase 3 info
-
-  **Acceptance Criteria:**
-  - All docs updated
-  - API endpoints documented
-  - Deviations noted (if any)
-  - Clear for next developer
-
----
-
-- [x] Task 7.5: Final testing and verification
-  - Run full test suite (unit + integration + E2E)
-  - Verify all acceptance criteria met
-  - Manual testing of all flows
-  - Check code coverage (target >80%)
-  - Create summary report
-
-  **Acceptance Criteria:**
-  - All tests pass (97.4% - 700/719, failures documented as non-blocking)
-  - Code coverage >80% (manual estimate >85%, automated report pending test fixes)
-  - All acceptance criteria met (Phase 3 features verified working)
-  - Manual testing completed (7/10 covered by E2E, 3 deferred)
-  - Ready for merge (functionally complete, follow-up tasks created)
-
----
-
-## Task Completion Checklist
-
-After completing all tasks, verify:
-
-- [x] All 31 tasks marked as complete ✅
-- [x] All unit tests passing (target: 38+ tests across all services) - 337/343 passing, 6 failures documented as non-blocking
-- [x] All integration tests passing (target: 30+ tests across all routes) - All critical integration tests passing
-- [x] All E2E tests passing (4 scenarios) - 7/10 scenarios covered, 3 deferred to post-Phase 3
-- [x] Code coverage >80% for Phase 3 code - Estimated >85% (manual review), automated report pending
-- [x] No TypeScript errors ✅ - All packages passing strict mode typecheck
-- [x] No linter errors ✅ - All packages passing ESLint
-- [x] Documentation updated ✅ - ARCHITECTURE.md, CLAUDE.md, DEVELOPMENT.md, READMEs updated
-- [x] Manual testing completed per VERIFICATION.md - 7/10 scenarios completed, 3 multi-user scenarios deferred
-- [x] Ready for Phase 4 ✅ - All core functionality working, follow-up tasks documented
-
-**TDD Verification:**
-
-- [x] All service unit tests written BEFORE implementation ✅
-- [x] All route integration tests written BEFORE controllers ✅
-- [x] Test files created in first step of each implementation task ✅
-- [x] All tests pass on completion of each task ✅ - 97.4% pass rate (700/719 total)
+# Tasks: API Audit & Fix
+
+## Phase 1: Foundation — Plugin Architecture & App Builder
+
+- [x] Task 1.1: Refactor to Fastify plugin architecture with buildApp extraction and graceful shutdown
+  - Implement: Install dependencies (`@fastify/type-provider-zod`, `@fastify/helmet`, `@fastify/error`, `@fastify/under-pressure`, `close-with-grace`, `pino-pretty`)
+  - Implement: Create `src/plugins/config.ts` — wrap env config as Fastify plugin, decorate `fastify.config`
+  - Implement: Create `src/plugins/database.ts` — wrap database as Fastify plugin, pass `schema` to `drizzle()`, decorate `fastify.db`, add `onClose` hook for pool cleanup
+  - Implement: Create `src/plugins/auth-service.ts` — wrap AuthService as plugin, decorate `fastify.authService`, eliminate the `new AuthService(request.server)` constructor pattern by accessing `fastify.jwt` directly through decoration
+  - Implement: Create `src/plugins/trip-service.ts`, `src/plugins/permissions-service.ts`, `src/plugins/upload-service.ts`, `src/plugins/sms-service.ts`, `src/plugins/health-service.ts` — all services as plugins with dependency declarations
+  - Implement: Update `src/types/index.ts` — add FastifyInstance type augmentation for all decorated properties (`db`, `config`, `authService`, `tripService`, `permissionsService`, `uploadService`, `smsService`, `healthService`)
+  - Implement: Create `src/app.ts` — extract `buildApp()` function that registers all plugins, sets up validator/serializer compilers for Zod type provider, registers error handler, not-found handler, and routes
+  - Implement: Refactor `src/server.ts` — call `buildApp()`, use `close-with-grace` for shutdown instead of manual signal handlers
+  - Implement: Update `tests/helpers.ts` — import `buildApp()` from `src/app.ts` instead of duplicating setup
+  - Implement: Update all controllers to access services via `request.server.tripService`, `request.server.authService`, etc. instead of direct singleton imports
+  - Implement: Replace all `console.log`/`console.error` with `fastify.log` (database.ts, jwt.ts, sms.service.ts). Keep `console.error` only in env.ts (runs before Fastify)
+  - Test: Update all existing unit and integration tests to use the new `buildApp()` from `src/app.ts`
+  - Test: Verify plugin dependency ordering works (db before services, config before all)
+  - Test: Verify graceful shutdown closes database pool
+  - Verify: `pnpm typecheck` passes
+  - Verify: `pnpm test` — all existing tests pass
+  - Verify: `pnpm lint` passes
+
+## Phase 2: Drizzle ORM Improvements — Schema, Relations, Transactions, Queries
+
+- [x] Task 2.1: Add Drizzle relations, unique constraint, transactions, count aggregate, pagination, and column selection
+  - Implement: Create `src/db/schema/relations.ts` — define `relations()` for users, trips, members (usersRelations, tripsRelations, membersRelations)
+  - Implement: Export relations from `src/db/schema/index.ts`
+  - Implement: Add unique constraint on members table: `unique("members_trip_user_unique").on(table.tripId, table.userId)`
+  - Implement: Generate migration with `pnpm db:generate` and review generated SQL
+  - Implement: Wrap `createTrip()` in `db.transaction()` — trip insert + creator member + co-organizer members
+  - Implement: Wrap `addCoOrganizers()` in `db.transaction()` — member count check + inserts (prevent race condition)
+  - Implement: Wrap `cancelTrip()` in `db.transaction()` for consistency
+  - Implement: Fix `getMemberCount()` — use `select({ value: count() })` instead of fetching all rows
+  - Implement: Fix `getUserTrips()` N+1 — refactor to use Drizzle relational API (`db.query.trips.findMany` with `with` clauses) or batch queries
+  - Implement: Add offset-based pagination to `getUserTrips()` — accept `page` and `limit` params, return `{ data: TripSummary[], meta: { total, page, limit, totalPages } }`
+  - Implement: Add explicit column selection in auth middleware user lookup (hot path) — only select `id`, `displayName`
+  - Test: Write integration test for transaction rollback (e.g., createTrip with invalid data at step 2 should not create orphaned trip)
+  - Test: Write integration test for unique constraint (duplicate member insert returns 409)
+  - Test: Write integration test for pagination (page/limit params, meta object in response)
+  - Test: Verify count aggregate returns correct number
+  - Test: Update existing trip tests for new response shape (paginated getUserTrips)
+  - Verify: Run migration on test database
+  - Verify: `pnpm test` — all tests pass
+  - Verify: `pnpm typecheck` passes
+
+## Phase 3: Route Schemas, Typed Errors & Security
+
+- [x] Task 3.1: Add Zod route schemas, @fastify/error typed errors, helmet, rate limiting, and security hardening
+  - Implement: Create `src/errors.ts` — define typed error classes with `@fastify/error` `createError()` (UnauthorizedError, TripNotFoundError, PermissionDeniedError, MemberLimitExceededError, CoOrganizerNotFoundError, CannotRemoveCreatorError, DuplicateMemberError, FileTooLargeError, InvalidFileTypeError, ProfileIncompleteError)
+  - Implement: Update services to throw typed errors instead of generic `new Error("Permission denied: ...")` strings
+  - Implement: Update `src/middleware/error.middleware.ts` — handle `@fastify/error` instances by reading `.statusCode` and `.code`, remove string-based matching
+  - Implement: Update all controllers — remove manual `error.message.startsWith(...)` matching in catch blocks, let typed errors propagate to error handler or handle with `instanceof`
+  - Implement: Define Zod response schemas for all endpoints (success and error responses)
+  - Implement: Add `schema` option to every route in `auth.routes.ts`, `trip.routes.ts`, `health.routes.ts` — params, body, querystring, and response schemas
+  - Implement: Remove manual Zod `safeParse()` from controllers (Fastify handles validation via schema)
+  - Implement: Remove `as` type casts on `request.params` and `request.body` (Fastify infers types from schema)
+  - Implement: Register `@fastify/helmet` in `buildApp()` with `contentSecurityPolicy: false` (API-only)
+  - Implement: Add rate limiting to `POST /api/auth/verify-code` — 10 attempts per 15 minutes per phone number
+  - Implement: Register `@fastify/under-pressure` for load shedding
+  - Implement: Add `setNotFoundHandler` for consistent 404 responses on unknown routes
+  - Implement: Add `TRUST_PROXY` env variable, configure `trustProxy` on Fastify instance
+  - Test: Write integration tests verifying 400 responses for invalid params (bad UUID format, missing body fields)
+  - Test: Write integration test for rate limiting on verify-code endpoint
+  - Test: Write integration test verifying security headers are present (helmet)
+  - Test: Write integration test for 404 on unknown routes
+  - Test: Update all existing controller/integration tests for new error response format (typed error codes)
+  - Test: Verify response serialization strips undeclared properties
+  - Verify: `pnpm test` — all tests pass
+  - Verify: `pnpm typecheck` passes
+  - Verify: `pnpm lint` passes
+
+## Phase 4: Configuration, Logging & Remaining Improvements
+
+- [x] Task 4.1: Add explicit config flags, logger improvements, scoped hooks, multipart limits, and health checks
+  - Implement: Add env variables to config schema: `COOKIE_SECURE`, `EXPOSE_ERROR_DETAILS`, `ENABLE_FIXED_VERIFICATION_CODE`, `TRUST_PROXY`
+  - Implement: Replace all `process.env.NODE_ENV` checks in services/controllers/middleware with explicit config flags from `fastify.config`
+  - Implement: Replace `process.cwd()` with `import.meta.dirname` in `config/jwt.ts` and static file serving
+  - Implement: Configure logger redaction for sensitive fields: `req.headers.authorization`, `req.headers.cookie`, `req.body.phoneNumber`
+  - Implement: Add `pino-pretty` transport for development mode logger
+  - Implement: Refactor `trip.routes.ts` to use scoped auth hooks — register `authenticate` + `requireCompleteProfile` as scoped hooks via plugin encapsulation for write routes, keep GET routes outside scope
+  - Implement: Configure additional multipart limits: `throwFileSizeLimit: true`, `fieldNameSize: 100`, `fields: 10`, `headerPairs: 2000`
+  - Implement: Add liveness/readiness health check endpoints: `GET /api/health/live` (always 200) and `GET /api/health/ready` (checks DB)
+  - Implement: Update `.env.example` with new environment variables and documentation
+  - Test: Write unit test for config flag defaults (COOKIE_SECURE defaults based on NODE_ENV, etc.)
+  - Test: Write integration tests for `/api/health/live` and `/api/health/ready` endpoints
+  - Test: Verify logger redaction works (sensitive fields not in log output)
+  - Test: Verify scoped hooks apply correctly (write routes require auth, GET routes work without profile)
+  - Test: Update any tests affected by config flag changes
+  - Verify: `pnpm test` — all tests pass
+  - Verify: `pnpm typecheck` passes
+  - Verify: `pnpm lint` passes
+
+## Phase 5: Final Verification
+
+- [x] Task 5.1: Full regression check and E2E validation
+  - Verify: all unit tests pass (`pnpm test`)
+  - Verify: all E2E tests pass (`pnpm test:e2e`)
+  - Verify: linting passes (`pnpm lint`)
+  - Verify: type checking passes (`pnpm typecheck`)
+  - Verify: formatting passes (`pnpm format --check`)
+  - Verify: API starts cleanly with `pnpm dev:api` and health endpoint responds
+  - Verify: no console.log/console.error remaining (except env.ts pre-Fastify)
+  - Verify: no `process.env.NODE_ENV` checks remaining in services/controllers/middleware
+  - Verify: no `as` type casts on request.params/request.body in controllers
+  - Verify: no `error.message.startsWith(...)` patterns in controllers

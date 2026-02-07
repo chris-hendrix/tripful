@@ -33,15 +33,22 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-**Phase 3 Environment Variables:**
+**Additional Environment Variables:**
 
-The API now includes configuration for file uploads (trip cover images):
+File upload configuration:
 
 - `UPLOAD_DIR` - Directory for uploaded files (default: `uploads`)
 - `MAX_FILE_SIZE` - Maximum upload file size in bytes (default: `5242880` = 5MB)
 - `ALLOWED_MIME_TYPES` - Comma-separated allowed MIME types (default: `image/jpeg,image/png,image/webp`)
 
-The uploads directory will be created automatically when the API server starts.
+Security and behavior flags (optional, sensible defaults):
+
+- `LOG_LEVEL` - Logging verbosity: fatal|error|warn|info|debug|trace (default: `info`)
+- `COOKIE_SECURE` - Secure cookie flag (default: `true` in production)
+- `EXPOSE_ERROR_DETAILS` - Include error details in API responses (default: `true` in development)
+- `ENABLE_FIXED_VERIFICATION_CODE` - Allow code "123456" for testing (default: `true` in non-production)
+
+See `apps/api/.env.example` for the full list with comments.
 
 ### 3. Start PostgreSQL
 
@@ -184,19 +191,19 @@ The project is a monorepo with the following structure:
 ```
 tripful/
 ├── apps/
-│   ├── api/          # Fastify backend (port 8000)
+│   ├── api/          # Fastify backend (port 8000) - plugin architecture with buildApp()
 │   └── web/          # Next.js frontend (port 3000)
-├── packages/
-│   └── shared/       # Shared utilities and types
+├── shared/           # Shared types, Zod schemas, and utilities (@tripful/shared)
 ├── docker-compose.yml
 └── turbo.json        # Turborepo configuration
 ```
 
 ### API Server
 
-- **Framework:** Fastify
-- **Language:** TypeScript
-- **ORM:** Drizzle
+- **Framework:** Fastify 5 (plugin architecture with `buildApp()` factory)
+- **Language:** TypeScript (strict mode)
+- **ORM:** Drizzle (with relations, transactions, pagination)
+- **Security:** Helmet, rate limiting, Zod route schemas, typed errors
 - **Port:** 8000
 - **Hot Reload:** tsx watch mode
 
@@ -217,7 +224,7 @@ tripful/
 
 ## CORS Configuration
 
-The API is configured to accept requests from `http://localhost:3000` by default. CORS settings are in `apps/api/src/server.ts`.
+The API is configured to accept requests from `http://localhost:3000` by default (set via `FRONTEND_URL` env var). CORS is configured in `apps/api/src/app.ts` via `buildApp()`.
 
 ## Troubleshooting
 
@@ -259,13 +266,20 @@ pnpm dev
 
 ## Health Checks
 
-### API Health Endpoint
+### API Health Endpoints
 
 ```bash
+# Full health status (includes database check)
 curl http://localhost:8000/api/health
+
+# Liveness probe (instant 200, no dependency checks)
+curl http://localhost:8000/api/health/live
+
+# Readiness probe (returns 503 if database is unavailable)
+curl http://localhost:8000/api/health/ready
 ```
 
-Expected response:
+Expected response for `/api/health`:
 
 ```json
 {

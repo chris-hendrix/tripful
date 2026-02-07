@@ -9,6 +9,7 @@ import {
   date,
   boolean,
   pgEnum,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // Users table
@@ -124,6 +125,10 @@ export const members = pgTable(
     tripIdIdx: index("members_trip_id_idx").on(table.tripId),
     userIdIdx: index("members_user_id_idx").on(table.userId),
     tripUserIdx: index("members_trip_user_idx").on(table.tripId, table.userId),
+    tripUserUnique: unique("members_trip_user_unique").on(
+      table.tripId,
+      table.userId,
+    ),
   }),
 );
 

@@ -1,78 +1,97 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { smsService } from "@/services/sms.service.js";
+import { describe, it, expect, vi } from "vitest";
+import { MockSMSService } from "@/services/sms.service.js";
 
 describe("sms.service", () => {
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    consoleLogSpy.mockRestore();
-  });
-
   describe("sendVerificationCode", () => {
     const testPhone = "+14155552671";
     const testCode = "123456";
 
     it("should exist and be callable", async () => {
-      expect(smsService.sendVerificationCode).toBeDefined();
-      expect(typeof smsService.sendVerificationCode).toBe("function");
+      const service = new MockSMSService();
+      expect(service.sendVerificationCode).toBeDefined();
+      expect(typeof service.sendVerificationCode).toBe("function");
       await expect(
-        smsService.sendVerificationCode(testPhone, testCode),
+        service.sendVerificationCode(testPhone, testCode),
       ).resolves.toBeUndefined();
     });
 
-    it("should call console.log exactly 6 times", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      expect(consoleLogSpy).toHaveBeenCalledTimes(6);
+    it("should not throw when no logger is provided", async () => {
+      const service = new MockSMSService();
+      await expect(
+        service.sendVerificationCode(testPhone, testCode),
+      ).resolves.toBeUndefined();
     });
 
-    it("should output the phone number", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const phoneOutput = calls.find((call) =>
-        String(call).includes(testPhone),
+    it("should call logger.info with phone number and code when logger is provided", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+      };
+
+      const service = new MockSMSService(mockLogger);
+      await service.sendVerificationCode(testPhone, testCode);
+
+      expect(mockLogger.info).toHaveBeenCalledTimes(1);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        { phoneNumber: testPhone, code: testCode, expiresIn: "5 minutes" },
+        "SMS Verification Code",
       );
-      expect(phoneOutput).toBeDefined();
-      expect(phoneOutput).toContain("Phone:");
-      expect(phoneOutput).toContain(testPhone);
     });
 
-    it("should output the verification code", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const codeOutput = calls.find((call) => String(call).includes(testCode));
-      expect(codeOutput).toBeDefined();
-      expect(codeOutput).toContain("Code:");
-      expect(codeOutput).toContain(testCode);
+    it("should include phone number in log output", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+      };
+
+      const service = new MockSMSService(mockLogger);
+      await service.sendVerificationCode(testPhone, testCode);
+
+      const logData = mockLogger.info.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(logData.phoneNumber).toBe(testPhone);
     });
 
-    it("should output expiration message", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const expiresOutput = calls.find((call) =>
-        String(call).includes("Expires: 5 minutes"),
-      );
-      expect(expiresOutput).toBeDefined();
+    it("should include verification code in log output", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+      };
+
+      const service = new MockSMSService(mockLogger);
+      await service.sendVerificationCode(testPhone, testCode);
+
+      const logData = mockLogger.info.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(logData.code).toBe(testCode);
     });
 
-    it("should output decorative borders", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const borders = calls.filter((call) =>
-        String(call).includes("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"),
-      );
-      expect(borders.length).toBeGreaterThanOrEqual(2);
+    it("should include expiration info in log output", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+      };
+
+      const service = new MockSMSService(mockLogger);
+      await service.sendVerificationCode(testPhone, testCode);
+
+      const logData = mockLogger.info.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(logData.expiresIn).toBe("5 minutes");
     });
 
-    it("should output SMS emoji", async () => {
-      await smsService.sendVerificationCode(testPhone, testCode);
-      const calls = consoleLogSpy.mock.calls.map((call) => call[0]);
-      const emojiOutput = calls.find((call) => String(call).includes("📱"));
-      expect(emojiOutput).toBeDefined();
-      expect(emojiOutput).toContain("SMS Verification Code");
+    it("should include 'SMS Verification Code' as log message", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+      };
+
+      const service = new MockSMSService(mockLogger);
+      await service.sendVerificationCode(testPhone, testCode);
+
+      const logMessage = mockLogger.info.mock.calls[0][1];
+      expect(logMessage).toBe("SMS Verification Code");
     });
   });
 });

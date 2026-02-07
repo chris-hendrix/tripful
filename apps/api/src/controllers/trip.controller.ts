@@ -1,13 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import {
-  createTripSchema,
-  updateTripSchema,
-  uuidSchema,
-  addCoOrganizerSchema,
-} from "@tripful/shared/schemas";
-import { tripService } from "@/services/trip.service.js";
-import { uploadService } from "@/services/upload.service.js";
-import { permissionsService } from "@/services/permissions.service.js";
+import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
+import { TripNotFoundError, PermissionDeniedError } from "../errors.js";
 
 /**
  * Trip Controller
@@ -25,24 +18,16 @@ export const tripController = {
    * @param reply - Fastify reply object
    * @returns Success response with created trip
    */
-  async createTrip(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = createTripSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const data = result.data;
+  async createTrip(
+    request: FastifyRequest<{ Body: CreateTripInput }>,
+    reply: FastifyReply,
+  ) {
+    // Body is validated by Fastify route schema
+    const data = request.body;
 
     try {
+      const { tripService } = request.server;
+
       // Get userId from authenticated user (populated by authenticate middleware)
       const userId = request.user.sub;
 
@@ -55,29 +40,9 @@ export const tripController = {
         trip,
       });
     } catch (error) {
-      // Handle specific errors from service
-      if (error instanceof Error) {
-        // Co-organizer not found error
-        if (error.message.startsWith("Co-organizer not found:")) {
-          return reply.status(400).send({
-            success: false,
-            error: {
-              code: "CO_ORGANIZER_NOT_FOUND",
-              message: error.message,
-            },
-          });
-        }
-
-        // Member limit exceeded error
-        if (error.message.startsWith("Member limit exceeded:")) {
-          return reply.status(409).send({
-            success: false,
-            error: {
-              code: "MEMBER_LIMIT_EXCEEDED",
-              message: error.message,
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error for debugging
@@ -107,16 +72,37 @@ export const tripController = {
    * @param reply - Fastify reply object
    * @returns Success response with user's trips
    */
-  async getUserTrips(request: FastifyRequest, reply: FastifyReply) {
+  async getUserTrips(
+    request: FastifyRequest<{
+      Querystring: { page?: string; limit?: string };
+    }>,
+    reply: FastifyReply,
+  ) {
     try {
+      const { tripService } = request.server;
       const userId = request.user.sub;
-      const trips = await tripService.getUserTrips(userId);
+
+      // Parse pagination query params
+      const query = request.query;
+      const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(query.limit ?? "20", 10) || 20),
+      );
+
+      const result = await tripService.getUserTrips(userId, page, limit);
 
       return reply.status(200).send({
         success: true,
-        trips,
+        data: result.data,
+        meta: result.meta,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       request.log.error(
         { error, userId: request.user.sub },
         "Failed to get user trips",
@@ -137,37 +123,21 @@ export const tripController = {
    * Returns trip details for members only
    */
   async getTripById(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      const { id } = request.params as { id: string };
+      const { tripService } = request.server;
+      // Params are validated by Fastify route schema (UUID format)
+      const { id } = request.params;
       const userId = request.user.sub;
-
-      // Validate UUID format
-      const validationResult = uuidSchema.safeParse(id);
-      if (!validationResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
 
       // Get trip from service
       const trip = await tripService.getTripById(id, userId);
 
       // Handle null response (either not found or not authorized)
       if (!trip) {
-        return reply.status(404).send({
-          success: false,
-          error: {
-            code: "NOT_FOUND",
-            message: "Trip not found",
-          },
-        });
+        throw new TripNotFoundError();
       }
 
       // Return success response
@@ -176,11 +146,16 @@ export const tripController = {
         trip,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       request.log.error(
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to get trip",
       );
@@ -202,48 +177,25 @@ export const tripController = {
    *
    * @route PUT /api/trips/:id
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID in params and update data in body
-   * @param reply - Fastify reply object
-   * @returns Success response with updated trip
    */
   async updateTrip(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string }; Body: UpdateTripInput }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract and validate trip ID from params
-      const { id } = request.params as { id: string };
-      const validationResult = uuidSchema.safeParse(id);
-
-      if (!validationResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
-
-      // Validate request body
-      const bodyResult = updateTripSchema.safeParse(request.body);
-
-      if (!bodyResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid request data",
-            details: bodyResult.error.issues,
-          },
-        });
-      }
+      // Params and body are validated by Fastify route schema
+      const { id } = request.params;
+      const data = request.body;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
 
       // Call service to update trip
-      const trip = await tripService.updateTrip(id, userId, bodyResult.data);
+      const trip = await request.server.tripService.updateTrip(
+        id,
+        userId,
+        data,
+      );
 
       // Return success response
       return reply.status(200).send({
@@ -251,27 +203,9 @@ export const tripController = {
         trip,
       });
     } catch (error) {
-      // Handle known service errors
-      if (error instanceof Error) {
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
-
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "PERMISSION_DENIED",
-              message: error.message,
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -279,7 +213,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to update trip",
       );
@@ -300,61 +234,29 @@ export const tripController = {
    *
    * @route DELETE /api/trips/:id
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID in params
-   * @param reply - Fastify reply
-   * @returns Success response with { success: true }
    */
   async cancelTrip(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract and validate trip ID from params
-      const { id } = request.params as { id: string };
-      const validationResult = uuidSchema.safeParse(id);
-
-      if (!validationResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
+      // Params are validated by Fastify route schema
+      const { id } = request.params;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
 
       // Call service to cancel trip (soft delete)
-      await tripService.cancelTrip(id, userId);
+      await request.server.tripService.cancelTrip(id, userId);
 
       // Return success response
       return reply.status(200).send({
         success: true,
       });
     } catch (error) {
-      // Handle known service errors
-      if (error instanceof Error) {
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
-
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "PERMISSION_DENIED",
-              message: error.message,
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -362,7 +264,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to cancel trip",
       );
@@ -383,49 +285,25 @@ export const tripController = {
    *
    * @route POST /api/trips/:id/co-organizers
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID in params and phone number in body
-   * @param reply - Fastify reply
-   * @returns Success response with { success: true }
    */
   async addCoOrganizer(
-    request: FastifyRequest,
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: { phoneNumber: string };
+    }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract and validate trip ID from params
-      const { id } = request.params as { id: string };
-      const tripIdValidation = uuidSchema.safeParse(id);
-
-      if (!tripIdValidation.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
-
-      // Validate request body
-      const bodyValidation = addCoOrganizerSchema.safeParse(request.body);
-
-      if (!bodyValidation.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid request data",
-            details: bodyValidation.error.errors,
-          },
-        });
-      }
+      // Params and body are validated by Fastify route schema
+      const { id } = request.params;
+      const { phoneNumber } = request.body;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
 
       // Call service to add co-organizer (wrap phone in array)
-      await tripService.addCoOrganizers(id, userId, [
-        bodyValidation.data.phoneNumber,
+      await request.server.tripService.addCoOrganizers(id, userId, [
+        phoneNumber,
       ]);
 
       // Return success response
@@ -433,47 +311,9 @@ export const tripController = {
         success: true,
       });
     } catch (error) {
-      // Handle known service errors
-      if (error instanceof Error) {
-        if (error.message.startsWith("Co-organizer not found:")) {
-          return reply.status(400).send({
-            success: false,
-            error: {
-              code: "CO_ORGANIZER_NOT_FOUND",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "PERMISSION_DENIED",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
-
-        if (error.message.startsWith("Member limit exceeded:")) {
-          return reply.status(409).send({
-            success: false,
-            error: {
-              code: "MEMBER_LIMIT_EXCEEDED",
-              message: error.message,
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -481,7 +321,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to add co-organizer",
       );
@@ -502,97 +342,33 @@ export const tripController = {
    *
    * @route DELETE /api/trips/:id/co-organizers/:userId
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID and user ID in params
-   * @param reply - Fastify reply
-   * @returns Success response with { success: true }
    */
   async removeCoOrganizer(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string; userId: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract params
-      const { id, userId: coOrgUserId } = request.params as {
-        id: string;
-        userId: string;
-      };
-
-      // Validate trip ID
-      const tripIdValidation = uuidSchema.safeParse(id);
-      if (!tripIdValidation.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid ID format",
-          },
-        });
-      }
-
-      // Validate co-organizer user ID
-      const userIdValidation = uuidSchema.safeParse(coOrgUserId);
-      if (!userIdValidation.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid ID format",
-          },
-        });
-      }
+      // Params are validated by Fastify route schema
+      const { id, userId: coOrgUserId } = request.params;
 
       // Extract requesting user ID from JWT
       const userId = request.user.sub;
 
       // Call service to remove co-organizer
-      await tripService.removeCoOrganizer(id, userId, coOrgUserId);
+      await request.server.tripService.removeCoOrganizer(
+        id,
+        userId,
+        coOrgUserId,
+      );
 
       // Return success response
       return reply.status(200).send({
         success: true,
       });
     } catch (error) {
-      // Handle known service errors
-      if (error instanceof Error) {
-        if (error.message === "Cannot remove trip creator as co-organizer") {
-          return reply.status(400).send({
-            success: false,
-            error: {
-              code: "CANNOT_REMOVE_CREATOR",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "PERMISSION_DENIED",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
-
-        if (error.message === "Co-organizer not found in trip") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: error.message,
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -600,8 +376,8 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
-          coOrgUserId: (request.params as { userId: string }).userId,
+          tripId: request.params.id,
+          coOrgUserId: request.params.userId,
         },
         "Failed to remove co-organizer",
       );
@@ -622,39 +398,24 @@ export const tripController = {
    *
    * @route POST /api/trips/:id/cover-image
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID in params and image file
-   * @param reply - Fastify reply
-   * @returns Success response with updated trip
    */
   async uploadCoverImage(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract and validate trip ID from params
-      const { id } = request.params as { id: string };
-      const validationResult = uuidSchema.safeParse(id);
-
-      if (!validationResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
+      // Params are validated by Fastify route schema
+      const { id } = request.params;
 
       // Get file from request
       let data;
       try {
         data = await request.file();
       } catch (fileError) {
-        // Handle multipart parsing errors (e.g., file too large, invalid format, no multipart data)
+        // Handle multipart parsing errors
         if (fileError instanceof Error) {
           const errorMsg = fileError.message.toLowerCase();
 
-          // Handle file size limit errors from @fastify/multipart
           if (
             errorMsg.includes("file too large") ||
             errorMsg.includes("request body is too large") ||
@@ -670,7 +431,6 @@ export const tripController = {
               },
             });
           }
-          // If the error is about missing/invalid multipart content-type
           if (
             errorMsg.includes("the request is not multipart") ||
             errorMsg.includes("missing content-type header")
@@ -684,7 +444,6 @@ export const tripController = {
             });
           }
         }
-        // Re-throw unknown errors
         throw fileError;
       }
 
@@ -700,32 +459,22 @@ export const tripController = {
 
       // Extract user ID from JWT
       const userId = request.user.sub;
+      const { tripService, uploadService, permissionsService } = request.server;
 
       // Fetch trip to check permissions and get old image URL
       const trip = await tripService.getTripById(id, userId);
 
       if (!trip) {
-        return reply.status(404).send({
-          success: false,
-          error: {
-            code: "NOT_FOUND",
-            message: "Trip not found",
-          },
-        });
+        throw new TripNotFoundError();
       }
 
       // Check if user can edit trip
       const canEdit = await permissionsService.canEditTrip(userId, id);
 
       if (!canEdit) {
-        return reply.status(403).send({
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message:
-              "Permission denied: Only organizers can upload cover images",
-          },
-        });
+        throw new PermissionDeniedError(
+          "Permission denied: Only organizers can upload cover images",
+        );
       }
 
       // Convert file stream to buffer
@@ -733,7 +482,6 @@ export const tripController = {
       try {
         fileBuffer = await data.toBuffer();
       } catch (bufferError) {
-        // Handle errors when consuming the multipart stream (e.g., file too large)
         if (bufferError instanceof Error) {
           const errorMsg = bufferError.message.toLowerCase();
           if (
@@ -778,40 +526,9 @@ export const tripController = {
         trip: updatedTrip,
       });
     } catch (error) {
-      // Handle known validation errors from upload service
-      if (error instanceof Error) {
-        if (
-          error.message.includes("Invalid file type") ||
-          error.message.includes("must be under 5MB")
-        ) {
-          return reply.status(400).send({
-            success: false,
-            error: {
-              code: "VALIDATION_ERROR",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "FORBIDDEN",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -819,7 +536,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to upload cover image",
       );
@@ -840,57 +557,33 @@ export const tripController = {
    *
    * @route DELETE /api/trips/:id/cover-image
    * @middleware authenticate, requireCompleteProfile
-   * @param request - Fastify request with trip ID in params
-   * @param reply - Fastify reply
-   * @returns Success response with updated trip
    */
   async deleteCoverImage(
-    request: FastifyRequest,
+    request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ): Promise<void> {
     try {
-      // Extract and validate trip ID from params
-      const { id } = request.params as { id: string };
-      const validationResult = uuidSchema.safeParse(id);
-
-      if (!validationResult.success) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid trip ID format",
-          },
-        });
-      }
+      // Params are validated by Fastify route schema
+      const { id } = request.params;
 
       // Extract user ID from JWT
       const userId = request.user.sub;
+      const { tripService, uploadService, permissionsService } = request.server;
 
       // Fetch trip to check permissions and get image URL
       const trip = await tripService.getTripById(id, userId);
 
       if (!trip) {
-        return reply.status(404).send({
-          success: false,
-          error: {
-            code: "NOT_FOUND",
-            message: "Trip not found",
-          },
-        });
+        throw new TripNotFoundError();
       }
 
       // Check if user can edit trip
       const canEdit = await permissionsService.canEditTrip(userId, id);
 
       if (!canEdit) {
-        return reply.status(403).send({
-          success: false,
-          error: {
-            code: "FORBIDDEN",
-            message:
-              "Permission denied: Only organizers can delete cover images",
-          },
-        });
+        throw new PermissionDeniedError(
+          "Permission denied: Only organizers can delete cover images",
+        );
       }
 
       // Delete image file if it exists
@@ -909,27 +602,9 @@ export const tripController = {
         trip: updatedTrip,
       });
     } catch (error) {
-      // Handle known service errors
-      if (error instanceof Error) {
-        if (error.message.startsWith("Permission denied:")) {
-          return reply.status(403).send({
-            success: false,
-            error: {
-              code: "FORBIDDEN",
-              message: error.message,
-            },
-          });
-        }
-
-        if (error.message === "Trip not found") {
-          return reply.status(404).send({
-            success: false,
-            error: {
-              code: "NOT_FOUND",
-              message: "Trip not found",
-            },
-          });
-        }
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
       }
 
       // Log error and return 500
@@ -937,7 +612,7 @@ export const tripController = {
         {
           error,
           userId: request.user.sub,
-          tripId: (request.params as { id: string }).id,
+          tripId: request.params.id,
         },
         "Failed to delete cover image",
       );

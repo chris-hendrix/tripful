@@ -1,13 +1,33 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { tripController } from "@/controllers/trip.controller.js";
 import {
   authenticate,
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
+import {
+  createTripSchema,
+  updateTripSchema,
+  addCoOrganizerSchema,
+} from "@tripful/shared/schemas";
+
+// Reusable param schemas
+const tripIdParamsSchema = z.object({
+  id: z.string().uuid({ message: "Invalid trip ID format" }),
+});
+
+const removeCoOrganizerParamsSchema = z.object({
+  id: z.string().uuid({ message: "Invalid ID format" }),
+  userId: z.string().uuid({ message: "Invalid ID format" }),
+});
 
 /**
  * Trip Routes
  * Registers all trip-related endpoints
+ *
+ * Read-only routes (GET) require authentication only.
+ * Write routes (POST/PUT/DELETE) require authentication and complete profile,
+ * applied via a scoped plugin with shared preHandler hooks.
  *
  * @param fastify - Fastify instance
  */
@@ -17,7 +37,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Get user's trips
    * Requires authentication only (not complete profile)
    */
-  fastify.get(
+  fastify.get<{ Querystring: { page?: string; limit?: string } }>(
     "/",
     {
       preHandler: authenticate,
@@ -26,113 +46,135 @@ export async function tripRoutes(fastify: FastifyInstance) {
   );
 
   /**
-   * POST /
-   * Create a new trip
-   * Requires authentication and complete profile
-   */
-  fastify.post(
-    "/",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.createTrip,
-  );
-
-  /**
    * GET /:id
    * Get trip by ID
    * Requires authentication only (not complete profile)
    * Returns 404 for both non-existent trips and trips user is not a member of
    */
-  fastify.get(
+  fastify.get<{ Params: { id: string } }>(
     "/:id",
     {
+      schema: {
+        params: tripIdParamsSchema,
+      },
       preHandler: authenticate,
     },
     tripController.getTripById,
   );
 
   /**
-   * PUT /:id
-   * Update trip details
-   * Requires authentication and complete profile
-   * Only organizers can update trips
+   * Write routes scope
+   * All routes registered here share authenticate + requireCompleteProfile hooks
    */
-  fastify.put(
-    "/:id",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.updateTrip,
-  );
+  fastify.register(async (scope) => {
+    scope.addHook("preHandler", authenticate);
+    scope.addHook("preHandler", requireCompleteProfile);
 
-  /**
-   * DELETE /:id
-   * Cancel trip (soft delete)
-   * Requires authentication and complete profile
-   * Only organizers can cancel trips
-   */
-  fastify.delete(
-    "/:id",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.cancelTrip,
-  );
+    /**
+     * POST /
+     * Create a new trip
+     */
+    scope.post(
+      "/",
+      {
+        schema: {
+          body: createTripSchema,
+        },
+      },
+      tripController.createTrip,
+    );
 
-  /**
-   * POST /:id/co-organizers
-   * Add co-organizer to trip
-   * Requires authentication and complete profile
-   * Only organizers can add co-organizers
-   */
-  fastify.post(
-    "/:id/co-organizers",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.addCoOrganizer,
-  );
+    /**
+     * PUT /:id
+     * Update trip details
+     * Only organizers can update trips
+     */
+    scope.put(
+      "/:id",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+          body: updateTripSchema,
+        },
+      },
+      tripController.updateTrip,
+    );
 
-  /**
-   * DELETE /:id/co-organizers/:userId
-   * Remove co-organizer from trip
-   * Requires authentication and complete profile
-   * Only organizers can remove co-organizers
-   */
-  fastify.delete(
-    "/:id/co-organizers/:userId",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.removeCoOrganizer,
-  );
+    /**
+     * DELETE /:id
+     * Cancel trip (soft delete)
+     * Only organizers can cancel trips
+     */
+    scope.delete(
+      "/:id",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+        },
+      },
+      tripController.cancelTrip,
+    );
 
-  /**
-   * POST /:id/cover-image
-   * Upload cover image for trip
-   * Requires authentication and complete profile
-   * Only organizers can upload cover images
-   */
-  fastify.post(
-    "/:id/cover-image",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.uploadCoverImage,
-  );
+    /**
+     * POST /:id/co-organizers
+     * Add co-organizer to trip
+     * Only organizers can add co-organizers
+     */
+    scope.post(
+      "/:id/co-organizers",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+          body: addCoOrganizerSchema,
+        },
+      },
+      tripController.addCoOrganizer,
+    );
 
-  /**
-   * DELETE /:id/cover-image
-   * Delete cover image from trip
-   * Requires authentication and complete profile
-   * Only organizers can delete cover images
-   */
-  fastify.delete(
-    "/:id/cover-image",
-    {
-      preHandler: [authenticate, requireCompleteProfile],
-    },
-    tripController.deleteCoverImage,
-  );
+    /**
+     * DELETE /:id/co-organizers/:userId
+     * Remove co-organizer from trip
+     * Only organizers can remove co-organizers
+     */
+    scope.delete(
+      "/:id/co-organizers/:userId",
+      {
+        schema: {
+          params: removeCoOrganizerParamsSchema,
+        },
+      },
+      tripController.removeCoOrganizer,
+    );
+
+    /**
+     * POST /:id/cover-image
+     * Upload cover image for trip
+     * Only organizers can upload cover images
+     * Note: No body schema for multipart routes
+     */
+    scope.post(
+      "/:id/cover-image",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+        },
+      },
+      tripController.uploadCoverImage,
+    );
+
+    /**
+     * DELETE /:id/cover-image
+     * Delete cover image from trip
+     * Only organizers can delete cover images
+     */
+    scope.delete(
+      "/:id/cover-image",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+        },
+      },
+      tripController.deleteCoverImage,
+    );
+  });
 }

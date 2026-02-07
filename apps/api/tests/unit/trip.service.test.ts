@@ -563,19 +563,22 @@ describe("trip.service", () => {
       const results = await tripService.getUserTrips(testUserId);
 
       // Verify all 3 trips are returned
-      expect(results).toHaveLength(3);
-      const tripIds = results.map((t: TripSummary) => t.id);
+      expect(results.data).toHaveLength(3);
+      expect(results.meta.total).toBe(3);
+      const tripIds = results.data.map((t: TripSummary) => t.id);
       expect(tripIds).toContain(trip1.id);
       expect(tripIds).toContain(trip2.id);
       expect(tripIds).toContain(trip3.id);
     });
 
-    it("should return empty array when user has no trips", async () => {
+    it("should return empty result when user has no trips", async () => {
       // Don't create any trips for testUser
       const results = await tripService.getUserTrips(testUserId);
 
-      expect(results).toHaveLength(0);
-      expect(Array.isArray(results)).toBe(true);
+      expect(results.data).toHaveLength(0);
+      expect(Array.isArray(results.data)).toBe(true);
+      expect(results.meta.total).toBe(0);
+      expect(results.meta.totalPages).toBe(0);
     });
 
     it("should return trip summary with all required fields", async () => {
@@ -596,8 +599,9 @@ describe("trip.service", () => {
       // Get user trips
       const results = await tripService.getUserTrips(testUserId);
 
-      expect(results).toHaveLength(1);
-      const summary = results[0];
+      expect(results.data).toHaveLength(1);
+      expect(results.meta).toBeDefined();
+      const summary = results.data[0];
 
       // Verify all required fields are present
       expect(summary).toHaveProperty("id");
@@ -637,8 +641,8 @@ describe("trip.service", () => {
       // Get user trips
       const results = await tripService.getUserTrips(testUserId);
 
-      expect(results).toHaveLength(1);
-      expect(results[0].isOrganizer).toBe(true);
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].isOrganizer).toBe(true);
     });
 
     it('should set isOrganizer=true for co-organizer with status="going"', async () => {
@@ -656,9 +660,9 @@ describe("trip.service", () => {
       // Get user trips
       const results = await tripService.getUserTrips(testUserId);
 
-      expect(results).toHaveLength(1);
-      expect(results[0].isOrganizer).toBe(true);
-      expect(results[0].rsvpStatus).toBe("going");
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].isOrganizer).toBe(true);
+      expect(results.data[0].rsvpStatus).toBe("going");
     });
 
     it('should set isOrganizer=false for regular member with status!="going"', async () => {
@@ -683,9 +687,9 @@ describe("trip.service", () => {
       // Get trips for coOrganizer2
       const results = await tripService.getUserTrips(coOrganizer2UserId);
 
-      expect(results).toHaveLength(1);
-      expect(results[0].isOrganizer).toBe(false);
-      expect(results[0].rsvpStatus).toBe("maybe");
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].isOrganizer).toBe(false);
+      expect(results.data[0].rsvpStatus).toBe("maybe");
     });
 
     it("should return trips ordered by startDate (upcoming first)", async () => {
@@ -721,10 +725,10 @@ describe("trip.service", () => {
       const results = await tripService.getUserTrips(testUserId);
 
       // Verify ordering: soonTrip, midTrip, futureTrip
-      expect(results).toHaveLength(3);
-      expect(results[0].name).toBe("Soon Trip");
-      expect(results[1].name).toBe("Mid Trip");
-      expect(results[2].name).toBe("Future Trip");
+      expect(results.data).toHaveLength(3);
+      expect(results.data[0].name).toBe("Soon Trip");
+      expect(results.data[1].name).toBe("Mid Trip");
+      expect(results.data[2].name).toBe("Future Trip");
     });
 
     it("should place trips with null startDate at the end", async () => {
@@ -750,10 +754,10 @@ describe("trip.service", () => {
       const results = await tripService.getUserTrips(testUserId);
 
       // Verify ordering: dated trip first, undated trip last
-      expect(results).toHaveLength(2);
-      expect(results[0].name).toBe("Dated Trip");
-      expect(results[1].name).toBe("Undated Trip");
-      expect(results[1].startDate).toBeNull();
+      expect(results.data).toHaveLength(2);
+      expect(results.data[0].name).toBe("Dated Trip");
+      expect(results.data[1].name).toBe("Undated Trip");
+      expect(results.data[1].startDate).toBeNull();
     });
 
     it("should return correct rsvpStatus from members table", async () => {
@@ -776,13 +780,13 @@ describe("trip.service", () => {
 
       // Get trips for testUser (should have status='going')
       const testUserResults = await tripService.getUserTrips(testUserId);
-      expect(testUserResults).toHaveLength(1);
-      expect(testUserResults[0].rsvpStatus).toBe("going");
+      expect(testUserResults.data).toHaveLength(1);
+      expect(testUserResults.data[0].rsvpStatus).toBe("going");
 
       // Get trips for coOrganizer (should have status='maybe')
       const coOrgResults = await tripService.getUserTrips(coOrganizerUserId);
-      expect(coOrgResults).toHaveLength(1);
-      expect(coOrgResults[0].rsvpStatus).toBe("maybe");
+      expect(coOrgResults.data).toHaveLength(1);
+      expect(coOrgResults.data[0].rsvpStatus).toBe("maybe");
     });
   });
 

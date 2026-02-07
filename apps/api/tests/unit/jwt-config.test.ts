@@ -11,7 +11,7 @@ vi.mock("node:fs", () => ({
 
 describe("JWT Configuration", () => {
   let originalEnv: string | undefined;
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+  let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Save original JWT_SECRET
@@ -23,8 +23,10 @@ describe("JWT Configuration", () => {
     // Clear all mocks
     vi.clearAllMocks();
 
-    // Spy on console.log
-    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    // Spy on process.stderr.write
+    stderrWriteSpy = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
   });
 
   afterEach(() => {
@@ -35,8 +37,8 @@ describe("JWT Configuration", () => {
       delete process.env.JWT_SECRET;
     }
 
-    // Restore console.log
-    consoleLogSpy.mockRestore();
+    // Restore process.stderr.write
+    stderrWriteSpy.mockRestore();
   });
 
   describe("ensureJWTSecret", () => {
@@ -86,8 +88,8 @@ describe("JWT Configuration", () => {
         expect.stringContaining(`JWT_SECRET=${result}`),
         { flag: "a" },
       );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "✓ Generated JWT secret and saved to .env.local",
+      expect(stderrWriteSpy).toHaveBeenCalledWith(
+        "Generated JWT secret and saved to .env.local\n",
       );
       expect(process.env.JWT_SECRET).toBe(result);
     });
@@ -109,8 +111,8 @@ describe("JWT Configuration", () => {
         expect.stringContaining(`JWT_SECRET=${result}`),
         { flag: "a" },
       );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "✓ Generated JWT secret and saved to .env.local",
+      expect(stderrWriteSpy).toHaveBeenCalledWith(
+        "Generated JWT secret and saved to .env.local\n",
       );
       expect(process.env.JWT_SECRET).toBe(result);
     });

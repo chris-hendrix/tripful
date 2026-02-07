@@ -137,7 +137,11 @@ describe("CompleteProfilePage", () => {
   it("redirects to dashboard on successful profile completion", async () => {
     const user = userEvent.setup();
     mockCompleteProfile.mockImplementation(async () => {
-      mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
+      mockUser = {
+        id: "1",
+        displayName: "John Doe",
+        phoneNumber: "+15551234567",
+      };
     });
 
     render(<CompleteProfilePage />);
@@ -199,7 +203,11 @@ describe("CompleteProfilePage", () => {
     });
 
     // Resolve the promise and set user - this triggers navigation
-    mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
+    mockUser = {
+      id: "1",
+      displayName: "John Doe",
+      phoneNumber: "+15551234567",
+    };
     resolveCompleteProfile!();
 
     // After successful completion, button stays disabled until navigation
@@ -314,7 +322,11 @@ describe("CompleteProfilePage", () => {
     });
 
     // Resolve the promise and set user - this triggers navigation
-    mockUser = { id: "1", displayName: "John Doe", phoneNumber: "+15551234567" };
+    mockUser = {
+      id: "1",
+      displayName: "John Doe",
+      phoneNumber: "+15551234567",
+    };
     resolveCompleteProfile!();
 
     // After successful completion, inputs stay disabled until navigation

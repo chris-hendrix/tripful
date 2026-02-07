@@ -18,24 +18,27 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains the complete Phase 1 implementation with:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 with:
 
 - **Frontend**: Next.js 16 web application with React 19 and Tailwind CSS 4
-- **Backend**: Fastify REST API with PostgreSQL database
-- **Shared**: Common utilities, types, and schemas used across applications
+- **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
+- **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Phase 1 Scope
+### Current Scope (Phases 1-3)
 
 The current implementation includes:
 
 - Complete monorepo setup with pnpm workspaces and Turbo
 - Full development environment with Docker Compose
 - Next.js frontend with modern UI components (shadcn/ui)
-- Fastify backend with database integration (Drizzle ORM)
-- Comprehensive testing setup (Vitest for backend, automated integration tests)
+- Fastify backend with plugin architecture and `buildApp()` factory pattern
+- SMS authentication with JWT, phone verification, and profile completion
+- Trip management with CRUD operations, co-organizers, and image uploads
+- Security hardening: Helmet, rate limiting, Zod route schemas, typed errors
+- Drizzle ORM with relations, transactions, and pagination
+- Health check endpoints (`/health`, `/health/live`, `/health/ready`)
+- Comprehensive testing (Vitest unit/integration, Playwright E2E)
 - Git hooks with Husky, lint-staged, and Prettier
-- Hot reload for both frontend and backend
-- Health check endpoints and CORS configuration
 
 ## Prerequisites
 
@@ -298,12 +301,17 @@ tripful/
 ├── apps/                      # Application packages
 │   ├── api/                   # Fastify backend API
 │   │   ├── src/
-│   │   │   ├── routes/        # API route handlers
-│   │   │   ├── db/            # Database configuration
-│   │   │   │   └── schema/    # Database schema definitions
-│   │   │   ├── server.ts      # Fastify server setup
-│   │   │   └── index.ts       # Application entry point
-│   │   ├── tests/             # Integration tests
+│   │   │   ├── app.ts         # buildApp() factory (configures FastifyInstance)
+│   │   │   ├── server.ts      # Production entry point
+│   │   │   ├── errors.ts      # Typed errors via @fastify/error
+│   │   │   ├── plugins/       # Fastify plugins (service injection)
+│   │   │   ├── routes/        # API route handlers (Zod schema validation)
+│   │   │   ├── controllers/   # Request handlers
+│   │   │   ├── services/      # Business logic
+│   │   │   ├── middleware/    # Auth, error handling, rate limiting
+│   │   │   ├── config/        # Environment and database config
+│   │   │   └── db/            # Schema definitions and migrations
+│   │   ├── tests/             # Unit and integration tests
 │   │   ├── .env.example       # Environment variables template
 │   │   └── package.json       # API dependencies and scripts
 │   │
@@ -454,7 +462,10 @@ The API requires the following environment variables:
 | `TEST_DATABASE_URL`  | Test database connection string                               | See below                         | No       |
 | `JWT_SECRET`         | Secret key for JWT token signing                              | Must change in production         | Yes      |
 | `FRONTEND_URL`       | Frontend URL for CORS                                         | `http://localhost:3000`           | Yes      |
-| `LOG_LEVEL`          | Logging verbosity                                             | `info`                            | No       |
+| `LOG_LEVEL`          | Logging verbosity (fatal\|error\|warn\|info\|debug\|trace)    | `info`                            | No       |
+| `COOKIE_SECURE`      | Secure cookie flag                                            | `true` in production              | No       |
+| `EXPOSE_ERROR_DETAILS` | Include error details in responses                          | `true` in development             | No       |
+| `ENABLE_FIXED_VERIFICATION_CODE` | Allow fixed code "123456" for testing              | `true` in non-production          | No       |
 | `UPLOAD_DIR`         | Directory for uploaded files                                  | `uploads`                         | No       |
 | `MAX_FILE_SIZE`      | Maximum upload file size in bytes                             | `5242880` (5MB)                   | No       |
 | `ALLOWED_MIME_TYPES` | Comma-separated allowed MIME types (must start with 'image/') | `image/jpeg,image/png,image/webp` | No       |
@@ -543,9 +554,9 @@ Comprehensive integration tests are available as bash scripts:
 
 ### Test Framework
 
-- **Backend/Shared**: Vitest (fast unit test runner)
-- **Integration**: Bash scripts with automated verification
-- **E2E**: (To be implemented in future phases)
+- **Backend/Shared**: Vitest (unit and integration tests)
+- **E2E**: Playwright (authentication flows, trip management)
+- **Integration Scripts**: Bash scripts for environment verification
 
 ### What is Tested
 
@@ -859,13 +870,15 @@ pnpm clean                      # Full clean
 
 ### Port Assignments
 
-| Service               | Port | URL                              |
-| --------------------- | ---- | -------------------------------- |
-| Web Frontend          | 3000 | http://localhost:3000            |
-| API Backend           | 8000 | http://localhost:8000            |
-| API Health            | 8000 | http://localhost:8000/api/health |
-| PostgreSQL (external) | 5433 | localhost:5433                   |
-| PostgreSQL (internal) | 5432 | Container only                   |
+| Service               | Port | URL                                   |
+| --------------------- | ---- | ------------------------------------- |
+| Web Frontend          | 3000 | http://localhost:3000                 |
+| API Backend           | 8000 | http://localhost:8000                 |
+| API Health            | 8000 | http://localhost:8000/api/health      |
+| API Liveness Probe    | 8000 | http://localhost:8000/api/health/live |
+| API Readiness Probe   | 8000 | http://localhost:8000/api/health/ready |
+| PostgreSQL (external) | 5433 | localhost:5433                        |
+| PostgreSQL (internal) | 5432 | Container only                        |
 
 ### Technology Stack
 

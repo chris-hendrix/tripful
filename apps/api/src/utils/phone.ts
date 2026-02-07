@@ -25,11 +25,11 @@ export function validatePhoneNumber(phone: string): {
   error?: string;
 } {
   try {
-    // In non-production environments, accept 555 numbers for testing
-    // This includes development and test modes
+    // When fixed verification codes are enabled, accept 555 numbers for testing
+    // This is typically enabled in development and test environments
     // But still require proper format - reject clearly invalid formats
     if (
-      env.NODE_ENV !== "production" &&
+      env.ENABLE_FIXED_VERIFICATION_CODE &&
       phone.startsWith("+") &&
       phone.includes("555")
     ) {
