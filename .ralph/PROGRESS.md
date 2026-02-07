@@ -163,3 +163,60 @@ Tracking implementation progress for this project.
 - **shouldNavigate elimination**: The `shouldNavigate` state + `useEffect` pattern for post-async navigation is unnecessary in React 18+ — navigate directly in async handlers after `await`.
 - **ESLint legacy format**: The project uses `.eslintrc.json` (not flat config). TanStack Query plugin is added as `"plugin:@tanstack/query/recommended"` in the `extends` array.
 
+## Iteration 4 — Task 4.1: Convert protected layout to server component auth guard, migrate dashboard and trip detail pages to RSC with TanStack Query hydration, add dynamic imports with preloading
+
+**Status**: ✅ COMPLETE
+**Date**: 2026-02-07
+
+### Changes Made
+
+**New files created (3):**
+- `apps/web/src/lib/server-api.ts` — Server-side API client that reads `auth_token` cookie via `cookies()` from `next/headers` and forwards as `Authorization: Bearer` header. Uses `process.env.API_URL` (non-public, server-side only).
+- `apps/web/src/app/(app)/dashboard/dashboard-content.tsx` — Extracted `"use client"` component with all dashboard logic (search, filtering, trip cards, dialogs, state). Uses `next/dynamic` for `CreateTripDialog` with `ssr: false`. Adds `preloadCreateTripDialog` on `onMouseEnter`/`onFocus` for FAB and "Create your first trip" buttons.
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Extracted `"use client"` component with all trip detail logic. Accepts `tripId` as prop (no more `useParams()`). Uses `next/dynamic` for `EditTripDialog` with `ssr: false`. Adds `preloadEditTripDialog` on `onMouseEnter`/`onFocus` for "Edit trip" button.
+
+**Rewritten files (3):**
+- `apps/web/src/app/(app)/layout.tsx` — Converted from `"use client"` component (using `useAuth()` + `useEffect` + `useRouter`) to async server component using `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Checks for `auth_token` cookie presence, redirects to `/login` if missing.
+- `apps/web/src/app/(app)/dashboard/page.tsx` — Converted to RSC. Uses `serverApiRequest` to fetch trips server-side with cookie forwarding, populates TanStack Query cache via `setQueryData(tripKeys.all, ...)`, wraps `DashboardContent` in `HydrationBoundary`. Exports `metadata = { title: "Dashboard" }`.
+- `apps/web/src/app/(app)/trips/[id]/page.tsx` — Converted to async RSC. Awaits `params` (Next.js 15+ Promise pattern), uses `serverApiRequest` to fetch trip detail server-side, populates cache via `setQueryData(tripKeys.detail(id), ...)`, wraps `TripDetailContent` in `HydrationBoundary`. Exports `generateMetadata` for page title.
+
+**Modified files (2):**
+- `apps/web/.env.local` — Added `API_URL=http://localhost:8000/api` (server-side only)
+- `apps/web/.env.local.example` — Added `API_URL` with documentation comments
+
+**Test files updated (3):**
+- `apps/web/src/app/(app)/layout.test.tsx` — Completely rewritten for server component testing. Mocks `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Calls `ProtectedLayout()` directly as async function. Tests: auth cookie present (renders children), cookie missing (redirects), empty cookie value (redirects), correct cookie name verification.
+- `apps/web/src/app/(app)/dashboard/page.test.tsx` — Changed import from `DashboardPage` to `DashboardContent`. Added `next/dynamic` mock using `React.lazy`/`React.Suspense`. Added `Suspense` wrapper in `renderWithClient`. All 22 test cases preserved.
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — Changed import from `TripDetailPage` to `TripDetailContent`. Added `next/dynamic` mock. Removed `useParams` mock. Passes `tripId="trip-123"` as prop with `Suspense` wrapper. All 32 test cases preserved.
+
+### Verification Results
+
+- **Lint**: ✅ PASS — All 3 packages (shared, api, web) passed with no warnings/errors
+- **Typecheck**: ✅ PASS — All 3 packages passed with no type errors
+- **Tests**: ✅ PASS — 833 tests across all test files (83 shared + 374 API + 376 web), 0 failures
+
+### Reviewer Verdict
+
+**APPROVED** (second review, after fixes) — First review returned NEEDS_WORK with two issues:
+1. Layout test file not updated for server component (4 test failures)
+2. `server-api.ts` created but not integrated into RSC prefetch flow
+
+Both issues were fixed in the same iteration:
+- Layout tests rewritten for async server component pattern
+- RSC pages switched from `prefetchQuery(clientQueryOptions)` to `serverApiRequest` + `setQueryData` for proper server-side cookie forwarding
+- `server-api.ts` updated with `await` before `response.json()`
+
+Only LOW severity suggestion remaining: Consider adding tests that call the RSC page functions directly (similar to layout tests) to verify the `serverApiRequest` + `setQueryData` + `dehydrate` pipeline.
+
+### Learnings for Future Iterations
+
+- **Async server component testing**: Call the component function directly with `await ProtectedLayout({ children: ... })` rather than using `render()`. Mock `cookies()` from `next/headers` and `redirect()` from `next/navigation`. Next.js's `redirect()` throws a `NEXT_REDIRECT` error — test with `rejects.toThrow()`.
+- **Server-side cookie forwarding**: `apiRequest` with `credentials: "include"` only works in browser context. For RSC pages, use `serverApiRequest` which reads cookies via `next/headers` `cookies()` and forwards as `Authorization: Bearer` header.
+- **setQueryData vs prefetchQuery for RSC**: When server-side data fetching uses a different API client (not the client-side `queryFn`), use `queryClient.setQueryData()` to populate the cache directly rather than `prefetchQuery()` which would try to use the client-side `queryFn`.
+- **try/catch for RSC prefetch**: Always wrap server-side data fetching in try/catch. If it fails (e.g., cookie not available, network issue), the client component will re-fetch on mount via its own `useQuery` hook.
+- **next/dynamic mock for tests**: Mock `next/dynamic` with `React.lazy` + `React.Suspense` wrapper. Since `vi.mock` intercepts all module imports regardless of loading method, existing component mocks work with dynamic imports. Wrap test renders in `<Suspense fallback={null}>`.
+- **Named exports with next/dynamic**: Use `.then((mod) => ({ default: mod.NamedExport }))` pattern since `next/dynamic` expects a default export.
+- **Next.js 15+ params Promise**: In the App Router, `params` is a `Promise<{ id: string }>` that must be awaited. Both `page.tsx` and `generateMetadata` receive it as a Promise.
+- **Preload pattern for dynamic imports**: Create a module-level function `const preloadX = () => void import("@/components/path")` and attach to `onMouseEnter`/`onFocus` on trigger buttons.
+- **Test count may vary**: After RSC migration, some tests test the extracted client component directly rather than the page wrapper. The total test count may decrease by 1 (from 834 to 833) if a test file structure changes.
+

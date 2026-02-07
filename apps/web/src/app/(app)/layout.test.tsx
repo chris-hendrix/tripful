@@ -1,126 +1,75 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { useRouter } from "next/navigation";
-import type { User } from "@tripful/shared";
-import ProtectedLayout from "./layout";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+// Mock next/headers
+const mockGet = vi.fn();
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({
+    get: mockGet,
+  })),
+}));
 
 // Mock next/navigation
+const mockRedirect = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: vi.fn(),
+  redirect: (url: string) => {
+    mockRedirect(url);
+    throw new Error("NEXT_REDIRECT");
+  },
 }));
 
-// Mock auth provider
-const mockUseAuth = vi.fn();
-vi.mock("@/app/providers/auth-provider", () => ({
-  useAuth: () => mockUseAuth(),
-}));
+// Import AFTER mocks
+import ProtectedLayout from "./layout";
 
 describe("ProtectedLayout", () => {
-  const mockPush = vi.fn();
-  const mockUser: User = {
-    id: "123",
-    phoneNumber: "+15551234567",
-    displayName: "Test User",
-    timezone: "America/New_York",
-    createdAt: new Date("2024-01-01"),
-    updatedAt: new Date("2024-01-01"),
-  };
-
   beforeEach(() => {
-    vi.mocked(useRouter).mockReturnValue({
-      push: mockPush,
-    } as any);
-    mockPush.mockClear();
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders children when user is authenticated", () => {
-    mockUseAuth.mockReturnValue({
-      user: mockUser,
-      loading: false,
+  it("renders children when auth_token cookie exists", async () => {
+    mockGet.mockReturnValue({ value: "valid-jwt-token" });
+
+    const result = await ProtectedLayout({
+      children: <div>Protected Content</div>,
     });
 
-    render(
-      <ProtectedLayout>
-        <div>Protected Content</div>
-      </ProtectedLayout>,
-    );
-
+    // render the result to check it renders children
+    render(result as React.ReactElement);
     expect(screen.getByText("Protected Content")).toBeDefined();
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockRedirect).not.toHaveBeenCalled();
   });
 
-  it("shows loading state while checking auth", () => {
-    mockUseAuth.mockReturnValue({
-      user: null,
-      loading: true,
-    });
+  it("redirects to /login when auth_token cookie is missing", async () => {
+    mockGet.mockReturnValue(undefined);
 
-    render(
-      <ProtectedLayout>
-        <div>Protected Content</div>
-      </ProtectedLayout>,
-    );
+    await expect(
+      ProtectedLayout({
+        children: <div>Protected Content</div>,
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(screen.getByText("Loading...")).toBeDefined();
-    expect(screen.queryByText("Protected Content")).toBeNull();
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
   });
 
-  it("redirects to /login when not authenticated", async () => {
-    mockUseAuth.mockReturnValue({
-      user: null,
-      loading: false,
-    });
+  it("redirects to /login when auth_token cookie has no value", async () => {
+    mockGet.mockReturnValue({ value: "" });
 
-    render(
-      <ProtectedLayout>
-        <div>Protected Content</div>
-      </ProtectedLayout>,
-    );
+    await expect(
+      ProtectedLayout({
+        children: <div>Protected Content</div>,
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT");
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/login");
-    });
-
-    expect(screen.queryByText("Protected Content")).toBeNull();
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
   });
 
-  it("does not render children before redirect", () => {
-    mockUseAuth.mockReturnValue({
-      user: null,
-      loading: false,
+  it("checks the correct cookie name", async () => {
+    mockGet.mockReturnValue({ value: "some-token" });
+
+    await ProtectedLayout({
+      children: <div>Content</div>,
     });
 
-    const { container } = render(
-      <ProtectedLayout>
-        <div>Protected Content</div>
-      </ProtectedLayout>,
-    );
-
-    // Should return null, not render children
-    expect(screen.queryByText("Protected Content")).toBeNull();
-    // Container should be empty (null renders nothing)
-    expect(container.innerHTML).toBe("");
-  });
-
-  it("does not redirect while loading is true", () => {
-    mockUseAuth.mockReturnValue({
-      user: null,
-      loading: true,
-    });
-
-    render(
-      <ProtectedLayout>
-        <div>Protected Content</div>
-      </ProtectedLayout>,
-    );
-
-    // Should not redirect immediately while loading
-    expect(mockPush).not.toHaveBeenCalled();
-    expect(screen.getByText("Loading...")).toBeDefined();
+    expect(mockGet).toHaveBeenCalledWith("auth_token");
   });
 });

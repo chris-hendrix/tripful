@@ -55,7 +55,7 @@
 
 ## Phase 4: RSC Migration & Server-Side Prefetching
 
-- [ ] Task 4.1: Convert protected layout to server component auth guard, migrate dashboard and trip detail pages to RSC with TanStack Query hydration, add dynamic imports with preloading
+- [x] Task 4.1: Convert protected layout to server component auth guard, migrate dashboard and trip detail pages to RSC with TanStack Query hydration, add dynamic imports with preloading
   - Implement: Create `apps/web/src/lib/server-api.ts` with `serverApiRequest` that reads `auth_token` cookie via `cookies()` from `next/headers` and forwards as `Authorization: Bearer` header. Uses server-side `API_URL` env var (non-public).
   - Implement: Add `API_URL=http://localhost:8000/api` to `apps/web/.env.local.example` and `apps/web/.env.local`.
   - Implement: Convert `apps/web/src/app/(app)/layout.tsx` from client component to server component — remove `"use client"`, import `cookies` from `next/headers` and `redirect` from `next/navigation`, check for `auth_token` cookie, redirect to `/login` if missing.

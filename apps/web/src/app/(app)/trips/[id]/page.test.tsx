@@ -7,9 +7,26 @@ import {
   fireEvent,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TripDetailPage from "./page";
+import { Suspense } from "react";
+import { TripDetailContent } from "./trip-detail-content";
 import type { TripDetail } from "@/hooks/use-trips";
 import type { User } from "@tripful/shared";
+
+// Mock next/dynamic
+vi.mock("next/dynamic", () => ({
+  __esModule: true,
+  default: (importFn: () => Promise<any>) => {
+    const React = require("react");
+    const Lazy = React.lazy(importFn);
+    return function DynamicComponent(props: any) {
+      return React.createElement(
+        React.Suspense,
+        { fallback: null },
+        React.createElement(Lazy, props),
+      );
+    };
+  },
+}));
 
 // Mock next/image
 vi.mock("next/image", () => ({
@@ -46,9 +63,7 @@ vi.mock("next/link", () => ({
 
 // Mock next/navigation
 const mockPush = vi.fn();
-const mockParams = { id: "trip-123" };
 vi.mock("next/navigation", () => ({
-  useParams: () => mockParams,
   useRouter: () => ({
     push: mockPush,
   }),
@@ -111,7 +126,7 @@ vi.mock("@/components/trip/edit-trip-dialog", () => ({
   ),
 }));
 
-describe("TripDetailPage", () => {
+describe("TripDetailContent", () => {
   const mockTripDetail: TripDetail = {
     id: "trip-123",
     name: "Bachelor Party in Miami",
@@ -164,7 +179,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       // Check for skeleton loading state
       const skeletonElements = document.querySelectorAll(".animate-pulse");
@@ -180,7 +199,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -201,7 +224,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         const coverImage = screen.getByAltText("Bachelor Party in Miami");
@@ -222,7 +249,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -244,7 +275,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -262,7 +297,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Organizers")).toBeDefined();
@@ -289,7 +328,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("8 members")).toBeDefined();
@@ -306,7 +349,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Going")).toBeDefined();
@@ -322,7 +369,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("About this trip")).toBeDefined();
@@ -342,7 +393,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -363,7 +418,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Edit trip")).toBeDefined();
@@ -381,7 +440,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Edit trip")).toBeDefined();
@@ -399,7 +462,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -418,7 +485,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Organizing")).toBeDefined();
@@ -436,7 +507,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -456,7 +531,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Trip not found")).toBeDefined();
@@ -478,7 +557,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Trip not found")).toBeDefined();
@@ -494,7 +577,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Trip not found")).toBeDefined();
@@ -517,7 +604,11 @@ describe("TripDetailPage", () => {
       });
 
       const user = userEvent.setup();
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Edit trip")).toBeDefined();
@@ -544,7 +635,11 @@ describe("TripDetailPage", () => {
       });
 
       const user = userEvent.setup();
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Edit trip")).toBeDefined();
@@ -583,7 +678,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Edit trip")).toBeDefined();
@@ -611,7 +710,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       // Open dialog
       const editButton = screen.getByText("Edit trip");
@@ -646,7 +749,11 @@ describe("TripDetailPage", () => {
       });
 
       const user = userEvent.setup();
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       // Open dialog
       const editButton = screen.getByText("Edit trip");
@@ -675,7 +782,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       expect(screen.queryByText(/trip updated successfully/i)).toBeNull();
     });
@@ -696,7 +807,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Dates TBD")).toBeDefined();
@@ -713,7 +828,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -732,7 +851,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Bachelor Party in Miami")).toBeDefined();
@@ -752,7 +875,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("0 members")).toBeDefined();
@@ -769,7 +896,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("1 member")).toBeDefined();
@@ -790,7 +921,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Jun 28 - Jul 5, 2026")).toBeDefined();
@@ -811,7 +946,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Starts Jun 1, 2026")).toBeDefined();
@@ -832,7 +971,11 @@ describe("TripDetailPage", () => {
         refetch: vi.fn(),
       });
 
-      render(<TripDetailPage />);
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
 
       await waitFor(() => {
         expect(screen.getByText("Ends Jun 5, 2026")).toBeDefined();
