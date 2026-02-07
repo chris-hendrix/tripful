@@ -27,6 +27,21 @@ import {
   formatInTimeZone,
 } from "../index.js";
 
+import {
+  type CreateEventInput,
+  type UpdateEventInput,
+  type CreateAccommodationInput,
+  type UpdateAccommodationInput,
+  type CreateMemberTravelInput,
+  type UpdateMemberTravelInput,
+  createEventSchema,
+  updateEventSchema,
+  createAccommodationSchema,
+  updateAccommodationSchema,
+  createMemberTravelSchema,
+  updateMemberTravelSchema,
+} from "../schemas/index.js";
+
 describe("Package Exports", () => {
   it("should export all auth schemas", () => {
     expect(requestCodeSchema).toBeDefined();
@@ -38,6 +53,21 @@ describe("Package Exports", () => {
     expect(createTripSchema).toBeDefined();
     expect(updateTripSchema).toBeDefined();
     expect(addCoOrganizerSchema).toBeDefined();
+  });
+
+  it("should export all event schemas", () => {
+    expect(createEventSchema).toBeDefined();
+    expect(updateEventSchema).toBeDefined();
+  });
+
+  it("should export all accommodation schemas", () => {
+    expect(createAccommodationSchema).toBeDefined();
+    expect(updateAccommodationSchema).toBeDefined();
+  });
+
+  it("should export all member travel schemas", () => {
+    expect(createMemberTravelSchema).toBeDefined();
+    expect(updateMemberTravelSchema).toBeDefined();
   });
 
   it("should export existing schemas", () => {
@@ -104,6 +134,43 @@ describe("Package Exports", () => {
       phoneNumber: "+14155552671",
     };
     expect(addCoOrganizerInput).toBeDefined();
+
+    const createEventInput: CreateEventInput = {
+      name: "Dinner",
+      eventType: "meal",
+      startTime: "2026-07-15T19:00:00Z",
+      allDay: false,
+      isOptional: false,
+    };
+    expect(createEventInput).toBeDefined();
+
+    const updateEventInput: UpdateEventInput = {
+      name: "Updated Dinner",
+    };
+    expect(updateEventInput).toBeDefined();
+
+    const createAccommodationInput: CreateAccommodationInput = {
+      name: "Beach Hotel",
+      checkIn: "2026-07-15",
+      checkOut: "2026-07-20",
+    };
+    expect(createAccommodationInput).toBeDefined();
+
+    const updateAccommodationInput: UpdateAccommodationInput = {
+      name: "Updated Hotel",
+    };
+    expect(updateAccommodationInput).toBeDefined();
+
+    const createMemberTravelInput: CreateMemberTravelInput = {
+      travelType: "arrival",
+      time: "2026-07-15T10:00:00Z",
+    };
+    expect(createMemberTravelInput).toBeDefined();
+
+    const updateMemberTravelInput: UpdateMemberTravelInput = {
+      location: "Airport Terminal 3",
+    };
+    expect(updateMemberTravelInput).toBeDefined();
   });
 
   it("should validate schemas with inferred types", () => {

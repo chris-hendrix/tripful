@@ -34,7 +34,7 @@ Create all database tables (events, accommodations, member_travel) with enums, i
 
 ---
 
-- [ ] Task 2: Shared Validation Schemas
+- [x] Task 2: Shared Validation Schemas
 
 Create Zod validation schemas for events, accommodations, and member travel in the shared package.
 
