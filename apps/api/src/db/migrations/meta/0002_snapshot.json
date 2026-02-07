@@ -108,12 +108,8 @@
           "name": "members_trip_id_trips_id_fk",
           "tableFrom": "members",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -121,12 +117,8 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -136,10 +128,7 @@
         "members_trip_user_unique": {
           "name": "members_trip_user_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "trip_id",
-            "user_id"
-          ]
+          "columns": ["trip_id", "user_id"]
         }
       },
       "policies": {},
@@ -256,12 +245,8 @@
           "name": "trips_created_by_users_id_fk",
           "tableFrom": "trips",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -346,9 +331,7 @@
         "users_phone_number_unique": {
           "name": "users_phone_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "phone_number"
-          ]
+          "columns": ["phone_number"]
         }
       },
       "policies": {},
@@ -414,12 +397,7 @@
     "public.rsvp_status": {
       "name": "rsvp_status",
       "schema": "public",
-      "values": [
-        "going",
-        "not_going",
-        "maybe",
-        "no_response"
-      ]
+      "values": ["going", "not_going", "maybe", "no_response"]
     }
   },
   "schemas": {},

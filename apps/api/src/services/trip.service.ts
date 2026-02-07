@@ -10,6 +10,14 @@ import {
 import { eq, inArray, and, asc, sql, count } from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
 import { permissionsService } from "./permissions.service.js";
+import {
+  TripNotFoundError,
+  PermissionDeniedError,
+  MemberLimitExceededError,
+  CoOrganizerNotFoundError,
+  CannotRemoveCreatorError,
+  CoOrganizerNotInTripError,
+} from "../errors.js";
 
 /**
  * Trip Summary Type
@@ -53,7 +61,8 @@ export interface ITripService {
    * @param userId - The ID of the user creating the trip
    * @param data - The trip creation data
    * @returns Promise that resolves to the created trip
-   * @throws Error if co-organizer not found or member limit exceeded
+   * @throws MemberLimitExceededError if co-organizer count exceeds limit
+   * @throws CoOrganizerNotFoundError if co-organizer phone not found
    */
   createTrip(userId: string, data: CreateTripInput): Promise<Trip>;
 
@@ -85,7 +94,11 @@ export interface ITripService {
    * @param userId - The UUID of the user
    * @returns Promise that resolves to array of trip summaries
    */
-  getUserTrips(userId: string, page?: number, limit?: number): Promise<PaginatedTripsResult>;
+  getUserTrips(
+    userId: string,
+    page?: number,
+    limit?: number,
+  ): Promise<PaginatedTripsResult>;
 
   /**
    * Updates a trip (to be implemented)
@@ -167,7 +180,8 @@ export class TripService implements ITripService {
    * @param userId - The ID of the user creating the trip
    * @param data - The trip creation data
    * @returns The created trip
-   * @throws Error if co-organizer not found or member limit exceeded
+   * @throws MemberLimitExceededError if member limit exceeded
+   * @throws CoOrganizerNotFoundError if co-organizer not found
    */
   async createTrip(userId: string, data: CreateTripInput): Promise<Trip> {
     // Validate co-organizers and check member limit
@@ -176,7 +190,7 @@ export class TripService implements ITripService {
     if (data.coOrganizerPhones && data.coOrganizerPhones.length > 0) {
       // Check member limit: creator (1) + co-organizers must be <= 25
       if (1 + data.coOrganizerPhones.length > 25) {
-        throw new Error(
+        throw new MemberLimitExceededError(
           "Member limit exceeded: maximum 25 members allowed (including creator)",
         );
       }
@@ -193,7 +207,9 @@ export class TripService implements ITripService {
         const missingPhones = data.coOrganizerPhones.filter(
           (phone: string) => !foundPhones.includes(phone),
         );
-        throw new Error(`Co-organizer not found: ${missingPhones[0]}`);
+        throw new CoOrganizerNotFoundError(
+          `Co-organizer not found: ${missingPhones[0]}`,
+        );
       }
 
       coOrganizerUserIds = coOrganizerUsers.map((u) => u.id);
@@ -342,7 +358,11 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user
    * @returns Promise that resolves to array of trip summaries ordered by start date
    */
-  async getUserTrips(userId: string, page = 1, limit = 20): Promise<PaginatedTripsResult> {
+  async getUserTrips(
+    userId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedTripsResult> {
     // Get all trip memberships for user
     const userMemberships = await db
       .select({
@@ -405,7 +425,10 @@ export class TripService implements ITripService {
 
     for (const m of allMembers) {
       // Count all members per trip
-      memberCountByTrip.set(m.tripId, (memberCountByTrip.get(m.tripId) ?? 0) + 1);
+      memberCountByTrip.set(
+        m.tripId,
+        (memberCountByTrip.get(m.tripId) ?? 0) + 1,
+      );
 
       // Track organizer userIds (status='going')
       if (m.status === "going") {
@@ -424,20 +447,19 @@ export class TripService implements ITripService {
       }
     }
 
-    const organizerUsers = allOrganizerUserIds.size > 0
-      ? await db
-          .select({
-            id: users.id,
-            displayName: users.displayName,
-            profilePhotoUrl: users.profilePhotoUrl,
-          })
-          .from(users)
-          .where(inArray(users.id, [...allOrganizerUserIds]))
-      : [];
+    const organizerUsers =
+      allOrganizerUserIds.size > 0
+        ? await db
+            .select({
+              id: users.id,
+              displayName: users.displayName,
+              profilePhotoUrl: users.profilePhotoUrl,
+            })
+            .from(users)
+            .where(inArray(users.id, [...allOrganizerUserIds]))
+        : [];
 
-    const organizerUserMap = new Map(
-      organizerUsers.map((u) => [u.id, u]),
-    );
+    const organizerUserMap = new Map(organizerUsers.map((u) => [u.id, u]));
 
     // Build trip summaries
     const membershipMap = new Map(
@@ -483,7 +505,8 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user requesting the update
    * @param data - The trip update data
    * @returns Promise that resolves to the updated trip
-   * @throws Error if user lacks permission or trip not found
+   * @throws TripNotFoundError if trip not found
+   * @throws PermissionDeniedError if user lacks permission
    */
   async updateTrip(
     tripId: string,
@@ -501,10 +524,12 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error("Permission denied: only organizers can update trips");
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can update trips",
+      );
     }
 
     // Build update data with field mapping
@@ -527,7 +552,7 @@ export class TripService implements ITripService {
       .returning();
 
     if (!result[0]) {
-      throw new Error("Trip not found");
+      throw new TripNotFoundError();
     }
 
     return result[0];
@@ -551,10 +576,12 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error("Permission denied: only organizers can cancel trips");
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can cancel trips",
+      );
     }
 
     // 2. Perform soft delete in a transaction for consistency
@@ -569,7 +596,7 @@ export class TripService implements ITripService {
         .returning();
 
       if (!result[0]) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
     });
   }
@@ -581,7 +608,9 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user adding co-organizers
    * @param phoneNumbers - Array of phone numbers to add as co-organizers
    * @returns Promise that resolves when co-organizers are added
-   * @throws Error if permission denied, phone not found, or member limit exceeded
+   * @throws PermissionDeniedError if permission denied
+   * @throws CoOrganizerNotFoundError if phone not found
+   * @throws MemberLimitExceededError if member limit exceeded
    */
   async addCoOrganizers(
     tripId: string,
@@ -602,10 +631,10 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error(
+      throw new PermissionDeniedError(
         "Permission denied: only organizers can manage co-organizers",
       );
     }
@@ -622,7 +651,9 @@ export class TripService implements ITripService {
       const missingPhones = phoneNumbers.filter(
         (phone: string) => !foundPhones.includes(phone),
       );
-      throw new Error(`Co-organizer not found: ${missingPhones[0]}`);
+      throw new CoOrganizerNotFoundError(
+        `Co-organizer not found: ${missingPhones[0]}`,
+      );
     }
 
     // 3-6. Wrap count check + insert in transaction to prevent race conditions
@@ -640,7 +671,9 @@ export class TripService implements ITripService {
         .from(members)
         .where(eq(members.tripId, tripId));
 
-      const existingMemberUserIds = new Set(existingMembers.map((m) => m.userId));
+      const existingMemberUserIds = new Set(
+        existingMembers.map((m) => m.userId),
+      );
 
       // Filter out users who are already members
       const newCoOrganizerUserIds = newCoOrganizerUsers
@@ -649,7 +682,7 @@ export class TripService implements ITripService {
 
       // 5. Check member limit: current + new members must be <= 25
       if (currentMemberCount + newCoOrganizerUserIds.length > 25) {
-        throw new Error(
+        throw new MemberLimitExceededError(
           "Member limit exceeded: maximum 25 members allowed (including creator)",
         );
       }
@@ -675,7 +708,10 @@ export class TripService implements ITripService {
    * @param userId - The UUID of the user requesting removal
    * @param coOrgUserId - The UUID of the co-organizer to remove
    * @returns Promise that resolves when the co-organizer is removed
-   * @throws Error if permission denied, user not found, or trying to remove creator
+   * @throws PermissionDeniedError if permission denied
+   * @throws TripNotFoundError if trip not found
+   * @throws CannotRemoveCreatorError if trying to remove creator
+   * @throws CoOrganizerNotInTripError if co-organizer not in trip
    */
   async removeCoOrganizer(
     tripId: string,
@@ -696,10 +732,10 @@ export class TripService implements ITripService {
         .limit(1);
 
       if (tripExists.length === 0) {
-        throw new Error("Trip not found");
+        throw new TripNotFoundError();
       }
 
-      throw new Error(
+      throw new PermissionDeniedError(
         "Permission denied: only organizers can manage co-organizers",
       );
     }
@@ -712,12 +748,12 @@ export class TripService implements ITripService {
       .limit(1);
 
     if (!trip) {
-      throw new Error("Trip not found");
+      throw new TripNotFoundError();
     }
 
     // 3. Prevent removing trip creator
     if (trip.createdBy === coOrgUserId) {
-      throw new Error("Cannot remove trip creator as co-organizer");
+      throw new CannotRemoveCreatorError();
     }
 
     // 4. Verify co-organizer is a member of the trip
@@ -728,7 +764,7 @@ export class TripService implements ITripService {
       .limit(1);
 
     if (!memberRecord) {
-      throw new Error("Co-organizer not found in trip");
+      throw new CoOrganizerNotInTripError();
     }
 
     // 5. Delete member record

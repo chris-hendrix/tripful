@@ -7,6 +7,7 @@ Tracking implementation progress for this project.
 **Status**: ✅ COMPLETE (Reviewer: APPROVED)
 
 ### What Was Done
+
 Refactored the monolithic `apps/api/src/server.ts` into a proper Fastify plugin architecture:
 
 1. **Created `src/app.ts`** — `buildApp()` factory function that creates and configures the Fastify instance with all plugins, middleware, and routes. Used by both production server and tests.
@@ -36,18 +37,21 @@ Refactored the monolithic `apps/api/src/server.ts` into a proper Fastify plugin 
 9. **Installed dependencies** — `fastify-plugin`, `close-with-grace`, `pino-pretty` (devDep)
 
 ### Verification Results
+
 - **TypeScript**: PASS (0 errors)
 - **Tests**: PASS (790 total: 343 API, 83 shared, 364 web — 0 failures)
 - **Lint**: PASS (0 errors)
 - **Structural checks**: All pass (buildApp export, plugins directory, close-with-grace, helpers import, console.log removal)
 
 ### Reviewer Notes
+
 - APPROVED with only LOW severity observations:
   - Services still import `db` directly from singleton module (intentional — full DI deferred to future task)
   - Singleton exports remain in service files (backward compatibility, unused by controllers)
   - Logger interface duplicated in sms.service.ts and database.ts (minor, could consolidate later)
 
 ### Learnings for Future Iterations
+
 - **Pragmatic approach works**: Keeping service internals unchanged (still importing `db` singleton) while wrapping them as plugins avoids massive churn. Controllers now use decorators. Full DI can come later.
 - **Test helpers re-export pattern**: The backward-compatible `export { buildTestApp as buildApp }` in tests/helpers.ts means no test import changes needed.
 - **Auth middleware test needed db decoration**: Tests with custom `buildTestApp()` (like auth.middleware.test.ts) need explicit `app.decorate("db", db)` since middleware now uses `request.server.db`.
@@ -86,6 +90,7 @@ Improved the Tripful API's Drizzle ORM usage with relations, constraints, transa
 12. **Updated all existing tests** — Unit tests (`trip.service.test.ts`) and integration tests (`trip.routes.test.ts`) updated for the new paginated response shape (`body.data`/`body.meta` instead of `body.trips`).
 
 ### Files Changed
+
 - `src/db/schema/relations.ts` — Created (Drizzle relations)
 - `src/db/schema/index.ts` — Modified (unique constraint, `unique` import)
 - `src/db/migrations/0002_mysterious_hercules.sql` — Generated (unique constraint migration)
@@ -99,18 +104,21 @@ Improved the Tripful API's Drizzle ORM usage with relations, constraints, transa
 - `tests/integration/trip.routes.test.ts` — Modified (response shape assertions)
 
 ### Verification Results
+
 - **TypeScript**: PASS (0 errors across all 3 packages)
 - **Tests**: PASS (795 total: 348 API, 83 shared, 364 web — 0 failures)
 - **Lint**: PASS (0 errors)
 - **Structural checks**: All 9 pass (relations file, unique constraint, migration, schema in drizzle, 3 transactions, count aggregate, pagination, column selection, new tests)
 
 ### Reviewer Notes
+
 - APPROVED with only LOW severity observations:
   - Redundant composite index: `tripUserIdx` and `tripUserUnique` are on the same columns — PostgreSQL auto-creates an index for unique constraints, making the explicit index redundant. Left as-is to avoid an extra migration.
   - `cancelTrip` transaction wraps a single UPDATE which is already atomic — kept for consistency and future-proofing.
   - GET `/api/trips` response shape changed from `{ success, trips }` to `{ success, data, meta }` — breaking change for frontend consumers (acceptable in early development).
 
 ### Learnings for Future Iterations
+
 - **Schema merging for drizzle**: drizzle-kit v0.28.1 uses CJS require and cannot resolve `.js` extensions to `.ts` in `export * from "./relations.js"`. Solution: import relations separately in `database.ts` and merge with spread `{ ...schema, ...relations }`.
 - **FullSchema type pattern**: Using `typeof schema & typeof relations` type intersection works well for Fastify type augmentation when tables and relations are in separate files.
 - **Batch queries over relational API**: For `getUserTrips`, explicit batch queries with Maps are more efficient and predictable than the Drizzle relational API for complex aggregations (member counts + organizer info + pagination).
@@ -118,3 +126,79 @@ Improved the Tripful API's Drizzle ORM usage with relations, constraints, transa
 - **Pagination math**: `totalPages = Math.ceil(total / limit)` and `offset = (page - 1) * limit` — standard offset-based pagination. Controller clamps inputs to prevent invalid values.
 - **Breaking API change management**: The response shape change from `{ trips }` to `{ data, meta }` needs frontend consumer updates. In a real production system, this would need versioning or a migration period.
 
+## Iteration 3 — Task 3.1: Add Zod route schemas, @fastify/error typed errors, helmet, rate limiting, and security hardening
+
+**Status**: ✅ COMPLETE (Reviewer: APPROVED)
+
+### What Was Done
+
+Replaced string-based error handling with typed errors, added Zod route schemas for automatic validation, and hardened the API with security headers and rate limiting:
+
+1. **Created `src/errors.ts`** — 12 typed error classes using `@fastify/error`'s `createError()`: `UnauthorizedError`, `ProfileIncompleteError`, `TripNotFoundError`, `PermissionDeniedError`, `MemberLimitExceededError`, `CoOrganizerNotFoundError`, `CannotRemoveCreatorError`, `DuplicateMemberError`, `CoOrganizerNotInTripError`, `FileTooLargeError`, `InvalidFileTypeError`, `InvalidCodeError`. Each has a proper HTTP status code and error code.
+
+2. **Updated services to throw typed errors** — `trip.service.ts` (16 error sites), `upload.service.ts` (2 error sites) now throw typed errors instead of `throw new Error("string")`. Internal invariant errors (e.g., "Failed to create trip") kept as generic `Error` since they become 500s.
+
+3. **Updated error middleware** — Added handling for `@fastify/error` typed errors (detected via `statusCode < 500 && code`), wrapping them in the standard `{ success: false, error: { code, message } }` envelope. Also added `hasZodFastifySchemaValidationErrors` handling for Zod route schema validation errors.
+
+4. **Removed manual `safeParse()` from controllers** — All 12 `schema.safeParse(request.body)` / `uuidSchema.safeParse(id)` calls removed from `auth.controller.ts` and `trip.controller.ts`. Fastify route schemas now handle validation automatically.
+
+5. **Removed string-based error matching from controllers** — All `error.message.startsWith(...)` / `error.message === ...` patterns in catch blocks replaced with typed error re-throw: `if (error && typeof error === "object" && "statusCode" in error) { throw error; }`.
+
+6. **Added Zod route schemas to all routes** — `auth.routes.ts` (3 routes with body schemas), `trip.routes.ts` (8 routes with params/body schemas). Multipart routes correctly skip body schema. Set up `validatorCompiler` and `serializerCompiler` from `fastify-type-provider-zod` in `app.ts`.
+
+7. **Registered `@fastify/helmet`** — Security headers with `contentSecurityPolicy: false` (API-only server).
+
+8. **Added rate limiting to verify-code** — 10 attempts per 15 minutes per phone number via `verifyCodeRateLimitConfig` in `rate-limit.middleware.ts`.
+
+9. **Registered `@fastify/under-pressure`** — Load shedding with sensible defaults (1s event loop delay, 1GB heap, 1.5GB RSS).
+
+10. **Added `setNotFoundHandler`** — Consistent 404 responses for unknown routes in the standard error envelope format.
+
+11. **Added `TRUST_PROXY` env variable** — Boolean (default false) in `config/env.ts`, used in Fastify constructor for correct `request.ip` behind load balancers.
+
+12. **Created 9 new integration tests** in `tests/integration/security.test.ts` — schema validation (invalid UUID, missing body), security headers (helmet), not-found handler, rate limiting on verify-code, error envelope consistency.
+
+13. **Updated existing tests** — `trip.routes.test.ts` updated `FORBIDDEN` → `PERMISSION_DENIED` for cover image permission errors, validation message format updates for schema-driven validation, `VALIDATION_ERROR` → `INVALID_FILE_TYPE` for file type checks.
+
+### Files Changed
+
+- `src/errors.ts` — Created (12 typed error classes)
+- `src/app.ts` — Modified (helmet, under-pressure, zod compilers, not-found handler, trust proxy)
+- `src/config/env.ts` — Modified (TRUST_PROXY env variable)
+- `src/middleware/error.middleware.ts` — Modified (typed error + Zod validation handling)
+- `src/middleware/rate-limit.middleware.ts` — Modified (verify-code rate limit config)
+- `src/services/trip.service.ts` — Modified (typed errors)
+- `src/services/upload.service.ts` — Modified (typed errors)
+- `src/controllers/auth.controller.ts` — Modified (removed safeParse, typed error handling)
+- `src/controllers/trip.controller.ts` — Modified (removed safeParse, string matching, simplified catch blocks)
+- `src/routes/auth.routes.ts` — Modified (Zod route schemas, verify-code rate limit)
+- `src/routes/trip.routes.ts` — Modified (Zod route schemas for params/body)
+- `tests/integration/security.test.ts` — Created (9 new tests)
+- `tests/integration/trip.routes.test.ts` — Modified (error code updates)
+- `package.json` — Modified (new dependencies)
+- `pnpm-lock.yaml` — Updated
+
+### Verification Results
+
+- **TypeScript**: PASS (0 errors across all 3 packages)
+- **Tests**: PASS (804 total: 357 API, 83 shared, 364 web — 0 failures)
+- **Lint**: PASS (0 errors)
+- **Structural checks**: All 17 pass (errors.ts, helmet, under-pressure, not-found handler, TRUST_PROXY, no safeParse in controllers, no string error matching in controllers, Zod compilers, route schemas, security tests, verify-code rate limit, typed errors in services, packages installed)
+
+### Reviewer Notes
+
+- APPROVED with only LOW severity observations:
+  - `TripNotFoundError` and `CoOrganizerNotInTripError` share error code `NOT_FOUND` — acceptable, differentiated by message
+  - `DuplicateMemberError` defined but not yet used (pre-defined for future constraint handling)
+  - `GET /api/trips` querystring (page/limit) still manually parsed in controller rather than via route schema — functional, non-blocking
+  - `as` type casts on `request.body`/`request.params` remain since handlers are separate functions without generic type params — idiomatic Fastify pattern when not using inline handlers
+
+### Learnings for Future Iterations
+
+- **`fastify-type-provider-zod` v4 for Zod 3 compatibility**: The codebase uses Zod 3.24.1. The `@fastify/type-provider-zod` v6+ requires Zod 4. Using `fastify-type-provider-zod@4.0.2` (community package) provides Zod 3 compatibility.
+- **`hasZodFastifySchemaValidationErrors` for error detection**: The `fastify-type-provider-zod` package exports `hasZodFastifySchemaValidationErrors(error)` to distinguish Zod schema validation errors from other Fastify errors in the error handler.
+- **Typed error re-throw pattern**: In controller catch blocks, checking `"statusCode" in error` and re-throwing lets typed errors propagate to the centralized error handler while keeping 500 fallback for unexpected errors.
+- **Multipart routes skip body schema**: Routes using `@fastify/multipart` (cover-image upload) cannot use JSON body schemas since the body is a multipart stream. Only params schema applies.
+- **Error code backward compatibility**: Using `NOT_FOUND` instead of `TRIP_NOT_FOUND` preserved existing test expectations. When introducing typed errors, matching existing error codes minimizes test churn.
+- **Controller code reduction**: Removing manual `safeParse()` and string-based error matching significantly reduced controller boilerplate (trip controller from ~970 to ~620 lines). Centralized error handling is cleaner.
+- **Rate limit test isolation**: Tests for route-specific rate limits need their own app instance without global rate limit disabled (`buildApp({ fastify: { logger: false } })` without `rateLimit: { global: false }`).

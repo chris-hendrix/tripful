@@ -6,6 +6,12 @@ import jwt from "@fastify/jwt";
 import rateLimit from "@fastify/rate-limit";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
+import helmet from "@fastify/helmet";
+import underPressure from "@fastify/under-pressure";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import { resolve } from "node:path";
 
 // Plugins
@@ -26,6 +32,9 @@ import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { tripRoutes } from "./routes/trip.routes.js";
 
+// Config
+import { env } from "./config/env.js";
+
 // Import types to ensure module augmentations are loaded
 import "./types/index.js";
 
@@ -45,7 +54,14 @@ export interface BuildAppOptions {
 export async function buildApp(
   opts: BuildAppOptions = {},
 ): Promise<FastifyInstance> {
-  const app = Fastify(opts.fastify ?? {});
+  const app = Fastify({
+    ...opts.fastify,
+    trustProxy: env.TRUST_PROXY ?? false,
+  });
+
+  // Set Zod validator and serializer compilers
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
   // Register config plugin (must be first - other plugins depend on it)
   await app.register(configPlugin);
@@ -61,6 +77,11 @@ export async function buildApp(
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["X-Total-Count"],
     maxAge: 86400, // 24 hours
+  });
+
+  // Register helmet (security headers)
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
   });
 
   // Register cookie plugin (must be before JWT)
@@ -107,6 +128,14 @@ export async function buildApp(
     decorateReply: false,
   });
 
+  // Register under-pressure (health monitoring)
+  await app.register(underPressure, {
+    maxEventLoopDelay: 1000,
+    maxHeapUsedBytes: 1_000_000_000,
+    maxRssBytes: 1_500_000_000,
+    retryAfter: 50,
+  });
+
   // Register service plugins
   await app.register(smsServicePlugin);
   await app.register(healthServicePlugin);
@@ -122,6 +151,17 @@ export async function buildApp(
   await app.register(healthRoutes, { prefix: "/api/health" });
   await app.register(authRoutes, { prefix: "/api/auth" });
   await app.register(tripRoutes, { prefix: "/api/trips" });
+
+  // Not-found handler for unmatched routes
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: `Route ${request.method} ${request.url} not found`,
+      },
+    });
+  });
 
   return app;
 }

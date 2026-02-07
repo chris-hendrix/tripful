@@ -36,6 +36,9 @@ const envSchema = z.object({
     .url("FRONTEND_URL must be a valid URL")
     .default("http://localhost:3000"),
 
+  // Proxy
+  TRUST_PROXY: z.coerce.boolean().default(false),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])

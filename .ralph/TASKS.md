@@ -46,7 +46,7 @@
 
 ## Phase 3: Route Schemas, Typed Errors & Security
 
-- [ ] Task 3.1: Add Zod route schemas, @fastify/error typed errors, helmet, rate limiting, and security hardening
+- [x] Task 3.1: Add Zod route schemas, @fastify/error typed errors, helmet, rate limiting, and security hardening
   - Implement: Create `src/errors.ts` — define typed error classes with `@fastify/error` `createError()` (UnauthorizedError, TripNotFoundError, PermissionDeniedError, MemberLimitExceededError, CoOrganizerNotFoundError, CannotRemoveCreatorError, DuplicateMemberError, FileTooLargeError, InvalidFileTypeError, ProfileIncompleteError)
   - Implement: Update services to throw typed errors instead of generic `new Error("Permission denied: ...")` strings
   - Implement: Update `src/middleware/error.middleware.ts` — handle `@fastify/error` instances by reading `.statusCode` and `.code`, remove string-based matching

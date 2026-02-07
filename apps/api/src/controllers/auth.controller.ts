@@ -1,10 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import {
-  requestCodeSchema,
-  verifyCodeSchema,
-  completeProfileSchema,
-} from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
+import { InvalidCodeError } from "../errors.js";
 
 /**
  * Authentication Controller
@@ -21,21 +17,8 @@ export const authController = {
    * @returns Success response with message
    */
   async requestCode(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = requestCodeSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { phoneNumber } = result.data;
+    // Body is validated by Fastify route schema
+    const { phoneNumber } = request.body as { phoneNumber: string };
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -70,6 +53,11 @@ export const authController = {
         message: "Verification code sent",
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, phoneNumber: e164PhoneNumber },
@@ -97,21 +85,11 @@ export const authController = {
    * @returns Success response with user and requiresProfile flag
    */
   async verifyCode(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = verifyCodeSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { phoneNumber, code } = result.data;
+    // Body is validated by Fastify route schema
+    const { phoneNumber, code } = request.body as {
+      phoneNumber: string;
+      code: string;
+    };
 
     // Validate phone number format and get E.164 format
     const phoneValidation = validatePhoneNumber(phoneNumber);
@@ -135,13 +113,7 @@ export const authController = {
       const isValid = await authService.verifyCode(e164PhoneNumber, code);
 
       if (!isValid) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "INVALID_CODE",
-            message: "Invalid or expired verification code",
-          },
-        });
+        throw new InvalidCodeError("Invalid or expired verification code");
       }
 
       // Get existing user or create new one
@@ -173,6 +145,11 @@ export const authController = {
         requiresProfile,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, phoneNumber: e164PhoneNumber },
@@ -202,21 +179,11 @@ export const authController = {
    * @returns Success response with updated user
    */
   async completeProfile(request: FastifyRequest, reply: FastifyReply) {
-    // Validate request body with Zod schema
-    const result = completeProfileSchema.safeParse(request.body);
-
-    if (!result.success) {
-      return reply.status(400).send({
-        success: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid request data",
-          details: result.error.issues,
-        },
-      });
-    }
-
-    const { displayName, timezone } = result.data;
+    // Body is validated by Fastify route schema
+    const { displayName, timezone } = request.body as {
+      displayName: string;
+      timezone?: string;
+    };
 
     try {
       const { authService } = request.server;
@@ -248,6 +215,11 @@ export const authController = {
         user: updatedUser,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, userId: request.user.sub },
@@ -302,6 +274,11 @@ export const authController = {
         user: result,
       });
     } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
       // Log error for debugging
       request.log.error(
         { error, userId: request.user.sub },

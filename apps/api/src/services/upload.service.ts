@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { env } from "@/config/env.js";
+import { InvalidFileTypeError, FileTooLargeError } from "../errors.js";
 
 /**
  * Upload Service Interface
@@ -83,12 +84,16 @@ export class UploadService implements IUploadService {
   async validateImage(file: Buffer, mimetype: string): Promise<void> {
     // Check MIME type
     if (!this.ALLOWED_MIME_TYPES.includes(mimetype)) {
-      throw new Error("Invalid file type. Only JPG, PNG, and WEBP are allowed");
+      throw new InvalidFileTypeError(
+        "Invalid file type. Only JPG, PNG, and WEBP are allowed",
+      );
     }
 
     // Check file size (5MB max)
     if (file.length > this.MAX_FILE_SIZE) {
-      throw new Error("Image must be under 5MB. Please choose a smaller file");
+      throw new FileTooLargeError(
+        "Image must be under 5MB. Please choose a smaller file",
+      );
     }
   }
 

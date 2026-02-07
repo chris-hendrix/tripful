@@ -1192,7 +1192,7 @@ describe("GET /api/trips/:id", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid trip ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
 
     it("should return 404 when trip does not exist", async () => {
@@ -1730,7 +1730,7 @@ describe("PUT /api/trips/:id", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid trip ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
 
     it("should return 400 for invalid request data", async () => {
@@ -2293,7 +2293,7 @@ describe("DELETE /trips/:id", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid trip ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
   });
 
@@ -2772,7 +2772,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid trip ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
 
     it("should return 400 for invalid phone format", async () => {
@@ -3291,7 +3291,7 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
 
     it("should return 400 for invalid user ID format", async () => {
@@ -3324,7 +3324,7 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("VALIDATION_ERROR");
-      expect(body.error.message).toBe("Invalid ID format");
+      expect(body.error.message).toBe("Invalid request data");
     });
 
     it("should return 400 when trying to remove trip creator", async () => {
@@ -3935,7 +3935,7 @@ describe("POST /api/trips/:id/cover-image", () => {
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.code).toBe("INVALID_FILE_TYPE");
       expect(body.error.message).toContain("Invalid file type");
     });
 
@@ -4103,7 +4103,7 @@ describe("POST /api/trips/:id/cover-image", () => {
       expect(response.statusCode).toBe(403);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe("FORBIDDEN");
+      expect(body.error.code).toBe("PERMISSION_DENIED");
     });
   });
 
@@ -4416,7 +4416,7 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       expect(response.statusCode).toBe(403);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe("FORBIDDEN");
+      expect(body.error.code).toBe("PERMISSION_DENIED");
     });
   });
 

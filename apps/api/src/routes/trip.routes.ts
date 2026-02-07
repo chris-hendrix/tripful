@@ -1,9 +1,25 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { tripController } from "@/controllers/trip.controller.js";
 import {
   authenticate,
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
+import {
+  createTripSchema,
+  updateTripSchema,
+  addCoOrganizerSchema,
+} from "@tripful/shared/schemas";
+
+// Reusable param schemas
+const tripIdParamsSchema = z.object({
+  id: z.string().uuid({ message: "Invalid trip ID format" }),
+});
+
+const removeCoOrganizerParamsSchema = z.object({
+  id: z.string().uuid({ message: "Invalid ID format" }),
+  userId: z.string().uuid({ message: "Invalid ID format" }),
+});
 
 /**
  * Trip Routes
@@ -33,6 +49,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/",
     {
+      schema: {
+        body: createTripSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.createTrip,
@@ -47,6 +66,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/:id",
     {
+      schema: {
+        params: tripIdParamsSchema,
+      },
       preHandler: authenticate,
     },
     tripController.getTripById,
@@ -61,6 +83,10 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.put(
     "/:id",
     {
+      schema: {
+        params: tripIdParamsSchema,
+        body: updateTripSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.updateTrip,
@@ -75,6 +101,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id",
     {
+      schema: {
+        params: tripIdParamsSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.cancelTrip,
@@ -89,6 +118,10 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/:id/co-organizers",
     {
+      schema: {
+        params: tripIdParamsSchema,
+        body: addCoOrganizerSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.addCoOrganizer,
@@ -103,6 +136,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id/co-organizers/:userId",
     {
+      schema: {
+        params: removeCoOrganizerParamsSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.removeCoOrganizer,
@@ -113,10 +149,14 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Upload cover image for trip
    * Requires authentication and complete profile
    * Only organizers can upload cover images
+   * Note: No body schema for multipart routes
    */
   fastify.post(
     "/:id/cover-image",
     {
+      schema: {
+        params: tripIdParamsSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.uploadCoverImage,
@@ -131,6 +171,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
   fastify.delete(
     "/:id/cover-image",
     {
+      schema: {
+        params: tripIdParamsSchema,
+      },
       preHandler: [authenticate, requireCompleteProfile],
     },
     tripController.deleteCoverImage,

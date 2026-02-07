@@ -84,7 +84,9 @@ test.describe("Complete Auth Flow", () => {
   });
 
   // TODO: Un-skip when logout functionality is implemented (no logout button/endpoint exists yet)
-  test.skip("logout clears session and redirects to login", async ({ page }) => {
+  test.skip("logout clears session and redirects to login", async ({
+    page,
+  }) => {
     const phone = `+1555${Date.now()}`;
 
     // Complete auth flow first to get logged in

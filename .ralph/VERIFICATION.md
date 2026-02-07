@@ -3,6 +3,7 @@
 ## Environment Setup
 
 ### Prerequisites
+
 - Node.js 20+
 - pnpm 9+
 - Docker (for PostgreSQL)
@@ -20,11 +21,13 @@ docker compose ps
 ### Environment Variables
 
 Copy from example if not present:
+
 ```bash
 cp apps/api/.env.example apps/api/.env  # if missing
 ```
 
 Required variables in `apps/api/.env`:
+
 ```
 DATABASE_URL=postgresql://tripful:tripful@localhost:5433/tripful
 JWT_SECRET=<min 32 chars, auto-generated if missing>
@@ -32,6 +35,7 @@ FRONTEND_URL=http://localhost:3000
 ```
 
 New variables added by this work (all have defaults):
+
 ```
 COOKIE_SECURE=false          # Set true in production
 EXPOSE_ERROR_DETAILS=true    # Set false in production
@@ -49,21 +53,25 @@ pnpm db:migrate
 ## Test Commands
 
 ### All Tests (primary verification)
+
 ```bash
 pnpm test
 ```
 
 ### Unit Tests Only
+
 ```bash
 cd apps/api && pnpm vitest run --reporter=verbose
 ```
 
 ### Integration Tests Only
+
 ```bash
 cd apps/api && pnpm vitest run tests/integration/ --reporter=verbose
 ```
 
 ### E2E Tests
+
 ```bash
 # Requires both web and api running
 pnpm dev &   # Start both servers
@@ -71,30 +79,33 @@ pnpm test:e2e
 ```
 
 ### Type Checking
+
 ```bash
 pnpm typecheck
 ```
 
 ### Linting
+
 ```bash
 pnpm lint
 ```
 
 ### Formatting Check
+
 ```bash
 pnpm format --check
 ```
 
 ## Ports and URLs
 
-| Service | URL | Port |
-|---------|-----|------|
-| API (dev) | http://localhost:8000 | 8000 |
-| Frontend (dev) | http://localhost:3000 | 3000 |
-| PostgreSQL | localhost:5433 | 5433 (external) → 5432 (container) |
-| Health check | http://localhost:8000/api/health | 8000 |
-| Health live | http://localhost:8000/api/health/live | 8000 |
-| Health ready | http://localhost:8000/api/health/ready | 8000 |
+| Service        | URL                                    | Port                               |
+| -------------- | -------------------------------------- | ---------------------------------- |
+| API (dev)      | http://localhost:8000                  | 8000                               |
+| Frontend (dev) | http://localhost:3000                  | 3000                               |
+| PostgreSQL     | localhost:5433                         | 5433 (external) → 5432 (container) |
+| Health check   | http://localhost:8000/api/health       | 8000                               |
+| Health live    | http://localhost:8000/api/health/live  | 8000                               |
+| Health ready   | http://localhost:8000/api/health/ready | 8000                               |
 
 ## Test Credentials
 
@@ -105,17 +116,17 @@ pnpm format --check
 ## Verification Checklist
 
 After each task, run:
+
 1. `pnpm typecheck` — TypeScript compilation
 2. `pnpm test` — All unit + integration tests
 3. `pnpm lint` — ESLint checks
 
-After final task, additionally run:
-4. `pnpm test:e2e` — Playwright E2E tests
-5. `pnpm format --check` — Prettier formatting
+After final task, additionally run: 4. `pnpm test:e2e` — Playwright E2E tests 5. `pnpm format --check` — Prettier formatting
 
 ## Manual Verification
 
 ### API Smoke Test
+
 ```bash
 # Start API
 cd apps/api && pnpm dev

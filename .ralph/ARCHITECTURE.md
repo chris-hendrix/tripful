@@ -5,6 +5,7 @@ Comprehensive refactor of the Tripful API based on Drizzle ORM and Fastify best 
 ## Overview
 
 Address all findings from two code audits:
+
 1. **Drizzle ORM audit** — transactions, unique constraints, relations, count aggregates, pagination, schema improvements
 2. **Fastify best practices audit** — plugin architecture, route schemas with Zod type provider, typed errors, security headers, logging, configuration, graceful shutdown
 
@@ -49,12 +50,16 @@ Each service becomes a plugin that declares dependencies:
 
 ```typescript
 // src/plugins/auth-service.ts
-export default fp(async (fastify) => {
-  fastify.decorate("authService", new AuthService(fastify.db, fastify.jwt));
-}, { name: "auth-service", dependencies: ["database"] });
+export default fp(
+  async (fastify) => {
+    fastify.decorate("authService", new AuthService(fastify.db, fastify.jwt));
+  },
+  { name: "auth-service", dependencies: ["database"] },
+);
 ```
 
 Services to convert:
+
 - `auth.service.ts` → `plugins/auth-service.ts` (depends on: database, jwt)
 - `trip.service.ts` → `plugins/trip-service.ts` (depends on: database)
 - `permissions.service.ts` → `plugins/permissions-service.ts` (depends on: database)
@@ -107,7 +112,11 @@ closeWithGrace(async ({ signal, err }) => { await app.close(); });
 Register the Zod type provider on the Fastify instance:
 
 ```typescript
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "@fastify/type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from "@fastify/type-provider-zod";
 
 const app = Fastify().withTypeProvider<ZodTypeProvider>();
 app.setValidatorCompiler(validatorCompiler);
@@ -120,42 +129,47 @@ Every route gets `schema` with `params`, `body`, `querystring`, and `response`:
 
 ```typescript
 // Example: GET /api/trips/:id
-fastify.get("/:id", {
-  schema: {
-    params: z.object({ id: z.string().uuid() }),
-    response: {
-      200: tripDetailResponseSchema,
-      404: errorResponseSchema,
+fastify.get(
+  "/:id",
+  {
+    schema: {
+      params: z.object({ id: z.string().uuid() }),
+      response: {
+        200: tripDetailResponseSchema,
+        404: errorResponseSchema,
+      },
     },
   },
-}, tripController.getTripById);
+  tripController.getTripById,
+);
 ```
 
 Reuse existing Zod schemas from `@tripful/shared/schemas` where possible. Create new response schemas as needed.
 
 ### Routes to Add Schemas
 
-| Route | Params | Body | Query | Response |
-|-------|--------|------|-------|----------|
-| `GET /api/health` | - | - | - | 200 |
-| `POST /api/auth/request-code` | - | phone | - | 200, 400, 429 |
-| `POST /api/auth/verify-code` | - | phone, code | - | 200, 400, 401 |
-| `POST /api/auth/complete-profile` | - | displayName, timezone? | - | 200, 400 |
-| `GET /api/auth/me` | - | - | - | 200, 401 |
-| `POST /api/auth/logout` | - | - | - | 200 |
-| `GET /api/trips` | - | - | page?, limit? | 200 |
-| `POST /api/trips` | - | createTrip | - | 201, 400, 409 |
-| `GET /api/trips/:id` | id (uuid) | - | - | 200, 404 |
-| `PUT /api/trips/:id` | id (uuid) | updateTrip | - | 200, 400, 403, 404 |
-| `DELETE /api/trips/:id` | id (uuid) | - | - | 200, 403, 404 |
-| `POST /api/trips/:id/co-organizers` | id (uuid) | phone | - | 200, 400, 403 |
-| `DELETE /api/trips/:id/co-organizers/:userId` | id, userId (uuid) | - | - | 200, 400, 403, 404 |
-| `POST /api/trips/:id/cover-image` | id (uuid) | multipart | - | 200, 400, 403 |
-| `DELETE /api/trips/:id/cover-image` | id (uuid) | - | - | 200, 403, 404 |
+| Route                                         | Params            | Body                   | Query         | Response           |
+| --------------------------------------------- | ----------------- | ---------------------- | ------------- | ------------------ |
+| `GET /api/health`                             | -                 | -                      | -             | 200                |
+| `POST /api/auth/request-code`                 | -                 | phone                  | -             | 200, 400, 429      |
+| `POST /api/auth/verify-code`                  | -                 | phone, code            | -             | 200, 400, 401      |
+| `POST /api/auth/complete-profile`             | -                 | displayName, timezone? | -             | 200, 400           |
+| `GET /api/auth/me`                            | -                 | -                      | -             | 200, 401           |
+| `POST /api/auth/logout`                       | -                 | -                      | -             | 200                |
+| `GET /api/trips`                              | -                 | -                      | page?, limit? | 200                |
+| `POST /api/trips`                             | -                 | createTrip             | -             | 201, 400, 409      |
+| `GET /api/trips/:id`                          | id (uuid)         | -                      | -             | 200, 404           |
+| `PUT /api/trips/:id`                          | id (uuid)         | updateTrip             | -             | 200, 400, 403, 404 |
+| `DELETE /api/trips/:id`                       | id (uuid)         | -                      | -             | 200, 403, 404      |
+| `POST /api/trips/:id/co-organizers`           | id (uuid)         | phone                  | -             | 200, 400, 403      |
+| `DELETE /api/trips/:id/co-organizers/:userId` | id, userId (uuid) | -                      | -             | 200, 400, 403, 404 |
+| `POST /api/trips/:id/cover-image`             | id (uuid)         | multipart              | -             | 200, 400, 403      |
+| `DELETE /api/trips/:id/cover-image`           | id (uuid)         | -                      | -             | 200, 403, 404      |
 
 ### Controller Simplification
 
 With route schemas handling validation, controllers no longer need:
+
 - Manual `safeParse()` calls
 - UUID format checks
 - `as` type casts on `request.params`
@@ -173,14 +187,34 @@ import createError from "@fastify/error";
 
 // Auth errors
 export const UnauthorizedError = createError("UNAUTHORIZED", "%s", 401);
-export const ProfileIncompleteError = createError("PROFILE_INCOMPLETE", "%s", 403);
+export const ProfileIncompleteError = createError(
+  "PROFILE_INCOMPLETE",
+  "%s",
+  403,
+);
 
 // Trip errors
 export const TripNotFoundError = createError("TRIP_NOT_FOUND", "%s", 404);
-export const PermissionDeniedError = createError("PERMISSION_DENIED", "%s", 403);
-export const MemberLimitExceededError = createError("MEMBER_LIMIT_EXCEEDED", "%s", 409);
-export const CoOrganizerNotFoundError = createError("CO_ORGANIZER_NOT_FOUND", "%s", 400);
-export const CannotRemoveCreatorError = createError("CANNOT_REMOVE_CREATOR", "%s", 400);
+export const PermissionDeniedError = createError(
+  "PERMISSION_DENIED",
+  "%s",
+  403,
+);
+export const MemberLimitExceededError = createError(
+  "MEMBER_LIMIT_EXCEEDED",
+  "%s",
+  409,
+);
+export const CoOrganizerNotFoundError = createError(
+  "CO_ORGANIZER_NOT_FOUND",
+  "%s",
+  400,
+);
+export const CannotRemoveCreatorError = createError(
+  "CANNOT_REMOVE_CREATOR",
+  "%s",
+  400,
+);
 export const DuplicateMemberError = createError("DUPLICATE_MEMBER", "%s", 409);
 
 // Upload errors
@@ -208,6 +242,7 @@ const trip = await fastify.db.transaction(async (tx) => {
 ```
 
 Methods needing transactions:
+
 - `createTrip()` — trip + creator member + co-organizer members
 - `addCoOrganizers()` — member count check + inserts (race condition)
 - `cancelTrip()` — could be wrapped for consistency
@@ -293,11 +328,13 @@ Add rate limiting to `POST /api/auth/verify-code`:
 
 ```typescript
 // 10 attempts per 15 minutes per phone number
-preHandler: [fastify.rateLimit({
-  max: 10,
-  timeWindow: "15 minutes",
-  keyGenerator: (request) => request.body?.phoneNumber || request.ip,
-})]
+preHandler: [
+  fastify.rateLimit({
+    max: 10,
+    timeWindow: "15 minutes",
+    keyGenerator: (request) => request.body?.phoneNumber || request.ip,
+  }),
+];
 ```
 
 ### @fastify/under-pressure
@@ -316,6 +353,7 @@ await app.register(underPressure, {
 ### Replace console.log
 
 All `console.log`/`console.error` calls → `fastify.log.info()`/`fastify.log.error()`. Files:
+
 - `config/database.ts` (lines 23-24, 28, 34) — becomes plugin, uses `fastify.log`
 - `config/env.ts` (lines 69-72) — runs before Fastify, keep `console.error` here only
 - `config/jwt.ts` (line 38) — use `fastify.log` after plugin refactor
@@ -327,7 +365,11 @@ All `console.log`/`console.error` calls → `fastify.log.info()`/`fastify.log.er
 const app = Fastify({
   logger: {
     level: config.LOG_LEVEL,
-    redact: ["req.headers.authorization", "req.headers.cookie", "req.body.phoneNumber"],
+    redact: [
+      "req.headers.authorization",
+      "req.headers.cookie",
+      "req.body.phoneNumber",
+    ],
   },
 });
 ```
@@ -357,6 +399,7 @@ Replace all `process.env.NODE_ENV` checks in services/controllers with these fla
 ### process.cwd() → import.meta.dirname
 
 Replace in:
+
 - `config/jwt.ts` line 17
 - `server.ts` line 80 (static file serving)
 
@@ -408,7 +451,10 @@ await app.register(multipart, {
 fastify.setNotFoundHandler((request, reply) => {
   reply.status(404).send({
     success: false,
-    error: { code: "NOT_FOUND", message: `Route ${request.method} ${request.url} not found` },
+    error: {
+      code: "NOT_FOUND",
+      message: `Route ${request.method} ${request.url} not found`,
+    },
   });
 });
 ```
@@ -420,12 +466,14 @@ Add `TRUST_PROXY` env variable (default: false). Set on Fastify instance for cor
 ## Testing Strategy
 
 ### Unit Tests
+
 - Service methods (with mocked db via plugin decoration)
 - Error class instantiation and properties
 - Env config validation
 - Phone validation utilities
 
 ### Integration Tests
+
 - All API endpoints with route schema validation (400 on bad input)
 - Transaction rollback behavior (create trip with invalid co-organizer)
 - Unique constraint enforcement (duplicate member)
@@ -435,9 +483,11 @@ Add `TRUST_PROXY` env variable (default: false). Set on Fastify instance for cor
 - Graceful shutdown behavior
 
 ### E2E Tests
+
 - Existing Playwright E2E tests must continue passing
 - No new E2E tests needed (backend-only changes)
 
 ### Regression
+
 - All existing tests updated to use `buildApp()` from `src/app.ts`
 - Full test suite run after each task

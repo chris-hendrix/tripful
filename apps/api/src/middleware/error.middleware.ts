@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 
 export async function errorHandler(
   error: FastifyError,
@@ -16,7 +17,19 @@ export async function errorHandler(
     },
   });
 
-  // Validation errors (Zod, Fastify schema)
+  // Zod validation errors from fastify-type-provider-zod
+  if (hasZodFastifySchemaValidationErrors(error)) {
+    return reply.status(400).send({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid request data",
+        details: error.validation,
+      },
+    });
+  }
+
+  // Validation errors (Fastify native schema)
   if (error.validation) {
     return reply.status(400).send({
       success: false,
@@ -95,6 +108,17 @@ export async function errorHandler(
       error: {
         code: "DATABASE_CONSTRAINT_VIOLATION",
         message: "Database constraint violation",
+      },
+    });
+  }
+
+  // Handle custom @fastify/error instances (typed errors with statusCode and code)
+  if (error.statusCode && error.statusCode < 500 && error.code) {
+    return reply.status(error.statusCode).send({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message,
       },
     });
   }
