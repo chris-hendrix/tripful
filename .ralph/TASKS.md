@@ -2,7 +2,7 @@
 
 ## Phase 1: Design Foundation
 
-- [ ] Task 1.1: Set up design token system, fonts, and gradient button variant
+- [x] Task 1.1: Set up design token system, fonts, and gradient button variant
   - Implement: Update `apps/web/src/app/globals.css` — replace entire `@theme` block with Vivid Capri palette (primary, accent, background, foreground, card, muted, border, input, ring, secondary, destructive, popover, plus new success/warning tokens). Remove dark mode CSS variables under `:root[class~="dark"]`.
   - Implement: Update `apps/web/src/lib/fonts.ts` — add DM Sans font with `--font-dm-sans` CSS variable alongside existing Playfair Display.
   - Implement: Update `apps/web/src/app/layout.tsx` — add both font variables to `<html>` className, add `suppressHydrationWarning`.
