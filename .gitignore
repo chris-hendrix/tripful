@@ -44,6 +44,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Claude
+.claude/
+
 # IDEs
 .vscode/
 .idea/
