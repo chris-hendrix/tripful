@@ -1,6 +1,7 @@
 # Phase 4: Itinerary View Modes - Tasks
 
 ## Task Status Legend
+
 - `[ ]` - Not started
 - `[x]` - Completed
 
@@ -64,7 +65,7 @@ Create Zod validation schemas for events, accommodations, and member travel in t
 
 ---
 
-- [ ] Task 3: Permissions Service Extensions
+- [x] Task 3: Permissions Service Extensions
 
 Extend the existing PermissionsService to support fine-grained permissions for events, accommodations, and member travel.
 
@@ -483,6 +484,7 @@ Update documentation and prepare for deployment.
 ## Summary
 
 **Total Tasks**: 11 large-grained tasks covering:
+
 1. Database schema and migrations
 2. Shared validation schemas
 3. Permissions service extensions

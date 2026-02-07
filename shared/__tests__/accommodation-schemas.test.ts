@@ -30,7 +30,9 @@ describe("createAccommodationSchema", () => {
     ];
 
     validAccommodations.forEach((accommodation) => {
-      expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
+      expect(() =>
+        createAccommodationSchema.parse(accommodation),
+      ).not.toThrow();
     });
   });
 
@@ -58,7 +60,9 @@ describe("createAccommodationSchema", () => {
     ];
 
     accommodations.forEach((accommodation) => {
-      expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
+      expect(() =>
+        createAccommodationSchema.parse(accommodation),
+      ).not.toThrow();
     });
   });
 
@@ -72,9 +76,7 @@ describe("createAccommodationSchema", () => {
     const result = createAccommodationSchema.safeParse(accommodation);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        "at least 1 character",
-      );
+      expect(result.error.issues[0]?.message).toContain("at least 1 character");
     }
   });
 
@@ -166,7 +168,9 @@ describe("createAccommodationSchema", () => {
         checkOut,
       };
 
-      expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
+      expect(() =>
+        createAccommodationSchema.parse(accommodation),
+      ).not.toThrow();
     });
   });
 
@@ -290,7 +294,9 @@ describe("createAccommodationSchema", () => {
         links,
       };
 
-      expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
+      expect(() =>
+        createAccommodationSchema.parse(accommodation),
+      ).not.toThrow();
     });
   });
 
@@ -306,9 +312,7 @@ describe("createAccommodationSchema", () => {
     const result = createAccommodationSchema.safeParse(accommodation);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        "not exceed 10 items",
-      );
+      expect(result.error.issues[0]?.message).toContain("not exceed 10 items");
     }
   });
 

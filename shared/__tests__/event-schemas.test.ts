@@ -64,8 +64,16 @@ describe("createEventSchema", () => {
 
   it("should accept event name at boundary lengths", () => {
     const events = [
-      { name: "A", eventType: "meal" as const, startTime: "2026-07-15T12:00:00Z" }, // Minimum (1)
-      { name: "a".repeat(255), eventType: "activity" as const, startTime: "2026-07-15T12:00:00Z" }, // Maximum (255)
+      {
+        name: "A",
+        eventType: "meal" as const,
+        startTime: "2026-07-15T12:00:00Z",
+      }, // Minimum (1)
+      {
+        name: "a".repeat(255),
+        eventType: "activity" as const,
+        startTime: "2026-07-15T12:00:00Z",
+      }, // Maximum (255)
     ];
 
     events.forEach((event) => {
@@ -83,9 +91,7 @@ describe("createEventSchema", () => {
     const result = createEventSchema.safeParse(event);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        "at least 1 character",
-      );
+      expect(result.error.issues[0]?.message).toContain("at least 1 character");
     }
   });
 
@@ -356,9 +362,7 @@ describe("createEventSchema", () => {
     const result = createEventSchema.safeParse(event);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        "not exceed 10 items",
-      );
+      expect(result.error.issues[0]?.message).toContain("not exceed 10 items");
     }
   });
 

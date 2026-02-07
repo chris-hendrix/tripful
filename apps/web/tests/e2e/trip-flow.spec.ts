@@ -666,7 +666,11 @@ test.describe("Trip Flow", () => {
     const userBPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
 
     // Authenticate User A
-    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userAPhone,
+      "User A - Trip Creator",
+    );
 
     const tripName = `Co-Org Test Trip ${timestamp}`;
     const tripDestination = "Amsterdam, Netherlands";
@@ -702,11 +706,19 @@ test.describe("Trip Flow", () => {
 
     // Step 2: Create User B by authenticating them first
     await page.context().clearCookies();
-    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userBPhone,
+      "User B - Co-Organizer",
+    );
 
     // Step 3: Switch back to User A to add User B as co-organizer
     await page.context().clearCookies();
-    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userAPhone,
+      "User A - Trip Creator",
+    );
 
     // Navigate back to the trip
     await page.goto(`/trips/${tripId}`);
@@ -727,7 +739,11 @@ test.describe("Trip Flow", () => {
 
     // Step 4: Switch to User B and verify co-organizer permissions
     await page.context().clearCookies();
-    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userBPhone,
+      "User B - Co-Organizer",
+    );
 
     // Navigate to the trip
     await page.goto(`/trips/${tripId}`);
@@ -770,7 +786,11 @@ test.describe("Trip Flow", () => {
 
     // Step 6: Switch back to User A to remove User B as co-organizer
     await page.context().clearCookies();
-    await authenticateUserViaBrowserWithPhone(page, userAPhone, "User A - Trip Creator");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userAPhone,
+      "User A - Trip Creator",
+    );
 
     // Navigate to trip and get User B's ID from trip data
     const tripResponse = await page.request.get(
@@ -795,7 +815,11 @@ test.describe("Trip Flow", () => {
 
     // Step 7: Switch to User B and verify co-organizer permissions removed
     await page.context().clearCookies();
-    await authenticateUserViaBrowserWithPhone(page, userBPhone, "User B - Co-Organizer");
+    await authenticateUserViaBrowserWithPhone(
+      page,
+      userBPhone,
+      "User B - Co-Organizer",
+    );
 
     // Attempt to access the trip
     await page.goto(`/trips/${tripId}`);

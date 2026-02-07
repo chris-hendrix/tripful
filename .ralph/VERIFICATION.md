@@ -9,9 +9,11 @@ This document describes how to verify that Phase 4 features work correctly. Ralp
 ### Environment Setup
 
 1. **PostgreSQL running** (via Docker Compose):
+
    ```bash
    pnpm docker:up
    ```
+
    Verify: PostgreSQL accessible at `localhost:5433`
 
 2. **Environment variables** configured:
@@ -19,11 +21,13 @@ This document describes how to verify that Phase 4 features work correctly. Ralp
    - `apps/web/.env.local` exists with valid `NEXT_PUBLIC_API_URL`
 
 3. **Dependencies installed**:
+
    ```bash
    pnpm install
    ```
 
 4. **Database migrations applied**:
+
    ```bash
    cd apps/api && pnpm db:migrate
    ```
@@ -50,6 +54,7 @@ pnpm test
 **Expected result**: All tests pass with no failures.
 
 **Key test files to verify**:
+
 - `apps/api/src/services/event.service.test.ts`
 - `apps/api/src/services/accommodation.service.test.ts`
 - `apps/api/src/services/member-travel.service.test.ts`
@@ -73,6 +78,7 @@ pnpm test
 **Expected result**: All integration tests pass.
 
 **Key test files to verify**:
+
 - `apps/api/src/routes/event.routes.test.ts`
 - `apps/api/src/routes/accommodation.routes.test.ts`
 - `apps/api/src/routes/member-travel.routes.test.ts`
@@ -94,6 +100,7 @@ pnpm test
 **Expected result**: All component tests pass.
 
 **Key test files to verify**:
+
 - `apps/web/src/components/itinerary/itinerary-view.test.tsx`
 - `apps/web/src/components/itinerary/day-by-day-view.test.tsx`
 - `apps/web/src/components/itinerary/group-by-type-view.test.tsx`
@@ -139,12 +146,14 @@ pnpm lint
 Run Playwright E2E tests that simulate complete user flows.
 
 **Start dev servers** (in separate terminal):
+
 ```bash
 cd /home/chend/git/tripful
 pnpm dev
 ```
 
 **Run E2E tests** (in another terminal):
+
 ```bash
 cd /home/chend/git/tripful
 pnpm test:e2e
@@ -153,6 +162,7 @@ pnpm test:e2e
 **Expected result**: All E2E tests pass.
 
 **Key scenarios tested**:
+
 - Organizer creates event (meal type)
 - Organizer creates accommodation
 - Member adds member travel (arrival)
@@ -175,9 +185,11 @@ pnpm test:e2e
 #### Setup
 
 1. **Ensure dev servers are running**:
+
    ```bash
    pnpm dev
    ```
+
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
 
@@ -194,6 +206,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.1. Day-by-Day View (Desktop)
 
 **Steps**:
+
 1. Open Playwright inspector: `npx playwright test --debug`
 2. Navigate to trip detail page: `/trips/{test-trip-id}`
 3. Verify itinerary loads with day-by-day grouping
@@ -213,6 +226,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.2. Day-by-Day View (Mobile)
 
 **Steps**:
+
 1. Resize viewport to mobile (375x667)
 2. Navigate to trip detail page
 3. Verify responsive layout (itinerary header stacks, cards full-width)
@@ -226,6 +240,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.3. Group-by-Type View (Desktop)
 
 **Steps**:
+
 1. Navigate to trip detail page (desktop viewport)
 2. Click view mode toggle to switch to "Group by type"
 3. Verify events grouped into sections:
@@ -244,6 +259,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.4. Timezone Toggle (Before and After)
 
 **Steps**:
+
 1. Navigate to trip detail page
 2. Verify times displayed in trip's preferred timezone (e.g., "EST")
 3. Note the displayed time for one event
@@ -256,6 +272,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 10. Verify times revert to trip's timezone
 
 **Screenshots**:
+
 - `.ralph/screenshots/timezone-toggle-before.png`
 - `.ralph/screenshots/timezone-toggle-after.png`
 
@@ -264,6 +281,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.5. Create Event Dialog
 
 **Steps**:
+
 1. Navigate to trip detail page (as organizer or member with going status)
 2. Click "Add Event" button
 3. Verify dialog opens with form fields:
@@ -285,6 +303,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.6. Accommodation Multi-Day Display
 
 **Steps**:
+
 1. Navigate to trip detail page with an accommodation spanning 3+ days
 2. Locate accommodation in day-by-day view (should appear on first day)
 3. Verify collapsed state shows: name + multi-day indicator (e.g., "3 nights")
@@ -294,6 +313,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 7. Capture screenshot (expanded)
 
 **Screenshots**:
+
 - `.ralph/screenshots/accommodation-collapsed.png`
 - `.ralph/screenshots/accommodation-expanded.png`
 
@@ -302,6 +322,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.7. Member Travel Arrivals
 
 **Steps**:
+
 1. Navigate to trip detail page with 3+ member arrivals on same day
 2. Locate arrivals section for that day
 3. Verify each arrival shows: icon, member name, time, location
@@ -315,6 +336,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.8. Member Travel Departures
 
 **Steps**:
+
 1. Navigate to trip detail page with 3+ member departures on same day
 2. Locate departures section for that day
 3. Verify each departure shows: icon, member name, time, location
@@ -327,6 +349,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.9. Edit Event Dialog
 
 **Steps**:
+
 1. Navigate to trip detail page
 2. Click edit button on an existing event (as creator or organizer)
 3. Verify dialog opens with form pre-filled with event data
@@ -340,6 +363,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.10. Delete Confirmation Dialog
 
 **Steps**:
+
 1. Navigate to trip detail page
 2. Click delete button on an event (as creator or organizer)
 3. Verify confirmation dialog appears with warning message:
@@ -353,6 +377,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.11. Deleted Items Section (Optional)
 
 **Steps**:
+
 1. If deleted items section is implemented in UI:
    - Navigate to trip management/settings page
    - Locate "Deleted Items" section
@@ -366,6 +391,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.12. Responsive Tablet Layout
 
 **Steps**:
+
 1. Resize viewport to tablet size (768x1024)
 2. Navigate to trip detail page
 3. Verify itinerary displays correctly at tablet breakpoint
@@ -379,6 +405,7 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 ##### 7.13. Empty Itinerary State
 
 **Steps**:
+
 1. Create a new trip with no events, accommodations, or member travel
 2. Navigate to trip detail page
 3. Verify empty state message displays: "No itinerary items yet. Add your first event to get started!"
@@ -396,16 +423,19 @@ For each scenario below, **navigate using Playwright**, **interact with the UI**
 Verify accessibility standards are met.
 
 **Keyboard navigation**:
+
 - Tab through itinerary components
 - Verify focus rings are visible (design system defines focus styles)
 - Verify all interactive elements are keyboard-accessible (buttons, toggles, dialogs)
 
 **Screen reader compatibility** (if possible):
+
 - Use screen reader to navigate itinerary
 - Verify ARIA labels are present and descriptive
 - Verify semantic HTML structure (headings, lists, etc.)
 
 **Color contrast**:
+
 - Verify text meets WCAG AA contrast requirements
 - Verify interactive elements have sufficient contrast
 
@@ -418,6 +448,7 @@ Verify accessibility standards are met.
 Verify UI matches design system documented in `docs/2026-02-01-tripful-mvp/DESIGN.md`.
 
 **Colors**:
+
 - Primary: Azure blue (#1A5F9E) for actions/links
 - Accent: Terracotta (#D4603A) for secondary CTAs
 - Background: Warm cream (#FAF5EE)
@@ -426,12 +457,14 @@ Verify UI matches design system documented in `docs/2026-02-01-tripful-mvp/DESIG
 - Event types: Blue (travel), Purple (accommodation), Amber (meals), Emerald (activities)
 
 **Typography**:
+
 - Titles: Playfair Display (serif)
 - Body: DM Sans (sans-serif)
 - Page titles: text-4xl font-bold
 - Card titles: text-xl font-semibold
 
 **Spacing**:
+
 - Card padding: 16-24px
 - Section spacing: 32-48px
 
@@ -449,6 +482,7 @@ pnpm db:studio
 ```
 
 **Navigate to Drizzle Studio** (http://localhost:4983) and verify:
+
 - `events` table exists with correct columns and indexes
 - `accommodations` table exists with correct columns and indexes
 - `member_travel` table exists with correct columns and indexes
@@ -465,6 +499,7 @@ pnpm db:studio
 Test API endpoints directly using curl or Postman.
 
 **Get auth token** (replace with your test user):
+
 ```bash
 # Login and get token
 curl -X POST http://localhost:8000/api/auth/verify \
@@ -476,6 +511,7 @@ export TOKEN="your-jwt-token-here"
 ```
 
 **Test event endpoints**:
+
 ```bash
 # Create event
 curl -X POST http://localhost:8000/api/trips/{tripId}/events \
@@ -513,6 +549,7 @@ curl -X POST http://localhost:8000/api/trips/{tripId}/events/{eventId}/restore \
 ```
 
 **Test permission checks**:
+
 ```bash
 # Try to create event without auth (should return 401)
 curl -X POST http://localhost:8000/api/trips/{tripId}/events \
@@ -528,6 +565,7 @@ curl -X POST http://localhost:8000/api/trips/{tripId}/accommodations \
 ```
 
 **Expected result**:
+
 - All endpoints return correct status codes (200, 201, 400, 401, 403, 404)
 - Validation errors return detailed messages
 - Permission checks work correctly
@@ -560,17 +598,20 @@ Phase 4 verification is complete when:
 ## Troubleshooting
 
 ### PostgreSQL not running
+
 ```bash
 pnpm docker:up
 ```
 
 ### Database migrations not applied
+
 ```bash
 cd apps/api
 pnpm db:migrate
 ```
 
 ### Dev servers not starting
+
 ```bash
 # Kill existing processes
 pkill -f "next dev"
@@ -581,17 +622,20 @@ pnpm dev
 ```
 
 ### Playwright not installed
+
 ```bash
 cd apps/web
 npx playwright install chromium
 ```
 
 ### Tests failing with "Database connection error"
+
 - Verify `DATABASE_URL` in `apps/api/.env`
 - Verify PostgreSQL is running on port 5433
 - Run `pnpm db:migrate` to ensure schema is up-to-date
 
 ### E2E tests timing out
+
 - Increase timeout in Playwright config
 - Verify dev servers are running and accessible
 - Check for console errors in browser DevTools

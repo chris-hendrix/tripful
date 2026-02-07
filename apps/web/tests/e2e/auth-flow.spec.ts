@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  authenticateUser,
-  authenticateUserViaBrowser,
-} from "./helpers/auth";
+import { authenticateUser, authenticateUserViaBrowser } from "./helpers/auth";
 
 /**
  * E2E Test Suite: Complete Authentication Flow

@@ -20,9 +20,9 @@ Phase 4 implements the complete itinerary system for Tripful, enabling collabora
 
 ```typescript
 export const eventTypeEnum = pgEnum("event_type", [
-  "travel",      // Group transportation (flights, buses, trains)
-  "meal",        // Dining events
-  "activity",    // Activities and experiences
+  "travel", // Group transportation (flights, buses, trains)
+  "meal", // Dining events
+  "activity", // Activities and experiences
 ]);
 
 export const events = pgTable(
@@ -38,12 +38,12 @@ export const events = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     eventType: eventTypeEnum("event_type").notNull(),
-    location: text("location"),  // e.g., "Restaurant Name" or "JFK → LAX" for travel
+    location: text("location"), // e.g., "Restaurant Name" or "JFK → LAX" for travel
     startTime: timestamp("start_time", { withTimezone: true }).notNull(),
     endTime: timestamp("end_time", { withTimezone: true }),
     allDay: boolean("all_day").notNull().default(false),
     isOptional: boolean("is_optional").notNull().default(false),
-    links: text("links").array(),  // Array of URLs for bookings/confirmations
+    links: text("links").array(), // Array of URLs for bookings/confirmations
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: uuid("deleted_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -66,6 +66,7 @@ export type NewEvent = typeof events.$inferInsert;
 ```
 
 **Key Design Decisions:**
+
 - `startTime`/`endTime` stored in UTC with timezone support (PostgreSQL `timestamp with time zone`)
 - `eventType` enum restricts to three categories (travel, meal, activity)
 - `allDay` flag for events without specific times
@@ -89,10 +90,10 @@ export const accommodations = pgTable(
       .references(() => users.id),
     name: varchar("name", { length: 255 }).notNull(),
     address: text("address"),
-    description: text("description"),  // Check-in time, room details, confirmation number
+    description: text("description"), // Check-in time, room details, confirmation number
     checkIn: date("check_in").notNull(),
     checkOut: date("check_out").notNull(),
-    links: text("links").array(),  // Booking URLs
+    links: text("links").array(), // Booking URLs
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: uuid("deleted_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -115,6 +116,7 @@ export type NewAccommodation = typeof accommodations.$inferInsert;
 ```
 
 **Key Design Decisions:**
+
 - Multi-day stays: `checkIn` and `checkOut` dates
 - Organizer-only creation (enforced at service layer)
 - Date-based (not timestamp) - accommodations span full days
@@ -140,8 +142,8 @@ export const memberTravel = pgTable(
       .references(() => members.id, { onDelete: "cascade" }),
     travelType: memberTravelTypeEnum("travel_type").notNull(),
     time: timestamp("time", { withTimezone: true }).notNull(),
-    location: text("location"),  // e.g., "JFK Airport" or "Miami Hotel"
-    details: text("details"),  // Flight number, train details, etc.
+    location: text("location"), // e.g., "JFK Airport" or "Miami Hotel"
+    details: text("details"), // Flight number, train details, etc.
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: uuid("deleted_by").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -164,6 +166,7 @@ export type NewMemberTravel = typeof memberTravel.$inferInsert;
 ```
 
 **Key Design Decisions:**
+
 - Separate table from events (not group transportation)
 - Linked to `members` table, not `users` (trip-specific context)
 - Two types: arrival and departure
@@ -175,10 +178,18 @@ export type NewMemberTravel = typeof memberTravel.$inferInsert;
 
 ```typescript
 export interface IEventService {
-  createEvent(tripId: string, userId: string, data: CreateEventInput): Promise<Event>;
+  createEvent(
+    tripId: string,
+    userId: string,
+    data: CreateEventInput,
+  ): Promise<Event>;
   getEvent(eventId: string): Promise<Event | null>;
   getEventsByTrip(tripId: string, includeDeleted?: boolean): Promise<Event[]>;
-  updateEvent(eventId: string, userId: string, data: UpdateEventInput): Promise<Event>;
+  updateEvent(
+    eventId: string,
+    userId: string,
+    data: UpdateEventInput,
+  ): Promise<Event>;
   deleteEvent(eventId: string, userId: string): Promise<void>;
   restoreEvent(eventId: string, userId: string): Promise<Event>;
 }
@@ -189,10 +200,17 @@ export class EventService implements IEventService {
     private permissionsService: IPermissionsService,
   ) {}
 
-  async createEvent(tripId: string, userId: string, data: CreateEventInput): Promise<Event> {
+  async createEvent(
+    tripId: string,
+    userId: string,
+    data: CreateEventInput,
+  ): Promise<Event> {
     // 1. Check if user can add events (organizer OR member with going status + allowMembersToAddEvents)
     const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
-    if (!canAdd) throw new PermissionDeniedError("You don't have permission to add events");
+    if (!canAdd)
+      throw new PermissionDeniedError(
+        "You don't have permission to add events",
+      );
 
     // 2. Validate time range
     if (data.endTime && new Date(data.endTime) <= new Date(data.startTime)) {
@@ -200,22 +218,33 @@ export class EventService implements IEventService {
     }
 
     // 3. Insert event
-    const [event] = await this.db.insert(events).values({
-      tripId,
-      createdBy: userId,
-      ...data,
-    }).returning();
+    const [event] = await this.db
+      .insert(events)
+      .values({
+        tripId,
+        createdBy: userId,
+        ...data,
+      })
+      .returning();
 
     return event;
   }
 
-  async updateEvent(eventId: string, userId: string, data: UpdateEventInput): Promise<Event> {
+  async updateEvent(
+    eventId: string,
+    userId: string,
+    data: UpdateEventInput,
+  ): Promise<Event> {
     // 1. Check if user can edit (creator OR organizer)
     const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
-    if (!canEdit) throw new PermissionDeniedError("You don't have permission to edit this event");
+    if (!canEdit)
+      throw new PermissionDeniedError(
+        "You don't have permission to edit this event",
+      );
 
     // 2. Update event
-    const [updated] = await this.db.update(events)
+    const [updated] = await this.db
+      .update(events)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(events.id, eventId))
       .returning();
@@ -226,10 +255,17 @@ export class EventService implements IEventService {
 
   async deleteEvent(eventId: string, userId: string): Promise<void> {
     // Soft delete: set deletedAt and deletedBy
-    const canDelete = await this.permissionsService.canDeleteEvent(userId, eventId);
-    if (!canDelete) throw new PermissionDeniedError("You don't have permission to delete this event");
+    const canDelete = await this.permissionsService.canDeleteEvent(
+      userId,
+      eventId,
+    );
+    if (!canDelete)
+      throw new PermissionDeniedError(
+        "You don't have permission to delete this event",
+      );
 
-    await this.db.update(events)
+    await this.db
+      .update(events)
       .set({ deletedAt: new Date(), deletedBy: userId })
       .where(eq(events.id, eventId));
   }
@@ -239,10 +275,15 @@ export class EventService implements IEventService {
     const event = await this.getEvent(eventId);
     if (!event) throw new EventNotFoundError();
 
-    const isOrganizer = await this.permissionsService.isOrganizer(userId, event.tripId);
-    if (!isOrganizer) throw new PermissionDeniedError("Only organizers can restore events");
+    const isOrganizer = await this.permissionsService.isOrganizer(
+      userId,
+      event.tripId,
+    );
+    if (!isOrganizer)
+      throw new PermissionDeniedError("Only organizers can restore events");
 
-    const [restored] = await this.db.update(events)
+    const [restored] = await this.db
+      .update(events)
       .set({ deletedAt: null, deletedBy: null })
       .where(eq(events.id, eventId))
       .returning();
@@ -255,6 +296,7 @@ export class EventService implements IEventService {
 ### Accommodations Service
 
 Similar structure to EventService, but:
+
 - **Organizer-only creation** (stricter permissions)
 - Date validation (checkOut must be after checkIn)
 - Multi-day range checks
@@ -262,6 +304,7 @@ Similar structure to EventService, but:
 ### Member Travel Service
 
 Similar structure, but:
+
 - **Member + organizers** can edit their own travel
 - Validation: arrival/departure times should align with trip dates
 
@@ -278,17 +321,27 @@ export interface IPermissionsService {
 
   // NEW: Accommodation permissions (organizer-only)
   canAddAccommodation(userId: string, tripId: string): Promise<boolean>;
-  canEditAccommodation(userId: string, accommodationId: string): Promise<boolean>;
-  canDeleteAccommodation(userId: string, accommodationId: string): Promise<boolean>;
+  canEditAccommodation(
+    userId: string,
+    accommodationId: string,
+  ): Promise<boolean>;
+  canDeleteAccommodation(
+    userId: string,
+    accommodationId: string,
+  ): Promise<boolean>;
 
   // NEW: Member travel permissions
   canAddMemberTravel(userId: string, tripId: string): Promise<boolean>;
   canEditMemberTravel(userId: string, memberTravelId: string): Promise<boolean>;
-  canDeleteMemberTravel(userId: string, memberTravelId: string): Promise<boolean>;
+  canDeleteMemberTravel(
+    userId: string,
+    memberTravelId: string,
+  ): Promise<boolean>;
 }
 ```
 
 **Permission Rules:**
+
 - **Events**: Organizer OR (member with status='going' AND trip.allowMembersToAddEvents)
 - **Edit/Delete Event**: Creator OR organizer
 - **Accommodations**: Organizer only
@@ -340,6 +393,7 @@ Integrate itinerary into existing trip detail page:
 ```
 
 The page will contain:
+
 - Trip header (existing)
 - **NEW: Itinerary section** with:
   - View mode toggle (day-by-day / group-by-type)
@@ -405,11 +459,11 @@ Similar hooks for accommodations and member travel.
 
 ```typescript
 interface DayGroup {
-  date: string;  // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   accommodation?: Accommodation;
   arrivals: MemberTravel[];
   departures: MemberTravel[];
-  events: Event[];  // Sorted by startTime
+  events: Event[]; // Sorted by startTime
 }
 
 function groupByDay(
@@ -433,7 +487,7 @@ function groupByDay(
 ```typescript
 interface TypeGroup {
   type: "accommodation" | "travel" | "meal" | "activity";
-  items: Array<Event | Accommodation>;  // Sorted by date/time
+  items: Array<Event | Accommodation>; // Sorted by date/time
 }
 
 function groupByType(
@@ -468,30 +522,35 @@ function formatInTimezone(
 ```
 
 Display times using:
+
 - `trip.preferredTimezone` (default)
 - `user.timezone` (when toggled)
 
 ## Testing Strategy
 
 ### Unit Tests (Vitest)
+
 - Service methods (create, update, delete, restore)
 - Permission checks
 - Timezone conversion utilities
 - Date grouping logic (day-by-day, group-by-type)
 
 ### Integration Tests (Vitest + Test DB)
+
 - API endpoints with authentication
 - Permission-based access control
 - Soft delete and restore flows
 - Cross-field validation (e.g., endTime > startTime)
 
 ### Component Tests (Vitest + React Testing Library)
+
 - Form validation (React Hook Form + Zod)
 - View mode switching
 - Timezone toggle
 - Card expand/collapse
 
 ### E2E Tests (Playwright)
+
 - Create event flow (authenticated member)
 - Create accommodation flow (organizer only)
 - Add member travel (member + organizer)
@@ -501,6 +560,7 @@ Display times using:
 - Permission denial (non-member tries to add event)
 
 ### Manual Testing (Playwright + Screenshots)
+
 - Responsive layouts (mobile, tablet, desktop)
 - Itinerary views with real data
 - Timezone display accuracy
@@ -509,6 +569,7 @@ Display times using:
 - Member travel compact display
 
 Screenshots to capture:
+
 - `day-by-day-view-desktop.png`
 - `day-by-day-view-mobile.png`
 - `group-by-type-view-desktop.png`
@@ -520,15 +581,18 @@ Screenshots to capture:
 ## Database Migrations
 
 ### Migration 1: Create Events Table
+
 - Create `event_type` enum
 - Create `events` table with indexes
 - Add foreign keys with cascade delete
 
 ### Migration 2: Create Accommodations Table
+
 - Create `accommodations` table with indexes
 - Add foreign keys with cascade delete
 
 ### Migration 3: Create Member Travel Table
+
 - Create `member_travel_type` enum
 - Create `member_travel` table with indexes
 - Add foreign keys with cascade delete

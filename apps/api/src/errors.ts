@@ -41,6 +41,29 @@ export const CoOrganizerNotInTripError = createError(
   404,
 );
 
+// Itinerary errors
+export const EventNotFoundError = createError(
+  "NOT_FOUND",
+  "Event not found",
+  404,
+);
+export const AccommodationNotFoundError = createError(
+  "NOT_FOUND",
+  "Accommodation not found",
+  404,
+);
+export const MemberTravelNotFoundError = createError(
+  "NOT_FOUND",
+  "Member travel not found",
+  404,
+);
+export const EventConflictError = createError("EVENT_CONFLICT", "%s", 409);
+export const InvalidDateRangeError = createError(
+  "INVALID_DATE_RANGE",
+  "%s",
+  400,
+);
+
 // Upload errors
 export const FileTooLargeError = createError("FILE_TOO_LARGE", "%s", 400);
 export const InvalidFileTypeError = createError("INVALID_FILE_TYPE", "%s", 400);

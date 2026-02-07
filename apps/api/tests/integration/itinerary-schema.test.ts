@@ -218,10 +218,7 @@ describe("Itinerary Schema Integration", () => {
         description: "Luxury hotel with ocean view",
         checkIn: "2026-03-15",
         checkOut: "2026-03-20",
-        links: [
-          "https://hotel.example.com",
-          "https://booking.example.com/123",
-        ],
+        links: ["https://hotel.example.com", "https://booking.example.com/123"],
       };
 
       const result = await db
@@ -373,7 +370,10 @@ describe("Itinerary Schema Integration", () => {
         details: "Flight AA123 from JFK",
       };
 
-      const result = await db.insert(memberTravel).values(travelData).returning();
+      const result = await db
+        .insert(memberTravel)
+        .values(travelData)
+        .returning();
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -406,7 +406,10 @@ describe("Itinerary Schema Integration", () => {
         time: new Date("2026-03-20T10:00:00Z"),
       };
 
-      const result = await db.insert(memberTravel).values(travelData).returning();
+      const result = await db
+        .insert(memberTravel)
+        .values(travelData)
+        .returning();
 
       expect(result).toHaveLength(1);
       expect(result[0]!.travelType).toBe("departure");
@@ -422,7 +425,10 @@ describe("Itinerary Schema Integration", () => {
         time: new Date("2026-03-15T16:00:00Z"),
       };
 
-      const result = await db.insert(memberTravel).values(travelData).returning();
+      const result = await db
+        .insert(memberTravel)
+        .values(travelData)
+        .returning();
       const travelId = result[0]!.id;
 
       // Soft delete

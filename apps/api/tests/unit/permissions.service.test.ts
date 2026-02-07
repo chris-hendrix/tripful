@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
-import { users, trips, members } from "@/db/schema/index.js";
+import {
+  users,
+  trips,
+  members,
+  events,
+  accommodations,
+  memberTravel,
+} from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { PermissionsService } from "@/services/permissions.service.js";
 import { generateUniquePhone } from "../test-utils.js";
@@ -21,11 +28,21 @@ describe("permissions.service", () => {
   let testNonMemberId: string;
 
   let testTripId: string;
+  let testEventId: string;
+  let testAccommodationId: string;
+  let testMemberTravelId: string;
+  let testCoOrganizerMemberId: string;
 
   // Clean up test data (safe for parallel execution)
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
+      // memberTravel references members, so delete it first
+      await db.delete(memberTravel).where(eq(memberTravel.tripId, testTripId));
+      await db.delete(events).where(eq(events.tripId, testTripId));
+      await db
+        .delete(accommodations)
+        .where(eq(accommodations.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));
       await db.delete(trips).where(eq(trips.id, testTripId));
     }
@@ -110,11 +127,15 @@ describe("permissions.service", () => {
     testTripId = tripResult[0].id;
 
     // Add co-organizer as member with status='going'
-    await db.insert(members).values({
-      tripId: testTripId,
-      userId: testCoOrganizerId,
-      status: "going",
-    });
+    const coOrganizerMemberResult = await db
+      .insert(members)
+      .values({
+        tripId: testTripId,
+        userId: testCoOrganizerId,
+        status: "going",
+      })
+      .returning();
+    testCoOrganizerMemberId = coOrganizerMemberResult[0].id;
 
     // Add regular member with status='maybe'
     await db.insert(members).values({
@@ -122,6 +143,45 @@ describe("permissions.service", () => {
       userId: testMemberId,
       status: "maybe",
     });
+
+    // Create a test event (created by co-organizer)
+    const eventResult = await db
+      .insert(events)
+      .values({
+        tripId: testTripId,
+        createdBy: testCoOrganizerId,
+        name: "Test Event",
+        eventType: "activity",
+        startTime: new Date("2026-06-15T10:00:00Z"),
+      })
+      .returning();
+    testEventId = eventResult[0].id;
+
+    // Create a test accommodation (created by creator)
+    const accommodationResult = await db
+      .insert(accommodations)
+      .values({
+        tripId: testTripId,
+        createdBy: testCreatorId,
+        name: "Test Hotel",
+        checkIn: "2026-06-10",
+        checkOut: "2026-06-20",
+      })
+      .returning();
+    testAccommodationId = accommodationResult[0].id;
+
+    // Create a test member travel (for co-organizer)
+    const memberTravelResult = await db
+      .insert(memberTravel)
+      .values({
+        tripId: testTripId,
+        memberId: testCoOrganizerMemberId,
+        travelType: "arrival",
+        time: new Date("2026-06-10T14:00:00Z"),
+        location: "Airport",
+      })
+      .returning();
+    testMemberTravelId = memberTravelResult[0].id;
   });
 
   afterEach(cleanup);
@@ -404,6 +464,416 @@ describe("permissions.service", () => {
       // Clean up
       await db.delete(members).where(eq(members.userId, anotherUserId));
       await db.delete(users).where(eq(users.id, anotherUserId));
+    });
+  });
+
+  describe("canAddEvent", () => {
+    it("should return true for trip creator", async () => {
+      const result = await permissionsService.canAddEvent(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for co-organizer (member with status=going)", async () => {
+      const result = await permissionsService.canAddEvent(
+        testCoOrganizerId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member (status=maybe) even if allowMembersToAddEvents is true", async () => {
+      const result = await permissionsService.canAddEvent(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canAddEvent(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return true for member with status=going even when allowMembersToAddEvents is false (they become co-organizers)", async () => {
+      // Update member status to 'going' - this makes them a co-organizer
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      // Disable allowMembersToAddEvents
+      await db
+        .update(trips)
+        .set({ allowMembersToAddEvents: false })
+        .where(eq(trips.id, testTripId));
+
+      // Co-organizers (members with status='going') can still add events
+      const result = await permissionsService.canAddEvent(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+
+      // Restore settings
+      await db
+        .update(trips)
+        .set({ allowMembersToAddEvents: true })
+        .where(eq(trips.id, testTripId));
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return true for member with status=going when allowMembersToAddEvents is true", async () => {
+      // Update member status to 'going'
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canAddEvent(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+
+      // Restore settings
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return true for co-organizer even when allowMembersToAddEvents is false", async () => {
+      // Disable member event adding
+      await db
+        .update(trips)
+        .set({ allowMembersToAddEvents: false })
+        .where(eq(trips.id, testTripId));
+
+      // Co-organizer (member with status='going') should still be able to add events
+      const result = await permissionsService.canAddEvent(
+        testCoOrganizerId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+
+      // Restore settings
+      await db
+        .update(trips)
+        .set({ allowMembersToAddEvents: true })
+        .where(eq(trips.id, testTripId));
+    });
+
+    it("should return false for non-existent trip", async () => {
+      const result = await permissionsService.canAddEvent(
+        testCreatorId,
+        "00000000-0000-0000-0000-000000000000",
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canEditEvent", () => {
+    it("should return true for event creator", async () => {
+      const result = await permissionsService.canEditEvent(
+        testCoOrganizerId,
+        testEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for trip organizer (even if not event creator)", async () => {
+      const result = await permissionsService.canEditEvent(
+        testCreatorId,
+        testEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canEditEvent(
+        testMemberId,
+        testEventId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditEvent(
+        testNonMemberId,
+        testEventId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-existent event", async () => {
+      const result = await permissionsService.canEditEvent(
+        testCreatorId,
+        "00000000-0000-0000-0000-000000000000",
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteEvent", () => {
+    it("should return true for event creator", async () => {
+      const result = await permissionsService.canDeleteEvent(
+        testCoOrganizerId,
+        testEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for trip organizer", async () => {
+      const result = await permissionsService.canDeleteEvent(
+        testCreatorId,
+        testEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canDeleteEvent(
+        testMemberId,
+        testEventId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteEvent(
+        testNonMemberId,
+        testEventId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canAddAccommodation", () => {
+    it("should return true for trip creator", async () => {
+      const result = await permissionsService.canAddAccommodation(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for co-organizer", async () => {
+      const result = await permissionsService.canAddAccommodation(
+        testCoOrganizerId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canAddAccommodation(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canAddAccommodation(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canEditAccommodation", () => {
+    it("should return true for trip creator", async () => {
+      const result = await permissionsService.canEditAccommodation(
+        testCreatorId,
+        testAccommodationId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for co-organizer", async () => {
+      const result = await permissionsService.canEditAccommodation(
+        testCoOrganizerId,
+        testAccommodationId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canEditAccommodation(
+        testMemberId,
+        testAccommodationId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditAccommodation(
+        testNonMemberId,
+        testAccommodationId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-existent accommodation", async () => {
+      const result = await permissionsService.canEditAccommodation(
+        testCreatorId,
+        "00000000-0000-0000-0000-000000000000",
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteAccommodation", () => {
+    it("should return true for trip creator", async () => {
+      const result = await permissionsService.canDeleteAccommodation(
+        testCreatorId,
+        testAccommodationId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for co-organizer", async () => {
+      const result = await permissionsService.canDeleteAccommodation(
+        testCoOrganizerId,
+        testAccommodationId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canDeleteAccommodation(
+        testMemberId,
+        testAccommodationId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteAccommodation(
+        testNonMemberId,
+        testAccommodationId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canAddMemberTravel", () => {
+    it("should return true for co-organizer (who is a member)", async () => {
+      const result = await permissionsService.canAddMemberTravel(
+        testCoOrganizerId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for regular member", async () => {
+      const result = await permissionsService.canAddMemberTravel(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canAddMemberTravel(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for trip creator who is not a member", async () => {
+      const result = await permissionsService.canAddMemberTravel(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canEditMemberTravel", () => {
+    it("should return true for owner of member travel", async () => {
+      const result = await permissionsService.canEditMemberTravel(
+        testCoOrganizerId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for trip creator (organizer)", async () => {
+      const result = await permissionsService.canEditMemberTravel(
+        testCreatorId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for different member", async () => {
+      const result = await permissionsService.canEditMemberTravel(
+        testMemberId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditMemberTravel(
+        testNonMemberId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-existent member travel", async () => {
+      const result = await permissionsService.canEditMemberTravel(
+        testCoOrganizerId,
+        "00000000-0000-0000-0000-000000000000",
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteMemberTravel", () => {
+    it("should return true for owner of member travel", async () => {
+      const result = await permissionsService.canDeleteMemberTravel(
+        testCoOrganizerId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for trip creator (organizer)", async () => {
+      const result = await permissionsService.canDeleteMemberTravel(
+        testCreatorId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for different member", async () => {
+      const result = await permissionsService.canDeleteMemberTravel(
+        testMemberId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteMemberTravel(
+        testNonMemberId,
+        testMemberTravelId,
+      );
+      expect(result).toBe(false);
     });
   });
 });
