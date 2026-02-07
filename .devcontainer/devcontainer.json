@@ -1,0 +1,24 @@
+{
+  "name": "Tripful",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "containerUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
+    "source=${localEnv:HOME}/.gitignore_global,target=/home/node/.gitignore_global,type=bind,readonly"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "HOST_USERNAME": "${localEnv:HOST_USERNAME}",
+    "HOST_PROJECT_SLUG": "${localEnv:HOST_PROJECT_SLUG}"
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  }
+}

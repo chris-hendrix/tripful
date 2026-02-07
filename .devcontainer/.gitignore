@@ -1,0 +1,5 @@
+# Personal configuration (don't commit)
+.env
+
+# Allow the template to be tracked
+!.env.example
