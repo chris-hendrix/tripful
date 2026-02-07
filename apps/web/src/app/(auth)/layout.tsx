@@ -15,9 +15,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+      <main
+        id="main-content"
+        className="relative z-10 flex min-h-screen items-center justify-center p-4"
+      >
         {children}
-      </div>
+      </main>
     </div>
   );
 }

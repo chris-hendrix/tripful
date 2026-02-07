@@ -14,7 +14,7 @@
 
 ## Phase 2: App Shell & Navigation
 
-- [ ] Task 2.1: Build app shell with header, navigation, skip link, and main landmark
+- [x] Task 2.1: Build app shell with header, navigation, skip link, and main landmark
   - Implement: Install shadcn components — `pnpm dlx shadcn@latest add dropdown-menu avatar separator tooltip` (run from apps/web).
   - Implement: Create `apps/web/src/components/skip-link.tsx` — a skip-to-content link (`<a href="#main-content">`) that is `sr-only` by default and visible on focus. Style with the new brand palette.
   - Implement: Create `apps/web/src/components/app-header.tsx` — client component with: Tripful wordmark/text in Playfair Display linking to `/dashboard`, a "Dashboard" nav link with active state (using `usePathname()`), and a user avatar dropdown menu (using shadcn DropdownMenu + Avatar) with "Profile" and "Log out" items. Use `useAuth()` for user data and logout. Wrap in `<header>` with `<nav aria-label="Main navigation">`.

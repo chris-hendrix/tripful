@@ -18,6 +18,11 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+// Mock AppHeader (client component)
+vi.mock("@/components/app-header", () => ({
+  AppHeader: () => <header data-testid="app-header">App Header</header>,
+}));
+
 // Import AFTER mocks
 import ProtectedLayout from "./layout";
 
@@ -37,6 +42,31 @@ describe("ProtectedLayout", () => {
     render(result as React.ReactElement);
     expect(screen.getByText("Protected Content")).toBeDefined();
     expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
+  it("renders AppHeader when authenticated", async () => {
+    mockGet.mockReturnValue({ value: "valid-jwt-token" });
+
+    const result = await ProtectedLayout({
+      children: <div>Protected Content</div>,
+    });
+
+    render(result as React.ReactElement);
+    expect(screen.getByTestId("app-header")).toBeDefined();
+  });
+
+  it("wraps children in a main landmark", async () => {
+    mockGet.mockReturnValue({ value: "valid-jwt-token" });
+
+    const result = await ProtectedLayout({
+      children: <div>Protected Content</div>,
+    });
+
+    render(result as React.ReactElement);
+    const main = screen.getByRole("main");
+    expect(main).toBeDefined();
+    expect(main.id).toBe("main-content");
+    expect(main.textContent).toContain("Protected Content");
   });
 
   it("redirects to /login when auth_token cookie is missing", async () => {

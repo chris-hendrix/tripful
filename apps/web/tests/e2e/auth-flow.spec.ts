@@ -83,10 +83,7 @@ test.describe("Complete Auth Flow", () => {
     expect(authCookie?.value).toBeTruthy();
   });
 
-  // TODO: Un-skip when logout functionality is implemented (no logout button/endpoint exists yet)
-  test.skip("logout clears session and redirects to login", async ({
-    page,
-  }) => {
+  test("logout clears session and redirects to login", async ({ page }) => {
     const phone = `+1555${Date.now()}`;
 
     // Complete auth flow first to get logged in
@@ -125,9 +122,12 @@ test.describe("Complete Auth Flow", () => {
     let authCookie = cookies.find((c) => c.name === "auth_token");
     expect(authCookie?.value).toBeTruthy();
 
-    // Click logout button
-    const logoutButton = page.locator('button:has-text("Logout")');
-    await logoutButton.click();
+    // Open user menu and click Log out
+    const userMenuButton = page.locator('button[aria-label="User menu"]');
+    await userMenuButton.click();
+    const logoutItem = page.locator('text="Log out"');
+    await expect(logoutItem).toBeVisible();
+    await logoutItem.click();
 
     // Verify redirect to login
     await page.waitForURL("**/login");
