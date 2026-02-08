@@ -67,6 +67,19 @@ export const rsvpStatusEnum = pgEnum("rsvp_status", [
   "no_response",
 ]);
 
+// Event type enum
+export const eventTypeEnum = pgEnum("event_type", [
+  "travel",
+  "meal",
+  "activity",
+]);
+
+// Member travel type enum
+export const memberTravelTypeEnum = pgEnum("member_travel_type", [
+  "arrival",
+  "departure",
+]);
+
 // Trips table
 export const trips = pgTable(
   "trips",
@@ -134,3 +147,118 @@ export const members = pgTable(
 // Inferred types for members table
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
+
+// Events table
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    eventType: eventTypeEnum("event_type").notNull(),
+    location: text("location"),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    endTime: timestamp("end_time", { withTimezone: true }),
+    allDay: boolean("all_day").notNull().default(false),
+    isOptional: boolean("is_optional").notNull().default(false),
+    links: text("links").array(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("events_trip_id_idx").on(table.tripId),
+    createdByIdx: index("events_created_by_idx").on(table.createdBy),
+    startTimeIdx: index("events_start_time_idx").on(table.startTime),
+    deletedAtIdx: index("events_deleted_at_idx").on(table.deletedAt),
+  }),
+);
+
+// Inferred types for events table
+export type Event = typeof events.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;
+
+// Accommodations table
+export const accommodations = pgTable(
+  "accommodations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    name: varchar("name", { length: 255 }).notNull(),
+    address: text("address"),
+    description: text("description"),
+    checkIn: date("check_in").notNull(),
+    checkOut: date("check_out").notNull(),
+    links: text("links").array(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("accommodations_trip_id_idx").on(table.tripId),
+    createdByIdx: index("accommodations_created_by_idx").on(table.createdBy),
+    checkInIdx: index("accommodations_check_in_idx").on(table.checkIn),
+    deletedAtIdx: index("accommodations_deleted_at_idx").on(table.deletedAt),
+  }),
+);
+
+// Inferred types for accommodations table
+export type Accommodation = typeof accommodations.$inferSelect;
+export type NewAccommodation = typeof accommodations.$inferInsert;
+
+// Member travel table
+export const memberTravel = pgTable(
+  "member_travel",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    travelType: memberTravelTypeEnum("travel_type").notNull(),
+    time: timestamp("time", { withTimezone: true }).notNull(),
+    location: text("location"),
+    details: text("details"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("member_travel_trip_id_idx").on(table.tripId),
+    memberIdIdx: index("member_travel_member_id_idx").on(table.memberId),
+    timeIdx: index("member_travel_time_idx").on(table.time),
+    deletedAtIdx: index("member_travel_deleted_at_idx").on(table.deletedAt),
+  }),
+);
+
+// Inferred types for member_travel table
+export type MemberTravel = typeof memberTravel.$inferSelect;
+export type NewMemberTravel = typeof memberTravel.$inferInsert;

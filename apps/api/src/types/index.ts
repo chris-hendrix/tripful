@@ -7,6 +7,9 @@ import type { Env } from "@/config/env.js";
 import type { IAuthService } from "@/services/auth.service.js";
 import type { ITripService } from "@/services/trip.service.js";
 import type { IPermissionsService } from "@/services/permissions.service.js";
+import type { IEventService } from "@/services/event.service.js";
+import type { IAccommodationService } from "@/services/accommodation.service.js";
+import type { IMemberTravelService } from "@/services/member-travel.service.js";
 import type { IUploadService } from "@/services/upload.service.js";
 import type { ISMSService } from "@/services/sms.service.js";
 
@@ -45,6 +48,9 @@ declare module "fastify" {
     authService: IAuthService;
     tripService: ITripService;
     permissionsService: IPermissionsService;
+    eventService: IEventService;
+    accommodationService: IAccommodationService;
+    memberTravelService: IMemberTravelService;
     uploadService: IUploadService;
     smsService: ISMSService;
     healthService: { getStatus(): Promise<HealthCheckResponse> };

@@ -48,3 +48,27 @@ export {
   type AddCoOrganizerInput,
   type PaginationInput,
 } from "./trip";
+
+// Re-export event schemas
+export {
+  createEventSchema,
+  updateEventSchema,
+  type CreateEventInput,
+  type UpdateEventInput,
+} from "./event";
+
+// Re-export accommodation schemas
+export {
+  createAccommodationSchema,
+  updateAccommodationSchema,
+  type CreateAccommodationInput,
+  type UpdateAccommodationInput,
+} from "./accommodation";
+
+// Re-export member travel schemas
+export {
+  createMemberTravelSchema,
+  updateMemberTravelSchema,
+  type CreateMemberTravelInput,
+  type UpdateMemberTravelInput,
+} from "./member-travel";

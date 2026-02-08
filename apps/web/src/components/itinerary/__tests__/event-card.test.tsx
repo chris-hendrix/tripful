@@ -1,0 +1,277 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { EventCard } from "../event-card";
+import type { Event } from "@tripful/shared/types";
+
+describe("EventCard", () => {
+  const baseEvent: Event = {
+    id: "event-123",
+    tripId: "trip-123",
+    createdBy: "user-123",
+    name: "Beach Lunch",
+    description: "Lunch at beachside restaurant",
+    eventType: "meal",
+    location: "Malibu Cafe",
+    startTime: new Date("2026-07-15T12:00:00Z"),
+    endTime: new Date("2026-07-15T14:00:00Z"),
+    allDay: false,
+    isOptional: false,
+    links: ["https://example.com/menu"],
+    deletedAt: null,
+    deletedBy: null,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    updatedAt: new Date("2026-01-01T00:00:00Z"),
+  };
+
+  describe("Rendering", () => {
+    it("renders event name and time", () => {
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText("Beach Lunch")).toBeDefined();
+    });
+
+    it("renders location when provided", () => {
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText("Malibu Cafe")).toBeDefined();
+    });
+
+    it("shows Optional badge when isOptional is true", () => {
+      const event = { ...baseEvent, isOptional: true };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText("Optional")).toBeDefined();
+    });
+
+    it("does not show Optional badge when isOptional is false", () => {
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.queryByText("Optional")).toBeNull();
+    });
+  });
+
+  describe("Event types", () => {
+    it("shows correct icon and color for travel event", () => {
+      const event = { ...baseEvent, eventType: "travel" as const };
+      const { container } = render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const iconContainer = container.querySelector(".text-blue-600");
+      expect(iconContainer).toBeDefined();
+    });
+
+    it("shows correct icon and color for meal event", () => {
+      const { container } = render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const iconContainer = container.querySelector(".text-amber-600");
+      expect(iconContainer).toBeDefined();
+    });
+
+    it("shows correct icon and color for activity event", () => {
+      const event = { ...baseEvent, eventType: "activity" as const };
+      const { container } = render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const iconContainer = container.querySelector(".text-emerald-600");
+      expect(iconContainer).toBeDefined();
+    });
+  });
+
+  describe("All-day events", () => {
+    it('shows "All day" for all-day events', () => {
+      const event = { ...baseEvent, allDay: true, endTime: null };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText("All day")).toBeDefined();
+    });
+  });
+
+  describe("Expandable behavior", () => {
+    it("shows description when expanded", async () => {
+      const user = userEvent.setup();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      // Click to expand
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      expect(
+        screen.getByText("Lunch at beachside restaurant"),
+      ).toBeDefined();
+    });
+
+    it("shows links when expanded", async () => {
+      const user = userEvent.setup();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      // Click to expand
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      const link = screen.getByText("Link 1");
+      expect(link).toBeDefined();
+      expect(link.closest("a")?.href).toBe("https://example.com/menu");
+    });
+  });
+
+  describe("Edit and delete buttons", () => {
+    it("shows edit button when canEdit is true", async () => {
+      const user = userEvent.setup();
+      const onEdit = vi.fn();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={true}
+          canDelete={false}
+          onEdit={onEdit}
+        />,
+      );
+
+      // Expand card
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      await waitFor(() => {
+        expect(screen.getByText("Edit")).toBeDefined();
+      });
+    });
+
+    it("shows delete button when canDelete is true", async () => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={true}
+          onDelete={onDelete}
+        />,
+      );
+
+      // Expand card
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      await waitFor(() => {
+        expect(screen.getByText("Delete")).toBeDefined();
+      });
+    });
+
+    it("calls onEdit when edit button is clicked", async () => {
+      const user = userEvent.setup();
+      const onEdit = vi.fn();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={true}
+          canDelete={false}
+          onEdit={onEdit}
+        />,
+      );
+
+      // Expand card
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      const editButton = screen.getByText("Edit");
+      await user.click(editButton);
+
+      expect(onEdit).toHaveBeenCalled();
+    });
+
+    it("calls onDelete when delete button is clicked", async () => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={true}
+          onDelete={onDelete}
+        />,
+      );
+
+      // Expand card
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      const deleteButton = screen.getByText("Delete");
+      await user.click(deleteButton);
+
+      expect(onDelete).toHaveBeenCalled();
+    });
+  });
+});

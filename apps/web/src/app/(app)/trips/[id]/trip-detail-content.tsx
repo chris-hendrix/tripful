@@ -12,7 +12,6 @@ import {
   ClipboardList,
   AlertCircle,
   Settings,
-  CalendarX,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useAuth } from "@/app/providers/auth-provider";
@@ -28,6 +27,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { ItineraryView } from "@/components/itinerary/itinerary-view";
 
 const EditTripDialog = dynamic(
   () =>
@@ -236,14 +236,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
         </div>
 
-        {/* Events section */}
-        <div className="bg-card rounded-2xl border border-border p-8 text-center">
-          <CalendarX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
-            No events yet
-          </h2>
-          <p className="text-muted-foreground">Events coming in Phase 5!</p>
-        </div>
+        {/* Itinerary section */}
+        <ItineraryView tripId={tripId} />
       </div>
 
       {/* Edit Trip Dialog */}

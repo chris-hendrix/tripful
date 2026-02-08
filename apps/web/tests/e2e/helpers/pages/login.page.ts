@@ -1,0 +1,50 @@
+import type { Page, Locator } from "@playwright/test";
+
+export class LoginPage {
+  readonly page: Page;
+  readonly heading: Locator;
+  readonly phoneInput: Locator;
+  readonly continueButton: Locator;
+  readonly verifyHeading: Locator;
+  readonly codeInput: Locator;
+  readonly verifyButton: Locator;
+  readonly completeProfileHeading: Locator;
+  readonly displayNameInput: Locator;
+  readonly completeProfileButton: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.heading = page.getByRole("heading", { name: "Get started" });
+    this.phoneInput = page.getByRole("textbox", { name: /phone/i });
+    this.continueButton = page.getByRole("button", { name: "Continue" });
+    this.verifyHeading = page.getByRole("heading", {
+      name: "Verify your number",
+    });
+    this.codeInput = page.getByRole("textbox").first();
+    this.verifyButton = page.getByRole("button", { name: "Verify" });
+    this.completeProfileHeading = page.getByRole("heading", {
+      name: "Complete your profile",
+    });
+    this.displayNameInput = page.getByRole("textbox").first();
+    this.completeProfileButton = page.getByRole("button", {
+      name: "Complete profile",
+    });
+  }
+
+  async goto() {
+    await this.page.goto("/login");
+  }
+
+  async login(phone: string) {
+    await this.phoneInput.fill(phone);
+    await this.continueButton.click();
+    await this.page.waitForURL("**/verify**");
+    await this.codeInput.fill("123456");
+    await this.verifyButton.click();
+  }
+
+  async completeProfile(displayName: string) {
+    await this.displayNameInput.fill(displayName);
+    await this.completeProfileButton.click();
+  }
+}

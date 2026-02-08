@@ -1,8 +1,8 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-3 Implemented | Frontend Design Overhaul Complete | Phase 4-8 Documented (Not Yet Implemented)
-last_updated: 2026-02-07
+status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Phase 5-8 Pending
+last_updated: 2026-02-08
 ---
 
 # Tripful - High-Level Architecture
@@ -13,9 +13,10 @@ last_updated: 2026-02-07
 > - ✅ **Phase 2 Complete**: SMS authentication with full E2E testing
 > - ✅ **Phase 3 Complete**: Trip management with CRUD, permissions, co-organizers, and image uploads
 > - ✅ **Frontend Design Overhaul Complete**: Mediterranean design system, app shell, accessibility, toast notifications
-> - 🚧 **Phase 4-8**: Pending (Invitations, itinerary features, advanced features)
+> - ✅ **Phase 4 Complete**: Itinerary view modes with events, accommodations, member travel, and comprehensive testing
+> - 🚧 **Phase 5-8**: Pending (Invitations, advanced features)
 >
-> **Important**: This document describes both implemented features (Phases 1-3) and planned features (Phases 4-8). Features, tables, routes, and components marked as 🚧 or described in Phase 4-8 sections do not yet exist in the codebase.
+> **Important**: This document describes both implemented features (Phases 1-4) and planned features (Phases 5-8). Features, tables, routes, and components marked as 🚧 or described in Phase 5-8 sections do not yet exist in the codebase.
 
 ## Implementation Progress
 
@@ -188,13 +189,84 @@ Comprehensive redesign of the web frontend with a travel-poster-inspired visual 
 - [x] Fixed DELETE HTTP method in API client
 - [x] `coverImageUrl` schema updated to accept relative paths (`/uploads/...`)
 
-### 🚧 Phase 4-8: Remaining Features (Planned)
+### ✅ Phase 4: Itinerary View Modes (Complete)
 
-- [ ] Invitations and RSVP system (Phase 4)
-- [ ] Event creation and itinerary views (Phase 5)
-- [ ] Accommodations and member travel (Phase 6)
-- [ ] Advanced itinerary features (soft delete, multi-day) (Phase 7)
-- [ ] Polish, validation, and performance optimization (Phase 8)
+**Branch**: `ralph/20260207-1612-phase-4-itinerary-views`
+
+Complete itinerary system enabling collaborative trip planning through events, accommodations, and member travel tracking with two view modes and timezone support.
+
+**Backend (Fastify):**
+
+- [x] Events CRUD with soft delete and restore (EventService)
+- [x] Accommodations CRUD with soft delete and restore (AccommodationService)
+- [x] Member travel CRUD with soft delete and restore (MemberTravelService)
+- [x] Extended PermissionsService with fine-grained event/accommodation/travel permissions
+- [x] 18 new API endpoints (6 per resource type)
+- [x] Zod request validation on all endpoints
+- [x] Comprehensive unit tests for all services
+- [x] Integration tests for all API endpoints
+
+**Frontend (Next.js 16):**
+
+- [x] Itinerary view with day-by-day and group-by-type modes
+- [x] Timezone toggle (trip timezone vs user timezone)
+- [x] Event, accommodation, and member travel card components
+- [x] Create/edit dialogs for events, accommodations, and member travel
+- [x] Delete confirmation with soft delete support
+- [x] TanStack Query hooks with optimistic updates
+- [x] Permission-based UI rendering (organizer vs member actions)
+- [x] Responsive design (mobile, tablet, desktop)
+
+**Database Schema:**
+
+- [x] `events` table with `event_type` enum (travel, meal, activity), soft delete, 4 indexes
+- [x] `accommodations` table with date ranges, soft delete, 4 indexes
+- [x] `member_travel` table with `member_travel_type` enum (arrival, departure), soft delete, 4 indexes
+- [x] Migrations: `0002_mysterious_hercules.sql`, `0003_deep_sinister_six.sql`, `0004_cute_shinobi_shaw.sql`
+
+**Shared Package:**
+
+- [x] Event validation schemas (createEventSchema, updateEventSchema)
+- [x] Accommodation validation schemas (createAccommodationSchema, updateAccommodationSchema)
+- [x] Member travel validation schemas (createMemberTravelSchema, updateMemberTravelSchema)
+- [x] Type definitions for all API responses
+
+**E2E Testing (Playwright):**
+
+- [x] Itinerary flow tests (35 tests: 34 passing, 1 skipped)
+- [x] Event creation, editing, and deletion flows
+- [x] Accommodation creation flow
+- [x] Member travel creation flow
+- [x] View mode switching and timezone toggle
+- [x] Permission checks and responsive layout
+- [x] Manual browser testing with 16 screenshots
+
+**API Endpoints Implemented:**
+
+- `GET /api/trips/:tripId/events` - List events for trip
+- `GET /api/events/:id` - Get event details
+- `POST /api/trips/:tripId/events` - Create event
+- `PUT /api/events/:id` - Update event
+- `DELETE /api/events/:id` - Soft delete event
+- `POST /api/events/:id/restore` - Restore deleted event
+- `GET /api/trips/:tripId/accommodations` - List accommodations
+- `GET /api/accommodations/:id` - Get accommodation details
+- `POST /api/trips/:tripId/accommodations` - Create accommodation
+- `PUT /api/accommodations/:id` - Update accommodation
+- `DELETE /api/accommodations/:id` - Soft delete accommodation
+- `POST /api/accommodations/:id/restore` - Restore deleted accommodation
+- `GET /api/trips/:tripId/member-travel` - List member travel
+- `GET /api/member-travel/:id` - Get member travel details
+- `POST /api/trips/:tripId/member-travel` - Create member travel
+- `PUT /api/member-travel/:id` - Update member travel
+- `DELETE /api/member-travel/:id` - Soft delete member travel
+- `POST /api/member-travel/:id/restore` - Restore deleted member travel
+
+### 🚧 Phase 5-8: Remaining Features (Planned)
+
+- [ ] Invitations and RSVP system
+- [ ] Advanced itinerary features (per-event RSVP, rich text descriptions)
+- [ ] Polish and performance optimization
 
 ---
 
@@ -545,14 +617,17 @@ apps/api/
 │   │   ├── trip-service.ts       # fastify.tripService
 │   │   ├── upload-service.ts     # fastify.uploadService
 │   │   ├── sms-service.ts        # fastify.smsService
-│   │   └── health-service.ts     # fastify.healthService
+│   │   ├── health-service.ts     # fastify.healthService
+│   │   ├── event-service.ts      # ✅ fastify.eventService
+│   │   ├── accommodation-service.ts # ✅ fastify.accommodationService
+│   │   └── member-travel-service.ts # ✅ fastify.memberTravelService
 │   ├── routes/
 │   │   ├── auth.routes.ts        # Zod schema validation + rate limiting
 │   │   ├── trip.routes.ts        # Scoped hooks for auth + profile completion
 │   │   ├── health.routes.ts      # /health, /health/live, /health/ready
-│   │   ├── events.routes.ts      # 🚧 Future
-│   │   ├── accommodations.routes.ts # 🚧 Future
-│   │   ├── travel.routes.ts      # 🚧 Future
+│   │   ├── event.routes.ts       # ✅ Events CRUD + soft delete/restore
+│   │   ├── accommodation.routes.ts # ✅ Accommodations CRUD + soft delete/restore
+│   │   ├── member-travel.routes.ts # ✅ Member travel CRUD + soft delete/restore
 │   │   └── rsvp.routes.ts        # 🚧 Future
 │   ├── controllers/
 │   │   ├── auth.controller.ts
@@ -571,9 +646,9 @@ apps/api/
 │   │   └── rate-limit.middleware.ts # SMS (5/hr) and verify code (10/15min) rate limits
 │   ├── db/
 │   │   ├── schema/
-│   │   │   ├── index.ts           # ✅ Table definitions (users, verification_codes, trips, members)
-│   │   │   └── relations.ts       # ✅ Drizzle relations (users↔trips↔members)
-│   │   │                          # 🚧 Future: invitations, events, accommodations, travel tables
+│   │   │   ├── index.ts           # ✅ Table definitions (users, verification_codes, trips, members, events, accommodations, member_travel)
+│   │   │   └── relations.ts       # ✅ Drizzle relations (users↔trips↔members↔events↔accommodations↔member_travel)
+│   │   │                          # 🚧 Future: invitations table
 │   │   └── migrations/
 │   ├── types/
 │   │   └── index.ts              # FastifyInstance type augmentation (config, db, services)
@@ -1280,9 +1355,9 @@ See [Database Layer](#3-database-layer-postgresql--drizzle-orm) section for deta
 3. ✅ `trips` - Trip information
 4. ✅ `members` - **Trip membership, RSVP status, and co-organizer tracking** (combined entity)
 5. 🚧 `invitations` - Trip invitations by phone (planned)
-6. 🚧 `events` - Itinerary events (planned)
-7. 🚧 `accommodations` - Where group is staying (planned)
-8. 🚧 `travel` - Individual member arrivals/departures (planned)
+6. ✅ `events` - Itinerary events with event_type enum (travel, meal, activity) and soft delete
+7. ✅ `accommodations` - Multi-day lodging with date ranges and soft delete
+8. ✅ `member_travel` - Individual member arrivals/departures with soft delete
 
 **Note on Members:** The `members` table serves as the trip membership table. When a user is invited, a member record is created, making them a trip member. The `status` field tracks their RSVP response (going/not_going/maybe/no_response). This design keeps membership and status in sync.
 
@@ -3434,43 +3509,20 @@ fastify.register(compress, {
 - Shared: Trip schemas, permission types
 - E2E test: User can create and view trips
 
-**Phase 4: Invitations & RSVP (Week 3-4)**
+**Phase 4: Itinerary View Modes (Week 3-5)** ✅ Complete
 
-- Backend: Invitation endpoints, RSVP management, partial preview logic
-- Frontend: Invite members dialog, RSVP buttons, member list
-- Shared: RSVP schemas
-- E2E test: User can invite members and RSVP to trips
+- Backend: Events/accommodations/member travel CRUD with soft delete/restore, extended permissions
+- Frontend: Day-by-day view, group-by-type view, timezone toggle, create/edit/delete dialogs
+- Shared: Event/accommodation/member travel schemas and types
+- Testing: 24 test files, 35 E2E tests, 16 manual screenshots
+- Note: Combined originally planned Phases 4-8 scope (excluding Invitations & RSVP)
 
-**Phase 5: Itinerary Events (Week 4-5)**
+**Phase 5+: Future Features (Post-MVP)**
 
-- Backend: Events CRUD, event types, permission checks
-- Frontend: Event creation dialog, event list, day-by-day view, timezone toggle
-- Shared: Event schemas, timezone utilities
-- E2E test: User can add/edit/delete events
-
-**Phase 6: Accommodations & Member Travel (Week 5-6)**
-
-- Backend: Accommodations/travel CRUD, organizer-only restrictions
-- Frontend: Add accommodation dialog, add travel dialog, compact view/expand
-- Shared: Accommodation/travel schemas
-- E2E test: Organizer can add accommodations, members can add their travel
-
-**Phase 7: Advanced Itinerary Features (Week 6)**
-
-- Backend: Soft delete, restore, multi-day events
-- Frontend: Group by type view, deleted items (organizers), multi-day badges
-- E2E test: Organizer can restore deleted events
-
-**Phase 8: Polish & Testing (Week 7-8)**
-
-- Error handling and validation
-- Loading states and optimistic updates
-- Responsive design refinements
-- Performance optimization (query optimization, caching strategy)
-- Unit tests for complex services
-- Integration tests for all API endpoints
-- E2E tests for all critical flows
-- Documentation
+- Invitations and RSVP system
+- Per-event RSVP tracking
+- Rich text descriptions
+- Performance optimization
 
 ### Future Enhancements (Post-MVP)
 
@@ -3508,9 +3560,22 @@ fastify.register(compress, {
 
 ## Document Revision History
 
-**Document Version**: 3.0
-**Last Updated**: 2026-02-06
-**Status**: Phase 1-3 Complete - Monorepo + Auth + Trip Management
+**Document Version**: 4.0
+**Last Updated**: 2026-02-08
+**Status**: Phase 1-4 Complete - Monorepo + Auth + Trip Management + Itinerary View Modes
+
+**Version 4.0 Updates (2026-02-08)**:
+
+- ✅ Documented Phase 4 completion: Itinerary View Modes with events, accommodations, and member travel
+- ✅ Added 18 new API endpoints (6 per resource: events, accommodations, member travel)
+- ✅ Documented 3 new database tables with enums, indexes, and soft delete support
+- ✅ Documented 3 new services: EventService, AccommodationService, MemberTravelService
+- ✅ Documented extended PermissionsService with 9 new permission methods
+- ✅ Added 13 new frontend components (itinerary views, cards, dialogs)
+- ✅ Documented 6 new TanStack Query hooks with optimistic updates
+- ✅ Documented shared validation schemas for events, accommodations, and member travel
+- ✅ Updated directory structure to reflect new files
+- ✅ Marked Phase 4-8 roadmap as partially complete (Phase 4 done, 5-8 pending as future work)
 
 **Version 3.0 Updates (2026-02-06)**:
 

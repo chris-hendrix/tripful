@@ -11,10 +11,10 @@ export default defineConfig({
   timeout: 30 * 1000,
 
   // Test execution settings
-  fullyParallel: false, // Run tests sequentially to avoid database conflicts
+  fullyParallel: true,
   forbidOnly: !!process.env.CI, // Fail if test.only is left in CI
   retries: process.env.CI ? 2 : 0, // Retry failed tests in CI
-  workers: 1, // Run tests in sequence to avoid race conditions
+  ...(process.env.CI ? { workers: 2 } : {}), // Auto-detect locally, 2 in CI
 
   // Reporter to use
   reporter: "html",

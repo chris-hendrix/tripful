@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Suspense } from "react";
 import { TripDetailContent } from "./trip-detail-content";
@@ -94,6 +89,13 @@ vi.mock("@/app/providers/auth-provider", () => ({
 const mockUseTripDetail = vi.fn();
 vi.mock("@/hooks/use-trips", () => ({
   useTripDetail: (tripId: string) => mockUseTripDetail(tripId),
+}));
+
+// Mock ItineraryView component
+vi.mock("@/components/itinerary", () => ({
+  ItineraryView: ({ tripId }: { tripId: string }) => (
+    <div data-testid="itinerary-view">Itinerary View for trip {tripId}</div>
+  ),
 }));
 
 // Mock EditTripDialog component
@@ -211,7 +213,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       expect(screen.getByText("Miami Beach, FL")).toBeDefined();
@@ -261,7 +265,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       // Check for gradient placeholder
@@ -287,7 +293,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
         expect(screen.getByText("Miami Beach, FL")).toBeDefined();
         expect(screen.getByText("Jun 1 - 5, 2026")).toBeDefined();
       });
@@ -405,7 +413,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       expect(screen.queryByText("About this trip")).toBeNull();
@@ -474,7 +484,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       expect(screen.queryByText("Edit trip")).toBeNull();
@@ -519,7 +531,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       expect(screen.queryByText("Organizing")).toBeNull();
@@ -703,7 +717,9 @@ describe("TripDetailContent", () => {
       const onSuccessButton = within(editDialog).getByTestId("trigger-success");
       await userEvent.click(onSuccessButton);
 
-      expect(mockToast.success).toHaveBeenCalledWith("Trip updated successfully");
+      expect(mockToast.success).toHaveBeenCalledWith(
+        "Trip updated successfully",
+      );
     });
 
     it("does not show toast on initial page load", () => {
@@ -814,7 +830,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       expect(screen.queryByText("About this trip")).toBeNull();
@@ -837,7 +855,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("heading", { name: "Bachelor Party in Miami" })).toBeDefined();
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
       });
 
       // Organizers section should not be rendered

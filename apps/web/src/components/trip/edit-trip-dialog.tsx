@@ -135,8 +135,7 @@ export function EditTripDialog({
         },
         onError: (error) => {
           toast.error(
-            getUpdateTripErrorMessage(error) ??
-              "An unexpected error occurred.",
+            getUpdateTripErrorMessage(error) ?? "An unexpected error occurred.",
           );
         },
       },

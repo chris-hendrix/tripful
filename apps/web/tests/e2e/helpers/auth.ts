@@ -39,7 +39,7 @@ export async function loginViaBrowser(
   phone: string,
 ): Promise<void> {
   await page.goto("/login");
-  await page.waitForLoadState("networkidle");
+
 
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);
@@ -83,6 +83,56 @@ export async function authenticateUserWithPhone(
 }
 
 /**
+ * Fast API-based authentication: create user via API and inject auth cookie.
+ * Skips browser navigation entirely — much faster than browser-based auth.
+ * Returns the phone number used.
+ */
+export async function authenticateViaAPI(
+  page: Page,
+  request: APIRequestContext,
+  displayName: string = "Test User",
+): Promise<string> {
+  const phone = `+1555${Date.now()}`;
+  const cookieString = await createUserViaAPI(request, phone, displayName);
+  const token = cookieString.match(/auth_token=([^;]+)/)?.[1] || "";
+  await page.context().addCookies([
+    {
+      name: "auth_token",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+    },
+  ]);
+  await page.goto("/dashboard");
+  return phone;
+}
+
+/**
+ * Fast API-based authentication with a specific phone number.
+ * Skips browser navigation entirely.
+ */
+export async function authenticateViaAPIWithPhone(
+  page: Page,
+  request: APIRequestContext,
+  phone: string,
+  displayName: string = "Test User",
+): Promise<void> {
+  const cookieString = await createUserViaAPI(request, phone, displayName);
+  const token = cookieString.match(/auth_token=([^;]+)/)?.[1] || "";
+  await page.context().addCookies([
+    {
+      name: "auth_token",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+    },
+  ]);
+  await page.goto("/dashboard");
+}
+
+/**
  * Browser-only authentication (no API request context needed).
  * Handles both new users (complete-profile) and existing users.
  * Returns the phone number used.
@@ -94,7 +144,7 @@ export async function authenticateUserViaBrowser(
   const phone = `+1555${Date.now()}`;
 
   await page.goto("/login");
-  await page.waitForLoadState("networkidle");
+
 
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);
@@ -131,7 +181,7 @@ export async function authenticateUserViaBrowserWithPhone(
   displayName: string = "Test User",
 ): Promise<void> {
   await page.goto("/login");
-  await page.waitForLoadState("networkidle");
+
 
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);

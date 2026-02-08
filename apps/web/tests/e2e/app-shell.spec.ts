@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { authenticateUser } from "./helpers/auth";
+import { authenticateViaAPI } from "./helpers/auth";
+import { DashboardPage } from "./helpers/pages";
 
 /**
- * E2E Test Suite: App Shell (Header, Navigation, Skip Link, Main Landmark)
+ * E2E Journey: App Shell
  *
- * Tests the app shell structure on authenticated pages.
+ * Tests header, navigation, user menu, skip link, and main landmark
+ * in a single journey test with granular test.step() reporting.
  */
 
 test.describe("App Shell", () => {
@@ -12,92 +14,48 @@ test.describe("App Shell", () => {
     await page.context().clearCookies();
   });
 
-  test("header is visible on dashboard page with Tripful wordmark", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
+  test(
+    "app shell structure and navigation",
+    { tag: "@smoke" },
+    async ({ page, request }) => {
+      const dashboard = new DashboardPage(page);
+      await authenticateViaAPI(page, request);
 
-    // Verify header is visible
-    const header = page.locator('header:has(nav[aria-label="Main navigation"])');
-    await expect(header).toBeVisible();
+      await test.step("header with Tripful wordmark is visible", async () => {
+        const header = page.locator("header").filter({
+          has: page.getByRole("navigation", { name: "Main navigation" }),
+        });
+        await expect(header).toBeVisible();
 
-    // Verify Tripful wordmark
-    const wordmark = header.locator('a:has-text("Tripful")');
-    await expect(wordmark).toBeVisible();
-  });
+        const wordmark = header.getByRole("link", { name: "Tripful" });
+        await expect(wordmark).toBeVisible();
+      });
 
-  test("header contains Dashboard navigation link", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
+      await test.step("navigation contains Dashboard link", async () => {
+        const nav = page.getByRole("navigation", { name: "Main navigation" });
+        await expect(nav).toBeVisible();
 
-    const nav = page.locator('nav[aria-label="Main navigation"]');
-    await expect(nav).toBeVisible();
+        const dashboardLink = nav.getByRole("link", { name: "Dashboard" });
+        await expect(dashboardLink).toBeVisible();
+      });
 
-    const dashboardLink = nav.locator('a:has-text("Dashboard")');
-    await expect(dashboardLink).toBeVisible();
-  });
+      await test.step("main content area has correct id", async () => {
+        const main = page.locator("main#main-content");
+        await expect(main).toBeVisible();
+      });
 
-  test("main content area has correct id for skip link", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
+      await test.step("user menu opens with profile and logout", async () => {
+        await dashboard.openUserMenu();
+        await expect(dashboard.profileItem).toBeVisible();
+        await expect(dashboard.logoutItem).toBeVisible();
+        await expect(page.getByText("Test User")).toBeVisible();
+      });
 
-    const main = page.locator("main#main-content");
-    await expect(main).toBeVisible();
-  });
-
-  test("user menu opens when avatar button is clicked", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
-
-    // Click user menu button
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
-    await expect(userMenuButton).toBeVisible();
-    await userMenuButton.click();
-
-    // Verify dropdown items are visible
-    await expect(page.locator('text="Profile"')).toBeVisible();
-    await expect(page.locator('text="Log out"')).toBeVisible();
-
-    // Verify user display name is shown
-    await expect(page.locator('text="Test User"')).toBeVisible();
-  });
-
-  test("logout clears session and redirects to login", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
-
-    // Open user menu
-    const userMenuButton = page.locator('button[aria-label="User menu"]');
-    await userMenuButton.click();
-
-    // Click Log out
-    const logoutItem = page.locator('text="Log out"');
-    await expect(logoutItem).toBeVisible();
-    await logoutItem.click();
-
-    // Should redirect to login
-    await page.waitForURL("**/login", { timeout: 5000 });
-    expect(page.url()).toContain("/login");
-  });
-
-  test("skip link exists and targets main content", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request);
-
-    // Skip link should exist in the DOM (even if visually hidden)
-    const skipLink = page.locator('a[href="#main-content"]');
-    await expect(skipLink).toHaveCount(1);
-    await expect(skipLink).toHaveText("Skip to main content");
-  });
+      await test.step("skip link exists and targets main content", async () => {
+        const skipLink = page.locator('a[href="#main-content"]');
+        await expect(skipLink).toHaveCount(1);
+        await expect(skipLink).toHaveText("Skip to main content");
+      });
+    },
+  );
 });

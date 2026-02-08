@@ -944,19 +944,19 @@ All colors are defined as CSS custom properties in `apps/web/src/app/globals.css
 
 ```css
 /* Core */
---color-primary: #1A5F9E;         /* Azure blue */
---color-accent: #D4603A;          /* Terracotta */
---color-background: #FAF5EE;      /* Warm cream */
---color-foreground: #3A2E22;      /* Dark warm brown */
---color-card: #FFFFFF;
---color-muted: #F0EBE3;           /* Warm gray */
---color-muted-foreground: #8C8274; /* Sandy gray */
---color-border: #E5DDD2;          /* Warm border */
---color-destructive: #C4382A;     /* Coral red */
+--color-primary: #1a5f9e; /* Azure blue */
+--color-accent: #d4603a; /* Terracotta */
+--color-background: #faf5ee; /* Warm cream */
+--color-foreground: #3a2e22; /* Dark warm brown */
+--color-card: #ffffff;
+--color-muted: #f0ebe3; /* Warm gray */
+--color-muted-foreground: #8c8274; /* Sandy gray */
+--color-border: #e5ddd2; /* Warm border */
+--color-destructive: #c4382a; /* Coral red */
 
 /* Semantic */
---color-success: #4A7C59;         /* Olive green (Going) */
---color-warning: #C48A2A;         /* Warm amber (Maybe) */
+--color-success: #4a7c59; /* Olive green (Going) */
+--color-warning: #c48a2a; /* Warm amber (Maybe) */
 ```
 
 ### Usage Patterns:

@@ -20,6 +20,9 @@ import databasePlugin from "./plugins/database.js";
 import authServicePlugin from "./plugins/auth-service.js";
 import permissionsServicePlugin from "./plugins/permissions-service.js";
 import tripServicePlugin from "./plugins/trip-service.js";
+import eventServicePlugin from "./plugins/event-service.js";
+import accommodationServicePlugin from "./plugins/accommodation-service.js";
+import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
@@ -31,6 +34,9 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import { healthRoutes } from "./routes/health.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
 import { tripRoutes } from "./routes/trip.routes.js";
+import { eventRoutes } from "./routes/event.routes.js";
+import { accommodationRoutes } from "./routes/accommodation.routes.js";
+import { memberTravelRoutes } from "./routes/member-travel.routes.js";
 
 // Config
 import { env } from "./config/env.js";
@@ -146,6 +152,9 @@ export async function buildApp(
   await app.register(permissionsServicePlugin);
   await app.register(authServicePlugin);
   await app.register(tripServicePlugin);
+  await app.register(eventServicePlugin);
+  await app.register(accommodationServicePlugin);
+  await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
 
   // Register error handler
@@ -155,6 +164,9 @@ export async function buildApp(
   await app.register(healthRoutes, { prefix: "/api/health" });
   await app.register(authRoutes, { prefix: "/api/auth" });
   await app.register(tripRoutes, { prefix: "/api/trips" });
+  await app.register(eventRoutes, { prefix: "/api" });
+  await app.register(accommodationRoutes, { prefix: "/api" });
+  await app.register(memberTravelRoutes, { prefix: "/api" });
 
   // Not-found handler for unmatched routes
   app.setNotFoundHandler((request, reply) => {

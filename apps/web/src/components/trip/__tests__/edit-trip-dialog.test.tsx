@@ -982,7 +982,9 @@ describe("EditTripDialog", () => {
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith(
-          expect.stringMatching(/you don't have permission to delete this trip/i),
+          expect.stringMatching(
+            /you don't have permission to delete this trip/i,
+          ),
         );
       });
     });

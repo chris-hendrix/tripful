@@ -3575,7 +3575,7 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe("NOT_FOUND");
+      expect(body.error.code).toBe("CO_ORGANIZER_NOT_IN_TRIP");
       expect(body.error.message).toBe("Co-organizer not found in trip");
     });
   });

@@ -1,0 +1,86 @@
+// Accommodation validation schemas for the Tripful platform
+
+import { z } from "zod";
+
+/**
+ * Base accommodation data schema (without cross-field validation)
+ * - Used as the foundation for both create and update schemas
+ */
+const baseAccommodationSchema = z.object({
+  name: z
+    .string()
+    .min(1, {
+      message: "Accommodation name must be at least 1 character",
+    })
+    .max(255, {
+      message: "Accommodation name must not exceed 255 characters",
+    }),
+  address: z.string().optional(),
+  description: z
+    .string()
+    .max(2000, {
+      message: "Description must not exceed 2000 characters",
+    })
+    .optional(),
+  checkIn: z.string().date(),
+  checkOut: z.string().date(),
+  links: z
+    .array(
+      z.string().url({
+        message: "Link must be a valid URL",
+      }),
+    )
+    .max(10, {
+      message: "Links must not exceed 10 items",
+    })
+    .optional(),
+});
+
+/**
+ * Validates accommodation creation data
+ * - name: 1-255 characters (required)
+ * - address: string (optional)
+ * - description: max 2000 characters (optional)
+ * - checkIn: ISO 8601 date string (YYYY-MM-DD) (required)
+ * - checkOut: ISO 8601 date string (YYYY-MM-DD) (required), must be > checkIn
+ * - links: array of URLs, max 10 items (optional)
+ */
+export const createAccommodationSchema = baseAccommodationSchema.refine(
+  (data) => {
+    // Cross-field validation: checkOut must be > checkIn
+    return new Date(data.checkOut) > new Date(data.checkIn);
+  },
+  {
+    message: "Check-out date must be after check-in date",
+    path: ["checkOut"],
+  },
+);
+
+/**
+ * Validates accommodation update data (all fields optional)
+ * - Allows partial updates to any accommodation field
+ * - Same validation rules as createAccommodationSchema when fields are provided
+ */
+export const updateAccommodationSchema = baseAccommodationSchema
+  .partial()
+  .refine(
+    (data) => {
+      // Cross-field validation: checkOut must be > checkIn (when both provided)
+      if (data.checkIn && data.checkOut) {
+        return new Date(data.checkOut) > new Date(data.checkIn);
+      }
+      return true;
+    },
+    {
+      message: "Check-out date must be after check-in date",
+      path: ["checkOut"],
+    },
+  );
+
+// Inferred TypeScript types from schemas
+export type CreateAccommodationInput = z.infer<
+  typeof createAccommodationSchema
+>;
+export type UpdateAccommodationInput = z.infer<
+  typeof updateAccommodationSchema
+>;

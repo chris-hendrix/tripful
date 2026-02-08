@@ -52,9 +52,23 @@ const baseTripSchema = z.object({
     .optional(),
   coverImageUrl: z
     .string()
-    .refine((val) => val.startsWith("/") || URL.canParse(val), {
-      message: "Cover image must be a valid URL or path",
-    })
+    .refine(
+      (val) => {
+        // Allow paths starting with / (but not protocol-relative URLs like //example.com)
+        if (val.startsWith("/") && !val.startsWith("//")) return true;
+        // Require full URLs with protocol (http:// or https://)
+        try {
+          const url = new URL(val);
+          return url.protocol === "http:" || url.protocol === "https:";
+        } catch {
+          return false;
+        }
+      },
+      {
+        message:
+          "Cover image must be a valid URL with protocol (http:// or https://) or a path starting with /",
+      },
+    )
     .nullable()
     .optional(),
   allowMembersToAddEvents: z.boolean().default(true),
