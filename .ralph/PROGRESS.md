@@ -40,3 +40,52 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - Pre-existing failure: `trip-detail-content.test.tsx` has 28 failures due to missing `QueryClientProvider` — not caused by our changes.
 - Many Button/Input usage sites already override to `h-12` via className; `tailwind-merge` ensures consumer overrides win over base component classes.
 
+## Iteration 2 — Task 1.2: Fix toast positioning and dialog backdrop
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/src/components/ui/sonner.tsx`** — Verified already has correct implementation:
+   - `position="bottom-right"` prop on Sonner component
+   - `className="toaster group z-[60]"` ensuring toasts render above dialog overlays (`z-50`)
+   - Change was made in a previous iteration/commit; no modification needed
+
+2. **`apps/web/src/components/ui/dialog.tsx`** — Verified already correct:
+   - `DialogOverlay`: `fixed inset-0 z-50 bg-black/80` for full-viewport semi-transparent backdrop
+   - `DialogContent`: `z-50` with portal rendering via `DialogPortal`
+   - Animation classes (`fade-in-0`, `fade-out-0`, `zoom-in-95`, `zoom-out-95`) working correctly
+   - No modification needed
+
+3. **`apps/web/src/components/ui/__tests__/dialog.test.tsx`** — Created 5 new tests:
+   - Overlay renders with `z-50` class
+   - Overlay renders with `bg-black/80` backdrop class
+   - Content renders with `z-50` class
+   - Content renders inside a Radix portal (outside render container)
+   - Overlay has `fixed` and `inset-0` positioning for full-viewport coverage
+
+### Z-Index Hierarchy Verified
+
+| Z-Index | Component | Purpose |
+|---------|-----------|---------|
+| `z-[60]` | Sonner Toaster | Highest — toasts always visible above dialogs |
+| `z-50` | Dialog/AlertDialog Overlay | Semi-transparent backdrop |
+| `z-50` | Dialog/AlertDialog Content | Modal content panel |
+| `z-40` | App Header | Sticky navigation |
+| `z-10` | Itinerary sticky headers | Section headers |
+
+### Verification Results
+
+- **typecheck**: ✅ PASS
+- **lint**: ✅ PASS
+- **tests**: ✅ PASS — 7 toast/dialog tests pass (2 sonner + 5 dialog), 589 total tests pass
+- **reviewer**: ✅ APPROVED — implementation matches architecture spec, tests follow project conventions
+
+### Learnings
+
+- sonner.tsx was already updated with `position="bottom-right"` and `z-[60]` prior to this iteration — the task was primarily verification + test coverage.
+- Dialog uses Radix portals that render at `document.body` level — must use `document.querySelector()` instead of `container.querySelector()` in tests.
+- The `defaultOpen` prop on `<Dialog>` is the simplest way to test dialog content without needing user interaction events.
+- Sonner renders `data-x-position` and `data-y-position` attributes on `[data-sonner-toaster]` which are testable.
+- Pre-existing failure: `trip-detail-content.test.tsx` still has 28 failures due to missing `QueryClientProvider` — not caused by our changes.
+

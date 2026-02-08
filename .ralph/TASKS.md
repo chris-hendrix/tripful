@@ -17,7 +17,7 @@
   - Test: Run existing component tests to ensure no regressions
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 1.2: Fix toast positioning and dialog backdrop
+- [x] Task 1.2: Fix toast positioning and dialog backdrop
   - Implement: Update `apps/web/src/components/ui/sonner.tsx` — add `position="bottom-right"` and z-index `z-[60]` class
   - Implement: Verify `apps/web/src/components/ui/dialog.tsx` overlay renders correctly (check z-index, portal mounting)
   - Test: Run existing tests to ensure no regressions
