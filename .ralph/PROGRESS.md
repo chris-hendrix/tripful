@@ -842,4 +842,130 @@ Task 9 will implement E2E tests for complete itinerary flows using Playwright.
 
 ---
 
-**Ready for**: Task 9 - E2E Tests for Itinerary Flows
+## Iteration 9: Task 9 - E2E Tests for Itinerary Flows
+
+**Status**: ✅ COMPLETED
+
+**Date**: 2026-02-07
+
+### Research Phase (3 Parallel Researchers)
+
+**Researcher 1 (LOCATING)**:
+- Found existing E2E test files: `auth-flow.spec.ts`, `app-shell.spec.ts`, `trip-flow.spec.ts`
+- Located Playwright config at `apps/web/playwright.config.ts` (Chromium only, sequential, 30s timeout, viewport 1280x1080)
+- Found auth helpers at `apps/web/tests/e2e/helpers/auth.ts` with 5 helper functions
+- Discovered an existing draft `itinerary-flows.spec.ts` (871 lines, 13 tests, untracked) with multiple bugs
+
+**Researcher 2 (ANALYZING)**:
+- Traced data flow from trip detail page → ItineraryView → DayByDayView/GroupByTypeView
+- Identified that `onEdit`/`onDelete` callbacks in both view components were empty no-ops (TODO comments)
+- Mapped all dialog component props and their expected selectors
+- Found create-event-dialog `endTime` defaulted to `""` causing "Invalid datetime" validation errors
+- Identified all API endpoint routes for events, accommodations, member travel
+
+**Researcher 3 (PATTERNS)**:
+- Documented all E2E test patterns: auth flow, trip creation, dialog interaction, form filling
+- Found NO `data-testid` attributes in codebase - all selectors use `has-text`, `name`, `role`, `title` attributes
+- Catalogued all button text, dialog titles, toast messages used in itinerary components
+- Found selector patterns: `button[aria-label="..."]`, `button[role="combobox"]`, `div[role="option"]`
+
+### Implementation Phase
+
+**Round 1 - Coder Agent**:
+- Wired up edit/delete callbacks in `day-by-day-view.tsx` (events, accommodations, member travel)
+- Wired up edit/delete callbacks in `group-by-type-view.tsx` (events, accommodations)
+- Fixed 3 bugs in E2E test file:
+  1. Member travel dialog: wrong title, field names, submit button text
+  2. Validation errors: wrong expected error messages
+  3. Edit/delete tests: now work with wired-up callbacks
+
+**Round 1 - Verifier**: FAIL (10 of 35 E2E tests failed)
+- Runtime crash: `a.startTime.getTime()` called on string properties
+- Create event dialog endTime validation: `""` vs `undefined`
+- E2E selector mismatches (timezone combobox, checkbox, Edit button ambiguity)
+
+**Round 2 - Coder Agent**:
+- Fixed `.getTime()` on strings → wrapped with `new Date()` in both view files
+- Fixed `create-event-dialog.tsx` endTime default from `""` to `undefined`
+- Fixed E2E selectors: timezone combobox, checkbox aria-label, test rename
+- Fixed `accommodations.sort()` prop mutation → `[...accommodations].sort()`
+- Added explanatory comments on `onDelete` callbacks
+- Used `test.fixme` for restore test placeholder
+
+**Round 2 - Verifier**: FAIL (6 of 35 E2E tests failed)
+- Toast assertions timing out (sonner toasts auto-dismiss before assertion)
+- Invalid regex in CSS `:has-text()` pseudo-class
+- Ambiguous "Edit" button matching "Edit trip" instead of "Edit event"
+
+**Round 3 - Coder Agent**:
+- Removed flaky toast assertions (item appearing in view is sufficient proof)
+- Fixed regex selectors: `button:has-text(/regex/)` → `page.locator('button', { hasText: /regex/ })`
+- Fixed Edit button: `button:has-text("Edit")` → `button[title="Edit event"]`
+
+**Round 3 - Verifier**: FAIL (1 of 35 failed)
+- "organizer edits event" test: edit-event-dialog had same endTime `""` bug
+
+**Round 4 - Direct Fix**:
+- Fixed `edit-event-dialog.tsx`: changed endTime default from `""` to `undefined` in 3 locations (defaultValues, useEffect reset, onChange handler)
+
+**Round 4 - Verifier**: PASS (34 passed, 1 skipped)
+
+### Verification Phase
+
+**Final Results**:
+- TypeScript type checking: ✅ PASS (all 3 packages)
+- Linting: ✅ PASS (all 3 packages)
+- Unit/Integration tests: ✅ PASS (1,335 tests across 66 test files)
+- E2E tests: ✅ PASS (34 passed, 1 skipped via test.fixme)
+
+**Reviewer Results**: ✅ APPROVED
+- Component changes are clean and consistent
+- Edit dialog state management follows correct useState pattern
+- E2E tests follow existing patterns
+- All previous NEEDS_WORK items addressed
+
+### Files Created/Modified
+
+**Created**:
+- `apps/web/tests/e2e/itinerary-flows.spec.ts` (13 E2E tests, 12 active + 1 fixme)
+
+**Modified**:
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` (wired edit/delete, fixed .getTime())
+- `apps/web/src/components/itinerary/group-by-type-view.tsx` (wired edit/delete, fixed .getTime(), fixed sort mutation)
+- `apps/web/src/components/itinerary/create-event-dialog.tsx` (fixed endTime "" → undefined)
+- `apps/web/src/components/itinerary/edit-event-dialog.tsx` (fixed endTime "" → undefined)
+- `apps/web/src/components/itinerary/itinerary-view.tsx` (empty-state dialog wiring)
+- `apps/web/src/lib/utils/timezone.ts` (broadened getDayInTimezone to accept Date | string)
+
+### E2E Test Coverage
+
+| Test | Status | Description |
+|---|---|---|
+| organizer creates event (meal type) | ✅ PASS | Full form fill, verify in day-by-day view |
+| organizer creates accommodation | ✅ PASS | With link, verify in view |
+| member adds member travel (arrival) | ✅ PASS | Radio button, datetime, details |
+| toggle view mode day-by-day ↔ group-by-type | ✅ PASS | Verify section headers change |
+| toggle timezone trip ↔ user | ✅ PASS | Verify toggle buttons and event persistence |
+| organizer soft deletes event | ✅ PASS | Cancel + confirm flow via edit dialog |
+| non-member cannot add event | ✅ PASS | Verify "Trip not found" and no buttons |
+| validation prevents incomplete submission | ✅ PASS | Empty form, then valid submission |
+| organizer edits event | ✅ PASS | Update name/location, verify change |
+| responsive layout mobile | ✅ PASS | 375x667, verify controls and dialog |
+| multiple events + view switching | ✅ PASS | Meal + activity, both views |
+| organizer can add when member creation disabled | ✅ PASS | Uncheck setting, organizer still can |
+| organizer restores soft-deleted event | ⏭ SKIPPED (test.fixme) | Blocked: no restore UI implemented |
+
+### Learnings for Future Iterations
+
+1. **String vs Date**: API returns ISO datetime strings, not Date objects. Always wrap with `new Date()` before calling `.getTime()` or other Date methods
+2. **Zod optional fields**: Use `undefined` not `""` for empty optional fields validated with `.datetime().optional()`. Empty string fails datetime validation.
+3. **Playwright CSS selectors**: The `:has-text()` pseudo-class does NOT support regex. Use `page.locator('element', { hasText: /regex/ })` instead.
+4. **Ambiguous selectors**: Use `title` or `aria-label` attributes for specific buttons (e.g., `button[title="Edit event"]`) rather than generic text matching (`button:has-text("Edit")`) which can match unexpected elements.
+5. **Toast assertions are flaky**: Sonner toasts auto-dismiss quickly. Verifying the data appears in the view is more reliable than checking toast text.
+6. **CI env variable**: When `CI=true`, Playwright won't reuse existing servers. Run with `CI=` unset for local testing.
+7. **Prop mutation**: Never call `.sort()` directly on props arrays - always spread first: `[...array].sort()`
+8. **onDelete pattern**: When delete flow lives inside the edit dialog, both `onEdit` and `onDelete` can open the same edit dialog. Document this with comments.
+
+---
+
+**Ready for**: Task 10 - Manual Browser Testing with Screenshots

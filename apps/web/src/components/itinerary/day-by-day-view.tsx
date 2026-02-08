@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
 import { MemberTravelCard } from "./member-travel-card";
+import { EditEventDialog } from "./edit-event-dialog";
+import { EditAccommodationDialog } from "./edit-accommodation-dialog";
+import { EditMemberTravelDialog } from "./edit-member-travel-dialog";
 import { getDayInTimezone, getDayLabel } from "@/lib/utils/timezone";
 
 interface DayByDayViewProps {
@@ -123,12 +126,12 @@ export function DayByDayView({
       day.events.sort((a, b) => {
         if (a.allDay && !b.allDay) return -1;
         if (!a.allDay && b.allDay) return 1;
-        return a.startTime.getTime() - b.startTime.getTime();
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
       });
 
       // Sort travels by time
-      day.arrivals.sort((a, b) => a.time.getTime() - b.time.getTime());
-      day.departures.sort((a, b) => a.time.getTime() - b.time.getTime());
+      day.arrivals.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      day.departures.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
     });
 
     return sortedDays;
@@ -166,6 +169,13 @@ export function DayByDayView({
     return isOrganizer || travel.memberId === userId;
   };
 
+  // Edit dialog state
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editingAccommodation, setEditingAccommodation] =
+    useState<Accommodation | null>(null);
+  const [editingMemberTravel, setEditingMemberTravel] =
+    useState<MemberTravel | null>(null);
+
   return (
     <div className="space-y-6">
       {dayData.map((day, index) => {
@@ -195,12 +205,9 @@ export function DayByDayView({
                     timezone={timezone}
                     canEdit={canEditAccommodation(day.accommodation)}
                     canDelete={canDeleteAccommodation(day.accommodation)}
-                    onEdit={() => {
-                      // TODO: Implement edit dialog
-                    }}
-                    onDelete={() => {
-                      // TODO: Implement delete confirmation
-                    }}
+                    onEdit={() => setEditingAccommodation(day.accommodation)}
+                    // Delete is triggered through the edit dialog which contains the delete flow
+                    onDelete={() => setEditingAccommodation(day.accommodation)}
                   />
                 )}
 
@@ -215,12 +222,9 @@ export function DayByDayView({
                     timezone={timezone}
                     canEdit={canEditMemberTravel(travel)}
                     canDelete={canDeleteMemberTravel(travel)}
-                    onEdit={() => {
-                      // TODO: Implement edit dialog
-                    }}
-                    onDelete={() => {
-                      // TODO: Implement delete confirmation
-                    }}
+                    onEdit={() => setEditingMemberTravel(travel)}
+                    // Delete is triggered through the edit dialog which contains the delete flow
+                    onDelete={() => setEditingMemberTravel(travel)}
                   />
                 ))}
 
@@ -232,12 +236,9 @@ export function DayByDayView({
                     timezone={timezone}
                     canEdit={canEditEvent(event)}
                     canDelete={canDeleteEvent(event)}
-                    onEdit={() => {
-                      // TODO: Implement edit dialog
-                    }}
-                    onDelete={() => {
-                      // TODO: Implement delete confirmation
-                    }}
+                    onEdit={() => setEditingEvent(event)}
+                    // Delete is triggered through the edit dialog which contains the delete flow
+                    onDelete={() => setEditingEvent(event)}
                   />
                 ))}
 
@@ -252,12 +253,9 @@ export function DayByDayView({
                     timezone={timezone}
                     canEdit={canEditMemberTravel(travel)}
                     canDelete={canDeleteMemberTravel(travel)}
-                    onEdit={() => {
-                      // TODO: Implement edit dialog
-                    }}
-                    onDelete={() => {
-                      // TODO: Implement delete confirmation
-                    }}
+                    onEdit={() => setEditingMemberTravel(travel)}
+                    // Delete is triggered through the edit dialog which contains the delete flow
+                    onDelete={() => setEditingMemberTravel(travel)}
                   />
                 ))}
               </div>
@@ -278,6 +276,35 @@ export function DayByDayView({
             No trip dates set. Set trip dates to see a day-by-day view.
           </p>
         </div>
+      )}
+
+      {/* Edit dialogs */}
+      {editingEvent && (
+        <EditEventDialog
+          open={!!editingEvent}
+          onOpenChange={(open) => {
+            if (!open) setEditingEvent(null);
+          }}
+          event={editingEvent}
+        />
+      )}
+      {editingAccommodation && (
+        <EditAccommodationDialog
+          open={!!editingAccommodation}
+          onOpenChange={(open) => {
+            if (!open) setEditingAccommodation(null);
+          }}
+          accommodation={editingAccommodation}
+        />
+      )}
+      {editingMemberTravel && (
+        <EditMemberTravelDialog
+          open={!!editingMemberTravel}
+          onOpenChange={(open) => {
+            if (!open) setEditingMemberTravel(null);
+          }}
+          memberTravel={editingMemberTravel}
+        />
       )}
     </div>
   );

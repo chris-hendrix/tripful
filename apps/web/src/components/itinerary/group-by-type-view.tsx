@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Home, Plane, Utensils, Calendar } from "lucide-react";
 import type { Event, Accommodation } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
+import { EditEventDialog } from "./edit-event-dialog";
+import { EditAccommodationDialog } from "./edit-accommodation-dialog";
 
 interface GroupByTypeViewProps {
   events: Event[];
@@ -24,19 +26,19 @@ export function GroupByTypeView({
   // Group events by type
   const groupedEvents = useMemo(() => {
     return {
-      accommodations: accommodations.sort(
+      accommodations: [...accommodations].sort(
         (a, b) =>
           new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
       ),
       travel: events
         .filter((e) => e.eventType === "travel")
-        .sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
       meal: events
         .filter((e) => e.eventType === "meal")
-        .sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
       activity: events
         .filter((e) => e.eventType === "activity")
-        .sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
     };
   }, [events, accommodations]);
 
@@ -56,6 +58,11 @@ export function GroupByTypeView({
   const canDeleteAccommodation = (accommodation: Accommodation) => {
     return isOrganizer || accommodation.createdBy === userId;
   };
+
+  // Edit dialog state
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editingAccommodation, setEditingAccommodation] =
+    useState<Accommodation | null>(null);
 
   const sections = [
     {
@@ -124,12 +131,13 @@ export function GroupByTypeView({
                         canDelete={canDeleteAccommodation(
                           item as Accommodation,
                         )}
-                        onEdit={() => {
-                          // TODO: Implement edit dialog
-                        }}
-                        onDelete={() => {
-                          // TODO: Implement delete confirmation
-                        }}
+                        onEdit={() =>
+                          setEditingAccommodation(item as Accommodation)
+                        }
+                        // Delete is triggered through the edit dialog which contains the delete flow
+                        onDelete={() =>
+                          setEditingAccommodation(item as Accommodation)
+                        }
                       />
                     ))
                   : section.items.map((item) => (
@@ -139,12 +147,9 @@ export function GroupByTypeView({
                         timezone={timezone}
                         canEdit={canEditEvent(item as Event)}
                         canDelete={canDeleteEvent(item as Event)}
-                        onEdit={() => {
-                          // TODO: Implement edit dialog
-                        }}
-                        onDelete={() => {
-                          // TODO: Implement delete confirmation
-                        }}
+                        onEdit={() => setEditingEvent(item as Event)}
+                        // Delete is triggered through the edit dialog which contains the delete flow
+                        onDelete={() => setEditingEvent(item as Event)}
                       />
                     ))}
               </div>
@@ -158,6 +163,26 @@ export function GroupByTypeView({
           </div>
         );
       })}
+
+      {/* Edit dialogs */}
+      {editingEvent && (
+        <EditEventDialog
+          open={!!editingEvent}
+          onOpenChange={(open) => {
+            if (!open) setEditingEvent(null);
+          }}
+          event={editingEvent}
+        />
+      )}
+      {editingAccommodation && (
+        <EditAccommodationDialog
+          open={!!editingAccommodation}
+          onOpenChange={(open) => {
+            if (!open) setEditingAccommodation(null);
+          }}
+          accommodation={editingAccommodation}
+        />
+      )}
     </div>
   );
 }

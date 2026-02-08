@@ -12,6 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ItineraryHeader } from "./itinerary-header";
 import { DayByDayView } from "./day-by-day-view";
 import { GroupByTypeView } from "./group-by-type-view";
+import {
+  CreateEventDialog,
+  CreateAccommodationDialog,
+} from "@/components/itinerary";
 
 interface ItineraryViewProps {
   tripId: string;
@@ -51,6 +55,11 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     "day-by-day",
   );
   const [showUserTime, setShowUserTime] = useState(false);
+
+  // Dialog state for empty state
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
+  const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
+    useState(false);
 
   // Determine timezone
   const tripTimezone = trip?.preferredTimezone || "UTC";
@@ -130,40 +139,50 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
 
   if (hasNoContent) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="bg-card rounded-2xl border border-border p-8 text-center">
-          <CalendarX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
-            No itinerary yet
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Start planning your trip by adding events, accommodations, and
-            travel details.
-          </p>
-          {isOrganizer && (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Button
-                variant="gradient"
-                className="h-12 px-8 rounded-xl"
-                onClick={() => {
-                  // TODO: Open create event dialog
-                }}
-              >
-                Add Event
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 px-8 rounded-xl"
-                onClick={() => {
-                  // TODO: Open create accommodation dialog
-                }}
-              >
-                Add Accommodation
-              </Button>
-            </div>
-          )}
+      <>
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="bg-card rounded-2xl border border-border p-8 text-center">
+            <CalendarX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+              No itinerary yet
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Start planning your trip by adding events, accommodations, and
+              travel details.
+            </p>
+            {isOrganizer && (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="gradient"
+                  className="h-12 px-8 rounded-xl"
+                  onClick={() => setIsCreateEventOpen(true)}
+                >
+                  Add Event
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 px-8 rounded-xl"
+                  onClick={() => setIsCreateAccommodationOpen(true)}
+                >
+                  Add Accommodation
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Dialogs for empty state */}
+        <CreateEventDialog
+          open={isCreateEventOpen}
+          onOpenChange={setIsCreateEventOpen}
+          tripId={tripId}
+        />
+        <CreateAccommodationDialog
+          open={isCreateAccommodationOpen}
+          onOpenChange={setIsCreateAccommodationOpen}
+          tripId={tripId}
+        />
+      </>
     );
   }
 

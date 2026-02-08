@@ -81,7 +81,7 @@ export function EditEventDialog({
       eventType: "activity",
       location: "",
       startTime: "",
-      endTime: "",
+      endTime: undefined,
       allDay: false,
       isOptional: false,
       links: [],
@@ -99,7 +99,7 @@ export function EditEventDialog({
         startTime: event.startTime
           ? new Date(event.startTime).toISOString()
           : "",
-        endTime: event.endTime ? new Date(event.endTime).toISOString() : "",
+        endTime: event.endTime ? new Date(event.endTime).toISOString() : undefined,
         allDay: event.allDay,
         isOptional: event.isOptional,
         links: event.links || [],
@@ -331,7 +331,7 @@ export function EditEventDialog({
                       onChange={(e) => {
                         const dateValue = e.target.value
                           ? new Date(e.target.value).toISOString()
-                          : "";
+                          : undefined;
                         field.onChange(dateValue);
                       }}
                     />

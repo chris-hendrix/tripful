@@ -66,7 +66,7 @@ export function CreateEventDialog({
       eventType: "activity",
       location: "",
       startTime: "",
-      endTime: "",
+      endTime: undefined,
       allDay: false,
       isOptional: false,
       links: [],
@@ -291,7 +291,7 @@ export function CreateEventDialog({
                       onChange={(e) => {
                         const dateValue = e.target.value
                           ? new Date(e.target.value).toISOString()
-                          : "";
+                          : undefined;
                         field.onChange(dateValue);
                       }}
                     />

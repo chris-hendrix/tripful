@@ -331,7 +331,7 @@ Build forms for creating and editing events, accommodations, and member travel.
 
 ---
 
-- [ ] Task 9: E2E Tests for Itinerary Flows
+- [x] Task 9: E2E Tests for Itinerary Flows
 
 Write Playwright E2E tests covering complete user journeys.
 

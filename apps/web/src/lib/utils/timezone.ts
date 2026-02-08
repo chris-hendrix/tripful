@@ -62,11 +62,18 @@ export function formatInTimezone(
 /**
  * Get the day (YYYY-MM-DD) for a date in a specific timezone
  * Used for grouping events by day
- * @param date - Date to convert
+ * @param date - Date to convert (Date object or ISO string)
  * @param timezone - IANA timezone string
  * @returns Date string in YYYY-MM-DD format
  */
-export function getDayInTimezone(date: Date, timezone: string): string {
+export function getDayInTimezone(date: Date | string, timezone: string): string {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Validate date
+  if (isNaN(dateObj.getTime())) {
+    return "1970-01-01";
+  }
+
   try {
     // Use Intl.DateTimeFormat to get the date parts in the target timezone
     const formatter = new Intl.DateTimeFormat("en-US", {
@@ -76,7 +83,7 @@ export function getDayInTimezone(date: Date, timezone: string): string {
       day: "2-digit",
     });
 
-    const parts = formatter.formatToParts(date);
+    const parts = formatter.formatToParts(dateObj);
     const year = parts.find((p) => p.type === "year")?.value || "0000";
     const month = parts.find((p) => p.type === "month")?.value || "00";
     const day = parts.find((p) => p.type === "day")?.value || "00";
@@ -85,7 +92,7 @@ export function getDayInTimezone(date: Date, timezone: string): string {
   } catch (error) {
     // Fall back to ISO date
     console.error(`Invalid timezone: ${timezone}`, error);
-    return date.toISOString().split("T")[0] || "1970-01-01";
+    return dateObj.toISOString().split("T")[0] || "1970-01-01";
   }
 }
 
