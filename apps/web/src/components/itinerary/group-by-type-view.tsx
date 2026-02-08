@@ -188,7 +188,7 @@ export function GroupByTypeView({
                           <MemberTravelCard
                             key={travel.id}
                             memberTravel={travel}
-                            memberName={userNameMap.get(travel.memberId) || "Unknown"}
+                            memberName={travel.memberName || "Unknown"}
                             timezone={timezone}
                             canEdit={canModifyMemberTravel(travel)}
                             canDelete={canModifyMemberTravel(travel)}
