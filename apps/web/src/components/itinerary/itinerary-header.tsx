@@ -211,6 +211,7 @@ export function ItineraryHeader({
         open={isCreateEventOpen}
         onOpenChange={setIsCreateEventOpen}
         tripId={tripId}
+        timezone={selectedTimezone}
       />
       <CreateAccommodationDialog
         open={isCreateAccommodationOpen}
@@ -221,6 +222,7 @@ export function ItineraryHeader({
         open={isCreateMemberTravelOpen}
         onOpenChange={setIsCreateMemberTravelOpen}
         tripId={tripId}
+        timezone={selectedTimezone}
       />
     </>
   );

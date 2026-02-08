@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -242,11 +243,12 @@ export function EditAccommodationDialog({
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="date"
-                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                      <DatePicker
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Check-in"
+                        aria-label="Check-in date"
                         disabled={isPending || isDeleting}
-                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -264,11 +266,12 @@ export function EditAccommodationDialog({
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="date"
-                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                      <DatePicker
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Check-out"
+                        aria-label="Check-out date"
                         disabled={isPending || isDeleting}
-                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

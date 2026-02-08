@@ -72,6 +72,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -84,6 +85,7 @@ describe("CreateEventDialog", () => {
           open={false}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -97,6 +99,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -114,12 +117,13 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
       expect(screen.getByLabelText(/event name/i)).toBeDefined();
       expect(screen.getByLabelText(/event type/i)).toBeDefined();
-      expect(screen.getByLabelText(/start time/i)).toBeDefined();
+      expect(screen.getByRole("button", { name: /select start time/i })).toBeDefined();
     });
 
     it("displays optional fields", () => {
@@ -128,11 +132,12 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
       expect(screen.getByLabelText(/location/i)).toBeDefined();
-      expect(screen.getByLabelText(/end time/i)).toBeDefined();
+      expect(screen.getByRole("button", { name: /select end time/i })).toBeDefined();
       expect(screen.getByLabelText(/all day event/i)).toBeDefined();
       expect(screen.getByLabelText(/optional event/i)).toBeDefined();
       expect(screen.getByLabelText(/description/i)).toBeDefined();
@@ -144,6 +149,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -160,6 +166,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -180,6 +187,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -197,6 +205,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -206,42 +215,34 @@ describe("CreateEventDialog", () => {
   });
 
   describe("Field validation - Start time", () => {
-    it("accepts datetime-local input", async () => {
-      const user = userEvent.setup();
+    it("renders start time picker with placeholder", () => {
       renderWithQueryClient(
         <CreateEventDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
-      const startTimeInput = screen.getByLabelText(/start time/i) as HTMLInputElement;
-      await user.clear(startTimeInput);
-      await user.type(startTimeInput, "2026-07-15T14:00");
-
-      // Check that the date part is correct (time may vary due to timezone)
-      expect(startTimeInput.value).toContain("2026-07-15");
+      const startTimeButton = screen.getByRole("button", { name: /select start time/i });
+      expect(startTimeButton).toBeDefined();
     });
   });
 
   describe("Field validation - End time", () => {
-    it("accepts optional end time", async () => {
-      const user = userEvent.setup();
+    it("renders end time picker with placeholder", () => {
       renderWithQueryClient(
         <CreateEventDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
-      const endTimeInput = screen.getByLabelText(/end time/i) as HTMLInputElement;
-      await user.clear(endTimeInput);
-      await user.type(endTimeInput, "2026-07-15T16:00");
-
-      // Check that the date part is correct (time may vary due to timezone)
-      expect(endTimeInput.value).toContain("2026-07-15");
+      const endTimeButton = screen.getByRole("button", { name: /select end time/i });
+      expect(endTimeButton).toBeDefined();
     });
   });
 
@@ -252,6 +253,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -267,6 +269,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -283,6 +286,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -303,6 +307,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -321,6 +326,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -337,6 +343,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -361,6 +368,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -374,6 +382,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -395,6 +404,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -416,6 +426,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -447,6 +458,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -465,6 +477,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -480,6 +493,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -493,6 +507,7 @@ describe("CreateEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 

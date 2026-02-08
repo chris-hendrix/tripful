@@ -3,6 +3,7 @@ import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth"
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { pickDate, pickDateTime } from "./helpers/date-pickers";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -25,8 +26,8 @@ async function createTrip(
   await expect(tripDetail.createDialogHeading).toBeVisible();
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
-  await tripDetail.startDateInput.fill(startDate);
-  await tripDetail.endDateInput.fill(endDate);
+  await pickDate(page, tripDetail.startDateButton, startDate);
+  await pickDate(page, tripDetail.endDateButton, endDate);
   await tripDetail.continueButton.click();
   await expect(tripDetail.step2Indicator).toBeVisible();
   await tripDetail.createTripButton.click();
@@ -87,16 +88,12 @@ async function createEvent(
     await page.locator('input[name="location"]').fill(options.location);
   }
 
-  const startInput = page.locator('input[type="datetime-local"]').first();
-  await startInput.scrollIntoViewIfNeeded();
-  await startInput.click();
-  await startInput.fill(startDateTime);
+  const startTrigger = page.getByRole("button", { name: "Start time" });
+  await pickDateTime(page, startTrigger, startDateTime);
 
   if (options?.endDateTime) {
-    const endInput = page.locator('input[type="datetime-local"]').nth(1);
-    await endInput.scrollIntoViewIfNeeded();
-    await endInput.click();
-    await endInput.fill(options.endDateTime);
+    const endTrigger = page.getByRole("button", { name: "End time" });
+    await pickDateTime(page, endTrigger, options.endDateTime);
   }
 
   await page.getByRole("button", { name: "Create event" }).click();
@@ -145,8 +142,8 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
-        await page.locator('input[name="checkIn"]').fill("2026-10-01");
-        await page.locator('input[name="checkOut"]').fill("2026-10-03");
+        await pickDate(page, page.getByRole("button", { name: "Check-in date" }), "2026-10-01");
+        await pickDate(page, page.getByRole("button", { name: "Check-out date" }), "2026-10-03");
 
         const linkInput = page.locator('input[aria-label="Link URL"]');
         await linkInput.fill("https://example.com/hotel");
@@ -168,10 +165,8 @@ test.describe("Itinerary Journey", () => {
 
         await page.locator('input[type="radio"][value="arrival"]').click();
 
-        const timeInput = page.locator('input[type="datetime-local"]').first();
-        await timeInput.scrollIntoViewIfNeeded();
-        await timeInput.click();
-        await timeInput.fill("2026-10-01T14:30");
+        const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+        await pickDateTime(page, travelTimeTrigger, "2026-10-01T14:30");
 
         await page.locator('input[name="location"]').fill("San Diego Airport");
         await page.locator('textarea[name="details"]').fill("Arriving from Chicago");
@@ -267,10 +262,8 @@ test.describe("Itinerary Journey", () => {
 
       await page.locator('input[type="radio"][value="arrival"]').click();
 
-      const timeInput = page.locator('input[type="datetime-local"]').first();
-      await timeInput.scrollIntoViewIfNeeded();
-      await timeInput.click();
-      await timeInput.fill("2027-03-10T09:00");
+      const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+      await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
 
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
       await page.getByRole("button", { name: "Add travel details" }).click();
@@ -423,9 +416,8 @@ test.describe("Itinerary Journey", () => {
 
       // Fix and submit
       await page.locator('input[name="name"]').fill("Valid Event");
-      const startInput = page.locator('input[type="datetime-local"]').first();
-      await startInput.click();
-      await startInput.fill("2026-11-01T10:00");
+      const startTimeTrigger = page.getByRole("button", { name: "Start time" });
+      await pickDateTime(page, startTimeTrigger, "2026-11-01T10:00");
       await page.getByRole("button", { name: "Create event" }).click();
 
       await expect(page.getByText("Valid Event")).toBeVisible();
@@ -442,8 +434,8 @@ test.describe("Itinerary Journey", () => {
       await expect(tripDetail.createDialogHeading).toBeVisible();
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill("Chicago, IL");
-      await tripDetail.startDateInput.fill("2026-09-20");
-      await tripDetail.endDateInput.fill("2026-09-22");
+      await pickDate(page, tripDetail.startDateButton, "2026-09-20");
+      await pickDate(page, tripDetail.endDateButton, "2026-09-22");
       await tripDetail.continueButton.click();
       await expect(tripDetail.step2Indicator).toBeVisible();
 

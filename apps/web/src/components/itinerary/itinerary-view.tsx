@@ -185,6 +185,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
           open={isCreateEventOpen}
           onOpenChange={setIsCreateEventOpen}
           tripId={tripId}
+          timezone={timezone}
         />
         <CreateAccommodationDialog
           open={isCreateAccommodationOpen}

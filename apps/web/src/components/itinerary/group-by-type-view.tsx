@@ -231,6 +231,7 @@ export function GroupByTypeView({
             if (!open) setEditingEvent(null);
           }}
           event={editingEvent}
+          timezone={timezone}
         />
       )}
       {editingAccommodation && (
@@ -249,6 +250,7 @@ export function GroupByTypeView({
             if (!open) setEditingMemberTravel(null);
           }}
           memberTravel={editingMemberTravel}
+          timezone={timezone}
         />
       )}
     </div>

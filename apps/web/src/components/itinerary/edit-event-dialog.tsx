@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Select,
   SelectContent,
@@ -54,11 +55,13 @@ import {
   useDeleteEvent,
   getDeleteEventErrorMessage,
 } from "@/hooks/use-events";
+import { TIMEZONES } from "@/lib/constants";
 
 interface EditEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event: Event;
+  timezone: string;
   onSuccess?: () => void;
 }
 
@@ -66,12 +69,14 @@ export function EditEventDialog({
   open,
   onOpenChange,
   event,
+  timezone,
   onSuccess,
 }: EditEventDialogProps) {
   const { mutate: updateEvent, isPending } = useUpdateEvent();
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
   const form = useForm<UpdateEventInput>({
     resolver: zodResolver(updateEventSchema),
@@ -106,8 +111,9 @@ export function EditEventDialog({
       });
       setNewLink("");
       setLinkError(null);
+      setSelectedTimezone(timezone);
     }
-  }, [open, event, form]);
+  }, [open, event, form, timezone]);
 
   const handleSubmit = (data: UpdateEventInput) => {
     updateEvent(
@@ -276,6 +282,29 @@ export function EditEventDialog({
               )}
             />
 
+            {/* Timezone */}
+            <div>
+              <label className="text-base font-semibold text-foreground">
+                Timezone
+              </label>
+              <Select
+                value={selectedTimezone}
+                onValueChange={setSelectedTimezone}
+                disabled={isPending || isDeleting}
+              >
+                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Start Time */}
             <FormField
               control={form.control}
@@ -287,21 +316,13 @@ export function EditEventDialog({
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      timezone={selectedTimezone}
+                      placeholder="Select start time"
+                      aria-label="Start time"
                       disabled={isPending || isDeleting}
-                      value={
-                        field.value
-                          ? new Date(field.value).toISOString().slice(0, 16)
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const dateValue = e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "";
-                        field.onChange(dateValue);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -319,21 +340,13 @@ export function EditEventDialog({
                     End time
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={(val) => field.onChange(val || undefined)}
+                      timezone={selectedTimezone}
+                      placeholder="Select end time"
+                      aria-label="End time"
                       disabled={isPending || isDeleting}
-                      value={
-                        field.value
-                          ? new Date(field.value).toISOString().slice(0, 16)
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const dateValue = e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : undefined;
-                        field.onChange(dateValue);
-                      }}
                     />
                   </FormControl>
                   <FormDescription className="text-sm text-muted-foreground">

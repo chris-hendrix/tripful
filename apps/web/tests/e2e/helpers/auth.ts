@@ -105,6 +105,7 @@ export async function authenticateViaAPI(
     },
   ]);
   await page.goto("/dashboard");
+  await page.waitForURL("**/dashboard", { timeout: 10000 });
   return phone;
 }
 
@@ -130,6 +131,7 @@ export async function authenticateViaAPIWithPhone(
     },
   ]);
   await page.goto("/dashboard");
+  await page.waitForURL("**/dashboard", { timeout: 10000 });
 }
 
 /**

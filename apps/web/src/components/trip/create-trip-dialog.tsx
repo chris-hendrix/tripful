@@ -34,6 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
 
@@ -263,11 +264,11 @@ export function CreateTripDialog({
                           Start date
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="date"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            {...field}
+                          <DatePicker
                             value={field.value ?? ""}
+                            onChange={field.onChange}
+                            placeholder="Start date"
+                            aria-label="Start date"
                           />
                         </FormControl>
                         <FormMessage />
@@ -284,11 +285,11 @@ export function CreateTripDialog({
                           End date
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="date"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            {...field}
+                          <DatePicker
                             value={field.value ?? ""}
+                            onChange={field.onChange}
+                            placeholder="End date"
+                            aria-label="End date"
                           />
                         </FormControl>
                         <FormMessage />

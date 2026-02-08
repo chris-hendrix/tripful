@@ -272,6 +272,7 @@ export function DayByDayView({
             if (!open) setEditingEvent(null);
           }}
           event={editingEvent}
+          timezone={timezone}
         />
       )}
       {editingAccommodation && (
@@ -290,6 +291,7 @@ export function DayByDayView({
             if (!open) setEditingMemberTravel(null);
           }}
           memberTravel={editingMemberTravel}
+          timezone={timezone}
         />
       )}
     </div>

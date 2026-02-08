@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Trash2 } from "lucide-react";
@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,16 +42,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useUpdateMemberTravel,
   getUpdateMemberTravelErrorMessage,
   useDeleteMemberTravel,
   getDeleteMemberTravelErrorMessage,
 } from "@/hooks/use-member-travel";
+import { TIMEZONES } from "@/lib/constants";
 
 interface EditMemberTravelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   memberTravel: MemberTravel;
+  timezone: string;
   onSuccess?: () => void;
 }
 
@@ -58,11 +68,13 @@ export function EditMemberTravelDialog({
   open,
   onOpenChange,
   memberTravel,
+  timezone,
   onSuccess,
 }: EditMemberTravelDialogProps) {
   const { mutate: updateMemberTravel, isPending } = useUpdateMemberTravel();
   const { mutate: deleteMemberTravel, isPending: isDeleting } =
     useDeleteMemberTravel();
+  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
   const form = useForm<UpdateMemberTravelInput>({
     resolver: zodResolver(updateMemberTravelSchema),
@@ -73,6 +85,9 @@ export function EditMemberTravelDialog({
       details: "",
     },
   });
+
+  const travelType = form.watch("travelType");
+  const travelTypeLabel = travelType === "departure" ? "Departure" : "Arrival";
 
   // Pre-populate form with existing member travel data when dialog opens
   useEffect(() => {
@@ -85,8 +100,9 @@ export function EditMemberTravelDialog({
         location: memberTravel.location || "",
         details: memberTravel.details || "",
       });
+      setSelectedTimezone(timezone);
     }
-  }, [open, memberTravel, form]);
+  }, [open, memberTravel, form, timezone]);
 
   const handleSubmit = (data: UpdateMemberTravelInput) => {
     updateMemberTravel(
@@ -176,6 +192,29 @@ export function EditMemberTravelDialog({
               )}
             />
 
+            {/* Timezone */}
+            <div>
+              <label className="text-base font-semibold text-foreground">
+                Timezone
+              </label>
+              <Select
+                value={selectedTimezone}
+                onValueChange={setSelectedTimezone}
+                disabled={isPending || isDeleting}
+              >
+                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Time */}
             <FormField
               control={form.control}
@@ -183,25 +222,17 @@ export function EditMemberTravelDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-semibold text-foreground">
-                    Time
+                    {travelTypeLabel} time
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      timezone={selectedTimezone}
+                      placeholder="Select date & time"
+                      aria-label="Travel time"
                       disabled={isPending || isDeleting}
-                      value={
-                        field.value
-                          ? new Date(field.value).toISOString().slice(0, 16)
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const dateValue = e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "";
-                        field.onChange(dateValue);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -216,7 +247,7 @@ export function EditMemberTravelDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-semibold text-foreground">
-                    Location
+                    {travelTypeLabel} location
                   </FormLabel>
                   <FormControl>
                     <Input
