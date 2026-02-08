@@ -257,8 +257,8 @@ describe("Member Travel Routes", () => {
 
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
-      expect(body).toHaveProperty("memberTravel");
-      expect(body.memberTravel).toHaveLength(2);
+      expect(body).toHaveProperty("memberTravels");
+      expect(body.memberTravels).toHaveLength(2);
     });
 
     it("should return 401 if not authenticated", async () => {

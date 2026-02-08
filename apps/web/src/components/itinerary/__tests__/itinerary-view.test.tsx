@@ -22,14 +22,29 @@ vi.mock("@/hooks/use-trips", () => ({
 
 vi.mock("@/hooks/use-events", () => ({
   useEvents: () => mockUseEvents(),
+  useEvent: () => ({ data: null, isLoading: false }),
+  useCreateEvent: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateEvent: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteEvent: () => ({ mutate: vi.fn(), isPending: false }),
+  useRestoreEvent: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-accommodations", () => ({
   useAccommodations: () => mockUseAccommodations(),
+  useAccommodation: () => ({ data: null, isLoading: false }),
+  useCreateAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
+  useRestoreAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 vi.mock("@/hooks/use-member-travel", () => ({
   useMemberTravels: () => mockUseMemberTravels(),
+  useMemberTravel: () => ({ data: null, isLoading: false }),
+  useCreateMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
+  useUpdateMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
+  useRestoreMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {

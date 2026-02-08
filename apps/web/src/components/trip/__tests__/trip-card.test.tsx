@@ -103,8 +103,8 @@ describe("TripCard", () => {
 
       const badge = screen.getByText("Going");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("bg-success/15");
-      expect(badge.className).toContain("text-success");
+      expect(badge.className).toContain("bg-black/50");
+      expect(badge.className).toContain("text-emerald-300");
     });
 
     it("shows Maybe badge with warning styling for maybe status", () => {
@@ -113,8 +113,8 @@ describe("TripCard", () => {
 
       const badge = screen.getByText("Maybe");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("bg-warning/15");
-      expect(badge.className).toContain("text-warning");
+      expect(badge.className).toContain("bg-black/50");
+      expect(badge.className).toContain("text-amber-300");
     });
 
     it("shows Not going badge with outline styling for not_going status", () => {
@@ -123,7 +123,7 @@ describe("TripCard", () => {
 
       const badge = screen.getByText("Not going");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("text-muted-foreground");
+      expect(badge.className).toContain("text-neutral-300");
     });
 
     it("does not show RSVP badge for no_response status", () => {

@@ -107,14 +107,14 @@ export const memberTravelController = {
       }
 
       // Get member travel for the trip
-      const memberTravel = await memberTravelService.getMemberTravelByTrip(
+      const memberTravels = await memberTravelService.getMemberTravelByTrip(
         tripId,
         includeDeleted,
       );
 
       return reply.status(200).send({
         success: true,
-        memberTravel,
+        memberTravels,
       });
     } catch (error) {
       // Re-throw typed errors for error handler
