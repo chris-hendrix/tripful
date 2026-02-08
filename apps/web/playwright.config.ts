@@ -13,7 +13,7 @@ export default defineConfig({
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI, // Fail if test.only is left in CI
-  retries: process.env.CI ? 2 : 0, // Retry failed tests in CI
+  retries: 0, // Fail fast — no retries
   ...(process.env.CI ? { workers: 2 } : {}), // Auto-detect locally, 2 in CI
 
   // Reporter to use

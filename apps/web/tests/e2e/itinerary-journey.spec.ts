@@ -42,6 +42,12 @@ async function clickFabAction(
   page: import("@playwright/test").Page,
   actionName: string,
 ) {
+  // Wait for any Sonner toast to disappear so it doesn't intercept the click
+  const toast = page.locator("[data-sonner-toast]").first();
+  if (await toast.isVisible().catch(() => false)) {
+    await toast.waitFor({ state: "hidden", timeout: 10000 });
+  }
+
   const fab = page.getByRole("button", { name: "Add to itinerary" });
   if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {
     await fab.click();
