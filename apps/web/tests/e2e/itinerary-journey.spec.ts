@@ -75,7 +75,8 @@ async function createEvent(
   }
 
   if (options?.type) {
-    await page.locator('button[role="combobox"]').first().click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator('button[role="combobox"]').first().click();
     await page
       .locator(`div[role="option"]`)
       .filter({ hasText: options.type })
@@ -283,22 +284,21 @@ test.describe("Itinerary Journey", () => {
       await expect(page.getByText(/Show/)).toBeVisible();
     });
 
-    await test.step("toggle timezone", async () => {
-      const tripTimezoneButton = page
-        .locator("button", { hasText: /Trip \(.+\)/ })
-        .first();
-      await expect(tripTimezoneButton).toBeVisible();
+    await test.step("change timezone via dropdown", async () => {
+      // Open timezone selector and pick user timezone
+      const tzTrigger = page.getByRole("combobox", { name: "Timezone" });
+      await expect(tzTrigger).toBeVisible();
+      await expect(tzTrigger).toContainText("Trip");
 
-      await page.locator("button", { hasText: /Your \(.+\)/ }).click();
-
-      const userTimezoneButton = page
-        .locator("button", { hasText: /Your \(.+\)/ })
-        .first();
-      await expect(userTimezoneButton).toBeVisible();
+      await tzTrigger.click();
+      await page.getByRole("option", { name: /Current/ }).click();
+      await expect(tzTrigger).toContainText("Current");
       await expect(page.getByText(/Lunch/)).toBeVisible();
 
-      await page.locator("button", { hasText: /Trip \(.+\)/ }).click();
-      await expect(tripTimezoneButton).toBeVisible();
+      // Switch back to trip timezone
+      await tzTrigger.click();
+      await page.getByRole("option", { name: /Trip/ }).click();
+      await expect(tzTrigger).toContainText("Trip");
     });
 
     await test.step("mobile viewport", async () => {
@@ -314,7 +314,7 @@ test.describe("Itinerary Journey", () => {
         page.getByRole("button", { name: "Group by Type" }),
       ).toBeVisible();
       await expect(
-        page.locator("button", { hasText: /Trip \(.+\)/ }),
+        page.getByRole("combobox", { name: "Timezone" }),
       ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(

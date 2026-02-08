@@ -52,7 +52,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   const [viewMode, setViewMode] = useState<"day-by-day" | "group-by-type">(
     "day-by-day",
   );
-  const [showUserTime, setShowUserTime] = useState(false);
+  const tripTimezone = trip?.preferredTimezone || "UTC";
+  const userTimezone = user?.timezone || "UTC";
+  const [selectedTimezone, setSelectedTimezone] = useState(tripTimezone);
 
   // Dialog state for empty state
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
@@ -60,9 +62,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     useState(false);
 
   // Determine timezone
-  const tripTimezone = trip?.preferredTimezone || "UTC";
-  const userTimezone = user?.timezone || "UTC";
-  const timezone = showUserTime ? userTimezone : tripTimezone;
+  const timezone = selectedTimezone;
 
   // Determine if user is an organizer or member
   const isOrganizer =
@@ -190,8 +190,8 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
       <ItineraryHeader
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        showUserTime={showUserTime}
-        onShowUserTimeChange={setShowUserTime}
+        selectedTimezone={selectedTimezone}
+        onTimezoneChange={setSelectedTimezone}
         tripTimezone={tripTimezone}
         userTimezone={userTimezone}
         tripId={tripId}
