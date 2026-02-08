@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
+import { useEvents } from "@/hooks/use-events";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,8 +58,12 @@ function SkeletonDetail() {
 export function TripDetailContent({ tripId }: { tripId: string }) {
   const { user } = useAuth();
   const { data: trip, isPending, isError } = useTripDetail(tripId);
+  const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // Compute active event count (filter out soft-deleted events for safety)
+  const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
 
   // Determine if user is an organizer
   const isOrganizer =
@@ -219,7 +224,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <ClipboardList className="w-5 h-5" />
-              <span className="text-sm">0 events</span>
+              <span className="text-sm">
+                {activeEventCount === 0
+                  ? "No events yet"
+                  : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
+              </span>
             </div>
           </div>
 

@@ -25,7 +25,7 @@
 
 ## Phase 2: Event Count Fix (Backend + Frontend)
 
-- [ ] Task 2.1: Fix hardcoded eventCount in backend and frontend
+- [x] Task 2.1: Fix hardcoded eventCount in backend and frontend
   - Implement: In `apps/api/src/services/trip.service.ts` `getTrips()` method, add a subquery to count non-deleted events per trip. Replace `eventCount: 0` (line 497) with actual count.
   - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`, import `useEvents` hook and replace hardcoded `"0 events"` (line 222) with dynamic count from events data. Filter out events where `deletedAt !== null`.
   - Test: Update `apps/api/tests/unit/trip.service.test.ts` — verify `eventCount` is computed from actual events, not hardcoded

@@ -91,8 +91,14 @@ vi.mock("@/hooks/use-trips", () => ({
   useTripDetail: (tripId: string) => mockUseTripDetail(tripId),
 }));
 
+// Mock useEvents hook
+const mockUseEvents = vi.fn();
+vi.mock("@/hooks/use-events", () => ({
+  useEvents: (tripId: string) => mockUseEvents(tripId),
+}));
+
 // Mock ItineraryView component
-vi.mock("@/components/itinerary", () => ({
+vi.mock("@/components/itinerary/itinerary-view", () => ({
   ItineraryView: ({ tripId }: { tripId: string }) => (
     <div data-testid="itinerary-view">Itinerary View for trip {tripId}</div>
   ),
@@ -170,6 +176,7 @@ describe("TripDetailContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: mockUser });
+    mockUseEvents.mockReturnValue({ data: [], isLoading: false });
   });
 
   afterEach(() => {
@@ -221,7 +228,7 @@ describe("TripDetailContent", () => {
       expect(screen.getByText("Miami Beach, FL")).toBeDefined();
       expect(screen.getByText("Jun 1 - 5, 2026")).toBeDefined();
       expect(screen.getByText("8 members")).toBeDefined();
-      expect(screen.getByText("0 events")).toBeDefined();
+      expect(screen.getByText("No events yet")).toBeDefined();
     });
 
     it("shows cover image when available", async () => {
@@ -349,7 +356,87 @@ describe("TripDetailContent", () => {
 
       await waitFor(() => {
         expect(screen.getByText("8 members")).toBeDefined();
-        expect(screen.getByText("0 events")).toBeDefined();
+        expect(screen.getByText("No events yet")).toBeDefined();
+      });
+    });
+
+    it("displays correct event count when events exist", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+      mockUseEvents.mockReturnValue({
+        data: [
+          { id: "e1", deletedAt: null },
+          { id: "e2", deletedAt: null },
+          { id: "e3", deletedAt: null },
+        ],
+        isLoading: false,
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("3 events")).toBeDefined();
+      });
+    });
+
+    it("displays singular event when count is 1", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+      mockUseEvents.mockReturnValue({
+        data: [{ id: "e1", deletedAt: null }],
+        isLoading: false,
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("1 event")).toBeDefined();
+      });
+    });
+
+    it("excludes soft-deleted events from count", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+      mockUseEvents.mockReturnValue({
+        data: [
+          { id: "e1", deletedAt: null },
+          { id: "e2", deletedAt: new Date("2026-01-15T00:00:00Z") },
+          { id: "e3", deletedAt: null },
+        ],
+        isLoading: false,
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("2 events")).toBeDefined();
       });
     });
 

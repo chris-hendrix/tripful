@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
-import { users, members, trips } from "@/db/schema/index.js";
+import { users, members, trips, events } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 import FormData from "form-data";
@@ -1037,6 +1037,94 @@ describe("GET /api/trips", () => {
       expect(body.data).toHaveLength(1);
       expect(body.data[0].name).toBe("Active Trip");
       expect(body.meta.total).toBe(1);
+    });
+
+    it("should return correct eventCount with real events", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      // Create a trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Event Count Trip",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          startDate: "2026-06-01",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add user as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Add active events
+      await db.insert(events).values([
+        {
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: "Active Event 1",
+          eventType: "activity",
+          startTime: new Date("2026-06-01T10:00:00Z"),
+        },
+        {
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: "Active Event 2",
+          eventType: "meal",
+          startTime: new Date("2026-06-01T12:00:00Z"),
+        },
+      ]);
+
+      // Add a soft-deleted event (should not be counted)
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: testUser.id,
+        name: "Deleted Event",
+        eventType: "travel",
+        startTime: new Date("2026-06-01T14:00:00Z"),
+        deletedAt: new Date("2026-06-02T00:00:00Z"),
+        deletedBy: testUser.id,
+      });
+
+      // Generate JWT token
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/trips",
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].eventCount).toBe(2);
     });
   });
 

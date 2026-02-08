@@ -89,3 +89,55 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - Sonner renders `data-x-position` and `data-y-position` attributes on `[data-sonner-toaster]` which are testable.
 - Pre-existing failure: `trip-detail-content.test.tsx` still has 28 failures due to missing `QueryClientProvider` — not caused by our changes.
 
+## Iteration 3 — Task 2.1: Fix hardcoded eventCount in backend and frontend
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/api/src/services/trip.service.ts`** — Fixed backend eventCount computation:
+   - Added `events` to schema import from `@/db/schema/index.js`
+   - Added `isNull` to drizzle-orm import
+   - Added batch event count query in `getUserTrips()` (after existing member batch queries): `SELECT tripId, COUNT(*) FROM events WHERE tripId IN (...) AND deletedAt IS NULL GROUP BY tripId`
+   - Built `eventCountByTrip` Map from query results
+   - Replaced `eventCount: 0` with `eventCount: eventCountByTrip.get(trip.id) ?? 0`
+
+2. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** — Fixed frontend dynamic event count:
+   - Imported `useEvents` from `@/hooks/use-events`
+   - Called `useEvents(tripId)` (shares TanStack Query cache with ItineraryView — no duplicate fetch)
+   - Computed `activeEventCount` by filtering out soft-deleted events: `events?.filter((e) => !e.deletedAt).length ?? 0`
+   - Replaced hardcoded `"0 events"` with dynamic display: "No events yet" / "1 event" / "N events"
+   - Pluralization matches existing pattern in `trip-card.tsx`
+
+3. **`apps/api/tests/unit/trip.service.test.ts`** — Added 2 new unit tests:
+   - "should return correct eventCount when trip has events" — inserts 3 events, verifies count is 3
+   - "should exclude soft-deleted events from eventCount" — inserts 2 active + 2 deleted, verifies count is 2
+   - Added `events` to schema import and events cleanup in `cleanup()` function
+
+4. **`apps/api/tests/integration/trip.routes.test.ts`** — Added 1 new integration test:
+   - "should return correct eventCount with real events" — creates 2 active + 1 deleted event, calls GET /api/trips, verifies `eventCount: 2`
+
+5. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`** — Added `useEvents` mock and 3 new tests:
+   - Added `vi.mock("@/hooks/use-events")` with default return `{ data: [], isLoading: false }`
+   - Fixed ItineraryView mock path from `@/components/itinerary` to `@/components/itinerary/itinerary-view` (fixing 28 pre-existing test failures)
+   - Updated existing assertions from `"0 events"` to `"No events yet"`
+   - New: "displays correct event count when events exist" — mocks 3 events, verifies "3 events"
+   - New: "displays singular event when count is 1" — mocks 1 event, verifies "1 event"
+   - New: "excludes soft-deleted events from count" — mocks 2 active + 1 deleted, verifies "2 events"
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1366 tests across 70 test files (577 API + 620 web + 169 shared)
+- **reviewer**: ✅ APPROVED — correct batch pattern, proper soft-delete filtering, consistent pluralization, thorough test coverage
+
+### Learnings
+
+- The batch query pattern for `eventCount` mirrors the existing `memberCount` pattern exactly — `SELECT ... GROUP BY tripId` + Map lookup with `?? 0` fallback.
+- `trip-detail-content.test.tsx` had 28 pre-existing failures due to incorrect ItineraryView mock path (`@/components/itinerary` vs `@/components/itinerary/itinerary-view`). Fixed as part of this task — all 35 tests now pass.
+- The `useEvents` hook shares TanStack Query cache key `["events", "list", tripId]` with ItineraryView, so calling it in trip-detail-content adds zero additional network requests.
+- Frontend defensively filters `deletedAt` client-side even though the API already excludes deleted events — defense-in-depth approach.
+- The Drizzle ORM `count()` with `groupBy()` returns no row for trips with zero events, so `Map.get()` returns `undefined` and the `?? 0` fallback handles it correctly.
+- Integration tests in this project rely on `generateUniquePhone()` for test isolation rather than explicit DB cleanup — consistent with existing patterns.
+
