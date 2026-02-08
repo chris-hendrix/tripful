@@ -199,7 +199,7 @@ export function CreateTripDialog({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
+            className="space-y-6 pb-6"
           >
             {currentStep === 1 && (
               <div className="space-y-4">

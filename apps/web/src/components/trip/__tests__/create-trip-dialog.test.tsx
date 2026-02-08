@@ -1423,6 +1423,16 @@ describe("CreateTripDialog", () => {
       expect(continueButton.className).toContain("rounded-xl");
     });
 
+    it("applies pb-6 bottom padding to form for mobile scroll", () => {
+      renderWithQueryClient(
+        <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
+      );
+
+      const form = document.querySelector("form");
+      expect(form).not.toBeNull();
+      expect(form!.className).toContain("pb-6");
+    });
+
     it("applies gradient styling to Continue button", () => {
       renderWithQueryClient(
         <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,

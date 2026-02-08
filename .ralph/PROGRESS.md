@@ -184,3 +184,40 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - The `isOrganizer` variable was already computed in trip-detail-content.tsx (lines 69-73) and available in scope — no additional logic needed for the CTA conditional.
 - Test selectors for Tailwind classes with slashes (e.g., `from-primary/20`) need double escaping in `querySelector`: `from-primary\\/20`.
 
+## Iteration 5 — Task 3.2: Fix "Going" badge visibility and create trip dialog scroll on mobile
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** — Added `flex-wrap` to badge container:
+   - Line 178: `"flex items-center gap-2 mb-6"` → `"flex flex-wrap items-center gap-2 mb-6"`
+   - Prevents "Going" and "Organizing" badges from being clipped/hidden on narrow mobile screens
+   - Follows existing `flex-wrap` pattern used in itinerary-view.tsx, event-card.tsx, accommodation-card.tsx, breadcrumb.tsx
+
+2. **`apps/web/src/components/trip/create-trip-dialog.tsx`** — Added bottom padding to form for mobile scroll:
+   - Line 202: `className="space-y-6"` → `className="space-y-6 pb-6"`
+   - Ensures submit button has breathing room when dialog scrolls on mobile
+   - DialogContent already has `max-h-[calc(100vh-4rem)]` and `overflow-y-auto` — the `pb-6` adds safe bottom spacing
+
+3. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`** — Added 1 new test:
+   - "badge container has flex-wrap for mobile wrapping" — finds "Going" badge, traverses to parent flex div, asserts `flex-wrap` in className
+
+4. **`apps/web/src/components/trip/__tests__/create-trip-dialog.test.tsx`** — Added 1 new test:
+   - "applies pb-6 bottom padding to form for mobile scroll" — selects form element, asserts `pb-6` in className
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1,368 tests across 70 test files (577 API + 622 web + 169 shared)
+- **reviewer**: ✅ APPROVED — minimal, focused changes consistent with codebase patterns, no regressions
+
+### Learnings
+
+- The "Going" badge visibility issue was a CSS layout problem (no `flex-wrap` on the badge container), not a data flow issue. The badge renders unconditionally regardless of RSVP status — fixing the data-driven badge display is out of scope for this task.
+- The `flex flex-wrap` pattern is well-established in the codebase (5 existing usages). No responsive variant like `sm:flex-wrap` is used anywhere — `flex-wrap` is always applied unconditionally.
+- The create trip dialog's `DialogContent` base component already has `overflow-y-auto` and `max-h-[calc(100vh-4rem)]`. Adding `pb-6` to the form inside the dialog provides adequate bottom safe area without needing iOS-specific `pb-safe` (which doesn't exist in the codebase).
+- No dialogs in the codebase use explicit bottom padding — this is the first, but it's a targeted fix for the scrollable multi-step form case rather than a global dialog change.
+- Test count increased from 1,366 (iteration 4) to 1,368 (2 new tests added).
+

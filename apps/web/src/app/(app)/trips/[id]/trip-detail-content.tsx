@@ -175,7 +175,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </div>
 
           {/* Badges */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
             <Badge className="bg-success/15 text-success border-success/30">
               Going
             </Badge>

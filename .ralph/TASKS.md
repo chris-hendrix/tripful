@@ -41,7 +41,7 @@
   - Test: Update `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — update placeholder test to check for new gradient classes and icon
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 3.2: Fix "Going" badge visibility and create trip dialog scroll on mobile
+- [x] Task 3.2: Fix "Going" badge visibility and create trip dialog scroll on mobile
   - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`, add `flex-wrap` to badge container (line 166) to prevent overflow/clipping on mobile
   - Implement: In `apps/web/src/components/trip/create-trip-dialog.tsx`, verify dialog scroll behavior on mobile and add bottom padding to ensure submit button is reachable (add `pb-6` or safe-area padding)
   - Test: Run existing tests to ensure no regressions

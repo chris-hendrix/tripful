@@ -460,6 +460,31 @@ describe("TripDetailContent", () => {
       });
     });
 
+    it("badge container has flex-wrap for mobile wrapping", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Going")).toBeDefined();
+      });
+
+      const goingBadge = screen.getByText("Going");
+      const badgeContainer = goingBadge.closest("div.flex");
+      expect(badgeContainer).not.toBeNull();
+      expect(badgeContainer!.className).toContain("flex-wrap");
+    });
+
     it("shows description when available", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
