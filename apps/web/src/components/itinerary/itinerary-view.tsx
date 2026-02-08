@@ -229,6 +229,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
           <GroupByTypeView
             events={events}
             accommodations={accommodations}
+            memberTravels={memberTravels}
             timezone={timezone}
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}

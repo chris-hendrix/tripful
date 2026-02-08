@@ -259,6 +259,25 @@ test.describe("Itinerary Journey", () => {
       await expect(page.getByText(/Show/)).toBeVisible();
     });
 
+    await test.step("add member travel (arrival)", async () => {
+      await clickFabAction(page, "My Travel");
+      await expect(
+        page.getByRole("heading", { name: "Add your travel details" }),
+      ).toBeVisible();
+
+      await page.locator('input[type="radio"][value="arrival"]').click();
+
+      const timeInput = page.locator('input[type="datetime-local"]').first();
+      await timeInput.scrollIntoViewIfNeeded();
+      await timeInput.click();
+      await timeInput.fill("2027-03-10T09:00");
+
+      await page.locator('input[name="location"]').fill("Las Vegas Airport");
+      await page.getByRole("button", { name: "Add travel details" }).click();
+
+      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
+    });
+
     await snap(page, "10-itinerary-day-by-day");
 
     await test.step("toggle day-by-day to group-by-type", async () => {
@@ -273,8 +292,14 @@ test.describe("Itinerary Journey", () => {
       await expect(
         page.getByRole("heading", { level: 3, name: "Activities" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 3, name: "Arrivals" }),
+      ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(page.getByText(/Show/)).toBeVisible();
+      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
+      // Verify date labels appear on cards in group-by-type view
+      await expect(page.getByText(/Mar 10, 2027/).first()).toBeVisible();
       await snap(page, "11-itinerary-group-by-type");
     });
 

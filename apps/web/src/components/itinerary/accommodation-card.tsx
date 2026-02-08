@@ -5,7 +5,7 @@ import { Home, MapPin, ExternalLink } from "lucide-react";
 import type { Accommodation } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { calculateNights } from "@/lib/utils/timezone";
+import { calculateNights, formatInTimezone } from "@/lib/utils/timezone";
 
 interface AccommodationCardProps {
   accommodation: Accommodation;
@@ -15,20 +15,26 @@ interface AccommodationCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   createdByName?: string | undefined;
+  showDate?: boolean;
 }
 
 export function AccommodationCard({
   accommodation,
+  timezone,
   canEdit,
   canDelete,
   onEdit,
   onDelete,
   createdByName,
+  showDate,
 }: AccommodationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const nights = calculateNights(accommodation.checkIn, accommodation.checkOut);
   const nightsLabel = nights === 1 ? "1 night" : `${nights} nights`;
+  const datePrefix = showDate
+    ? formatInTimezone(accommodation.checkIn + "T00:00:00", timezone, "date")
+    : null;
 
   return (
     <div
@@ -57,7 +63,7 @@ export function AccommodationCard({
                 {accommodation.name}
               </h4>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <span>{nightsLabel}</span>
+                <span>{datePrefix ? `${datePrefix} • ${nightsLabel}` : nightsLabel}</span>
                 {accommodation.address && (
                   <>
                     <span>•</span>
