@@ -113,7 +113,7 @@ test.describe("Itinerary Journey", () => {
 
   test(
     "itinerary CRUD journey",
-    { tag: "@smoke", timeout: 60000 },
+    { tag: "@smoke" },
     async ({ page, request }) => {
       await authenticateViaAPI(page, request, "Itinerary Tester");
       const tripName = `Itinerary Trip ${Date.now()}`;

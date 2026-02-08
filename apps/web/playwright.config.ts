@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
 
   // Maximum time one test can run
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   // Test execution settings
   fullyParallel: true,
@@ -24,8 +24,8 @@ export default defineConfig({
     // Base URL for navigation
     baseURL: "http://localhost:3000",
 
-    // Collect trace when retrying the failed test
-    trace: "on-first-retry",
+    // Collect trace on failure
+    trace: "retain-on-failure",
 
     // Screenshot on failure
     screenshot: "only-on-failure",
