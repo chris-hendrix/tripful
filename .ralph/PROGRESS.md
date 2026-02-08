@@ -1100,4 +1100,131 @@ Task 9 will implement E2E tests for complete itinerary flows using Playwright.
 
 ---
 
-**Ready for**: Task 11 - Documentation and Deployment Preparation
+## Iteration 11: Task 11 - Documentation and Deployment Preparation
+
+**Status**: ✅ COMPLETED
+
+**Date**: 2026-02-08
+
+### Research Phase (3 Parallel Researchers)
+
+**Researcher 1 (LOCATING)**:
+- Found ARCHITECTURE.md (~3555 lines) with Phase 4-8 marked as "Planned"
+- Located README.md with "Phases 1-3" scope references
+- Found CLAUDE.md with "Phase 3 complete" status
+- Confirmed no existing `docs/deployment.md` file
+- Listed 5 migration files (0000-0004) in `apps/api/src/db/migrations/`
+- Verified no new environment variables added in Phase 4
+- Confirmed no existing git tags in the repository
+- Found Docker Compose uses `POSTGRES_USER: tripful` (not `postgres`)
+
+**Researcher 2 (ANALYZING)**:
+- Analyzed all 18 new API endpoints across 3 route files
+- Documented 3 database tables with column details, indexes, and enums
+- Catalogued 3 new services with all public methods
+- Identified 13 frontend components and 6 hooks/query files
+- Counted 24 new test files added in Phase 4
+- Traced shared schema exports (6 schemas, 6 types)
+
+**Researcher 3 (PATTERNS)**:
+- Documented ARCHITECTURE.md phase completion pattern (checkmarks, subsections, API endpoints list)
+- Found Document Revision History pattern (Version N.0 with changelog bullets)
+- Identified Core Tables status pattern (✅ vs 🚧 emoji markers)
+- Noted directory structure listing conventions
+- Found Phase numbering discrepancy: original Phase 4 was "Invitations & RSVP" but actual implementation is "Itinerary View Modes"
+
+### Implementation Phase (Round 1)
+
+**Coder Agent Results**:
+- Updated 3 existing documentation files + created 1 new file:
+
+**ARCHITECTURE.md** (9 targeted edits):
+1. Frontmatter status: "Phase 1-4 Implemented | Frontend Design Overhaul Complete | Phase 5-8 Pending"
+2. Implementation status banner: Added Phase 4 Complete entry
+3. New "✅ Phase 4: Itinerary View Modes (Complete)" section with Backend, Frontend, Database, Shared, E2E, and 18 API endpoints
+4. Updated Core Tables: events, accommodations, member_travel marked ✅
+5. Updated directory structure routes: event.routes.ts, accommodation.routes.ts, member-travel.routes.ts marked ✅
+6. Updated schema directory listing
+7. Added 3 new plugins to plugins directory listing
+8. Updated roadmap: Phase 4 marked Complete, Phases 5-8 consolidated as "Phase 5+: Future Features"
+9. Added Version 4.0 to Document Revision History with 10 changelog items
+
+**README.md** (4 edits):
+- Scope updated from "Phases 1-3" to "Phases 1-4"
+- Heading updated to "Phases 1-4 + Design Overhaul"
+- Added 4 itinerary feature bullets to feature list
+- Updated E2E description to include "itinerary flows"
+
+**CLAUDE.md** (1 edit):
+- Status updated from "Phase 3 complete" to "Phase 4 complete (Itinerary View Modes)"
+
+**docs/deployment.md** (new file):
+- Pre-deployment checklist (database backup, migration verification, environment variables, quality checks)
+- Deployment steps (install, build shared, migrate, deploy backend, deploy frontend)
+- Rollback procedures (database restore, application rollback)
+- Phase 4-specific deployment notes
+
+### Verification Phase (Round 1)
+
+**Verifier Results**: ✅ PASS
+- All tests passing (1,335 tests across 66 test files)
+- TypeScript type checking: 0 errors
+- ESLint: 0 errors
+- Only .md files modified (no application code changed)
+
+**Reviewer Results**: NEEDS_WORK (4 issues)
+1. HIGH: Incorrect database username (`-U postgres` should be `-U tripful`)
+2. MEDIUM: `pg_restore --list` incompatible with plain SQL dump
+3. LOW: Test file count said "26" but actual count is "24"
+4. LOW: Incorrect branch name in Phase 4 section
+Plus suggestions: add FRONTEND_URL/NODE_ENV, add pnpm install step, add shared build step
+
+### Fix Phase (Round 2)
+
+**Coder Agent Results**:
+- Fixed all 4 issues + incorporated all suggestions:
+  1. Changed all `-U postgres` to `-U tripful` in deployment.md (4 instances)
+  2. Replaced `pg_restore --list` with `ls -lh` and `head -5` for backup verification
+  3. Changed "26 test files" to "24 test files" in ARCHITECTURE.md
+  4. Updated branch name to `ralph/20260207-1612-phase-4-itinerary-views`
+  5. Added `FRONTEND_URL` and `NODE_ENV` to deployment env vars
+  6. Added "Install Dependencies" step (`pnpm install`) to deployment procedure
+  7. Added "Build Shared Package" step with explanatory note
+  8. Fixed rollback procedure with proper directory navigation
+
+### Verification Phase (Round 2)
+
+**Verifier Results**: ✅ PASS
+- All tests passing (1,335 tests across 66 test files)
+- TypeScript type checking: 0 errors
+- ESLint: 0 errors
+- All 8 reviewer issues confirmed fixed
+- Only .md files modified
+
+**Reviewer Results**: ✅ APPROVED
+- All HIGH, MEDIUM, and LOW issues resolved
+- All optional suggestions incorporated
+- Documentation is accurate, complete, and well-structured
+
+### Learnings for Future Iterations
+
+1. **Docker Compose credentials**: Always check `docker-compose.yml` for the actual database username before writing deployment commands. Don't assume `postgres`.
+2. **pg_dump/pg_restore compatibility**: Plain SQL dumps from `pg_dump` are not compatible with `pg_restore --list`. Use `ls -lh` and `head` for verification of plain SQL backups.
+3. **Test file counting**: When documenting test counts, verify against actual `git diff --diff-filter=A` output rather than manual counting.
+4. **Branch name verification**: Always run `git branch --show-current` to get the actual branch name rather than guessing.
+5. **Documentation-only tasks**: Even without code changes, documentation can have "bugs" (wrong usernames, incompatible commands, inaccurate counts). Reviewer catches these.
+6. **Deployment env vars**: Always list ALL relevant environment variables for production, including those with defaults that need changing (FRONTEND_URL, NODE_ENV, COOKIE_SECURE).
+
+### Files Created/Modified
+
+**Created**:
+- `docs/deployment.md` (deployment guide with backup, migration, deployment, and rollback procedures)
+
+**Modified**:
+- `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` (Phase 4 completion, directory structure, core tables, roadmap, revision history)
+- `README.md` (scope updated to Phases 1-4, itinerary features added)
+- `CLAUDE.md` (status updated to Phase 4)
+
+---
+
+**Phase 4 Complete**: All 11 tasks finished. Itinerary View Modes fully implemented with events, accommodations, member travel, two view modes, timezone toggle, soft delete/restore, comprehensive testing (1,335 tests + 35 E2E + 16 screenshots), and complete documentation.

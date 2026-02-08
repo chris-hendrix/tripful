@@ -18,13 +18,13 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-3 plus a frontend design overhaul:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-4 plus a frontend design overhaul:
 
 - **Frontend**: Next.js 16 web application with React 19, Tailwind CSS 4, and a Mediterranean-inspired design system
 - **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
 - **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Current Scope (Phases 1-3 + Design Overhaul)
+### Current Scope (Phases 1-4 + Design Overhaul)
 
 The current implementation includes:
 
@@ -37,6 +37,10 @@ The current implementation includes:
 - Fastify backend with plugin architecture and `buildApp()` factory pattern
 - SMS authentication with JWT, phone verification, and profile completion
 - Trip management with CRUD operations, co-organizers, and image uploads
+- Itinerary management with events (travel, meals, activities), accommodations, and member travel
+- Day-by-day and group-by-type itinerary view modes with timezone toggle
+- Soft delete and restore for itinerary items (organizer-only restore)
+- Fine-grained permissions (organizer vs member actions)
 - Security hardening: Helmet, rate limiting, Zod route schemas, typed errors
 - Drizzle ORM with relations, transactions, and pagination
 - Health check endpoints (`/health`, `/health/live`, `/health/ready`)
@@ -562,7 +566,7 @@ Comprehensive integration tests are available as bash scripts:
 ### Test Framework
 
 - **Backend/Shared**: Vitest (unit and integration tests)
-- **E2E**: Playwright (authentication flows, trip management)
+- **E2E**: Playwright (authentication flows, trip management, itinerary flows)
 - **Integration Scripts**: Bash scripts for environment verification
 
 ### What is Tested
