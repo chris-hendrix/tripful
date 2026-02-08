@@ -370,3 +370,75 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - Mocking PhoneInput in login tests is the right strategy since `react-phone-number-input` has complex DOM rendering (country select + input) that may not work reliably in jsdom. The mock renders a simple `<input>` with `aria-label` to maintain test selector compatibility.
 - Test count increased from 1,381 (iteration 7) to 1,383 (2 new tests added: 1 login + 1 verify).
 
+## Iteration 9 — Task 6.1: Full regression check and visual verification
+
+**Status**: ✅ COMPLETED
+
+### Automated Verification Results
+
+| Check | Status | Details |
+|-------|--------|---------|
+| `pnpm typecheck` | ✅ PASS | 3/3 packages — zero type errors |
+| `pnpm lint` | ✅ PASS | 3/3 packages — zero ESLint errors |
+| `pnpm test` | ✅ PASS | 1,383 tests across 70 test files (577 API + 637 web + 169 shared) |
+| `pnpm test:e2e` | ✅ PASS | 9/9 E2E tests pass (2 flaky on first attempt, pass on retry — pre-existing timing issues) |
+
+### E2E Test Fixes Required
+
+Two E2E issues were discovered and fixed during the regression check:
+
+1. **Phone format mismatch in auth-journey test**: Task 5.2 added `formatPhoneNumber()` to the verify page, but the E2E test still asserted the raw phone string. Fixed by importing `formatPhoneNumber` in the test and using it to format the expected text.
+
+2. **Next.js dev overlay blocking pointer events**: The `<nextjs-portal>` element injected by Next.js dev mode intercepted clicks on the "Create new trip" button, causing 6 E2E tests to timeout. Fixed by creating a `removeNextjsDevOverlay()` helper that uses `page.addInitScript()` with a `MutationObserver` to remove the overlay element as soon as it appears.
+
+### Files Changed (Test-Only)
+
+1. **`apps/web/tests/e2e/helpers/nextjs-dev.ts`** (NEW) — Helper function to remove Next.js dev overlay via MutationObserver. Uses `/* global document, MutationObserver */` for ESLint flat config compatibility.
+
+2. **`apps/web/tests/e2e/auth-journey.spec.ts`** — Added `formatPhoneNumber` import + `removeNextjsDevOverlay` call in beforeEach.
+
+3. **`apps/web/tests/e2e/trip-journey.spec.ts`** — Added `removeNextjsDevOverlay` call in beforeEach.
+
+4. **`apps/web/tests/e2e/itinerary-journey.spec.ts`** — Added `removeNextjsDevOverlay` call in beforeEach.
+
+5. **`apps/web/tests/e2e/app-shell.spec.ts`** — Added `removeNextjsDevOverlay` call in beforeEach.
+
+### Manual Visual Verification
+
+14 Playwright screenshots taken at mobile (375x667) and desktop (1280x720) viewports, saved to `.ralph/screenshots/`:
+
+| # | Page | Mobile | Desktop | Status |
+|---|------|--------|---------|--------|
+| 01 | Login | ✅ Phone input with country selector, 48px touch target | ✅ Phone input renders correctly | PASS |
+| 02 | Verify | ✅ Phone number displayed | ✅ Phone number displayed | PASS |
+| 03 | Dashboard (empty) | ✅ Empty state, 48px create button | ✅ Empty state visible | PASS |
+| 04 | Dashboard (trips) | ✅ Vibrant gradient placeholder on card | ✅ Gradient placeholder visible | PASS |
+| 05 | Trip detail | ✅ Cover placeholder with icon, "Going" badge visible | ✅ All elements render correctly | PASS |
+| 06 | Itinerary | ✅ Screenshot captured | ✅ Full text buttons visible | PASS |
+| 07 | Toast | ✅ Bottom-right positioning confirmed | ✅ Bottom-right positioning confirmed | PASS |
+
+### Specific Feature Verification
+
+- **Touch targets**: Continue button = 48px height (≥ 44px minimum) ✅
+- **Phone input with country selector**: Renders on login page with +1 default ✅
+- **Toast positioning**: Bottom-right, confirmed via `data-x-position="right"` and `data-y-position="bottom"` ✅
+- **Cover image placeholders**: Vibrant gradient with ImagePlus icon on both trip card and trip detail ✅
+- **"Going" badge**: Visible on mobile trip detail page with flex-wrap preventing overflow ✅
+- **Event count**: Dynamic (not hardcoded "0"), confirmed by unit tests (3 tests) and integration tests ✅
+
+### Verification Results
+
+- **typecheck**: ✅ PASS
+- **lint**: ✅ PASS
+- **tests**: ✅ PASS — 1,383 tests across 70 files
+- **E2E**: ✅ PASS — 9/9 tests pass
+- **reviewer**: ✅ APPROVED — test-only changes, correct and minimal fixes
+
+### Learnings
+
+- ESLint flat config does NOT support `/* eslint-env browser */` comments (deprecated since ESLint v9). Use `/* global document, MutationObserver */` instead to declare browser globals in files that run browser code inside Playwright's `addInitScript()`.
+- The Next.js dev overlay (`<nextjs-portal>`) is a known source of E2E test flakiness. The MutationObserver-based removal approach is robust because it runs before page scripts and catches dynamically inserted elements.
+- Phone numbers generated for E2E tests (like `+1555${Date.now()}`) are too long to be valid real phone numbers, so `formatPhoneNumber()` falls back to returning the raw string in some cases. The assertion still works because both the test and the page use the same function.
+- Pre-existing flaky tests: `trip-journey.spec.ts` has 2 flaky tests due to strict mode violations (duplicate text elements in DOM). These are unrelated to our changes and pass on retry.
+- The E2E `snap()` helper saves screenshots to `apps/web/playwright-screenshots/` while manual verification screenshots go to `.ralph/screenshots/` — two separate screenshot pipelines for different purposes.
+

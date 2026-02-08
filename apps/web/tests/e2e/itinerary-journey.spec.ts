@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -89,6 +90,7 @@ async function createEvent(
 
 test.describe("Itinerary Journey", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 

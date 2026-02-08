@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import { authenticateUser, authenticateUserViaBrowser } from "./helpers/auth";
 import { LoginPage, DashboardPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
  * E2E Journey: Authentication
@@ -12,6 +14,7 @@ import { snap } from "./helpers/screenshots";
 
 test.describe("Auth Journey", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 
@@ -35,7 +38,7 @@ test.describe("Auth Journey", () => {
       await page.waitForURL("**/verify**");
       expect(page.url()).toContain("/verify?phone=");
       await expect(loginPage.verifyHeading).toBeVisible();
-      await expect(page.getByText(phone)).toBeVisible();
+      await expect(page.getByText(formatPhoneNumber(phone))).toBeVisible();
       await snap(page, "02-verify-code");
     });
 

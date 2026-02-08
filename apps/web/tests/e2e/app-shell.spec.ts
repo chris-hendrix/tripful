@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPI } from "./helpers/auth";
 import { DashboardPage } from "./helpers/pages";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 
 /**
  * E2E Journey: App Shell
@@ -11,6 +12,7 @@ import { DashboardPage } from "./helpers/pages";
 
 test.describe("App Shell", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 

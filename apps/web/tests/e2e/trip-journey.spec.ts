@@ -6,6 +6,7 @@ import {
 } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -16,6 +17,7 @@ import { snap } from "./helpers/screenshots";
 
 test.describe("Trip Journey", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 
