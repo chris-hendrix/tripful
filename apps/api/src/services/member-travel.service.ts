@@ -1,10 +1,11 @@
 import {
   memberTravel,
   members,
+  users,
   trips,
   type MemberTravel,
 } from "@/db/schema/index.js";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, getTableColumns } from "drizzle-orm";
 import type {
   CreateMemberTravelInput,
   UpdateMemberTravelInput,
@@ -204,14 +205,22 @@ export class MemberTravelService implements IMemberTravelService {
   async getMemberTravelByTrip(
     tripId: string,
     includeDeleted = false,
-  ): Promise<MemberTravel[]> {
+  ): Promise<(MemberTravel & { memberName: string })[]> {
     const conditions = [eq(memberTravel.tripId, tripId)];
 
     if (!includeDeleted) {
       conditions.push(isNull(memberTravel.deletedAt));
     }
 
-    return this.db.select().from(memberTravel).where(and(...conditions));
+    return this.db
+      .select({
+        ...getTableColumns(memberTravel),
+        memberName: users.displayName,
+      })
+      .from(memberTravel)
+      .innerJoin(members, eq(memberTravel.memberId, members.id))
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(and(...conditions));
   }
 
   /**

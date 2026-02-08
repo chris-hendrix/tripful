@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertCircle, CalendarX } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents } from "@/hooks/use-events";
@@ -74,6 +74,17 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   // For now, assume all authenticated users viewing the trip are members
   // In the future, this should check actual membership status from the API
   const isMember = !!user && !!trip;
+
+  // Build userId→displayName lookup from trip organizers
+  const userNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (trip?.organizers) {
+      for (const org of trip.organizers) {
+        map.set(org.id, org.displayName);
+      }
+    }
+    return map;
+  }, [trip?.organizers]);
 
   // Loading state
   const isLoading =
@@ -212,6 +223,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             tripEndDate={trip?.endDate || null}
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
+            userNameMap={userNameMap}
           />
         ) : (
           <GroupByTypeView
@@ -220,6 +232,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             timezone={timezone}
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
+            userNameMap={userNameMap}
           />
         )}
       </div>

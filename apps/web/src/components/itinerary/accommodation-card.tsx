@@ -14,6 +14,7 @@ interface AccommodationCardProps {
   canDelete: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  createdByName?: string | undefined;
 }
 
 export function AccommodationCard({
@@ -22,6 +23,7 @@ export function AccommodationCard({
   canDelete,
   onEdit,
   onDelete,
+  createdByName,
 }: AccommodationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -127,7 +129,7 @@ export function AccommodationCard({
           )}
 
           <div className="text-xs text-muted-foreground">
-            Created by user {accommodation.createdBy}
+            Created by {createdByName || "Unknown"}
           </div>
 
           {(canEdit || canDelete) && (

@@ -14,6 +14,7 @@ interface GroupByTypeViewProps {
   timezone: string;
   isOrganizer: boolean;
   userId: string;
+  userNameMap: Map<string, string>;
 }
 
 export function GroupByTypeView({
@@ -22,6 +23,7 @@ export function GroupByTypeView({
   timezone,
   isOrganizer,
   userId,
+  userNameMap,
 }: GroupByTypeViewProps) {
   // Group events by type
   const groupedEvents = useMemo(() => {
@@ -133,10 +135,10 @@ export function GroupByTypeView({
                         onEdit={() =>
                           setEditingAccommodation(item as Accommodation)
                         }
-                        // Delete is triggered through the edit dialog which contains the delete flow
                         onDelete={() =>
                           setEditingAccommodation(item as Accommodation)
                         }
+                        createdByName={userNameMap.get((item as Accommodation).createdBy)}
                       />
                     ))
                   : section.items.map((item) => (
@@ -147,8 +149,8 @@ export function GroupByTypeView({
                         canEdit={canModifyEvent(item as Event)}
                         canDelete={canModifyEvent(item as Event)}
                         onEdit={() => setEditingEvent(item as Event)}
-                        // Delete is triggered through the edit dialog which contains the delete flow
                         onDelete={() => setEditingEvent(item as Event)}
+                        createdByName={userNameMap.get((item as Event).createdBy)}
                       />
                     ))}
               </div>

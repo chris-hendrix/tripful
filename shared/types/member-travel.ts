@@ -17,6 +17,8 @@ export interface MemberTravel {
   deletedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+  /** Display name of the member (populated by list endpoint via join) */
+  memberName?: string;
 }
 
 /**

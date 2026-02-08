@@ -14,6 +14,7 @@ interface EventCardProps {
   canDelete: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  createdByName?: string | undefined;
 }
 
 const EVENT_TYPE_CONFIG = {
@@ -47,6 +48,7 @@ export function EventCard({
   canDelete,
   onEdit,
   onDelete,
+  createdByName,
 }: EventCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -154,7 +156,7 @@ export function EventCard({
           )}
 
           <div className="text-xs text-muted-foreground">
-            Created by user {event.createdBy}
+            Created by {createdByName || "Unknown"}
           </div>
 
           {(canEdit || canDelete) && (
