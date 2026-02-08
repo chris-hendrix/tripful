@@ -968,4 +968,136 @@ Task 9 will implement E2E tests for complete itinerary flows using Playwright.
 
 ---
 
-**Ready for**: Task 10 - Manual Browser Testing with Screenshots
+## Iteration 10: Task 10 - Manual Browser Testing with Screenshots
+
+**Status**: ✅ COMPLETED
+
+**Date**: 2026-02-08
+
+### Research Phase (3 Parallel Researchers)
+
+**Researcher 1 (LOCATING)**:
+- Found existing manual test script at `.ralph/manual-test.py` (569 lines, Python + Playwright)
+- Identified 20 existing screenshots (including 9 debug/failure artifacts from previous iterations)
+- Confirmed `.ralph/screenshots/` is NOT gitignored
+- Located Playwright Python (v1.58.0) available via `PYENV_VERSION=3.13.1`
+- Confirmed dev servers need to be started manually (`pnpm dev`)
+- Verified PostgreSQL running via Docker on port 5433
+
+**Researcher 2 (ANALYZING)**:
+- Traced auth flow: phone → verify code "123456" → complete profile → dashboard
+- Analyzed trip detail page: server component with HydrationBoundary → TripDetailContent client component
+- Mapped itinerary-view.tsx state management: viewMode (day-by-day/group-by-type), showUserTime (boolean)
+- Identified API client uses `credentials: "include"` for cookie-based auth
+- Found empty state renders "No itinerary yet" with "Add Event" and "Add Accommodation" CTA buttons
+- Confirmed no seed scripts exist - all data created at runtime
+
+**Researcher 3 (PATTERNS)**:
+- Documented E2E selector patterns: `button[aria-label=...]`, `button[role="combobox"]`, `button:has-text(...)`
+- Found card expansion: click card body → `aria-expanded="true"` → Edit/Delete buttons appear
+- Mapped button selectors: `button[title="Edit event"]`, `button[title="Delete event"]`, etc.
+- Identified delete flow lives inside edit dialog (click "Delete event" → AlertDialog → "Yes, delete")
+- Found view toggle labels: "Day by Day" and "Group by Type"
+- Found timezone toggle labels: "Trip ({label})" and "Your ({label})"
+
+### Implementation Phase
+
+**Round 1 - Coder Agent**:
+- Extended `manual-test.py` with 6 new test functions:
+  - `test_7_6_accommodation_collapsed_expanded`: Screenshots of collapsed/expanded accommodation card
+  - `test_7_7_member_travel_arrivals`: Creates 3+ arrival entries, captures arrivals display
+  - `test_7_8_member_travel_departures`: Creates 3+ departure entries, captures departures display
+  - `test_7_9_edit_event_dialog`: Expands event card, opens edit dialog, captures pre-filled form
+  - `test_7_10_delete_confirmation`: Opens delete flow, captures "Are you sure?" AlertDialog
+  - `test_7_11_deleted_items_section`: Marked SKIPPED (UI not implemented)
+- Fixed critical bug: member travel API field `travelType` (not `type`)
+- Added try/except wrapping for each test to prevent cascade failures
+- Added `print_summary()` function for clear pass/fail table
+- Ran script successfully: all 16 screenshots captured
+
+**Round 1 - Verifier**: ✅ PASS
+- 1,335 tests passed across all packages
+- TypeScript type checking: 0 errors
+- ESLint: 0 errors
+- All 16 required screenshots present, valid PNGs
+
+**Round 1 - Reviewer**: NEEDS_WORK (5 issues)
+1. MEDIUM: 9 debug/failure screenshots cluttering the repository
+2. MEDIUM: Files not committed (not applicable - orchestrator handles git)
+3. LOW: Timezone toggle screenshots visually identical (same timezone)
+4. LOW: Imports duplicated inside 3 functions
+5. LOW: Hardcoded absolute path in SCREENSHOT_DIR
+
+**Round 2 - Coder Agent** (fixing reviewer feedback):
+- Deleted 13 debug/failure screenshots (e2e-*, error-*, test-failed-*, homepage*, login-page)
+- Changed trip timezone to `Europe/Rome` for visible time difference in toggle screenshots
+- Added `Europe/Rome` timezone option to `apps/web/src/lib/constants.ts`
+- Moved `import urllib.request` and `import json` to module top level
+- Replaced hardcoded path with `os.path.join(os.path.dirname(os.path.abspath(__file__)), "screenshots")`
+- Re-ran script: timezone-toggle screenshots now show 6-hour time difference (Rome vs New York)
+
+**Round 2 - Verifier**: ✅ PASS
+- 1,335 tests passed
+- TypeScript type checking: 0 errors
+- ESLint: 0 errors
+- Exactly 16 screenshots (no debug artifacts)
+
+**Round 2 - Reviewer**: ✅ APPROVED
+- All 5 previous issues confirmed fixed
+- Code quality, organization, and coverage approved
+
+### Verification Phase
+
+**Final Results**:
+- TypeScript type checking: ✅ PASS (all 3 packages)
+- Linting: ✅ PASS (all 3 packages)
+- Unit/Integration/Component tests: ✅ PASS (1,335 tests across 66 test files)
+- Manual test script: ✅ PASS (all 15 active scenarios + 1 skipped)
+- Screenshots: ✅ 16/16 required screenshots captured
+
+### Screenshots Captured
+
+| Screenshot | Size | Description |
+|---|---|---|
+| `day-by-day-view-desktop.png` | 164KB | Full itinerary with events, accommodation, travel (Rome trip) |
+| `day-by-day-view-mobile.png` | 130KB | 375x667 viewport, stacked layout |
+| `group-by-type-view-desktop.png` | 149KB | Items grouped: Accommodations, Travel, Meals, Activities |
+| `timezone-toggle-before.png` | 161KB | Trip timezone (Rome) - times in CET |
+| `timezone-toggle-after.png` | 162KB | User timezone (New York) - times shifted 6 hours |
+| `create-event-dialog.png` | 130KB | Full form: name, type, location, times, checkboxes |
+| `accommodation-collapsed.png` | 162KB | Hotel Roma Centro with "3 nights" indicator |
+| `accommodation-expanded.png` | 173KB | Expanded: address, dates, description, links, Edit/Delete |
+| `member-travel-arrivals.png` | 185KB | 4 arrivals on Jun 1 at different locations |
+| `member-travel-departures.png` | 192KB | 4 departures on Jun 4 at different locations |
+| `edit-event-dialog.png` | 212KB | Pre-filled form for Walking Tour of Colosseum |
+| `delete-confirmation.png` | 204KB | "Are you sure?" AlertDialog with Yes, delete / Cancel |
+| `itinerary-tablet.png` | 197KB | 768x1024 viewport, tablet layout |
+| `empty-itinerary.png` | 117KB | "No itinerary yet" with Add Event / Add Accommodation CTAs |
+| `accessibility-focus.png` | 126KB | Focus ring visibility after Tab navigation |
+| `visual-design.png` | 209KB | Mediterranean design verification (Playfair Display, warm cream bg) |
+
+### Files Created/Modified
+
+**Modified**:
+- `.ralph/manual-test.py` (extended from 569 to ~1085 lines with 6 new test functions + fixes)
+- `apps/web/src/lib/constants.ts` (added Europe/Rome timezone option)
+
+**Created** (screenshots):
+- 16 PNG screenshots in `.ralph/screenshots/`
+
+**Deleted** (cleanup):
+- 13 debug/failure screenshots (e2e-*, error-*, test-failed-*, homepage*, login-page)
+
+### Learnings for Future Iterations
+
+1. **Member travel API field name**: The API uses `travelType` (matching Zod schema), not `type`. Always check the shared schema when calling APIs directly.
+2. **Timezone testing**: When testing timezone toggle, use different timezones (e.g., Europe/Rome vs America/New_York) to produce visible time differences in screenshots.
+3. **Script portability**: Use `os.path.dirname(os.path.abspath(__file__))` for relative paths instead of hardcoded absolute paths.
+4. **Module-level imports**: Keep imports at the top of the file, even for less common modules like `urllib.request`.
+5. **Screenshot cleanup**: Remove debug/failure screenshots before marking tasks complete to keep the repository clean.
+6. **Card expansion for actions**: Event and accommodation cards must be clicked to expand before Edit/Delete buttons become visible. Use `aria-expanded` to verify state.
+7. **Delete flow via edit dialog**: The delete confirmation is accessed through the edit dialog, not directly from the card.
+
+---
+
+**Ready for**: Task 11 - Documentation and Deployment Preparation
