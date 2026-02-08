@@ -3,7 +3,7 @@
 import { memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Calendar, MapPin, ClipboardList } from "lucide-react";
+import { Calendar, MapPin, ClipboardList, ImagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { usePrefetchTrip } from "@/hooks/use-trips";
@@ -101,8 +101,11 @@ export const TripCard = memo(function TripCard({
           </div>
         </div>
       ) : (
-        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-accent/20 via-primary/10 to-muted">
+        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-secondary/20">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ImagePlus className="w-8 h-8 text-white/30" />
+          </div>
 
           {/* Badges overlay */}
           <div className="absolute top-3 left-3 flex gap-2">

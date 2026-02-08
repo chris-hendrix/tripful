@@ -279,7 +279,7 @@ describe("TripDetailContent", () => {
 
       // Check for gradient placeholder
       const placeholder = document.querySelector(
-        ".bg-gradient-to-br.from-muted.to-primary\\/10",
+        ".bg-gradient-to-br.from-primary\\/20.via-accent\\/15.to-secondary\\/20",
       );
       expect(placeholder).toBeDefined();
     });

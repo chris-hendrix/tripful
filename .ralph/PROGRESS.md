@@ -141,3 +141,46 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - The Drizzle ORM `count()` with `groupBy()` returns no row for trips with zero events, so `Map.get()` returns `undefined` and the `?? 0` fallback handles it correctly.
 - Integration tests in this project rely on `generateUniquePhone()` for test isolation rather than explicit DB cleanup — consistent with existing patterns.
 
+## Iteration 4 — Task 3.1: Fix cover image placeholder and trip card empty state
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** — Updated cover image placeholder:
+   - Added `ImagePlus` to lucide-react imports
+   - Replaced washed-out gradient (`from-muted to-primary/10`) with vibrant gradient (`from-primary/20 via-accent/15 to-secondary/20`)
+   - Added `w-full` to the container div
+   - Added centered `ImagePlus` icon (`w-12 h-12 text-white/40`) with flex centering
+   - Added "Add cover photo" CTA text (`text-sm text-white/60`) visible only when `isOrganizer` is truthy
+   - Retained existing `from-black/30` overlay gradient
+
+2. **`apps/web/src/components/trip/trip-card.tsx`** — Updated trip card placeholder:
+   - Added `ImagePlus` to lucide-react imports
+   - Replaced bland gradient (`from-accent/20 via-primary/10 to-muted`) with vibrant gradient (`from-primary/20 via-accent/15 to-secondary/20`)
+   - Added centered `ImagePlus` icon (`w-8 h-8 text-white/30`) — smaller than detail page for card context
+   - Preserved badge overlay (Organizing badge + rsvpBadge) unchanged
+   - Retained existing `from-black/30` overlay gradient
+
+3. **`apps/web/src/components/trip/__tests__/trip-card.test.tsx`** — Updated test:
+   - Updated CSS class selector from `from-accent\\/20.via-primary\\/10.to-muted` to `from-primary\\/20.via-accent\\/15.to-secondary\\/20`
+   - Added SVG icon presence assertion (`expect(placeholder?.querySelector("svg")).not.toBeNull()`)
+
+4. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`** — Updated test:
+   - Updated CSS class selector from `from-muted.to-primary\\/10` to `from-primary\\/20.via-accent\\/15.to-secondary\\/20`
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1366 tests across 70 test files (577 API + 620 web + 169 shared)
+- **reviewer**: ✅ APPROVED — all requirements met, consistent gradient between components, proper icon sizing hierarchy, badges preserved, CTA correctly gated behind isOrganizer
+
+### Learnings
+
+- The gradient color tokens: primary=#1a5c9e (blue), accent=#d1643d (orange), secondary=#eee9e2 (beige). The vibrant gradient `from-primary/20 via-accent/15 to-secondary/20` creates a subtle blue-to-orange-to-beige effect.
+- Icon sizing hierarchy: `w-12 h-12` for the detail page hero (320px tall container), `w-8 h-8` for the card thumbnail (192px tall container). Icon opacity is also slightly different: `text-white/40` for detail, `text-white/30` for card.
+- Lucide React icons default to `aria-hidden="true"` when no accessibility props are passed — explicit attribute not needed for decorative icons.
+- The `isOrganizer` variable was already computed in trip-detail-content.tsx (lines 69-73) and available in scope — no additional logic needed for the CTA conditional.
+- Test selectors for Tailwind classes with slashes (e.g., `from-primary/20`) need double escaping in `querySelector`: `from-primary\\/20`.
+

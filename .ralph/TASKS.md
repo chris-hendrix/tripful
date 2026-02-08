@@ -35,7 +35,7 @@
 
 ## Phase 3: Cover Image & Visual Fixes
 
-- [ ] Task 3.1: Fix cover image placeholder and trip card empty state
+- [x] Task 3.1: Fix cover image placeholder and trip card empty state
   - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` (lines 127-131), replace washed-out gradient with vibrant gradient + `ImagePlus` icon + "Add cover photo" CTA for organizers. Ensure container has `w-full`.
   - Implement: In `apps/web/src/components/trip/trip-card.tsx` (lines 104-116), replace bland gradient with matching vibrant gradient + small centered icon.
   - Test: Update `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — update placeholder test to check for new gradient classes and icon

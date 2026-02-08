@@ -12,6 +12,7 @@ import {
   ClipboardList,
   AlertCircle,
   Settings,
+  ImagePlus,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
@@ -130,8 +131,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
       ) : (
-        <div className="relative h-80 overflow-hidden bg-gradient-to-br from-muted to-primary/10">
+        <div className="relative w-full h-80 overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-secondary/20">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <ImagePlus className="w-12 h-12 text-white/40" />
+            {isOrganizer && (
+              <span className="text-sm text-white/60">Add cover photo</span>
+            )}
+          </div>
         </div>
       )}
 
