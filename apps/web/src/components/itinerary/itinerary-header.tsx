@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, List, Globe, Plus } from "lucide-react";
+import { Calendar, List, Globe, Plus, Building2, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { CreateMemberTravelDialog } from "./create-member-travel-dialog";
@@ -105,41 +111,65 @@ export function ItineraryHeader({
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2">
-                {canAddEvent && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsCreateEventOpen(true)}
-                    className="h-8 px-3 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Event
-                  </Button>
-                )}
-                {isOrganizer && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsCreateAccommodationOpen(true)}
-                    className="h-8 px-3 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Accommodation
-                  </Button>
-                )}
-                {isMember && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsCreateMemberTravelOpen(true)}
-                    className="h-8 px-3 rounded-lg"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    My Travel
-                  </Button>
-                )}
-              </div>
+              <TooltipProvider>
+                <div className="flex items-center gap-2">
+                  {canAddEvent && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsCreateEventOpen(true)}
+                          className="h-8 px-3 rounded-lg"
+                          aria-label="Add Event"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">Event</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Add Event</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {isOrganizer && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsCreateAccommodationOpen(true)}
+                          className="h-8 px-3 rounded-lg"
+                          aria-label="Add Accommodation"
+                        >
+                          <Building2 className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">
+                            Accommodation
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Add Accommodation</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {isMember && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsCreateMemberTravelOpen(true)}
+                          className="h-8 px-3 rounded-lg"
+                          aria-label="Add My Travel"
+                        >
+                          <Plane className="w-4 h-4" />
+                          <span className="hidden sm:inline ml-1">
+                            My Travel
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Add My Travel</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </TooltipProvider>
             </div>
           </div>
         </div>

@@ -221,3 +221,46 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - No dialogs in the codebase use explicit bottom padding — this is the first, but it's a targeted fix for the scrollable multi-step form case rather than a global dialog change.
 - Test count increased from 1,366 (iteration 4) to 1,368 (2 new tests added).
 
+## Iteration 6 — Task 4.1: Collapse itinerary action buttons to icons on mobile
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/src/components/itinerary/itinerary-header.tsx`** — Updated action buttons to show icon-only on mobile and full text on `sm:` breakpoint:
+   - Added `Building2` and `Plane` to lucide-react imports (replacing all three buttons' generic `Plus` icon)
+   - Added `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` imports from `@/components/ui/tooltip` (first usage of Tooltip component in the project)
+   - Wrapped action buttons container with `<TooltipProvider>` (local, not global — no change to `providers.tsx`)
+   - Each action button now has:
+     - Distinct icon: `Plus` for Event, `Building2` for Accommodation, `Plane` for My Travel
+     - Text label wrapped in `<span className="hidden sm:inline ml-1">` — hidden on mobile, visible on `sm:` and above
+     - `<Tooltip>` wrapper with descriptive `<TooltipContent>` for hover discoverability
+     - `aria-label` attribute for screen reader accessibility
+     - Removed `mr-1` from icon className (text `<span>` uses `ml-1` which only applies when visible)
+
+2. **`apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx`** — Added 8 new test cases in `describe("action buttons")` block:
+   - Renders Event button when `canAddEvent` is true (with correct `aria-label`)
+   - Does not render Event button when `canAddEvent` is false
+   - Renders Accommodation button when `isOrganizer` is true (with correct `aria-label`)
+   - Does not render Accommodation button when `isOrganizer` is false
+   - Renders My Travel button when `isMember` is true (with correct `aria-label`)
+   - Does not render My Travel button when `isMember` is false
+   - Verifies all action button text spans have responsive `hidden sm:inline` classes
+   - Verifies all action buttons are clickable and not disabled
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1,376 tests across 70 test files (577 API + 630 web + 169 shared)
+- **reviewer**: ✅ APPROVED — correct icon mapping per architecture spec, proper Tooltip implementation, comprehensive tests, good accessibility
+
+### Learnings
+
+- The Tooltip component (`@/components/ui/tooltip`) existed in the codebase but was never used. This is the first usage. `TooltipProvider` is added locally wrapping the action buttons group, not globally in `providers.tsx`.
+- Radix Tooltip sets `pointer-events: none` on its trigger element in JSDOM (test environment only). The clickability test uses `userEvent.setup({ pointerEventsCheck: 0 })` as a workaround — this doesn't affect real browser behavior.
+- The `hidden sm:inline` pattern for responsive text is new to this codebase (first usage). Elements with CSS `display: none` (Tailwind `hidden`) are still found by `getByText`/`getByRole` in testing-library since it checks DOM text content, not visual rendering.
+- Button `size="sm"` already provides 44px mobile touch targets (`h-11 sm:h-8`) from Task 1.1, so the icon-only buttons meet touch target requirements without additional sizing changes.
+- Icon choices follow existing conventions: `Plane` is already used for travel in `member-travel-card.tsx` and `group-by-type-view.tsx`. `Building2` is new to the codebase (architecture spec chose it over `Home` which is used in accommodation cards).
+- Test count increased from 1,368 (iteration 5) to 1,376 (8 new tests added).
+

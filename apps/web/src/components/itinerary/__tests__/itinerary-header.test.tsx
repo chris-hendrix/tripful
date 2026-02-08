@@ -185,6 +185,139 @@ describe("ItineraryHeader", () => {
     });
   });
 
+  describe("action buttons", () => {
+    it("renders Event button when canAddEvent is true", () => {
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
+      );
+      const button = screen.getByRole("button", { name: /add event/i });
+      expect(button).toBeDefined();
+      expect(button.getAttribute("aria-label")).toBe("Add Event");
+    });
+
+    it("does not render Event button when canAddEvent is false", () => {
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={false}
+          isMember={true}
+          allowMembersToAddEvents={false}
+        />,
+      );
+      const button = screen.queryByRole("button", { name: /add event/i });
+      expect(button).toBeNull();
+    });
+
+    it("renders Accommodation button when isOrganizer is true", () => {
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isOrganizer={true} />,
+      );
+      const button = screen.getByRole("button", {
+        name: /add accommodation/i,
+      });
+      expect(button).toBeDefined();
+      expect(button.getAttribute("aria-label")).toBe("Add Accommodation");
+    });
+
+    it("does not render Accommodation button when isOrganizer is false", () => {
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isOrganizer={false} />,
+      );
+      const button = screen.queryByRole("button", {
+        name: /add accommodation/i,
+      });
+      expect(button).toBeNull();
+    });
+
+    it("renders My Travel button when isMember is true", () => {
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isMember={true} />,
+      );
+      const button = screen.getByRole("button", { name: /add my travel/i });
+      expect(button).toBeDefined();
+      expect(button.getAttribute("aria-label")).toBe("Add My Travel");
+    });
+
+    it("does not render My Travel button when isMember is false", () => {
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isMember={false} />,
+      );
+      const button = screen.queryByRole("button", {
+        name: /add my travel/i,
+      });
+      expect(button).toBeNull();
+    });
+
+    it("action button text spans have responsive hidden class", () => {
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={true}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
+      );
+      // All three buttons should have hidden sm:inline text
+      const eventBtn = screen.getByRole("button", { name: /add event/i });
+      const eventSpan = eventBtn.querySelector("span.hidden");
+      expect(eventSpan).toBeDefined();
+      expect(eventSpan).not.toBeNull();
+      expect(eventSpan!.className).toContain("sm:inline");
+
+      const accommBtn = screen.getByRole("button", {
+        name: /add accommodation/i,
+      });
+      const accommSpan = accommBtn.querySelector("span.hidden");
+      expect(accommSpan).toBeDefined();
+      expect(accommSpan).not.toBeNull();
+      expect(accommSpan!.className).toContain("sm:inline");
+
+      const travelBtn = screen.getByRole("button", {
+        name: /add my travel/i,
+      });
+      const travelSpan = travelBtn.querySelector("span.hidden");
+      expect(travelSpan).toBeDefined();
+      expect(travelSpan).not.toBeNull();
+      expect(travelSpan!.className).toContain("sm:inline");
+    });
+
+    it("action buttons are clickable", async () => {
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={true}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
+      );
+      // Skip pointer-events check: Radix Tooltip sets pointer-events:none
+      // on the trigger in JSDOM which is a test environment artifact
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+      const eventBtn = screen.getByRole("button", { name: /add event/i });
+      const accommBtn = screen.getByRole("button", {
+        name: /add accommodation/i,
+      });
+      const travelBtn = screen.getByRole("button", {
+        name: /add my travel/i,
+      });
+
+      // Verify buttons are not disabled
+      expect(eventBtn.hasAttribute("disabled")).toBe(false);
+      expect(accommBtn.hasAttribute("disabled")).toBe(false);
+      expect(travelBtn.hasAttribute("disabled")).toBe(false);
+
+      // Verify clicking doesn't throw
+      await user.click(eventBtn);
+      await user.click(accommBtn);
+      await user.click(travelBtn);
+    });
+  });
+
   describe("Sticky positioning", () => {
     it("applies sticky positioning classes", () => {
       const { container } = renderWithQueryClient(<ItineraryHeader {...defaultProps} />);

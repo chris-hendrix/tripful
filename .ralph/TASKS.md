@@ -49,7 +49,7 @@
 
 ## Phase 4: Itinerary Toolbar Mobile Redesign
 
-- [ ] Task 4.1: Collapse itinerary action buttons to icons on mobile
+- [x] Task 4.1: Collapse itinerary action buttons to icons on mobile
   - Implement: In `apps/web/src/components/itinerary/itinerary-header.tsx`, update action buttons to show icon-only on mobile and full text on `sm:` breakpoint. Use `Building2` for Accommodation, `Plane` for My Travel. Wrap icon buttons with `Tooltip` for accessibility.
   - Implement: Use pattern `<span className="hidden sm:inline ml-1">Event</span>` to toggle text visibility
   - Test: Update `apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx` — verify buttons still render and are clickable, verify tooltip/aria-label presence
