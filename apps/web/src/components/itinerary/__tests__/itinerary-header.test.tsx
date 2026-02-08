@@ -1,29 +1,52 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ItineraryHeader } from "../itinerary-header";
 
 describe("ItineraryHeader", () => {
+  let queryClient: QueryClient;
+
   const defaultProps = {
     viewMode: "day-by-day" as const,
     onViewModeChange: vi.fn(),
     showUserTime: false,
     onShowUserTimeChange: vi.fn(),
-    currentTimezone: "America/Los_Angeles",
     tripTimezone: "America/Los_Angeles",
     userTimezone: "America/New_York",
+    tripId: "test-trip-123",
+    isOrganizer: false,
+    isMember: true,
+    allowMembersToAddEvents: true,
+  };
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+  });
+
+  const renderWithQueryClient = (ui: React.ReactElement) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>
+    );
   };
 
   describe("Rendering", () => {
     it("renders view mode toggle buttons", () => {
-      render(<ItineraryHeader {...defaultProps} />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
       expect(screen.getByText("Day by Day")).toBeDefined();
       expect(screen.getByText("Group by Type")).toBeDefined();
     });
 
     it("renders timezone toggle buttons", () => {
-      render(<ItineraryHeader {...defaultProps} />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
       expect(screen.getByText(/Trip \(Los Angeles\)/)).toBeDefined();
       expect(screen.getByText(/Your \(New York\)/)).toBeDefined();
@@ -32,14 +55,14 @@ describe("ItineraryHeader", () => {
 
   describe("View mode toggle", () => {
     it("highlights day-by-day button when selected", () => {
-      render(<ItineraryHeader {...defaultProps} viewMode="day-by-day" />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="day-by-day" />);
 
       const button = screen.getByText("Day by Day").closest("button");
       expect(button?.dataset.variant).toBe("default");
     });
 
     it("highlights group-by-type button when selected", () => {
-      render(<ItineraryHeader {...defaultProps} viewMode="group-by-type" />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="group-by-type" />);
 
       const button = screen.getByText("Group by Type").closest("button");
       expect(button?.dataset.variant).toBe("default");
@@ -49,12 +72,12 @@ describe("ItineraryHeader", () => {
       const user = userEvent.setup();
       const onViewModeChange = vi.fn();
 
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           viewMode="group-by-type"
           onViewModeChange={onViewModeChange}
-        />,
+        />
       );
 
       const button = screen.getByText("Day by Day");
@@ -67,11 +90,11 @@ describe("ItineraryHeader", () => {
       const user = userEvent.setup();
       const onViewModeChange = vi.fn();
 
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           onViewModeChange={onViewModeChange}
-        />,
+        />
       );
 
       const button = screen.getByText("Group by Type");
@@ -83,7 +106,7 @@ describe("ItineraryHeader", () => {
 
   describe("Timezone toggle", () => {
     it("highlights trip timezone button when not showing user time", () => {
-      render(<ItineraryHeader {...defaultProps} showUserTime={false} />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} showUserTime={false} />);
 
       const button = screen
         .getByText(/Trip \(Los Angeles\)/)
@@ -92,7 +115,7 @@ describe("ItineraryHeader", () => {
     });
 
     it("highlights user timezone button when showing user time", () => {
-      render(<ItineraryHeader {...defaultProps} showUserTime={true} />);
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} showUserTime={true} />);
 
       const button = screen.getByText(/Your \(New York\)/).closest("button");
       expect(button?.dataset.variant).toBe("default");
@@ -102,12 +125,12 @@ describe("ItineraryHeader", () => {
       const user = userEvent.setup();
       const onShowUserTimeChange = vi.fn();
 
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           showUserTime={true}
           onShowUserTimeChange={onShowUserTimeChange}
-        />,
+        />
       );
 
       const button = screen.getByText(/Trip \(Los Angeles\)/);
@@ -120,11 +143,11 @@ describe("ItineraryHeader", () => {
       const user = userEvent.setup();
       const onShowUserTimeChange = vi.fn();
 
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           onShowUserTimeChange={onShowUserTimeChange}
-        />,
+        />
       );
 
       const button = screen.getByText(/Your \(New York\)/);
@@ -136,12 +159,12 @@ describe("ItineraryHeader", () => {
 
   describe("Timezone label formatting", () => {
     it("extracts and formats timezone names correctly", () => {
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           tripTimezone="Europe/London"
           userTimezone="Asia/Tokyo"
-        />,
+        />
       );
 
       expect(screen.getByText(/Trip \(London\)/)).toBeDefined();
@@ -149,12 +172,12 @@ describe("ItineraryHeader", () => {
     });
 
     it("handles multi-part timezone names correctly", () => {
-      render(
+      renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           tripTimezone="America/Los_Angeles"
           userTimezone="America/New_York"
-        />,
+        />
       );
 
       expect(screen.getByText(/Trip \(Los Angeles\)/)).toBeDefined();
@@ -164,7 +187,7 @@ describe("ItineraryHeader", () => {
 
   describe("Sticky positioning", () => {
     it("applies sticky positioning classes", () => {
-      const { container } = render(<ItineraryHeader {...defaultProps} />);
+      const { container } = renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
       const header = container.querySelector(".sticky");
       expect(header).toBeDefined();

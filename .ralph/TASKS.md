@@ -280,7 +280,7 @@ Build the itinerary display components with view mode switching and timezone tog
 
 ---
 
-- [ ] Task 8: Create/Edit Dialogs for Itinerary Items
+- [x] Task 8: Create/Edit Dialogs for Itinerary Items
 
 Build forms for creating and editing events, accommodations, and member travel.
 

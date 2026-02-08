@@ -57,12 +57,16 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   const userTimezone = user?.timezone || "UTC";
   const timezone = showUserTime ? userTimezone : tripTimezone;
 
-  // Determine if user is an organizer
+  // Determine if user is an organizer or member
   const isOrganizer =
     user &&
     trip &&
     (trip.createdBy === user.id ||
       trip.organizers.some((org) => org.id === user.id));
+
+  // For now, assume all authenticated users viewing the trip are members
+  // In the future, this should check actual membership status from the API
+  const isMember = !!user && !!trip;
 
   // Loading state
   const isLoading =
@@ -173,6 +177,10 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
         onShowUserTimeChange={setShowUserTime}
         tripTimezone={tripTimezone}
         userTimezone={userTimezone}
+        tripId={tripId}
+        isOrganizer={!!isOrganizer}
+        isMember={!!isMember}
+        allowMembersToAddEvents={trip?.allowMembersToAddEvents || false}
       />
 
       {/* Content */}
