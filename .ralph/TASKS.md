@@ -64,7 +64,7 @@
   - Test: Write unit tests for `formatPhoneNumber()` utility in `apps/web/src/lib/format.test.ts`
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 5.2: Integrate phone input into login and verify pages
+- [x] Task 5.2: Integrate phone input into login and verify pages
   - Implement: In `apps/web/src/app/(auth)/login/page.tsx`, replace `<Input type="tel">` with `<PhoneInput>` component, default country "US"
   - Implement: In `apps/web/src/app/(auth)/verify/page.tsx`, format the displayed phone number using `formatPhoneNumber()` utility
   - Test: Update `apps/web/src/app/(auth)/login/page.test.tsx` — verify phone input renders with country selector

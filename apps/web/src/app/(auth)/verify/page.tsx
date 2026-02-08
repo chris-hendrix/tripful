@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { verifyCodeSchema, type VerifyCodeInput } from "@tripful/shared";
 import { useAuth } from "@/app/providers/auth-provider";
+import { formatPhoneNumber } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -90,7 +91,7 @@ function VerifyPageContent() {
             <p className="text-muted-foreground">
               Enter the 6-digit code sent to{" "}
               <span className="font-semibold text-foreground">
-                {phoneNumber}
+                {formatPhoneNumber(phoneNumber)}
               </span>
             </p>
           </div>

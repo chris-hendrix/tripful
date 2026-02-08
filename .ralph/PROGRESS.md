@@ -319,3 +319,54 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - `exactOptionalPropertyTypes` in tsconfig requires careful handling of optional props — `disabled` defaults to `false` and `country` is guarded before passing to the flag Icon component.
 - Test count increased from 1,376 (iteration 6) to 1,381 (5 new tests added for `formatPhoneNumber`).
 
+## Iteration 8 — Task 5.2: Integrate phone input into login and verify pages
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/src/app/(auth)/login/page.tsx`** — Replaced `<Input type="tel">` with `<PhoneInput>` component:
+   - Replaced `import { Input }` with `import { PhoneInput }` from `@/components/ui/phone-input`
+   - Replaced `<Input type="tel" {...field}>` with `<PhoneInput>` using individual props (`value={field.value}`, `onChange={field.onChange}`, `onBlur={field.onBlur}`, `name={field.name}`) since PhoneInput doesn't support ref forwarding
+   - Set `defaultCountry="US"` for US phone number default
+   - Updated placeholder from `"+1 (555) 123-4567"` to `"(555) 123-4567"` since country selector handles the prefix
+   - Kept `disabled={isSubmitting}` and `className="h-12 text-base"`
+   - Removed `autoComplete="tel"` and `aria-required="true"` (not in PhoneInput's prop interface)
+
+2. **`apps/web/src/app/(auth)/verify/page.tsx`** — Formatted displayed phone number:
+   - Added `import { formatPhoneNumber } from "@/lib/format"`
+   - Changed `{phoneNumber}` to `{formatPhoneNumber(phoneNumber)}` on line 94
+   - Displays `"+1 555 123 4567"` instead of raw `"+15551234567"` format
+   - `Input` import retained (still used for the verification code input field)
+
+3. **`apps/web/src/app/(auth)/login/page.test.tsx`** — Added PhoneInput mock and new test:
+   - Added `vi.mock("@/components/ui/phone-input")` that renders a simple `<input type="tel">` with `aria-label="Phone number"` and `data-testid="phone-input"`
+   - Mock's `onChange` adapter converts `e.target.value` to direct value format matching PhoneInput's `(value?: string) => void` signature
+   - All 10 existing tests continue to pass via `screen.getByLabelText(/phone number/i)` using the mock's `aria-label`
+   - New: "renders phone input with country selector mock" — verifies PhoneInput mock renders with `type="tel"` and `data-testid="phone-input"`
+
+4. **`apps/web/src/app/(auth)/verify/page.test.tsx`** — Updated phone display assertion and added new test:
+   - Updated "displays phone number from query param" — assertion changed from `"+15551234567"` to `"+1 555 123 4567"` (formatted output)
+   - New: "displays formatted phone number from query param" — tests `"+14155552671"` formats to `"+1 415 555 2671"`
+   - No mock needed for `@/lib/format` — `parsePhoneNumber` from `react-phone-number-input` works correctly in jsdom
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1,383 tests across 70 test files (577 API + 637 web + 169 shared)
+- **reviewer**: ✅ APPROVED — all requirements met, correct React Hook Form integration, proper mock strategy, no regressions
+
+### Reviewer Notes (Low Severity Suggestions)
+
+- `aria-required="true"` and `autoComplete="tel"` were dropped from the login input. Non-blocking since `react-phone-number-input` sets `type="tel"` internally and Zod validation enforces the required field.
+- Test name "renders phone input with country selector mock" could be more specific since the mock doesn't render an actual selector. Non-blocking cosmetic suggestion.
+
+### Learnings
+
+- PhoneInput's `onChange` signature `(value?: string) => void` is directly compatible with React Hook Form's `field.onChange` which accepts both events and raw values. No adapter needed when passing `field.onChange` directly.
+- PhoneInput does NOT use `forwardRef`, so `{...field}` spread from React Hook Form would include `ref` and cause issues. Must destructure and pass `value`, `onChange`, `onBlur`, `name` individually — similar to the Select component pattern in `complete-profile/page.tsx`.
+- The `parsePhoneNumber` function from `react-phone-number-input` (which powers `formatPhoneNumber`) is a pure JS function that works correctly in vitest's jsdom environment — no mocking of `@/lib/format` needed in tests.
+- Mocking PhoneInput in login tests is the right strategy since `react-phone-number-input` has complex DOM rendering (country select + input) that may not work reliably in jsdom. The mock renders a simple `<input>` with `aria-label` to maintain test selector compatibility.
+- Test count increased from 1,381 (iteration 7) to 1,383 (2 new tests added: 1 login + 1 verify).
+
