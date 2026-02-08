@@ -9,7 +9,7 @@
 
 ## Phase 1: Base Component Fixes
 
-- [ ] Task 1.1: Update button, input, and checkbox touch targets to 44px minimum
+- [x] Task 1.1: Update button, input, and checkbox touch targets to 44px minimum
   - Implement: Update `apps/web/src/components/ui/button.tsx` size variants with responsive mobile-first sizing (`h-11 sm:h-9` pattern for all sizes)
   - Implement: Update `apps/web/src/components/ui/input.tsx` base height from `h-9` to `h-11 sm:h-9`
   - Implement: Verify checkbox usage sites have adequate touch area (no component change needed — checkbox visual stays `size-4`)
