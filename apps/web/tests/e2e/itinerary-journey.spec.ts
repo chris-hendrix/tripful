@@ -36,6 +36,21 @@ async function createTrip(
   ).toBeVisible();
 }
 
+/** Helper: open the FAB dropdown and click a menu item, or fall back to empty-state button. */
+async function clickFabAction(
+  page: import("@playwright/test").Page,
+  actionName: string,
+) {
+  const fab = page.getByRole("button", { name: "Add to itinerary" });
+  if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await fab.click();
+    await page.getByRole("menuitem", { name: actionName }).click();
+  } else {
+    // Empty state has direct buttons like "Add Event", "Add Accommodation"
+    await page.getByRole("button", { name: `Add ${actionName}` }).click();
+  }
+}
+
 /** Helper: create an event via the UI (assumes on trip detail page). */
 async function createEvent(
   page: import("@playwright/test").Page,
@@ -46,11 +61,9 @@ async function createEvent(
     location?: string;
     description?: string;
     endDateTime?: string;
-    addButtonText?: string;
   },
 ) {
-  const addButtonText = options?.addButtonText ?? "Add Event";
-  await page.getByRole("button", { name: addButtonText }).click();
+  await clickFabAction(page, "Event");
   await expect(
     page.getByRole("heading", { name: "Create a new event" }),
   ).toBeVisible();
@@ -120,7 +133,7 @@ test.describe("Itinerary Journey", () => {
       });
 
       await test.step("create accommodation", async () => {
-        await page.getByRole("button", { name: "Accommodation" }).click();
+        await clickFabAction(page, "Accommodation");
         await expect(
           page.getByRole("heading", { name: "Create a new accommodation" }),
         ).toBeVisible();
@@ -147,7 +160,7 @@ test.describe("Itinerary Journey", () => {
       await snap(page, "09-itinerary-with-events");
 
       await test.step("add member travel", async () => {
-        await page.getByRole("button", { name: "My Travel" }).click();
+        await clickFabAction(page, "My Travel");
         await expect(
           page.getByRole("heading", { name: "Add your travel details" }),
         ).toBeVisible();
@@ -241,7 +254,6 @@ test.describe("Itinerary Journey", () => {
       const activityEvent = `Show ${Date.now()}`;
       await createEvent(page, activityEvent, "2027-03-10T20:00", {
         type: "Activity",
-        addButtonText: "Event",
       });
       await expect(page.getByText(/Show/)).toBeVisible();
     });
@@ -306,11 +318,11 @@ test.describe("Itinerary Journey", () => {
       ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Event" }),
+        page.getByRole("button", { name: "Add to itinerary" }),
       ).toBeVisible();
 
-      // Dialog works on mobile
-      await page.getByRole("button", { name: "Event" }).first().click();
+      // Dialog works on mobile via FAB
+      await clickFabAction(page, "Event");
       await expect(
         page.getByRole("heading", { name: "Create a new event" }),
       ).toBeVisible();
@@ -331,6 +343,7 @@ test.describe("Itinerary Journey", () => {
       const tripName = `Permission Trip ${Date.now()}`;
       await createTrip(page, tripName, "Atlanta, GA", "2026-10-25", "2026-10-27");
 
+      // Empty state shows direct action buttons for organizer
       await expect(
         page.getByRole("button", { name: "Add Event" }),
       ).toBeVisible();
@@ -418,16 +431,20 @@ test.describe("Itinerary Journey", () => {
       await tripDetail.createTripButton.click();
       await page.waitForURL("**/trips/**");
 
-      // Organizer can still add events
+      // Organizer can still add events (empty state shows Add Event button)
       await expect(
         page.getByRole("button", { name: "Add Event" }),
       ).toBeVisible();
 
       await createEvent(page, "Initial Event", "2026-09-20T10:00");
+      await expect(page.getByText("Initial Event")).toBeVisible();
 
-      await expect(
-        page.getByRole("button", { name: "Event" }).first(),
-      ).toBeVisible();
+      // After adding content, FAB should be visible with Event option
+      const fab = page.getByRole("button", { name: "Add to itinerary" });
+      await expect(fab).toBeVisible();
+      await fab.click();
+      await expect(page.getByRole("menuitem", { name: "Event" })).toBeVisible();
+      await page.keyboard.press("Escape");
     });
   });
 });

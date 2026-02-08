@@ -185,8 +185,30 @@ describe("ItineraryHeader", () => {
     });
   });
 
-  describe("action buttons", () => {
-    it("renders Event button when canAddEvent is true", () => {
+  describe("FAB and action menu", () => {
+    it("renders FAB when user has any action available", () => {
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isMember={true} />,
+      );
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      expect(fab).toBeDefined();
+    });
+
+    it("does not render FAB when no actions are available", () => {
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={false}
+          isMember={false}
+          allowMembersToAddEvents={false}
+        />,
+      );
+      const fab = screen.queryByRole("button", { name: /add to itinerary/i });
+      expect(fab).toBeNull();
+    });
+
+    it("shows Event menu item when canAddEvent is true", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
@@ -194,12 +216,16 @@ describe("ItineraryHeader", () => {
           allowMembersToAddEvents={true}
         />,
       );
-      const button = screen.getByRole("button", { name: /add event/i });
-      expect(button).toBeDefined();
-      expect(button.getAttribute("aria-label")).toBe("Add Event");
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.getByRole("menuitem", { name: /event/i });
+      expect(eventItem).toBeDefined();
     });
 
-    it("does not render Event button when canAddEvent is false", () => {
+    it("does not show Event menu item when canAddEvent is false", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
@@ -208,113 +234,103 @@ describe("ItineraryHeader", () => {
           allowMembersToAddEvents={false}
         />,
       );
-      const button = screen.queryByRole("button", { name: /add event/i });
-      expect(button).toBeNull();
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.queryByRole("menuitem", { name: /^event$/i });
+      expect(eventItem).toBeNull();
     });
 
-    it("renders Accommodation button when isOrganizer is true", () => {
+    it("shows Accommodation menu item when isOrganizer is true", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader {...defaultProps} isOrganizer={true} />,
       );
-      const button = screen.getByRole("button", {
-        name: /add accommodation/i,
-      });
-      expect(button).toBeDefined();
-      expect(button.getAttribute("aria-label")).toBe("Add Accommodation");
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.getByRole("menuitem", { name: /accommodation/i });
+      expect(item).toBeDefined();
     });
 
-    it("does not render Accommodation button when isOrganizer is false", () => {
+    it("does not show Accommodation menu item when isOrganizer is false", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader {...defaultProps} isOrganizer={false} />,
       );
-      const button = screen.queryByRole("button", {
-        name: /add accommodation/i,
-      });
-      expect(button).toBeNull();
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.queryByRole("menuitem", { name: /accommodation/i });
+      expect(item).toBeNull();
     });
 
-    it("renders My Travel button when isMember is true", () => {
+    it("shows My Travel menu item when isMember is true", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader {...defaultProps} isMember={true} />,
       );
-      const button = screen.getByRole("button", { name: /add my travel/i });
-      expect(button).toBeDefined();
-      expect(button.getAttribute("aria-label")).toBe("Add My Travel");
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.getByRole("menuitem", { name: /my travel/i });
+      expect(item).toBeDefined();
     });
 
-    it("does not render My Travel button when isMember is false", () => {
-      renderWithQueryClient(
-        <ItineraryHeader {...defaultProps} isMember={false} />,
-      );
-      const button = screen.queryByRole("button", {
-        name: /add my travel/i,
-      });
-      expect(button).toBeNull();
-    });
-
-    it("action button text spans have responsive hidden class", () => {
+    it("does not show My Travel menu item when isMember is false", async () => {
+      // When isMember is false and isOrganizer is true, FAB still shows
+      const user = userEvent.setup();
       renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
           isOrganizer={true}
-          isMember={true}
-          allowMembersToAddEvents={true}
+          isMember={false}
         />,
       );
-      // All three buttons should have hidden sm:inline text
-      const eventBtn = screen.getByRole("button", { name: /add event/i });
-      const eventSpan = eventBtn.querySelector("span.hidden");
-      expect(eventSpan).toBeDefined();
-      expect(eventSpan).not.toBeNull();
-      expect(eventSpan!.className).toContain("sm:inline");
 
-      const accommBtn = screen.getByRole("button", {
-        name: /add accommodation/i,
-      });
-      const accommSpan = accommBtn.querySelector("span.hidden");
-      expect(accommSpan).toBeDefined();
-      expect(accommSpan).not.toBeNull();
-      expect(accommSpan!.className).toContain("sm:inline");
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
 
-      const travelBtn = screen.getByRole("button", {
-        name: /add my travel/i,
-      });
-      const travelSpan = travelBtn.querySelector("span.hidden");
-      expect(travelSpan).toBeDefined();
-      expect(travelSpan).not.toBeNull();
-      expect(travelSpan!.className).toContain("sm:inline");
+      const item = screen.queryByRole("menuitem", { name: /my travel/i });
+      expect(item).toBeNull();
     });
 
-    it("action buttons are clickable", async () => {
-      renderWithQueryClient(
-        <ItineraryHeader
-          {...defaultProps}
-          isOrganizer={true}
-          isMember={true}
-          allowMembersToAddEvents={true}
-        />,
-      );
-      // Skip pointer-events check: Radix Tooltip sets pointer-events:none
-      // on the trigger in JSDOM which is a test environment artifact
+    it("menu items are clickable and open dialogs", async () => {
+      // Skip pointer-events check: Radix DropdownMenu sets pointer-events:none
+      // on the trigger when open, which is a test environment artifact
       const user = userEvent.setup({ pointerEventsCheck: 0 });
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={true}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
+      );
 
-      const eventBtn = screen.getByRole("button", { name: /add event/i });
-      const accommBtn = screen.getByRole("button", {
-        name: /add accommodation/i,
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.getByRole("menuitem", { name: /event/i });
+      await user.click(eventItem);
+
+      // Clicking a menu item should not throw
+      // Re-open to verify menu still works
+      await user.click(fab);
+      const accommItem = screen.getByRole("menuitem", {
+        name: /accommodation/i,
       });
-      const travelBtn = screen.getByRole("button", {
-        name: /add my travel/i,
+      await user.click(accommItem);
+
+      await user.click(fab);
+      const travelItem = screen.getByRole("menuitem", {
+        name: /my travel/i,
       });
-
-      // Verify buttons are not disabled
-      expect(eventBtn.hasAttribute("disabled")).toBe(false);
-      expect(accommBtn.hasAttribute("disabled")).toBe(false);
-      expect(travelBtn.hasAttribute("disabled")).toBe(false);
-
-      // Verify clicking doesn't throw
-      await user.click(eventBtn);
-      await user.click(accommBtn);
-      await user.click(travelBtn);
+      await user.click(travelItem);
     });
   });
 
