@@ -5,6 +5,7 @@ import {
   createUserViaAPI,
 } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
+import { snap } from "./helpers/screenshots";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -40,11 +41,13 @@ test.describe("Trip Journey", () => {
         await tripDetail.destinationInput.fill(tripDestination);
         await tripDetail.startDateInput.fill("2026-10-12");
         await tripDetail.endDateInput.fill("2026-10-14");
+        await snap(page, "05-create-trip-step1");
         await tripDetail.continueButton.click();
 
         await expect(tripDetail.step2Indicator).toBeVisible();
         await expect(page.getByText("Details & settings")).toBeVisible();
         await tripDetail.descriptionInput.fill(tripDescription);
+        await snap(page, "06-create-trip-step2");
         await tripDetail.createTripButton.click();
 
         await page.waitForURL("**/trips/**", { timeout: 15000 });
@@ -60,6 +63,7 @@ test.describe("Trip Journey", () => {
         await expect(page.getByText(tripDescription)).toBeVisible();
         await expect(page.getByText("Going")).toBeVisible();
         await expect(page.getByText("Organizing")).toBeVisible();
+        await snap(page, "07-trip-detail");
       });
 
       await test.step("trip appears in dashboard", async () => {
@@ -67,6 +71,7 @@ test.describe("Trip Journey", () => {
         await expect(page.getByText(tripName)).toBeVisible();
         await expect(page.getByText(tripDestination)).toBeVisible();
         await expect(dashboard.upcomingTripsHeading).toBeVisible();
+        await snap(page, "08-dashboard-with-trips");
 
         await page.getByText(tripName).click();
         await page.waitForURL("**/trips/**");

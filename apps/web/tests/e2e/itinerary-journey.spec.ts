@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
+import { snap } from "./helpers/screenshots";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -141,6 +142,8 @@ test.describe("Itinerary Journey", () => {
         await expect(page.getByText("123 Main St, San Diego")).toBeVisible();
       });
 
+      await snap(page, "09-itinerary-with-events");
+
       await test.step("add member travel", async () => {
         await page.getByRole("button", { name: "My Travel" }).click();
         await expect(
@@ -241,6 +244,8 @@ test.describe("Itinerary Journey", () => {
       await expect(page.getByText(/Show/)).toBeVisible();
     });
 
+    await snap(page, "10-itinerary-day-by-day");
+
     await test.step("toggle day-by-day to group-by-type", async () => {
       const dayByDayButton = page.getByRole("button", { name: "Day by Day" }).first();
       await expect(dayByDayButton).toBeVisible();
@@ -255,6 +260,7 @@ test.describe("Itinerary Journey", () => {
       ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(page.getByText(/Show/)).toBeVisible();
+      await snap(page, "11-itinerary-group-by-type");
     });
 
     await test.step("toggle back to day-by-day", async () => {

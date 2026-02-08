@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authenticateUser, authenticateUserViaBrowser } from "./helpers/auth";
 import { LoginPage, DashboardPage } from "./helpers/pages";
+import { snap } from "./helpers/screenshots";
 
 /**
  * E2E Journey: Authentication
@@ -22,6 +23,7 @@ test.describe("Auth Journey", () => {
     await test.step("login page renders correctly", async () => {
       await loginPage.goto();
       await expect(loginPage.heading).toBeVisible();
+      await snap(page, "01-login");
     });
 
     await test.step("enter phone and submit", async () => {
@@ -34,6 +36,7 @@ test.describe("Auth Journey", () => {
       expect(page.url()).toContain("/verify?phone=");
       await expect(loginPage.verifyHeading).toBeVisible();
       await expect(page.getByText(phone)).toBeVisible();
+      await snap(page, "02-verify-code");
     });
 
     await test.step("enter verification code", async () => {
@@ -44,12 +47,14 @@ test.describe("Auth Journey", () => {
     await test.step("complete profile for new user", async () => {
       await page.waitForURL("**/complete-profile");
       await expect(loginPage.completeProfileHeading).toBeVisible();
+      await snap(page, "03-complete-profile");
       await loginPage.completeProfile("Test User");
     });
 
     await test.step("lands on dashboard", async () => {
       await page.waitForURL("**/dashboard");
       await expect(dashboard.heading).toBeVisible();
+      await snap(page, "04-dashboard-empty");
     });
 
     await test.step("auth cookie is set correctly", async () => {
