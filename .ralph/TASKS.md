@@ -57,7 +57,7 @@
 
 ## Phase 5: Phone Number Input & Formatting
 
-- [ ] Task 5.1: Install phone number library and create PhoneInput component
+- [x] Task 5.1: Install phone number library and create PhoneInput component
   - Implement: Install `react-phone-number-input` in `apps/web` (`pnpm --filter web add react-phone-number-input`)
   - Implement: Create `apps/web/src/components/ui/phone-input.tsx` — shadcn-styled phone input wrapping `react-phone-number-input` with country selector, matching Input styling (border, focus ring, responsive height)
   - Implement: Add `formatPhoneNumber()` utility to `apps/web/src/lib/format.ts` using `parsePhoneNumber` from `libphonenumber-js` (bundled with react-phone-number-input). Returns `formatInternational()` with graceful fallback.

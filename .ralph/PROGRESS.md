@@ -264,3 +264,58 @@ All 6 checkbox usage sites (in create/edit event dialogs and create/edit trip di
 - Icon choices follow existing conventions: `Plane` is already used for travel in `member-travel-card.tsx` and `group-by-type-view.tsx`. `Building2` is new to the codebase (architecture spec chose it over `Home` which is used in accommodation cards).
 - Test count increased from 1,368 (iteration 5) to 1,376 (8 new tests added).
 
+## Iteration 7 — Task 5.1: Install phone number library and create PhoneInput component
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+1. **`apps/web/package.json`** — Added `react-phone-number-input` dependency:
+   - Installed via `pnpm --filter @tripful/web add react-phone-number-input` (version ^3.4.14)
+   - `libphonenumber-js` is bundled with it — no separate install needed
+
+2. **`apps/web/src/components/ui/phone-input.tsx`** — Created new PhoneInput component (105 lines):
+   - `"use client"` directive (uses browser APIs/state)
+   - Wraps `react-phone-number-input` with three custom sub-components:
+     - `PhoneInput` — main wrapper with `data-slot="phone-input"`, accepts `value`, `onChange`, `onBlur`, `name`, `defaultCountry` (default "US"), `disabled`, `placeholder`, `className`, `aria-invalid`, `id`
+     - `CountrySelect` — custom country selector with native `<select>` (opacity-0) over a flag icon + `ChevronDown` icon from lucide-react, with `aria-label="Country"` for accessibility
+     - `InputField` — custom input matching existing Input component styling exactly (same border, focus ring, responsive height, disabled/aria-invalid states)
+   - Does NOT import `react-phone-number-input/style.css` — everything styled with Tailwind
+   - Uses `react-phone-number-input/flags` for SVG country flag icons
+   - Exports `PhoneInput` component and `PhoneInputProps` type
+   - React Hook Form compatible via `value`/`onChange`/`onBlur`/`name` prop forwarding
+
+3. **`apps/web/src/lib/format.ts`** — Added `formatPhoneNumber()` utility:
+   - Uses `parsePhoneNumber` from `react-phone-number-input` (re-exports from `libphonenumber-js`)
+   - Returns `formatInternational()` for display (e.g., `"+1 415 555 2671"`)
+   - Graceful fallback: returns raw string if parsing fails, empty string for empty input
+   - JSDoc comments following existing pattern (`@param`, `@returns`)
+
+4. **`apps/web/src/lib/format.test.ts`** — Added 5 new tests in `describe("formatPhoneNumber")` block:
+   - Formats US number in international format: `"+14155552671"` → `"+1 415 555 2671"`
+   - Formats UK number in international format: `"+442071234567"` → `"+44 20 7123 4567"`
+   - Returns empty string for empty input
+   - Returns raw string for invalid input (`"invalid"` → `"invalid"`)
+   - Returns raw string for partial number (`"+1"` → `"+1"`)
+
+### Verification Results
+
+- **typecheck**: ✅ PASS — zero errors across all 3 packages
+- **lint**: ✅ PASS — zero ESLint errors
+- **tests**: ✅ PASS — 1,381 tests across 70 test files (577 API + 635 web + 169 shared)
+- **reviewer**: ✅ APPROVED — architecture conformance strong, React 19 patterns correct, styling parity with Input, comprehensive test coverage
+
+### Reviewer Notes (Low Severity Suggestions)
+
+- No component-level test file for PhoneInput (unlike Input, Button, Dialog which each have `__tests__/` tests). Non-blocking since the utility function has good coverage and the component is straightforward.
+- `aria-invalid` passthrough to the inner `<input>` depends on `react-phone-number-input` forwarding it to the custom `inputComponent`. Pattern is reasonable; can be verified during integration (Task 5.2).
+
+### Learnings
+
+- `react-phone-number-input` re-exports `parsePhoneNumber` from `libphonenumber-js`, so importing from `react-phone-number-input` works even though `libphonenumber-js` isn't directly listed in `apps/web/package.json`. This avoids pnpm hoisting issues.
+- The library supports a `countrySelectComponent` and `inputComponent` prop for fully custom rendering — this is the key API for integrating with shadcn/ui styling without importing the library's default CSS.
+- Country flags come from `react-phone-number-input/flags` which provides SVG flag components for each country code.
+- The `Value` type from `react-phone-number-input` is the expected E.164 string type. The component casts `(value || "") as Value` to handle the undefined/empty case.
+- `exactOptionalPropertyTypes` in tsconfig requires careful handling of optional props — `disabled` defaults to `false` and `country` is guarded before passing to the flag Icon component.
+- Test count increased from 1,376 (iteration 6) to 1,381 (5 new tests added for `formatPhoneNumber`).
+
