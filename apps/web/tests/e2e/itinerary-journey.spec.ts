@@ -359,6 +359,7 @@ test.describe("Itinerary Journey", () => {
   });
 
   test("itinerary permissions and validation", async ({ page, request }) => {
+    test.slow(); // 4 auth cycles — triple the timeout for CI
     const dashboard = new DashboardPage(page);
 
     await test.step("organizer creates trip and verifies action buttons", async () => {
