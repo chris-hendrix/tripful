@@ -126,9 +126,9 @@ export class MemberTravelService implements IMemberTravelService {
       tripId,
     );
     if (!canAdd) {
-      // Check if trip exists for better error message
+      // Check if trip exists for better error message - select only id column
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -142,9 +142,9 @@ export class MemberTravelService implements IMemberTravelService {
       );
     }
 
-    // Resolve memberId from userId and tripId
+    // Resolve memberId from userId and tripId - select only id column
     const [member] = await this.db
-      .select()
+      .select({ id: members.id })
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
       .limit(1);
@@ -235,9 +235,9 @@ export class MemberTravelService implements IMemberTravelService {
       memberTravelId,
     );
     if (!canEdit) {
-      // Check if member travel exists to provide better error message
+      // Check if member travel exists to provide better error message - select only id column
       const travelExists = await this.db
-        .select()
+        .select({ id: memberTravel.id })
         .from(memberTravel)
         .where(eq(memberTravel.id, memberTravelId))
         .limit(1);
@@ -251,7 +251,7 @@ export class MemberTravelService implements IMemberTravelService {
       );
     }
 
-    // Build update data
+    // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
     const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: new Date(),
@@ -296,9 +296,9 @@ export class MemberTravelService implements IMemberTravelService {
       memberTravelId,
     );
     if (!canDelete) {
-      // Check if member travel exists for better error message
+      // Check if member travel exists for better error message - select only id column
       const travelExists = await this.db
-        .select()
+        .select({ id: memberTravel.id })
         .from(memberTravel)
         .where(eq(memberTravel.id, memberTravelId))
         .limit(1);

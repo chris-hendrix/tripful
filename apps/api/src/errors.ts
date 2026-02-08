@@ -36,24 +36,24 @@ export const CannotRemoveCreatorError = createError(
 );
 export const DuplicateMemberError = createError("DUPLICATE_MEMBER", "%s", 409);
 export const CoOrganizerNotInTripError = createError(
-  "NOT_FOUND",
+  "CO_ORGANIZER_NOT_IN_TRIP",
   "Co-organizer not found in trip",
   404,
 );
 
 // Itinerary errors
 export const EventNotFoundError = createError(
-  "NOT_FOUND",
+  "EVENT_NOT_FOUND",
   "Event not found",
   404,
 );
 export const AccommodationNotFoundError = createError(
-  "NOT_FOUND",
+  "ACCOMMODATION_NOT_FOUND",
   "Accommodation not found",
   404,
 );
 export const MemberTravelNotFoundError = createError(
-  "NOT_FOUND",
+  "MEMBER_TRAVEL_NOT_FOUND",
   "Member travel not found",
   404,
 );

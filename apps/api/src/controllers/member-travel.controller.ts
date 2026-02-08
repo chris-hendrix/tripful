@@ -60,7 +60,7 @@ export const memberTravelController = {
 
       // Log error for debugging
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to create member travel",
       );
 
@@ -123,7 +123,7 @@ export const memberTravelController = {
       }
 
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to list member travel",
       );
 

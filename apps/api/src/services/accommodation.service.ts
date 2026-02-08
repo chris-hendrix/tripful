@@ -129,9 +129,9 @@ export class AccommodationService implements IAccommodationService {
       tripId,
     );
     if (!canAdd) {
-      // Check if trip exists for better error message
+      // Check if trip exists for better error message - select only id column
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -239,9 +239,9 @@ export class AccommodationService implements IAccommodationService {
       accommodationId,
     );
     if (!canEdit) {
-      // Check if accommodation exists to provide better error message
+      // Check if accommodation exists to provide better error message - select only id column
       const accommodationExists = await this.db
-        .select()
+        .select({ id: accommodations.id })
         .from(accommodations)
         .where(eq(accommodations.id, accommodationId))
         .limit(1);
@@ -280,7 +280,7 @@ export class AccommodationService implements IAccommodationService {
       );
     }
 
-    // Build update data
+    // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
     const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: new Date(),
@@ -320,9 +320,9 @@ export class AccommodationService implements IAccommodationService {
       accommodationId,
     );
     if (!canDelete) {
-      // Check if accommodation exists for better error message
+      // Check if accommodation exists for better error message - select only id column
       const accommodationExists = await this.db
-        .select()
+        .select({ id: accommodations.id })
         .from(accommodations)
         .where(eq(accommodations.id, accommodationId))
         .limit(1);

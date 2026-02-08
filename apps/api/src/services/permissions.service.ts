@@ -217,7 +217,7 @@ export class PermissionsService implements IPermissionsService {
    */
   async isMember(userId: string, tripId: string): Promise<boolean> {
     const result = await this.db
-      .select()
+      .select({ id: members.id })
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
       .limit(1);

@@ -60,7 +60,7 @@ export const accommodationController = {
 
       // Log error for debugging
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to create accommodation",
       );
 
@@ -123,7 +123,7 @@ export const accommodationController = {
       }
 
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to list accommodations",
       );
 

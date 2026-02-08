@@ -27,7 +27,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
-import { ItineraryView } from "@/components/itinerary";
+import { ItineraryView } from "@/components/itinerary/itinerary-view";
 
 const EditTripDialog = dynamic(
   () =>

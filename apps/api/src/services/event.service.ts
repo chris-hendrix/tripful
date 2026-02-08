@@ -116,9 +116,9 @@ export class EventService implements IEventService {
     // Check if user can add events to this trip
     const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
     if (!canAdd) {
-      // Check if trip exists for better error message
+      // Check if trip exists for better error message - select only id column
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -221,9 +221,9 @@ export class EventService implements IEventService {
     // Check permissions
     const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
     if (!canEdit) {
-      // Check if event exists to provide better error message
+      // Check if event exists to provide better error message - select only id column
       const eventExists = await this.db
-        .select()
+        .select({ id: events.id })
         .from(events)
         .where(eq(events.id, eventId))
         .limit(1);
@@ -260,7 +260,7 @@ export class EventService implements IEventService {
       throw new InvalidDateRangeError("End time must be after start time");
     }
 
-    // Build update data
+    // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
     const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: new Date(),
@@ -304,9 +304,9 @@ export class EventService implements IEventService {
       eventId,
     );
     if (!canDelete) {
-      // Check if event exists for better error message
+      // Check if event exists for better error message - select only id column
       const eventExists = await this.db
-        .select()
+        .select({ id: events.id })
         .from(events)
         .where(eq(events.id, eventId))
         .limit(1);

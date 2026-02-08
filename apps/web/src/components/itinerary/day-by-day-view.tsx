@@ -145,27 +145,15 @@ export function DayByDayView({
   ]);
 
   // Check permissions
-  const canEditEvent = (event: Event) => {
+  const canModifyEvent = (event: Event) => {
     return isOrganizer || event.createdBy === userId;
   };
 
-  const canDeleteEvent = (event: Event) => {
-    return isOrganizer || event.createdBy === userId;
-  };
-
-  const canEditAccommodation = (accommodation: Accommodation) => {
+  const canModifyAccommodation = (accommodation: Accommodation) => {
     return isOrganizer || accommodation.createdBy === userId;
   };
 
-  const canDeleteAccommodation = (accommodation: Accommodation) => {
-    return isOrganizer || accommodation.createdBy === userId;
-  };
-
-  const canEditMemberTravel = (travel: MemberTravel) => {
-    return isOrganizer || travel.memberId === userId;
-  };
-
-  const canDeleteMemberTravel = (travel: MemberTravel) => {
+  const canModifyMemberTravel = (travel: MemberTravel) => {
     return isOrganizer || travel.memberId === userId;
   };
 
@@ -203,8 +191,8 @@ export function DayByDayView({
                   <AccommodationCard
                     accommodation={day.accommodation}
                     timezone={timezone}
-                    canEdit={canEditAccommodation(day.accommodation)}
-                    canDelete={canDeleteAccommodation(day.accommodation)}
+                    canEdit={canModifyAccommodation(day.accommodation)}
+                    canDelete={canModifyAccommodation(day.accommodation)}
                     onEdit={() => setEditingAccommodation(day.accommodation)}
                     // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingAccommodation(day.accommodation)}
@@ -220,8 +208,8 @@ export function DayByDayView({
                     // Currently showing partial UUID until member management is implemented
                     memberName={`Member ${travel.memberId.slice(0, 8)}`}
                     timezone={timezone}
-                    canEdit={canEditMemberTravel(travel)}
-                    canDelete={canDeleteMemberTravel(travel)}
+                    canEdit={canModifyMemberTravel(travel)}
+                    canDelete={canModifyMemberTravel(travel)}
                     onEdit={() => setEditingMemberTravel(travel)}
                     // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingMemberTravel(travel)}
@@ -234,8 +222,8 @@ export function DayByDayView({
                     key={event.id}
                     event={event}
                     timezone={timezone}
-                    canEdit={canEditEvent(event)}
-                    canDelete={canDeleteEvent(event)}
+                    canEdit={canModifyEvent(event)}
+                    canDelete={canModifyEvent(event)}
                     onEdit={() => setEditingEvent(event)}
                     // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingEvent(event)}
@@ -251,8 +239,8 @@ export function DayByDayView({
                     // Currently showing partial UUID until member management is implemented
                     memberName={`Member ${travel.memberId.slice(0, 8)}`}
                     timezone={timezone}
-                    canEdit={canEditMemberTravel(travel)}
-                    canDelete={canDeleteMemberTravel(travel)}
+                    canEdit={canModifyMemberTravel(travel)}
+                    canDelete={canModifyMemberTravel(travel)}
                     onEdit={() => setEditingMemberTravel(travel)}
                     // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingMemberTravel(travel)}

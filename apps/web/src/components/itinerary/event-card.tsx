@@ -72,11 +72,11 @@ export function EventCard({
       tabIndex={0}
       aria-expanded={isExpanded}
       className={`rounded-xl border ${config.borderColor} ${config.bgColor} p-4 transition-all hover:shadow-md cursor-pointer`}
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setIsExpanded(!isExpanded);
+          setIsExpanded((prev) => !prev);
         }
       }}
     >

@@ -12,10 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ItineraryHeader } from "./itinerary-header";
 import { DayByDayView } from "./day-by-day-view";
 import { GroupByTypeView } from "./group-by-type-view";
-import {
-  CreateEventDialog,
-  CreateAccommodationDialog,
-} from "@/components/itinerary";
+import { CreateEventDialog } from "./create-event-dialog";
+import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 
 interface ItineraryViewProps {
   tripId: string;

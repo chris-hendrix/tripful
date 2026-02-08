@@ -56,7 +56,7 @@ export const eventController = {
 
       // Log error for debugging
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to create event",
       );
 
@@ -124,7 +124,7 @@ export const eventController = {
       }
 
       request.log.error(
-        { error, userId: request.user.sub, tripId: request.params.tripId },
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
         "Failed to list events",
       );
 

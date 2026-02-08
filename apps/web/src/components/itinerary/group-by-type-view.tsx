@@ -25,37 +25,36 @@ export function GroupByTypeView({
 }: GroupByTypeViewProps) {
   // Group events by type
   const groupedEvents = useMemo(() => {
+    const travel: Event[] = [];
+    const meal: Event[] = [];
+    const activity: Event[] = [];
+
+    for (const event of events) {
+      if (event.eventType === "travel") travel.push(event);
+      else if (event.eventType === "meal") meal.push(event);
+      else if (event.eventType === "activity") activity.push(event);
+    }
+
+    const sortByStartTime = (a: Event, b: Event) =>
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+
     return {
       accommodations: [...accommodations].sort(
         (a, b) =>
           new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
       ),
-      travel: events
-        .filter((e) => e.eventType === "travel")
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
-      meal: events
-        .filter((e) => e.eventType === "meal")
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
-      activity: events
-        .filter((e) => e.eventType === "activity")
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+      travel: travel.sort(sortByStartTime),
+      meal: meal.sort(sortByStartTime),
+      activity: activity.sort(sortByStartTime),
     };
   }, [events, accommodations]);
 
   // Check permissions
-  const canEditEvent = (event: Event) => {
+  const canModifyEvent = (event: Event) => {
     return isOrganizer || event.createdBy === userId;
   };
 
-  const canDeleteEvent = (event: Event) => {
-    return isOrganizer || event.createdBy === userId;
-  };
-
-  const canEditAccommodation = (accommodation: Accommodation) => {
-    return isOrganizer || accommodation.createdBy === userId;
-  };
-
-  const canDeleteAccommodation = (accommodation: Accommodation) => {
+  const canModifyAccommodation = (accommodation: Accommodation) => {
     return isOrganizer || accommodation.createdBy === userId;
   };
 
@@ -64,7 +63,7 @@ export function GroupByTypeView({
   const [editingAccommodation, setEditingAccommodation] =
     useState<Accommodation | null>(null);
 
-  const sections = [
+  const sections = useMemo(() => [
     {
       title: "Accommodations",
       icon: Home,
@@ -93,7 +92,7 @@ export function GroupByTypeView({
       items: groupedEvents.activity,
       type: "event" as const,
     },
-  ];
+  ], [groupedEvents]);
 
   return (
     <div className="space-y-8">
@@ -127,8 +126,8 @@ export function GroupByTypeView({
                         key={item.id}
                         accommodation={item as Accommodation}
                         timezone={timezone}
-                        canEdit={canEditAccommodation(item as Accommodation)}
-                        canDelete={canDeleteAccommodation(
+                        canEdit={canModifyAccommodation(item as Accommodation)}
+                        canDelete={canModifyAccommodation(
                           item as Accommodation,
                         )}
                         onEdit={() =>
@@ -145,8 +144,8 @@ export function GroupByTypeView({
                         key={item.id}
                         event={item as Event}
                         timezone={timezone}
-                        canEdit={canEditEvent(item as Event)}
-                        canDelete={canDeleteEvent(item as Event)}
+                        canEdit={canModifyEvent(item as Event)}
+                        canDelete={canModifyEvent(item as Event)}
                         onEdit={() => setEditingEvent(item as Event)}
                         // Delete is triggered through the edit dialog which contains the delete flow
                         onDelete={() => setEditingEvent(item as Event)}

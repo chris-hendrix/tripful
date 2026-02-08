@@ -146,7 +146,7 @@ export function EditMemberTravelDialog({
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <div className="flex gap-4" role="radiogroup" aria-labelledby="travel-type-label">
+                    <div className="flex gap-4" role="radiogroup" aria-label="Travel type">
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="radio"
@@ -155,7 +155,6 @@ export function EditMemberTravelDialog({
                           onChange={() => field.onChange("arrival")}
                           disabled={isPending || isDeleting}
                           className="w-4 h-4"
-                          aria-label="Arrival"
                         />
                         <span className="text-sm font-medium">Arrival</span>
                       </label>
@@ -167,7 +166,6 @@ export function EditMemberTravelDialog({
                           onChange={() => field.onChange("departure")}
                           disabled={isPending || isDeleting}
                           className="w-4 h-4"
-                          aria-label="Departure"
                         />
                         <span className="text-sm font-medium">Departure</span>
                       </label>

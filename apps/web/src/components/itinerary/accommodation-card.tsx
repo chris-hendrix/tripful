@@ -34,11 +34,11 @@ export function AccommodationCard({
       tabIndex={0}
       aria-expanded={isExpanded}
       className="rounded-xl border border-[var(--color-accommodation-border)] bg-[var(--color-accommodation-light)] p-4 transition-all hover:shadow-md cursor-pointer"
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setIsExpanded(!isExpanded);
+          setIsExpanded((prev) => !prev);
         }
       }}
     >

@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { Calendar, List, Globe, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  CreateEventDialog,
-  CreateAccommodationDialog,
-  CreateMemberTravelDialog,
-} from "@/components/itinerary";
+import { CreateEventDialog } from "./create-event-dialog";
+import { CreateAccommodationDialog } from "./create-accommodation-dialog";
+import { CreateMemberTravelDialog } from "./create-member-travel-dialog";
+
+function getTimezoneLabel(tz: string): string {
+  const parts = tz.split("/");
+  const lastPart = parts[parts.length - 1];
+  return lastPart ? lastPart.replace(/_/g, " ") : tz;
+}
 
 interface ItineraryHeaderProps {
   viewMode: "day-by-day" | "group-by-type";
@@ -39,13 +43,6 @@ export function ItineraryHeader({
     useState(false);
   const [isCreateMemberTravelOpen, setIsCreateMemberTravelOpen] =
     useState(false);
-
-  // Extract timezone name for display (e.g., "America/New_York" -> "New York")
-  const getTimezoneLabel = (tz: string) => {
-    const parts = tz.split("/");
-    const lastPart = parts[parts.length - 1];
-    return lastPart ? lastPart.replace(/_/g, " ") : tz;
-  };
 
   const tripLabel = getTimezoneLabel(tripTimezone);
   const userLabel = getTimezoneLabel(userTimezone);
