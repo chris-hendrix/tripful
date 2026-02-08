@@ -24,6 +24,10 @@ export default defineConfig({
     // Base URL for navigation
     baseURL: "http://localhost:3000",
 
+    // Use a consistent non-UTC timezone so trip timezone differs from user
+    // timezone (set to UTC by auth helper), ensuring timezone selector tests work
+    timezoneId: "America/Chicago",
+
     // Collect trace on failure
     trace: "retain-on-failure",
 
