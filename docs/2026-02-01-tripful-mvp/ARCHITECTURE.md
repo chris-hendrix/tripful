@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Phase 5-8 Pending
+status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 5-8 Pending
 last_updated: 2026-02-08
 ---
 
@@ -14,6 +14,7 @@ last_updated: 2026-02-08
 > - ✅ **Phase 3 Complete**: Trip management with CRUD, permissions, co-organizers, and image uploads
 > - ✅ **Frontend Design Overhaul Complete**: Mediterranean design system, app shell, accessibility, toast notifications
 > - ✅ **Phase 4 Complete**: Itinerary view modes with events, accommodations, member travel, and comprehensive testing
+> - ✅ **Mobile UX Fixes Complete**: Touch targets, phone input, compact itinerary header, display names, event counts, FAB
 > - 🚧 **Phase 5-8**: Pending (Invitations, advanced features)
 >
 > **Important**: This document describes both implemented features (Phases 1-4) and planned features (Phases 5-8). Features, tables, routes, and components marked as 🚧 or described in Phase 5-8 sections do not yet exist in the codebase.
@@ -261,6 +262,78 @@ Complete itinerary system enabling collaborative trip planning through events, a
 - `PUT /api/member-travel/:id` - Update member travel
 - `DELETE /api/member-travel/:id` - Soft delete member travel
 - `POST /api/member-travel/:id/restore` - Restore deleted member travel
+
+### ✅ Mobile UX Fixes (Complete)
+
+**Branch**: `ralph/20260208-1118-mobile-ux-fixes`
+
+Comprehensive mobile UX improvements addressing accessibility, data accuracy, user experience, and new input components.
+
+**Accessibility & Touch Targets:**
+
+- [x] All button sizes increased to 44px minimum on mobile (responsive: larger mobile, standard desktop)
+- [x] Input fields increased to 44px minimum height on mobile
+- [x] Icon buttons meet 44px minimum touch target on mobile
+- [x] Toast notifications repositioned to bottom-right with proper z-index (z-60)
+- [x] Dialog backdrop stacking fixed
+
+**Data Accuracy Fixes:**
+
+- [x] Event count on trip cards now computed dynamically from database (was hardcoded to 0)
+- [x] Event count excludes soft-deleted events via `isNull(events.deletedAt)` filter
+- [x] Trip detail page calculates active event count from fetched events
+- [x] Backend batch event counting query added to `TripService.getUserTrips()`
+
+**Phone Input Component:**
+
+- [x] New `PhoneInput` component (`apps/web/src/components/ui/phone-input.tsx`)
+- [x] International phone number support with country flag dropdown
+- [x] Custom-styled country selector matching design system
+- [x] Uses `react-phone-number-input` library (v3.4.14)
+- [x] Integrated into login page (replaces plain text input)
+- [x] Verify page displays formatted phone number via `formatPhoneNumber()` utility
+
+**Itinerary Header Redesign:**
+
+- [x] Compact single-row layout replacing multi-row flex columns
+- [x] View mode toggle changed to icon-only buttons (Calendar, List) with tooltips
+- [x] Timezone selector changed from toggle buttons to dropdown (Select component)
+- [x] Timezone dropdown: trip timezone pinned at top, user timezone shown if different, all IANA timezones grouped
+- [x] Inline action buttons replaced with floating action button (FAB)
+- [x] FAB: fixed bottom-right, gradient background, 56×56px, dropdown menu with Event/Accommodation/Travel actions
+- [x] FAB plus icon rotates 45° when menu is open
+
+**Display Name Improvements:**
+
+- [x] Member travel API now joins `users` table to return `memberName` field
+- [x] `MemberTravel` type extended with optional `memberName` property
+- [x] Event cards show creator display name instead of UUID
+- [x] Accommodation cards show creator display name instead of UUID
+- [x] Day-by-day view shows member names for arrivals/departures
+- [x] Group-by-type view shows member names consistently
+- [x] User name lookup map created from trip organizer data
+
+**Visual Polish:**
+
+- [x] Trip card cover image placeholder: gradient with centered `ImagePlus` icon
+- [x] Trip card badges (Going, Maybe, Not Going, Organizing) visible on both real and placeholder images
+- [x] Create trip dialog: added bottom padding for mobile scroll clearance
+
+**New Utilities:**
+
+- [x] `formatPhoneNumber()` in `apps/web/src/lib/format.ts` - E.164 to international display format
+
+**Testing:**
+
+- [x] New unit tests: Button, Input, Dialog, Sonner components
+- [x] Updated tests: Login, Verify, ItineraryHeader, ItineraryView, TripCard, CreateTripDialog
+- [x] Updated backend tests: trip.routes, trip.service integration tests
+- [x] Updated E2E tests: auth-journey, itinerary-journey, app-shell, trip-journey
+- [x] Visual regression screenshots for all pages at mobile and desktop breakpoints
+
+**New Dependency:**
+
+- `react-phone-number-input` v3.4.14 (apps/web)
 
 ### 🚧 Phase 5-8: Remaining Features (Planned)
 

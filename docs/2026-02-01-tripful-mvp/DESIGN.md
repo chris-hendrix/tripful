@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - UI/UX Design Documentation
-last_updated: 2026-02-07
+last_updated: 2026-02-08
 ---
 
 # Tripful - Design System & Page Overview
@@ -135,13 +135,14 @@ last_updated: 2026-02-07
 **Step 1 - Phone Entry** (`/login`):
 
 - Heading: `<h1>` "Get started" (proper heading hierarchy)
-- Phone input: `autocomplete="tel"`, design token colors
+- Phone input: `<PhoneInput>` component with international country selector (flag dropdown, default US +1)
 - Button: `variant="gradient"` (primary → accent gradient)
 - Helper: SMS disclaimer in `text-muted-foreground`
 
 **Step 2 - Verification** (`/verify`):
 
 - Heading: `<h1>` "Verify your number"
+- Displays formatted phone number via `formatPhoneNumber()` (e.g., "+1 555 123 4567")
 - Code input: Centered, 2xl, monospace, tracking-widest
 - Primary: `variant="gradient"` "Verify & Continue"
 - Secondary: outline "Change number"
@@ -218,7 +219,8 @@ last_updated: 2026-02-07
 **Trip Cards** (responsive grid: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`):
 
 - Cover image: 192px height with gradient overlay
-- Badges: Overlay top-left with dark frosted glass (`bg-black/50 backdrop-blur-md`)
+- No cover image: Gradient placeholder (`from-primary/20 via-accent/15 to-secondary/20`) with centered `ImagePlus` icon (`w-8 h-8 text-white/30`)
+- Badges: Overlay top-left with dark frosted glass (`bg-black/50 backdrop-blur-md`), visible on both real and placeholder images
   - Organizing: white text
   - Going: `text-emerald-300`
   - Maybe: `text-amber-300`
@@ -418,14 +420,16 @@ last_updated: 2026-02-07
 - Logo + Trip name (2xl Playfair)
 - Settings button (dots menu)
 
-**Controls** (responsive):
+**Controls** (compact single row):
 
-- **Desktop**: Horizontal row
-  - Toggles left: [Day by day | By type] [Trip time | My time]
-  - Timezone text right: "Showing times in..."
-- **Mobile**: Stacked
-  - Toggles on first row
-  - Timezone text below
+- Left: Clock icon + Timezone dropdown selector
+  - Trip timezone pinned at top of dropdown
+  - User's current timezone shown if different from trip timezone
+  - All IANA timezones available in grouped section
+- Right: View mode icon-only toggle buttons with tooltips
+  - Calendar icon = "Day by Day" view
+  - List icon = "Group by Type" view
+  - Active state: `bg-primary text-primary-foreground`
 
 **Trip Meta**:
 
@@ -515,13 +519,19 @@ last_updated: 2026-02-07
 
 **Note**: Accommodation (🏨 Purple) is a separate entity type with its own form, not an event type.
 
-**FAB**:
+**Floating Action Button (FAB)**:
 
-- Position: fixed bottom-8 right-8
-- Size: 64×64px
-- Gradient: blue-600 → cyan-600
-- Icon: Plus, rotates 90° on hover
-- Shadow: 2xl with blue-500/40
+- Position: fixed bottom-6 right-6
+- Size: 56×56px (w-14 h-14)
+- Background: Gradient (primary → accent)
+- Icon: Plus, rotates 45° when dropdown menu is open
+- Shadow: `shadow-lg shadow-primary/25`
+- Dropdown menu (DropdownMenu component):
+  - "Add Event" (Plus icon) — opens create event dialog
+  - "Add Accommodation" (Building2 icon) — opens create accommodation dialog
+  - "Add My Travel" (Plane icon) — opens create member travel dialog
+- Permission-aware: shows only actions the user has permission for
+- Only visible when user is organizer or member with event permission
 
 **Location Change Design**:
 
@@ -853,7 +863,10 @@ last_updated: 2026-02-07
 
 ### Touch Targets:
 
-- Minimum 44×44px for all interactive elements
+- Minimum 44×44px for all interactive elements on mobile
+- **Responsive sizing**: Buttons and inputs use larger mobile sizes (h-11/44px) that reduce to standard desktop sizes (h-9/36px) at `sm:` breakpoint
+- Button size variants: `default` h-11→sm:h-9, `sm` h-11→sm:h-8, `lg` h-12→sm:h-10, `icon` size-11→sm:size-9
+- Input fields: h-11 on mobile, sm:h-9 on desktop
 - Icon-only buttons sized with adequate padding
 - Co-organizer remove buttons sized to meet minimum
 
@@ -933,6 +946,29 @@ toast.success("Trip created successfully");
 // Error
 toast.error("Failed to update trip");
 ```
+
+**Toaster Configuration** (`sonner.tsx`):
+- Position: `bottom-right`
+- Z-index: `z-[60]` (above dialogs at z-50)
+
+### Phone Input:
+
+```tsx
+import { PhoneInput } from "@/components/ui/phone-input";
+
+<PhoneInput
+  value={phone}
+  onChange={setPhone}
+  defaultCountry="US"
+  placeholder="Phone number"
+/>
+```
+
+- International country selector with flag dropdown
+- Styled to match design system (h-11 sm:h-9)
+- Uses `react-phone-number-input` library
+- Output: E.164 format (e.g., "+15551234567")
+- Display formatting: `formatPhoneNumber()` → "+1 555 123 4567"
 
 ---
 
@@ -1014,6 +1050,7 @@ rsvp: {
 
 - ✅ Create event page
 - ✅ Frontend design overhaul (Vivid Capri palette, app shell, accessibility)
+- ✅ Mobile UX fixes (44px touch targets, phone input, compact itinerary header, FAB, display names, event counts)
 
 ### MVP Phase 2:
 
@@ -1039,10 +1076,12 @@ rsvp: {
 
 - Design tokens: `apps/web/src/app/globals.css`
 - Fonts: `apps/web/src/lib/fonts.ts`
+- Format utilities: `apps/web/src/lib/format.ts`
 - App shell: `apps/web/src/components/app-header.tsx`
 - Skip link: `apps/web/src/components/skip-link.tsx`
 - UI components: `apps/web/src/components/ui/`
+- Phone input: `apps/web/src/components/ui/phone-input.tsx`
 - Trip components: `apps/web/src/components/trip/`
+- Itinerary components: `apps/web/src/components/itinerary/`
 - Pages: `apps/web/src/app/*/page.tsx`
-- Design overhaul architecture: `.ralph/ARCHITECTURE.md`
 - PRD: `docs/2026-02-01-tripful-mvp/PRD.md`
