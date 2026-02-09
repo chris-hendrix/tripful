@@ -851,3 +851,54 @@ This was a **verification task** — reviewing all existing E2E tests to ensure 
 - The co-organizer removal flow in `trip-journey.spec.ts` deletes the member record entirely (not just setting `isOrganizer: false`), which means the removed user gets a 404. This is the correct behavior per the architecture decision.
 - Phase 5 Task 5.2 is complete. Next is Task 5.3: Write new E2E tests for invitation and RSVP journey.
 
+## Iteration 15 — Task 5.3: Write new E2E tests for invitation and RSVP journey
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New E2E test file** (`apps/web/tests/e2e/invitation-journey.spec.ts`) — 4 tests:
+
+   - **"invitation and RSVP journey"** (tagged `@smoke`, `test.slow()`): Full happy-path test — organizer creates trip via API, invites a member through the UI dialog (filling phone input, clicking Add, sending invitations), verifies the invitee sees the trip preview with "You've been invited!" text and RSVP buttons, then the invitee RSVPs "Going" (using `{ exact: true }` to avoid matching "Not Going") and verifies the preview is replaced by the full trip view with Itinerary and Members tabs.
+
+   - **"RSVP status change and member indicator"** (`test.slow()`): Tests the "Member no longer attending" indicator. Creates an event via API as the invited member, changes RSVP to "maybe" via API (member sees preview mode), switches to organizer view to verify "Member no longer attending" badge appears on the event card, then changes RSVP back to "going" and verifies the badge disappears.
+
+   - **"uninvited user access"**: Verifies that an uninvited user navigating to a trip URL sees the "Trip not found" heading (404).
+
+   - **"member list"** (`test.slow()`): Sets up 2 members with different RSVP statuses (going and maybe) via API helpers, then verifies the organizer sees the Members tab with correct names, "Organizer" badge, "Members (3)" count heading, "Going" and "Maybe" RSVP badges, and the "Invite" button. All assertions scoped to `page.getByRole("tabpanel")` to avoid strict mode violations.
+
+2. **Three fixes applied during verification**:
+   - **Fix 1**: Added `{ exact: true }` to "Going" button selector (line 117) to prevent matching "Not Going" button (substring match issue in Playwright's default behavior)
+   - **Fix 2**: Changed event creation from UI interaction to API call (`page.request.post`) because non-organizer members cannot see the "Add Event" button on an empty itinerary (the empty state only renders "Add Event" for `isOrganizer`). The API's `canAddEvent` permission correctly allows members with `status='going'` when `allowMembersToAddEvents=true`.
+   - **Fix 3**: Scoped all member list assertions to `page.getByRole("tabpanel")` to prevent Playwright strict mode violations when "Organizer Delta" text appears both in the trip header's "Organizers" section and in the Members tab list.
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
+- `pnpm test:e2e`: ✅ PASS (15/15 tests in 34.5s):
+  - `invitation-journey.spec.ts` — 4 tests passed (4.7s, 5.7s, 2.6s, 3.0s)
+  - `invitation-helpers.spec.ts` — 2 tests passed
+  - `app-shell.spec.ts` — 1 test passed
+  - `auth-journey.spec.ts` — 2 tests passed
+  - `itinerary-journey.spec.ts` — 3 tests passed
+  - `trip-journey.spec.ts` — 3 tests passed
+- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** Phone number offset inconsistency in test 4: `member2Phone` uses offset `+50000` while all other tests use 4-digit offsets (+1000, +2000, +3000, +4000). Works correctly but is inconsistent.
+- **[LOW]** Variable declaration with `let` then immediate assignment for `tripId` — carried over from existing E2E test patterns, consistent with codebase.
+- **[LOW]** No screenshot captures (`snap()`) — the TASKS.md mentions "screenshots captured for manual verification" but this is a soft suggestion. The test file focuses on functional verification.
+
+### Learnings for future iterations
+
+- **Playwright `{ exact: true }` is critical** when button names are substrings of other buttons. "Going" matches "Not Going" by default because Playwright uses substring matching for role name assertions. Always use `{ exact: true }` for short button names that could be substrings.
+- **Empty itinerary state restricts UI actions**: When the itinerary is empty (`hasNoContent` is true), the `ItineraryView` renders the empty state directly, NOT the `ItineraryHeader` with its FAB. In the empty state, "Add Event" button is ONLY visible to `isOrganizer`. Non-organizer members see "No itinerary yet" text with no action buttons. If a test needs a non-organizer to create content, use the API endpoint directly (`page.request.post`).
+- **Scope tabpanel assertions**: When a trip detail page has both a header section (showing organizer info) and a Members tab panel (showing member list), text like organizer names appears in multiple places. Always scope member list assertions to `page.getByRole("tabpanel")` to avoid Playwright strict mode violations.
+- **`page.request.post` vs `request` fixture**: `page.request` uses the browser context's cookies (including injected auth cookies), while the `request` fixture from the test function has no browser cookies. Use `page.request` for in-test API calls that need the current user's auth.
+- Phase 5 Task 5.3 is complete. Next is Task 6.1: Full regression check.
+

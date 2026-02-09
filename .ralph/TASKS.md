@@ -147,7 +147,7 @@
   - Test: Run full E2E suite: `pnpm test:e2e`
   - Verify: All existing E2E tests pass without failures
 
-- [ ] Task 5.3: Write new E2E tests for invitation and RSVP journey
+- [x] Task 5.3: Write new E2E tests for invitation and RSVP journey
   - Implement: Create `apps/web/tests/e2e/invitation-journey.spec.ts`
   - Implement: Test 1 "invitation and RSVP journey": organizer invites via UI dialog, invited member sees preview, RSVPs Going, sees full itinerary
   - Implement: Test 2 "RSVP status change and member indicator": member RSVPs Going, creates event, changes to Maybe, event shows indicator, changes back to Going, indicator removed
