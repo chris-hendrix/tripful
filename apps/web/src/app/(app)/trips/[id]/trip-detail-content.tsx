@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
-import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,7 +56,6 @@ function SkeletonDetail() {
 }
 
 export function TripDetailContent({ tripId }: { tripId: string }) {
-  const { user } = useAuth();
   const { data: trip, isPending, isError } = useTripDetail(tripId);
   const { data: events } = useEvents(tripId);
 
@@ -66,12 +64,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
 
-  // Determine if user is an organizer
-  const isOrganizer =
-    user &&
-    trip &&
-    (trip.createdBy === user.id ||
-      trip.organizers.some((org) => org.id === user.id));
+  // Determine if user is an organizer (from API response metadata)
+  const isOrganizer = trip?.isOrganizer ?? false;
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 
@@ -176,9 +170,26 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2 mb-6">
-            <Badge className="bg-success/15 text-success border-success/30">
-              Going
-            </Badge>
+            {trip.userRsvpStatus === "going" && (
+              <Badge className="bg-success/15 text-success border-success/30">
+                Going
+              </Badge>
+            )}
+            {trip.userRsvpStatus === "maybe" && (
+              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">
+                Maybe
+              </Badge>
+            )}
+            {trip.userRsvpStatus === "not_going" && (
+              <Badge className="bg-destructive/15 text-destructive border-destructive/30">
+                Not Going
+              </Badge>
+            )}
+            {trip.userRsvpStatus === "no_response" && (
+              <Badge className="bg-muted text-muted-foreground border-border">
+                No Response
+              </Badge>
+            )}
             {isOrganizer && (
               <Badge className="bg-gradient-to-r from-primary to-accent text-white">
                 Organizing
@@ -252,8 +263,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
         </div>
 
-        {/* Itinerary section */}
-        <ItineraryView tripId={tripId} />
+        {/* Itinerary section (hidden in preview mode) */}
+        {!trip.isPreview && <ItineraryView tripId={tripId} />}
       </div>
 
       {/* Edit Trip Dialog */}

@@ -85,7 +85,7 @@
 
 ## Phase 4: Frontend - Invitation & RSVP UI
 
-- [ ] Task 4.1: Add frontend hooks and update types for invitations, RSVP, and members
+- [x] Task 4.1: Add frontend hooks and update types for invitations, RSVP, and members
   - Implement: Create `apps/web/src/hooks/invitation-queries.ts` with query key factory
   - Implement: Create `apps/web/src/hooks/use-invitations.ts` with `useInviteMembers`, `useInvitations`, `useRevokeInvitation`
   - Implement: Create `apps/web/src/hooks/member-queries.ts` with query key factory

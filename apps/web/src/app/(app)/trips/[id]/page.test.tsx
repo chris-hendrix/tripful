@@ -74,7 +74,12 @@ describe("TripDetailPage (RSC)", () => {
     expect(mockServerApiRequest).toHaveBeenCalledWith("/trips/trip-123");
     expect(mockSetQueryData).toHaveBeenCalledWith(
       ["trips", "trip-123"],
-      mockTripResponse.trip,
+      {
+        ...mockTripResponse.trip,
+        isPreview: false,
+        userRsvpStatus: "going",
+        isOrganizer: false,
+      },
     );
   });
 

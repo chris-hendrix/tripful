@@ -21,7 +21,12 @@ export default async function TripDetailPage({ params }: Props) {
 
   try {
     const response = await serverApiRequest<GetTripResponse>(`/trips/${id}`);
-    queryClient.setQueryData(tripKeys.detail(id), response.trip);
+    queryClient.setQueryData(tripKeys.detail(id), {
+      ...response.trip,
+      isPreview: response.isPreview ?? false,
+      userRsvpStatus: response.userRsvpStatus ?? "going",
+      isOrganizer: response.isOrganizer ?? false,
+    });
   } catch {
     // Prefetch failed — client component will fetch on mount
   }

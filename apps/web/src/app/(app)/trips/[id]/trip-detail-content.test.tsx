@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Suspense } from "react";
 import { TripDetailContent } from "./trip-detail-content";
-import type { TripDetail } from "@/hooks/use-trips";
+import type { TripDetailWithMeta } from "@/hooks/use-trips";
 import type { User } from "@tripful/shared";
 
 // Mock sonner
@@ -140,7 +140,7 @@ vi.mock("@/components/trip/edit-trip-dialog", () => ({
 }));
 
 describe("TripDetailContent", () => {
-  const mockTripDetail: TripDetail = {
+  const mockTripDetail: TripDetailWithMeta = {
     id: "trip-123",
     name: "Bachelor Party in Miami",
     destination: "Miami Beach, FL",
@@ -171,6 +171,9 @@ describe("TripDetailContent", () => {
       },
     ],
     memberCount: 8,
+    isPreview: false,
+    userRsvpStatus: "going",
+    isOrganizer: true,
   };
 
   beforeEach(() => {
@@ -582,7 +585,7 @@ describe("TripDetailContent", () => {
       const regularUser = { ...mockUser, id: "user-789" };
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
+        data: { ...mockTripDetail, isOrganizer: false },
         isPending: false,
         isError: false,
         error: null,
@@ -629,7 +632,7 @@ describe("TripDetailContent", () => {
       const regularUser = { ...mockUser, id: "user-789" };
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
+        data: { ...mockTripDetail, isOrganizer: false },
         isPending: false,
         isError: false,
         error: null,

@@ -389,3 +389,88 @@ Initial review found 6 issues:
 - Named types (`OrganizerInfo`, `TripPreview`, etc.) at the service level improve readability and help TypeScript catch mismatches between the interface declaration and implementation. They're better than inline `as` assertions.
 - Phase 3 (Backend API Endpoints) is now fully complete. All 3 tasks (3.1 InvitationService, 3.2 invitation routes, 3.3 preview + creatorAttending) are done. Next is Phase 4: Frontend — Invitation & RSVP UI (Task 4.1).
 
+## Iteration 8 — Task 4.1: Add frontend hooks and update types for invitations, RSVP, and members
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New query file** (`apps/web/src/hooks/invitation-queries.ts`):
+   - `invitationKeys` query key factory: `all`, `lists()`, `list(tripId)`, `create()`, `revoke()`
+   - `memberKeys` query key factory: `all`, `lists()`, `list(tripId)`
+   - `rsvpKeys` query key factory: `update()`
+   - `invitationsQueryOptions(tripId)` — fetches `GET /trips/:tripId/invitations`, returns `Invitation[]`
+   - `membersQueryOptions(tripId)` — fetches `GET /trips/:tripId/members`, returns `MemberWithProfile[]`
+   - Server-safe (no `"use client"` directive), follows exact `event-queries.ts` pattern
+
+2. **New hooks file** (`apps/web/src/hooks/use-invitations.ts`):
+   - `useInvitations(tripId)` — query wrapper for invitations list (organizer-only)
+   - `useMembers(tripId)` — query wrapper for members list
+   - `useInviteMembers(tripId)` — mutation for `POST /trips/:tripId/invitations`, invalidates invitation + member queries on settled
+   - `useRevokeInvitation(tripId)` — mutation for `DELETE /invitations/:id`, invalidates invitation + member queries on settled
+   - `useUpdateRsvp(tripId)` — mutation for `POST /trips/:tripId/rsvp`, invalidates trip detail + trips list + member queries on settled
+   - `getInviteMembersErrorMessage()` — handles PERMISSION_DENIED, MEMBER_LIMIT_EXCEEDED, VALIDATION_ERROR, UNAUTHORIZED, network errors
+   - `getRevokeInvitationErrorMessage()` — handles PERMISSION_DENIED, INVITATION_NOT_FOUND, UNAUTHORIZED, network errors
+   - `getUpdateRsvpErrorMessage()` — handles PERMISSION_DENIED, NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, network errors
+   - Re-exports all keys, options, and types from `invitation-queries.ts` for backward compatibility
+   - `"use client"` directive, follows exact `use-events.ts` pattern
+
+3. **Trip queries update** (`apps/web/src/hooks/trip-queries.ts`):
+   - Added `TripDetailWithMeta` interface extending `TripDetail` with `isPreview: boolean`, `userRsvpStatus`, `isOrganizer: boolean`
+   - Updated `tripDetailQueryOptions` to merge envelope fields from `GetTripResponse` into the returned object using `??` defaults: `isPreview: false`, `userRsvpStatus: "going"`, `isOrganizer: false`
+
+4. **Trip hooks update** (`apps/web/src/hooks/use-trips.ts`):
+   - Added import and re-export of `TripDetailWithMeta` type
+
+5. **Server prefetch update** (`apps/web/src/app/(app)/trips/[id]/page.tsx`):
+   - Updated `setQueryData` call to construct `TripDetailWithMeta` shape (including `isPreview`, `userRsvpStatus`, `isOrganizer`) to match the client-side `tripDetailQueryOptions` return type, ensuring hydration consistency
+
+6. **Trip detail content update** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
+   - Replaced manual `isOrganizer` computation (matching user.id against trip.createdBy and trip.organizers) with `trip.isOrganizer` from API response
+   - Replaced hardcoded "Going" badge with dynamic RSVP status badge:
+     - `going` → green "Going" badge (bg-success/15)
+     - `maybe` → amber "Maybe" badge (bg-amber-500/15)
+     - `not_going` → red "Not Going" badge (bg-destructive/15)
+     - `no_response` → gray "No Response" badge (bg-muted)
+   - Added conditional rendering: `{!trip.isPreview && <ItineraryView tripId={tripId} />}` to hide itinerary in preview mode
+   - Removed unused `useAuth` import (user variable was only needed for old manual isOrganizer computation)
+
+7. **New tests** (`apps/web/src/hooks/__tests__/use-invitations.test.tsx`) — 36 tests:
+   - `useInvitations`: successful fetch (2 tests), API error handling (1 test)
+   - `useMembers`: successful fetch (2 tests), API error handling (1 test)
+   - `useInviteMembers`: successful batch invite (1 test), cache invalidation (1 test), error handling (1 test)
+   - `useRevokeInvitation`: successful revocation (1 test), cache invalidation (1 test), error handling (1 test)
+   - `useUpdateRsvp`: successful update (1 test), cache invalidation (1 test), error handling (1 test)
+   - Error message helpers: 21 tests covering all code paths for all 3 helpers
+
+8. **Updated tests**:
+   - `apps/web/src/hooks/__tests__/use-trips.test.tsx`: Updated all `useTripDetail` assertions to expect `TripDetailWithMeta` shape (with `isPreview: false`, `userRsvpStatus: "going"`, `isOrganizer: false` defaults). Added 2 new tests for meta field defaults and explicit values from API response.
+   - `apps/web/src/app/(app)/trips/[id]/page.test.tsx`: Updated `setQueryData` assertion to include meta fields
+   - `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`: Updated mock data type from `TripDetail` to `TripDetailWithMeta`, added meta fields to mock, updated authorization tests
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- `pnpm test` (web): ✅ PASS (653 of 670 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
+- New `use-invitations.test.tsx`: ✅ PASS (36/36 tests)
+- Updated `use-trips.test.tsx`: ✅ PASS (36/36 tests)
+- Reviewer: ✅ APPROVED (2 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** Query key structure uses `["invitations", "list", tripId]` instead of architecture spec's `["trips", tripId, "invitations"]` — this follows the established codebase convention (same as `eventKeys`, `tripKeys`). The architecture spec should be updated, not the code.
+- **[LOW]** Default `userRsvpStatus: "going"` when API omits the field — reasonable for backward compatibility with pre-Phase 5 responses. The API now always returns this field, so this is purely defensive.
+
+### Learnings for future iterations
+
+- The two-file hook pattern (`*-queries.ts` + `use-*.ts`) is fundamental to the codebase. The queries file is server-safe (no `"use client"`) for SSR prefetching, while the hooks file is client-only.
+- `TripDetailWithMeta` extends `TripDetail` with envelope-level metadata (`isPreview`, `userRsvpStatus`, `isOrganizer`). The server-side `page.tsx` must construct the same shape when setting query data for hydration consistency.
+- When `tripDetailQueryOptions` changes its return type, ALL consumers need updating: the server prefetch (`page.tsx`), the component that reads the data (`trip-detail-content.tsx`), and the tests for both.
+- `useUpdateRsvp` must invalidate three query families: trip detail (isPreview/userRsvpStatus changes), trips list (rsvpStatus in TripSummary changes), and members list (member status changes). Missing any of these would cause stale UI.
+- Removing the manual `isOrganizer` computation from `trip-detail-content.tsx` also made the `useAuth` import unnecessary, since the `user` variable was only used for that computation.
+- The `useInviteMembers` mutation returns the full `CreateInvitationsResponse` (with `invitations` and `skipped` arrays) instead of unwrapping it, so the UI component (Task 4.3) can display both success and skipped information.
+- Phase 4 Task 4.1 is complete. Next is Task 4.2: Build TripPreview component and conditional rendering on trip detail page.
+
