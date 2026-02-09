@@ -750,3 +750,46 @@ Initial review found 6 issues:
 - The `data-slot="badge"` attribute emitted by the shadcn/ui Badge component is useful for test selectors — it allows finding badge elements without relying on text content or fragile class selectors.
 - Phase 4 (Frontend — Invitation & RSVP UI) is now fully complete. All 5 tasks (4.1 hooks, 4.2 TripPreview, 4.3 InviteMembersDialog, 4.4 MembersList, 4.5 event card indicator) are done. Next is Phase 5: E2E Tests & Regression (Task 5.1).
 
+## Iteration 13 — Task 5.1: Create E2E test helpers for invitation flow
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New helper file** (`apps/web/tests/e2e/helpers/invitations.ts`) — 4 exported functions:
+   - `createTripViaAPI(request, organizerCookie, tripData)` — creates a trip via `POST /api/trips`, returns trip ID. Accepts name, destination, optional timezone/dates/description. Defaults timezone to "UTC".
+   - `inviteViaAPI(request, tripId, inviterCookie, inviteePhones)` — sends batch invitations via `POST /api/trips/:tripId/invitations`. Returns response data with `invitations` and `skipped` arrays.
+   - `rsvpViaAPI(request, tripId, memberCookie, status)` — updates RSVP status via `POST /api/trips/:tripId/rsvp`. Accepts "going", "not_going", or "maybe". Returns response data with updated member.
+   - `inviteAndAcceptViaAPI(request, tripId, inviterPhone, inviteePhone, inviteeName)` — the main composite helper matching the prescribed ARCHITECTURE.md signature. Handles the full multi-user flow: re-authenticates inviter → sends invitation → authenticates invitee (verify-code triggers `processPendingInvitations`) → RSVPs as "going".
+   - All functions follow existing patterns: same `API_BASE` constant, `APIRequestContext` type, cookie-based auth headers, descriptive error messages on failure, JSDoc comments.
+
+2. **New verification test** (`apps/web/tests/e2e/invitation-helpers.spec.ts`) — 2 tests:
+   - **"inviteAndAcceptViaAPI creates member with going status"** — creates organizer via API, creates trip via `createTripViaAPI`, calls `inviteAndAcceptViaAPI`, verifies invitee appears in members list with status "going" and correct display name.
+   - **"lower-level helpers work independently"** — tests `inviteViaAPI` and `rsvpViaAPI` separately, verifies invitation creation returns correct counts and RSVP with "maybe" status persists correctly.
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
+- `pnpm test:e2e`: ✅ PASS (11/11 tests in 31.9s — 9 existing + 2 new invitation helper tests)
+- Reviewer: ✅ APPROVED (4 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** `API_BASE` constant is duplicated in both the helper file and spec file — matches existing codebase pattern where spec files inline API URLs (e.g., `trip-journey.spec.ts`).
+- **[LOW]** Phone number collision risk with `Date.now()` offset pattern in parallel tests — matches existing convention used in `trip-journey.spec.ts`.
+- **[LOW]** Return types use `unknown` for response data shapes (`invitations: unknown[]`, `member: unknown`) — pragmatic choice avoiding coupling test helpers to shared type definitions.
+- **[LOW]** `page` fixture unused in first test but `beforeEach` still runs `removeNextjsDevOverlay(page)` — harmless since Playwright provides the fixture regardless.
+
+### Learnings for future iterations
+
+- The `inviteAndAcceptViaAPI` helper relies on a critical ordering: (1) invite first (creates invitation record), (2) then authenticate invitee (verify-code triggers `processPendingInvitations` which creates the member record), (3) then RSVP. Swapping steps 1 and 2 would fail because there would be no pending invitation to process.
+- `createUserViaAPI` works for both new and existing users — the auth flow (`request-code` → `verify-code` → `complete-profile`) issues a new token regardless, making it safe to "re-authenticate" the inviter to get a fresh cookie.
+- The `createTripViaAPI` helper is a bonus addition not in the original prescribed signature but essential for the verification tests and will be reused in Tasks 5.2 and 5.3.
+- The decomposition into low-level helpers (`inviteViaAPI`, `rsvpViaAPI`) plus the composite `inviteAndAcceptViaAPI` allows future tests to use either the full flow or individual steps depending on what they need to test.
+- E2E tests run in ~32 seconds total (11 tests). The new invitation helper tests add minimal overhead since they only use API calls (no browser interaction).
+- Phase 5 Task 5.1 is complete. Next is Task 5.2: Update existing E2E tests for isOrganizer permission model.
+

@@ -132,7 +132,7 @@
 
 ## Phase 5: E2E Tests & Regression
 
-- [ ] Task 5.1: Create E2E test helpers for invitation flow
+- [x] Task 5.1: Create E2E test helpers for invitation flow
   - Implement: Create `apps/web/tests/e2e/helpers/invitations.ts` with `inviteAndAcceptViaAPI()` helper
   - Implement: Helper calls invite endpoint + authenticates invitee + calls RSVP endpoint via API shortcuts
   - Implement: Helper handles both new and existing users
