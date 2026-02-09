@@ -1,7 +1,0 @@
-# Ralph logs are local-only
-/logs
-
-# Research files (deprecated - agents now return findings inline)
-/research
-research*.md
-*-report-*.md
