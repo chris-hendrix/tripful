@@ -126,13 +126,22 @@ describe("permissions.service", () => {
       .returning();
     testTripId = tripResult[0].id;
 
-    // Add co-organizer as member with status='going'
+    // Add creator as member with isOrganizer=true
+    await db.insert(members).values({
+      tripId: testTripId,
+      userId: testCreatorId,
+      status: "going",
+      isOrganizer: true,
+    });
+
+    // Add co-organizer as member with status='going' and isOrganizer=true
     const coOrganizerMemberResult = await db
       .insert(members)
       .values({
         tripId: testTripId,
         userId: testCoOrganizerId,
         status: "going",
+        isOrganizer: true,
       })
       .returning();
     testCoOrganizerMemberId = coOrganizerMemberResult[0].id;
@@ -195,7 +204,7 @@ describe("permissions.service", () => {
       expect(result).toBe(true);
     });
 
-    it("should return true for co-organizer (member with status=going)", async () => {
+    it("should return true for co-organizer (member with isOrganizer=true)", async () => {
       const result = await permissionsService.isOrganizer(
         testCoOrganizerId,
         testTripId,
@@ -203,7 +212,7 @@ describe("permissions.service", () => {
       expect(result).toBe(true);
     });
 
-    it("should return false for regular member (status!=going)", async () => {
+    it("should return false for regular member (isOrganizer=false)", async () => {
       const result = await permissionsService.isOrganizer(
         testMemberId,
         testTripId,
@@ -261,13 +270,13 @@ describe("permissions.service", () => {
       expect(result).toBe(false);
     });
 
-    it("should return false for trip creator if they are not also a member", async () => {
-      // Creator is NOT automatically a member (they just created the trip)
+    it("should return true for trip creator who is also a member", async () => {
+      // Creator has a member record with isOrganizer=true from setup
       const result = await permissionsService.isMember(
         testCreatorId,
         testTripId,
       );
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
 
     it("should return false for non-existent trip", async () => {
@@ -390,11 +399,12 @@ describe("permissions.service", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle member status changes correctly", async () => {
-      // Regular member becomes co-organizer
+    it("should handle member isOrganizer changes correctly", async () => {
+      // testMemberId was created with isOrganizer: false
+      // Make them an organizer
       await db
         .update(members)
-        .set({ status: "going" })
+        .set({ isOrganizer: true })
         .where(eq(members.userId, testMemberId));
 
       let result = await permissionsService.isOrganizer(
@@ -403,10 +413,10 @@ describe("permissions.service", () => {
       );
       expect(result).toBe(true);
 
-      // Co-organizer steps down
+      // Remove organizer status
       await db
         .update(members)
-        .set({ status: "not_going" })
+        .set({ isOrganizer: false })
         .where(eq(members.userId, testMemberId));
 
       result = await permissionsService.isOrganizer(testMemberId, testTripId);
@@ -414,21 +424,15 @@ describe("permissions.service", () => {
     });
 
     it("should handle creator also being a member", async () => {
-      // Add creator as a member
-      await db.insert(members).values({
-        tripId: testTripId,
-        userId: testCreatorId,
-        status: "going",
-      });
-
-      // Should still be an organizer (via creator status)
+      // Creator already has a member record with isOrganizer=true from setup
+      // Should be an organizer (via both creator status and isOrganizer=true)
       const isOrganizerResult = await permissionsService.isOrganizer(
         testCreatorId,
         testTripId,
       );
       expect(isOrganizerResult).toBe(true);
 
-      // Should also be a member now
+      // Should also be a member
       const isMemberResult = await permissionsService.isMember(
         testCreatorId,
         testTripId,
@@ -453,6 +457,7 @@ describe("permissions.service", () => {
         tripId: testTripId,
         userId: anotherUserId,
         status: "going",
+        isOrganizer: true,
       });
 
       const result = await permissionsService.isOrganizer(
@@ -476,7 +481,7 @@ describe("permissions.service", () => {
       expect(result).toBe(true);
     });
 
-    it("should return true for co-organizer (member with status=going)", async () => {
+    it("should return true for co-organizer (member with isOrganizer=true)", async () => {
       const result = await permissionsService.canAddEvent(
         testCoOrganizerId,
         testTripId,
@@ -500,8 +505,8 @@ describe("permissions.service", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true for member with status=going even when allowMembersToAddEvents is false (they become co-organizers)", async () => {
-      // Update member status to 'going' - this makes them a co-organizer
+    it("should return false for member with status=going but isOrganizer=false when allowMembersToAddEvents is false", async () => {
+      // Update member status to 'going' but they are NOT an organizer
       await db
         .update(members)
         .set({ status: "going" })
@@ -513,12 +518,12 @@ describe("permissions.service", () => {
         .set({ allowMembersToAddEvents: false })
         .where(eq(trips.id, testTripId));
 
-      // Co-organizers (members with status='going') can still add events
+      // Regular members (isOrganizer=false) cannot add events when allowMembersToAddEvents is false
       const result = await permissionsService.canAddEvent(
         testMemberId,
         testTripId,
       );
-      expect(result).toBe(true);
+      expect(result).toBe(false);
 
       // Restore settings
       await db
@@ -558,7 +563,7 @@ describe("permissions.service", () => {
         .set({ allowMembersToAddEvents: false })
         .where(eq(trips.id, testTripId));
 
-      // Co-organizer (member with status='going') should still be able to add events
+      // Co-organizer (member with isOrganizer=true) should still be able to add events
       const result = await permissionsService.canAddEvent(
         testCoOrganizerId,
         testTripId,
@@ -792,12 +797,13 @@ describe("permissions.service", () => {
       expect(result).toBe(false);
     });
 
-    it("should return false for trip creator who is not a member", async () => {
+    it("should return true for trip creator who is also a member", async () => {
+      // Creator has a member record from setup
       const result = await permissionsService.canAddMemberTravel(
         testCreatorId,
         testTripId,
       );
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
   });
 
@@ -874,6 +880,195 @@ describe("permissions.service", () => {
         testMemberTravelId,
       );
       expect(result).toBe(false);
+    });
+  });
+
+  describe("canInviteMembers", () => {
+    it("should return true for organizer", async () => {
+      const result = await permissionsService.canInviteMembers(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for co-organizer", async () => {
+      const result = await permissionsService.canInviteMembers(
+        testCoOrganizerId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for regular member", async () => {
+      const result = await permissionsService.canInviteMembers(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canInviteMembers(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canUpdateRsvp", () => {
+    it("should return true for any member", async () => {
+      const result = await permissionsService.canUpdateRsvp(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for organizer", async () => {
+      const result = await permissionsService.canUpdateRsvp(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canUpdateRsvp(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canViewFullTrip", () => {
+    it("should return true for member with status going", async () => {
+      const result = await permissionsService.canViewFullTrip(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for member with status maybe", async () => {
+      // testMemberId has status='maybe' from setup
+      const result = await permissionsService.canViewFullTrip(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canViewFullTrip(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for member with status not_going", async () => {
+      // Update member status to 'not_going'
+      await db
+        .update(members)
+        .set({ status: "not_going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canViewFullTrip(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+
+      // Restore status
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+  });
+
+  describe("canEditEvent - status restrictions", () => {
+    let memberEventId: string;
+
+    beforeEach(async () => {
+      // Update regular member status to 'going' so they can create events
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      // Create an event by the regular member (non-organizer)
+      const eventResult = await db
+        .insert(events)
+        .values({
+          tripId: testTripId,
+          createdBy: testMemberId,
+          name: "Member Event",
+          eventType: "activity",
+          startTime: new Date("2026-06-16T10:00:00Z"),
+        })
+        .returning();
+      memberEventId = eventResult[0].id;
+    });
+
+    it("should return false for event creator with status=maybe", async () => {
+      // Change creator's member status to 'maybe'
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canEditEvent(
+        testMemberId,
+        memberEventId,
+      );
+      expect(result).toBe(false);
+
+      // Restore status
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return true for event creator with status=going", async () => {
+      const result = await permissionsService.canEditEvent(
+        testMemberId,
+        memberEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for organizer even if not event creator", async () => {
+      // Organizer can edit any event regardless
+      const result = await permissionsService.canEditEvent(
+        testCreatorId,
+        memberEventId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for event creator with status=not_going", async () => {
+      // Change creator's member status to 'not_going'
+      await db
+        .update(members)
+        .set({ status: "not_going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canEditEvent(
+        testMemberId,
+        memberEventId,
+      );
+      expect(result).toBe(false);
+
+      // Restore status
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
     });
   });
 });

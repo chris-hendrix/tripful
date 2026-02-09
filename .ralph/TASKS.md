@@ -12,7 +12,7 @@
   - Test: Write integration test verifying invitations table exists with correct columns
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 1.2: Update PermissionsService to use isOrganizer column
+- [x] Task 1.2: Update PermissionsService to use isOrganizer column
   - Implement: Change `isOrganizer()` method to check `members.isOrganizer=true` instead of `members.status='going'`
   - Implement: Update `canAddEvent()` to separate organizer check (isOrganizer) from member check (status='going' + allowMembersToAddEvents)
   - Implement: Update `canEditEvent()` so event creators can only edit if their member status is still 'going'

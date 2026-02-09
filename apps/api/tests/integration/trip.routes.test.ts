@@ -1607,11 +1607,13 @@ describe("PUT /api/trips/:id", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -2301,17 +2303,19 @@ describe("DELETE /trips/:id", () => {
       const trip = tripResult[0];
 
       // Add creator and co-organizer to members
-      // Note: co-organizers are just members with status='going'
+      // Note: co-organizers are members with isOrganizer=true
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -2790,11 +2794,13 @@ describe("POST /api/trips/:id/co-organizers", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg1.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3307,16 +3313,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg1.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg2.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3451,11 +3460,13 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 

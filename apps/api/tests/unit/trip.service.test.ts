@@ -966,6 +966,7 @@ describe("trip.service", () => {
         tripId: testTripId,
         userId: testCoOrganizerId,
         status: "going",
+        isOrganizer: true,
       });
     });
 
@@ -1126,11 +1127,12 @@ describe("trip.service", () => {
       const trip = await tripService.createTrip(testCreatorId, tripData);
       testTripId = trip.id;
 
-      // Add co-organizer as member with status='going'
+      // Add co-organizer as member with status='going' and isOrganizer=true
       await db.insert(members).values({
         tripId: testTripId,
         userId: testCoOrganizerId,
         status: "going",
+        isOrganizer: true,
       });
     });
 
