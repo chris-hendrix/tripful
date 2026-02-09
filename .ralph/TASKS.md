@@ -114,7 +114,7 @@
   - Test: Manual test: add multiple phones, submit, verify invitations created
   - Verify: `pnpm typecheck` passes, form validation works
 
-- [ ] Task 4.4: Build MembersList component as tab on trip detail page
+- [x] Task 4.4: Build MembersList component as tab on trip detail page
   - Implement: Create `apps/web/src/components/trip/members-list.tsx`
   - Implement: Show member avatars, display names, RSVP status badges (Going=green, Maybe=yellow, Not Going=red, No Response=gray)
   - Implement: Show "Organizer" badge for organizers

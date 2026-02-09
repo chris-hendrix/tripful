@@ -104,6 +104,32 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
+// Mock MembersList component
+vi.mock("@/components/trip/members-list", () => ({
+  MembersList: ({
+    tripId,
+    isOrganizer,
+    onInvite,
+  }: {
+    tripId: string;
+    isOrganizer: boolean;
+    onInvite?: () => void;
+  }) => (
+    <div
+      data-testid="members-list"
+      data-trip-id={tripId}
+      data-is-organizer={isOrganizer}
+    >
+      Members List for trip {tripId}
+      {onInvite && (
+        <button data-testid="members-invite-btn" onClick={onInvite}>
+          Invite from members
+        </button>
+      )}
+    </div>
+  ),
+}));
+
 // Mock TripPreview component
 vi.mock("@/components/trip/trip-preview", () => ({
   TripPreview: ({ trip, tripId }: any) => (
@@ -1235,6 +1261,149 @@ describe("TripDetailContent", () => {
 
       expect(screen.queryByTestId("trip-preview")).toBeNull();
       expect(screen.getByTestId("itinerary-view")).toBeDefined();
+    });
+  });
+
+  describe("tabs layout", () => {
+    it("renders Tabs with Itinerary and Members tabs", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
+      });
+
+      expect(screen.getByRole("tab", { name: "Itinerary" })).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+    });
+
+    it("shows ItineraryView by default", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("itinerary-view")).toBeDefined();
+      });
+    });
+
+    it("shows MembersList when Members tab is clicked", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+      });
+
+      const membersTab = screen.getByRole("tab", { name: "Members" });
+      await user.click(membersTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-list")).toBeDefined();
+        expect(
+          screen.getByText("Members List for trip trip-123"),
+        ).toBeDefined();
+      });
+    });
+
+    it("passes correct props to MembersList", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+      });
+
+      const membersTab = screen.getByRole("tab", { name: "Members" });
+      await user.click(membersTab);
+
+      await waitFor(() => {
+        const membersList = screen.getByTestId("members-list");
+        expect(membersList.getAttribute("data-trip-id")).toBe("trip-123");
+        expect(membersList.getAttribute("data-is-organizer")).toBe("true");
+      });
+    });
+
+    it("MembersList onInvite opens InviteMembersDialog", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+      });
+
+      const membersTab = screen.getByRole("tab", { name: "Members" });
+      await user.click(membersTab);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-invite-btn")).toBeDefined();
+      });
+
+      const inviteBtn = screen.getByTestId("members-invite-btn");
+      await user.click(inviteBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("invite-members-dialog")).toBeDefined();
+      });
     });
   });
 });

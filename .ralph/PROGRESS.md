@@ -621,3 +621,89 @@ Initial review found 6 issues:
 - The `dynamic()` import with `preload` pattern for dialogs is critical for code splitting — dialogs are only loaded when the user hovers/focuses the trigger button, not on initial page load. This keeps the trip detail page bundle small.
 - Phase 4 Task 4.3 is complete. Next is Task 4.4: Build MembersList component as tab on trip detail page.
 
+## Iteration 11 — Task 4.4: Build MembersList component as tab on trip detail page
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **Installed shadcn/ui Tabs component** (`apps/web/src/components/ui/tabs.tsx`):
+   - Ran `npx shadcn@latest add tabs --yes` to install the Tabs, TabsList, TabsTrigger, TabsContent components
+   - Standard shadcn/ui generated component using Radix UI primitives
+
+2. **New MembersList component** (`apps/web/src/components/trip/members-list.tsx`):
+   - `"use client"` component with props: `{ tripId: string; isOrganizer: boolean; onInvite?: () => void }`
+   - Uses `useMembers(tripId)` hook to fetch member data
+   - `getRsvpBadge()` helper renders status badges with exact same colors as existing pattern:
+     - Going: `bg-success/15 text-success border-success/30`
+     - Maybe: `bg-amber-500/15 text-amber-600 border-amber-500/30`
+     - Not Going: `bg-destructive/15 text-destructive border-destructive/30`
+     - No Response: `bg-muted text-muted-foreground border-border`
+   - Organizer gradient badge: `bg-gradient-to-r from-primary to-accent text-white`
+   - Avatar rendering using `Avatar`, `AvatarImage`, `AvatarFallback` components with `getInitials` fallback
+   - **Loading state**: Skeleton placeholders (circular avatar + text bars) for 3 rows
+   - **Empty state**: Users icon with message and conditional invite button
+   - **Organizer-only features**:
+     - Phone numbers displayed with `formatPhoneNumber` utility
+     - "Invite Members" button that calls `onInvite` callback
+     - Remove member button (X icon) with AlertDialog confirmation
+   - **Remove member flow**: Uses `useInvitations(tripId)` to get invitations list, matches `member.phoneNumber` to `invitation.inviteePhone` to find the `invitationId`, then calls `useRevokeInvitation(tripId).mutate(invitationId)`
+   - **Safety**: No remove button shown for trip creator (no invitation record exists) or for members without phone numbers
+   - Success/error toasts via `sonner`
+
+3. **Barrel export** (`apps/web/src/components/trip/index.ts`):
+   - Added `export { MembersList } from "./members-list";`
+
+4. **Trip detail page tabs integration** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
+   - Imported `Tabs`, `TabsContent`, `TabsList`, `TabsTrigger` from `@/components/ui/tabs`
+   - Imported `MembersList` from `@/components/trip/members-list`
+   - Replaced standalone `<ItineraryView>` with tabbed layout:
+     - "Itinerary" tab (default active) renders `<ItineraryView>`
+     - "Members" tab renders `<MembersList>` with `tripId`, `isOrganizer`, and `onInvite` (opens existing InviteMembersDialog)
+
+5. **New tests** (`apps/web/src/components/trip/__tests__/members-list.test.tsx`) — 37 tests:
+   - **Loading state** (1 test): skeleton rendering when data is pending
+   - **Member rendering** (4 tests): display names, member count, avatar images, initials fallback
+   - **RSVP status badges** (4 tests): Going/Maybe/Not Going/No Response with correct text and CSS classes
+   - **Organizer badge** (2 tests): gradient badge present for organizers, absent for regular members
+   - **Organizer-only features** (6 tests): phone numbers shown/hidden, invite button shown/hidden, remove buttons shown/hidden
+   - **Remove member flow** (5 tests): confirmation dialog opens, confirm calls revokeInvitation with correct invitationId, cancel closes dialog, success toast, error toast
+   - **Empty state** (2 tests): graceful handling with/without invite button
+   - **Hook calls** (2 tests): correct tripId passed to useMembers and useInvitations
+   - **Styling** (1 test): Playfair font on heading
+   - **Invite callback** (1 test): onInvite called when invite button clicked
+   - **Creator protection** (1 test): no remove button for members without matching invitation (trip creator)
+
+6. **Updated tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`) — 5 new tests:
+   - Tabs render with Itinerary and Members tabs
+   - ItineraryView shown by default
+   - MembersList shown when Members tab clicked
+   - Correct props passed to MembersList
+   - MembersList onInvite opens InviteMembersDialog
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (all tests passed, 0 failures)
+- `pnpm test` (web): ✅ PASS (739 of 756 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
+- New `members-list.test.tsx`: ✅ PASS (37/37 tests)
+- Updated `trip-detail-content.test.tsx`: ✅ PASS (46/46 tests)
+- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** Duplicated RSVP badge rendering logic between `members-list.tsx` and `trip-detail-content.tsx` — both use identical CSS classes. Could be extracted to a shared `getRsvpBadge` utility or `<RsvpBadge>` component. Non-blocking since both usages are already consistent.
+- **[LOW]** `useInvitations(tripId)` is always called regardless of `isOrganizer` — the endpoint returns 403 for non-organizers, adding an unnecessary network request. Could conditionally fetch with `enabled: isOrganizer`. Non-blocking since TanStack Query gracefully handles errors and the data is only consumed behind `isOrganizer` checks.
+- **[LOW]** `QueryClient` in test file uses `logger` property which may have been removed in TanStack Query v5+ — but `pnpm typecheck` passes, so no issue with the current version.
+
+### Learnings for future iterations
+
+- The shadcn/ui Tabs component (`npx shadcn@latest add tabs`) installs cleanly and uses Radix UI primitives. It provides `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` exports.
+- The "remove member" flow requires cross-referencing two data sources: `useMembers` returns `MemberWithProfile` (no invitation ID), while `useRevokeInvitation` requires an `invitationId`. The solution is to also call `useInvitations` and match by `phoneNumber` ↔ `inviteePhone`. This implicitly prevents removal of the trip creator since they have no invitation record.
+- The `getRsvpBadge()` helper pattern is a good candidate for extraction to a shared component. Three places now render RSVP badges with the same colors: `trip-detail-content.tsx` (current user badge), `trip-preview.tsx` (RSVP buttons), and `members-list.tsx` (member status badges).
+- When adding tabs to an existing page, using `defaultValue="itinerary"` ensures backward compatibility — existing users see the same content they did before, and the Members tab is an optional discovery.
+- The `onInvite` callback pattern allows the MembersList component to trigger the InviteMembersDialog that's already managed by the parent `trip-detail-content.tsx`, avoiding duplicate dialog state management.
+- Phase 4 Task 4.4 is complete. Next is Task 4.5: Add "member no longer attending" indicator to event cards.
+

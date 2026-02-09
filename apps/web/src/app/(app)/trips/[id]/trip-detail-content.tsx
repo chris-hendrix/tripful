@@ -29,7 +29,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
 const EditTripDialog = dynamic(
@@ -295,8 +297,23 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
         </div>
 
-        {/* Itinerary section */}
-        <ItineraryView tripId={tripId} />
+        {/* Itinerary and Members tabs */}
+        <Tabs defaultValue="itinerary">
+          <TabsList>
+            <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+          </TabsList>
+          <TabsContent value="itinerary">
+            <ItineraryView tripId={tripId} />
+          </TabsContent>
+          <TabsContent value="members">
+            <MembersList
+              tripId={tripId}
+              isOrganizer={isOrganizer}
+              onInvite={() => setIsInviteOpen(true)}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Edit Trip Dialog */}
