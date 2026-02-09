@@ -61,7 +61,7 @@
   - Test: Test RSVP status changes
   - Verify: `pnpm test` passes, `pnpm typecheck` passes
 
-- [ ] Task 3.2: Create invitation and RSVP route endpoints
+- [x] Task 3.2: Create invitation and RSVP route endpoints
   - Implement: Create `apps/api/src/controllers/invitation.controller.ts`
   - Implement: Create `apps/api/src/routes/invitation.routes.ts` with POST/GET/DELETE invitation routes and POST RSVP route
   - Implement: Register routes in `apps/api/src/app.ts` with prefix `/api`

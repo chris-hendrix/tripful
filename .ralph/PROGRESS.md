@@ -253,3 +253,58 @@ Tracking implementation progress for this project.
 - `DBInvitation` (renamed import from schema) has `Date` objects for timestamps, while the shared `Invitation` type has `string` timestamps. The controller/route layer (Task 3.2) will need to convert dates to ISO strings.
 - Phase 3 Task 3.1 is complete. Next is Task 3.2: Create invitation and RSVP route endpoints.
 
+## Iteration 6 — Task 3.2: Create invitation and RSVP route endpoints
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **Invitation controller** (`apps/api/src/controllers/invitation.controller.ts`) — New file, 5 handler methods:
+   - `createInvitations`: POST handler that delegates to `invitationService.createInvitations()`, returns 201 with `{ success: true, invitations, skipped }`
+   - `getInvitations`: GET handler with explicit organizer permission check via `permissionsService.canInviteMembers()` before calling `getInvitationsByTrip()`, returns 200
+   - `revokeInvitation`: DELETE handler that delegates to `invitationService.revokeInvitation()`, returns 200 with `{ success: true }`
+   - `updateRsvp`: POST handler that delegates to `invitationService.updateRsvp()`, returns 200 with `{ success: true, member }`
+   - `getMembers`: GET handler that delegates to `invitationService.getTripMembers()` (which handles its own permission check), returns 200 with `{ success: true, members }`
+   - All methods follow the established try/catch pattern: re-throw typed errors, log and return 500 for unexpected errors
+
+2. **Invitation routes** (`apps/api/src/routes/invitation.routes.ts`) — New file:
+   - GET routes (`/trips/:tripId/invitations`, `/trips/:tripId/members`) with `preHandler: authenticate` only
+   - Write routes in scoped register block with `authenticate + requireCompleteProfile`:
+     - `POST /trips/:tripId/invitations` with `createInvitationsSchema` body validation
+     - `DELETE /invitations/:id` with UUID param validation
+     - `POST /trips/:tripId/rsvp` with `updateRsvpSchema` body validation
+   - Zod param schemas for `tripId` and invitation `id` UUIDs
+
+3. **Route registration** (`apps/api/src/app.ts`):
+   - Added `invitationRoutes` import and registered with `{ prefix: "/api" }`
+
+4. **Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`) — 23 test cases across 5 endpoint groups:
+   - **POST /api/trips/:tripId/invitations** (5 tests): create invitations (201), skip already-invited, 403 non-organizer, 401 unauthenticated, 400 invalid phones
+   - **GET /api/trips/:tripId/invitations** (3 tests): 200 for organizer, 403 for non-organizer, 401 unauthenticated
+   - **DELETE /api/invitations/:id** (4 tests): 200 revoke, 404 non-existent, 403 non-organizer, 401 unauthenticated
+   - **POST /api/trips/:tripId/rsvp** (6 tests): going, maybe, not_going (all 3 enum values), 403 non-member, 400 invalid status, 401 unauthenticated
+   - **GET /api/trips/:tripId/members** (5 tests): 200 member list, phone visible for organizer, phone hidden for non-organizer, 403 non-member, 401 unauthenticated
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test` (API): ✅ PASS (654 tests across 32 test files, 0 failures — up from 631)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- Reviewer: ✅ APPROVED (initial review flagged 5 missing 401 tests and missing `not_going` RSVP test; all fixed and re-approved)
+
+### Reviewer observations (all resolved)
+
+- DELETE route uses `/api/invitations/:id` instead of architecture spec's `/api/trips/:tripId/invitations/:invitationId` — accepted as consistent with existing codebase pattern (events, accommodations use the same non-nested DELETE pattern)
+- Missing 401 tests for 4 of 5 endpoints — all added
+- Missing `not_going` RSVP test — added for complete enum coverage
+
+### Learnings for future iterations
+
+- The `getInvitationsByTrip` service method does NOT check permissions internally (unlike `getTripMembers` which does). The controller must explicitly check organizer permission via `permissionsService.canInviteMembers()` before calling it. This pattern inconsistency should be noted for any future service methods.
+- Fastify's JSON serializer automatically converts Date objects to ISO strings via `.toJSON()`, so no manual date conversion was needed in the controller despite the DB returning `Date` objects and the shared types expecting `string` timestamps.
+- The DELETE route follows the existing codebase pattern (`/api/invitations/:id` not nested under trips) which differs from the architecture spec. The service looks up the invitation to find the tripId internally, making the tripId param unnecessary in the URL.
+- 401 tests are important for every endpoint — the first review caught 4 missing ones. Always include 401 (unauthenticated) tests alongside 403 (unauthorized) tests.
+- All three RSVP enum values (`going`, `maybe`, `not_going`) should be tested explicitly for complete coverage.
+- Phase 3 Task 3.2 is complete. Next is Task 3.3: Modify trip and event endpoints for preview and creatorAttending.
+

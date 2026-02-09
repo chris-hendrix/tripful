@@ -38,6 +38,7 @@ import { tripRoutes } from "./routes/trip.routes.js";
 import { eventRoutes } from "./routes/event.routes.js";
 import { accommodationRoutes } from "./routes/accommodation.routes.js";
 import { memberTravelRoutes } from "./routes/member-travel.routes.js";
+import { invitationRoutes } from "./routes/invitation.routes.js";
 
 // Config
 import { env } from "./config/env.js";
@@ -169,6 +170,7 @@ export async function buildApp(
   await app.register(eventRoutes, { prefix: "/api" });
   await app.register(accommodationRoutes, { prefix: "/api" });
   await app.register(memberTravelRoutes, { prefix: "/api" });
+  await app.register(invitationRoutes, { prefix: "/api" });
 
   // Not-found handler for unmatched routes
   app.setNotFoundHandler((request, reply) => {
