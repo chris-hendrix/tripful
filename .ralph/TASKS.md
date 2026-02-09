@@ -123,7 +123,7 @@
   - Test: Manual test: view member list as organizer vs regular member
   - Verify: `pnpm typecheck` passes, responsive layout
 
-- [ ] Task 4.5: Add "member no longer attending" indicator to event cards
+- [x] Task 4.5: Add "member no longer attending" indicator to event cards
   - Implement: Update `apps/web/src/components/itinerary/event-card.tsx` to check `creatorAttending` field
   - Implement: When `creatorAttending === false`, show a muted badge/indicator: "Member no longer attending"
   - Implement: Dim/mute the creator name/avatar area when not attending

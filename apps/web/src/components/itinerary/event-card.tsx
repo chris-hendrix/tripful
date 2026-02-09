@@ -114,6 +114,14 @@ export function EventCard({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {event.creatorAttending === false && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
+                >
+                  Member no longer attending
+                </Badge>
+              )}
               {event.isOptional && (
                 <Badge
                   variant="outline"
@@ -160,7 +168,7 @@ export function EventCard({
             </div>
           )}
 
-          <div className="text-xs text-muted-foreground">
+          <div className={`text-xs text-muted-foreground ${event.creatorAttending === false ? "opacity-50 line-through" : ""}`}>
             Created by {createdByName || "Unknown"}
           </div>
 

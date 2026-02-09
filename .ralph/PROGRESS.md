@@ -707,3 +707,46 @@ Initial review found 6 issues:
 - The `onInvite` callback pattern allows the MembersList component to trigger the InviteMembersDialog that's already managed by the parent `trip-detail-content.tsx`, avoiding duplicate dialog state management.
 - Phase 4 Task 4.4 is complete. Next is Task 4.5: Add "member no longer attending" indicator to event cards.
 
+## Iteration 12 — Task 4.5: Add "member no longer attending" indicator to event cards
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **Modified EventCard component** (`apps/web/src/components/itinerary/event-card.tsx`):
+   - Added "Member no longer attending" amber badge in the compact view (alongside existing "Optional" badge) when `event.creatorAttending === false`
+   - Badge uses amber warning styling: `bg-amber-500/15 text-amber-600 border-amber-500/30` — consistent with "Maybe" RSVP badge pattern used in members-list.tsx and trip-detail-content.tsx
+   - Added conditional dimming on the "Created by" text in expanded view: `opacity-50 line-through` classes applied when `event.creatorAttending === false`
+   - Uses strict `=== false` comparison (not `!value`) to avoid triggering on `undefined` — the `creatorAttending` field is `boolean | undefined` on the Event type
+
+2. **New tests** (`apps/web/src/components/itinerary/__tests__/event-card.test.tsx`) — 6 new tests in "Creator attending indicator" describe block:
+   - Shows "Member no longer attending" badge when `creatorAttending` is `false`
+   - Does NOT show badge when `creatorAttending` is `true`
+   - Does NOT show badge when `creatorAttending` is `undefined` (base event without field)
+   - Shows dimmed creator name (`opacity-50`, `line-through`) when expanded and `creatorAttending` is `false`
+   - Does NOT dim creator name when `creatorAttending` is `true`
+   - Verifies correct amber badge styling classes via `data-slot="badge"` selector
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (all tests passed, 0 failures)
+- `pnpm test` (web): ✅ PASS (745 of 762 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
+- Event card tests: ✅ PASS (20/20 tests — 14 existing + 6 new)
+- Reviewer: ✅ APPROVED (2 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** `line-through` on the "Created by" text goes slightly beyond the spec's "muted" requirement — adds a strikethrough alongside opacity-50. Functionally reinforces the "no longer attending" status but could be read as "deleted." Judgment call; not incorrect.
+- **[LOW]** On very narrow mobile screens, having both "Member no longer attending" and "Optional" badges simultaneously could compress the event name area. Both being present simultaneously is rare in practice (low impact edge case).
+
+### Learnings for future iterations
+
+- The `Event` type has `creatorAttending?: boolean` as optional. Using `=== false` (strict equality) is essential to distinguish "creator is not attending" from "field not present." This pattern should be used consistently for all optional boolean fields from the API.
+- The amber badge pattern (`bg-amber-500/15 text-amber-600 border-amber-500/30`) is now used in four places: members-list.tsx (Maybe status), trip-detail-content.tsx (Maybe badge), trip-preview.tsx (Maybe RSVP button), and event-card.tsx (not attending indicator). This is a strong candidate for extraction to a shared `<RsvpBadge>` or `<StatusBadge>` component.
+- EventCard is a pure presentational component (no hooks, no QueryClient needed) — tests are straightforward `render` + `screen.getByText` assertions without needing QueryClientProvider wrappers.
+- The `data-slot="badge"` attribute emitted by the shadcn/ui Badge component is useful for test selectors — it allows finding badge elements without relying on text content or fragile class selectors.
+- Phase 4 (Frontend — Invitation & RSVP UI) is now fully complete. All 5 tasks (4.1 hooks, 4.2 TripPreview, 4.3 InviteMembersDialog, 4.4 MembersList, 4.5 event card indicator) are done. Next is Phase 5: E2E Tests & Regression (Task 5.1).
+
