@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 5-8 Pending
+status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 5-7 Pending
 last_updated: 2026-02-08
 ---
 
@@ -15,9 +15,11 @@ last_updated: 2026-02-08
 > - ✅ **Frontend Design Overhaul Complete**: Mediterranean design system, app shell, accessibility, toast notifications
 > - ✅ **Phase 4 Complete**: Itinerary view modes with events, accommodations, member travel, and comprehensive testing
 > - ✅ **Mobile UX Fixes Complete**: Touch targets, phone input, compact itinerary header, display names, event counts, FAB
-> - 🚧 **Phase 5-8**: Pending (Invitations, advanced features)
+> - 🚧 **Phase 5**: Pending (Invitations & RSVP)
+> - 🚧 **Phase 6**: Pending (Advanced Itinerary Features)
+> - 🚧 **Phase 7**: Pending (Polish & Testing)
 >
-> **Important**: This document describes both implemented features (Phases 1-4) and planned features (Phases 5-8). Features, tables, routes, and components marked as 🚧 or described in Phase 5-8 sections do not yet exist in the codebase.
+> **Important**: This document describes both implemented features (Phases 1-4) and planned features (Phases 5-7). Features, tables, routes, and components marked as 🚧 or described in Phase 5-7 sections do not yet exist in the codebase.
 
 ## Implementation Progress
 
@@ -335,11 +337,27 @@ Comprehensive mobile UX improvements addressing accessibility, data accuracy, us
 
 - `react-phone-number-input` v3.4.14 (apps/web)
 
-### 🚧 Phase 5-8: Remaining Features (Planned)
+### 🚧 Phase 5: Invitations & RSVP (Planned)
 
-- [ ] Invitations and RSVP system
-- [ ] Advanced itinerary features (per-event RSVP, rich text descriptions)
-- [ ] Polish and performance optimization
+- [ ] Backend: Invitation endpoints, RSVP management, partial preview logic
+- [ ] Frontend: Invite members dialog, RSVP buttons, member list
+- [ ] Shared: RSVP schemas
+- [ ] E2E test: User can invite members and RSVP to trips
+
+### 🚧 Phase 6: Advanced Itinerary Features (Planned)
+
+- [ ] Backend: Soft delete restore UI, multi-day events, deleted items section
+- [ ] Frontend: Deleted items (organizers), multi-day badges, member status indicators
+- [ ] E2E test: Organizer can restore deleted events
+
+### 🚧 Phase 7: Polish & Testing (Planned)
+
+- [ ] Error handling and validation
+- [ ] Loading states and optimistic updates
+- [ ] Responsive design refinements
+- [ ] Performance optimization (query optimization, caching strategy)
+- [ ] Comprehensive test coverage
+- [ ] Documentation
 
 ---
 
@@ -3575,27 +3593,43 @@ fastify.register(compress, {
 - ✅ E2E tests: 4 scenarios covering complete auth flow - all passing
 - ✅ Database: users and verification_codes tables with migration
 
-**Phase 3: Trip Management (Week 2-3)**
+**Phase 3: Trip Management** ✅ COMPLETE
+**Git Commit:** `2c31b4f - Ralph: Task 30 - Task 7.3: Code review and cleanup`
 
-- Backend: Trip CRUD endpoints, organizer management, permissions service
-- Frontend: Dashboard, create trip dialog (shadcn), trip detail page
-- Shared: Trip schemas, permission types
-- E2E test: User can create and view trips
+- ✅ Backend: Trip CRUD endpoints, organizer management, permissions service
+- ✅ Frontend: Dashboard, create trip dialog (shadcn), trip detail page
+- ✅ Shared: Trip schemas, permission types
+- ✅ E2E test: User can create and view trips
 
-**Phase 4: Itinerary View Modes (Week 3-5)** ✅ Complete
+**Phase 4: Itinerary Events, Accommodations & Member Travel** ✅ COMPLETE
 
-- Backend: Events/accommodations/member travel CRUD with soft delete/restore, extended permissions
-- Frontend: Day-by-day view, group-by-type view, timezone toggle, create/edit/delete dialogs
-- Shared: Event/accommodation/member travel schemas and types
-- Testing: 24 test files, 35 E2E tests, 16 manual screenshots
-- Note: Combined originally planned Phases 4-8 scope (excluding Invitations & RSVP)
+- ✅ Backend: Events/accommodations/member travel CRUD with soft delete/restore, extended permissions
+- ✅ Frontend: Day-by-day view, group-by-type view, timezone toggle, create/edit/delete dialogs
+- ✅ Shared: Event/accommodation/member travel schemas and types
+- ✅ Testing: 24 test files, 35 E2E tests, 16 manual screenshots
+- Note: Combined original Phases 5-7 scope (Itinerary Events + Accommodations & Member Travel + Advanced Itinerary Features)
 
-**Phase 5+: Future Features (Post-MVP)**
+**Phase 5: Invitations & RSVP**
 
-- Invitations and RSVP system
-- Per-event RSVP tracking
-- Rich text descriptions
-- Performance optimization
+- Backend: Invitation endpoints, RSVP management, partial preview logic
+- Frontend: Invite members dialog, RSVP buttons, member list
+- Shared: RSVP schemas
+- E2E test: User can invite members and RSVP to trips
+
+**Phase 6: Advanced Itinerary Features**
+
+- Backend: Soft delete restore UI, multi-day events, deleted items section
+- Frontend: Deleted items (organizers), multi-day badges, member status indicators
+- E2E test: Organizer can restore deleted events
+
+**Phase 7: Polish & Testing**
+
+- Error handling and validation
+- Loading states and optimistic updates
+- Responsive design refinements
+- Performance optimization (query optimization, caching strategy)
+- Comprehensive test coverage
+- Documentation
 
 ### Future Enhancements (Post-MVP)
 
