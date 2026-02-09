@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { authenticateUser, authenticateUserViaBrowser } from "./helpers/auth";
+import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, DashboardPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
@@ -19,7 +19,7 @@ test.describe("Auth Journey", () => {
   });
 
   test("complete auth journey", { tag: "@smoke" }, async ({ page }) => {
-    const phone = `+1555${Date.now()}`;
+    const phone = generateUniquePhone();
     const loginPage = new LoginPage(page);
     const dashboard = new DashboardPage(page);
 

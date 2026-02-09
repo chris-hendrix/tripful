@@ -2,6 +2,15 @@ import type { Page, APIRequestContext } from "@playwright/test";
 
 const API_BASE = "http://localhost:8000/api";
 
+let phoneCounter = 0;
+
+/** Generate a unique E.164 phone number (max 15 digits). */
+export function generateUniquePhone(): string {
+  const ts = Date.now().toString().slice(-7);
+  const counter = (++phoneCounter % 1000).toString().padStart(3, "0");
+  return `+1555${ts}${counter}`;
+}
+
 /**
  * Create a user via API (request-code → verify-code → complete-profile).
  * Returns the cookie string for subsequent API calls.
@@ -62,7 +71,7 @@ export async function authenticateUser(
   request: APIRequestContext,
   displayName: string = "Test User",
 ): Promise<string> {
-  const phone = `+1555${Date.now()}`;
+  const phone = generateUniquePhone();
   await createUserViaAPI(request, phone, displayName);
   await loginViaBrowser(page, phone);
   return phone;
@@ -92,7 +101,7 @@ export async function authenticateViaAPI(
   request: APIRequestContext,
   displayName: string = "Test User",
 ): Promise<string> {
-  const phone = `+1555${Date.now()}`;
+  const phone = generateUniquePhone();
   const cookieString = await createUserViaAPI(request, phone, displayName);
   const token = cookieString.match(/auth_token=([^;]+)/)?.[1] || "";
   await page.context().addCookies([
@@ -143,7 +152,7 @@ export async function authenticateUserViaBrowser(
   page: Page,
   displayName: string = "Test User",
 ): Promise<string> {
-  const phone = `+1555${Date.now()}`;
+  const phone = generateUniquePhone();
 
   await page.goto("/login");
 
