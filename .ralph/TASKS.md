@@ -2,7 +2,7 @@
 
 ## Phase 1: Database & Permissions Foundation
 
-- [ ] Task 1.1: Add isOrganizer column to members table and create invitations table
+- [x] Task 1.1: Add isOrganizer column to members table and create invitations table
   - Implement: Add `isOrganizer` boolean column (default false) to members table in `apps/api/src/db/schema/index.ts`
   - Implement: Add `invitationStatusEnum` and `invitations` table to schema
   - Implement: Run `pnpm db:generate` to create migration SQL

@@ -80,6 +80,14 @@ export const memberTravelTypeEnum = pgEnum("member_travel_type", [
   "departure",
 ]);
 
+// Invitation status enum
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "failed",
+]);
+
 // Trips table
 export const trips = pgTable(
   "trips",
@@ -127,6 +135,7 @@ export const members = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     status: rsvpStatusEnum("status").notNull().default("no_response"),
+    isOrganizer: boolean("is_organizer").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -147,6 +156,42 @@ export const members = pgTable(
 // Inferred types for members table
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
+
+// Invitations table
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    inviterId: uuid("inviter_id")
+      .notNull()
+      .references(() => users.id),
+    inviteePhone: varchar("invitee_phone", { length: 20 }).notNull(),
+    status: invitationStatusEnum("status").notNull().default("pending"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("invitations_trip_id_idx").on(table.tripId),
+    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(table.inviteePhone),
+    tripPhoneUnique: unique("invitations_trip_phone_unique").on(
+      table.tripId,
+      table.inviteePhone,
+    ),
+  }),
+);
+
+// Inferred types for invitations table
+export type Invitation = typeof invitations.$inferSelect;
+export type NewInvitation = typeof invitations.$inferInsert;
 
 // Events table
 export const events = pgTable(
