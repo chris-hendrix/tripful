@@ -127,7 +127,7 @@ describe("trip.service", () => {
       expect(dbTrip[0].name).toBe("Beach Vacation");
     });
 
-    it('should automatically add creator as member with status="going"', async () => {
+    it('should automatically add creator as member with status="going" and isOrganizer=true', async () => {
       const tripData: CreateTripInput = {
         name: "City Tour",
         destination: "New York",
@@ -137,7 +137,7 @@ describe("trip.service", () => {
 
       const trip = await tripService.createTrip(testUserId, tripData);
 
-      // Verify creator is added as member with status='going'
+      // Verify creator is added as member with status='going' and isOrganizer=true
       const memberRecords = await db
         .select()
         .from(members)
@@ -146,12 +146,13 @@ describe("trip.service", () => {
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].userId).toBe(testUserId);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
       expect(memberRecords[0].tripId).toBe(trip.id);
       expect(memberRecords[0].createdAt).toBeInstanceOf(Date);
       expect(memberRecords[0].updatedAt).toBeInstanceOf(Date);
     });
 
-    it("should add co-organizers as members when provided", async () => {
+    it("should add co-organizers as members with isOrganizer=true when provided", async () => {
       const tripData: CreateTripInput = {
         name: "Group Adventure",
         destination: "Mountains",
@@ -170,24 +171,27 @@ describe("trip.service", () => {
 
       expect(memberRecords).toHaveLength(3);
 
-      // Verify creator is a member
+      // Verify creator is a member with isOrganizer=true
       const creatorMember = memberRecords.find((m) => m.userId === testUserId);
       expect(creatorMember).toBeDefined();
       expect(creatorMember!.status).toBe("going");
+      expect(creatorMember!.isOrganizer).toBe(true);
 
-      // Verify co-organizer 1 is a member
+      // Verify co-organizer 1 is a member with isOrganizer=true
       const coOrganizerMember = memberRecords.find(
         (m) => m.userId === coOrganizerUserId,
       );
       expect(coOrganizerMember).toBeDefined();
       expect(coOrganizerMember!.status).toBe("going");
+      expect(coOrganizerMember!.isOrganizer).toBe(true);
 
-      // Verify co-organizer 2 is a member
+      // Verify co-organizer 2 is a member with isOrganizer=true
       const coOrganizer2Member = memberRecords.find(
         (m) => m.userId === coOrganizer2UserId,
       );
       expect(coOrganizer2Member).toBeDefined();
       expect(coOrganizer2Member!.status).toBe("going");
+      expect(coOrganizer2Member!.isOrganizer).toBe(true);
     });
 
     it("should return trip object with all fields populated", async () => {
@@ -654,8 +658,8 @@ describe("trip.service", () => {
       expect(results.data[0].isOrganizer).toBe(true);
     });
 
-    it('should set isOrganizer=true for co-organizer with status="going"', async () => {
-      // Create a trip where testUser is co-organizer
+    it("should set isOrganizer=true for co-organizer with isOrganizer column", async () => {
+      // Create a trip where testUser is co-organizer (isOrganizer=true set automatically)
       const tripData: CreateTripInput = {
         name: "Co-Org Trip",
         destination: "Co-Org Destination",
@@ -674,7 +678,7 @@ describe("trip.service", () => {
       expect(results.data[0].rsvpStatus).toBe("going");
     });
 
-    it('should set isOrganizer=false for regular member with status!="going"', async () => {
+    it("should set isOrganizer=false for regular member with isOrganizer=false", async () => {
       // Create a trip where testUser is creator
       const tripData: CreateTripInput = {
         name: "Regular Member Trip",
@@ -1355,19 +1359,21 @@ describe("trip.service", () => {
         // Should have creator + 2 new co-organizers = 3 members
         expect(memberRecords).toHaveLength(3);
 
-        // Verify co-organizer 1 was added
+        // Verify co-organizer 1 was added with isOrganizer=true
         const coOrg1Member = memberRecords.find(
           (m) => m.userId === newCoOrgUserId1,
         );
         expect(coOrg1Member).toBeDefined();
         expect(coOrg1Member!.status).toBe("going");
+        expect(coOrg1Member!.isOrganizer).toBe(true);
 
-        // Verify co-organizer 2 was added
+        // Verify co-organizer 2 was added with isOrganizer=true
         const coOrg2Member = memberRecords.find(
           (m) => m.userId === newCoOrgUserId2,
         );
         expect(coOrg2Member).toBeDefined();
         expect(coOrg2Member!.status).toBe("going");
+        expect(coOrg2Member!.isOrganizer).toBe(true);
       });
 
       it("should throw error when non-organizer tries to add co-organizers", async () => {
@@ -1380,12 +1386,12 @@ describe("trip.service", () => {
         );
       });
 
-      it('should create member records with status="going"', async () => {
+      it('should create member records with status="going" and isOrganizer=true', async () => {
         await tripService.addCoOrganizers(testTripId, testCreatorId, [
           newCoOrgPhone1,
         ]);
 
-        // Verify member record was created with correct status
+        // Verify member record was created with correct status and isOrganizer
         const [memberRecord] = await db
           .select()
           .from(members)
@@ -1398,6 +1404,7 @@ describe("trip.service", () => {
 
         expect(memberRecord).toBeDefined();
         expect(memberRecord.status).toBe("going");
+        expect(memberRecord.isOrganizer).toBe(true);
         expect(memberRecord.tripId).toBe(testTripId);
         expect(memberRecord.userId).toBe(newCoOrgUserId1);
       });
@@ -1576,18 +1583,20 @@ describe("trip.service", () => {
     });
 
     describe("getCoOrganizers", () => {
-      it('should return all co-organizers (members with status="going")', async () => {
-        // Add co-organizers
+      it("should return all co-organizers (members with isOrganizer=true)", async () => {
+        // Add co-organizers with isOrganizer=true
         await db.insert(members).values([
           {
             tripId: testTripId,
             userId: newCoOrgUserId1,
             status: "going",
+            isOrganizer: true,
           },
           {
             tripId: testTripId,
             userId: newCoOrgUserId2,
             status: "going",
+            isOrganizer: true,
           },
         ]);
 
@@ -1609,15 +1618,16 @@ describe("trip.service", () => {
         expect(creator).toHaveProperty("timezone", "UTC");
       });
 
-      it('should exclude members with status other than "going"', async () => {
-        // Add co-organizer with status='going'
+      it("should exclude members with isOrganizer=false", async () => {
+        // Add co-organizer with isOrganizer=true
         await db.insert(members).values({
           tripId: testTripId,
           userId: newCoOrgUserId1,
           status: "going",
+          isOrganizer: true,
         });
 
-        // Add regular member with status='maybe'
+        // Add regular member with isOrganizer=false (default)
         await db.insert(members).values({
           tripId: testTripId,
           userId: newCoOrgUserId2,
@@ -1626,7 +1636,7 @@ describe("trip.service", () => {
 
         const coOrganizers = await tripService.getCoOrganizers(testTripId);
 
-        // Should only return creator + co-organizer with status='going' = 2 users
+        // Should only return creator + co-organizer with isOrganizer=true = 2 users
         expect(coOrganizers).toHaveLength(2);
 
         const coOrgIds = coOrganizers.map((user: User) => user.id);

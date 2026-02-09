@@ -94,3 +94,46 @@ Tracking implementation progress for this project.
 - 17 web tests (date/time picker components) are pre-existing failures unrelated to Phase 5. These should not block task completion.
 - Task 1.3 (TripService changes) must update `createTrip()` to set `isOrganizer: true` for the creator's member record and `addCoOrganizers()` to set `isOrganizer: true` for co-organizer records.
 
+## Iteration 3 — Task 1.3: Update TripService for isOrganizer column
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **TripService changes** (`apps/api/src/services/trip.service.ts`) — 8 changes across 5 methods:
+   - `createTrip()`: Added `isOrganizer: true` to both the creator's member record insert and co-organizer member inserts
+   - `getTripById()`: Changed organizer query from `eq(members.status, "going")` to `eq(members.isOrganizer, true)`
+   - `getUserTrips()`:
+     - Added `isOrganizer: members.isOrganizer` to the `userMemberships` select query
+     - Changed batch organizer tracking from `m.status === "going"` to `m.isOrganizer`
+     - Changed `membershipMap` to carry both `status` and `isOrganizer`
+     - Replaced derived `isOrganizer` computation (`isCreator || isCoOrganizer`) with direct column read (`membership?.isOrganizer ?? false`)
+   - `addCoOrganizers()`: Added `isOrganizer: true` to new co-organizer member inserts
+   - `getCoOrganizers()`: Changed query from `eq(members.status, "going")` to `eq(members.isOrganizer, true)`
+   - Updated all related comments from "status='going'" to "isOrganizer=true" for organizer detection contexts
+
+2. **Unit test updates** (`apps/api/tests/unit/trip.service.test.ts`):
+   - `createTrip` tests: Added `isOrganizer: true` assertions for creator and co-organizer member records
+   - `getUserTrips` tests: Updated 2 test descriptions from status-based to column-based language
+   - `addCoOrganizers` tests: Added `isOrganizer: true` assertion and updated description
+   - `getCoOrganizers` tests: Updated member inserts to include `isOrganizer: true`, updated descriptions to reflect column-based filtering
+
+3. **Integration test updates** (`apps/api/tests/integration/trip.routes.test.ts`):
+   - Added `isOrganizer: true` to all manually-inserted member records that represent organizers across all test sections (GET /api/trips, GET /api/trips/:id, PUT /api/trips/:id, DELETE /trips/:id, POST co-organizers, DELETE co-organizers, cover-image routes)
+   - Added `isOrganizer` assertions to 4 tests that verify member creation via API: creator creation, co-organizer creation, organizer-adds-co-organizer, co-organizer-adds-co-organizer
+   - Updated test descriptions to include "and isOrganizer=true" where applicable
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm test` (API): ✅ PASS (605 tests across 30 test files, 0 failures)
+- Reviewer: ✅ APPROVED (initial review found 4 missing integration test assertions; all fixed and re-approved)
+
+### Learnings for future iterations
+
+- The `getUserTrips()` method was the most complex change because it required updating a multi-stage pipeline: the DB query (adding `isOrganizer` to select), the batch processing loop, the membership map structure (from `Map<string, status>` to `Map<string, {status, isOrganizer}>`), and the summary builder. Future tasks modifying this method should trace the full data flow.
+- The old model derived `isOrganizer` from `createdBy` and `status === "going"` heuristics. The new model reads it directly from the column, which is cleaner and avoids false positives (regular members with `status='going'` are no longer incorrectly flagged as organizers).
+- `getCoOrganizers()` was an additional method found by researchers that also needed updating — it was not explicitly listed in the task description but used the same `status='going'` pattern for organizer detection.
+- Integration tests that manually insert member records (rather than going through `createTrip()`) need explicit `isOrganizer: true` — unlike the service code which now sets it automatically, test fixtures must set it manually.
+- Phase 1 (Database & Permissions Foundation) is now fully complete. All 3 tasks (1.1 schema, 1.2 permissions, 1.3 trip service) are done. Next is Phase 2: Shared Schemas & Types (Task 2.1).
+

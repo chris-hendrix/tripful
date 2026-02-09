@@ -22,7 +22,7 @@
   - Test: Write tests verifying event creator with status='maybe' cannot edit their events
   - Verify: All existing tests pass (no regressions), `pnpm typecheck` passes
 
-- [ ] Task 1.3: Update TripService for isOrganizer column
+- [x] Task 1.3: Update TripService for isOrganizer column
   - Implement: Update `createTrip()` to set `isOrganizer: true` for creator's member record
   - Implement: Update `addCoOrganizers()` to set `isOrganizer: true` for co-organizer member records
   - Implement: Update `getTripById()` to detect organizers via `isOrganizer` column

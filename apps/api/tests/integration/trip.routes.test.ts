@@ -185,7 +185,7 @@ describe("POST /api/trips", () => {
       expect(body.trip.name).toBe("Group Trip");
     });
 
-    it("should create member record for creator with status='going'", async () => {
+    it("should create member record for creator with status='going' and isOrganizer=true", async () => {
       app = await buildApp();
 
       // Create test user
@@ -234,9 +234,10 @@ describe("POST /api/trips", () => {
 
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
 
-    it("should create member records for co-organizers with status='going'", async () => {
+    it("should create member records for co-organizers with status='going' and isOrganizer=true", async () => {
       app = await buildApp();
 
       // Create test users
@@ -314,7 +315,9 @@ describe("POST /api/trips", () => {
       );
       expect(coOrgMembers).toHaveLength(2);
       expect(coOrgMembers[0].status).toBe("going");
+      expect(coOrgMembers[0].isOrganizer).toBe(true);
       expect(coOrgMembers[1].status).toBe("going");
+      expect(coOrgMembers[1].isOrganizer).toBe(true);
     });
   });
 
@@ -839,11 +842,12 @@ describe("GET /api/trips", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: testUser.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -922,17 +926,19 @@ describe("GET /api/trips", () => {
         })
         .returning();
 
-      // Add user as member to both trips
+      // Add user as member to both trips (as organizer)
       await db.insert(members).values([
         {
           tripId: trip1Result[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           tripId: trip2Result[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -1001,17 +1007,19 @@ describe("GET /api/trips", () => {
         })
         .returning();
 
-      // Add user as member to both trips
+      // Add user as member to both trips (as organizer)
       await db.insert(members).values([
         {
           tripId: activeTripResult[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           tripId: cancelledTripResult[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -1068,11 +1076,12 @@ describe("GET /api/trips", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: testUser.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Add active events
@@ -1205,11 +1214,12 @@ describe("GET /api/trips/:id", () => {
         })
         .returning();
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: user.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1354,6 +1364,7 @@ describe("GET /api/trips/:id", () => {
         tripId: trip.id,
         userId: organizer.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Create different user (not a member)
@@ -1518,6 +1529,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1680,6 +1692,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1752,6 +1765,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1856,6 +1870,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1918,6 +1933,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -2036,6 +2052,7 @@ describe("PUT /api/trips/:id", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token for the other user
@@ -2110,6 +2127,7 @@ describe("PUT /api/trips/:id", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
@@ -2230,6 +2248,7 @@ describe("DELETE /trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -2520,6 +2539,7 @@ describe("DELETE /trips/:id", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token for the other user
@@ -2588,12 +2608,13 @@ describe("DELETE /trips/:id", () => {
       const trip = tripResult[0];
 
       // Add creator as organizer and regular member with no_response status
-      // Note: only members with status='going' are considered co-organizers
+      // Note: only members with isOrganizer=true are considered co-organizers
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
@@ -2717,6 +2738,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for creator
@@ -2746,6 +2768,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       expect(memberRecords.length).toBe(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
 
     it("should return 200 when co-organizer can add another co-organizer", async () => {
@@ -2831,6 +2854,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       expect(memberRecords.length).toBe(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
   });
 
@@ -2897,6 +2921,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       const token = app.jwt.sign({
@@ -2947,6 +2972,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       const token = app.jwt.sign({
@@ -3032,11 +3058,12 @@ describe("POST /api/trips/:id/co-organizers", () => {
         })
         .returning();
 
-      // Only add creator as member
+      // Only add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for non-member
@@ -3123,11 +3150,12 @@ describe("POST /api/trips/:id/co-organizers", () => {
         })
         .returning();
 
-      // Add creator as member
+      // Add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Create and add 24 more members (total 25 including creator)
@@ -3226,17 +3254,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Add both as members
+      // Add both as members (organizers)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3547,17 +3577,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Add creator and co-organizer as members
+      // Add creator and co-organizer as members (organizers)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3650,11 +3682,12 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Only add creator as member
+      // Only add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for creator
@@ -3718,11 +3751,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3797,11 +3831,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3872,11 +3907,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3928,11 +3964,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3997,11 +4034,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4156,17 +4194,18 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add both as members (creator as co-organizer, member as regular attendee)
+      // Add both as members (creator as organizer, member as regular attendee)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
           tripId: trip.id,
-          status: "no_response", // Regular member, not a co-organizer
+          status: "no_response", // Regular member, not an organizer
         },
       ]);
 
@@ -4298,11 +4337,12 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4361,11 +4401,12 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4483,17 +4524,18 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add both as members (creator as co-organizer, member as regular attendee)
+      // Add both as members (creator as organizer, member as regular attendee)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
           tripId: trip.id,
-          status: "no_response", // Regular member, not a co-organizer
+          status: "no_response", // Regular member, not an organizer
         },
       ]);
 
