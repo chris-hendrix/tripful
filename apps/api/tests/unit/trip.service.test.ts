@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
-import { trips, members, users, type User } from "@/db/schema/index.js";
+import { trips, members, users, events, type User } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { TripService, type TripSummary } from "@/services/trip.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
@@ -24,16 +24,20 @@ describe("trip.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of FK dependencies
     if (testUserId) {
+      // Delete events created by this user before trips
+      await db.delete(events).where(eq(events.createdBy, testUserId));
       await db.delete(members).where(eq(members.userId, testUserId));
       await db.delete(trips).where(eq(trips.createdBy, testUserId));
       await db.delete(users).where(eq(users.id, testUserId));
     }
     if (coOrganizerUserId) {
+      await db.delete(events).where(eq(events.createdBy, coOrganizerUserId));
       await db.delete(members).where(eq(members.userId, coOrganizerUserId));
       await db.delete(trips).where(eq(trips.createdBy, coOrganizerUserId));
       await db.delete(users).where(eq(users.id, coOrganizerUserId));
     }
     if (coOrganizer2UserId) {
+      await db.delete(events).where(eq(events.createdBy, coOrganizer2UserId));
       await db.delete(members).where(eq(members.userId, coOrganizer2UserId));
       await db.delete(trips).where(eq(trips.createdBy, coOrganizer2UserId));
       await db.delete(users).where(eq(users.id, coOrganizer2UserId));
@@ -792,6 +796,107 @@ describe("trip.service", () => {
       const coOrgResults = await tripService.getUserTrips(coOrganizerUserId);
       expect(coOrgResults.data).toHaveLength(1);
       expect(coOrgResults.data[0].rsvpStatus).toBe("maybe");
+    });
+
+    it("should return correct eventCount when trip has events", async () => {
+      // Create a trip
+      const tripData: CreateTripInput = {
+        name: "Event Count Trip",
+        destination: "Test Destination",
+        startDate: "2026-08-01",
+        timezone: "UTC",
+        allowMembersToAddEvents: true,
+      };
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Insert events for the trip
+      await db.insert(events).values([
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Event 1",
+          eventType: "activity",
+          startTime: new Date("2026-08-01T10:00:00Z"),
+        },
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Event 2",
+          eventType: "meal",
+          startTime: new Date("2026-08-01T12:00:00Z"),
+        },
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Event 3",
+          eventType: "travel",
+          startTime: new Date("2026-08-01T14:00:00Z"),
+        },
+      ]);
+
+      // Get user trips
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].eventCount).toBe(3);
+    });
+
+    it("should exclude soft-deleted events from eventCount", async () => {
+      // Create a trip
+      const tripData: CreateTripInput = {
+        name: "Soft Delete Event Trip",
+        destination: "Test Destination",
+        startDate: "2026-09-01",
+        timezone: "UTC",
+        allowMembersToAddEvents: true,
+      };
+      const trip = await tripService.createTrip(testUserId, tripData);
+
+      // Insert active events
+      await db.insert(events).values([
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Active Event 1",
+          eventType: "activity",
+          startTime: new Date("2026-09-01T10:00:00Z"),
+        },
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Active Event 2",
+          eventType: "meal",
+          startTime: new Date("2026-09-01T12:00:00Z"),
+        },
+      ]);
+
+      // Insert soft-deleted events
+      await db.insert(events).values([
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Deleted Event 1",
+          eventType: "activity",
+          startTime: new Date("2026-09-01T14:00:00Z"),
+          deletedAt: new Date("2026-09-02T00:00:00Z"),
+          deletedBy: testUserId,
+        },
+        {
+          tripId: trip.id,
+          createdBy: testUserId,
+          name: "Deleted Event 2",
+          eventType: "travel",
+          startTime: new Date("2026-09-01T16:00:00Z"),
+          deletedAt: new Date("2026-09-02T00:00:00Z"),
+          deletedBy: testUserId,
+        },
+      ]);
+
+      // Get user trips - should only count active (non-deleted) events
+      const results = await tripService.getUserTrips(testUserId);
+
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].eventCount).toBe(2);
     });
   });
 

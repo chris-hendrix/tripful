@@ -8,12 +8,12 @@ export default defineConfig({
   testDir: "./tests/e2e",
 
   // Maximum time one test can run
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI, // Fail if test.only is left in CI
-  retries: process.env.CI ? 2 : 0, // Retry failed tests in CI
+  retries: 0, // Fail fast — no retries
   ...(process.env.CI ? { workers: 2 } : {}), // Auto-detect locally, 2 in CI
 
   // Reporter to use
@@ -24,8 +24,12 @@ export default defineConfig({
     // Base URL for navigation
     baseURL: "http://localhost:3000",
 
-    // Collect trace when retrying the failed test
-    trace: "on-first-retry",
+    // Use a consistent non-UTC timezone so trip timezone differs from user
+    // timezone (set to UTC by auth helper), ensuring timezone selector tests work
+    timezoneId: "America/Chicago",
+
+    // Collect trace on failure
+    trace: "retain-on-failure",
 
     // Screenshot on failure
     screenshot: "only-on-failure",

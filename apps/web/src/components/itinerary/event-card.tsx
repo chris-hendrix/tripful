@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, MapPin, Plane, Utensils, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, Car, Utensils, ExternalLink } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,13 @@ interface EventCardProps {
   canDelete: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  createdByName?: string | undefined;
+  showDate?: boolean;
 }
 
 const EVENT_TYPE_CONFIG = {
   travel: {
-    icon: Plane,
+    icon: Car,
     color: "text-[var(--color-event-travel)]",
     bgColor: "bg-[var(--color-event-travel-light)]",
     borderColor: "border-[var(--color-event-travel-border)]",
@@ -47,6 +49,8 @@ export function EventCard({
   canDelete,
   onEdit,
   onDelete,
+  createdByName,
+  showDate,
 }: EventCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -65,6 +69,9 @@ export function EventCard({
     : endTime
       ? `${startTime} - ${endTime}`
       : startTime;
+  const datePrefix = showDate
+    ? formatInTimezone(event.startTime, timezone, "date")
+    : null;
 
   return (
     <div
@@ -93,7 +100,7 @@ export function EventCard({
                 {event.name}
               </h4>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <span>{timeDisplay}</span>
+                <span>{datePrefix ? `${datePrefix} • ${timeDisplay}` : timeDisplay}</span>
                 {event.location && (
                   <>
                     <span>•</span>
@@ -154,7 +161,7 @@ export function EventCard({
           )}
 
           <div className="text-xs text-muted-foreground">
-            Created by user {event.createdBy}
+            Created by {createdByName || "Unknown"}
           </div>
 
           {(canEdit || canDelete) && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -28,15 +28,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useCreateMemberTravel,
   getCreateMemberTravelErrorMessage,
 } from "@/hooks/use-member-travel";
+import { TIMEZONES } from "@/lib/constants";
 
 interface CreateMemberTravelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tripId: string;
+  timezone: string;
   onSuccess?: () => void;
 }
 
@@ -44,9 +54,11 @@ export function CreateMemberTravelDialog({
   open,
   onOpenChange,
   tripId,
+  timezone,
   onSuccess,
 }: CreateMemberTravelDialogProps) {
   const { mutate: createMemberTravel, isPending } = useCreateMemberTravel();
+  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
   const form = useForm<CreateMemberTravelInput>({
     resolver: zodResolver(createMemberTravelSchema),
@@ -58,12 +70,16 @@ export function CreateMemberTravelDialog({
     },
   });
 
+  const travelType = form.watch("travelType");
+  const travelTypeLabel = travelType === "departure" ? "Departure" : "Arrival";
+
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
       form.reset();
+      setSelectedTimezone(timezone);
     }
-  }, [open, form]);
+  }, [open, form, timezone]);
 
   const handleSubmit = (data: CreateMemberTravelInput) => {
     createMemberTravel(
@@ -139,6 +155,29 @@ export function CreateMemberTravelDialog({
               )}
             />
 
+            {/* Timezone */}
+            <div>
+              <label className="text-base font-semibold text-foreground">
+                Timezone
+              </label>
+              <Select
+                value={selectedTimezone}
+                onValueChange={setSelectedTimezone}
+                disabled={isPending}
+              >
+                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Time */}
             <FormField
               control={form.control}
@@ -146,25 +185,17 @@ export function CreateMemberTravelDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-semibold text-foreground">
-                    Time
+                    {travelTypeLabel} time
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      type="datetime-local"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      timezone={selectedTimezone}
+                      placeholder="Select date & time"
+                      aria-label="Travel time"
                       disabled={isPending}
-                      value={
-                        field.value
-                          ? new Date(field.value).toISOString().slice(0, 16)
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const dateValue = e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "";
-                        field.onChange(dateValue);
-                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -179,7 +210,7 @@ export function CreateMemberTravelDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base font-semibold text-foreground">
-                    Location
+                    {travelTypeLabel} location
                   </FormLabel>
                   <FormControl>
                     <Input

@@ -2,6 +2,8 @@
  * Shared formatting utilities for the Tripful web app
  */
 
+import { parsePhoneNumber } from "react-phone-number-input";
+
 // Hoisted Intl.DateTimeFormat instances for performance (created once at module load)
 const fullDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -79,4 +81,22 @@ export function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+/**
+ * Format a phone number for display using international format.
+ * @param phone - Phone number string (E.164 format recommended, e.g. "+14155552671")
+ * @returns Formatted phone number (e.g. "+1 415 555 2671") or the raw string if parsing fails
+ */
+export function formatPhoneNumber(phone: string): string {
+  if (!phone) return "";
+  try {
+    const parsed = parsePhoneNumber(phone);
+    if (parsed) {
+      return parsed.formatInternational();
+    }
+    return phone;
+  } catch {
+    return phone;
+  }
 }

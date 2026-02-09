@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { requestCodeSchema, type RequestCodeInput } from "@tripful/shared";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Form,
   FormControl,
@@ -68,14 +68,15 @@ export default function LoginPage() {
                       Phone number
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="tel"
-                        placeholder="+1 (555) 123-4567"
-                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                      <PhoneInput
+                        placeholder="(555) 123-4567"
+                        className="h-12 text-base"
+                        defaultCountry="US"
                         disabled={isSubmitting}
-                        autoComplete="tel"
-                        aria-required="true"
-                        {...field}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
                       />
                     </FormControl>
                     <FormDescription className="text-xs text-muted-foreground">

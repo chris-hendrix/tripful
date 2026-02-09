@@ -51,6 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ImageUpload } from "@/components/trip/image-upload";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Trash2, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
 
@@ -280,12 +281,12 @@ export function EditTripDialog({
                           Start date
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="date"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            disabled={isPending || isDeleting}
-                            {...field}
+                          <DatePicker
                             value={field.value ?? ""}
+                            onChange={field.onChange}
+                            placeholder="Start date"
+                            aria-label="Start date"
+                            disabled={isPending || isDeleting}
                           />
                         </FormControl>
                         <FormMessage />
@@ -302,12 +303,12 @@ export function EditTripDialog({
                           End date
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="date"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            disabled={isPending || isDeleting}
-                            {...field}
+                          <DatePicker
                             value={field.value ?? ""}
+                            onChange={field.onChange}
+                            placeholder="End date"
+                            aria-label="End date"
+                            disabled={isPending || isDeleting}
                           />
                         </FormControl>
                         <FormMessage />

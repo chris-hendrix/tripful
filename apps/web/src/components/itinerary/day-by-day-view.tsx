@@ -19,6 +19,7 @@ interface DayByDayViewProps {
   tripEndDate: string | null;
   isOrganizer: boolean;
   userId: string;
+  userNameMap: Map<string, string>;
 }
 
 interface DayData {
@@ -39,6 +40,7 @@ export function DayByDayView({
   tripEndDate,
   isOrganizer,
   userId,
+  userNameMap,
 }: DayByDayViewProps) {
   // Group data by day
   const dayData = useMemo(() => {
@@ -194,8 +196,8 @@ export function DayByDayView({
                     canEdit={canModifyAccommodation(day.accommodation)}
                     canDelete={canModifyAccommodation(day.accommodation)}
                     onEdit={() => setEditingAccommodation(day.accommodation)}
-                    // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingAccommodation(day.accommodation)}
+                    createdByName={userNameMap.get(day.accommodation.createdBy)}
                   />
                 )}
 
@@ -204,9 +206,7 @@ export function DayByDayView({
                   <MemberTravelCard
                     key={travel.id}
                     memberTravel={travel}
-                    // TODO: Replace with actual member name from useTripMembers hook
-                    // Currently showing partial UUID until member management is implemented
-                    memberName={`Member ${travel.memberId.slice(0, 8)}`}
+                    memberName={travel.memberName || "Unknown member"}
                     timezone={timezone}
                     canEdit={canModifyMemberTravel(travel)}
                     canDelete={canModifyMemberTravel(travel)}
@@ -225,8 +225,8 @@ export function DayByDayView({
                     canEdit={canModifyEvent(event)}
                     canDelete={canModifyEvent(event)}
                     onEdit={() => setEditingEvent(event)}
-                    // Delete is triggered through the edit dialog which contains the delete flow
                     onDelete={() => setEditingEvent(event)}
+                    createdByName={userNameMap.get(event.createdBy)}
                   />
                 ))}
 
@@ -235,9 +235,7 @@ export function DayByDayView({
                   <MemberTravelCard
                     key={travel.id}
                     memberTravel={travel}
-                    // TODO: Replace with actual member name from useTripMembers hook
-                    // Currently showing partial UUID until member management is implemented
-                    memberName={`Member ${travel.memberId.slice(0, 8)}`}
+                    memberName={travel.memberName || "Unknown member"}
                     timezone={timezone}
                     canEdit={canModifyMemberTravel(travel)}
                     canDelete={canModifyMemberTravel(travel)}
@@ -274,6 +272,7 @@ export function DayByDayView({
             if (!open) setEditingEvent(null);
           }}
           event={editingEvent}
+          timezone={timezone}
         />
       )}
       {editingAccommodation && (
@@ -292,6 +291,7 @@ export function DayByDayView({
             if (!open) setEditingMemberTravel(null);
           }}
           memberTravel={editingMemberTravel}
+          timezone={timezone}
         />
       )}
     </div>

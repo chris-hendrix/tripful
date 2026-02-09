@@ -146,3 +146,11 @@ cd apps/web && pnpm build && pnpm start
 - **Zero-downtime**: All migrations are additive (new tables), no breaking changes
 - **API backward compatibility**: Existing trip endpoints remain unchanged
 - **No feature flags**: Deploy directly when ready
+
+### Mobile UX Fixes
+
+- **No new tables or migrations**: All changes are application-level
+- **No new environment variables**: No configuration changes needed
+- **New frontend dependency**: `react-phone-number-input` v3.4.14 (run `pnpm install`)
+- **Backend changes**: `TripService.getUserTrips()` now computes event counts dynamically; `MemberTravelService` now joins users table for display names
+- **Zero-downtime**: No breaking API changes, existing endpoints enhanced with additional data

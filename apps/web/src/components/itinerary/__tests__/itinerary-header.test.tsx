@@ -10,8 +10,8 @@ describe("ItineraryHeader", () => {
   const defaultProps = {
     viewMode: "day-by-day" as const,
     onViewModeChange: vi.fn(),
-    showUserTime: false,
-    onShowUserTimeChange: vi.fn(),
+    selectedTimezone: "America/Los_Angeles",
+    onTimezoneChange: vi.fn(),
     tripTimezone: "America/Los_Angeles",
     userTimezone: "America/New_York",
     tripId: "test-trip-123",
@@ -41,15 +41,14 @@ describe("ItineraryHeader", () => {
     it("renders view mode toggle buttons", () => {
       renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
-      expect(screen.getByText("Day by Day")).toBeDefined();
-      expect(screen.getByText("Group by Type")).toBeDefined();
+      expect(screen.getByRole("button", { name: "Day by Day" })).toBeDefined();
+      expect(screen.getByRole("button", { name: "Group by Type" })).toBeDefined();
     });
 
-    it("renders timezone toggle buttons", () => {
+    it("renders timezone selector", () => {
       renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
-      expect(screen.getByText(/Trip \(Los Angeles\)/)).toBeDefined();
-      expect(screen.getByText(/Your \(New York\)/)).toBeDefined();
+      expect(screen.getByRole("combobox", { name: "Timezone" })).toBeDefined();
     });
   });
 
@@ -57,19 +56,19 @@ describe("ItineraryHeader", () => {
     it("highlights day-by-day button when selected", () => {
       renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="day-by-day" />);
 
-      const button = screen.getByText("Day by Day").closest("button");
+      const button = screen.getByRole("button", { name: "Day by Day" });
       expect(button?.dataset.variant).toBe("default");
     });
 
     it("highlights group-by-type button when selected", () => {
       renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="group-by-type" />);
 
-      const button = screen.getByText("Group by Type").closest("button");
+      const button = screen.getByRole("button", { name: "Group by Type" });
       expect(button?.dataset.variant).toBe("default");
     });
 
     it("calls onViewModeChange when day-by-day is clicked", async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const onViewModeChange = vi.fn();
 
       renderWithQueryClient(
@@ -80,14 +79,14 @@ describe("ItineraryHeader", () => {
         />
       );
 
-      const button = screen.getByText("Day by Day");
+      const button = screen.getByRole("button", { name: "Day by Day" });
       await user.click(button);
 
       expect(onViewModeChange).toHaveBeenCalledWith("day-by-day");
     });
 
     it("calls onViewModeChange when group-by-type is clicked", async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const onViewModeChange = vi.fn();
 
       renderWithQueryClient(
@@ -97,91 +96,182 @@ describe("ItineraryHeader", () => {
         />
       );
 
-      const button = screen.getByText("Group by Type");
+      const button = screen.getByRole("button", { name: "Group by Type" });
       await user.click(button);
 
       expect(onViewModeChange).toHaveBeenCalledWith("group-by-type");
     });
   });
 
-  describe("Timezone toggle", () => {
-    it("highlights trip timezone button when not showing user time", () => {
-      renderWithQueryClient(<ItineraryHeader {...defaultProps} showUserTime={false} />);
+  describe("Timezone selector", () => {
+    it("renders timezone select with trip timezone selected", () => {
+      renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
-      const button = screen
-        .getByText(/Trip \(Los Angeles\)/)
-        .closest("button");
-      expect(button?.dataset.variant).toBe("default");
+      const trigger = screen.getByRole("combobox", { name: "Timezone" });
+      expect(trigger).toBeDefined();
+      // Trip timezone should be shown with "(Trip)" label
+      expect(trigger.textContent).toContain("Trip");
     });
 
-    it("highlights user timezone button when showing user time", () => {
-      renderWithQueryClient(<ItineraryHeader {...defaultProps} showUserTime={true} />);
-
-      const button = screen.getByText(/Your \(New York\)/).closest("button");
-      expect(button?.dataset.variant).toBe("default");
-    });
-
-    it("calls onShowUserTimeChange when trip timezone is clicked", async () => {
-      const user = userEvent.setup();
-      const onShowUserTimeChange = vi.fn();
-
+    it("renders timezone select with user timezone when selected", () => {
       renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
-          showUserTime={true}
-          onShowUserTimeChange={onShowUserTimeChange}
+          selectedTimezone="America/New_York"
         />
       );
 
-      const button = screen.getByText(/Trip \(Los Angeles\)/);
-      await user.click(button);
-
-      expect(onShowUserTimeChange).toHaveBeenCalledWith(false);
-    });
-
-    it("calls onShowUserTimeChange when user timezone is clicked", async () => {
-      const user = userEvent.setup();
-      const onShowUserTimeChange = vi.fn();
-
-      renderWithQueryClient(
-        <ItineraryHeader
-          {...defaultProps}
-          onShowUserTimeChange={onShowUserTimeChange}
-        />
-      );
-
-      const button = screen.getByText(/Your \(New York\)/);
-      await user.click(button);
-
-      expect(onShowUserTimeChange).toHaveBeenCalledWith(true);
+      const trigger = screen.getByRole("combobox", { name: "Timezone" });
+      expect(trigger.textContent).toContain("Current");
     });
   });
 
-  describe("Timezone label formatting", () => {
-    it("extracts and formats timezone names correctly", () => {
+  describe("FAB and action menu", () => {
+    it("renders FAB when user has any action available", () => {
       renderWithQueryClient(
-        <ItineraryHeader
-          {...defaultProps}
-          tripTimezone="Europe/London"
-          userTimezone="Asia/Tokyo"
-        />
+        <ItineraryHeader {...defaultProps} isMember={true} />,
       );
-
-      expect(screen.getByText(/Trip \(London\)/)).toBeDefined();
-      expect(screen.getByText(/Your \(Tokyo\)/)).toBeDefined();
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      expect(fab).toBeDefined();
     });
 
-    it("handles multi-part timezone names correctly", () => {
+    it("does not render FAB when no actions are available", () => {
       renderWithQueryClient(
         <ItineraryHeader
           {...defaultProps}
-          tripTimezone="America/Los_Angeles"
-          userTimezone="America/New_York"
-        />
+          isOrganizer={false}
+          isMember={false}
+          allowMembersToAddEvents={false}
+        />,
+      );
+      const fab = screen.queryByRole("button", { name: /add to itinerary/i });
+      expect(fab).toBeNull();
+    });
+
+    it("shows Event menu item when canAddEvent is true", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
       );
 
-      expect(screen.getByText(/Trip \(Los Angeles\)/)).toBeDefined();
-      expect(screen.getByText(/Your \(New York\)/)).toBeDefined();
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.getByRole("menuitem", { name: /event/i });
+      expect(eventItem).toBeDefined();
+    });
+
+    it("does not show Event menu item when canAddEvent is false", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={false}
+          isMember={true}
+          allowMembersToAddEvents={false}
+        />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.queryByRole("menuitem", { name: /^event$/i });
+      expect(eventItem).toBeNull();
+    });
+
+    it("shows Accommodation menu item when isOrganizer is true", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isOrganizer={true} />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.getByRole("menuitem", { name: /accommodation/i });
+      expect(item).toBeDefined();
+    });
+
+    it("does not show Accommodation menu item when isOrganizer is false", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isOrganizer={false} />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.queryByRole("menuitem", { name: /accommodation/i });
+      expect(item).toBeNull();
+    });
+
+    it("shows My Travel menu item when isMember is true", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} isMember={true} />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.getByRole("menuitem", { name: /my travel/i });
+      expect(item).toBeDefined();
+    });
+
+    it("does not show My Travel menu item when isMember is false", async () => {
+      // When isMember is false and isOrganizer is true, FAB still shows
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={true}
+          isMember={false}
+        />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const item = screen.queryByRole("menuitem", { name: /my travel/i });
+      expect(item).toBeNull();
+    });
+
+    it("menu items are clickable and open dialogs", async () => {
+      // Skip pointer-events check: Radix DropdownMenu sets pointer-events:none
+      // on the trigger when open, which is a test environment artifact
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+      renderWithQueryClient(
+        <ItineraryHeader
+          {...defaultProps}
+          isOrganizer={true}
+          isMember={true}
+          allowMembersToAddEvents={true}
+        />,
+      );
+
+      const fab = screen.getByRole("button", { name: /add to itinerary/i });
+      await user.click(fab);
+
+      const eventItem = screen.getByRole("menuitem", { name: /event/i });
+      await user.click(eventItem);
+
+      // Clicking a menu item should not throw
+      // Re-open to verify menu still works
+      await user.click(fab);
+      const accommItem = screen.getByRole("menuitem", {
+        name: /accommodation/i,
+      });
+      await user.click(accommItem);
+
+      await user.click(fab);
+      const travelItem = screen.getByRole("menuitem", {
+        name: /my travel/i,
+      });
+      await user.click(travelItem);
     });
   });
 

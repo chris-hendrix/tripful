@@ -13,6 +13,7 @@ interface MemberTravelCardProps {
   canDelete: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  showDate?: boolean;
 }
 
 export function MemberTravelCard({
@@ -23,6 +24,7 @@ export function MemberTravelCard({
   canDelete,
   onEdit,
   onDelete,
+  showDate,
 }: MemberTravelCardProps) {
   const isArrival = memberTravel.travelType === "arrival";
   const Icon = Plane;
@@ -37,7 +39,7 @@ export function MemberTravelCard({
     : "border-[var(--color-departure-border)]";
   const rotateClass = isArrival ? "" : "rotate-45";
 
-  const time = formatInTimezone(memberTravel.time, timezone, "time");
+  const time = formatInTimezone(memberTravel.time, timezone, showDate ? "datetime" : "time");
 
   return (
     <div

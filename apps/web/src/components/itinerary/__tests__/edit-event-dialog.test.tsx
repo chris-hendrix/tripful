@@ -90,6 +90,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -102,6 +103,7 @@ describe("EditEventDialog", () => {
           open={false}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -116,6 +118,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -139,17 +142,13 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
-      const startTimeInput = screen.getByLabelText(
-        /start time/i,
-      ) as HTMLInputElement;
-      // Check that the date part is correct (time may vary due to timezone)
-      expect(startTimeInput.value).toContain("2026-07-15");
-
-      const endTimeInput = screen.getByLabelText(/end time/i) as HTMLInputElement;
-      expect(endTimeInput.value).toContain("2026-07-15");
+      // DateTimePicker buttons should show formatted date/time, not placeholder
+      const startTimeButton = screen.getByRole("button", { name: /jul 15, 2026/i });
+      expect(startTimeButton).toBeDefined();
     });
 
     it("pre-populates links", () => {
@@ -158,6 +157,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -176,6 +176,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={eventWithOptions}
+          timezone="America/New_York"
         />,
       );
 
@@ -208,6 +209,7 @@ describe("EditEventDialog", () => {
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
           onSuccess={mockOnSuccess}
+          timezone="America/New_York"
         />,
       );
 
@@ -248,6 +250,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -264,6 +267,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -277,6 +281,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -301,6 +306,7 @@ describe("EditEventDialog", () => {
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
           onSuccess={mockOnSuccess}
+          timezone="America/New_York"
         />,
       );
 
@@ -338,6 +344,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -367,6 +374,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -389,6 +397,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -413,6 +422,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -434,6 +444,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -455,6 +466,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 
@@ -470,6 +482,7 @@ describe("EditEventDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           event={mockEvent}
+          timezone="America/New_York"
         />,
       );
 

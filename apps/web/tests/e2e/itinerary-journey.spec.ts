@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { pickDate, pickDateTime } from "./helpers/date-pickers";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -24,8 +26,8 @@ async function createTrip(
   await expect(tripDetail.createDialogHeading).toBeVisible();
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
-  await tripDetail.startDateInput.fill(startDate);
-  await tripDetail.endDateInput.fill(endDate);
+  await pickDate(page, tripDetail.startDateButton, startDate);
+  await pickDate(page, tripDetail.endDateButton, endDate);
   await tripDetail.continueButton.click();
   await expect(tripDetail.step2Indicator).toBeVisible();
   await tripDetail.createTripButton.click();
@@ -33,6 +35,27 @@ async function createTrip(
   await expect(
     page.getByRole("heading", { level: 1, name: tripName }),
   ).toBeVisible();
+}
+
+/** Helper: open the FAB dropdown and click a menu item, or fall back to empty-state button. */
+async function clickFabAction(
+  page: import("@playwright/test").Page,
+  actionName: string,
+) {
+  // Wait for any Sonner toast to disappear so it doesn't intercept the click
+  const toast = page.locator("[data-sonner-toast]").first();
+  if (await toast.isVisible().catch(() => false)) {
+    await toast.waitFor({ state: "hidden", timeout: 10000 });
+  }
+
+  const fab = page.getByRole("button", { name: "Add to itinerary" });
+  if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await fab.click();
+    await page.getByRole("menuitem", { name: actionName }).click();
+  } else {
+    // Empty state has direct buttons like "Add Event", "Add Accommodation"
+    await page.getByRole("button", { name: `Add ${actionName}` }).click();
+  }
 }
 
 /** Helper: create an event via the UI (assumes on trip detail page). */
@@ -45,11 +68,9 @@ async function createEvent(
     location?: string;
     description?: string;
     endDateTime?: string;
-    addButtonText?: string;
   },
 ) {
-  const addButtonText = options?.addButtonText ?? "Add Event";
-  await page.getByRole("button", { name: addButtonText }).click();
+  await clickFabAction(page, "Event");
   await expect(
     page.getByRole("heading", { name: "Create a new event" }),
   ).toBeVisible();
@@ -61,7 +82,8 @@ async function createEvent(
   }
 
   if (options?.type) {
-    await page.locator('button[role="combobox"]').first().click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator('button[role="combobox"]').first().click();
     await page
       .locator(`div[role="option"]`)
       .filter({ hasText: options.type })
@@ -72,16 +94,12 @@ async function createEvent(
     await page.locator('input[name="location"]').fill(options.location);
   }
 
-  const startInput = page.locator('input[type="datetime-local"]').first();
-  await startInput.scrollIntoViewIfNeeded();
-  await startInput.click();
-  await startInput.fill(startDateTime);
+  const startTrigger = page.getByRole("button", { name: "Start time" });
+  await pickDateTime(page, startTrigger, startDateTime);
 
   if (options?.endDateTime) {
-    const endInput = page.locator('input[type="datetime-local"]').nth(1);
-    await endInput.scrollIntoViewIfNeeded();
-    await endInput.click();
-    await endInput.fill(options.endDateTime);
+    const endTrigger = page.getByRole("button", { name: "End time" });
+    await pickDateTime(page, endTrigger, options.endDateTime);
   }
 
   await page.getByRole("button", { name: "Create event" }).click();
@@ -89,12 +107,13 @@ async function createEvent(
 
 test.describe("Itinerary Journey", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 
   test(
     "itinerary CRUD journey",
-    { tag: "@smoke", timeout: 60000 },
+    { tag: "@smoke" },
     async ({ page, request }) => {
       await authenticateViaAPI(page, request, "Itinerary Tester");
       const tripName = `Itinerary Trip ${Date.now()}`;
@@ -118,7 +137,7 @@ test.describe("Itinerary Journey", () => {
       });
 
       await test.step("create accommodation", async () => {
-        await page.getByRole("button", { name: "Accommodation" }).click();
+        await clickFabAction(page, "Accommodation");
         await expect(
           page.getByRole("heading", { name: "Create a new accommodation" }),
         ).toBeVisible();
@@ -129,8 +148,8 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
-        await page.locator('input[name="checkIn"]').fill("2026-10-01");
-        await page.locator('input[name="checkOut"]').fill("2026-10-03");
+        await pickDate(page, page.getByRole("button", { name: "Check-in date" }), "2026-10-01");
+        await pickDate(page, page.getByRole("button", { name: "Check-out date" }), "2026-10-03");
 
         const linkInput = page.locator('input[aria-label="Link URL"]');
         await linkInput.fill("https://example.com/hotel");
@@ -145,17 +164,15 @@ test.describe("Itinerary Journey", () => {
       await snap(page, "09-itinerary-with-events");
 
       await test.step("add member travel", async () => {
-        await page.getByRole("button", { name: "My Travel" }).click();
+        await clickFabAction(page, "My Travel");
         await expect(
           page.getByRole("heading", { name: "Add your travel details" }),
         ).toBeVisible();
 
         await page.locator('input[type="radio"][value="arrival"]').click();
 
-        const timeInput = page.locator('input[type="datetime-local"]').first();
-        await timeInput.scrollIntoViewIfNeeded();
-        await timeInput.click();
-        await timeInput.fill("2026-10-01T14:30");
+        const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+        await pickDateTime(page, travelTimeTrigger, "2026-10-01T14:30");
 
         await page.locator('input[name="location"]').fill("San Diego Airport");
         await page.locator('textarea[name="details"]').fill("Arriving from Chicago");
@@ -239,9 +256,25 @@ test.describe("Itinerary Journey", () => {
       const activityEvent = `Show ${Date.now()}`;
       await createEvent(page, activityEvent, "2027-03-10T20:00", {
         type: "Activity",
-        addButtonText: "Event",
       });
       await expect(page.getByText(/Show/)).toBeVisible();
+    });
+
+    await test.step("add member travel (arrival)", async () => {
+      await clickFabAction(page, "My Travel");
+      await expect(
+        page.getByRole("heading", { name: "Add your travel details" }),
+      ).toBeVisible();
+
+      await page.locator('input[type="radio"][value="arrival"]').click();
+
+      const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+      await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
+
+      await page.locator('input[name="location"]').fill("Las Vegas Airport");
+      await page.getByRole("button", { name: "Add travel details" }).click();
+
+      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
     });
 
     await snap(page, "10-itinerary-day-by-day");
@@ -258,8 +291,14 @@ test.describe("Itinerary Journey", () => {
       await expect(
         page.getByRole("heading", { level: 3, name: "Activities" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 3, name: "Arrivals" }),
+      ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(page.getByText(/Show/)).toBeVisible();
+      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
+      // Verify date labels appear on cards in group-by-type view
+      await expect(page.getByText(/Mar 10, 2027/).first()).toBeVisible();
       await snap(page, "11-itinerary-group-by-type");
     });
 
@@ -269,22 +308,21 @@ test.describe("Itinerary Journey", () => {
       await expect(page.getByText(/Show/)).toBeVisible();
     });
 
-    await test.step("toggle timezone", async () => {
-      const tripTimezoneButton = page
-        .locator("button", { hasText: /Trip \(.+\)/ })
-        .first();
-      await expect(tripTimezoneButton).toBeVisible();
+    await test.step("change timezone via dropdown", async () => {
+      // Open timezone selector and pick user timezone
+      const tzTrigger = page.getByRole("combobox", { name: "Timezone" });
+      await expect(tzTrigger).toBeVisible();
+      await expect(tzTrigger).toContainText("Trip");
 
-      await page.locator("button", { hasText: /Your \(.+\)/ }).click();
-
-      const userTimezoneButton = page
-        .locator("button", { hasText: /Your \(.+\)/ })
-        .first();
-      await expect(userTimezoneButton).toBeVisible();
+      await tzTrigger.click();
+      await page.getByRole("option", { name: /Current/ }).click();
+      await expect(tzTrigger).toContainText("Current");
       await expect(page.getByText(/Lunch/)).toBeVisible();
 
-      await page.locator("button", { hasText: /Trip \(.+\)/ }).click();
-      await expect(tripTimezoneButton).toBeVisible();
+      // Switch back to trip timezone
+      await tzTrigger.click();
+      await page.getByRole("option", { name: /Trip/ }).click();
+      await expect(tzTrigger).toContainText("Trip");
     });
 
     await test.step("mobile viewport", async () => {
@@ -300,15 +338,15 @@ test.describe("Itinerary Journey", () => {
         page.getByRole("button", { name: "Group by Type" }),
       ).toBeVisible();
       await expect(
-        page.locator("button", { hasText: /Trip \(.+\)/ }),
+        page.getByRole("combobox", { name: "Timezone" }),
       ).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Event" }),
+        page.getByRole("button", { name: "Add to itinerary" }),
       ).toBeVisible();
 
-      // Dialog works on mobile
-      await page.getByRole("button", { name: "Event" }).first().click();
+      // Dialog works on mobile via FAB
+      await clickFabAction(page, "Event");
       await expect(
         page.getByRole("heading", { name: "Create a new event" }),
       ).toBeVisible();
@@ -321,6 +359,7 @@ test.describe("Itinerary Journey", () => {
   });
 
   test("itinerary permissions and validation", async ({ page, request }) => {
+    test.slow(); // 4 auth cycles — triple the timeout for CI
     const dashboard = new DashboardPage(page);
 
     await test.step("organizer creates trip and verifies action buttons", async () => {
@@ -329,6 +368,7 @@ test.describe("Itinerary Journey", () => {
       const tripName = `Permission Trip ${Date.now()}`;
       await createTrip(page, tripName, "Atlanta, GA", "2026-10-25", "2026-10-27");
 
+      // Empty state shows direct action buttons for organizer
       await expect(
         page.getByRole("button", { name: "Add Event" }),
       ).toBeVisible();
@@ -383,9 +423,8 @@ test.describe("Itinerary Journey", () => {
 
       // Fix and submit
       await page.locator('input[name="name"]').fill("Valid Event");
-      const startInput = page.locator('input[type="datetime-local"]').first();
-      await startInput.click();
-      await startInput.fill("2026-11-01T10:00");
+      const startTimeTrigger = page.getByRole("button", { name: "Start time" });
+      await pickDateTime(page, startTimeTrigger, "2026-11-01T10:00");
       await page.getByRole("button", { name: "Create event" }).click();
 
       await expect(page.getByText("Valid Event")).toBeVisible();
@@ -402,8 +441,8 @@ test.describe("Itinerary Journey", () => {
       await expect(tripDetail.createDialogHeading).toBeVisible();
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill("Chicago, IL");
-      await tripDetail.startDateInput.fill("2026-09-20");
-      await tripDetail.endDateInput.fill("2026-09-22");
+      await pickDate(page, tripDetail.startDateButton, "2026-09-20");
+      await pickDate(page, tripDetail.endDateButton, "2026-09-22");
       await tripDetail.continueButton.click();
       await expect(tripDetail.step2Indicator).toBeVisible();
 
@@ -416,16 +455,20 @@ test.describe("Itinerary Journey", () => {
       await tripDetail.createTripButton.click();
       await page.waitForURL("**/trips/**");
 
-      // Organizer can still add events
+      // Organizer can still add events (empty state shows Add Event button)
       await expect(
         page.getByRole("button", { name: "Add Event" }),
       ).toBeVisible();
 
       await createEvent(page, "Initial Event", "2026-09-20T10:00");
+      await expect(page.getByText("Initial Event")).toBeVisible();
 
-      await expect(
-        page.getByRole("button", { name: "Event" }).first(),
-      ).toBeVisible();
+      // After adding content, FAB should be visible with Event option
+      const fab = page.getByRole("button", { name: "Add to itinerary" });
+      await expect(fab).toBeVisible();
+      await fab.click();
+      await expect(page.getByRole("menuitem", { name: "Event" })).toBeVisible();
+      await page.keyboard.press("Escape");
     });
   });
 });

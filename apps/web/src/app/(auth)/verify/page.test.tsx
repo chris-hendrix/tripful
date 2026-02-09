@@ -62,8 +62,17 @@ describe("VerifyPage", () => {
 
     render(<VerifyPage />);
 
-    expect(screen.getByText("+15551234567")).toBeDefined();
+    expect(screen.getByText("+1 555 123 4567")).toBeDefined();
     expect(mockGet).toHaveBeenCalledWith("phone");
+  });
+
+  it("displays formatted phone number from query param", () => {
+    mockGet.mockReturnValue("+14155552671");
+
+    render(<VerifyPage />);
+
+    // formatPhoneNumber converts E.164 to international format
+    expect(screen.getByText("+1 415 555 2671")).toBeDefined();
   });
 
   it("displays validation error for code that is not 6 digits", async () => {

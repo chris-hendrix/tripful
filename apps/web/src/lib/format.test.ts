@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDateRange, getInitials } from "./format";
+import { formatDateRange, getInitials, formatPhoneNumber } from "./format";
 
 describe("formatDateRange", () => {
   it("returns 'Dates TBD' when both dates are null", () => {
@@ -62,5 +62,27 @@ describe("getInitials", () => {
 
   it("handles single character name", () => {
     expect(getInitials("A")).toBe("A");
+  });
+});
+
+describe("formatPhoneNumber", () => {
+  it("formats a US number in international format", () => {
+    expect(formatPhoneNumber("+14155552671")).toBe("+1 415 555 2671");
+  });
+
+  it("formats a UK number in international format", () => {
+    expect(formatPhoneNumber("+442071234567")).toBe("+44 20 7123 4567");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(formatPhoneNumber("")).toBe("");
+  });
+
+  it("returns raw string for invalid input", () => {
+    expect(formatPhoneNumber("invalid")).toBe("invalid");
+  });
+
+  it("returns raw string for partial number", () => {
+    expect(formatPhoneNumber("+1")).toBe("+1");
   });
 });

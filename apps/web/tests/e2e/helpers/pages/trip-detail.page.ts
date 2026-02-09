@@ -8,8 +8,8 @@ export class TripDetailPage {
   readonly createDialogHeading: Locator;
   readonly nameInput: Locator;
   readonly destinationInput: Locator;
-  readonly startDateInput: Locator;
-  readonly endDateInput: Locator;
+  readonly startDateButton: Locator;
+  readonly endDateButton: Locator;
   readonly descriptionInput: Locator;
   readonly continueButton: Locator;
   readonly backButton: Locator;
@@ -29,8 +29,8 @@ export class TripDetailPage {
     });
     this.nameInput = page.locator('input[name="name"]');
     this.destinationInput = page.locator('input[name="destination"]');
-    this.startDateInput = page.locator('input[name="startDate"]');
-    this.endDateInput = page.locator('input[name="endDate"]');
+    this.startDateButton = page.getByRole("button", { name: "Start date" });
+    this.endDateButton = page.getByRole("button", { name: "End date" });
     this.descriptionInput = page.locator('textarea[name="description"]');
     this.continueButton = page.getByRole("button", { name: "Continue" });
     this.backButton = page.getByRole("button", { name: "Back" });

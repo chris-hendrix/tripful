@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertCircle, CalendarX } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents } from "@/hooks/use-events";
@@ -52,7 +52,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   const [viewMode, setViewMode] = useState<"day-by-day" | "group-by-type">(
     "day-by-day",
   );
-  const [showUserTime, setShowUserTime] = useState(false);
+  const tripTimezone = trip?.preferredTimezone || "UTC";
+  const userTimezone = user?.timezone || "UTC";
+  const [selectedTimezone, setSelectedTimezone] = useState(tripTimezone);
 
   // Dialog state for empty state
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
@@ -60,9 +62,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     useState(false);
 
   // Determine timezone
-  const tripTimezone = trip?.preferredTimezone || "UTC";
-  const userTimezone = user?.timezone || "UTC";
-  const timezone = showUserTime ? userTimezone : tripTimezone;
+  const timezone = selectedTimezone;
 
   // Determine if user is an organizer or member
   const isOrganizer =
@@ -74,6 +74,17 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   // For now, assume all authenticated users viewing the trip are members
   // In the future, this should check actual membership status from the API
   const isMember = !!user && !!trip;
+
+  // Build userId→displayName lookup from trip organizers
+  const userNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (trip?.organizers) {
+      for (const org of trip.organizers) {
+        map.set(org.id, org.displayName);
+      }
+    }
+    return map;
+  }, [trip?.organizers]);
 
   // Loading state
   const isLoading =
@@ -174,6 +185,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
           open={isCreateEventOpen}
           onOpenChange={setIsCreateEventOpen}
           tripId={tripId}
+          timezone={timezone}
         />
         <CreateAccommodationDialog
           open={isCreateAccommodationOpen}
@@ -190,8 +202,8 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
       <ItineraryHeader
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        showUserTime={showUserTime}
-        onShowUserTimeChange={setShowUserTime}
+        selectedTimezone={selectedTimezone}
+        onTimezoneChange={setSelectedTimezone}
         tripTimezone={tripTimezone}
         userTimezone={userTimezone}
         tripId={tripId}
@@ -212,14 +224,17 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             tripEndDate={trip?.endDate || null}
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
+            userNameMap={userNameMap}
           />
         ) : (
           <GroupByTypeView
             events={events}
             accommodations={accommodations}
+            memberTravels={memberTravels}
             timezone={timezone}
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
+            userNameMap={userNameMap}
           />
         )}
       </div>

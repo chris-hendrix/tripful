@@ -6,6 +6,8 @@ import {
 } from "./helpers/auth";
 import { DashboardPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
+import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { pickDate } from "./helpers/date-pickers";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -16,6 +18,7 @@ import { snap } from "./helpers/screenshots";
 
 test.describe("Trip Journey", () => {
   test.beforeEach(async ({ page }) => {
+    await removeNextjsDevOverlay(page);
     await page.context().clearCookies();
   });
 
@@ -39,8 +42,8 @@ test.describe("Trip Journey", () => {
 
         await tripDetail.nameInput.fill(tripName);
         await tripDetail.destinationInput.fill(tripDestination);
-        await tripDetail.startDateInput.fill("2026-10-12");
-        await tripDetail.endDateInput.fill("2026-10-14");
+        await pickDate(page, tripDetail.startDateButton, "2026-10-12");
+        await pickDate(page, tripDetail.endDateButton, "2026-10-14");
         await snap(page, "05-create-trip-step1");
         await tripDetail.continueButton.click();
 
@@ -91,8 +94,8 @@ test.describe("Trip Journey", () => {
         await expect(tripDetail.step1Indicator).toBeVisible();
         await expect(tripDetail.nameInput).toHaveValue(tripName);
         await expect(tripDetail.destinationInput).toHaveValue(tripDestination);
-        await expect(tripDetail.startDateInput).toHaveValue("2026-10-12");
-        await expect(tripDetail.endDateInput).toHaveValue("2026-10-14");
+        await expect(tripDetail.startDateButton).toContainText("Oct 12, 2026");
+        await expect(tripDetail.endDateButton).toContainText("Oct 14, 2026");
 
         await tripDetail.nameInput.fill(updatedName);
         await tripDetail.destinationInput.fill(updatedDestination);
@@ -194,8 +197,8 @@ test.describe("Trip Journey", () => {
 
         await tripDetail.nameInput.fill(tripName);
         await tripDetail.destinationInput.fill(tripDestination);
-        await tripDetail.startDateInput.fill("2026-09-15");
-        await tripDetail.endDateInput.fill("2026-09-20");
+        await pickDate(page, tripDetail.startDateButton, "2026-09-15");
+        await pickDate(page, tripDetail.endDateButton, "2026-09-20");
         await tripDetail.continueButton.click();
         await expect(tripDetail.step2Indicator).toBeVisible();
         await tripDetail.createTripButton.click();

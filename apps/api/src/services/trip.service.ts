@@ -2,11 +2,12 @@ import {
   trips,
   members,
   users,
+  events,
   type Trip,
   type Member,
   type User,
 } from "@/db/schema/index.js";
-import { eq, inArray, and, asc, sql, count } from "drizzle-orm";
+import { eq, inArray, and, asc, sql, count, isNull } from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -445,6 +446,17 @@ export class TripService implements ITripService {
       }
     }
 
+    // Batch: get event counts (non-deleted only)
+    const eventCounts = await this.db
+      .select({ tripId: events.tripId, value: count() })
+      .from(events)
+      .where(and(inArray(events.tripId, pageTripIds), isNull(events.deletedAt)))
+      .groupBy(events.tripId);
+
+    const eventCountByTrip = new Map<string, number>(
+      eventCounts.map((e) => [e.tripId, e.value]),
+    );
+
     // Batch: get all organizer user info
     const allOrganizerUserIds = new Set<string>();
     for (const ids of organizerMembersByTrip.values()) {
@@ -494,7 +506,7 @@ export class TripService implements ITripService {
         rsvpStatus,
         organizerInfo,
         memberCount: memberCountByTrip.get(trip.id) ?? 0,
-        eventCount: 0,
+        eventCount: eventCountByTrip.get(trip.id) ?? 0,
       };
     });
 

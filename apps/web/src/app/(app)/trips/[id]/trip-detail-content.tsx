@@ -12,8 +12,10 @@ import {
   ClipboardList,
   AlertCircle,
   Settings,
+  ImagePlus,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
+import { useEvents } from "@/hooks/use-events";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,8 +59,12 @@ function SkeletonDetail() {
 export function TripDetailContent({ tripId }: { tripId: string }) {
   const { user } = useAuth();
   const { data: trip, isPending, isError } = useTripDetail(tripId);
+  const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // Compute active event count (filter out soft-deleted events for safety)
+  const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
 
   // Determine if user is an organizer
   const isOrganizer =
@@ -125,8 +131,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
       ) : (
-        <div className="relative h-80 overflow-hidden bg-gradient-to-br from-muted to-primary/10">
+        <div className="relative w-full h-80 overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-secondary/20">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <ImagePlus className="w-12 h-12 text-white/40" />
+            {isOrganizer && (
+              <span className="text-sm text-white/60">Add cover photo</span>
+            )}
+          </div>
         </div>
       )}
 
@@ -163,7 +175,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </div>
 
           {/* Badges */}
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
             <Badge className="bg-success/15 text-success border-success/30">
               Going
             </Badge>
@@ -219,7 +231,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <ClipboardList className="w-5 h-5" />
-              <span className="text-sm">0 events</span>
+              <span className="text-sm">
+                {activeEventCount === 0
+                  ? "No events yet"
+                  : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
+              </span>
             </div>
           </div>
 

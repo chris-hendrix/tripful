@@ -6,14 +6,22 @@ Shared TypeScript types, Zod schemas, and utilities used across the Tripful mono
 
 ```
 shared/
-├── index.ts           # Main barrel export
-├── types/            # TypeScript type definitions
+├── index.ts              # Main barrel export
+├── types/                # TypeScript type definitions
 │   ├── index.ts
-│   └── user.ts
-├── schemas/          # Zod validation schemas
+│   ├── user.ts           # User interface
+│   ├── trip.ts           # Trip, TripMember interfaces
+│   ├── event.ts          # Event interface (travel, meal, activity)
+│   ├── accommodation.ts  # Accommodation interface
+│   └── member-travel.ts  # MemberTravel interface (arrival, departure)
+├── schemas/              # Zod validation schemas
 │   ├── index.ts
-│   └── auth.ts
-└── utils/            # Utility functions
+│   ├── auth.ts           # Phone number, verification code schemas
+│   ├── trip.ts           # Create/update trip schemas
+│   ├── event.ts          # Create/update event schemas
+│   ├── accommodation.ts  # Create/update accommodation schemas
+│   └── member-travel.ts  # Create/update member travel schemas
+└── utils/                # Utility functions
     └── index.ts
 ```
 
@@ -22,14 +30,14 @@ shared/
 Import from the package root:
 
 ```typescript
-import { User, phoneNumberSchema, convertToUTC } from "@tripful/shared";
+import { User, phoneNumberSchema } from "@tripful/shared";
 ```
 
 Or import from specific subpaths:
 
 ```typescript
-import { User } from "@tripful/shared/types";
-import { phoneNumberSchema } from "@tripful/shared/schemas";
+import { User, Trip, Event, Accommodation, MemberTravel } from "@tripful/shared/types";
+import { phoneNumberSchema, createEventSchema, createTripSchema } from "@tripful/shared/schemas";
 import { convertToUTC } from "@tripful/shared/utils";
 ```
 

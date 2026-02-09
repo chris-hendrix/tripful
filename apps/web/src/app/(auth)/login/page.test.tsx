@@ -4,6 +4,34 @@ import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/navigation";
 import LoginPage from "./page";
 
+// Mock PhoneInput component for testing
+vi.mock("@/components/ui/phone-input", () => ({
+  PhoneInput: ({
+    value,
+    onChange,
+    disabled,
+    placeholder,
+    name,
+    onBlur,
+    defaultCountry: _dc,
+    className: _cn,
+    ...props
+  }: any) => (
+    <input
+      type="tel"
+      value={value || ""}
+      onChange={(e: any) => onChange?.(e.target.value)}
+      onBlur={onBlur}
+      name={name}
+      disabled={disabled}
+      placeholder={placeholder}
+      aria-label="Phone number"
+      data-testid="phone-input"
+      {...props}
+    />
+  ),
+}));
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
@@ -211,5 +239,13 @@ describe("LoginPage", () => {
         "By continuing, you agree to our Terms of Service and Privacy Policy",
       ),
     ).toBeDefined();
+  });
+
+  it("renders phone input with country selector mock", () => {
+    render(<LoginPage />);
+
+    const input = screen.getByTestId("phone-input");
+    expect(input).toBeDefined();
+    expect(input.getAttribute("type")).toBe("tel");
   });
 });
