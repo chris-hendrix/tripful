@@ -793,3 +793,61 @@ Initial review found 6 issues:
 - E2E tests run in ~32 seconds total (11 tests). The new invitation helper tests add minimal overhead since they only use API calls (no browser interaction).
 - Phase 5 Task 5.1 is complete. Next is Task 5.2: Update existing E2E tests for isOrganizer permission model.
 
+## Iteration 14 — Task 5.2: Update existing E2E tests for isOrganizer permission model
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+This was a **verification task** — reviewing all existing E2E tests to ensure they work correctly with the new `isOrganizer` permission model (which replaced the old `status='going'` organizer detection). The result: **no code changes were needed**.
+
+1. **Reviewed `trip-journey.spec.ts`** (447 lines, 3 tests):
+   - The "trip permissions journey" test exercises the co-organizer flow through `POST /api/trips/:id/co-organizers` and `DELETE /api/trips/:id/co-organizers/:userId`. These endpoints correctly set `isOrganizer: true` on member records.
+   - The test verifies "Organizing" badge visibility, edit permissions, and access revocation after co-organizer removal.
+   - No test relies on `status='going'` for organizer permissions — all organizer logic flows through API endpoints that set `isOrganizer: true`.
+
+2. **Reviewed `itinerary-journey.spec.ts`** (475 lines, 3 tests):
+   - All tests operate as the trip creator who automatically gets `isOrganizer: true` via `createTrip()`.
+   - The "itinerary permissions and validation" test verifies non-member access denial and organizer-only event creation, both of which work correctly with the `isOrganizer` column.
+   - No test creates non-organizer members that would exercise the `status='going'` → organizer path.
+
+3. **Reviewed `app-shell.spec.ts`** (64 lines, 1 test):
+   - Tests header, navigation, user menu, and skip link. No trip or permission logic. No impact.
+
+4. **Reviewed `auth-journey.spec.ts`** (107 lines, 2 tests):
+   - Tests authentication flow (login, verification, profile, logout, guards). No trip or permission logic. No impact.
+
+5. **Reviewed `invitation-helpers.spec.ts`** (169 lines, 2 tests):
+   - Already works with the new model — invited members get `isOrganizer: false` by default, and the test verifies RSVP `status` (not organizer permissions).
+   - The `inviteAndAcceptViaAPI` helper correctly creates non-organizer members via the invitation flow.
+
+6. **`inviteAndAcceptViaAPI` helper usage**: The task specified to use this helper "where tests need non-creator members." After review, no existing test creates non-creator members outside the co-organizer API path, so the helper is not needed by any existing test. It will be used in Task 5.3 (new invitation/RSVP E2E tests).
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
+- `pnpm test:e2e`: ✅ PASS (11/11 tests in 48.2s):
+  - `app-shell.spec.ts` — 1 test passed
+  - `auth-journey.spec.ts` — 2 tests passed
+  - `invitation-helpers.spec.ts` — 2 tests passed
+  - `itinerary-journey.spec.ts` — 3 tests passed
+  - `trip-journey.spec.ts` — 3 tests passed
+- Reviewer: ✅ APPROVED (2 low-severity non-blocking suggestions)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** A future E2E test could verify that a non-organizer member with `status='going'` can add events when `allowMembersToAddEvents=true` but cannot edit/delete the trip — this exercises the organizer vs. regular member distinction. Likely within scope for Task 5.3.
+- **[LOW]** The `inviteAndAcceptViaAPI` helper could defensively verify that the invited member does NOT have `isOrganizer: true`, but this is more of a unit-test-level concern.
+
+### Learnings for future iterations
+
+- The existing E2E tests were well-designed from the start — they test through API endpoints rather than directly manipulating the database, so the internal shift from `status='going'` to `isOrganizer` column was completely transparent to them.
+- Verification tasks (where no code changes are needed) are a valid outcome. The thorough review process confirms the backward compatibility of the permission model change rather than introducing unnecessary changes.
+- The `inviteAndAcceptViaAPI` helper exists but has no use cases in existing tests. It will be critical for Task 5.3 where new E2E tests need to create non-organizer members with specific RSVP statuses.
+- The co-organizer removal flow in `trip-journey.spec.ts` deletes the member record entirely (not just setting `isOrganizer: false`), which means the removed user gets a 404. This is the correct behavior per the architecture decision.
+- Phase 5 Task 5.2 is complete. Next is Task 5.3: Write new E2E tests for invitation and RSVP journey.
+

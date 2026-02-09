@@ -139,7 +139,7 @@
   - Test: Verify helper works by using it in a simple test
   - Verify: Helper integrates cleanly with existing `authenticateViaAPI` pattern
 
-- [ ] Task 5.2: Update existing E2E tests for isOrganizer permission model
+- [x] Task 5.2: Update existing E2E tests for isOrganizer permission model
   - Implement: Review `trip-journey.spec.ts` - update co-organizer tests if any break
   - Implement: Review `itinerary-journey.spec.ts` - update any tests that rely on status='going' for permissions
   - Implement: Review `app-shell.spec.ts` and `auth-journey.spec.ts` for any impacts
