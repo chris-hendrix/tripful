@@ -1,18 +1,7 @@
 // Trip validation schemas for the Tripful platform
 
 import { z } from "zod";
-
-/**
- * Validates phone numbers in E.164 format
- * Format: +[country code][number] (e.g., +14155552671)
- * - Must start with '+'
- * - Country code: 1-3 digits (first digit cannot be 0)
- * - Total length: 8-15 characters (including '+')
- * - This means 7-14 digits after '+'
- */
-const phoneNumberSchema = z.string().regex(/^\+[1-9]\d{6,13}$/, {
-  message: "Phone number must be in E.164 format (e.g., +14155552671)",
-});
+import { phoneNumberSchema } from "./phone";
 
 /**
  * Validates IANA timezone strings using Intl.supportedValuesOf

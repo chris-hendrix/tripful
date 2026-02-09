@@ -1,13 +1,7 @@
 // Invitation validation schemas for the Tripful platform
 
 import { z } from "zod";
-
-/**
- * Validates phone numbers in E.164 format (local copy to avoid circular imports)
- */
-const phoneNumberSchema = z.string().regex(/^\+[1-9]\d{1,14}$/, {
-  message: "Phone number must be in E.164 format (e.g., +14155552671)",
-});
+import { phoneNumberSchema } from "./phone";
 
 /**
  * Validates batch invitation creation data
