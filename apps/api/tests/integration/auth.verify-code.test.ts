@@ -2,8 +2,14 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
-import { verificationCodes, users } from "@/db/schema/index.js";
-import { eq } from "drizzle-orm";
+import {
+  verificationCodes,
+  users,
+  trips,
+  members,
+  invitations,
+} from "@/db/schema/index.js";
+import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
 describe("POST /api/auth/verify-code", () => {
@@ -552,6 +558,100 @@ describe("POST /api/auth/verify-code", () => {
       expect(allUsers[0].id).toBe(existingUser.id);
       expect(allUsers[0].displayName).toBe("Original User");
       expect(allUsers[0].timezone).toBe("America/Los_Angeles");
+    });
+  });
+
+  describe("Pending Invitations Processing", () => {
+    it("processes pending invitations after verify-code", async () => {
+      app = await buildApp();
+
+      const inviteePhone = generateUniquePhone();
+      const code = "111222";
+
+      // Create an organizer user and a trip
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Trip Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Invitation Trip",
+          destination: "Barcelona, Spain",
+          preferredTimezone: "Europe/Madrid",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create a pending invitation for the invitee phone
+      await db.insert(invitations).values({
+        tripId: trip.id,
+        inviterId: organizer.id,
+        inviteePhone: inviteePhone,
+        status: "pending",
+      });
+
+      // Create verification code for the invitee
+      await db.insert(verificationCodes).values({
+        phoneNumber: inviteePhone,
+        code,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+
+      // Verify the code - this should trigger processPendingInvitations
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/verify-code",
+        payload: {
+          phoneNumber: inviteePhone,
+          code,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      const userId = body.user.id;
+
+      // Verify that a member record was created for the invitee
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(
+          and(eq(members.tripId, trip.id), eq(members.userId, userId)),
+        );
+
+      expect(memberRecords).toHaveLength(1);
+      expect(memberRecords[0].status).toBe("no_response");
+      expect(memberRecords[0].isOrganizer).toBe(false);
+
+      // Verify the invitation status was updated to accepted
+      const updatedInvitations = await db
+        .select()
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.tripId, trip.id),
+            eq(invitations.inviteePhone, inviteePhone),
+          ),
+        );
+
+      expect(updatedInvitations).toHaveLength(1);
+      expect(updatedInvitations[0].status).toBe("accepted");
     });
   });
 });

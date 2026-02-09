@@ -1484,6 +1484,486 @@ describe("GET /api/trips/:id", () => {
       expect(body.error.code).toBe("UNAUTHORIZED");
     });
   });
+
+  describe("Preview and Membership Info", () => {
+    it("returns 404 for uninvited user", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create uninvited user (no member record)
+      const [uninvitedUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Uninvited User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: uninvitedUser.id,
+        phone: uninvitedUser.phoneNumber,
+        name: uninvitedUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+
+    it("returns preview for invited non-Going member with no_response status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Preview Trip",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create invited user with no_response status
+      const [invitedUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Invited User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: invitedUser.id,
+        status: "no_response",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: invitedUser.id,
+        phone: invitedUser.phoneNumber,
+        name: invitedUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.trip).toBeDefined();
+      expect(body.trip.name).toBe("Preview Trip");
+      expect(body.userRsvpStatus).toBe("no_response");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+      expect(body.trip).toHaveProperty("preferredTimezone");
+      expect(body.trip).toHaveProperty("description");
+      expect(body.trip).toHaveProperty("coverImageUrl");
+    });
+
+    it("returns preview for member with maybe status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Maybe Trip",
+          destination: "Berlin, Germany",
+          preferredTimezone: "Europe/Berlin",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create user with maybe status
+      const [maybeUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Maybe User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: maybeUser.id,
+        status: "maybe",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: maybeUser.id,
+        phone: maybeUser.phoneNumber,
+        name: maybeUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.userRsvpStatus).toBe("maybe");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+    });
+
+    it("returns preview for member with not_going status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Not Going Trip",
+          destination: "Sydney, Australia",
+          preferredTimezone: "Australia/Sydney",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create user with not_going status
+      const [notGoingUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Not Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: notGoingUser.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: notGoingUser.id,
+        phone: notGoingUser.phoneNumber,
+        name: notGoingUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.userRsvpStatus).toBe("not_going");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+    });
+
+    it("returns full data for Going member", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Full Data Trip",
+          destination: "London, UK",
+          preferredTimezone: "Europe/London",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as going member (not organizer)
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(false);
+      expect(body.userRsvpStatus).toBe("going");
+      expect(body.isOrganizer).toBe(false);
+    });
+
+    it("returns full data for organizer regardless of RSVP status", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer No Response",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Organizer Trip",
+          destination: "Rome, Italy",
+          preferredTimezone: "Europe/Rome",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as organizer with no_response status
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "no_response",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(false);
+      expect(body.isOrganizer).toBe(true);
+      expect(body.userRsvpStatus).toBe("no_response");
+    });
+
+    it("includes userRsvpStatus and isOrganizer in response", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Status User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Status Trip",
+          destination: "Barcelona, Spain",
+          preferredTimezone: "Europe/Madrid",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as going organizer
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("userRsvpStatus");
+      expect(body).toHaveProperty("isOrganizer");
+      expect(body).toHaveProperty("isPreview");
+      expect(["going", "not_going", "maybe", "no_response"]).toContain(
+        body.userRsvpStatus,
+      );
+      expect(typeof body.isOrganizer).toBe("boolean");
+      expect(typeof body.isPreview).toBe("boolean");
+    });
+  });
 });
 
 describe("PUT /api/trips/:id", () => {

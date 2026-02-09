@@ -131,17 +131,23 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Get trip from service
-      const trip = await tripService.getTripById(id, userId);
+      const result = await tripService.getTripById(id, userId);
 
       // Handle null response (either not found or not authorized)
-      if (!trip) {
+      if (!result) {
         throw new TripNotFoundError();
       }
 
-      // Return success response
+      // Destructure membership info from trip data
+      const { isPreview, userRsvpStatus, isOrganizer, ...trip } = result;
+
+      // Return success response with membership info
       return reply.status(200).send({
         success: true,
         trip,
+        isPreview,
+        userRsvpStatus,
+        isOrganizer,
       });
     } catch (error) {
       // Re-throw typed errors for error handler

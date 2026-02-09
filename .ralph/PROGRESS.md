@@ -308,3 +308,84 @@ Tracking implementation progress for this project.
 - All three RSVP enum values (`going`, `maybe`, `not_going`) should be tested explicitly for complete coverage.
 - Phase 3 Task 3.2 is complete. Next is Task 3.3: Modify trip and event endpoints for preview and creatorAttending.
 
+## Iteration 7 — Task 3.3: Modify trip and event endpoints for preview and creatorAttending
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **TripService `getTripById()` changes** (`apps/api/src/services/trip.service.ts`):
+   - Updated return type to include `isPreview`, `userRsvpStatus`, and `isOrganizer` fields
+   - Added preview field filtering: when `isPreview` is true, trip object only includes `id`, `name`, `destination`, `startDate`, `endDate`, `preferredTimezone`, `description`, `coverImageUrl` (8 allowed fields). Other fields like `createdBy`, `allowMembersToAddEvents`, `cancelled` are stripped from preview.
+   - Preview logic: `isPreview = status !== 'going' && !isOrganizer`. Organizers always get full data regardless of RSVP status.
+   - Defined proper named types: `OrganizerInfo`, `TripMembershipMeta`, `TripPreview` (using `Pick<Trip, ...>`), `TripDetailResult`
+   - Updated `ITripService` interface accordingly
+
+2. **Trip controller changes** (`apps/api/src/controllers/trip.controller.ts`):
+   - Updated `getTripById` handler to destructure `isPreview`, `userRsvpStatus`, `isOrganizer` from service result
+   - Response now sends `{ success: true, trip, isPreview, userRsvpStatus, isOrganizer }`
+
+3. **EventService `getEventsByTrip()` changes** (`apps/api/src/services/event.service.ts`):
+   - Added LEFT JOIN with `users` table (on `events.createdBy = users.id`) for displayName and profilePhotoUrl
+   - Added LEFT JOIN with `members` table (on `members.userId = events.createdBy AND members.tripId = events.tripId`) for RSVP status
+   - Computes `creatorAttending = members.status === 'going'` (false when member record is null, i.e., creator removed from trip)
+   - Maps results to include `creatorAttending`, `creatorName`, `creatorProfilePhotoUrl` on each event
+   - Added explanatory comment for why LEFT JOIN is used on members (creator may have been removed)
+   - Updated `IEventService` interface return type
+
+4. **Event controller access gating** (`apps/api/src/controllers/event.controller.ts`):
+   - Added preview access check in both `listEvents` and `getEvent` endpoints
+   - Non-going, non-organizer members get 403 with `PREVIEW_ACCESS_ONLY` error code
+   - Uses existing `permissionsService.canViewFullTrip()` and `permissionsService.isOrganizer()` methods
+
+5. **Auth flow integration** (`apps/api/src/controllers/auth.controller.ts`):
+   - Added `processPendingInvitations()` call after `getOrCreateUser()` in `verifyCode` handler
+   - Wrapped in try/catch so invitation processing failures don't block login
+   - Comment clarifies "fault-tolerant: awaited but wrapped in try/catch so failures don't break auth"
+
+6. **Integration tests** — 12 new tests across 3 files:
+   - **Trip preview tests** (`apps/api/tests/integration/trip.routes.test.ts`) — 7 tests:
+     - Returns 404 for uninvited user
+     - Returns preview for `no_response` member (isPreview: true, restricted fields absent, allowed fields present)
+     - Returns preview for `maybe` member (same assertions)
+     - Returns preview for `not_going` member (same assertions)
+     - Returns full data for Going member (isPreview: false)
+     - Returns full data for organizer regardless of RSVP status
+     - Includes userRsvpStatus and isOrganizer in response
+   - **Event creator tests** (`apps/api/tests/integration/event.routes.test.ts`) — 4 tests:
+     - Events include creatorAttending: true when creator status is 'going'
+     - creatorAttending is false when creator RSVP is 'maybe'
+     - Events include creatorName and creatorProfilePhotoUrl
+     - Returns 403 for non-going non-organizer member
+     - Returns creatorAttending false when event creator removed from trip
+   - **Auth integration test** (`apps/api/tests/integration/auth.verify-code.test.ts`) — 1 test:
+     - Processes pending invitations after verify-code (member record created, invitation status updated to 'accepted')
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures — up from 654)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- Reviewer: ✅ APPROVED (initial review returned NEEDS_WORK with 6 issues; all fixed and re-approved)
+
+### Reviewer feedback (all resolved)
+
+Initial review found 6 issues:
+1. **[HIGH]** Preview mode returned all trip fields instead of filtering — Fixed: preview now returns only 8 allowed fields
+2. **[MEDIUM]** Preview tests didn't assert restricted fields absent — Fixed: added negative assertions for `createdBy`, `allowMembersToAddEvents`, `cancelled`, `createdAt`, `updatedAt`
+3. **[MEDIUM]** Missing test for `not_going` status — Fixed: added dedicated test case
+4. **[MEDIUM]** Events endpoint not gated behind preview check — Fixed: added `canViewFullTrip` + `isOrganizer` check returning 403
+5. **[LOW]** Missing comment for null member record edge case — Fixed: added comment and regression test
+6. **[LOW]** Type assertion instead of named types — Fixed: defined `OrganizerInfo`, `TripMembershipMeta`, `TripPreview`, `TripDetailResult` types
+
+### Learnings for future iterations
+
+- Preview mode should use an allowlist approach (explicit `Pick<Trip, ...>` with only allowed fields) rather than spreading the full object. This is safe-by-construction — new columns added to the trips table won't leak into preview responses.
+- When the architecture spec says "no itinerary data reference" for preview, this means the events/itinerary endpoints themselves should return 403 for non-going members, not just omit data from the trip response. The frontend should check `isPreview` before requesting events.
+- LEFT JOIN on members table is needed when querying creator info because the creator may have been removed from the trip. Using INNER JOIN would silently drop events whose creators were removed.
+- The `canViewFullTrip()` method was already defined in PermissionsService (Task 1.2) but unused until this task. It was the correct abstraction to reuse for both trip preview checks and event access gating.
+- Auth integration with `processPendingInvitations` should be fault-tolerant (try/catch) not fire-and-forget (void promise). Using `await` ensures the operation completes before the response is sent, but the try/catch prevents login failures if invitation processing errors occur.
+- Named types (`OrganizerInfo`, `TripPreview`, etc.) at the service level improve readability and help TypeScript catch mismatches between the interface declaration and implementation. They're better than inline `as` assertions.
+- Phase 3 (Backend API Endpoints) is now fully complete. All 3 tasks (3.1 InvitationService, 3.2 invitation routes, 3.3 preview + creatorAttending) are done. Next is Phase 4: Frontend — Invitation & RSVP UI (Task 4.1).
+

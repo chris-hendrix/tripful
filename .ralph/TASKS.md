@@ -73,7 +73,7 @@
   - Test: Write integration tests for GET `/api/trips/:tripId/members` (access control, phone number visibility)
   - Verify: `pnpm test` passes, `pnpm typecheck` passes
 
-- [ ] Task 3.3: Modify trip and event endpoints for preview and creatorAttending
+- [x] Task 3.3: Modify trip and event endpoints for preview and creatorAttending
   - Implement: Update `getTripById` in TripService to return partial preview for non-Going members (isPreview: true, no itinerary data reference)
   - Implement: Update trip controller to pass through `isPreview` and `userRsvpStatus` fields
   - Implement: Update EventService `getEventsByTrip()` to join with members table and include `creatorAttending`, `creatorName`, `creatorProfilePhotoUrl` on each event

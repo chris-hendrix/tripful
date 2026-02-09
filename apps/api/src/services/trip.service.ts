@@ -54,6 +54,49 @@ export type PaginatedTripsResult = {
 };
 
 /**
+ * Organizer info returned with trip detail responses
+ */
+type OrganizerInfo = {
+  id: string;
+  displayName: string;
+  phoneNumber: string;
+  profilePhotoUrl: string | null;
+  timezone: string;
+};
+
+/**
+ * Membership metadata returned alongside trip detail responses
+ */
+type TripMembershipMeta = {
+  organizers: OrganizerInfo[];
+  memberCount: number;
+  isPreview: boolean;
+  userRsvpStatus: "going" | "not_going" | "maybe" | "no_response";
+  isOrganizer: boolean;
+};
+
+/**
+ * Preview trip fields - limited subset visible to non-Going, non-organizer members
+ */
+type TripPreview = Pick<
+  Trip,
+  | "id"
+  | "name"
+  | "destination"
+  | "startDate"
+  | "endDate"
+  | "preferredTimezone"
+  | "description"
+  | "coverImageUrl"
+>;
+
+/**
+ * Full trip detail result: either all Trip fields (full) or preview-only fields,
+ * combined with organizer/membership metadata.
+ */
+export type TripDetailResult = (Trip | TripPreview) & TripMembershipMeta;
+
+/**
  * Trip Service Interface
  * Defines the contract for trip management operations
  */
@@ -70,26 +113,15 @@ export interface ITripService {
 
   /**
    * Gets a trip by ID with organizer and member information
+   * Returns preview for non-Going members and full data for Going members/organizers
    * @param tripId - The UUID of the trip to retrieve
    * @param userId - The UUID of the user requesting the trip
-   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
+   * @returns Promise that resolves to the trip with organizers, memberCount, and membership info, or null if not found or not authorized
    */
   getTripById(
     tripId: string,
     userId: string,
-  ): Promise<
-    | (Trip & {
-        organizers: Array<{
-          id: string;
-          displayName: string;
-          phoneNumber: string;
-          profilePhotoUrl: string | null;
-          timezone: string;
-        }>;
-        memberCount: number;
-      })
-    | null
-  >;
+  ): Promise<TripDetailResult | null>;
 
   /**
    * Gets all trips for a user with summary information
@@ -274,26 +306,15 @@ export class TripService implements ITripService {
   /**
    * Gets a trip by ID with organizer and member information
    * Returns null if trip not found or user is not a member (security best practice)
+   * Returns preview for non-Going members and full data for Going members/organizers
    * @param tripId - The UUID of the trip to retrieve
    * @param userId - The UUID of the user requesting the trip
-   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
+   * @returns Promise that resolves to the trip with organizers, memberCount, and membership info, or null if not found or not authorized
    */
   async getTripById(
     tripId: string,
     userId: string,
-  ): Promise<
-    | (Trip & {
-        organizers: Array<{
-          id: string;
-          displayName: string;
-          phoneNumber: string;
-          profilePhotoUrl: string | null;
-          timezone: string;
-        }>;
-        memberCount: number;
-      })
-    | null
-  > {
+  ): Promise<TripDetailResult | null> {
     // Check if user is a member of the trip
     const membershipCheck = await this.db
       .select()
@@ -305,6 +326,13 @@ export class TripService implements ITripService {
     if (membershipCheck.length === 0) {
       return null;
     }
+
+    const memberRecord = membershipCheck[0]!;
+    const userRsvpStatus = memberRecord.status;
+    const userIsOrganizer = memberRecord.isOrganizer;
+
+    // Determine if this is a preview: non-Going members who are not organizers see preview
+    const isPreview = userRsvpStatus !== "going" && !userIsOrganizer;
 
     // Load the trip
     const tripResult = await this.db
@@ -318,7 +346,7 @@ export class TripService implements ITripService {
       return null;
     }
 
-    const trip = tripResult[0];
+    const trip = tripResult[0]!;
 
     // Load organizers: members with isOrganizer=true (creator and co-organizers)
     const organizerMembers = await this.db
@@ -343,20 +371,34 @@ export class TripService implements ITripService {
     // Load member count
     const memberCount = await this.getMemberCount(tripId);
 
-    // Return enhanced trip object with explicit type assertion
-    return {
-      ...trip,
+    const meta: TripMembershipMeta = {
       organizers: organizerUsers,
       memberCount,
-    } as Trip & {
-      organizers: Array<{
-        id: string;
-        displayName: string;
-        phoneNumber: string;
-        profilePhotoUrl: string | null;
-        timezone: string;
-      }>;
-      memberCount: number;
+      isPreview,
+      userRsvpStatus,
+      isOrganizer: userIsOrganizer,
+    };
+
+    // For preview mode, return only the allowed subset of trip fields
+    // Preview excludes sensitive/internal fields like createdBy, allowMembersToAddEvents, cancelled, etc.
+    if (isPreview) {
+      return {
+        id: trip.id,
+        name: trip.name,
+        destination: trip.destination,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        preferredTimezone: trip.preferredTimezone,
+        description: trip.description,
+        coverImageUrl: trip.coverImageUrl,
+        ...meta,
+      };
+    }
+
+    // Return full trip data with membership info
+    return {
+      ...trip,
+      ...meta,
     };
   }
 

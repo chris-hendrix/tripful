@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
 import { users, trips, members, events } from "@/db/schema/index.js";
+import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
 describe("Event Routes", () => {
@@ -379,6 +380,371 @@ describe("Event Routes", () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+
+    it("includes creatorAttending field on events when creator status is going", async () => {
+      app = await buildApp();
+
+      // Create test user
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      // Add user as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create an event
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: testUser.id,
+        name: "Attending Event",
+        eventType: "activity",
+        startTime: new Date("2026-06-15T14:00:00Z"),
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.events).toHaveLength(1);
+      expect(body.events[0].creatorAttending).toBe(true);
+    });
+
+    it("creatorAttending is false when creator RSVP is not going", async () => {
+      app = await buildApp();
+
+      // Create event creator
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Maybe Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create a second user (organizer) to fetch events
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Add creator as maybe member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: creator.id,
+        status: "maybe",
+        isOrganizer: false,
+      });
+
+      // Create an event by the creator
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: creator.id,
+        name: "Maybe Event",
+        eventType: "meal",
+        startTime: new Date("2026-06-15T18:00:00Z"),
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.events).toHaveLength(1);
+      expect(body.events[0].creatorAttending).toBe(false);
+    });
+
+    it("includes creatorName and creatorProfilePhotoUrl on events", async () => {
+      app = await buildApp();
+
+      // Create test user with profile info
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Jane Smith",
+          timezone: "UTC",
+          profilePhotoUrl: "https://example.com/photo.jpg",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      // Add user as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create an event
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: testUser.id,
+        name: "Profile Event",
+        eventType: "activity",
+        startTime: new Date("2026-06-15T14:00:00Z"),
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.events).toHaveLength(1);
+      expect(body.events[0].creatorName).toBe("Jane Smith");
+      expect(body.events[0].creatorProfilePhotoUrl).toBe(
+        "https://example.com/photo.jpg",
+      );
+    });
+
+    it("returns 403 for non-going non-organizer member", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Preview Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create a maybe member (non-going, non-organizer)
+      const [maybeUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Maybe User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: maybeUser.id,
+        status: "maybe",
+        isOrganizer: false,
+      });
+
+      // Create an event
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: organizer.id,
+        name: "Secret Event",
+        eventType: "activity",
+        startTime: new Date("2026-06-15T14:00:00Z"),
+      });
+
+      const token = app.jwt.sign({
+        sub: maybeUser.id,
+        phone: maybeUser.phoneNumber,
+        name: maybeUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error).toBe("PREVIEW_ACCESS_ONLY");
+    });
+
+    it("returns creatorAttending false when event creator is removed from trip", async () => {
+      app = await buildApp();
+
+      // Create trip organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create event creator
+      const [creator] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Removed Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Add creator as going member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: creator.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      // Create an event by the creator
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: creator.id,
+        name: "Creator Removed Event",
+        eventType: "activity",
+        startTime: new Date("2026-06-15T14:00:00Z"),
+      });
+
+      // Remove the creator's member record (simulates being removed from trip)
+      await db
+        .delete(members)
+        .where(
+          and(eq(members.tripId, trip.id), eq(members.userId, creator.id)),
+        );
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.events).toHaveLength(1);
+      // Creator was removed from trip, so creatorAttending should be false
+      expect(body.events[0].creatorAttending).toBe(false);
     });
   });
 
