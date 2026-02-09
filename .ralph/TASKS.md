@@ -95,7 +95,7 @@
   - Test: Verify TypeScript compilation (`pnpm typecheck`)
   - Verify: `pnpm typecheck` passes, no runtime errors in dev mode
 
-- [ ] Task 4.2: Build TripPreview component and conditional rendering on trip detail page
+- [x] Task 4.2: Build TripPreview component and conditional rendering on trip detail page
   - Implement: Create `apps/web/src/components/trip/trip-preview.tsx` showing trip name, destination, dates, description, cover image, organizer info, RSVP buttons
   - Implement: Update `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` to check `isPreview` and render TripPreview or full detail accordingly
   - Implement: After RSVPing "Going", invalidate trip query to refresh and show full itinerary

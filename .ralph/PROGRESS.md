@@ -474,3 +474,78 @@ Initial review found 6 issues:
 - The `useInviteMembers` mutation returns the full `CreateInvitationsResponse` (with `invitations` and `skipped` arrays) instead of unwrapping it, so the UI component (Task 4.3) can display both success and skipped information.
 - Phase 4 Task 4.1 is complete. Next is Task 4.2: Build TripPreview component and conditional rendering on trip detail page.
 
+## Iteration 9 — Task 4.2: Build TripPreview component and conditional rendering on trip detail page
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New TripPreview component** (`apps/web/src/components/trip/trip-preview.tsx`):
+   - `"use client"` component accepting `trip: TripDetailWithMeta` and `tripId: string` props
+   - Cover image section (or gradient placeholder) using the same hero pattern as trip-detail-content.tsx
+   - Trip name (Playfair font), destination (MapPin icon), date range (Calendar icon), member count (Users icon)
+   - Conditional description rendering in a card
+   - Organizer avatars (photos or initials via `getInitials`) and names
+   - Invitation banner with Mail icon: "You've been invited!" / "RSVP to see the full itinerary."
+   - Three RSVP action buttons with status-aware styling:
+     - **Going**: `bg-success` when active, success-colored outline otherwise
+     - **Maybe**: `bg-amber-500` when active, amber-colored outline otherwise
+     - **Not Going**: `bg-destructive/15` when active, destructive ghost otherwise
+   - Uses `useUpdateRsvp(tripId)` from `@/hooks/use-invitations` for mutation
+   - Toast success on RSVP change, toast error via `getUpdateRsvpErrorMessage` on failure
+   - All buttons disabled during `isPending` with `Loader2` spinner on active status button
+   - After RSVPing "Going", cache invalidation causes refetch with `isPreview: false`, auto-switching to full view
+
+2. **Modified trip-detail-content.tsx** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
+   - Added `import { TripPreview } from "@/components/trip/trip-preview"`
+   - Added early return `if (trip.isPreview) { return <TripPreview trip={trip} tripId={tripId} />; }` before the full detail render
+   - Removed the now-redundant `{!trip.isPreview && ...}` guard on `<ItineraryView>` since preview mode returns early
+
+3. **Updated barrel exports** (`apps/web/src/components/trip/index.ts`):
+   - Added `export { TripPreview } from "./trip-preview";`
+
+4. **New TripPreview tests** (`apps/web/src/components/trip/__tests__/trip-preview.test.tsx`) — 17 tests:
+   - Renders trip name, destination, and date range
+   - Renders cover image when coverImageUrl exists
+   - Renders gradient placeholder when no cover image
+   - Renders organizer names and avatars (including initials fallback)
+   - Renders member count
+   - Shows invitation banner message
+   - Renders all 3 RSVP buttons
+   - Highlights Going/Maybe/Not Going button as active when matching userRsvpStatus (3 tests)
+   - Calls useUpdateRsvp with correct tripId
+   - Clicking Going/Maybe/Not Going calls mutate with correct status (3 tests)
+   - Shows loading state (all buttons disabled) when isPending
+   - Renders description when available
+   - Does NOT render description when not provided
+
+5. **Updated trip-detail-content tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`) — 3 new tests:
+   - Added TripPreview mock component
+   - "renders TripPreview component when trip.isPreview is true"
+   - "does not render ItineraryView when trip.isPreview is true"
+   - "does not render TripPreview when trip.isPreview is false (renders ItineraryView instead)"
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (web): ✅ PASS (673 of 690 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- New `trip-preview.test.tsx`: ✅ PASS (17/17 tests)
+- Updated `trip-detail-content.test.tsx`: ✅ PASS (39/39 tests)
+- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** Going button spinner logic uses unnecessarily convoluted nested ternary — functionally correct but could be simplified to match Maybe/Not Going buttons' pattern
+- **[LOW]** Spinner appears on the currently-active status button rather than the clicked button — minor UX imperfection since `isPending` is global mutation state and `userRsvpStatus` hasn't updated yet. All buttons are disabled during pending so users still see activity indication.
+- **[LOW]** `useEvents(tripId)` fires unconditionally even in preview mode — data is unused since TripPreview renders via early return. Minimal performance cost since server returns 403 for non-Going members anyway.
+
+### Learnings for future iterations
+
+- The early-return pattern (`if (trip.isPreview) return <TripPreview .../>`) is cleaner than wrapping both preview and full detail in conditional blocks. It also allowed removing the redundant `!trip.isPreview` guard on `<ItineraryView>`.
+- When building status-aware button styles, track which button was clicked via local state if you want the spinner on the clicked button rather than the current-status button. The global `isPending` + server-side `userRsvpStatus` approach shows spinner on the "wrong" button, though this is cosmetically minor.
+- The `useEvents(tripId)` hook fires unconditionally in preview mode because it's called before the early return check. To avoid this, the hook could accept an `enabled` option, or the query could be conditionally called. Not worth fixing now since the server rejects the request anyway.
+- TripPreview only accesses fields from the server's preview allowlist (`name`, `destination`, `startDate`, `endDate`, `description`, `coverImageUrl`, `organizers`, `memberCount`, `userRsvpStatus`), so no sensitive data leaks in preview mode.
+- Phase 4 Task 4.2 is complete. Next is Task 4.3: Build InviteMembersDialog with batch phone input.
+

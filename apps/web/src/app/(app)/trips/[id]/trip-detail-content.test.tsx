@@ -104,6 +104,13 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
+// Mock TripPreview component
+vi.mock("@/components/trip/trip-preview", () => ({
+  TripPreview: ({ trip, tripId }: any) => (
+    <div data-testid="trip-preview">TripPreview: {trip.name}</div>
+  ),
+}));
+
 // Mock EditTripDialog component
 vi.mock("@/components/trip/edit-trip-dialog", () => ({
   EditTripDialog: ({
@@ -1094,6 +1101,85 @@ describe("TripDetailContent", () => {
       await waitFor(() => {
         expect(screen.getByText("Ends Jun 5, 2026")).toBeDefined();
       });
+    });
+  });
+
+  describe("preview mode", () => {
+    const previewTrip: TripDetailWithMeta = {
+      ...mockTripDetail,
+      isPreview: true,
+      userRsvpStatus: "no_response",
+      isOrganizer: false,
+    };
+
+    it("renders TripPreview component when trip.isPreview is true", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: previewTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trip-preview")).toBeDefined();
+        expect(
+          screen.getByText("TripPreview: Bachelor Party in Miami"),
+        ).toBeDefined();
+      });
+    });
+
+    it("does not render ItineraryView when trip.isPreview is true", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: previewTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trip-preview")).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("itinerary-view")).toBeNull();
+    });
+
+    it("does not render TripPreview when trip.isPreview is false", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("trip-preview")).toBeNull();
+      expect(screen.getByTestId("itinerary-view")).toBeDefined();
     });
   });
 });

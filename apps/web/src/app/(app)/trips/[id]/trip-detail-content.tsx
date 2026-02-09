@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { TripPreview } from "@/components/trip/trip-preview";
 
 const EditTripDialog = dynamic(
   () =>
@@ -92,6 +93,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
       </div>
     );
+  }
+
+  // Preview mode: show limited trip info with RSVP buttons
+  if (trip.isPreview) {
+    return <TripPreview trip={trip} tripId={tripId} />;
   }
 
   return (
@@ -263,8 +269,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
         </div>
 
-        {/* Itinerary section (hidden in preview mode) */}
-        {!trip.isPreview && <ItineraryView tripId={tripId} />}
+        {/* Itinerary section */}
+        <ItineraryView tripId={tripId} />
       </div>
 
       {/* Edit Trip Dialog */}
