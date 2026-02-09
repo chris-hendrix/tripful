@@ -24,6 +24,7 @@ import eventServicePlugin from "./plugins/event-service.js";
 import accommodationServicePlugin from "./plugins/accommodation-service.js";
 import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
+import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 
@@ -156,6 +157,7 @@ export async function buildApp(
   await app.register(accommodationServicePlugin);
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
+  await app.register(invitationServicePlugin);
 
   // Register error handler
   app.setErrorHandler(errorHandler);

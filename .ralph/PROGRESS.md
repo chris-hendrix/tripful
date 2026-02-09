@@ -190,3 +190,66 @@ Tracking implementation progress for this project.
 - New fields on `Event` are optional (`?`) because they are computed fields populated only by specific list endpoints via JOIN queries, not present on creation/single-fetch responses.
 - Phase 2 (Shared Schemas & Types) is now complete (only had 1 task). Next is Phase 3: Backend API Endpoints (Task 3.1: Create InvitationService).
 
+## Iteration 5 — Task 3.1: Create InvitationService with batch invite and RSVP logic
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **InvitationService** (`apps/api/src/services/invitation.service.ts`) — New file, ~510 lines:
+   - `IInvitationService` interface with 6 methods and JSDoc
+   - `InvitationService` class with constructor taking `db: AppDatabase`, `permissionsService: IPermissionsService`, `smsService: ISMSService`
+   - `createInvitations()`: Transaction-safe batch invite. Checks `canInviteMembers` permission, counts current members against 25 limit, deduplicates against already-invited and already-member phones, creates invitation records, creates member records for phones belonging to existing users (status `no_response`), mock-sends SMS outside transaction. Returns `{ invitations, skipped }`.
+   - `getInvitationsByTrip()`: LEFT JOINs invitations with users on `inviteePhone=phoneNumber` to include `inviteeName` where available.
+   - `revokeInvitation()`: Validates invitation exists and user is organizer of the trip. Deletes associated member record (if user exists) and the invitation record.
+   - `updateRsvp()`: Checks `canUpdateRsvp` permission, updates `members.status`, JOINs with users table to return `MemberWithProfile` with string timestamps.
+   - `getTripMembers()`: Checks `isMember` permission, JOINs members with users, conditionally includes `phoneNumber` only when requesting user is an organizer.
+   - `processPendingInvitations()`: Finds pending invitations by phone number, creates member records if not already existing, marks invitations as `accepted`. Idempotent.
+
+2. **Fastify plugin** (`apps/api/src/plugins/invitation-service.ts`):
+   - Follows identical pattern to `event-service.ts`
+   - Dependencies: `["database", "permissions-service", "sms-service"]`
+   - Decorates `invitationService` on Fastify instance
+
+3. **Error type** (`apps/api/src/errors.ts`):
+   - Added `InvitationNotFoundError` (404, code `INVITATION_NOT_FOUND`)
+
+4. **Type augmentation** (`apps/api/src/types/index.ts`):
+   - Added `IInvitationService` import and `invitationService: IInvitationService` to `FastifyInstance` interface
+
+5. **App registration** (`apps/api/src/app.ts`):
+   - Added `invitationServicePlugin` import and registration after `uploadServicePlugin`
+
+6. **Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`) — 26 tests across 6 describe blocks:
+   - **createInvitations** (8 tests): new phones, skip already-invited, skip already-members, mixed scenarios, 25-member limit enforcement, permission denied, trip not found, invitation-only for non-existent users
+   - **getInvitationsByTrip** (2 tests): returns invitations, includes invitee names
+   - **revokeInvitation** (3 tests): revokes and removes member, not found error, permission denied
+   - **updateRsvp** (5 tests): going/maybe/not_going statuses, correct MemberWithProfile fields, permission denied
+   - **getTripMembers** (4 tests): returns profiles, includes phone for organizers, excludes phone for non-organizers, permission denied
+   - **processPendingInvitations** (4 tests): creates member records, updates status to accepted, no duplicate members, handles no pending gracefully
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test` (API): ✅ PASS (631 tests across 31 test files, 0 failures — up from 605)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- Reviewer: ✅ APPROVED (4 low-severity non-blocking observations, all consistent with codebase patterns)
+
+### Reviewer observations (all non-blocking)
+
+- `revokeInvitation` and `processPendingInvitations` could use transactions for full atomicity, but both are idempotent and consistent with existing patterns
+- `getInvitationsByTrip` does not check permissions at service level — access control will be enforced at route/controller level in Task 3.2
+- `MemberLimitExceededError` uses HTTP 409 (pre-existing definition) vs architecture spec's 400 — pre-existing, not introduced in this change
+- SMS notification reuses `sendVerificationCode` with `"invite"` code — works for mock, may need dedicated method for real SMS later
+
+### Learnings for future iterations
+
+- The `count()` function from `drizzle-orm` returns `{ value: number }` when used as `select({ value: count() })`. This is the standard pattern for counting rows.
+- `exactOptionalPropertyTypes` in strict TypeScript means you cannot assign `undefined` to optional fields explicitly — you must conditionally add the property using spread: `...(condition ? { field: value } : {})`.
+- The InvitationService needs 3 constructor dependencies (db, permissionsService, smsService) unlike most services that need 2. The plugin must declare `"sms-service"` in its dependency array.
+- For batch invite deduplication, it's important to check both the invitations table (already invited) AND the members table (already a member) to build the skipped list correctly.
+- The member limit check counts current members + new phones to invite (after filtering skipped), not total invitations. Phones without user accounts don't get member records until they register.
+- `DBInvitation` (renamed import from schema) has `Date` objects for timestamps, while the shared `Invitation` type has `string` timestamps. The controller/route layer (Task 3.2) will need to convert dates to ISO strings.
+- Phase 3 Task 3.1 is complete. Next is Task 3.2: Create invitation and RSVP route endpoints.
+

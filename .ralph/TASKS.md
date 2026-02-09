@@ -45,7 +45,7 @@
 
 ## Phase 3: Backend API Endpoints
 
-- [ ] Task 3.1: Create InvitationService with batch invite and RSVP logic
+- [x] Task 3.1: Create InvitationService with batch invite and RSVP logic
   - Implement: Create `apps/api/src/services/invitation.service.ts` with `IInvitationService` interface
   - Implement: Implement `createInvitations()` - validate organizer, check 25 member limit, skip duplicates, create invitation + member records, mock SMS
   - Implement: Implement `getInvitationsByTrip()` - return invitations with invitee names where available
