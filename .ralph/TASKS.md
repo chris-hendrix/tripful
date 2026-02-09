@@ -103,7 +103,7 @@
   - Test: Manual test: visit trip as invited non-Going member, see preview, RSVP Going, see full itinerary
   - Verify: `pnpm typecheck` passes, responsive on mobile and desktop
 
-- [ ] Task 4.3: Build InviteMembersDialog with batch phone input
+- [x] Task 4.3: Build InviteMembersDialog with batch phone input
   - Implement: Create `apps/web/src/components/trip/invite-members-dialog.tsx`
   - Implement: Phone number input using existing PhoneInput component
   - Implement: "Add" button that appends to a list of phone numbers (shown as removable chips/badges)

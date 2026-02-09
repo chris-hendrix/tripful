@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Settings,
   ImagePlus,
+  UserPlus,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
@@ -42,6 +43,17 @@ const EditTripDialog = dynamic(
 const preloadEditTripDialog = () =>
   void import("@/components/trip/edit-trip-dialog");
 
+const InviteMembersDialog = dynamic(
+  () =>
+    import("@/components/trip/invite-members-dialog").then((mod) => ({
+      default: mod.InviteMembersDialog,
+    })),
+  { ssr: false },
+);
+
+const preloadInviteMembersDialog = () =>
+  void import("@/components/trip/invite-members-dialog");
+
 function SkeletonDetail() {
   return (
     <div>
@@ -61,6 +73,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -151,16 +164,29 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               {trip.name}
             </h1>
             {isOrganizer && (
-              <Button
-                onClick={() => setIsEditOpen(true)}
-                onMouseEnter={preloadEditTripDialog}
-                onFocus={preloadEditTripDialog}
-                variant="outline"
-                className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Edit trip
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsInviteOpen(true)}
+                  onMouseEnter={preloadInviteMembersDialog}
+                  onFocus={preloadInviteMembersDialog}
+                  variant="outline"
+                  size="sm"
+                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Invite
+                </Button>
+                <Button
+                  onClick={() => setIsEditOpen(true)}
+                  onMouseEnter={preloadEditTripDialog}
+                  onFocus={preloadEditTripDialog}
+                  variant="outline"
+                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit trip
+                </Button>
+              </div>
             )}
           </div>
 
@@ -282,6 +308,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           onSuccess={() => {
             toast.success("Trip updated successfully");
           }}
+        />
+      )}
+
+      {/* Invite Members Dialog */}
+      {isOrganizer && (
+        <InviteMembersDialog
+          open={isInviteOpen}
+          onOpenChange={setIsInviteOpen}
+          tripId={tripId}
         />
       )}
     </div>

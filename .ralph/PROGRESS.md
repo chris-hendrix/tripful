@@ -549,3 +549,75 @@ Initial review found 6 issues:
 - TripPreview only accesses fields from the server's preview allowlist (`name`, `destination`, `startDate`, `endDate`, `description`, `coverImageUrl`, `organizers`, `memberCount`, `userRsvpStatus`), so no sensitive data leaks in preview mode.
 - Phase 4 Task 4.2 is complete. Next is Task 4.3: Build InviteMembersDialog with batch phone input.
 
+## Iteration 10 — Task 4.3: Build InviteMembersDialog with batch phone input
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New InviteMembersDialog component** (`apps/web/src/components/trip/invite-members-dialog.tsx`):
+   - `"use client"` component with props: `{ open: boolean; onOpenChange: (open: boolean) => void; tripId: string; }`
+   - Uses `useForm` from `react-hook-form` with `zodResolver` and `createInvitationsSchema` from `@tripful/shared/schemas`
+   - Phone number input using existing `PhoneInput` component from `@/components/ui/phone-input`
+   - Local state (`currentPhone`, `phoneError`) manages the phone input separately from the form's `phoneNumbers` array
+   - "Add" button validates phone (E.164 regex `/^\+[1-9]\d{1,14}$/`), detects duplicates, and appends to form's `phoneNumbers` array
+   - Enter key on phone input wrapper div triggers "Add" (prevents default form submission)
+   - Added phone numbers displayed as `Badge` chips with `variant="secondary"` and removable X buttons with `aria-label`
+   - `formatPhoneNumber` from `@/lib/format` formats E.164 to readable format for chip display
+   - Submit sends batch invite via `useInviteMembers(tripId)` mutation
+   - Success toast shows invited count with skipped count when applicable (e.g., "3 invitations sent (1 already invited)")
+   - Error toast via `getInviteMembersErrorMessage` for API errors
+   - Form resets via `useEffect` watching `open` prop
+   - Loading state: all inputs disabled during `isPending`, `Loader2` spinner on submit button
+   - Styling matches codebase: `sm:max-w-2xl` dialog, Playfair font title, `h-12 rounded-xl` inputs/buttons, `variant="gradient"` submit
+
+2. **Barrel export** (`apps/web/src/components/trip/index.ts`):
+   - Added `export { InviteMembersDialog } from "./invite-members-dialog";`
+
+3. **Trip detail page integration** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
+   - Added `dynamic()` import for InviteMembersDialog with `{ ssr: false }` and `preloadInviteMembersDialog` on hover/focus
+   - Added `isInviteOpen` state
+   - Added "Invite" button with `UserPlus` icon next to "Edit trip" button in organizer-only area
+   - Added `InviteMembersDialog` render in organizer-only conditional block
+
+4. **New tests** (`apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx`) — 22 tests:
+   - **Dialog open/close** (3 tests): renders when open, hidden when closed, cancel calls onOpenChange(false)
+   - **Form fields** (3 tests): phone input, add button, submit button (disabled when no phones)
+   - **Phone management** (5 tests): add valid phone as chip, reject invalid phone, reject duplicate, remove chip, show count
+   - **Submission** (3 tests): API called with correct phoneNumbers array, success toast with count, success toast with skipped count
+   - **Error handling** (2 tests): generic API error toast, permission denied error message
+   - **Loading state** (2 tests): disabled inputs during submission, spinner on submit button
+   - **Styling** (3 tests): Playfair font on title, gradient variant on submit, secondary variant on Badge chips
+   - **Form reset** (1 test): phones cleared when dialog closes and reopens
+
+5. **Updated tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`):
+   - Added mock for `@/components/trip/invite-members-dialog`
+   - 2 new tests: "renders Invite button for organizer" and "does not render Invite button for non-organizer"
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (web): ✅ PASS (697 of 714 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
+- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- New `invite-members-dialog.test.tsx`: ✅ PASS (22/22 tests)
+- Updated `trip-detail-content.test.tsx`: ✅ PASS (41/41 tests)
+- Reviewer: ✅ APPROVED (4 low-severity non-blocking suggestions)
+
+### Reviewer observations (all non-blocking)
+
+- **[LOW]** `PHONE_REGEX` constant duplicates the regex from shared schema — reasonable pragmatic choice to avoid importing Zod internals, but should be noted if the regex changes in the shared package
+- **[LOW]** `onKeyDown` handler for Enter-to-add is on wrapping `div` — works correctly since keydown bubbles, but worth noting if form structure evolves
+- **[LOW]** No test for Enter key shortcut to add phone — cosmetic gap, all other phone management paths tested
+- **[LOW]** `form` in `useEffect` dependency array is stable — technically unnecessary but harmless and ESLint-compliant
+
+### Learnings for future iterations
+
+- The `PhoneInput` component's `PhoneInputProps` type does not include `onKeyDown` or `aria-label`. To handle Enter key for "Add", the approach is to wrap the PhoneInput in a `div` with `onKeyDown` and let the keydown event bubble up. This is type-safe and avoids extending the third-party component's props.
+- The `formatPhoneNumber` utility from `@/lib/format` uses `react-phone-number-input`'s `parsePhoneNumber` to convert E.164 (`+14155552671`) to international format (`+1 415 555 2671`), making phone chips more readable.
+- The `useInviteMembers` mutation returns `CreateInvitationsResponse` with both `invitations[]` and `skipped[]` arrays. The success handler should construct a message showing both counts for transparency.
+- The controlled dialog pattern (`open`/`onOpenChange`) with `useEffect` form reset is consistent across all dialogs in this codebase. The `form.reset()` in the effect ensures no stale phone numbers appear when reopening the dialog.
+- The `dynamic()` import with `preload` pattern for dialogs is critical for code splitting — dialogs are only loaded when the user hovers/focuses the trigger button, not on initial page load. This keeps the trip detail page bundle small.
+- Phase 4 Task 4.3 is complete. Next is Task 4.4: Build MembersList component as tab on trip detail page.
+

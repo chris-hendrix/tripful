@@ -111,6 +111,14 @@ vi.mock("@/components/trip/trip-preview", () => ({
   ),
 }));
 
+// Mock InviteMembersDialog component
+vi.mock("@/components/trip/invite-members-dialog", () => ({
+  InviteMembersDialog: ({ open }: { open: boolean }) =>
+    open ? (
+      <div data-testid="invite-members-dialog">Invite Dialog</div>
+    ) : null,
+}));
+
 // Mock EditTripDialog component
 vi.mock("@/components/trip/edit-trip-dialog", () => ({
   EditTripDialog: ({
@@ -659,6 +667,53 @@ describe("TripDetailContent", () => {
       });
 
       expect(screen.queryByText("Organizing")).toBeNull();
+    });
+
+    it("renders Invite button for organizer", async () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Invite")).toBeDefined();
+      });
+    });
+
+    it("does not render Invite button for non-organizer", async () => {
+      const regularUser = { ...mockUser, id: "user-789" };
+      mockUseAuth.mockReturnValue({ user: regularUser });
+      mockUseTripDetail.mockReturnValue({
+        data: { ...mockTripDetail, isOrganizer: false },
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
+      });
+
+      expect(screen.queryByText("Invite")).toBeNull();
     });
   });
 
