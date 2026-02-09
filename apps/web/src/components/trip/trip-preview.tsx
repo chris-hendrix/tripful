@@ -177,8 +177,7 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
               }
               disabled={isPending}
             >
-              {isPending && trip.userRsvpStatus !== "going" ? null : isPending &&
-                trip.userRsvpStatus === "going" ? (
+              {isPending && trip.userRsvpStatus === "going" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : null}
               Going

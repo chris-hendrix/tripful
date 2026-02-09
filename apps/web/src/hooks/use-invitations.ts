@@ -43,8 +43,14 @@ export type { Invitation, MemberWithProfile };
  * @param tripId - The ID of the trip to fetch invitations for
  * @returns Query object with data, loading, and error state
  */
-export function useInvitations(tripId: string) {
-  return useQuery(invitationsQueryOptions(tripId));
+export function useInvitations(
+  tripId: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    ...invitationsQueryOptions(tripId),
+    enabled: (options?.enabled ?? true) && !!tripId,
+  });
 }
 
 /**

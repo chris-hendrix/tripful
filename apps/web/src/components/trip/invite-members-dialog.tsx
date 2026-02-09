@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createInvitationsSchema,
+  PHONE_REGEX,
   type CreateInvitationsInput,
 } from "@tripful/shared/schemas";
 import {
@@ -32,8 +33,6 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { toast } from "sonner";
 import { Loader2, X, UserPlus, Phone } from "lucide-react";
 import { formatPhoneNumber } from "@/lib/format";
-
-const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
 
 interface InviteMembersDialogProps {
   open: boolean;

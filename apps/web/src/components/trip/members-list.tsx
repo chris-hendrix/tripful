@@ -24,41 +24,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { getInitials, formatPhoneNumber } from "@/lib/format";
 
 interface MembersListProps {
   tripId: string;
   isOrganizer: boolean;
   onInvite?: () => void;
-}
-
-function getRsvpBadge(status: MemberWithProfile["status"]) {
-  switch (status) {
-    case "going":
-      return (
-        <Badge className="bg-success/15 text-success border-success/30">
-          Going
-        </Badge>
-      );
-    case "maybe":
-      return (
-        <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">
-          Maybe
-        </Badge>
-      );
-    case "not_going":
-      return (
-        <Badge className="bg-destructive/15 text-destructive border-destructive/30">
-          Not Going
-        </Badge>
-      );
-    case "no_response":
-      return (
-        <Badge className="bg-muted text-muted-foreground border-border">
-          No Response
-        </Badge>
-      );
-  }
 }
 
 function MembersListSkeleton() {
@@ -79,7 +51,7 @@ function MembersListSkeleton() {
 
 export function MembersList({ tripId, isOrganizer, onInvite }: MembersListProps) {
   const { data: members, isPending } = useMembers(tripId);
-  const { data: invitations } = useInvitations(tripId);
+  const { data: invitations } = useInvitations(tripId, { enabled: isOrganizer });
   const revokeInvitation = useRevokeInvitation(tripId);
 
   const [removingMember, setRemovingMember] = useState<MemberWithProfile | null>(null);
@@ -201,7 +173,7 @@ export function MembersList({ tripId, isOrganizer, onInvite }: MembersListProps)
                       Organizer
                     </Badge>
                   )}
-                  {getRsvpBadge(member.status)}
+                  <RsvpBadge status={member.status} />
                 </div>
                 {isOrganizer && member.phoneNumber && (
                   <div className="flex items-center gap-1 mt-0.5">

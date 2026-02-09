@@ -19,6 +19,7 @@ import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Breadcrumb,
@@ -72,7 +73,7 @@ function SkeletonDetail() {
 
 export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: trip, isPending, isError } = useTripDetail(tripId);
-  const { data: events } = useEvents(tripId);
+  const { data: events } = useEvents(tripId, { enabled: !trip?.isPreview });
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -204,26 +205,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2 mb-6">
-            {trip.userRsvpStatus === "going" && (
-              <Badge className="bg-success/15 text-success border-success/30">
-                Going
-              </Badge>
-            )}
-            {trip.userRsvpStatus === "maybe" && (
-              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">
-                Maybe
-              </Badge>
-            )}
-            {trip.userRsvpStatus === "not_going" && (
-              <Badge className="bg-destructive/15 text-destructive border-destructive/30">
-                Not Going
-              </Badge>
-            )}
-            {trip.userRsvpStatus === "no_response" && (
-              <Badge className="bg-muted text-muted-foreground border-border">
-                No Response
-              </Badge>
-            )}
+            <RsvpBadge status={trip.userRsvpStatus} />
             {isOrganizer && (
               <Badge className="bg-gradient-to-r from-primary to-accent text-white">
                 Organizing

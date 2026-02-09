@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Calendar, MapPin, ClipboardList, ImagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { usePrefetchTrip } from "@/hooks/use-trips";
 
@@ -29,31 +30,6 @@ interface TripCardProps {
   index?: number;
 }
 
-function getRsvpBadge(status: "going" | "not_going" | "maybe" | "no_response") {
-  switch (status) {
-    case "going":
-      return (
-        <Badge className="bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm">
-          Going
-        </Badge>
-      );
-    case "maybe":
-      return (
-        <Badge className="bg-black/50 backdrop-blur-md text-amber-300 border-white/20 shadow-sm">
-          Maybe
-        </Badge>
-      );
-    case "not_going":
-      return (
-        <Badge className="bg-black/50 backdrop-blur-md text-neutral-300 border-white/20 shadow-sm">
-          Not going
-        </Badge>
-      );
-    case "no_response":
-      return null;
-  }
-}
-
 export const TripCard = memo(function TripCard({
   trip,
   index = 0,
@@ -61,7 +37,6 @@ export const TripCard = memo(function TripCard({
   const prefetchTrip = usePrefetchTrip(trip.id);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
-  const rsvpBadge = getRsvpBadge(trip.rsvpStatus);
 
   // Show up to 3 organizers
   const displayedOrganizers = (trip.organizerInfo ?? []).slice(0, 3);
@@ -97,7 +72,7 @@ export const TripCard = memo(function TripCard({
                 Organizing
               </Badge>
             )}
-            {rsvpBadge}
+            <RsvpBadge status={trip.rsvpStatus} variant="overlay" />
           </div>
         </div>
       ) : (
@@ -114,7 +89,7 @@ export const TripCard = memo(function TripCard({
                 Organizing
               </Badge>
             )}
-            {rsvpBadge}
+            <RsvpBadge status={trip.rsvpStatus} variant="overlay" />
           </div>
         </div>
       )}

@@ -312,7 +312,7 @@ test.describe("Invitation Journey", () => {
     const shortTimestamp = timestamp.toString().slice(-10);
     const organizerPhone = `+1555${shortTimestamp}`;
     const member1Phone = `+1555${(parseInt(shortTimestamp) + 4000).toString()}`;
-    const member2Phone = `+1555${(parseInt(shortTimestamp) + 50000).toString()}`;
+    const member2Phone = `+1555${(parseInt(shortTimestamp) + 5000).toString()}`;
 
     let tripId: string;
 

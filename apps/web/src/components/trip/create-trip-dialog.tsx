@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createTripSchema, type CreateTripInput } from "@tripful/shared";
+import {
+  createTripSchema,
+  PHONE_REGEX,
+  type CreateTripInput,
+} from "@tripful/shared";
 import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import {
@@ -37,8 +41,6 @@ import { ImageUpload } from "@/components/trip/image-upload";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
-
-const PHONE_REGEX = /^\+[1-9]\d{6,13}$/;
 
 interface CreateTripDialogProps {
   open: boolean;

@@ -137,11 +137,11 @@ describe("EditAccommodationDialog", () => {
       );
 
       // DatePicker buttons should show formatted dates
-      const checkInButton = screen.getByRole("button", { name: /jul 15, 2026/i });
-      expect(checkInButton).toBeDefined();
+      const checkInButton = screen.getByRole("button", { name: /check-in date/i });
+      expect(checkInButton.textContent).toMatch(/jul 15, 2026/i);
 
-      const checkOutButton = screen.getByRole("button", { name: /jul 20, 2026/i });
-      expect(checkOutButton).toBeDefined();
+      const checkOutButton = screen.getByRole("button", { name: /check-out date/i });
+      expect(checkOutButton.textContent).toMatch(/jul 20, 2026/i);
     });
 
     it("pre-populates links", () => {
@@ -223,7 +223,7 @@ describe("EditAccommodationDialog", () => {
         screen.getByRole("button", { name: /update accommodation/i }),
       );
 
-      expect(screen.getByText("Updating...")).toBeDefined();
+      expect(screen.getByRole("button", { name: /updating/i })).toBeDefined();
     });
   });
 

@@ -114,10 +114,10 @@ describe("EditMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/^location/i) as HTMLInputElement;
+      const locationInput = screen.getByLabelText(/location/i) as HTMLInputElement;
       expect(locationInput.value).toBe("Miami Airport");
 
-      const detailsInput = screen.getByLabelText(/^details/i) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
       expect(detailsInput.value).toBe("Flight AA123");
     });
 
@@ -132,8 +132,8 @@ describe("EditMemberTravelDialog", () => {
       );
 
       // DateTimePicker button should show formatted date/time in ET (UTC-4 in July)
-      const timeButton = screen.getByRole("button", { name: /jul 15, 2026/i });
-      expect(timeButton).toBeDefined();
+      const timeButton = screen.getByRole("button", { name: /travel time/i });
+      expect(timeButton.textContent).toMatch(/jul 15, 2026/i);
     });
 
     it("pre-populates travel type", () => {
@@ -191,7 +191,7 @@ describe("EditMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/^location/i);
+      const locationInput = screen.getByLabelText(/location/i);
       await user.clear(locationInput);
       await user.type(locationInput, "Updated Airport");
 
@@ -238,7 +238,7 @@ describe("EditMemberTravelDialog", () => {
         screen.getByRole("button", { name: /update travel details/i }),
       );
 
-      expect(screen.getByText("Updating...")).toBeDefined();
+      expect(screen.getByRole("button", { name: /updating/i })).toBeDefined();
     });
   });
 
@@ -331,7 +331,7 @@ describe("EditMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/^location/i);
+      const locationInput = screen.getByLabelText(/location/i);
       await user.clear(locationInput);
       await user.type(locationInput, "Updated Location");
 
