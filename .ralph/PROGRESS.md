@@ -137,3 +137,56 @@ Tracking implementation progress for this project.
 - Integration tests that manually insert member records (rather than going through `createTrip()`) need explicit `isOrganizer: true` — unlike the service code which now sets it automatically, test fixtures must set it manually.
 - Phase 1 (Database & Permissions Foundation) is now fully complete. All 3 tasks (1.1 schema, 1.2 permissions, 1.3 trip service) are done. Next is Phase 2: Shared Schemas & Types (Task 2.1).
 
+## Iteration 4 — Task 2.1: Add invitation and RSVP schemas and types to shared package
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+1. **New schema file** (`shared/schemas/invitation.ts`):
+   - `createInvitationsSchema`: Validates `{ phoneNumbers: string[] }` with E.164 phone number regex, min 1, max 25 items
+   - `updateRsvpSchema`: Validates `{ status: "going" | "not_going" | "maybe" }` — excludes `"no_response"` (server-only default)
+   - Exported inferred types: `CreateInvitationsInput`, `UpdateRsvpInput`
+   - Used a local copy of `phoneNumberSchema` (identical regex `/^\+[1-9]\d{1,14}$/`) to avoid circular import through `schemas/index.ts`
+
+2. **New types file** (`shared/types/invitation.ts`):
+   - `Invitation` interface: 9 fields matching DB schema (id, tripId, inviterId, inviteePhone, status, sentAt, respondedAt, createdAt, updatedAt), all timestamps as `string`
+   - `MemberWithProfile` interface: 8 fields for member list display (id, userId, displayName, profilePhotoUrl, phoneNumber (optional), status, isOrganizer, createdAt)
+   - 4 response types: `CreateInvitationsResponse` (with `skipped` array), `GetInvitationsResponse`, `UpdateRsvpResponse`, `GetMembersResponse`
+
+3. **Event type updates** (`shared/types/event.ts`):
+   - Added 3 optional computed fields to `Event` interface: `creatorAttending?: boolean`, `creatorName?: string`, `creatorProfilePhotoUrl?: string | null`
+
+4. **Trip type updates** (`shared/types/trip.ts`):
+   - Added 3 optional fields to `GetTripResponse` (not `TripDetail`): `isPreview?: boolean`, `userRsvpStatus?: "going" | "not_going" | "maybe" | "no_response"`, `isOrganizer?: boolean`
+
+5. **Barrel exports updated**:
+   - `shared/schemas/index.ts`: Added re-exports for `createInvitationsSchema`, `updateRsvpSchema`, `CreateInvitationsInput`, `UpdateRsvpInput`
+   - `shared/types/index.ts`: Added re-exports for `Invitation`, `MemberWithProfile`, `CreateInvitationsResponse`, `GetInvitationsResponse`, `UpdateRsvpResponse`, `GetMembersResponse`
+   - `shared/index.ts` intentionally NOT modified (follows existing pattern — domain-specific schemas/types like event, accommodation, member-travel are not re-exported from top-level barrel)
+
+6. **Tests** (`shared/__tests__/invitation-schemas.test.ts`): 15 new tests
+   - `createInvitationsSchema`: valid phone arrays, boundary values (1 and 25), empty array rejection, >25 rejection, invalid phone formats (missing +, too short, too long, letters, leading zero), non-array rejection, missing field, error messages
+   - `updateRsvpSchema`: all 3 valid statuses, `no_response` rejection, invalid values, missing field, error messages
+
+7. **Exports test updated** (`shared/__tests__/exports.test.ts`):
+   - Added invitation schema import and `toBeDefined()` check
+   - Added `CreateInvitationsInput` and `UpdateRsvpInput` type usage examples
+   - Added schema validation examples for both new schemas
+
+### Verification results
+
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (605 tests across 30 test files, 0 failures)
+- Reviewer: ✅ APPROVED (exact architecture compliance, consistent conventions, thorough tests)
+
+### Learnings for future iterations
+
+- The `phoneNumberSchema` exists in 3 places with 2 different regexes: `schemas/index.ts` and `schemas/invitation.ts` use `/^\+[1-9]\d{1,14}$/` (2-15 digits after +), while `schemas/trip.ts` uses `/^\+[1-9]\d{6,13}$/` (7-14 digits after +). This is a pre-existing inconsistency. Future tasks should consider consolidating.
+- Importing `phoneNumberSchema` from `./index.js` within a schema file risks circular dependency since `index.ts` re-exports from the importing file. Using a local copy avoids this cleanly.
+- New fields added to `GetTripResponse` are at the response level (not entity level) because `isPreview`, `userRsvpStatus`, and `isOrganizer` are request-context metadata, not trip properties.
+- New fields on `Event` are optional (`?`) because they are computed fields populated only by specific list endpoints via JOIN queries, not present on creation/single-fetch responses.
+- Phase 2 (Shared Schemas & Types) is now complete (only had 1 task). Next is Phase 3: Backend API Endpoints (Task 3.1: Create InvitationService).
+

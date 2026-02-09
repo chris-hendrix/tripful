@@ -33,7 +33,7 @@
 
 ## Phase 2: Shared Schemas & Types
 
-- [ ] Task 2.1: Add invitation and RSVP schemas and types to shared package
+- [x] Task 2.1: Add invitation and RSVP schemas and types to shared package
   - Implement: Create `shared/schemas/invitation.ts` with `createInvitationsSchema` and `updateRsvpSchema`
   - Implement: Create `shared/types/invitation.ts` with `Invitation`, `MemberWithProfile`, response types
   - Implement: Update `shared/types/event.ts` to add `creatorAttending`, `creatorName`, `creatorProfilePhotoUrl` fields to Event type

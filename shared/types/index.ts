@@ -80,3 +80,13 @@ export type {
   UpdateMemberTravelResponse,
   RestoreMemberTravelResponse,
 } from "./member-travel";
+
+// Re-export invitation-related types
+export type {
+  Invitation,
+  MemberWithProfile,
+  CreateInvitationsResponse,
+  GetInvitationsResponse,
+  UpdateRsvpResponse,
+  GetMembersResponse,
+} from "./invitation";

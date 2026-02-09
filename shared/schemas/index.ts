@@ -72,3 +72,11 @@ export {
   type CreateMemberTravelInput,
   type UpdateMemberTravelInput,
 } from "./member-travel";
+
+// Re-export invitation schemas
+export {
+  createInvitationsSchema,
+  updateRsvpSchema,
+  type CreateInvitationsInput,
+  type UpdateRsvpInput,
+} from "./invitation";
