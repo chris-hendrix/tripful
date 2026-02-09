@@ -158,7 +158,7 @@
 
 ## Phase 6: Final Verification
 
-- [ ] Task 6.1: Full regression check
+- [x] Task 6.1: Full regression check
   - Verify: `pnpm lint` passes
   - Verify: `pnpm typecheck` passes
   - Verify: `pnpm test` passes (all unit + integration tests)

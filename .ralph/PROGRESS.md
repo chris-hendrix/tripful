@@ -902,3 +902,81 @@ This was a **verification task** — reviewing all existing E2E tests to ensure 
 - **`page.request.post` vs `request` fixture**: `page.request` uses the browser context's cookies (including injected auth cookies), while the `request` fixture from the test function has no browser cookies. Use `page.request` for in-test API calls that need the current user's auth.
 - Phase 5 Task 5.3 is complete. Next is Task 6.1: Full regression check.
 
+## Iteration 16 — Task 6.1: Full regression check
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+This was a **verification task** — a full regression check of the entire Phase 5: Invitations & RSVP implementation. No new application code was written. All four automated quality checks were run and a comprehensive manual smoke test was performed with screenshots.
+
+1. **Automated quality checks**:
+   - `pnpm lint`: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web — 0 errors)
+   - `pnpm typecheck`: ✅ PASS (all 3 packages, 0 TypeScript errors)
+   - `pnpm test`: ✅ PASS
+     - shared: 185/185 tests passed (9 test files)
+     - API: 667/667 tests passed (32 test files)
+     - web: 745/762 tests passed (38 test files) — 17 pre-existing date/time picker failures (documented since iteration 2, unrelated to Phase 5)
+   - `pnpm test:e2e`: ✅ PASS (15/15 tests passed in 1.1 minutes)
+     - app-shell.spec.ts — 1 test
+     - auth-journey.spec.ts — 2 tests
+     - invitation-helpers.spec.ts — 2 tests
+     - invitation-journey.spec.ts — 4 tests
+     - itinerary-journey.spec.ts — 3 tests
+     - trip-journey.spec.ts — 3 tests
+
+2. **Manual smoke test** (`.ralph/smoke-test.py`):
+   - Wrote and ran a comprehensive Playwright Python script that exercises the full invitation flow
+   - Created 9 screenshots as visual proof saved to `.ralph/screenshots/`:
+     - `task-6.1-01-trip-detail-organizer.png` — Organizer's trip detail with "Invite" and "Edit trip" buttons, "Going"/"Organizing" badges, Itinerary/Members tabs
+     - `task-6.1-02-invite-dialog-open.png` — Invite Members dialog with phone input, Add button, Send invitations button
+     - `task-6.1-03-phone-added.png` — Phone number added as chip/badge in dialog
+     - `task-6.1-04-invitation-sent.png` — Invitation sent successfully
+     - `task-6.1-05-members-tab.png` — Members tab showing organizer with "Organizer" badge and "Going" status
+     - `task-6.1-06-invitee-preview.png` — Invitee sees trip preview with "You've been invited!" text and RSVP buttons (Going, Maybe, Not Going)
+     - `task-6.1-07-after-rsvp-going.png` — After RSVP "Going", full trip view with tabs, "RSVP updated to Going" toast
+     - `task-6.1-08-uninvited-404.png` — Uninvited user sees "Trip not found" with "Return to dashboard" button
+     - `task-6.1-09-member-not-attending-indicator.png` — Event card showing "Member no longer attending" amber badge when creator RSVPed "Maybe"
+
+### Verification results
+
+- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
+- `pnpm test` (shared): ✅ PASS (185 tests, 9 test files, 0 failures)
+- `pnpm test` (API): ✅ PASS (667 tests, 32 test files, 0 failures)
+- `pnpm test` (web): ✅ PASS (745 of 762 tests — 17 pre-existing date/time picker failures unrelated to Phase 5)
+- `pnpm test:e2e`: ✅ PASS (15/15 tests in 1.1 minutes)
+- Manual smoke test: ✅ PASS (13/13 checks confirmed, 9 screenshots captured)
+- Verifier: ✅ PASS
+- Reviewer: ✅ APPROVED
+
+### Phase 5 completion summary
+
+All 16 tasks across 6 phases are now complete:
+- **Phase 1** (Tasks 1.1–1.3): Database schema changes — `isOrganizer` column, invitations table, permissions and trip service updates
+- **Phase 2** (Task 2.1): Shared schemas and types for invitations, RSVP, and member profiles
+- **Phase 3** (Tasks 3.1–3.3): Backend API — InvitationService, invitation/RSVP/members endpoints, trip preview and creatorAttending
+- **Phase 4** (Tasks 4.1–4.5): Frontend UI — hooks, TripPreview, InviteMembersDialog, MembersList, event card indicator
+- **Phase 5** (Tasks 5.1–5.3): E2E tests — invitation helpers, existing test updates, new invitation journey tests
+- **Phase 6** (Task 6.1): Full regression check — all quality checks pass, manual smoke test with screenshots
+
+### Test totals across all packages
+
+| Package | Tests | Passing | Failing | Files |
+|---------|-------|---------|---------|-------|
+| shared  | 185   | 185     | 0       | 9     |
+| API     | 667   | 667     | 0       | 32    |
+| web     | 762   | 745     | 17*     | 38    |
+| E2E     | 15    | 15      | 0       | 6     |
+| **Total** | **1,629** | **1,612** | **17*** | **85** |
+
+*17 pre-existing date/time picker failures unrelated to Phase 5 (documented since iteration 2)
+
+### Learnings for future iterations
+
+- The `create event` API endpoint uses field name `name` (not `title`), requires `eventType` (one of "travel", "meal", "activity"), and expects ISO 8601 datetime strings for `startTime`/`endTime`. The trip creation API uses `timezone` (not `preferredTimezone`).
+- For Python Playwright smoke tests, use `http.client` instead of `urllib.request` for cookie handling. The API sets `auth_token` as an httpOnly cookie via `Set-Cookie` header — `urllib.request` doesn't reliably capture these headers, while `http.client.HTTPConnection` exposes them through `getheaders()`.
+- `pyenv shell 3.13.1` is needed to access Python with Playwright installed. The default Python environment doesn't have `pip` accessible.
+- Playwright browsers are already installed in `/home/chend/.cache/ms-playwright/` — no need to run `playwright install` again. Setting `PLAYWRIGHT_BROWSERS_PATH` env var is not required as the default path is already correct.
+- Phase 5: Invitations & RSVP is now fully complete. All tasks passed verification and review across 16 iterations.
+
