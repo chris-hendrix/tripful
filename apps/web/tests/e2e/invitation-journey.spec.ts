@@ -136,12 +136,10 @@ test.describe("Invitation Journey", () => {
           page.getByText("You've been invited!"),
         ).not.toBeVisible({ timeout: 10000 });
 
-        // Full trip view should show tabs
+        // Full trip view should show destination and member count
+        await expect(page.getByText("Honolulu, HI")).toBeVisible();
         await expect(
-          page.getByRole("tab", { name: "Itinerary" }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("tab", { name: "Members" }),
+          page.getByText(/\d+ members?/),
         ).toBeVisible();
         await snap(page, "14-rsvp-going-full-view");
       });
@@ -382,32 +380,33 @@ test.describe("Invitation Journey", () => {
         }),
       ).toBeVisible({ timeout: 15000 });
 
-      // Click "Members" tab
-      await page.getByRole("tab", { name: "Members" }).click();
+      // Click member count link to open members dialog
+      await page.getByText(/\d+ members?/).click();
 
-      // Scope assertions to the Members tab panel
-      const membersPanel = page.getByRole("tabpanel");
+      // Wait for Members dialog to appear
+      const dialog = page.getByRole("dialog");
+      await expect(
+        dialog.getByRole("heading", { name: "Members" }),
+      ).toBeVisible();
 
       // Verify organizer is listed with "Organizer" badge
-      await expect(membersPanel.getByText("Organizer Delta")).toBeVisible();
-      await expect(membersPanel.getByText("Organizer", { exact: true }).first()).toBeVisible();
+      await expect(dialog.getByText("Organizer Delta")).toBeVisible();
+      await expect(dialog.getByText("Organizer", { exact: true }).first()).toBeVisible();
 
       // Verify Member 1 with "Going" badge
-      await expect(membersPanel.getByText("Member One")).toBeVisible();
+      await expect(dialog.getByText("Member One")).toBeVisible();
 
       // Verify Member 2 with "Maybe" badge
-      await expect(membersPanel.getByText("Member Two")).toBeVisible();
+      await expect(dialog.getByText("Member Two")).toBeVisible();
 
-      // Verify the members count heading
-      await expect(membersPanel.getByText("Members (3)")).toBeVisible();
       await snap(page, "18-member-list-with-statuses");
     });
 
     await test.step("organizer sees invite button", async () => {
-      // Verify "Invite" button is visible in the members list area
-      const membersTab = page.getByRole("tabpanel");
+      // Verify "Invite" button is visible in the members dialog
+      const dialog = page.getByRole("dialog");
       await expect(
-        membersTab.getByRole("button", { name: "Invite" }),
+        dialog.getByRole("button", { name: "Invite" }),
       ).toBeVisible();
     });
   });

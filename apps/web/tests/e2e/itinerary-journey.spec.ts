@@ -182,7 +182,7 @@ test.describe("Itinerary Journey", () => {
           page.getByRole("heading", { name: "Add your travel details" }),
         ).toBeVisible();
 
-        await page.locator('input[type="radio"][value="arrival"]').click();
+        await page.getByRole("radio", { name: "Arrival" }).click();
 
         const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
         await pickDateTime(page, travelTimeTrigger, "2026-10-01T14:30");
@@ -201,6 +201,9 @@ test.describe("Itinerary Journey", () => {
           "href",
           /google\.com\/maps\/search/,
         );
+
+        // Expand travel card to see details
+        await page.getByText(/Itinerary Tester · Arrival/).click();
         await expect(page.getByText("Arriving from Chicago")).toBeVisible();
       });
 
@@ -294,7 +297,7 @@ test.describe("Itinerary Journey", () => {
         page.getByRole("heading", { name: "Add your travel details" }),
       ).toBeVisible();
 
-      await page.locator('input[type="radio"][value="arrival"]').click();
+      await page.getByRole("radio", { name: "Arrival" }).click();
 
       const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
       await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
