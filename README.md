@@ -18,13 +18,13 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-4 plus a frontend design overhaul:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-5 plus a frontend design overhaul:
 
 - **Frontend**: Next.js 16 web application with React 19, Tailwind CSS 4, and a Mediterranean-inspired design system
 - **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
 - **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Current Scope (Phases 1-4 + Design Overhaul)
+### Current Scope (Phases 1-5 + Design Overhaul)
 
 The current implementation includes:
 
@@ -40,11 +40,15 @@ The current implementation includes:
 - Itinerary management with events (travel, meals, activities), accommodations, and member travel
 - Day-by-day and group-by-type itinerary view modes with timezone toggle
 - Soft delete and restore for itinerary items (organizer-only restore)
-- Fine-grained permissions (organizer vs member actions)
+- Invitation system with batch phone-number invite flow and trip preview for invitees
+- RSVP management (Going/Maybe/Not Going) with member status badges
+- Members dialog with organizer controls (invite, remove)
+- Fine-grained permissions with `isOrganizer` column on members table
 - Security hardening: Helmet, rate limiting, Zod route schemas, typed errors
+- Response schemas on all Fastify routes
 - Drizzle ORM with relations, transactions, and pagination
 - Health check endpoints (`/health`, `/health/live`, `/health/ready`)
-- Comprehensive testing (Vitest unit/integration, Playwright E2E)
+- Comprehensive testing (Vitest unit/integration, Playwright E2E - 15 E2E tests)
 - Git hooks with Husky, lint-staged, and Prettier
 
 ## Prerequisites

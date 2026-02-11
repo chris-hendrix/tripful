@@ -1,7 +1,7 @@
 # Tripful MVP - Implementation Phases
 
-> **Status**: Phases 1-4 complete | Phases 5-7 pending
-> **Last Updated**: 2026-02-09
+> **Status**: Phases 1-5 complete | Phases 6-7 pending
+> **Last Updated**: 2026-02-10
 
 ## ✅ Phase 1: Monorepo Setup
 
@@ -116,26 +116,44 @@
 - [x] Display names instead of UUIDs on all cards
 - [x] Trip card placeholder gradient with centered icon
 
-## 🚧 Phase 5: Invitations & RSVP
+## ✅ Phase 5: Invitations & RSVP
 
 **Backend:**
-- [ ] `invitations` table (does not exist yet)
-- [ ] Invitation endpoints (create, accept, decline)
-- [ ] RSVP management endpoints (`POST /api/trips/:tripId/rsvp`)
-- [ ] Partial trip preview for non-members
+- [x] `invitations` table with batch phone-number-based invite flow
+- [x] `isOrganizer` column added to members table (replaces role-based permissions)
+- [x] InvitationService with batch invite, RSVP, and pending invitation processing
+- [x] 5 new API endpoints: invite, RSVP, list members, list invitations, revoke
+- [x] Trip preview mode for invited-but-not-accepted users
+- [x] Response schemas and rate limiting on all Fastify routes
+- [x] N+1 query fix in `processPendingInvitations`
+- [x] Unit + integration tests (invitation service, routes, permissions)
 
 **Frontend:**
-- [ ] Invite members dialog
-- [ ] RSVP buttons (going/not going/maybe)
-- [ ] Member list with status indicators
+- [x] InviteMembersDialog with batch phone input
+- [x] TripPreview component with RSVP buttons (Going/Maybe/Not Going)
+- [x] MembersList component in dialog (replaces old tab layout)
+- [x] RsvpBadge component with status-specific colors
+- [x] Trip detail refactored: single-page layout, members dialog, no tabs
+- [x] Trip error/not-found pages with skeleton Suspense fallback
+- [x] TanStack Query hooks for invitations, RSVP, and members
 
 **Shared:**
-- [ ] RSVP schemas
+- [x] Invitation schemas (createInvitationsSchema, updateRsvpSchema)
+- [x] Invitation types (Invitation, MemberWithProfile, TripPreview)
+- [x] Canonical PHONE_REGEX extracted to shared package
+- [x] Response schemas for auth, events, accommodations, member travel, trips
+
+**Database:**
+- [x] `invitations` table (id, trip_id, inviter_id, invitee_phone, status, timestamps)
+- [x] `isOrganizer` boolean column on members table
+- [x] Migration: `0005_early_zemo.sql`
 
 **E2E:**
-- [ ] User can invite members and RSVP to trips
-
-**Notes:** The `members` table already has `rsvp_status` enum and `status` column. No API routes or frontend UI exist yet.
+- [x] Invitation journey: invite via dialog, trip preview, RSVP Going/Maybe/Not Going
+- [x] Member list dialog with status badges
+- [x] Uninvited user 404 access control
+- [x] RSVP status change and "member no longer attending" indicator
+- [x] 15 total E2E tests, all passing
 
 ## 🚧 Phase 6: Advanced Itinerary Features
 
