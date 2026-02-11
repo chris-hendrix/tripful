@@ -24,6 +24,7 @@ import eventServicePlugin from "./plugins/event-service.js";
 import accommodationServicePlugin from "./plugins/accommodation-service.js";
 import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
+import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 
@@ -37,6 +38,7 @@ import { tripRoutes } from "./routes/trip.routes.js";
 import { eventRoutes } from "./routes/event.routes.js";
 import { accommodationRoutes } from "./routes/accommodation.routes.js";
 import { memberTravelRoutes } from "./routes/member-travel.routes.js";
+import { invitationRoutes } from "./routes/invitation.routes.js";
 
 // Config
 import { env } from "./config/env.js";
@@ -156,6 +158,7 @@ export async function buildApp(
   await app.register(accommodationServicePlugin);
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
+  await app.register(invitationServicePlugin);
 
   // Register error handler
   app.setErrorHandler(errorHandler);
@@ -167,6 +170,7 @@ export async function buildApp(
   await app.register(eventRoutes, { prefix: "/api" });
   await app.register(accommodationRoutes, { prefix: "/api" });
   await app.register(memberTravelRoutes, { prefix: "/api" });
+  await app.register(invitationRoutes, { prefix: "/api" });
 
   // Not-found handler for unmatched routes
   app.setNotFoundHandler((request, reply) => {

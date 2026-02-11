@@ -117,11 +117,11 @@ describe("TripCard", () => {
       expect(badge.className).toContain("text-amber-300");
     });
 
-    it("shows Not going badge with outline styling for not_going status", () => {
+    it("shows Not Going badge with overlay styling for not_going status", () => {
       const trip = { ...baseTrip, rsvpStatus: "not_going" as const };
       render(<TripCard trip={trip} />);
 
-      const badge = screen.getByText("Not going");
+      const badge = screen.getByText("Not Going");
       expect(badge).toBeDefined();
       expect(badge.className).toContain("text-neutral-300");
     });

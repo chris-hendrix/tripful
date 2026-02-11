@@ -1,8 +1,8 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-4 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 5-7 Pending
-last_updated: 2026-02-08
+status: Phase 1-5 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 6-7 Pending
+last_updated: 2026-02-10
 ---
 
 # Tripful - High-Level Architecture
@@ -15,11 +15,11 @@ last_updated: 2026-02-08
 > - ✅ **Frontend Design Overhaul Complete**: Mediterranean design system, app shell, accessibility, toast notifications
 > - ✅ **Phase 4 Complete**: Itinerary view modes with events, accommodations, member travel, and comprehensive testing
 > - ✅ **Mobile UX Fixes Complete**: Touch targets, phone input, compact itinerary header, display names, event counts, FAB
-> - 🚧 **Phase 5**: Pending (Invitations & RSVP)
+> - ✅ **Phase 5 Complete**: Invitations & RSVP with batch invite, trip preview, members dialog
 > - 🚧 **Phase 6**: Pending (Advanced Itinerary Features)
 > - 🚧 **Phase 7**: Pending (Polish & Testing)
 >
-> **Important**: This document describes both implemented features (Phases 1-4) and planned features (Phases 5-7). Features, tables, routes, and components marked as 🚧 or described in Phase 5-7 sections do not yet exist in the codebase.
+> **Important**: This document describes both implemented features (Phases 1-5) and planned features (Phases 6-7). Features, tables, routes, and components marked as 🚧 or described in Phase 6-7 sections do not yet exist in the codebase.
 
 ## Implementation Progress
 
@@ -337,12 +337,67 @@ Comprehensive mobile UX improvements addressing accessibility, data accuracy, us
 
 - `react-phone-number-input` v3.4.14 (apps/web)
 
-### 🚧 Phase 5: Invitations & RSVP (Planned)
+### ✅ Phase 5: Invitations & RSVP (Complete)
 
-- [ ] Backend: Invitation endpoints, RSVP management, partial preview logic
-- [ ] Frontend: Invite members dialog, RSVP buttons, member list
-- [ ] Shared: RSVP schemas
-- [ ] E2E test: User can invite members and RSVP to trips
+**Branch**: `ralph/20260209-0857-invitations-rsvp`
+
+Complete invitation and RSVP system enabling organizers to invite members by phone number, with trip preview for invitees, RSVP management, and a members dialog replacing the old tab layout.
+
+**Backend (Fastify):**
+
+- [x] InvitationService with batch invite, RSVP update, and pending invitation processing
+- [x] `isOrganizer` column on members table replacing role-based permission checks
+- [x] Trip preview mode: invited-but-not-accepted users see limited trip info
+- [x] Response schemas added to all Fastify routes (auth, trips, events, accommodations, member travel)
+- [x] Rate limiting middleware (`defaultRateLimitConfig`, `writeRateLimitConfig`) on all routes
+- [x] N+1 query optimization in `processPendingInvitations`
+- [x] Explicit column selection in accommodation queries
+- [x] Comprehensive unit tests (InvitationService, PermissionsService updates)
+- [x] Integration tests for all invitation/RSVP endpoints
+
+**Frontend (Next.js 16):**
+
+- [x] InviteMembersDialog with batch phone number input and send flow
+- [x] TripPreview component with "You've been invited!" banner and RSVP buttons (Going/Maybe/Not Going)
+- [x] MembersList component displayed in dialog (replacing old tab-based layout)
+- [x] RsvpBadge component with status-specific colors (green=Going, amber=Maybe, gray=Not Going)
+- [x] Trip detail refactored to single-page layout with members dialog, no tabs
+- [x] Trip error and not-found pages with skeleton Suspense fallback
+- [x] "Member no longer attending" indicator on event cards
+- [x] TanStack Query hooks for invitations, RSVP, members
+- [x] `getInitials` utility deduplicated, per-query `staleTime` added
+- [x] Header hydration fix
+
+**Database Schema:**
+
+- [x] `invitations` table (id, trip_id, inviter_id, invitee_phone, status, created_at, updated_at)
+- [x] `isOrganizer` boolean column added to members table
+- [x] Migration: `0005_early_zemo.sql`
+
+**Shared Package:**
+
+- [x] Invitation schemas: `createInvitationsSchema`, `updateRsvpSchema`
+- [x] Invitation types: `Invitation`, `MemberWithProfile`, `TripPreview`
+- [x] Response schemas: `createInvitationsResponseSchema`, `getInvitationsResponseSchema`, `getMembersResponseSchema`, `updateRsvpResponseSchema`
+- [x] Canonical `PHONE_REGEX` extracted to `shared/schemas/phone.ts`
+- [x] Response schemas added for auth, event, accommodation, member-travel, trip routes
+
+**E2E Testing (Playwright):**
+
+- [x] Invitation journey: organizer invites via dialog, invitee sees preview, RSVPs Going
+- [x] RSVP status change and "member no longer attending" indicator
+- [x] Members dialog with status badges and invite button
+- [x] Uninvited user 404 access control
+- [x] Invitation API helper utilities (`inviteViaAPI`, `rsvpViaAPI`, `inviteAndAcceptViaAPI`)
+- [x] 15 total E2E tests, all passing
+
+**API Endpoints Implemented:**
+
+- `GET /api/trips/:tripId/invitations` - List invitations (organizer only)
+- `GET /api/trips/:tripId/members` - List trip members with profiles
+- `POST /api/trips/:tripId/invitations` - Send batch invitations by phone
+- `POST /api/trips/:tripId/rsvp` - Update RSVP status (going/maybe/not_going)
+- `DELETE /api/invitations/:id` - Revoke invitation (organizer only)
 
 ### 🚧 Phase 6: Advanced Itinerary Features (Planned)
 
@@ -436,7 +491,7 @@ Tripful is a collaborative trip planning platform that enables group travel coor
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │              Service Layer (Business Logic)             │   │
 │  │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌─────────┐  │   │
-│  │  │ Trip  │ │ Event │ │ Auth  │ │ RSVP  │ │ Storage │  │   │
+│  │  │ Trip  │ │ Event │ │ Auth  │ │Invite │ │ Storage │  │   │
 │  │  │Service│ │Service│ │Service│ │Service│ │ Service │  │   │
 │  │  └───────┘ └───────┘ └───────┘ └───────┘ └─────────┘  │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -739,7 +794,7 @@ apps/api/
 │   │   ├── schema/
 │   │   │   ├── index.ts           # ✅ Table definitions (users, verification_codes, trips, members, events, accommodations, member_travel)
 │   │   │   └── relations.ts       # ✅ Drizzle relations (users↔trips↔members↔events↔accommodations↔member_travel)
-│   │   │                          # 🚧 Future: invitations table
+│   │   │                          # ✅ invitations table
 │   │   └── migrations/
 │   ├── types/
 │   │   └── index.ts              # FastifyInstance type augmentation (config, db, services)
@@ -1445,14 +1500,14 @@ See [Database Layer](#3-database-layer-postgresql--drizzle-orm) section for deta
 2. ✅ `verification_codes` - Phone verification codes with expiry
 3. ✅ `trips` - Trip information
 4. ✅ `members` - **Trip membership, RSVP status, and co-organizer tracking** (combined entity)
-5. 🚧 `invitations` - Trip invitations by phone (planned)
+5. ✅ `invitations` - Trip invitations by phone with batch invite flow
 6. ✅ `events` - Itinerary events with event_type enum (travel, meal, activity) and soft delete
 7. ✅ `accommodations` - Multi-day lodging with date ranges and soft delete
 8. ✅ `member_travel` - Individual member arrivals/departures with soft delete
 
 **Note on Members:** The `members` table serves as the trip membership table. When a user is invited, a member record is created, making them a trip member. The `status` field tracks their RSVP response (going/not_going/maybe/no_response). This design keeps membership and status in sync.
 
-**Note on Co-Organizers:** Co-organizers are identified by membership status rather than a separate junction table. The trip creator (trips.createdBy) plus any member with status='going' are considered co-organizers with edit permissions. This simplifies the schema while maintaining the co-organizer functionality.
+**Note on Co-Organizers:** Co-organizers are identified by the `isOrganizer` boolean column on the members table. The trip creator (trips.createdBy) is automatically an organizer, and additional co-organizers are flagged via `isOrganizer = true`. This explicit column replaced the earlier role-based approach for clearer permission checks.
 
 **Indexes:**
 
@@ -3609,12 +3664,13 @@ fastify.register(compress, {
 - ✅ Testing: 24 test files, 35 E2E tests, 16 manual screenshots
 - Note: Combined original Phases 5-7 scope (Itinerary Events + Accommodations & Member Travel + Advanced Itinerary Features)
 
-**Phase 5: Invitations & RSVP**
+**Phase 5: Invitations & RSVP** ✅
 
-- Backend: Invitation endpoints, RSVP management, partial preview logic
-- Frontend: Invite members dialog, RSVP buttons, member list
-- Shared: RSVP schemas
-- E2E test: User can invite members and RSVP to trips
+- ✅ Backend: InvitationService with batch invite, RSVP, members/invitations listing, rate limiting, response schemas
+- ✅ Frontend: InviteMembersDialog, TripPreview, MembersList dialog, RsvpBadge, trip detail refactor (no tabs)
+- ✅ Shared: Invitation/RSVP schemas and types, PHONE_REGEX, response schemas for all routes
+- ✅ Database: `invitations` table, `isOrganizer` column on members
+- ✅ Testing: 15 E2E tests all passing, unit + integration tests
 
 **Phase 6: Advanced Itinerary Features**
 
@@ -3667,9 +3723,21 @@ fastify.register(compress, {
 
 ## Document Revision History
 
-**Document Version**: 4.0
-**Last Updated**: 2026-02-08
-**Status**: Phase 1-4 Complete - Monorepo + Auth + Trip Management + Itinerary View Modes
+**Document Version**: 5.0
+**Last Updated**: 2026-02-10
+**Status**: Phase 1-5 Complete - Monorepo + Auth + Trip Management + Itinerary View Modes + Invitations & RSVP
+
+**Version 5.0 Updates (2026-02-10)**:
+
+- ✅ Documented Phase 5 completion: Invitations & RSVP with batch invite, trip preview, members dialog
+- ✅ Added 5 new API endpoints for invitations, RSVP, and member listing
+- ✅ Documented InvitationService with batch invite, RSVP, and pending invitation processing
+- ✅ Added `invitations` table and `isOrganizer` column on members table
+- ✅ Documented frontend components: InviteMembersDialog, TripPreview, MembersList, RsvpBadge
+- ✅ Documented trip detail refactor: single-page layout replacing tab UI, members dialog
+- ✅ Added response schemas and rate limiting on all Fastify routes
+- ✅ Updated shared package: invitation schemas/types, PHONE_REGEX, response schemas
+- ✅ 15 E2E tests all passing
 
 **Version 4.0 Updates (2026-02-08)**:
 

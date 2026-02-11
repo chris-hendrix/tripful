@@ -214,7 +214,24 @@ export class AccommodationService implements IAccommodationService {
       conditions.push(isNull(accommodations.deletedAt));
     }
 
-    return this.db.select().from(accommodations).where(and(...conditions));
+    return this.db
+      .select({
+        id: accommodations.id,
+        tripId: accommodations.tripId,
+        createdBy: accommodations.createdBy,
+        name: accommodations.name,
+        address: accommodations.address,
+        description: accommodations.description,
+        checkIn: accommodations.checkIn,
+        checkOut: accommodations.checkOut,
+        links: accommodations.links,
+        deletedAt: accommodations.deletedAt,
+        deletedBy: accommodations.deletedBy,
+        createdAt: accommodations.createdAt,
+        updatedAt: accommodations.updatedAt,
+      })
+      .from(accommodations)
+      .where(and(...conditions));
   }
 
   /**

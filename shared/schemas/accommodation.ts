@@ -77,6 +77,37 @@ export const updateAccommodationSchema = baseAccommodationSchema
     },
   );
 
+// --- Response schemas ---
+
+/** Accommodation entity as returned by the API */
+const accommodationEntitySchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  createdBy: z.string(),
+  name: z.string(),
+  address: z.string().nullable(),
+  description: z.string().nullable(),
+  checkIn: z.string(),
+  checkOut: z.string(),
+  links: z.array(z.string()).nullable(),
+  deletedAt: z.date().nullable(),
+  deletedBy: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+/** GET /api/trips/:tripId/accommodations - Accommodation list */
+export const accommodationListResponseSchema = z.object({
+  success: z.literal(true),
+  accommodations: z.array(accommodationEntitySchema),
+});
+
+/** GET/POST/PUT/restore single accommodation */
+export const accommodationResponseSchema = z.object({
+  success: z.literal(true),
+  accommodation: accommodationEntitySchema,
+});
+
 // Inferred TypeScript types from schemas
 export type CreateAccommodationInput = z.infer<
   typeof createAccommodationSchema

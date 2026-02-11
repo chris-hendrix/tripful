@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "docker-compose up -d && turbo run dev",
     "dev:web": "turbo run dev --filter=@tripful/web",
     "dev:api": "turbo run dev --filter=@tripful/api",
     "build": "turbo run build",

@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Suspense } from "react";
 import { TripDetailContent } from "./trip-detail-content";
-import type { TripDetail } from "@/hooks/use-trips";
+import type { TripDetailWithMeta } from "@/hooks/use-trips";
 import type { User } from "@tripful/shared";
 
 // Mock sonner
@@ -104,6 +104,72 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
+// Mock useRevokeInvitation hook
+const mockRevokeInvitation = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+vi.mock("@/hooks/use-invitations", () => ({
+  useRevokeInvitation: () => mockRevokeInvitation,
+  getRevokeInvitationErrorMessage: () => null,
+}));
+
+// Mock MembersList component
+vi.mock("@/components/trip/members-list", () => ({
+  MembersList: ({
+    tripId,
+    isOrganizer,
+    onInvite,
+    onRemove,
+  }: {
+    tripId: string;
+    isOrganizer: boolean;
+    onInvite?: () => void;
+    onRemove?: (member: any, invitationId: string) => void;
+  }) => (
+    <div
+      data-testid="members-list"
+      data-trip-id={tripId}
+      data-is-organizer={isOrganizer}
+    >
+      Members List for trip {tripId}
+      {onInvite && (
+        <button data-testid="members-invite-btn" onClick={onInvite}>
+          Invite from members
+        </button>
+      )}
+      {onRemove && (
+        <button
+          data-testid="members-remove-btn"
+          onClick={() =>
+            onRemove(
+              { id: "user-456", displayName: "Jane Smith" },
+              "inv-123",
+            )
+          }
+        >
+          Remove member
+        </button>
+      )}
+    </div>
+  ),
+}));
+
+// Mock TripPreview component
+vi.mock("@/components/trip/trip-preview", () => ({
+  TripPreview: ({ trip, tripId }: any) => (
+    <div data-testid="trip-preview">TripPreview: {trip.name}</div>
+  ),
+}));
+
+// Mock InviteMembersDialog component
+vi.mock("@/components/trip/invite-members-dialog", () => ({
+  InviteMembersDialog: ({ open }: { open: boolean }) =>
+    open ? (
+      <div data-testid="invite-members-dialog">Invite Dialog</div>
+    ) : null,
+}));
+
 // Mock EditTripDialog component
 vi.mock("@/components/trip/edit-trip-dialog", () => ({
   EditTripDialog: ({
@@ -140,7 +206,7 @@ vi.mock("@/components/trip/edit-trip-dialog", () => ({
 }));
 
 describe("TripDetailContent", () => {
-  const mockTripDetail: TripDetail = {
+  const mockTripDetail: TripDetailWithMeta = {
     id: "trip-123",
     name: "Bachelor Party in Miami",
     destination: "Miami Beach, FL",
@@ -171,6 +237,9 @@ describe("TripDetailContent", () => {
       },
     ],
     memberCount: 8,
+    isPreview: false,
+    userRsvpStatus: "going",
+    isOrganizer: true,
   };
 
   beforeEach(() => {
@@ -582,7 +651,7 @@ describe("TripDetailContent", () => {
       const regularUser = { ...mockUser, id: "user-789" };
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
+        data: { ...mockTripDetail, isOrganizer: false },
         isPending: false,
         isError: false,
         error: null,
@@ -629,7 +698,7 @@ describe("TripDetailContent", () => {
       const regularUser = { ...mockUser, id: "user-789" };
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
+        data: { ...mockTripDetail, isOrganizer: false },
         isPending: false,
         isError: false,
         error: null,
@@ -649,6 +718,53 @@ describe("TripDetailContent", () => {
       });
 
       expect(screen.queryByText("Organizing")).toBeNull();
+    });
+
+    it("renders Invite button for organizer", async () => {
+      mockUseAuth.mockReturnValue({ user: mockUser });
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Invite")).toBeDefined();
+      });
+    });
+
+    it("does not render Invite button for non-organizer", async () => {
+      const regularUser = { ...mockUser, id: "user-789" };
+      mockUseAuth.mockReturnValue({ user: regularUser });
+      mockUseTripDetail.mockReturnValue({
+        data: { ...mockTripDetail, isOrganizer: false },
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
+      });
+
+      expect(screen.queryByText("Invite")).toBeNull();
     });
   });
 
@@ -1090,6 +1206,317 @@ describe("TripDetailContent", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Ends Jun 5, 2026")).toBeDefined();
+      });
+    });
+  });
+
+  describe("preview mode", () => {
+    const previewTrip: TripDetailWithMeta = {
+      ...mockTripDetail,
+      isPreview: true,
+      userRsvpStatus: "no_response",
+      isOrganizer: false,
+    };
+
+    it("renders TripPreview component when trip.isPreview is true", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: previewTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trip-preview")).toBeDefined();
+        expect(
+          screen.getByText("TripPreview: Bachelor Party in Miami"),
+        ).toBeDefined();
+      });
+    });
+
+    it("does not render ItineraryView when trip.isPreview is true", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: previewTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trip-preview")).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("itinerary-view")).toBeNull();
+    });
+
+    it("does not render TripPreview when trip.isPreview is false", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
+        ).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("trip-preview")).toBeNull();
+      expect(screen.getByTestId("itinerary-view")).toBeDefined();
+    });
+  });
+
+  describe("itinerary and members dialog", () => {
+    it("renders ItineraryView inline without tabs", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("itinerary-view")).toBeDefined();
+      });
+
+      // No tabs should exist
+      expect(screen.queryByRole("tab")).toBeNull();
+      expect(screen.queryByRole("tablist")).toBeNull();
+    });
+
+    it("members stat is a clickable button", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      const membersButton = screen.getByText("8 members").closest("button");
+      expect(membersButton).not.toBeNull();
+    });
+
+    it("clicking members stat opens members dialog", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-list")).toBeDefined();
+        expect(
+          screen.getByText("Members List for trip trip-123"),
+        ).toBeDefined();
+      });
+    });
+
+    it("passes correct props to MembersList in dialog", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        const membersList = screen.getByTestId("members-list");
+        expect(membersList.getAttribute("data-trip-id")).toBe("trip-123");
+        expect(membersList.getAttribute("data-is-organizer")).toBe("true");
+      });
+    });
+
+    it("MembersList onInvite closes members dialog and opens invite dialog", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-invite-btn")).toBeDefined();
+      });
+
+      const inviteBtn = screen.getByTestId("members-invite-btn");
+      await user.click(inviteBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("invite-members-dialog")).toBeDefined();
+      });
+    });
+
+    it("clicking remove swaps dialog to confirmation view", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      // Open members dialog
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-remove-btn")).toBeDefined();
+      });
+
+      // Click remove — should swap to confirmation view
+      const removeBtn = screen.getByTestId("members-remove-btn");
+      await user.click(removeBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Are you sure you want to remove/),
+        ).toBeDefined();
+        expect(screen.getByText("Jane Smith")).toBeDefined();
+      });
+
+      // Members list should be hidden
+      expect(screen.queryByTestId("members-list")).toBeNull();
+    });
+
+    it("cancel in confirmation view returns to members list", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      // Open dialog and go to confirmation
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-remove-btn")).toBeDefined();
+      });
+
+      await user.click(screen.getByTestId("members-remove-btn"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Are you sure you want to remove/),
+        ).toBeDefined();
+      });
+
+      // Click cancel
+      await user.click(screen.getByText("Cancel"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-list")).toBeDefined();
       });
     });
   });

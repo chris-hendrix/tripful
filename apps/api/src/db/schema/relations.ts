@@ -6,6 +6,7 @@ import {
   events,
   accommodations,
   memberTravel,
+  invitations,
 } from "./index.js";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -13,6 +14,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(members),
   createdEvents: many(events),
   createdAccommodations: many(accommodations),
+  invitations: many(invitations),
 }));
 
 export const tripsRelations = relations(trips, ({ one, many }) => ({
@@ -21,6 +23,7 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   events: many(events),
   accommodations: many(accommodations),
   memberTravel: many(memberTravel),
+  invitations: many(invitations),
 }));
 
 export const membersRelations = relations(members, ({ one, many }) => ({
@@ -57,4 +60,9 @@ export const memberTravelRelations = relations(memberTravel, ({ one }) => ({
     fields: [memberTravel.memberId],
     references: [members.id],
   }),
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  trip: one(trips, { fields: [invitations.tripId], references: [trips.id] }),
+  inviter: one(users, { fields: [invitations.inviterId], references: [users.id] }),
 }));

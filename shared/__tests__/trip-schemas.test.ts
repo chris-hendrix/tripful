@@ -375,7 +375,7 @@ describe("createTripSchema", () => {
 
   it("should reject invalid phone numbers in coOrganizerPhones", () => {
     const invalidPhones = [
-      ["+123"], // Too short
+      ["+1"], // Too short (only 1 digit)
       ["1234567890"], // Missing + prefix
       ["+0155555555"], // Country code starts with 0
       ["invalid-phone"], // Not a phone number
@@ -531,7 +531,7 @@ describe("addCoOrganizerSchema", () => {
     const invalidInputs = [
       { phoneNumber: "invalid" },
       { phoneNumber: "1234567890" }, // Missing + prefix
-      { phoneNumber: "+123" }, // Too short
+      { phoneNumber: "+1" }, // Too short (only 1 digit)
       { phoneNumber: "+0155555555" }, // Country code starts with 0
       { phoneNumber: "not-a-phone" },
     ];

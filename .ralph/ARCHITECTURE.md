@@ -1,250 +1,521 @@
-# Mobile UX Fixes - Architecture
+# Phase 5: Invitations & RSVP - Architecture
 
-Comprehensive mobile UX fix pass addressing touch targets, layout bugs, visual polish, phone number formatting, and event count accuracy across the Tripful web app.
+Phase 5 adds trip invitations by phone number, RSVP management, partial trip previews for invited-but-not-RSVP'd members, member list UI, and the "member no longer attending" indicator on events.
 
-## Overview
+## Key Decisions
 
-10 issues identified from a mobile design audit and screenshot analysis. Fixes are primarily frontend with one backend fix (event count query). No database migrations needed.
+- **Mock SMS only** - No Twilio integration; use existing mock SMS service (console logging)
+- **Reuse `/trips/[id]`** - Conditional rendering on existing trip detail page (no new `/t/[id]` route)
+- **Add `isOrganizer` column** to members table - Replaces the current "all going = organizer" model
+- **Server-side filtering** for partial preview - API returns limited data for non-RSVP'd members
+- **Invitation + member on invite** - Both records created when organizer invites someone
+- **25 member limit enforced** on invitations
+- **Batch invite** - Dialog supports multiple phone numbers at once
+- **`creatorAttending` computed field** on event responses for "member no longer attending" indicator
 
----
+## DB Schema Changes
 
-## 1. Touch Target Fixes (44px minimum)
+### New: `invitations` table
 
-### Strategy
-
-Use responsive sizing: mobile gets 44px+ targets, desktop keeps current compact sizes. Apply via Tailwind responsive prefixes.
-
-### Files & Changes
-
-**`apps/web/src/components/ui/button.tsx`** — Update size variants with mobile-first 44px:
+File: `apps/api/src/db/schema/index.ts`
 
 ```typescript
-size: {
-  default: "h-11 sm:h-9 px-4 py-2 has-[>svg]:px-3",
-  xs: "h-9 sm:h-6 gap-1 rounded-md px-3 sm:px-2 text-xs has-[>svg]:px-2 sm:has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-  sm: "h-11 sm:h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-  lg: "h-12 sm:h-10 rounded-md px-6 has-[>svg]:px-4",
-  icon: "size-11 sm:size-9",
-  "icon-xs": "size-9 sm:size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-  "icon-sm": "size-11 sm:size-8",
-  "icon-lg": "size-12 sm:size-10",
+export const invitationStatusEnum = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "failed",
+]);
+
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    inviterId: uuid("inviter_id")
+      .notNull()
+      .references(() => users.id),
+    inviteePhone: varchar("invitee_phone", { length: 20 }).notNull(),
+    status: invitationStatusEnum("status").notNull().default("pending"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdIdx: index("invitations_trip_id_idx").on(table.tripId),
+    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(table.inviteePhone),
+    tripPhoneUnique: unique("invitations_trip_phone_unique").on(
+      table.tripId,
+      table.inviteePhone,
+    ),
+  }),
+);
+```
+
+### Modified: `members` table - Add `isOrganizer` column
+
+```typescript
+// Add to members table definition:
+isOrganizer: boolean("is_organizer").notNull().default(false),
+```
+
+Migration must:
+1. Add `is_organizer` column with default `false`
+2. Set `is_organizer = true` for members whose `user_id = trips.created_by` (trip creators only)
+
+### Modified: Event responses - Add `creatorAttending` computed field
+
+The event list endpoint (`GET /api/trips/:tripId/events`) must join with members table to check if each event's creator currently has `status = 'going'` and include `creatorAttending: boolean` in the response.
+
+## Permissions Service Changes
+
+File: `apps/api/src/services/permissions.service.ts`
+
+The `isOrganizer` method currently checks: creator OR member with `status='going'`. This must change to: creator OR member with `isOrganizer=true`.
+
+```typescript
+// BEFORE:
+.leftJoin(members, and(
+  eq(members.tripId, trips.id),
+  eq(members.userId, userId),
+  eq(members.status, "going"),  // <-- REMOVE THIS
+))
+
+// AFTER:
+.leftJoin(members, and(
+  eq(members.tripId, trips.id),
+  eq(members.userId, userId),
+  eq(members.isOrganizer, true),  // <-- NEW
+))
+```
+
+All downstream methods that delegate to `isOrganizer` (canEditTrip, canDeleteTrip, canManageCoOrganizers, canAddAccommodation, etc.) automatically inherit the fix.
+
+### New permission methods:
+
+```typescript
+canInviteMembers(userId: string, tripId: string): Promise<boolean>;  // organizers only
+canUpdateRsvp(userId: string, tripId: string): Promise<boolean>;     // any member
+canViewFullTrip(userId: string, tripId: string): Promise<boolean>;   // members with status='going'
+```
+
+### Updated `canAddEvent` logic:
+
+Currently checks `status='going'` for member event permissions. With the new model:
+- Organizers (`isOrganizer=true`) can always add events
+- Regular members need `status='going'` AND `allowMembersToAddEvents=true`
+- Members who changed from Going to Maybe/Not Going can no longer add/edit events
+
+### Updated `canEditEvent` logic:
+
+Event creator can only edit if they still have `status='going'`. If they changed to Maybe/Not Going, only organizers can edit their events.
+
+## API Endpoints
+
+### Invitation Endpoints
+
+File: `apps/api/src/routes/invitation.routes.ts`
+
+**POST /api/trips/:tripId/invitations** - Batch invite members
+```
+Request:
+  { phoneNumbers: string[] }  // Array of E.164 phone numbers
+
+Response (201):
+  {
+    success: true,
+    invitations: Invitation[],
+    skipped: string[]  // Phone numbers already invited
+  }
+
+Errors:
+  403 - Not an organizer
+  404 - Trip not found
+  400 - MEMBER_LIMIT_EXCEEDED (would exceed 25)
+  400 - VALIDATION_ERROR (invalid phone numbers)
+```
+
+Logic:
+1. Check user is organizer
+2. Check member count + new invites <= 25
+3. For each phone number:
+   a. Skip if already invited (return in `skipped`)
+   b. Create invitation record (status='pending')
+   c. If user exists in DB: create member record (status='no_response')
+   d. If user doesn't exist: create invitation only (member created on first login/auth)
+   e. Mock-send SMS via existing SMS service
+4. Return created invitations and skipped phones
+
+**GET /api/trips/:tripId/invitations** - List invitations (organizers only)
+```
+Response (200):
+  {
+    success: true,
+    invitations: Array<Invitation & { inviteeName?: string }>
+  }
+```
+
+**DELETE /api/trips/:tripId/invitations/:invitationId** - Revoke invitation (organizers only)
+```
+Response (200):
+  { success: true }
+```
+
+### RSVP Endpoint
+
+**POST /api/trips/:tripId/rsvp** - Update RSVP status
+```
+Request:
+  { status: "going" | "not_going" | "maybe" }
+
+Response (200):
+  {
+    success: true,
+    member: { id, userId, tripId, status, isOrganizer }
+  }
+
+Errors:
+  403 - Not a member of this trip
+  404 - Trip not found
+```
+
+Logic:
+1. Check user has a member record for this trip
+2. Update member.status
+3. Return updated member
+
+### Modified: GET /api/trips/:tripId
+
+Currently returns null (404) for non-members. Must now differentiate:
+
+1. **Uninvited user** -> 404 "Trip not found"
+2. **Invited member (not RSVP'd Going)** -> 200 with partial preview:
+   ```json
+   {
+     "trip": {
+       "id", "name", "destination", "startDate", "endDate",
+       "preferredTimezone", "description", "coverImageUrl"
+     },
+     "organizers": [...],
+     "memberCount": number,
+     "userRsvpStatus": "no_response" | "maybe" | "not_going",
+     "isOrganizer": boolean,
+     "isPreview": true
+   }
+   ```
+3. **Going member** -> 200 with full trip data (current behavior + `isPreview: false`)
+
+### Modified: GET /api/trips/:tripId/events
+
+Add `creatorAttending` field to each event in response:
+```json
+{
+  "events": [
+    {
+      "id": "...",
+      "creatorAttending": true,  // NEW: creator's current RSVP status = 'going'
+      "creatorName": "John",     // NEW: creator's display name
+      "creatorProfilePhotoUrl": "..."  // NEW: creator's avatar
+      // ... existing fields
+    }
+  ]
 }
 ```
 
-**`apps/web/src/components/ui/input.tsx`** — Update base height from `h-9` to `h-11 sm:h-9`.
+### New: GET /api/trips/:tripId/members - List trip members
+
+```
+Response (200):
+  {
+    success: true,
+    members: Array<{
+      id: string,
+      userId: string,
+      displayName: string,
+      profilePhotoUrl: string | null,
+      phoneNumber: string,  // Only visible to organizers
+      status: "going" | "not_going" | "maybe" | "no_response",
+      isOrganizer: boolean,
+      createdAt: string
+    }>
+  }
+```
+
+Access: Any member can view (but phone numbers only visible to organizers).
+
+## Invitation Service
+
+File: `apps/api/src/services/invitation.service.ts`
+
+```typescript
+export interface IInvitationService {
+  createInvitations(
+    userId: string,
+    tripId: string,
+    phoneNumbers: string[],
+  ): Promise<{ invitations: Invitation[]; skipped: string[] }>;
+
+  getInvitationsByTrip(tripId: string): Promise<Invitation[]>;
+
+  revokeInvitation(userId: string, invitationId: string): Promise<void>;
+
+  updateRsvp(
+    userId: string,
+    tripId: string,
+    status: "going" | "not_going" | "maybe",
+  ): Promise<Member>;
+
+  getTripMembers(
+    tripId: string,
+    requestingUserId: string,
+  ): Promise<MemberWithProfile[]>;
+
+  // Called during auth flow: when a new user registers, check for pending
+  // invitations matching their phone and create member records
+  processPendingInvitations(userId: string, phoneNumber: string): Promise<void>;
+}
+```
+
+Plugin: `apps/api/src/plugins/invitation-service.ts`
+
+## Shared Schemas
+
+File: `shared/schemas/invitation.ts`
+
+```typescript
+export const createInvitationsSchema = z.object({
+  phoneNumbers: z.array(phoneNumberSchema).min(1).max(25),
+});
+
+export const updateRsvpSchema = z.object({
+  status: z.enum(["going", "not_going", "maybe"]),
+});
+
+export type CreateInvitationsInput = z.infer<typeof createInvitationsSchema>;
+export type UpdateRsvpInput = z.infer<typeof updateRsvpSchema>;
+```
+
+File: `shared/schemas/index.ts` - Add re-exports
+
+## Shared Types
+
+File: `shared/types/invitation.ts`
+
+```typescript
+export interface Invitation {
+  id: string;
+  tripId: string;
+  inviterId: string;
+  inviteePhone: string;
+  status: "pending" | "accepted" | "declined" | "failed";
+  sentAt: string;
+  respondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberWithProfile {
+  id: string;
+  userId: string;
+  displayName: string;
+  profilePhotoUrl: string | null;
+  phoneNumber?: string;  // Only included for organizers
+  status: "going" | "not_going" | "maybe" | "no_response";
+  isOrganizer: boolean;
+  createdAt: string;
+}
 
-**`apps/web/src/components/ui/checkbox.tsx`** — The visual checkbox stays `size-4`. Ensure all label/form-item wrappers provide adequate touch area via padding. No component change needed — verify at usage sites.
+export interface CreateInvitationsResponse {
+  success: true;
+  invitations: Invitation[];
+  skipped: string[];
+}
 
----
+export interface GetInvitationsResponse {
+  success: true;
+  invitations: Invitation[];
+}
 
-## 2. Event Count Fix
+export interface UpdateRsvpResponse {
+  success: true;
+  member: MemberWithProfile;
+}
 
-### Problem
+export interface GetMembersResponse {
+  success: true;
+  members: MemberWithProfile[];
+}
+```
 
-- `trip-detail-content.tsx:222` has hardcoded `"0 events"` string
-- `TripDetail` type doesn't include `eventCount`
-- Backend `trip.service.ts:497` hardcodes `eventCount: 0` in `TripSummary`
+File: `shared/types/index.ts` - Add re-exports
 
-### Solution — Frontend (Trip Detail Page)
+## Frontend Changes
 
-Use `useEvents(tripId)` in `TripDetailContent` to get the event count dynamically. The events query is already cached by TanStack Query, so this won't cause a duplicate fetch — it shares the cache key with `ItineraryView`.
+### Modified: Trip Detail Page
 
-**`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`**:
-- Import `useEvents` from `@/hooks/use-events`
-- Replace hardcoded `"0 events"` (line 222) with dynamic count from events data
-- Filter out deleted events (`deletedAt === null`)
+File: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
 
-### Solution — Backend (Trip Summary)
+Add conditional rendering based on `isPreview` flag from API:
 
-Count non-deleted events per trip in the list query.
+```
+if (isPreview) {
+  return <TripPreview trip={trip} onRsvp={handleRsvp} />;
+}
+// ... existing full trip detail rendering
+```
 
-**`apps/api/src/services/trip.service.ts`**:
-- In `getTrips()`, add a subquery counting events where `deletedAt IS NULL` grouped by `tripId`
-- Replace `eventCount: 0` (line 497) with the actual count from the subquery
+### New: TripPreview Component
 
-### Tests to Update
+File: `apps/web/src/components/trip/trip-preview.tsx`
 
-- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — mock `useEvents`, verify dynamic count
-- `apps/api/tests/unit/trip.service.test.ts` — verify `eventCount` is computed
-- `apps/api/tests/integration/trip.routes.test.ts` — verify `eventCount` in API response
+Shows:
+- Trip name, destination, dates, description, cover image
+- Organizer names and avatars
+- RSVP buttons (Going / Maybe / Not Going)
+- After RSVPing "Going", invalidate queries and show full trip
 
----
+### New: InviteMembersDialog
 
-## 3. Cover Image Placeholder Fix
+File: `apps/web/src/components/trip/invite-members-dialog.tsx`
 
-### Problem
+- Phone number input with PhoneInput component (existing)
+- "Add" button to add to list
+- List of phone numbers to invite (removable chips)
+- Submit sends batch invite request
+- Shows results (invited, skipped, errors)
+- Uses React Hook Form + Zod (createInvitationsSchema)
 
-Empty state gradient (`from-muted to-primary/10`) looks broken. On mobile, hero doesn't span full width.
+### New: MembersList Component
 
-### Solution
+File: `apps/web/src/components/trip/members-list.tsx`
 
-Replace washed-out gradient with vibrant intentional empty state: richer gradient + `ImagePlus` icon from lucide-react + "Add cover photo" CTA for organizers.
+- Tab/section on trip detail page
+- Shows member avatars, names, RSVP status badges
+- Organizer badge on organizers
+- Organizer-only: phone numbers, remove member button, invite button
 
-### Files & Changes
+### Modified: Event Cards
 
-**`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** (lines 127-131):
-- Replace placeholder div with vibrant gradient (`from-primary/20 via-accent/15 to-secondary/20`)
-- Add centered `ImagePlus` icon (lucide-react)
-- Add "Add cover photo" text/button for organizers
-- Ensure container uses `w-full` explicitly
+File: `apps/web/src/components/itinerary/event-card.tsx`
 
-**`apps/web/src/components/trip/trip-card.tsx`** (lines 104-116):
-- Same treatment: replace bland gradient with vibrant one + small centered icon
-- Use matching gradient from above
+- If `creatorAttending === false`, show "Member no longer attending" badge/indicator
+- Muted/dimmed styling on the creator name area
 
----
+### New: TanStack Query Hooks
 
-## 4. Itinerary Toolbar Mobile Redesign
+File: `apps/web/src/hooks/use-invitations.ts` + `invitation-queries.ts`
 
-### Problem
+```typescript
+export const invitationKeys = {
+  all: (tripId: string) => ["trips", tripId, "invitations"] as const,
+};
 
-Toolbar crams view toggle + timezone toggle + 3 action buttons into flex rows, overflowing on mobile. Buttons are 32px tall.
+export function useInviteMembers(tripId: string);  // mutation
+export function useInvitations(tripId: string);     // query (organizers)
+export function useRevokeInvitation(tripId: string); // mutation
+```
 
-### Solution
+File: `apps/web/src/hooks/use-members.ts` + `member-queries.ts`
 
-On mobile: action buttons collapse to icon-only with tooltips. Text labels visible on `sm:` breakpoint and above.
+```typescript
+export const memberKeys = {
+  all: (tripId: string) => ["trips", tripId, "members"] as const,
+};
 
-### Files & Changes
+export function useMembers(tripId: string);  // query
+export function useUpdateRsvp(tripId: string);  // mutation
+```
 
-**`apps/web/src/components/itinerary/itinerary-header.tsx`**:
-- Action buttons: show `<Plus>` icon-only on mobile, full text on `sm:` and above
-  - Event → `Plus` icon, `Accommodation` → `Building2` icon, `My Travel` → `Plane` icon
-- Wrap icon-only buttons with `Tooltip` for accessibility
-- Use responsive text: `<span className="hidden sm:inline">Event</span>`
-- All buttons get proper touch targets from updated button component
+### Modified: Existing Hooks
 
-### Tests
+- `useTripDetail` - handle `isPreview` in response type
+- `useEvents` - include `creatorAttending` in Event type
 
-**`apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx`**:
-- Update to account for icon-only rendering
-- Verify action buttons still render and are clickable
+## Trip Service Changes
 
----
+File: `apps/api/src/services/trip.service.ts`
 
-## 5. Toast Notification Positioning
+### `createTrip` changes:
+- When creating trip, set creator's member record `isOrganizer: true`
+- When adding co-organizers, set their member records `isOrganizer: true`
 
-### Problem
+### `addCoOrganizers` changes:
+- Set `isOrganizer: true` on new co-organizer member records
 
-Sonner defaults to top-right, may overlap sticky header or iPhone notch.
+### `removeCoOrganizer` changes:
+- No longer deletes the member record entirely
+- Instead sets `isOrganizer: false` and `status: 'no_response'` (removed from trip effectively)
+- OR: keep current delete behavior (removes member entirely)
 
-### Files & Changes
+Decision: Keep delete behavior - removing a co-organizer removes them from the trip.
 
-**`apps/web/src/components/ui/sonner.tsx`**:
-- Add `position="bottom-right"` prop
-- Add `className` with `z-[60]` to ensure toasts render above header (`z-10`) and overlays (`z-50`)
+### `getTripById` changes:
+- Organizer detection: check `isOrganizer` column instead of `status='going'`
+- Add `isPreview` and `userRsvpStatus` to response
+- For non-Going members, return partial data (no itinerary reference)
 
----
+### `getUserTrips` changes:
+- Update organizer detection to use `isOrganizer` column instead of `status='going'`
 
-## 6. Dialog Backdrop Verification
+## Auth Flow Integration
 
-### Problem
+File: `apps/api/src/services/auth.service.ts`
 
-Screenshots show no dimming behind create trip modal. Code has `bg-black/80` overlay.
+After a new user completes registration (or existing user logs in), call `invitationService.processPendingInvitations(userId, phoneNumber)` to:
+1. Find all invitations matching this phone number
+2. For each, create a member record if one doesn't exist
+3. Update invitation status to 'accepted' (they've at least created an account)
 
-### Investigation
+## E2E Test Updates
 
-The overlay code looks correct at `dialog.tsx:42`. Possible causes:
-- Screenshot capture timing (animation hadn't completed)
-- Portal rendering issue
+### Existing tests must be updated:
 
-### Files & Changes
+The `isOrganizer` migration changes permissions. Currently co-organizers are added with `status='going'`, which made them organizers. After the migration:
+- Co-organizers need `isOrganizer: true` in the members table
+- The `addCoOrganizers` endpoint already handles this (it will set `isOrganizer: true`)
+- The API-level co-organizer addition in `trip-journey.spec.ts` should still work because it calls the API endpoint
 
-**`apps/web/src/components/ui/dialog.tsx`**:
-- Verify overlay z-index is correct (`z-50`)
-- Ensure `DialogPortal` renders at document root without clipping parent
-- If needed, add explicit `will-change-opacity` or remove animation delay
+Key test changes:
+- `trip-journey.spec.ts` - The permission test uses `POST /api/trips/:tripId/co-organizers` which will be updated to set `isOrganizer: true`. Should work without E2E test changes.
+- `itinerary-journey.spec.ts` - Tests where a trip creator operates should work since creator's member record gets `isOrganizer: true` in `createTrip`.
 
----
+### New E2E test helpers:
 
-## 7. "Going" Badge on Mobile
+File: `apps/web/tests/e2e/helpers/invitations.ts`
 
-### Problem
+```typescript
+// API-level helper: invite a user to a trip and RSVP
+export async function inviteAndAcceptViaAPI(
+  request: APIRequestContext,
+  tripId: string,
+  inviterPhone: string,
+  inviteePhone: string,
+  inviteeName: string,
+): Promise<void>;
+```
 
-Badge visible on desktop but missing on mobile in screenshots.
+### New E2E test file:
 
-### Investigation
+File: `apps/web/tests/e2e/invitation-journey.spec.ts`
 
-Code at `trip-detail-content.tsx:167-168` renders "Going" badge unconditionally. May be clipping from overflow or layout issue.
-
-### Files & Changes
-
-**`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`**:
-- Ensure badge container (`flex items-center gap-2`) has `flex-wrap` on mobile
-- Verify no parent container clips the badges
-
----
-
-## 8. Create Trip Dialog Mobile Scroll
-
-### Problem
-
-Continue button may be obscured on mobile viewport.
-
-### Files & Changes
-
-**`apps/web/src/components/trip/create-trip-dialog.tsx`**:
-- Verify `DialogContent` scroll behavior (already has `max-h-[calc(100vh-4rem)] overflow-y-auto`)
-- Ensure submit button area has padding at bottom so it's not flush with viewport edge
-- If needed, add bottom safe-area padding for iOS (`pb-safe` or `pb-6`)
-
----
-
-## 9. Phone Number Input + Formatting
-
-### New Dependencies
-
-- `react-phone-number-input` (~800k weekly downloads) — Phone input with country selector
-- `libphonenumber-js` (bundled with react-phone-number-input) — Phone parsing/formatting/validation
-
-### Architecture
-
-**New: `apps/web/src/components/ui/phone-input.tsx`**:
-- Custom PhoneInput component wrapping `react-phone-number-input`
-- Styled to match existing shadcn Input (border, focus ring, height)
-- Based on `shadcn-phone-input` pattern by omeralpi
-- Integrates with React Hook Form via standard `field` spread
-
-**`apps/web/src/lib/format.ts`**:
-- Add `formatPhoneNumber(phone: string): string` using `parsePhoneNumber` from `libphonenumber-js`
-- Returns `formatInternational()` for display (e.g., "+1 213 373 4253")
-- Graceful fallback to raw string if parsing fails
-
-**`apps/web/src/app/(auth)/login/page.tsx`**:
-- Replace `<Input type="tel">` with `<PhoneInput>` component
-- Default country: "US"
-
-**`apps/web/src/app/(auth)/verify/page.tsx`**:
-- Format displayed phone number using `formatPhoneNumber()` utility
-
-**`shared/schemas/auth.ts`** (wherever `requestCodeSchema` is defined):
-- Update phone validation to use `isValidPhoneNumber` from `libphonenumber-js` (server-safe)
-
----
-
-## 10. Trip Card Cover Image
-
-Already covered in section 3 — same gradient/icon treatment for `trip-card.tsx`.
-
----
+Tests:
+1. Organizer invites members via UI dialog
+2. Invited member sees partial preview
+3. Member RSVPs Going and sees full itinerary
+4. Member changes RSVP and "member no longer attending" appears on events
+5. Uninvited user sees 404
+6. Member list shows correct statuses
 
 ## Testing Strategy
 
-### Unit Tests (Vitest)
-- Button/Input component variants — verify class output includes responsive sizes
-- Phone number format utility — various formats, edge cases, invalid input
-- Event count display — mock `useEvents`, verify dynamic rendering
-- Itinerary header — verify icon-only buttons render, tooltips present
-
-### Integration Tests (Vitest)
-- Trip service `eventCount` — verify actual counts from DB (not hardcoded 0)
-- API route tests — verify `eventCount` in GET /api/trips response
-
-### E2E Tests (Playwright)
-- Existing journey tests must still pass (regression)
-- Visual screenshots at 375x667 (mobile) and 1280x720 (desktop)
-
-### Manual Testing
-- Screenshots of: login, verify, dashboard, trip detail, itinerary views
-- Verify touch targets meet 44px minimum on mobile
-- Verify phone input with country selector works
-- Verify toast positioning doesn't overlap content
+- **Unit tests**: InvitationService methods, permissions changes, schema validation
+- **Integration tests**: Invitation endpoints, RSVP endpoint, modified trip endpoints
+- **E2E tests**: Full invitation flow, RSVP flow, preview, member list, status changes
+- **Manual testing**: UI polish, responsive design, toast notifications

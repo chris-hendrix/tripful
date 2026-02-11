@@ -34,12 +34,16 @@ import {
   type UpdateAccommodationInput,
   type CreateMemberTravelInput,
   type UpdateMemberTravelInput,
+  type CreateInvitationsInput,
+  type UpdateRsvpInput,
   createEventSchema,
   updateEventSchema,
   createAccommodationSchema,
   updateAccommodationSchema,
   createMemberTravelSchema,
   updateMemberTravelSchema,
+  createInvitationsSchema,
+  updateRsvpSchema,
 } from "../schemas/index.js";
 
 describe("Package Exports", () => {
@@ -68,6 +72,11 @@ describe("Package Exports", () => {
   it("should export all member travel schemas", () => {
     expect(createMemberTravelSchema).toBeDefined();
     expect(updateMemberTravelSchema).toBeDefined();
+  });
+
+  it("should export all invitation schemas", () => {
+    expect(createInvitationsSchema).toBeDefined();
+    expect(updateRsvpSchema).toBeDefined();
   });
 
   it("should export existing schemas", () => {
@@ -171,6 +180,16 @@ describe("Package Exports", () => {
       location: "Airport Terminal 3",
     };
     expect(updateMemberTravelInput).toBeDefined();
+
+    const createInvitationsInput: CreateInvitationsInput = {
+      phoneNumbers: ["+14155552671"],
+    };
+    expect(createInvitationsInput).toBeDefined();
+
+    const updateRsvpInput: UpdateRsvpInput = {
+      status: "going",
+    };
+    expect(updateRsvpInput).toBeDefined();
   });
 
   it("should validate schemas with inferred types", () => {
@@ -192,5 +211,17 @@ describe("Package Exports", () => {
     };
     const validatedProfile = completeProfileSchema.parse(profileInput);
     expect(validatedProfile.displayName).toBe("Test User");
+
+    const invitationInput: CreateInvitationsInput = {
+      phoneNumbers: ["+14155552671"],
+    };
+    const validatedInvitation = createInvitationsSchema.parse(invitationInput);
+    expect(validatedInvitation.phoneNumbers).toHaveLength(1);
+
+    const rsvpInput: UpdateRsvpInput = {
+      status: "going",
+    };
+    const validatedRsvp = updateRsvpSchema.parse(rsvpInput);
+    expect(validatedRsvp.status).toBe("going");
   });
 });

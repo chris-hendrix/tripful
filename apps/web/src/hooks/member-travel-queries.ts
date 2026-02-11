@@ -26,6 +26,7 @@ export const memberTravelKeys = {
 export const memberTravelsQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: memberTravelKeys.list(tripId),
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetMemberTravelsResponse>(
         `/trips/${tripId}/member-travel`,
@@ -42,6 +43,7 @@ export const memberTravelsQueryOptions = (tripId: string) =>
 export const memberTravelDetailQueryOptions = (memberTravelId: string) =>
   queryOptions({
     queryKey: memberTravelKeys.detail(memberTravelId),
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetMemberTravelResponse>(
         `/member-travel/${memberTravelId}`,

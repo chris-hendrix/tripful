@@ -18,10 +18,12 @@ import {
   tripKeys,
   tripsQueryOptions,
   tripDetailQueryOptions,
+  type TripDetailWithMeta,
 } from "./trip-queries";
 
 // Re-export for backward compatibility
 export { tripKeys, tripsQueryOptions, tripDetailQueryOptions };
+export type { TripDetailWithMeta };
 
 // Re-export types for backward compatibility with existing imports
 export type { Trip, TripSummary, TripDetail };

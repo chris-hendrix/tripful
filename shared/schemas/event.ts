@@ -86,6 +86,43 @@ export const updateEventSchema = baseEventSchema.partial().refine(
   },
 );
 
+// --- Response schemas ---
+
+/** Event entity as returned by the API */
+const eventEntitySchema = z.object({
+  id: z.string(),
+  tripId: z.string(),
+  createdBy: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  eventType: z.enum(["travel", "meal", "activity"]),
+  location: z.string().nullable(),
+  startTime: z.date(),
+  endTime: z.date().nullable(),
+  allDay: z.boolean(),
+  isOptional: z.boolean(),
+  links: z.array(z.string()).nullable(),
+  deletedAt: z.date().nullable(),
+  deletedBy: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  creatorAttending: z.boolean().optional(),
+  creatorName: z.string().optional(),
+  creatorProfilePhotoUrl: z.string().nullable().optional(),
+});
+
+/** GET /api/trips/:tripId/events - Event list */
+export const eventListResponseSchema = z.object({
+  success: z.literal(true),
+  events: z.array(eventEntitySchema),
+});
+
+/** GET/POST/PUT/restore single event */
+export const eventResponseSchema = z.object({
+  success: z.literal(true),
+  event: eventEntitySchema,
+});
+
 // Inferred TypeScript types from schemas
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

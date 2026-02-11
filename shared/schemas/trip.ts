@@ -1,18 +1,7 @@
 // Trip validation schemas for the Tripful platform
 
 import { z } from "zod";
-
-/**
- * Validates phone numbers in E.164 format
- * Format: +[country code][number] (e.g., +14155552671)
- * - Must start with '+'
- * - Country code: 1-3 digits (first digit cannot be 0)
- * - Total length: 8-15 characters (including '+')
- * - This means 7-14 digits after '+'
- */
-const phoneNumberSchema = z.string().regex(/^\+[1-9]\d{6,13}$/, {
-  message: "Phone number must be in E.164 format (e.g., +14155552671)",
-});
+import { phoneNumberSchema } from "./phone";
 
 /**
  * Validates IANA timezone strings using Intl.supportedValuesOf
@@ -137,6 +126,106 @@ export const addCoOrganizerSchema = z.object({
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+// --- Response schemas ---
+
+/** Generic success-only response (used by DELETE endpoints) */
+export const successResponseSchema = z.object({
+  success: z.literal(true),
+});
+
+/** Base trip entity as returned by the API */
+const tripEntitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  destination: z.string(),
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+  preferredTimezone: z.string(),
+  description: z.string().nullable(),
+  coverImageUrl: z.string().nullable(),
+  createdBy: z.string(),
+  allowMembersToAddEvents: z.boolean(),
+  cancelled: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+/** Organizer info in trip summary */
+const organizerInfoSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  profilePhotoUrl: z.string().nullable(),
+});
+
+/** Trip summary as returned by GET /api/trips (list) */
+const tripSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  destination: z.string(),
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+  coverImageUrl: z.string().nullable(),
+  isOrganizer: z.boolean(),
+  rsvpStatus: z.enum(["going", "not_going", "maybe", "no_response"]),
+  organizerInfo: z.array(organizerInfoSchema),
+  memberCount: z.number(),
+  eventCount: z.number(),
+});
+
+/** Organizer detail in trip detail */
+const organizerDetailSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  phoneNumber: z.string(),
+  profilePhotoUrl: z.string().nullable(),
+  timezone: z.string(),
+});
+
+/** Trip detail entity (extends trip with organizers and member count)
+ *  In preview mode, some fields (createdBy, allowMembersToAddEvents, cancelled,
+ *  createdAt, updatedAt) are omitted for non-Going members. */
+const tripDetailSchema = tripEntitySchema
+  .partial({
+    createdBy: true,
+    allowMembersToAddEvents: true,
+    cancelled: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    organizers: z.array(organizerDetailSchema),
+    memberCount: z.number(),
+  });
+
+/** GET /api/trips - Paginated trip list */
+export const tripListResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.array(tripSummarySchema),
+  meta: z.object({
+    total: z.number(),
+    page: z.number(),
+    limit: z.number(),
+    totalPages: z.number(),
+  }),
+});
+
+/** GET /api/trips/:id - Trip detail */
+export const tripDetailResponseSchema = z.object({
+  success: z.literal(true),
+  trip: tripDetailSchema,
+  isPreview: z.boolean().optional(),
+  userRsvpStatus: z
+    .enum(["going", "not_going", "maybe", "no_response"])
+    .optional(),
+  isOrganizer: z.boolean().optional(),
+});
+
+/** POST/PUT /api/trips, cover image upload/delete */
+export const tripResponseSchema = z.object({
+  success: z.literal(true),
+  trip: tripEntitySchema,
 });
 
 // Inferred TypeScript types from schemas

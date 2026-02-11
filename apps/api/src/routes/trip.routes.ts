@@ -6,10 +6,18 @@ import {
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
 import {
+  defaultRateLimitConfig,
+  writeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
+import {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
   paginationSchema,
+  tripListResponseSchema,
+  tripDetailResponseSchema,
+  tripResponseSchema,
+  successResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   PaginationInput,
@@ -49,8 +57,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
     {
       schema: {
         querystring: paginationSchema,
+        response: { 200: tripListResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     tripController.getUserTrips,
   );
@@ -66,8 +75,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: tripIdParamsSchema,
+        response: { 200: tripDetailResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     tripController.getTripById,
   );
@@ -75,10 +85,12 @@ export async function tripRoutes(fastify: FastifyInstance) {
   /**
    * Write routes scope
    * All routes registered here share authenticate + requireCompleteProfile hooks
+   * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /
@@ -89,6 +101,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
       {
         schema: {
           body: createTripSchema,
+          response: { 201: tripResponseSchema },
         },
       },
       tripController.createTrip,
@@ -105,6 +118,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: updateTripSchema,
+          response: { 200: tripResponseSchema },
         },
       },
       tripController.updateTrip,
@@ -120,6 +134,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: tripIdParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       tripController.cancelTrip,
@@ -136,6 +151,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: addCoOrganizerSchema,
+          response: { 200: successResponseSchema },
         },
       },
       tripController.addCoOrganizer,
@@ -151,6 +167,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: removeCoOrganizerParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       tripController.removeCoOrganizer,
@@ -167,6 +184,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: tripIdParamsSchema,
+          response: { 200: tripResponseSchema },
         },
       },
       tripController.uploadCoverImage,
@@ -182,6 +200,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: tripIdParamsSchema,
+          response: { 200: tripResponseSchema },
         },
       },
       tripController.deleteCoverImage,

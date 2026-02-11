@@ -123,7 +123,7 @@ describe("CreateEventDialog", () => {
 
       expect(screen.getByLabelText(/event name/i)).toBeDefined();
       expect(screen.getByLabelText(/event type/i)).toBeDefined();
-      expect(screen.getByRole("button", { name: /select start time/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /start time/i })).toBeDefined();
     });
 
     it("displays optional fields", () => {
@@ -137,7 +137,7 @@ describe("CreateEventDialog", () => {
       );
 
       expect(screen.getByLabelText(/location/i)).toBeDefined();
-      expect(screen.getByRole("button", { name: /select end time/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /end time/i })).toBeDefined();
       expect(screen.getByLabelText(/all day event/i)).toBeDefined();
       expect(screen.getByLabelText(/optional event/i)).toBeDefined();
       expect(screen.getByLabelText(/description/i)).toBeDefined();
@@ -225,7 +225,7 @@ describe("CreateEventDialog", () => {
         />,
       );
 
-      const startTimeButton = screen.getByRole("button", { name: /select start time/i });
+      const startTimeButton = screen.getByRole("button", { name: /start time/i });
       expect(startTimeButton).toBeDefined();
     });
   });
@@ -241,7 +241,7 @@ describe("CreateEventDialog", () => {
         />,
       );
 
-      const endTimeButton = screen.getByRole("button", { name: /select end time/i });
+      const endTimeButton = screen.getByRole("button", { name: /end time/i });
       expect(endTimeButton).toBeDefined();
     });
   });

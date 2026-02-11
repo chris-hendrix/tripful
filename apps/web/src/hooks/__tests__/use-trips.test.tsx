@@ -679,8 +679,13 @@ describe("useTripDetail", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      // Verify data is correct
-      expect(result.current.data).toEqual(mockTripDetail);
+      // Verify data is correct (includes meta fields from response envelope)
+      expect(result.current.data).toEqual({
+        ...mockTripDetail,
+        isPreview: false,
+        userRsvpStatus: "going",
+        isOrganizer: false,
+      });
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
@@ -710,6 +715,49 @@ describe("useTripDetail", () => {
       expect(result.current.data?.memberCount).toBe(8);
     });
 
+    it("includes meta fields with defaults when not present in response", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+      });
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data?.isPreview).toBe(false);
+      expect(result.current.data?.userRsvpStatus).toBe("going");
+      expect(result.current.data?.isOrganizer).toBe(false);
+    });
+
+    it("includes meta fields from response when present", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: mockTripDetail,
+        isPreview: true,
+        userRsvpStatus: "maybe",
+        isOrganizer: true,
+      });
+
+      const { result } = renderHook(() => useTripDetail("trip-123"), {
+        wrapper,
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data?.isPreview).toBe(true);
+      expect(result.current.data?.userRsvpStatus).toBe("maybe");
+      expect(result.current.data?.isOrganizer).toBe(true);
+    });
+
     it("uses correct query key for caching", async () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
@@ -721,7 +769,12 @@ describe("useTripDetail", () => {
 
       await waitFor(() => {
         const cachedData = queryClient.getQueryData(["trips", "trip-123"]);
-        expect(cachedData).toEqual(mockTripDetail);
+        expect(cachedData).toEqual({
+          ...mockTripDetail,
+          isPreview: false,
+          userRsvpStatus: "going",
+          isOrganizer: false,
+        });
       });
     });
 
@@ -756,9 +809,19 @@ describe("useTripDetail", () => {
         expect(result2.current.isSuccess).toBe(true);
       });
 
-      // Verify both are cached separately
-      expect(queryClient.getQueryData(["trips", "trip-1"])).toEqual(trip1);
-      expect(queryClient.getQueryData(["trips", "trip-2"])).toEqual(trip2);
+      // Verify both are cached separately (with meta field defaults)
+      expect(queryClient.getQueryData(["trips", "trip-1"])).toEqual({
+        ...trip1,
+        isPreview: false,
+        userRsvpStatus: "going",
+        isOrganizer: false,
+      });
+      expect(queryClient.getQueryData(["trips", "trip-2"])).toEqual({
+        ...trip2,
+        isPreview: false,
+        userRsvpStatus: "going",
+        isOrganizer: false,
+      });
     });
   });
 

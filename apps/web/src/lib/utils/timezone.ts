@@ -252,6 +252,44 @@ function getTimezoneOffsetMs(utcDate: Date, timezone: string): number {
 }
 
 /**
+ * Get the day number without leading zero (e.g., "7" from "2026-02-07")
+ */
+export function getDayNumber(dateString: string): string {
+  const day = dateString.split("-")[2];
+  return day ? String(parseInt(day, 10)) : "0";
+}
+
+/**
+ * Get 3-letter month abbreviation (e.g., "Feb") for a date string in a timezone
+ */
+export function getMonthAbbrev(dateString: string, timezone: string): string {
+  const date = new Date(dateString + "T12:00:00");
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      month: "short",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Get 3-letter weekday abbreviation (e.g., "Mon") for a date string in a timezone
+ */
+export function getWeekdayAbbrev(dateString: string, timezone: string): string {
+  const date = new Date(dateString + "T12:00:00");
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+    }).format(date);
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Calculate number of nights between two dates
  * @param checkIn - Check-in date string (YYYY-MM-DD)
  * @param checkOut - Check-out date string (YYYY-MM-DD)

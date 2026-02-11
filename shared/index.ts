@@ -19,6 +19,7 @@ export type {
 // Schemas
 export {
   phoneNumberSchema,
+  PHONE_REGEX,
   emailSchema,
   uuidSchema,
   requestCodeSchema,

@@ -147,8 +147,8 @@ describe("EditEventDialog", () => {
       );
 
       // DateTimePicker buttons should show formatted date/time, not placeholder
-      const startTimeButton = screen.getByRole("button", { name: /jul 15, 2026/i });
-      expect(startTimeButton).toBeDefined();
+      const startTimeButton = screen.getByRole("button", { name: /start time/i });
+      expect(startTimeButton.textContent).toMatch(/jul 15, 2026/i);
     });
 
     it("pre-populates links", () => {
@@ -256,7 +256,7 @@ describe("EditEventDialog", () => {
 
       await user.click(screen.getByRole("button", { name: /update event/i }));
 
-      expect(screen.getByText("Updating...")).toBeDefined();
+      expect(screen.getByRole("button", { name: /updating/i })).toBeDefined();
     });
   });
 

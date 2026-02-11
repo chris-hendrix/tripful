@@ -102,7 +102,7 @@ describe("CreateMemberTravelDialog", () => {
       );
 
       expect(screen.getByRole("radio", { name: /arrival/i })).toBeDefined();
-      expect(screen.getByRole("button", { name: /select date & time/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /travel time/i })).toBeDefined();
     });
 
     it("displays optional fields", () => {
@@ -115,8 +115,8 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      expect(screen.getByLabelText(/^location/i)).toBeDefined();
-      expect(screen.getByLabelText(/^details/i)).toBeDefined();
+      expect(screen.getByLabelText(/location/i)).toBeDefined();
+      expect(screen.getByRole("textbox", { name: /details/i })).toBeDefined();
     });
 
     it("shows required field indicators", () => {
@@ -205,7 +205,7 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const timeButton = screen.getByRole("button", { name: /select date & time/i });
+      const timeButton = screen.getByRole("button", { name: /travel time/i });
       expect(timeButton).toBeDefined();
     });
 
@@ -220,7 +220,7 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/^location/i);
+      const locationInput = screen.getByLabelText(/location/i);
       await user.type(locationInput, "Miami Airport");
 
       expect((locationInput as HTMLInputElement).value).toBe("Miami Airport");
@@ -239,7 +239,7 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const detailsInput = screen.getByLabelText(/^details/i) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
       await user.type(detailsInput, "Flight AA123");
 
       expect(detailsInput.value).toBe("Flight AA123");
@@ -256,7 +256,7 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const detailsInput = screen.getByLabelText(/^details/i) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
       const longText = "a".repeat(400);
 
       await user.click(detailsInput);

@@ -22,6 +22,12 @@ export interface Event {
   deletedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+  /** Whether the event creator is currently attending (RSVP status = 'going') */
+  creatorAttending?: boolean;
+  /** Display name of the event creator */
+  creatorName?: string;
+  /** Profile photo URL of the event creator */
+  creatorProfilePhotoUrl?: string | null;
 }
 
 /**

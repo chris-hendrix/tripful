@@ -6,6 +6,7 @@ import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents } from "@/hooks/use-events";
 import { useAccommodations } from "@/hooks/use-accommodations";
 import { useMemberTravels } from "@/hooks/use-member-travel";
+import { useMembers } from "@/hooks/use-invitations";
 import { useTripDetail } from "@/hooks/use-trips";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +48,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     isError: memberTravelsError,
     refetch: refetchMemberTravels,
   } = useMemberTravels(tripId);
+  const { data: members = [] } = useMembers(tripId);
 
   // View state
   const [viewMode, setViewMode] = useState<"day-by-day" | "group-by-type">(
@@ -75,7 +77,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   // In the future, this should check actual membership status from the API
   const isMember = !!user && !!trip;
 
-  // Build userId→displayName lookup from trip organizers
+  // Build userId→displayName lookup from organizers + members
   const userNameMap = useMemo(() => {
     const map = new Map<string, string>();
     if (trip?.organizers) {
@@ -83,8 +85,13 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
         map.set(org.id, org.displayName);
       }
     }
+    for (const member of members) {
+      if (!map.has(member.userId)) {
+        map.set(member.userId, member.displayName);
+      }
+    }
     return map;
-  }, [trip?.organizers]);
+  }, [trip?.organizers, members]);
 
   // Loading state
   const isLoading =

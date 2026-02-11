@@ -48,8 +48,14 @@ export type { Event };
  * return events.map(event => <EventCard key={event.id} event={event} />);
  * ```
  */
-export function useEvents(tripId: string) {
-  return useQuery(eventsQueryOptions(tripId));
+export function useEvents(
+  tripId: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    ...eventsQueryOptions(tripId),
+    enabled: (options?.enabled ?? true) && !!tripId,
+  });
 }
 
 /**

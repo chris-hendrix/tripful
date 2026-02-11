@@ -127,6 +127,19 @@ export const authController = {
       // Get existing user or create new one
       const user = await authService.getOrCreateUser(e164PhoneNumber);
 
+      // Process any pending invitations for this phone number (fault-tolerant: awaited but wrapped in try/catch so failures don't break auth)
+      try {
+        await request.server.invitationService.processPendingInvitations(
+          user.id,
+          e164PhoneNumber,
+        );
+      } catch (err) {
+        request.log.error(
+          { err },
+          "Failed to process pending invitations",
+        );
+      }
+
       // Generate JWT token
       const token = authService.generateToken(user);
 

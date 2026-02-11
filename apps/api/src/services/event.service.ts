@@ -1,6 +1,8 @@
 import {
   events,
   trips,
+  users,
+  members,
   type Event,
 } from "@/db/schema/index.js";
 import { eq, and, isNull } from "drizzle-orm";
@@ -43,12 +45,21 @@ export interface IEventService {
   getEvent(eventId: string): Promise<Event | null>;
 
   /**
-   * Gets all events for a trip
+   * Gets all events for a trip with creator attendance info
    * @param tripId - The UUID of the trip
    * @param includeDeleted - Whether to include soft-deleted events (default: false)
-   * @returns Promise that resolves to array of events
+   * @returns Promise that resolves to array of events with creator info
    */
-  getEventsByTrip(tripId: string, includeDeleted?: boolean): Promise<Event[]>;
+  getEventsByTrip(
+    tripId: string,
+    includeDeleted?: boolean,
+  ): Promise<
+    (Event & {
+      creatorAttending: boolean;
+      creatorName: string;
+      creatorProfilePhotoUrl: string | null;
+    })[]
+  >;
 
   /**
    * Updates an event
@@ -183,23 +194,56 @@ export class EventService implements IEventService {
   }
 
   /**
-   * Gets all events for a trip
+   * Gets all events for a trip with creator attendance info
    * Excludes soft-deleted events by default
+   * Joins with users and members tables to include creator profile and attendance status
    * @param tripId - The UUID of the trip
    * @param includeDeleted - Whether to include soft-deleted events (default: false)
-   * @returns Array of events
+   * @returns Array of events with creatorAttending, creatorName, creatorProfilePhotoUrl
    */
   async getEventsByTrip(
     tripId: string,
     includeDeleted = false,
-  ): Promise<Event[]> {
+  ): Promise<
+    (Event & {
+      creatorAttending: boolean;
+      creatorName: string;
+      creatorProfilePhotoUrl: string | null;
+    })[]
+  > {
     const conditions = [eq(events.tripId, tripId)];
 
     if (!includeDeleted) {
       conditions.push(isNull(events.deletedAt));
     }
 
-    return this.db.select().from(events).where(and(...conditions));
+    const results = await this.db
+      .select({
+        event: events,
+        creatorDisplayName: users.displayName,
+        creatorProfilePhotoUrl: users.profilePhotoUrl,
+        creatorMemberStatus: members.status,
+      })
+      .from(events)
+      .leftJoin(users, eq(events.createdBy, users.id))
+      // Left join on members because the event creator may have been removed from the trip,
+      // in which case their member record no longer exists. A left join ensures the event
+      // is still returned with creatorAttending=false when the member record is null.
+      .leftJoin(
+        members,
+        and(
+          eq(members.userId, events.createdBy),
+          eq(members.tripId, events.tripId),
+        ),
+      )
+      .where(and(...conditions));
+
+    return results.map((r) => ({
+      ...r.event,
+      creatorAttending: r.creatorMemberStatus === "going",
+      creatorName: r.creatorDisplayName ?? "",
+      creatorProfilePhotoUrl: r.creatorProfilePhotoUrl,
+    }));
   }
 
   /**

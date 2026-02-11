@@ -5,7 +5,7 @@ import {
   accommodations,
   memberTravel,
 } from "@/db/schema/index.js";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 import type { AppDatabase } from "@/types/index.js";
 
 /**
@@ -15,7 +15,7 @@ import type { AppDatabase } from "@/types/index.js";
 export interface IPermissionsService {
   /**
    * Checks if a user can edit a trip
-   * A user can edit a trip if they are the creator OR a co-organizer (member with status='going')
+   * A user can edit a trip if they are the creator OR a co-organizer (member with isOrganizer=true)
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user can edit, false otherwise
@@ -24,7 +24,7 @@ export interface IPermissionsService {
 
   /**
    * Checks if a user can delete a trip
-   * A user can delete a trip if they are the creator OR a co-organizer (member with status='going')
+   * A user can delete a trip if they are the creator OR a co-organizer (member with isOrganizer=true)
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user can delete, false otherwise
@@ -33,7 +33,7 @@ export interface IPermissionsService {
 
   /**
    * Checks if a user can manage co-organizers for a trip
-   * A user can manage co-organizers if they are the creator OR a co-organizer (member with status='going')
+   * A user can manage co-organizers if they are the creator OR a co-organizer (member with isOrganizer=true)
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user can manage co-organizers, false otherwise
@@ -42,7 +42,8 @@ export interface IPermissionsService {
 
   /**
    * Checks if a user is an organizer of a trip
-   * A user is an organizer if they are the creator OR a co-organizer (member with status='going')
+   * A user is an organizer if they have a member record with `isOrganizer=true` for this trip,
+   * or if they are the trip creator.
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user is an organizer, false otherwise
@@ -61,8 +62,8 @@ export interface IPermissionsService {
   /**
    * Checks if a user can add an event to a trip
    * A user can add an event if they are:
-   * 1. An organizer (creator OR co-organizer with status='going'), OR
-   * 2. A member with status='going' AND trip.allowMembersToAddEvents=true
+   * 1. An organizer (isOrganizer=true), who can always add events, OR
+   * 2. A regular member with status='going' AND trip.allowMembersToAddEvents=true
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user can add event, false otherwise
@@ -72,8 +73,8 @@ export interface IPermissionsService {
   /**
    * Checks if a user can edit an event
    * A user can edit an event if they are:
-   * 1. The event creator (events.createdBy), OR
-   * 2. An organizer of the event's trip
+   * 1. An organizer of the event's trip, OR
+   * 2. The event creator AND their member status is 'going'
    * @param userId - The UUID of the user to check
    * @param eventId - The UUID of the event to check
    * @returns Promise that resolves to true if user can edit event, false otherwise
@@ -82,9 +83,7 @@ export interface IPermissionsService {
 
   /**
    * Checks if a user can delete an event
-   * A user can delete an event if they are:
-   * 1. The event creator (events.createdBy), OR
-   * 2. An organizer of the event's trip
+   * Delegates to canEditEvent - same permission rules apply
    * @param userId - The UUID of the user to check
    * @param eventId - The UUID of the event to check
    * @returns Promise that resolves to true if user can delete event, false otherwise
@@ -93,7 +92,7 @@ export interface IPermissionsService {
 
   /**
    * Checks if a user can add accommodation to a trip
-   * Only organizers (creator OR co-organizer with status='going') can add accommodations
+   * Only organizers (creator OR member with isOrganizer=true) can add accommodations
    * @param userId - The UUID of the user to check
    * @param tripId - The UUID of the trip to check
    * @returns Promise that resolves to true if user can add accommodation, false otherwise
@@ -157,6 +156,33 @@ export interface IPermissionsService {
     userId: string,
     memberTravelId: string,
   ): Promise<boolean>;
+
+  /**
+   * Checks if a user can invite members to a trip
+   * Only organizers can invite members
+   * @param userId - The UUID of the user to check
+   * @param tripId - The UUID of the trip to check
+   * @returns Promise that resolves to true if user can invite members, false otherwise
+   */
+  canInviteMembers(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can update their RSVP for a trip
+   * Any member can update their RSVP
+   * @param userId - The UUID of the user to check
+   * @param tripId - The UUID of the trip to check
+   * @returns Promise that resolves to true if user can update RSVP, false otherwise
+   */
+  canUpdateRsvp(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can view the full trip details
+   * Only members with status='going' can view full trip details
+   * @param userId - The UUID of the user to check
+   * @param tripId - The UUID of the trip to check
+   * @returns Promise that resolves to true if user can view full trip, false otherwise
+   */
+  canViewFullTrip(userId: string, tripId: string): Promise<boolean>;
 }
 
 /**
@@ -170,7 +196,7 @@ export class PermissionsService implements IPermissionsService {
    * Checks if a user is an organizer of a trip
    * A user is an organizer if:
    * 1. They are the trip creator (trips.createdBy matches userId), OR
-   * 2. They are a co-organizer (member with status='going')
+   * 2. They have a member record with isOrganizer=true
    *
    * Uses a LEFT JOIN to check both conditions in a single query
    * @param userId - The UUID of the user to check
@@ -183,7 +209,7 @@ export class PermissionsService implements IPermissionsService {
         tripId: trips.id,
         createdBy: trips.createdBy,
         memberUserId: members.userId,
-        memberStatus: members.status,
+        memberIsOrganizer: members.isOrganizer,
       })
       .from(trips)
       .leftJoin(
@@ -191,7 +217,7 @@ export class PermissionsService implements IPermissionsService {
         and(
           eq(members.tripId, trips.id),
           eq(members.userId, userId),
-          eq(members.status, "going"),
+          eq(members.isOrganizer, true),
         ),
       )
       .where(
@@ -199,7 +225,7 @@ export class PermissionsService implements IPermissionsService {
           eq(trips.id, tripId),
           or(
             eq(trips.createdBy, userId), // User is the creator
-            eq(members.userId, userId), // User is a co-organizer (status='going' from JOIN)
+            eq(members.userId, userId), // User is a co-organizer (isOrganizer=true from JOIN)
           ),
         ),
       )
@@ -250,40 +276,6 @@ export class PermissionsService implements IPermissionsService {
     tripId: string,
   ): Promise<boolean> {
     return this.isOrganizer(userId, tripId);
-  }
-
-  /**
-   * Helper method to check if a user is the creator of an event
-   * @param userId - The UUID of the user to check
-   * @param eventId - The UUID of the event to check
-   * @returns true if user created the event, false otherwise
-   */
-  private async isEventCreator(
-    userId: string,
-    eventId: string,
-  ): Promise<boolean> {
-    const result = await this.db
-      .select({ createdBy: events.createdBy })
-      .from(events)
-      .where(eq(events.id, eventId))
-      .limit(1);
-
-    return result.length > 0 && result[0]!.createdBy === userId;
-  }
-
-  /**
-   * Helper method to get the tripId for an event
-   * @param eventId - The UUID of the event
-   * @returns tripId if event exists, null otherwise
-   */
-  private async getEventTripId(eventId: string): Promise<string | null> {
-    const result = await this.db
-      .select({ tripId: events.tripId })
-      .from(events)
-      .where(eq(events.id, eventId))
-      .limit(1);
-
-    return result.length > 0 ? result[0]!.tripId : null;
   }
 
   /**
@@ -345,7 +337,7 @@ export class PermissionsService implements IPermissionsService {
   /**
    * Checks if a user can add an event to a trip
    * A user can add an event if they are:
-   * 1. An organizer (creator OR co-organizer with status='going'), OR
+   * 1. An organizer (isOrganizer=true), who can always add events, OR
    * 2. A regular member with status='going' AND trip.allowMembersToAddEvents=true
    */
   async canAddEvent(userId: string, tripId: string): Promise<boolean> {
@@ -382,21 +374,46 @@ export class PermissionsService implements IPermissionsService {
 
   /**
    * Checks if a user can edit an event
-   * A user can edit an event if they are the event creator OR an organizer of the trip
+   * A user can edit an event if they are:
+   * 1. An organizer of the event's trip, OR
+   * 2. The event creator AND their member status is 'going'
    */
   async canEditEvent(userId: string, eventId: string): Promise<boolean> {
-    // Check if user is the event creator
-    if (await this.isEventCreator(userId, eventId)) {
-      return true;
+    // Get the event and its trip
+    const eventResult = await this.db
+      .select({
+        eventId: events.id,
+        tripId: events.tripId,
+        createdBy: events.createdBy,
+      })
+      .from(events)
+      .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
+      .limit(1);
+
+    if (eventResult.length === 0) return false;
+    const event = eventResult[0]!;
+
+    // Organizers can always edit any event
+    const isOrganizerResult = await this.isOrganizer(userId, event.tripId);
+    if (isOrganizerResult) return true;
+
+    // Event creator can edit only if they are the creator AND their status is 'going'
+    if (event.createdBy === userId) {
+      const memberResult = await this.db
+        .select({ status: members.status })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, event.tripId),
+            eq(members.userId, userId),
+            eq(members.status, "going"),
+          ),
+        )
+        .limit(1);
+      return memberResult.length > 0;
     }
 
-    // Check if user is an organizer of the event's trip
-    const tripId = await this.getEventTripId(eventId);
-    if (!tripId) {
-      return false;
-    }
-
-    return this.isOrganizer(userId, tripId);
+    return false;
   }
 
   /**
@@ -481,5 +498,40 @@ export class PermissionsService implements IPermissionsService {
     memberTravelId: string,
   ): Promise<boolean> {
     return this.canEditMemberTravel(userId, memberTravelId);
+  }
+
+  /**
+   * Checks if a user can invite members to a trip
+   * Only organizers can invite members
+   */
+  async canInviteMembers(userId: string, tripId: string): Promise<boolean> {
+    return this.isOrganizer(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can update their RSVP for a trip
+   * Any member can update their RSVP
+   */
+  async canUpdateRsvp(userId: string, tripId: string): Promise<boolean> {
+    return this.isMember(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can view the full trip details
+   * Only members with status='going' can view full trip details
+   */
+  async canViewFullTrip(userId: string, tripId: string): Promise<boolean> {
+    const result = await this.db
+      .select({ id: members.id })
+      .from(members)
+      .where(
+        and(
+          eq(members.tripId, tripId),
+          eq(members.userId, userId),
+          eq(members.status, "going"),
+        ),
+      )
+      .limit(1);
+    return result.length > 0;
   }
 }

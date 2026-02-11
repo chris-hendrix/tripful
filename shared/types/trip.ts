@@ -120,6 +120,12 @@ export interface GetTripResponse {
   success: true;
   /** Detailed trip data */
   trip: TripDetail;
+  /** Whether this is a preview response for non-Going members */
+  isPreview?: boolean;
+  /** Current user's RSVP status */
+  userRsvpStatus?: "going" | "not_going" | "maybe" | "no_response";
+  /** Whether current user is an organizer */
+  isOrganizer?: boolean;
 }
 
 /**

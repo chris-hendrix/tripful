@@ -54,6 +54,49 @@ export type PaginatedTripsResult = {
 };
 
 /**
+ * Organizer info returned with trip detail responses
+ */
+type OrganizerInfo = {
+  id: string;
+  displayName: string;
+  phoneNumber: string;
+  profilePhotoUrl: string | null;
+  timezone: string;
+};
+
+/**
+ * Membership metadata returned alongside trip detail responses
+ */
+type TripMembershipMeta = {
+  organizers: OrganizerInfo[];
+  memberCount: number;
+  isPreview: boolean;
+  userRsvpStatus: "going" | "not_going" | "maybe" | "no_response";
+  isOrganizer: boolean;
+};
+
+/**
+ * Preview trip fields - limited subset visible to non-Going, non-organizer members
+ */
+type TripPreview = Pick<
+  Trip,
+  | "id"
+  | "name"
+  | "destination"
+  | "startDate"
+  | "endDate"
+  | "preferredTimezone"
+  | "description"
+  | "coverImageUrl"
+>;
+
+/**
+ * Full trip detail result: either all Trip fields (full) or preview-only fields,
+ * combined with organizer/membership metadata.
+ */
+export type TripDetailResult = (Trip | TripPreview) & TripMembershipMeta;
+
+/**
  * Trip Service Interface
  * Defines the contract for trip management operations
  */
@@ -70,26 +113,15 @@ export interface ITripService {
 
   /**
    * Gets a trip by ID with organizer and member information
+   * Returns preview for non-Going members and full data for Going members/organizers
    * @param tripId - The UUID of the trip to retrieve
    * @param userId - The UUID of the user requesting the trip
-   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
+   * @returns Promise that resolves to the trip with organizers, memberCount, and membership info, or null if not found or not authorized
    */
   getTripById(
     tripId: string,
     userId: string,
-  ): Promise<
-    | (Trip & {
-        organizers: Array<{
-          id: string;
-          displayName: string;
-          phoneNumber: string;
-          profilePhotoUrl: string | null;
-          timezone: string;
-        }>;
-        memberCount: number;
-      })
-    | null
-  >;
+  ): Promise<TripDetailResult | null>;
 
   /**
    * Gets all trips for a user with summary information
@@ -245,20 +277,22 @@ export class TripService implements ITripService {
         throw new Error("Failed to create trip");
       }
 
-      // Insert creator as member with status='going'
+      // Insert creator as member with status='going' and isOrganizer=true
       await tx.insert(members).values({
         tripId: newTrip.id,
         userId: userId,
         status: "going",
+        isOrganizer: true,
       });
 
-      // Insert co-organizers as members with status='going'
+      // Insert co-organizers as members with status='going' and isOrganizer=true
       if (coOrganizerUserIds.length > 0) {
         await tx.insert(members).values(
           coOrganizerUserIds.map((coOrgUserId) => ({
             tripId: newTrip.id,
             userId: coOrgUserId,
             status: "going" as const,
+            isOrganizer: true,
           })),
         );
       }
@@ -272,26 +306,15 @@ export class TripService implements ITripService {
   /**
    * Gets a trip by ID with organizer and member information
    * Returns null if trip not found or user is not a member (security best practice)
+   * Returns preview for non-Going members and full data for Going members/organizers
    * @param tripId - The UUID of the trip to retrieve
    * @param userId - The UUID of the user requesting the trip
-   * @returns Promise that resolves to the trip with organizers and memberCount, or null if not found or not authorized
+   * @returns Promise that resolves to the trip with organizers, memberCount, and membership info, or null if not found or not authorized
    */
   async getTripById(
     tripId: string,
     userId: string,
-  ): Promise<
-    | (Trip & {
-        organizers: Array<{
-          id: string;
-          displayName: string;
-          phoneNumber: string;
-          profilePhotoUrl: string | null;
-          timezone: string;
-        }>;
-        memberCount: number;
-      })
-    | null
-  > {
+  ): Promise<TripDetailResult | null> {
     // Check if user is a member of the trip
     const membershipCheck = await this.db
       .select()
@@ -303,6 +326,13 @@ export class TripService implements ITripService {
     if (membershipCheck.length === 0) {
       return null;
     }
+
+    const memberRecord = membershipCheck[0]!;
+    const userRsvpStatus = memberRecord.status;
+    const userIsOrganizer = memberRecord.isOrganizer;
+
+    // Determine if this is a preview: non-Going members who are not organizers see preview
+    const isPreview = userRsvpStatus !== "going" && !userIsOrganizer;
 
     // Load the trip
     const tripResult = await this.db
@@ -316,14 +346,13 @@ export class TripService implements ITripService {
       return null;
     }
 
-    const trip = tripResult[0];
+    const trip = tripResult[0]!;
 
-    // Load organizers: creator + all members with status='going' (co-organizers are added with status='going')
-    // Get all members with status='going' (includes creator and co-organizers)
+    // Load organizers: members with isOrganizer=true (creator and co-organizers)
     const organizerMembers = await this.db
       .select()
       .from(members)
-      .where(and(eq(members.tripId, tripId), eq(members.status, "going")));
+      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
 
     const organizerUserIds = organizerMembers.map((m) => m.userId);
 
@@ -342,20 +371,34 @@ export class TripService implements ITripService {
     // Load member count
     const memberCount = await this.getMemberCount(tripId);
 
-    // Return enhanced trip object with explicit type assertion
-    return {
-      ...trip,
+    const meta: TripMembershipMeta = {
       organizers: organizerUsers,
       memberCount,
-    } as Trip & {
-      organizers: Array<{
-        id: string;
-        displayName: string;
-        phoneNumber: string;
-        profilePhotoUrl: string | null;
-        timezone: string;
-      }>;
-      memberCount: number;
+      isPreview,
+      userRsvpStatus,
+      isOrganizer: userIsOrganizer,
+    };
+
+    // For preview mode, return only the allowed subset of trip fields
+    // Preview excludes sensitive/internal fields like createdBy, allowMembersToAddEvents, cancelled, etc.
+    if (isPreview) {
+      return {
+        id: trip.id,
+        name: trip.name,
+        destination: trip.destination,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        preferredTimezone: trip.preferredTimezone,
+        description: trip.description,
+        coverImageUrl: trip.coverImageUrl,
+        ...meta,
+      };
+    }
+
+    // Return full trip data with membership info
+    return {
+      ...trip,
+      ...meta,
     };
   }
 
@@ -375,6 +418,7 @@ export class TripService implements ITripService {
       .select({
         tripId: members.tripId,
         status: members.status,
+        isOrganizer: members.isOrganizer,
       })
       .from(members)
       .where(eq(members.userId, userId));
@@ -426,7 +470,7 @@ export class TripService implements ITripService {
       .from(members)
       .where(inArray(members.tripId, pageTripIds));
 
-    // Batch: get organizer user IDs (members with status='going')
+    // Batch: get organizer user IDs (members with isOrganizer=true)
     const organizerMembersByTrip = new Map<string, string[]>();
     const memberCountByTrip = new Map<string, number>();
 
@@ -437,8 +481,8 @@ export class TripService implements ITripService {
         (memberCountByTrip.get(m.tripId) ?? 0) + 1,
       );
 
-      // Track organizer userIds (status='going')
-      if (m.status === "going") {
+      // Track organizer userIds (isOrganizer=true)
+      if (m.isOrganizer) {
         if (!organizerMembersByTrip.has(m.tripId)) {
           organizerMembersByTrip.set(m.tripId, []);
         }
@@ -481,14 +525,13 @@ export class TripService implements ITripService {
 
     // Build trip summaries
     const membershipMap = new Map(
-      userMemberships.map((m) => [m.tripId, m.status]),
+      userMemberships.map((m) => [m.tripId, { status: m.status, isOrganizer: m.isOrganizer }]),
     );
 
     const summaries: TripSummary[] = userTrips.map((trip) => {
-      const rsvpStatus = membershipMap.get(trip.id) ?? "no_response";
-      const isCreator = trip.createdBy === userId;
-      const isCoOrganizer = !isCreator && rsvpStatus === "going";
-      const isOrganizer = isCreator || isCoOrganizer;
+      const membership = membershipMap.get(trip.id);
+      const rsvpStatus = membership?.status ?? "no_response";
+      const isOrganizer = membership?.isOrganizer ?? false;
 
       const tripOrganizerIds = organizerMembersByTrip.get(trip.id) ?? [];
       const organizerInfo = tripOrganizerIds
@@ -708,7 +751,7 @@ export class TripService implements ITripService {
         );
       }
 
-      // 6. Insert new co-organizers as members with status='going'
+      // 6. Insert new co-organizers as members with status='going' and isOrganizer=true
       if (newCoOrganizerUserIds.length > 0) {
         try {
           await tx.insert(members).values(
@@ -716,6 +759,7 @@ export class TripService implements ITripService {
               tripId: tripId,
               userId: coOrgUserId,
               status: "going" as const,
+              isOrganizer: true,
             })),
           );
         } catch (error) {
@@ -809,16 +853,16 @@ export class TripService implements ITripService {
 
   /**
    * Gets all co-organizers for a trip
-   * Returns all members with status='going' (includes creator and co-organizers)
+   * Returns all members with isOrganizer=true (includes creator and co-organizers)
    * @param tripId - The UUID of the trip
    * @returns Promise that resolves to array of User objects
    */
   async getCoOrganizers(tripId: string): Promise<User[]> {
-    // Get all members with status='going' for this trip
+    // Get all members with isOrganizer=true for this trip
     const organizerMembers = await this.db
       .select()
       .from(members)
-      .where(and(eq(members.tripId, tripId), eq(members.status, "going")));
+      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
 
     // Return empty array if no organizers found
     if (organizerMembers.length === 0) {

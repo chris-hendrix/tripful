@@ -274,4 +274,109 @@ describe("EventCard", () => {
       expect(onDelete).toHaveBeenCalled();
     });
   });
+
+  describe("Creator attending indicator", () => {
+    it("shows indicator when creatorAttending is false", () => {
+      const event = { ...baseEvent, creatorAttending: false };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText("Member no longer attending")).toBeDefined();
+    });
+
+    it("does not show indicator when creatorAttending is true", () => {
+      const event = { ...baseEvent, creatorAttending: true };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.queryByText("Member no longer attending")).toBeNull();
+    });
+
+    it("does not show indicator when creatorAttending is undefined", () => {
+      render(
+        <EventCard
+          event={baseEvent}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.queryByText("Member no longer attending")).toBeNull();
+    });
+
+    it("shows dimmed creator name when creatorAttending is false", async () => {
+      const user = userEvent.setup();
+      const event = { ...baseEvent, creatorAttending: false };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+          createdByName="Alice"
+        />,
+      );
+
+      // Click to expand
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      const creatorElement = screen.getByText("Created by Alice");
+      expect(creatorElement.className).toContain("opacity-50");
+      expect(creatorElement.className).toContain("line-through");
+    });
+
+    it("does not dim creator name when creatorAttending is true", async () => {
+      const user = userEvent.setup();
+      const event = { ...baseEvent, creatorAttending: true };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+          createdByName="Alice"
+        />,
+      );
+
+      // Click to expand
+      const card = screen.getByText("Beach Lunch").closest("div");
+      if (card) await user.click(card);
+
+      const creatorElement = screen.getByText("Created by Alice");
+      expect(creatorElement.className).not.toContain("opacity-50");
+    });
+
+    it("uses amber badge styling", () => {
+      const event = { ...baseEvent, creatorAttending: false };
+      render(
+        <EventCard
+          event={event}
+          timezone="America/Los_Angeles"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const badgeText = screen.getByText("Member no longer attending");
+      const badge = badgeText.closest('[data-slot="badge"]');
+      expect(badge).not.toBeNull();
+      expect(badge?.className).toContain("bg-amber-500/15");
+      expect(badge?.className).toContain("text-amber-600");
+      expect(badge?.className).toContain("border-amber-500/30");
+    });
+  });
 });

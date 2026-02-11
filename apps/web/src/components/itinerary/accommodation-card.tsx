@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Home, MapPin, ExternalLink } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink } from "lucide-react";
 import type { Accommodation } from "@tripful/shared/types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { calculateNights, formatInTimezone } from "@/lib/utils/timezone";
 
@@ -41,7 +40,7 @@ export function AccommodationCard({
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      className="rounded-xl border border-[var(--color-accommodation-border)] bg-[var(--color-accommodation-light)] p-4 transition-all hover:shadow-md cursor-pointer"
+      className="rounded-xl border border-l-4 border-[var(--color-accommodation-border)] border-l-[var(--color-accommodation)] bg-[var(--color-accommodation-light)] p-4 transition-all hover:shadow-md cursor-pointer"
       onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -51,39 +50,32 @@ export function AccommodationCard({
       }}
     >
       {/* Compact view */}
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-[var(--color-accommodation-light)] text-[var(--color-accommodation)]">
-          <Home className="w-5 h-5" />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-foreground text-sm">
-                {accommodation.name}
-              </h4>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <span>{datePrefix ? `${datePrefix} • ${nightsLabel}` : nightsLabel}</span>
-                {accommodation.address && (
-                  <>
-                    <span>•</span>
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{accommodation.address}</span>
-                    </div>
-                  </>
-                )}
+      <div>
+        <h4 className="font-semibold text-foreground text-sm">
+          {accommodation.name}
+        </h4>
+              {datePrefix && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  <span>{datePrefix}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <Clock className="w-3 h-3 shrink-0" />
+                <span>{nightsLabel}</span>
               </div>
-            </div>
-
-            <Badge
-              variant="outline"
-              className="text-xs bg-[var(--color-accommodation-light)] text-[var(--color-accommodation)] border-[var(--color-accommodation-border)] shrink-0"
-            >
-              Accommodation
-            </Badge>
-          </div>
-        </div>
+              {accommodation.address && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="underline underline-offset-2">{accommodation.address}</span>
+                </a>
+        )}
       </div>
 
       {/* Expanded view */}

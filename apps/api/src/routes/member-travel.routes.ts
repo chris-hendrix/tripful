@@ -6,8 +6,15 @@ import {
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
 import {
+  defaultRateLimitConfig,
+  writeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
+import {
   createMemberTravelSchema,
   updateMemberTravelSchema,
+  memberTravelListResponseSchema,
+  memberTravelResponseSchema,
+  successResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   CreateMemberTravelInput,
@@ -57,8 +64,9 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
       schema: {
         params: tripIdParamsSchema,
         querystring: listMemberTravelQuerySchema,
+        response: { 200: memberTravelListResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     memberTravelController.listMemberTravel,
   );
@@ -73,8 +81,9 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: memberTravelIdParamsSchema,
+        response: { 200: memberTravelResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     memberTravelController.getMemberTravel,
   );
@@ -82,10 +91,12 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
   /**
    * Write routes scope
    * All routes registered here share authenticate + requireCompleteProfile hooks
+   * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/member-travel
@@ -97,6 +108,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: createMemberTravelSchema,
+          response: { 201: memberTravelResponseSchema },
         },
       },
       memberTravelController.createMemberTravel,
@@ -113,6 +125,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
         schema: {
           params: memberTravelIdParamsSchema,
           body: updateMemberTravelSchema,
+          response: { 200: memberTravelResponseSchema },
         },
       },
       memberTravelController.updateMemberTravel,
@@ -128,6 +141,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: memberTravelIdParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       memberTravelController.deleteMemberTravel,
@@ -143,6 +157,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: memberTravelIdParamsSchema,
+          response: { 200: memberTravelResponseSchema },
         },
       },
       memberTravelController.restoreMemberTravel,

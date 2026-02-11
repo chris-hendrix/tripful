@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,14 +17,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function getInitials(displayName: string): string {
-  return displayName
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+function UserAvatar({ user }: { user: { displayName: string; profilePhotoUrl?: string | null } | null }) {
+  return (
+    <Avatar size="sm">
+      {user?.profilePhotoUrl && (
+        <AvatarImage src={user.profilePhotoUrl} alt={user.displayName} />
+      )}
+      <AvatarFallback>
+        {user ? getInitials(user.displayName) : "?"}
+      </AvatarFallback>
+    </Avatar>
+  );
 }
 
 export function AppHeader() {
@@ -64,17 +68,7 @@ export function AppHeader() {
               className="rounded-full"
               aria-label="User menu"
             >
-              <Avatar size="sm">
-                {user?.profilePhotoUrl && (
-                  <AvatarImage
-                    src={user.profilePhotoUrl}
-                    alt={user.displayName}
-                  />
-                )}
-                <AvatarFallback>
-                  {user ? getInitials(user.displayName) : "?"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

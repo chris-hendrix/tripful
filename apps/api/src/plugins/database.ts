@@ -6,9 +6,10 @@ import { db } from "@/config/database.js";
  * Database plugin
  * Decorates the Fastify instance with the Drizzle database instance.
  *
- * Note: Pool lifecycle (creation and cleanup) is managed by config/database.ts.
- * The server.ts handles pool cleanup via close-with-grace.
- * This plugin only decorates the Fastify instance for dependency injection.
+ * Pool lifecycle note: The connection pool is a module-level singleton
+ * (created in config/database.ts) shared across Fastify instances.
+ * Cleanup is handled by server.ts via close-with-grace to avoid
+ * double-close issues in tests where multiple app instances share the pool.
  */
 export default fp(
   async function databasePlugin(fastify: FastifyInstance) {

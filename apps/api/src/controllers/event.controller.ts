@@ -102,6 +102,17 @@ export const eventController = {
         throw new TripNotFoundError();
       }
 
+      // Non-going, non-organizer members only get preview access (no itinerary data)
+      const canViewFull = await permissionsService.canViewFullTrip(userId, tripId);
+      const isOrg = await permissionsService.isOrganizer(userId, tripId);
+      if (!canViewFull && !isOrg) {
+        return reply.status(403).send({
+          success: false,
+          error: "PREVIEW_ACCESS_ONLY",
+          message: "Full trip data requires Going RSVP status",
+        });
+      }
+
       // Get events for the trip
       let events = await eventService.getEventsByTrip(
         tripId,
@@ -167,6 +178,17 @@ export const eventController = {
       const isMember = await permissionsService.isMember(userId, event.tripId);
       if (!isMember) {
         throw new EventNotFoundError();
+      }
+
+      // Non-going, non-organizer members only get preview access (no itinerary data)
+      const canViewFull = await permissionsService.canViewFullTrip(userId, event.tripId);
+      const isOrg = await permissionsService.isOrganizer(userId, event.tripId);
+      if (!canViewFull && !isOrg) {
+        return reply.status(403).send({
+          success: false,
+          error: "PREVIEW_ACCESS_ONLY",
+          message: "Full trip data requires Going RSVP status",
+        });
       }
 
       // Return success response

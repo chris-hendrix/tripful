@@ -185,7 +185,7 @@ describe("POST /api/trips", () => {
       expect(body.trip.name).toBe("Group Trip");
     });
 
-    it("should create member record for creator with status='going'", async () => {
+    it("should create member record for creator with status='going' and isOrganizer=true", async () => {
       app = await buildApp();
 
       // Create test user
@@ -234,9 +234,10 @@ describe("POST /api/trips", () => {
 
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
 
-    it("should create member records for co-organizers with status='going'", async () => {
+    it("should create member records for co-organizers with status='going' and isOrganizer=true", async () => {
       app = await buildApp();
 
       // Create test users
@@ -314,7 +315,9 @@ describe("POST /api/trips", () => {
       );
       expect(coOrgMembers).toHaveLength(2);
       expect(coOrgMembers[0].status).toBe("going");
+      expect(coOrgMembers[0].isOrganizer).toBe(true);
       expect(coOrgMembers[1].status).toBe("going");
+      expect(coOrgMembers[1].isOrganizer).toBe(true);
     });
   });
 
@@ -839,11 +842,12 @@ describe("GET /api/trips", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: testUser.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -922,17 +926,19 @@ describe("GET /api/trips", () => {
         })
         .returning();
 
-      // Add user as member to both trips
+      // Add user as member to both trips (as organizer)
       await db.insert(members).values([
         {
           tripId: trip1Result[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           tripId: trip2Result[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -1001,17 +1007,19 @@ describe("GET /api/trips", () => {
         })
         .returning();
 
-      // Add user as member to both trips
+      // Add user as member to both trips (as organizer)
       await db.insert(members).values([
         {
           tripId: activeTripResult[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           tripId: cancelledTripResult[0].id,
           userId: testUser.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -1068,11 +1076,12 @@ describe("GET /api/trips", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: testUser.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Add active events
@@ -1205,11 +1214,12 @@ describe("GET /api/trips/:id", () => {
         })
         .returning();
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         tripId: trip.id,
         userId: user.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1354,6 +1364,7 @@ describe("GET /api/trips/:id", () => {
         tripId: trip.id,
         userId: organizer.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Create different user (not a member)
@@ -1473,6 +1484,486 @@ describe("GET /api/trips/:id", () => {
       expect(body.error.code).toBe("UNAUTHORIZED");
     });
   });
+
+  describe("Preview and Membership Info", () => {
+    it("returns 404 for uninvited user", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris, France",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create uninvited user (no member record)
+      const [uninvitedUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Uninvited User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: uninvitedUser.id,
+        phone: uninvitedUser.phoneNumber,
+        name: uninvitedUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("NOT_FOUND");
+    });
+
+    it("returns preview for invited non-Going member with no_response status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Preview Trip",
+          destination: "Tokyo, Japan",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create invited user with no_response status
+      const [invitedUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Invited User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: invitedUser.id,
+        status: "no_response",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: invitedUser.id,
+        phone: invitedUser.phoneNumber,
+        name: invitedUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.trip).toBeDefined();
+      expect(body.trip.name).toBe("Preview Trip");
+      expect(body.userRsvpStatus).toBe("no_response");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+      expect(body.trip).toHaveProperty("preferredTimezone");
+      expect(body.trip).toHaveProperty("description");
+      expect(body.trip).toHaveProperty("coverImageUrl");
+    });
+
+    it("returns preview for member with maybe status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Maybe Trip",
+          destination: "Berlin, Germany",
+          preferredTimezone: "Europe/Berlin",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create user with maybe status
+      const [maybeUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Maybe User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: maybeUser.id,
+        status: "maybe",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: maybeUser.id,
+        phone: maybeUser.phoneNumber,
+        name: maybeUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.userRsvpStatus).toBe("maybe");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+    });
+
+    it("returns preview for member with not_going status", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Not Going Trip",
+          destination: "Sydney, Australia",
+          preferredTimezone: "Australia/Sydney",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create user with not_going status
+      const [notGoingUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Not Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: notGoingUser.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: notGoingUser.id,
+        phone: notGoingUser.phoneNumber,
+        name: notGoingUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(true);
+      expect(body.userRsvpStatus).toBe("not_going");
+
+      // Verify restricted fields are absent in preview mode
+      expect(body.trip).not.toHaveProperty("createdBy");
+      expect(body.trip).not.toHaveProperty("allowMembersToAddEvents");
+      expect(body.trip).not.toHaveProperty("cancelled");
+      expect(body.trip).not.toHaveProperty("createdAt");
+      expect(body.trip).not.toHaveProperty("updatedAt");
+
+      // Verify allowed preview fields ARE present
+      expect(body.trip).toHaveProperty("id");
+      expect(body.trip).toHaveProperty("name");
+      expect(body.trip).toHaveProperty("destination");
+      expect(body.trip).toHaveProperty("startDate");
+      expect(body.trip).toHaveProperty("endDate");
+    });
+
+    it("returns full data for Going member", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Full Data Trip",
+          destination: "London, UK",
+          preferredTimezone: "Europe/London",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as going member (not organizer)
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(false);
+      expect(body.userRsvpStatus).toBe("going");
+      expect(body.isOrganizer).toBe(false);
+    });
+
+    it("returns full data for organizer regardless of RSVP status", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer No Response",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Organizer Trip",
+          destination: "Rome, Italy",
+          preferredTimezone: "Europe/Rome",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as organizer with no_response status
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "no_response",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.isPreview).toBe(false);
+      expect(body.isOrganizer).toBe(true);
+      expect(body.userRsvpStatus).toBe("no_response");
+    });
+
+    it("includes userRsvpStatus and isOrganizer in response", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Status User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Status Trip",
+          destination: "Barcelona, Spain",
+          preferredTimezone: "Europe/Madrid",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as going organizer
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("userRsvpStatus");
+      expect(body).toHaveProperty("isOrganizer");
+      expect(body).toHaveProperty("isPreview");
+      expect(["going", "not_going", "maybe", "no_response"]).toContain(
+        body.userRsvpStatus,
+      );
+      expect(typeof body.isOrganizer).toBe("boolean");
+      expect(typeof body.isPreview).toBe("boolean");
+    });
+  });
 });
 
 describe("PUT /api/trips/:id", () => {
@@ -1518,6 +2009,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1607,11 +2099,13 @@ describe("PUT /api/trips/:id", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -1678,6 +2172,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1750,6 +2245,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1854,6 +2350,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -1916,6 +2413,7 @@ describe("PUT /api/trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -2034,6 +2532,7 @@ describe("PUT /api/trips/:id", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token for the other user
@@ -2108,6 +2607,7 @@ describe("PUT /api/trips/:id", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
@@ -2228,6 +2728,7 @@ describe("DELETE /trips/:id", () => {
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -2301,17 +2802,19 @@ describe("DELETE /trips/:id", () => {
       const trip = tripResult[0];
 
       // Add creator and co-organizer to members
-      // Note: co-organizers are just members with status='going'
+      // Note: co-organizers are members with isOrganizer=true
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -2516,6 +3019,7 @@ describe("DELETE /trips/:id", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token for the other user
@@ -2584,12 +3088,13 @@ describe("DELETE /trips/:id", () => {
       const trip = tripResult[0];
 
       // Add creator as organizer and regular member with no_response status
-      // Note: only members with status='going' are considered co-organizers
+      // Note: only members with isOrganizer=true are considered co-organizers
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
@@ -2713,6 +3218,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for creator
@@ -2742,6 +3248,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       expect(memberRecords.length).toBe(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
 
     it("should return 200 when co-organizer can add another co-organizer", async () => {
@@ -2790,11 +3297,13 @@ describe("POST /api/trips/:id/co-organizers", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg1.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -2825,6 +3334,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       expect(memberRecords.length).toBe(1);
       expect(memberRecords[0].status).toBe("going");
+      expect(memberRecords[0].isOrganizer).toBe(true);
     });
   });
 
@@ -2891,6 +3401,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       const token = app.jwt.sign({
@@ -2941,6 +3452,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       const token = app.jwt.sign({
@@ -3026,11 +3538,12 @@ describe("POST /api/trips/:id/co-organizers", () => {
         })
         .returning();
 
-      // Only add creator as member
+      // Only add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for non-member
@@ -3117,11 +3630,12 @@ describe("POST /api/trips/:id/co-organizers", () => {
         })
         .returning();
 
-      // Add creator as member
+      // Add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Create and add 24 more members (total 25 including creator)
@@ -3220,17 +3734,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Add both as members
+      // Add both as members (organizers)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3307,16 +3823,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg1.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg2.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3451,11 +3970,13 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3536,17 +4057,19 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Add creator and co-organizer as members
+      // Add creator and co-organizer as members (organizers)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: coOrg.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
       ]);
 
@@ -3639,11 +4162,12 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
         })
         .returning();
 
-      // Only add creator as member
+      // Only add creator as member (organizer)
       await db.insert(members).values({
         userId: creator.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate token for creator
@@ -3707,11 +4231,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3786,11 +4311,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3861,11 +4387,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3917,11 +4444,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -3986,11 +4514,12 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4145,17 +4674,18 @@ describe("POST /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add both as members (creator as co-organizer, member as regular attendee)
+      // Add both as members (creator as organizer, member as regular attendee)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
           tripId: trip.id,
-          status: "no_response", // Regular member, not a co-organizer
+          status: "no_response", // Regular member, not an organizer
         },
       ]);
 
@@ -4287,11 +4817,12 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4350,11 +4881,12 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add user as member
+      // Add user as member (organizer)
       await db.insert(members).values({
         userId: testUser.id,
         tripId: trip.id,
         status: "going",
+        isOrganizer: true,
       });
 
       // Generate JWT token
@@ -4472,17 +5004,18 @@ describe("DELETE /api/trips/:id/cover-image", () => {
 
       const trip = tripResult[0];
 
-      // Add both as members (creator as co-organizer, member as regular attendee)
+      // Add both as members (creator as organizer, member as regular attendee)
       await db.insert(members).values([
         {
           userId: creator.id,
           tripId: trip.id,
           status: "going",
+          isOrganizer: true,
         },
         {
           userId: member.id,
           tripId: trip.id,
-          status: "no_response", // Regular member, not a co-organizer
+          status: "no_response", // Regular member, not an organizer
         },
       ]);
 
