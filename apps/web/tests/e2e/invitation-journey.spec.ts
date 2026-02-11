@@ -4,6 +4,7 @@ import {
   createUserViaAPI,
 } from "./helpers/auth";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { snap } from "./helpers/screenshots";
 import {
   createTripViaAPI,
   inviteViaAPI,
@@ -65,6 +66,8 @@ test.describe("Invitation Journey", () => {
           page.getByRole("heading", { level: 1, name: `Invite Trip ${timestamp}` }),
         ).toBeVisible({ timeout: 15000 });
 
+        await snap(page, "09-trip-detail-invite-button");
+
         // Click "Invite" button in trip header
         await page.getByRole("button", { name: "Invite" }).first().click();
 
@@ -73,6 +76,8 @@ test.describe("Invitation Journey", () => {
           page.getByRole("heading", { name: "Invite members" }),
         ).toBeVisible();
 
+        await snap(page, "10-invite-dialog");
+
         // Fill phone input within the dialog
         const dialog = page.getByRole("dialog");
         await dialog.locator('input[type="tel"]').fill(inviteePhone);
@@ -80,11 +85,14 @@ test.describe("Invitation Journey", () => {
         // Click "Add" button
         await dialog.getByRole("button", { name: "Add" }).click();
 
+        await snap(page, "11-invite-phone-added");
+
         // Click "Send invitations" button
         await dialog.getByRole("button", { name: "Send invitations" }).click();
 
         // Verify toast with "invitation" text appears
         await expect(page.getByText(/invitation/i)).toBeVisible({ timeout: 10000 });
+        await snap(page, "12-invite-sent");
       });
 
       await test.step("invited member sees trip preview", async () => {
@@ -108,6 +116,7 @@ test.describe("Invitation Journey", () => {
         await expect(
           page.locator('[data-testid="rsvp-buttons"]'),
         ).toBeVisible();
+        await snap(page, "13-trip-preview-invitee");
       });
 
       await test.step("member RSVPs Going and sees full itinerary", async () => {
@@ -134,6 +143,7 @@ test.describe("Invitation Journey", () => {
         await expect(
           page.getByRole("tab", { name: "Members" }),
         ).toBeVisible();
+        await snap(page, "14-rsvp-going-full-view");
       });
     },
   );
@@ -217,6 +227,7 @@ test.describe("Invitation Journey", () => {
         await expect(page.getByText("You've been invited!")).toBeVisible({
           timeout: 15000,
         });
+        await snap(page, "15-rsvp-changed-to-maybe");
       });
 
       await test.step("organizer sees member no longer attending indicator", async () => {
@@ -240,6 +251,7 @@ test.describe("Invitation Journey", () => {
         await expect(
           page.getByText("Member no longer attending"),
         ).toBeVisible({ timeout: 10000 });
+        await snap(page, "16-member-not-attending-indicator");
       });
 
       await test.step("member RSVPs Going again, indicator removed", async () => {
@@ -302,6 +314,7 @@ test.describe("Invitation Journey", () => {
       await expect(
         page.getByRole("heading", { name: "Trip not found" }),
       ).toBeVisible({ timeout: 15000 });
+      await snap(page, "17-uninvited-user-404");
     });
   });
 
@@ -387,6 +400,7 @@ test.describe("Invitation Journey", () => {
 
       // Verify the members count heading
       await expect(membersPanel.getByText("Members (3)")).toBeVisible();
+      await snap(page, "18-member-list-with-statuses");
     });
 
     await test.step("organizer sees invite button", async () => {

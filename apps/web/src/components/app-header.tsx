@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, User } from "lucide-react";
@@ -26,9 +27,25 @@ function getInitials(displayName: string): string {
     .toUpperCase();
 }
 
+function UserAvatar({ user }: { user: { displayName: string; profilePhotoUrl?: string | null } | null }) {
+  return (
+    <Avatar size="sm">
+      {user?.profilePhotoUrl && (
+        <AvatarImage src={user.profilePhotoUrl} alt={user.displayName} />
+      )}
+      <AvatarFallback>
+        {user ? getInitials(user.displayName) : "?"}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
 export function AppHeader() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -56,52 +73,53 @@ export function AppHeader() {
           </nav>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              aria-label="User menu"
-            >
-              <Avatar size="sm">
-                {user?.profilePhotoUrl && (
-                  <AvatarImage
-                    src={user.profilePhotoUrl}
-                    alt={user.displayName}
-                  />
-                )}
-                <AvatarFallback>
-                  {user ? getInitials(user.displayName) : "?"}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {user && (
-              <>
-                <DropdownMenuLabel className="font-normal">
-                  <p className="text-sm font-medium">{user.displayName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user.phoneNumber}
-                  </p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem asChild>
-              <Link href="/profile">
-                <User />
-                Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {mounted ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="User menu"
+              >
+                <UserAvatar user={user} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {user && (
+                <>
+                  <DropdownMenuLabel className="font-normal">
+                    <p className="text-sm font-medium">{user.displayName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.phoneNumber}
+                    </p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <User />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout}>
+                <LogOut />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            aria-label="User menu"
+          >
+            <UserAvatar user={null} />
+          </Button>
+        )}
       </div>
     </header>
   );
