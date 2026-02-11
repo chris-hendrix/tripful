@@ -475,34 +475,47 @@ export class InvitationService implements IInvitationService {
         ),
       );
 
-    for (const invitation of pendingInvitations) {
-      // Check if member record already exists
-      const existingMember = await this.db
-        .select({ id: members.id })
+    if (pendingInvitations.length === 0) return;
+
+    const tripIds = pendingInvitations.map((inv) => inv.tripId);
+
+    await this.db.transaction(async (tx) => {
+      // Batch: get all existing memberships for these trips
+      const existingMembers = await tx
+        .select({ tripId: members.tripId })
         .from(members)
         .where(
-          and(
-            eq(members.tripId, invitation.tripId),
-            eq(members.userId, userId),
-          ),
-        )
-        .limit(1);
+          and(inArray(members.tripId, tripIds), eq(members.userId, userId)),
+        );
 
-      if (existingMember.length === 0) {
-        // Create member record
-        await this.db.insert(members).values({
-          tripId: invitation.tripId,
-          userId,
-          status: "no_response",
-          isOrganizer: false,
-        });
+      const existingTripIds = new Set(existingMembers.map((m) => m.tripId));
+
+      // Batch: insert new members for trips where user isn't already a member
+      const newMemberTrips = pendingInvitations.filter(
+        (inv) => !existingTripIds.has(inv.tripId),
+      );
+
+      if (newMemberTrips.length > 0) {
+        await tx.insert(members).values(
+          newMemberTrips.map((inv) => ({
+            tripId: inv.tripId,
+            userId,
+            status: "no_response" as const,
+            isOrganizer: false,
+          })),
+        );
       }
 
-      // Update invitation status to accepted
-      await this.db
+      // Batch: update all invitations to accepted
+      const invitationIds = pendingInvitations.map((inv) => inv.id);
+      await tx
         .update(invitations)
-        .set({ status: "accepted", respondedAt: new Date(), updatedAt: new Date() })
-        .where(eq(invitations.id, invitation.id));
-    }
+        .set({
+          status: "accepted",
+          respondedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(inArray(invitations.id, invitationIds));
+    });
   }
 }
