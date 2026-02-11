@@ -1,15 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MembersList } from "../members-list";
 import type { MemberWithProfile, Invitation } from "@/hooks/use-invitations";
-
-// Mock sonner
-const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
-vi.mock("sonner", () => ({
-  toast: mockToast,
-}));
 
 // Mock format
 vi.mock("@/lib/format", () => ({
@@ -26,14 +20,10 @@ vi.mock("@/lib/format", () => ({
 // Mock hooks
 const mockUseMembers = vi.fn();
 const mockUseInvitations = vi.fn();
-const mockRevokeMutate = vi.fn();
-const mockUseRevokeInvitation = vi.fn();
 
 vi.mock("@/hooks/use-invitations", () => ({
   useMembers: (tripId: string) => mockUseMembers(tripId),
   useInvitations: (tripId: string) => mockUseInvitations(tripId),
-  useRevokeInvitation: (tripId: string) => mockUseRevokeInvitation(tripId),
-  getRevokeInvitationErrorMessage: () => "Failed to remove member",
 }));
 
 let queryClient: QueryClient;
@@ -128,11 +118,6 @@ beforeEach(() => {
     data: mockInvitations,
     isPending: false,
   });
-
-  mockUseRevokeInvitation.mockReturnValue({
-    mutate: mockRevokeMutate,
-    isPending: false,
-  });
 });
 
 const renderWithQueryClient = (ui: React.ReactElement) => {
@@ -154,7 +139,6 @@ describe("MembersList", () => {
       );
 
       expect(screen.getByTestId("members-list-skeleton")).toBeDefined();
-      expect(screen.getByText("Members")).toBeDefined();
     });
   });
 
@@ -168,14 +152,6 @@ describe("MembersList", () => {
       expect(screen.getByText("Jane Smith")).toBeDefined();
       expect(screen.getByText("Bob Wilson")).toBeDefined();
       expect(screen.getByText("Alice Brown")).toBeDefined();
-    });
-
-    it("renders member count in heading", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("Members (4)")).toBeDefined();
     });
 
     it("renders avatar containers for all members", () => {
@@ -394,9 +370,10 @@ describe("MembersList", () => {
       expect(onInvite).toHaveBeenCalledOnce();
     });
 
-    it("shows remove button for members with matching invitations when organizer", () => {
+    it("shows remove button for members with matching invitations when organizer and onRemove provided", () => {
+      const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
+        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
       );
 
       // Jane Smith (inv-2) and Bob Wilson (inv-3) have invitations
@@ -408,9 +385,20 @@ describe("MembersList", () => {
       ).toBeDefined();
     });
 
-    it("does NOT show remove button for trip creator (no matching invitation)", () => {
+    it("does NOT show remove button when onRemove is not provided", () => {
       renderWithQueryClient(
         <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Remove Jane Smith" }),
+      ).toBeNull();
+    });
+
+    it("does NOT show remove button for trip creator (no matching invitation)", () => {
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
       );
 
       // John Doe is organizer/creator with no matching invitation
@@ -420,8 +408,9 @@ describe("MembersList", () => {
     });
 
     it("does NOT show remove button for members without phone numbers (no match possible)", () => {
+      const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
+        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
       );
 
       // Alice Brown has no phoneNumber, so no invitation match
@@ -431,8 +420,9 @@ describe("MembersList", () => {
     });
 
     it("does NOT show remove buttons for non-organizers", () => {
+      const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
+        <MembersList tripId="trip-123" isOrganizer={false} onRemove={onRemove} />,
       );
 
       expect(
@@ -445,10 +435,11 @@ describe("MembersList", () => {
   });
 
   describe("remove member flow", () => {
-    it("shows confirmation dialog when remove button is clicked", async () => {
+    it("calls onRemove with member and invitationId when remove button is clicked", async () => {
       const user = userEvent.setup();
+      const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
+        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
       );
 
       const removeButton = screen.getByRole("button", {
@@ -456,122 +447,34 @@ describe("MembersList", () => {
       });
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText("Remove member")).toBeDefined();
-        expect(
-          screen.getByText(/revoke their invitation/),
-        ).toBeDefined();
-      });
-
-      // Confirm the dialog references the member name
-      const dialogDescription = screen.getByText(/revoke their invitation/);
-      expect(dialogDescription.textContent).toContain("Jane Smith");
-    });
-
-    it("calls revokeInvitation with correct invitationId on confirm", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      const removeButton = screen.getByRole("button", {
-        name: "Remove Jane Smith",
-      });
-      await user.click(removeButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Remove member")).toBeDefined();
-      });
-
-      const confirmButton = screen.getByRole("button", { name: "Remove" });
-      await user.click(confirmButton);
-
-      expect(mockRevokeMutate).toHaveBeenCalledWith(
-        "inv-2",
+      expect(onRemove).toHaveBeenCalledWith(
         expect.objectContaining({
-          onSuccess: expect.any(Function),
-          onError: expect.any(Function),
+          id: "member-2",
+          displayName: "Jane Smith",
         }),
+        "inv-2",
       );
     });
 
-    it("closes dialog when cancel is clicked", async () => {
+    it("calls onRemove with correct invitationId for different members", async () => {
       const user = userEvent.setup();
+      const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
+        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
       );
 
       const removeButton = screen.getByRole("button", {
-        name: "Remove Jane Smith",
+        name: "Remove Bob Wilson",
       });
       await user.click(removeButton);
 
-      await waitFor(() => {
-        expect(screen.getByText("Remove member")).toBeDefined();
-      });
-
-      const cancelButton = screen.getByRole("button", { name: "Cancel" });
-      await user.click(cancelButton);
-
-      await waitFor(() => {
-        expect(screen.queryByText("Remove member")).toBeNull();
-      });
-    });
-
-    it("shows success toast on successful removal", async () => {
-      mockRevokeMutate.mockImplementation(
-        (_id: string, options: { onSuccess: () => void }) => {
-          options.onSuccess();
-        },
+      expect(onRemove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "member-3",
+          displayName: "Bob Wilson",
+        }),
+        "inv-3",
       );
-
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      const removeButton = screen.getByRole("button", {
-        name: "Remove Jane Smith",
-      });
-      await user.click(removeButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Remove member")).toBeDefined();
-      });
-
-      const confirmButton = screen.getByRole("button", { name: "Remove" });
-      await user.click(confirmButton);
-
-      expect(mockToast.success).toHaveBeenCalledWith(
-        "Jane Smith has been removed",
-      );
-    });
-
-    it("shows error toast on failed removal", async () => {
-      mockRevokeMutate.mockImplementation(
-        (_id: string, options: { onError: (err: Error) => void }) => {
-          options.onError(new Error("Permission denied"));
-        },
-      );
-
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      const removeButton = screen.getByRole("button", {
-        name: "Remove Jane Smith",
-      });
-      await user.click(removeButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Remove member")).toBeDefined();
-      });
-
-      const confirmButton = screen.getByRole("button", { name: "Remove" });
-      await user.click(confirmButton);
-
-      expect(mockToast.error).toHaveBeenCalledWith("Failed to remove member");
     });
   });
 
@@ -636,27 +539,6 @@ describe("MembersList", () => {
       );
 
       expect(mockUseInvitations).toHaveBeenCalledWith("trip-123");
-    });
-
-    it("calls useRevokeInvitation with correct tripId", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      expect(mockUseRevokeInvitation).toHaveBeenCalledWith("trip-123");
-    });
-  });
-
-  describe("styling", () => {
-    it("heading uses Playfair font", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const heading = screen.getByText("Members (4)");
-      expect(heading.className).toContain(
-        "font-[family-name:var(--font-playfair)]",
-      );
     });
   });
 });

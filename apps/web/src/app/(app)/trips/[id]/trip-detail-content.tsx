@@ -17,6 +17,11 @@ import {
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
+import {
+  useRevokeInvitation,
+  getRevokeInvitationErrorMessage,
+} from "@/hooks/use-invitations";
+import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
@@ -30,7 +35,13 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
@@ -77,6 +88,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [removingMember, setRemovingMember] = useState<{
+    member: MemberWithProfile;
+    invitationId: string;
+  } | null>(null);
+
+  const revokeInvitation = useRevokeInvitation(tripId);
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -184,6 +202,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   onMouseEnter={preloadEditTripDialog}
                   onFocus={preloadEditTripDialog}
                   variant="outline"
+                  size="sm"
                   className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
                 >
                   <Settings className="w-4 h-4 mr-2" />
@@ -250,20 +269,30 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Stats */}
           <div className="flex items-center gap-6 mb-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <button
+              onClick={() => setIsMembersOpen(true)}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
               <Users className="w-5 h-5" />
-              <span className="text-sm">
+              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
                 {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
               </span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            </button>
+            <button
+              onClick={() => {
+                document
+                  .getElementById("itinerary")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
               <ClipboardList className="w-5 h-5" />
-              <span className="text-sm">
+              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
                 {activeEventCount === 0
                   ? "No events yet"
                   : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
               </span>
-            </div>
+            </button>
           </div>
 
           {/* Description */}
@@ -279,23 +308,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
         </div>
 
-        {/* Itinerary and Members tabs */}
-        <Tabs defaultValue="itinerary">
-          <TabsList>
-            <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-          </TabsList>
-          <TabsContent value="itinerary">
-            <ItineraryView tripId={tripId} />
-          </TabsContent>
-          <TabsContent value="members">
-            <MembersList
-              tripId={tripId}
-              isOrganizer={isOrganizer}
-              onInvite={() => setIsInviteOpen(true)}
-            />
-          </TabsContent>
-        </Tabs>
+        {/* Itinerary */}
+        <div id="itinerary">
+          <ItineraryView tripId={tripId} />
+        </div>
       </div>
 
       {/* Edit Trip Dialog */}
@@ -318,6 +334,85 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           tripId={tripId}
         />
       )}
+
+      {/* Members Dialog */}
+      <Dialog
+        open={isMembersOpen}
+        onOpenChange={(open) => {
+          setIsMembersOpen(open);
+          if (!open) setRemovingMember(null);
+        }}
+      >
+        <DialogContent className="min-h-[40vh] max-h-[80vh] flex flex-col overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+              {removingMember ? "Remove member" : "Members"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {removingMember
+                ? "Confirm member removal"
+                : "Trip members and invitations"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {removingMember ? (
+            <div className="flex flex-col flex-1">
+              <div className="flex-1">
+                <p className="text-muted-foreground">
+                  Are you sure you want to remove{" "}
+                  <span className="font-medium text-foreground">
+                    {removingMember.member.displayName}
+                  </span>{" "}
+                  from this trip? This will revoke their invitation.
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end mt-auto pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => setRemovingMember(null)}
+                  disabled={revokeInvitation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={revokeInvitation.isPending}
+                  onClick={() => {
+                    revokeInvitation.mutate(removingMember.invitationId, {
+                      onSuccess: () => {
+                        toast.success(
+                          `${removingMember.member.displayName} has been removed`,
+                        );
+                        setRemovingMember(null);
+                      },
+                      onError: (error) => {
+                        const message =
+                          getRevokeInvitationErrorMessage(error);
+                        toast.error(message ?? "Failed to remove member");
+                        setRemovingMember(null);
+                      },
+                    });
+                  }}
+                >
+                  {revokeInvitation.isPending ? "Removing..." : "Remove"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <MembersList
+              tripId={tripId}
+              isOrganizer={isOrganizer}
+              onInvite={() => {
+                setIsMembersOpen(false);
+                setIsInviteOpen(true);
+              }}
+              onRemove={(member, invitationId) =>
+                setRemovingMember({ member, invitationId })
+              }
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

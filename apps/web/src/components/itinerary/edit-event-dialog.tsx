@@ -190,7 +190,7 @@ export function EditEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit event

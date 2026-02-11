@@ -104,16 +104,28 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
+// Mock useRevokeInvitation hook
+const mockRevokeInvitation = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+vi.mock("@/hooks/use-invitations", () => ({
+  useRevokeInvitation: () => mockRevokeInvitation,
+  getRevokeInvitationErrorMessage: () => null,
+}));
+
 // Mock MembersList component
 vi.mock("@/components/trip/members-list", () => ({
   MembersList: ({
     tripId,
     isOrganizer,
     onInvite,
+    onRemove,
   }: {
     tripId: string;
     isOrganizer: boolean;
     onInvite?: () => void;
+    onRemove?: (member: any, invitationId: string) => void;
   }) => (
     <div
       data-testid="members-list"
@@ -124,6 +136,19 @@ vi.mock("@/components/trip/members-list", () => ({
       {onInvite && (
         <button data-testid="members-invite-btn" onClick={onInvite}>
           Invite from members
+        </button>
+      )}
+      {onRemove && (
+        <button
+          data-testid="members-remove-btn"
+          onClick={() =>
+            onRemove(
+              { id: "user-456", displayName: "Jane Smith" },
+              "inv-123",
+            )
+          }
+        >
+          Remove member
         </button>
       )}
     </div>
@@ -1264,33 +1289,8 @@ describe("TripDetailContent", () => {
     });
   });
 
-  describe("tabs layout", () => {
-    it("renders Tabs with Itinerary and Members tabs", async () => {
-      mockUseTripDetail.mockReturnValue({
-        data: mockTripDetail,
-        isPending: false,
-        isError: false,
-        error: null,
-        refetch: vi.fn(),
-      });
-
-      render(
-        <Suspense fallback={null}>
-          <TripDetailContent tripId="trip-123" />
-        </Suspense>,
-      );
-
-      await waitFor(() => {
-        expect(
-          screen.getByRole("heading", { name: "Bachelor Party in Miami" }),
-        ).toBeDefined();
-      });
-
-      expect(screen.getByRole("tab", { name: "Itinerary" })).toBeDefined();
-      expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
-    });
-
-    it("shows ItineraryView by default", async () => {
+  describe("itinerary and members dialog", () => {
+    it("renders ItineraryView inline without tabs", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
         isPending: false,
@@ -1308,9 +1308,36 @@ describe("TripDetailContent", () => {
       await waitFor(() => {
         expect(screen.getByTestId("itinerary-view")).toBeDefined();
       });
+
+      // No tabs should exist
+      expect(screen.queryByRole("tab")).toBeNull();
+      expect(screen.queryByRole("tablist")).toBeNull();
     });
 
-    it("shows MembersList when Members tab is clicked", async () => {
+    it("members stat is a clickable button", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      const membersButton = screen.getByText("8 members").closest("button");
+      expect(membersButton).not.toBeNull();
+    });
+
+    it("clicking members stat opens members dialog", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
         isPending: false,
@@ -1327,11 +1354,11 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+        expect(screen.getByText("8 members")).toBeDefined();
       });
 
-      const membersTab = screen.getByRole("tab", { name: "Members" });
-      await user.click(membersTab);
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
 
       await waitFor(() => {
         expect(screen.getByTestId("members-list")).toBeDefined();
@@ -1341,7 +1368,7 @@ describe("TripDetailContent", () => {
       });
     });
 
-    it("passes correct props to MembersList", async () => {
+    it("passes correct props to MembersList in dialog", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
         isPending: false,
@@ -1358,11 +1385,11 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+        expect(screen.getByText("8 members")).toBeDefined();
       });
 
-      const membersTab = screen.getByRole("tab", { name: "Members" });
-      await user.click(membersTab);
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
 
       await waitFor(() => {
         const membersList = screen.getByTestId("members-list");
@@ -1371,7 +1398,7 @@ describe("TripDetailContent", () => {
       });
     });
 
-    it("MembersList onInvite opens InviteMembersDialog", async () => {
+    it("MembersList onInvite closes members dialog and opens invite dialog", async () => {
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
         isPending: false,
@@ -1388,11 +1415,11 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole("tab", { name: "Members" })).toBeDefined();
+        expect(screen.getByText("8 members")).toBeDefined();
       });
 
-      const membersTab = screen.getByRole("tab", { name: "Members" });
-      await user.click(membersTab);
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
 
       await waitFor(() => {
         expect(screen.getByTestId("members-invite-btn")).toBeDefined();
@@ -1403,6 +1430,93 @@ describe("TripDetailContent", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("invite-members-dialog")).toBeDefined();
+      });
+    });
+
+    it("clicking remove swaps dialog to confirmation view", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      // Open members dialog
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-remove-btn")).toBeDefined();
+      });
+
+      // Click remove — should swap to confirmation view
+      const removeBtn = screen.getByTestId("members-remove-btn");
+      await user.click(removeBtn);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Are you sure you want to remove/),
+        ).toBeDefined();
+        expect(screen.getByText("Jane Smith")).toBeDefined();
+      });
+
+      // Members list should be hidden
+      expect(screen.queryByTestId("members-list")).toBeNull();
+    });
+
+    it("cancel in confirmation view returns to members list", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      const user = userEvent.setup();
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("8 members")).toBeDefined();
+      });
+
+      // Open dialog and go to confirmation
+      const membersButton = screen.getByText("8 members").closest("button")!;
+      await user.click(membersButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-remove-btn")).toBeDefined();
+      });
+
+      await user.click(screen.getByTestId("members-remove-btn"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Are you sure you want to remove/),
+        ).toBeDefined();
+      });
+
+      // Click cancel
+      await user.click(screen.getByText("Cancel"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("members-list")).toBeDefined();
       });
     });
   });
