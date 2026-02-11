@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -177,7 +178,28 @@ function VerifyPageContent() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="w-full max-w-md">
+          <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-56" />
+              <Skeleton className="h-5 w-72" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <div className="flex justify-between">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+        </div>
+      }
+    >
       <VerifyPageContent />
     </Suspense>
   );

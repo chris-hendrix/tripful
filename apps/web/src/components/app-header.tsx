@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, User } from "lucide-react";
@@ -43,9 +42,6 @@ function UserAvatar({ user }: { user: { displayName: string; profilePhotoUrl?: s
 export function AppHeader() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -73,53 +69,42 @@ export function AppHeader() {
           </nav>
         </div>
 
-        {mounted ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                aria-label="User menu"
-              >
-                <UserAvatar user={user} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {user && (
-                <>
-                  <DropdownMenuLabel className="font-normal">
-                    <p className="text-sm font-medium">{user.displayName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.phoneNumber}
-                    </p>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  <User />
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>
-                <LogOut />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="User menu"
-          >
-            <UserAvatar user={null} />
-          </Button>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label="User menu"
+            >
+              <UserAvatar user={user} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {user && (
+              <>
+                <DropdownMenuLabel className="font-normal">
+                  <p className="text-sm font-medium">{user.displayName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.phoneNumber}
+                  </p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <User />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
