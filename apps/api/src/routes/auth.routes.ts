@@ -9,6 +9,11 @@ import {
   requestCodeSchema,
   verifyCodeSchema,
   completeProfileSchema,
+  requestCodeResponseSchema,
+  verifyCodeResponseSchema,
+  completeProfileResponseSchema,
+  getMeResponseSchema,
+  logoutResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   RequestCodeInput,
@@ -33,6 +38,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     {
       schema: {
         body: requestCodeSchema,
+        response: { 200: requestCodeResponseSchema },
       },
       preHandler: fastify.rateLimit(smsRateLimitConfig),
     },
@@ -49,6 +55,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     {
       schema: {
         body: verifyCodeSchema,
+        response: { 200: verifyCodeResponseSchema },
       },
       preHandler: fastify.rateLimit(verifyCodeRateLimitConfig),
     },
@@ -65,6 +72,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     {
       schema: {
         body: completeProfileSchema,
+        response: { 200: completeProfileResponseSchema },
       },
       preHandler: authenticate,
     },
@@ -79,6 +87,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/me",
     {
+      schema: {
+        response: { 200: getMeResponseSchema },
+      },
       preHandler: authenticate,
     },
     authController.getMe,
@@ -92,6 +103,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/logout",
     {
+      schema: {
+        response: { 200: logoutResponseSchema },
+      },
       preHandler: authenticate,
     },
     authController.logout,

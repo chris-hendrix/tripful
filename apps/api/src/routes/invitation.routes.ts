@@ -6,8 +6,17 @@ import {
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
 import {
+  defaultRateLimitConfig,
+  writeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
+import {
   createInvitationsSchema,
   updateRsvpSchema,
+  createInvitationsResponseSchema,
+  getInvitationsResponseSchema,
+  getMembersResponseSchema,
+  updateRsvpResponseSchema,
+  successResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   CreateInvitationsInput,
@@ -44,8 +53,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: tripIdParamsSchema,
+        response: { 200: getInvitationsResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     invitationController.getInvitations,
   );
@@ -60,8 +70,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: tripIdParamsSchema,
+        response: { 200: getMembersResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     invitationController.getMembers,
   );
@@ -69,10 +80,12 @@ export async function invitationRoutes(fastify: FastifyInstance) {
   /**
    * Write routes scope
    * All routes registered here share authenticate + requireCompleteProfile hooks
+   * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/invitations
@@ -84,6 +97,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: createInvitationsSchema,
+          response: { 201: createInvitationsResponseSchema },
         },
       },
       invitationController.createInvitations,
@@ -99,6 +113,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: invitationIdParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       invitationController.revokeInvitation,
@@ -114,6 +129,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: updateRsvpSchema,
+          response: { 200: updateRsvpResponseSchema },
         },
       },
       invitationController.updateRsvp,

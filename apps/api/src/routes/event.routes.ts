@@ -6,8 +6,15 @@ import {
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
 import {
+  defaultRateLimitConfig,
+  writeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
+import {
   createEventSchema,
   updateEventSchema,
+  eventListResponseSchema,
+  eventResponseSchema,
+  successResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   CreateEventInput,
@@ -58,8 +65,9 @@ export async function eventRoutes(fastify: FastifyInstance) {
       schema: {
         params: tripIdParamsSchema,
         querystring: listEventsQuerySchema,
+        response: { 200: eventListResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     eventController.listEvents,
   );
@@ -74,8 +82,9 @@ export async function eventRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: eventIdParamsSchema,
+        response: { 200: eventResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     eventController.getEvent,
   );
@@ -83,10 +92,12 @@ export async function eventRoutes(fastify: FastifyInstance) {
   /**
    * Write routes scope
    * All routes registered here share authenticate + requireCompleteProfile hooks
+   * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/events
@@ -98,6 +109,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: createEventSchema,
+          response: { 201: eventResponseSchema },
         },
       },
       eventController.createEvent,
@@ -114,6 +126,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         schema: {
           params: eventIdParamsSchema,
           body: updateEventSchema,
+          response: { 200: eventResponseSchema },
         },
       },
       eventController.updateEvent,
@@ -129,6 +142,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: eventIdParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       eventController.deleteEvent,
@@ -144,6 +158,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: eventIdParamsSchema,
+          response: { 200: eventResponseSchema },
         },
       },
       eventController.restoreEvent,

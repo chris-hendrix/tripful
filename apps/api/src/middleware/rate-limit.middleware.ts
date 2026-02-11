@@ -59,3 +59,54 @@ export const verifyCodeRateLimitConfig: RateLimitOptions = {
     return error;
   },
 };
+
+/**
+ * Default rate limiting for authenticated read endpoints (GET).
+ * 100 requests per minute per authenticated user (falls back to IP).
+ */
+export const defaultRateLimitConfig: RateLimitOptions = {
+  max: 100,
+  timeWindow: "1 minute",
+  keyGenerator: (request: FastifyRequest) =>
+    (request as FastifyRequest & { user?: { sub: string } }).user?.sub ||
+    request.ip,
+  errorResponseBuilder: (_request, context) => {
+    const error = new Error(
+      "Too many requests. Please slow down.",
+    ) as Error & {
+      statusCode: number;
+      code: string;
+      customRateLimitMessage: string;
+    };
+    error.statusCode = context.statusCode;
+    error.code = "RATE_LIMIT_EXCEEDED";
+    error.customRateLimitMessage = "Too many requests. Please slow down.";
+    return error;
+  },
+};
+
+/**
+ * Stricter rate limiting for write endpoints (POST/PUT/DELETE).
+ * 30 requests per minute per authenticated user (falls back to IP).
+ */
+export const writeRateLimitConfig: RateLimitOptions = {
+  max: 30,
+  timeWindow: "1 minute",
+  keyGenerator: (request: FastifyRequest) =>
+    (request as FastifyRequest & { user?: { sub: string } }).user?.sub ||
+    request.ip,
+  errorResponseBuilder: (_request, context) => {
+    const error = new Error(
+      "Too many write requests. Please slow down.",
+    ) as Error & {
+      statusCode: number;
+      code: string;
+      customRateLimitMessage: string;
+    };
+    error.statusCode = context.statusCode;
+    error.code = "RATE_LIMIT_EXCEEDED";
+    error.customRateLimitMessage =
+      "Too many write requests. Please slow down.";
+    return error;
+  },
+};

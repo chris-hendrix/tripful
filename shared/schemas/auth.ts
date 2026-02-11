@@ -59,6 +59,45 @@ export const completeProfileSchema = z.object({
   timezone: z.string().optional(),
 });
 
+// --- Response schemas ---
+
+/** User entity as returned by the API (timestamps serialized as ISO strings) */
+export const userResponseSchema = z.object({
+  id: z.string(),
+  phoneNumber: z.string(),
+  displayName: z.string(),
+  profilePhotoUrl: z.string().nullable().optional(),
+  timezone: z.string(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const requestCodeResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+
+export const verifyCodeResponseSchema = z.object({
+  success: z.literal(true),
+  user: userResponseSchema,
+  requiresProfile: z.boolean(),
+});
+
+export const completeProfileResponseSchema = z.object({
+  success: z.literal(true),
+  user: userResponseSchema,
+});
+
+export const getMeResponseSchema = z.object({
+  success: z.literal(true),
+  user: userResponseSchema,
+});
+
+export const logoutResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+
 // Inferred TypeScript types from schemas
 export type RequestCodeInput = z.infer<typeof requestCodeSchema>;
 export type VerifyCodeInput = z.infer<typeof verifyCodeSchema>;

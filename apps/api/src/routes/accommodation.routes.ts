@@ -6,8 +6,15 @@ import {
   requireCompleteProfile,
 } from "@/middleware/auth.middleware.js";
 import {
+  defaultRateLimitConfig,
+  writeRateLimitConfig,
+} from "@/middleware/rate-limit.middleware.js";
+import {
   createAccommodationSchema,
   updateAccommodationSchema,
+  accommodationListResponseSchema,
+  accommodationResponseSchema,
+  successResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   CreateAccommodationInput,
@@ -57,8 +64,9 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
       schema: {
         params: tripIdParamsSchema,
         querystring: listAccommodationsQuerySchema,
+        response: { 200: accommodationListResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     accommodationController.listAccommodations,
   );
@@ -73,8 +81,9 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
     {
       schema: {
         params: accommodationIdParamsSchema,
+        response: { 200: accommodationResponseSchema },
       },
-      preHandler: authenticate,
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     accommodationController.getAccommodation,
   );
@@ -82,10 +91,12 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
   /**
    * Write routes scope
    * All routes registered here share authenticate + requireCompleteProfile hooks
+   * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/accommodations
@@ -97,6 +108,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
         schema: {
           params: tripIdParamsSchema,
           body: createAccommodationSchema,
+          response: { 201: accommodationResponseSchema },
         },
       },
       accommodationController.createAccommodation,
@@ -113,6 +125,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
         schema: {
           params: accommodationIdParamsSchema,
           body: updateAccommodationSchema,
+          response: { 200: accommodationResponseSchema },
         },
       },
       accommodationController.updateAccommodation,
@@ -128,6 +141,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: accommodationIdParamsSchema,
+          response: { 200: successResponseSchema },
         },
       },
       accommodationController.deleteAccommodation,
@@ -143,6 +157,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: accommodationIdParamsSchema,
+          response: { 200: accommodationResponseSchema },
         },
       },
       accommodationController.restoreAccommodation,
