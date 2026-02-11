@@ -36,6 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import {
   useCreateMemberTravel,
   getCreateMemberTravelErrorMessage,
@@ -125,30 +127,25 @@ export function CreateMemberTravelDialog({
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <div className="flex gap-4" role="radiogroup" aria-label="Travel type">
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          value="arrival"
-                          checked={field.value === "arrival"}
-                          onChange={() => field.onChange("arrival")}
-                          disabled={isPending}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">Arrival</span>
-                      </label>
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          value="departure"
-                          checked={field.value === "departure"}
-                          onChange={() => field.onChange("departure")}
-                          disabled={isPending}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">Departure</span>
-                      </label>
-                    </div>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isPending}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="arrival" id="travel-arrival" />
+                        <Label htmlFor="travel-arrival" className="text-sm font-medium cursor-pointer">
+                          Arrival
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="departure" id="travel-departure" />
+                        <Label htmlFor="travel-departure" className="text-sm font-medium cursor-pointer">
+                          Departure
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,18 +153,20 @@ export function CreateMemberTravelDialog({
             />
 
             {/* Timezone */}
-            <div>
-              <label className="text-base font-semibold text-foreground">
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-foreground">
                 Timezone
-              </label>
+              </FormLabel>
               <Select
                 value={selectedTimezone}
                 onValueChange={setSelectedTimezone}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <FormControl>
+                  <SelectTrigger className="h-12 text-base rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
                 <SelectContent>
                   {TIMEZONES.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value}>
@@ -176,7 +175,7 @@ export function CreateMemberTravelDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormItem>
 
             {/* Time */}
             <FormField

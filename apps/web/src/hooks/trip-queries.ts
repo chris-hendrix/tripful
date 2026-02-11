@@ -34,6 +34,7 @@ export const tripKeys = {
  */
 export const tripsQueryOptions = queryOptions({
   queryKey: tripKeys.all,
+  staleTime: 2 * 60 * 1000,
   queryFn: async ({ signal }) => {
     const response = await apiRequest<GetTripsResponse>("/trips", { signal });
     return response.data;
@@ -46,6 +47,7 @@ export const tripsQueryOptions = queryOptions({
 export const tripDetailQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: tripKeys.detail(tripId),
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetTripResponse>(`/trips/${tripId}`, {
         signal,

@@ -26,6 +26,7 @@ export const accommodationKeys = {
 export const accommodationsQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: accommodationKeys.list(tripId),
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetAccommodationsResponse>(
         `/trips/${tripId}/accommodations`,
@@ -42,6 +43,7 @@ export const accommodationsQueryOptions = (tripId: string) =>
 export const accommodationDetailQueryOptions = (accommodationId: string) =>
   queryOptions({
     queryKey: accommodationKeys.detail(accommodationId),
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetAccommodationResponse>(
         `/accommodations/${accommodationId}`,

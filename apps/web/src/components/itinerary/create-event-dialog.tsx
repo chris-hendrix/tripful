@@ -243,18 +243,20 @@ export function CreateEventDialog({
             />
 
             {/* Timezone */}
-            <div>
-              <label className="text-base font-semibold text-foreground">
+            <FormItem>
+              <FormLabel className="text-base font-semibold text-foreground">
                 Timezone
-              </label>
+              </FormLabel>
               <Select
                 value={selectedTimezone}
                 onValueChange={setSelectedTimezone}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
-                  <SelectValue />
-                </SelectTrigger>
+                <FormControl>
+                  <SelectTrigger className="h-12 text-base rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
                 <SelectContent>
                   {TIMEZONES.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value}>
@@ -263,7 +265,7 @@ export function CreateEventDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormItem>
 
             {/* Start Time */}
             <FormField

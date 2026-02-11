@@ -26,6 +26,7 @@ export const eventKeys = {
 export const eventsQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: eventKeys.list(tripId),
+    staleTime: 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetEventsResponse>(
         `/trips/${tripId}/events`,
@@ -42,6 +43,7 @@ export const eventsQueryOptions = (tripId: string) =>
 export const eventDetailQueryOptions = (eventId: string) =>
   queryOptions({
     queryKey: eventKeys.detail(eventId),
+    staleTime: 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetEventResponse>(`/events/${eventId}`, {
         signal,
