@@ -90,23 +90,17 @@ export function GroupByTypeView({
       icon: Home,
       iconClassName: "",
       color: "text-[var(--color-accommodation)]",
+      bgColor: "bg-[var(--color-accommodation-light)]",
       items: groupedEvents.accommodations,
       type: "accommodation" as const,
     },
     {
       title: "Arrivals",
       icon: Plane,
-      iconClassName: "",
-      color: "text-[var(--color-arrival)]",
+      iconClassName: "rotate-90",
+      color: "text-[var(--color-member-travel)]",
+      bgColor: "bg-[var(--color-member-travel-light)]",
       items: groupedEvents.arrivals,
-      type: "memberTravel" as const,
-    },
-    {
-      title: "Departures",
-      icon: Plane,
-      iconClassName: "rotate-45",
-      color: "text-[var(--color-departure)]",
-      items: groupedEvents.departures,
       type: "memberTravel" as const,
     },
     {
@@ -114,6 +108,7 @@ export function GroupByTypeView({
       icon: Car,
       iconClassName: "",
       color: "text-[var(--color-event-travel)]",
+      bgColor: "bg-[var(--color-event-travel-light)]",
       items: groupedEvents.travel,
       type: "event" as const,
     },
@@ -122,6 +117,7 @@ export function GroupByTypeView({
       icon: Utensils,
       iconClassName: "",
       color: "text-[var(--color-event-meal)]",
+      bgColor: "bg-[var(--color-event-meal-light)]",
       items: groupedEvents.meal,
       type: "event" as const,
     },
@@ -130,95 +126,106 @@ export function GroupByTypeView({
       icon: Calendar,
       iconClassName: "",
       color: "text-[var(--color-event-activity)]",
+      bgColor: "bg-[var(--color-event-activity-light)]",
       items: groupedEvents.activity,
       type: "event" as const,
+    },
+    {
+      title: "Departures",
+      icon: Plane,
+      iconClassName: "-rotate-90",
+      color: "text-[var(--color-member-travel)]",
+      bgColor: "bg-[var(--color-member-travel-light)]",
+      items: groupedEvents.departures,
+      type: "memberTravel" as const,
     },
   ], [groupedEvents]);
 
   return (
-    <div className="space-y-8">
+    <div className="divide-y divide-border">
       {sections.map((section, index) => {
         const Icon = section.icon;
         return (
           <div
             key={section.title}
-            className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-500"
+            className="grid grid-cols-[3.5rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-3 py-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-500"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            {/* Section header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`p-2 rounded-lg bg-muted ${section.color}`}>
-                <Icon className={`w-5 h-5 ${section.iconClassName}`} />
+            {/* Icon gutter — outer cell stretches to row height so sticky works */}
+            <div className="relative">
+              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3 bg-background">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full ${bgFor(section)} ${section.color}`}
+                  title={section.title}
+                >
+                  <Icon className={`w-5 h-5 ${section.iconClassName}`} />
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-foreground font-[family-name:var(--font-playfair)]">
-                {section.title}
-              </h3>
-              <span className="text-sm text-muted-foreground">
-                ({section.items.length})
-              </span>
             </div>
 
-            {/* Section content */}
-            {section.items.length > 0 ? (
-              <div className="space-y-3">
-                {section.type === "accommodation"
-                  ? section.items.map((item) => (
-                      <AccommodationCard
-                        key={item.id}
-                        accommodation={item as Accommodation}
-                        timezone={timezone}
-                        canEdit={canModifyAccommodation(item as Accommodation)}
-                        canDelete={canModifyAccommodation(
-                          item as Accommodation,
-                        )}
-                        onEdit={() =>
-                          setEditingAccommodation(item as Accommodation)
-                        }
-                        onDelete={() =>
-                          setEditingAccommodation(item as Accommodation)
-                        }
-                        createdByName={userNameMap.get((item as Accommodation).createdBy)}
-                        showDate
-                      />
-                    ))
-                  : section.type === "memberTravel"
-                    ? section.items.map((item) => {
-                        const travel = item as MemberTravel;
-                        return (
-                          <MemberTravelCard
-                            key={travel.id}
-                            memberTravel={travel}
-                            memberName={travel.memberName || "Unknown"}
-                            timezone={timezone}
-                            canEdit={canModifyMemberTravel(travel)}
-                            canDelete={canModifyMemberTravel(travel)}
-                            onEdit={() => setEditingMemberTravel(travel)}
-                            onDelete={() => setEditingMemberTravel(travel)}
-                            showDate
-                          />
-                        );
-                      })
-                    : section.items.map((item) => (
-                        <EventCard
+            {/* Content column */}
+            <div className="min-w-0">
+              {section.items.length > 0 ? (
+                <div className="space-y-2">
+                  {section.type === "accommodation"
+                    ? section.items.map((item) => (
+                        <AccommodationCard
                           key={item.id}
-                          event={item as Event}
+                          accommodation={item as Accommodation}
                           timezone={timezone}
-                          canEdit={canModifyEvent(item as Event)}
-                          canDelete={canModifyEvent(item as Event)}
-                          onEdit={() => setEditingEvent(item as Event)}
-                          onDelete={() => setEditingEvent(item as Event)}
-                          createdByName={userNameMap.get((item as Event).createdBy)}
+                          canEdit={canModifyAccommodation(item as Accommodation)}
+                          canDelete={canModifyAccommodation(
+                            item as Accommodation,
+                          )}
+                          onEdit={() =>
+                            setEditingAccommodation(item as Accommodation)
+                          }
+                          onDelete={() =>
+                            setEditingAccommodation(item as Accommodation)
+                          }
+                          createdByName={userNameMap.get((item as Accommodation).createdBy)}
                           showDate
                         />
-                      ))}
-              </div>
-            ) : (
-              <div className="bg-card rounded-xl border border-dashed border-border p-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No {section.title.toLowerCase()} added yet
-                </p>
-              </div>
-            )}
+                      ))
+                    : section.type === "memberTravel"
+                      ? section.items.map((item) => {
+                          const travel = item as MemberTravel;
+                          return (
+                            <MemberTravelCard
+                              key={travel.id}
+                              memberTravel={travel}
+                              memberName={travel.memberName || "Unknown"}
+                              timezone={timezone}
+                              canEdit={canModifyMemberTravel(travel)}
+                              canDelete={canModifyMemberTravel(travel)}
+                              onEdit={() => setEditingMemberTravel(travel)}
+                              onDelete={() => setEditingMemberTravel(travel)}
+                              showDate
+                            />
+                          );
+                        })
+                      : section.items.map((item) => (
+                          <EventCard
+                            key={item.id}
+                            event={item as Event}
+                            timezone={timezone}
+                            canEdit={canModifyEvent(item as Event)}
+                            canDelete={canModifyEvent(item as Event)}
+                            onEdit={() => setEditingEvent(item as Event)}
+                            onDelete={() => setEditingEvent(item as Event)}
+                            createdByName={userNameMap.get((item as Event).createdBy)}
+                            showDate
+                          />
+                        ))}
+                </div>
+              ) : (
+                <div className="flex items-center min-h-10 pl-5">
+                  <p className="text-xs text-muted-foreground/60">
+                    No {section.title.toLowerCase()} added yet
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
@@ -255,4 +262,9 @@ export function GroupByTypeView({
       )}
     </div>
   );
+}
+
+/** Pick the right background for the icon circle */
+function bgFor(section: { bgColor: string }) {
+  return section.bgColor;
 }

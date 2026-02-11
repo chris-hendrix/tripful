@@ -132,8 +132,15 @@ test.describe("Itinerary Journey", () => {
         });
 
         await expect(page.getByText(/Dinner at Harbor/)).toBeVisible();
-        await expect(page.getByText("Harbor Drive Seafood")).toBeVisible();
         await expect(page.getByText(/6:30 PM/)).toBeVisible();
+
+        // Location should be a Google Maps link
+        const locationLink = page.getByRole("link", { name: "Harbor Drive Seafood" });
+        await expect(locationLink).toBeVisible();
+        await expect(locationLink).toHaveAttribute(
+          "href",
+          /google\.com\/maps\/search/,
+        );
       });
 
       await test.step("create accommodation", async () => {
@@ -158,7 +165,13 @@ test.describe("Itinerary Journey", () => {
 
         await page.getByRole("button", { name: "Create accommodation" }).click();
 
-        await expect(page.getByText("123 Main St, San Diego")).toBeVisible();
+        // Address should be a Google Maps link
+        const addressLink = page.getByRole("link", { name: "123 Main St, San Diego" });
+        await expect(addressLink).toBeVisible();
+        await expect(addressLink).toHaveAttribute(
+          "href",
+          /google\.com\/maps\/search/,
+        );
       });
 
       await snap(page, "09-itinerary-with-events");
@@ -178,7 +191,16 @@ test.describe("Itinerary Journey", () => {
         await page.locator('textarea[name="details"]').fill("Arriving from Chicago");
         await page.getByRole("button", { name: "Add travel details" }).click();
 
-        await expect(page.getByText("San Diego Airport")).toBeVisible();
+        // Travel card shows "Name · Arrival" title format
+        await expect(page.getByText(/Itinerary Tester · Arrival/)).toBeVisible();
+
+        // Location should be a Google Maps link
+        const travelLocationLink = page.getByRole("link", { name: "San Diego Airport" });
+        await expect(travelLocationLink).toBeVisible();
+        await expect(travelLocationLink).toHaveAttribute(
+          "href",
+          /google\.com\/maps\/search/,
+        );
         await expect(page.getByText("Arriving from Chicago")).toBeVisible();
       });
 
@@ -202,7 +224,13 @@ test.describe("Itinerary Journey", () => {
         ).not.toBeVisible();
 
         await expect(page.getByText(/Updated Dinner/)).toBeVisible();
-        await expect(page.getByText("Gaslamp Quarter")).toBeVisible();
+        // Updated location should also be a Google Maps link
+        const updatedLocationLink = page.getByRole("link", { name: "Gaslamp Quarter" });
+        await expect(updatedLocationLink).toBeVisible();
+        await expect(updatedLocationLink).toHaveAttribute(
+          "href",
+          /google\.com\/maps\/search/,
+        );
         await expect(page.getByText(/Dinner at Harbor/)).not.toBeVisible();
       });
 
@@ -274,7 +302,21 @@ test.describe("Itinerary Journey", () => {
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
       await page.getByRole("button", { name: "Add travel details" }).click();
 
-      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
+      // Travel card title shows "Name · Arrival" format
+      await expect(page.getByText(/View Mode User · Arrival/)).toBeVisible();
+
+      // Location is a Google Maps link
+      const airportLink = page.getByRole("link", { name: "Las Vegas Airport" });
+      await expect(airportLink).toBeVisible();
+      await expect(airportLink).toHaveAttribute("href", /google\.com\/maps\/search/);
+    });
+
+    await test.step("verify date gutter in day-by-day view", async () => {
+      // The calendar-style date gutter should show month, day number, and weekday
+      // Trip dates: 2027-03-10 to 2027-03-13
+      await expect(page.getByText("Mar").first()).toBeVisible();
+      await expect(page.getByText("10").first()).toBeVisible();
+      await expect(page.getByText("Wed").first()).toBeVisible();
     });
 
     await snap(page, "10-itinerary-day-by-day");
@@ -285,18 +327,15 @@ test.describe("Itinerary Journey", () => {
 
       await page.getByRole("button", { name: "Group by Type" }).click();
 
-      await expect(
-        page.getByRole("heading", { level: 3, name: "Meals" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { level: 3, name: "Activities" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { level: 3, name: "Arrivals" }),
-      ).toBeVisible();
+      // Section icons have title tooltips
+      await expect(page.locator('[title="Meals"]')).toBeVisible();
+      await expect(page.locator('[title="Activities"]')).toBeVisible();
+      await expect(page.locator('[title="Arrivals"]')).toBeVisible();
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(page.getByText(/Show/)).toBeVisible();
-      await expect(page.getByText("Las Vegas Airport")).toBeVisible();
+      // Location is still a Google Maps link in group-by-type view
+      const airportLinkGrouped = page.getByRole("link", { name: "Las Vegas Airport" });
+      await expect(airportLinkGrouped).toBeVisible();
       // Verify date labels appear on cards in group-by-type view
       await expect(page.getByText(/Mar 10, 2027/).first()).toBeVisible();
       await snap(page, "11-itinerary-group-by-type");
@@ -328,7 +367,8 @@ test.describe("Itinerary Journey", () => {
     await test.step("mobile viewport", async () => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      const header = page.locator(".sticky.top-0").first();
+      // Use the itinerary header (has border-b) to distinguish from date gutter sticky elements
+      const header = page.locator(".sticky.top-0.border-b").first();
       await expect(header).toBeVisible();
 
       await expect(

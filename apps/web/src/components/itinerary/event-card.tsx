@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, MapPin, Car, Utensils, ExternalLink } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,25 +20,19 @@ interface EventCardProps {
 
 const EVENT_TYPE_CONFIG = {
   travel: {
-    icon: Car,
-    color: "text-[var(--color-event-travel)]",
     bgColor: "bg-[var(--color-event-travel-light)]",
     borderColor: "border-[var(--color-event-travel-border)]",
-    label: "Travel",
+    accentColor: "border-l-[var(--color-event-travel)]",
   },
   meal: {
-    icon: Utensils,
-    color: "text-[var(--color-event-meal)]",
     bgColor: "bg-[var(--color-event-meal-light)]",
     borderColor: "border-[var(--color-event-meal-border)]",
-    label: "Meal",
+    accentColor: "border-l-[var(--color-event-meal)]",
   },
   activity: {
-    icon: Calendar,
-    color: "text-[var(--color-event-activity)]",
     bgColor: "bg-[var(--color-event-activity-light)]",
     borderColor: "border-[var(--color-event-activity-border)]",
-    label: "Activity",
+    accentColor: "border-l-[var(--color-event-activity)]",
   },
 } as const;
 
@@ -55,7 +49,6 @@ export function EventCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const config = EVENT_TYPE_CONFIG[event.eventType];
-  const Icon = config.icon;
 
   // Format time
   const startTime = event.allDay
@@ -78,7 +71,7 @@ export function EventCard({
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      className={`rounded-xl border ${config.borderColor} ${config.bgColor} p-4 transition-all hover:shadow-md cursor-pointer`}
+      className={`rounded-xl border border-l-4 ${config.borderColor} ${config.accentColor} ${config.bgColor} p-4 transition-all hover:shadow-md cursor-pointer`}
       onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -88,29 +81,33 @@ export function EventCard({
       }}
     >
       {/* Compact view */}
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg ${config.bgColor} ${config.color}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-foreground text-sm">
                 {event.name}
               </h4>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <span>{datePrefix ? `${datePrefix} • ${timeDisplay}` : timeDisplay}</span>
-                {event.location && (
-                  <>
-                    <span>•</span>
-                    <div className="flex items-center gap-1 min-w-0">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{event.location}</span>
-                    </div>
-                  </>
-                )}
+              {datePrefix && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  <span>{datePrefix}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <Clock className="w-3 h-3 shrink-0" />
+                <span>{timeDisplay}</span>
               </div>
+              {event.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="underline underline-offset-2">{event.location}</span>
+                </a>
+              )}
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -130,8 +127,6 @@ export function EventCard({
                   Optional
                 </Badge>
               )}
-            </div>
-          </div>
         </div>
       </div>
 

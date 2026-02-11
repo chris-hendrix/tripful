@@ -40,12 +40,9 @@
   --color-accommodation: #9333ea;
   --color-accommodation-light: #faf5ff;
   --color-accommodation-border: #e9d5ff;
-  --color-arrival: #059669;
-  --color-arrival-light: #f0fdf4;
-  --color-arrival-border: #bbf7d0;
-  --color-departure: #ea580c;
-  --color-departure-light: #fff7ed;
-  --color-departure-border: #fed7aa;
+  --color-member-travel: #6b7280;
+  --color-member-travel-light: #f9fafb;
+  --color-member-travel-border: #e5e7eb;
 }
 
 @layer base {
