@@ -151,7 +151,7 @@ describe("EditMemberTravelDialog", () => {
       );
 
       const arrivalRadio = screen.getByRole("radio", { name: /arrival/i });
-      expect(arrivalRadio.checked).toBe(true);
+      expect((arrivalRadio as HTMLInputElement).checked).toBe(true);
     });
 
     it("pre-populates departure travel type", () => {
@@ -170,7 +170,7 @@ describe("EditMemberTravelDialog", () => {
       );
 
       const departureRadio = screen.getByRole("radio", { name: /departure/i });
-      expect(departureRadio.checked).toBe(true);
+      expect((departureRadio as HTMLInputElement).checked).toBe(true);
     });
   });
 

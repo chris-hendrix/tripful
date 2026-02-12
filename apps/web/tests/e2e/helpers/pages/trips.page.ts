@@ -27,8 +27,8 @@ export class TripsPage {
     this.upcomingTripsHeading = page.getByRole("heading", {
       name: "Upcoming trips",
     });
-    this.logoutItem = page.getByText("Log out");
-    this.profileItem = page.getByText("Profile");
+    this.logoutItem = page.getByRole("menuitem", { name: "Log out" });
+    this.profileItem = page.getByRole("menuitem", { name: "Profile" });
   }
 
   async goto() {

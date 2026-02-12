@@ -126,8 +126,8 @@ describe("TripPreview", () => {
   it("renders organizer names and avatars", () => {
     render(<TripPreview trip={mockTrip} tripId="trip-1" />);
 
-    expect(screen.getByText("Organizers")).toBeDefined();
-    expect(screen.getByText("John Doe, Jane Smith")).toBeDefined();
+    expect(screen.getByText(/Organized by/)).toBeDefined();
+    expect(screen.getByText(/John Doe, Jane Smith/)).toBeDefined();
 
     // John Doe has no photo, should show initials
     expect(screen.getByText("JD")).toBeDefined();
@@ -264,7 +264,6 @@ describe("TripPreview", () => {
   it("renders description when available", () => {
     render(<TripPreview trip={mockTrip} tripId="trip-1" />);
 
-    expect(screen.getByText("About this trip")).toBeDefined();
     expect(screen.getByText("A wonderful summer trip")).toBeDefined();
   });
 
@@ -272,6 +271,6 @@ describe("TripPreview", () => {
     const tripWithoutDescription = { ...mockTrip, description: null };
     render(<TripPreview trip={tripWithoutDescription} tripId="trip-1" />);
 
-    expect(screen.queryByText("About this trip")).toBeNull();
+    expect(screen.queryByText("A wonderful summer trip")).toBeNull();
   });
 });

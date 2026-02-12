@@ -148,7 +148,7 @@ describe("CreateMemberTravelDialog", () => {
       );
 
       const arrivalRadio = screen.getByRole("radio", { name: /arrival/i });
-      expect(arrivalRadio.checked).toBe(true);
+      expect(arrivalRadio.getAttribute("data-state")).toBe("checked");
     });
 
     it("allows selecting departure", async () => {
@@ -165,7 +165,7 @@ describe("CreateMemberTravelDialog", () => {
       const departureRadio = screen.getByRole("radio", { name: /departure/i });
       await user.click(departureRadio);
 
-      expect(departureRadio.checked).toBe(true);
+      expect(departureRadio.getAttribute("data-state")).toBe("checked");
     });
   });
 

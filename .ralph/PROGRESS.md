@@ -397,3 +397,66 @@ The original task spec called for adding the cookie check to `(auth)/layout.tsx`
 - The falsy check `if (data.timezone)` correctly excludes both `null` and `undefined` from the payload, making auto-detect work by omission
 - Photo upload on onboarding should never block the user — silent failure with redirect is the correct UX pattern
 - `URL.createObjectURL` must be cleaned up with `revokeObjectURL` to avoid memory leaks — both in removal and successful upload paths
+
+## Iteration 7 — Task 7.1: Full regression check ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+Fixed 5 pre-existing unit test failures + 1 E2E test failure across 5 files. No production code changes — test-only fixes.
+
+**trip-preview.test.tsx** (2 fixes):
+
+- "renders organizer names and avatars": Changed `screen.getByText("Organizers")` → `screen.getByText(/Organized by/)` — component renders "Organized by {names}" in a single `<span>`, not a separate "Organizers" label
+- "renders description when available": Removed assertion for `"About this trip"` label — component renders description text directly in `<p>` with no heading. Updated negative test to assert absence of actual description text
+
+**create-member-travel-dialog.test.tsx** (2 fixes):
+
+- "defaults to arrival": Changed `arrivalRadio.checked` → `arrivalRadio.getAttribute("data-state")` — shadcn/Radix `RadioGroupItem` uses `data-state="checked"` attribute, not native `.checked` property
+- "allows selecting departure": Same fix for departure radio button
+
+**itinerary-header.test.tsx** (1 fix):
+
+- "applies sticky positioning classes": Changed expected CSS from `top-0`/`z-10` → `top-14`/`z-20` — component uses `top-14` (offset below fixed app header) and `z-20`
+
+**edit-member-travel-dialog.test.tsx** (consistency improvement):
+
+- Added `as HTMLInputElement` type cast to `.checked` assertions — this component uses native HTML radio inputs (not Radix), so `.checked` is correct but needs type narrowing from `HTMLElement`
+
+**trips.page.ts** (E2E page object fix):
+
+- Changed `page.getByText("Profile")` → `page.getByRole("menuitem", { name: "Profile" })` — fixes Playwright strict mode violation when user's display name contains "Profile"
+- Changed `page.getByText("Log out")` → `page.getByRole("menuitem", { name: "Log out" })` — preventive fix using role-based selector
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages, zero errors)
+- **tests**: PASS (shared: 185/185, api: 686/686, web: 783/783 — **zero failures**, all pre-existing failures resolved)
+- **E2E**: PASS (18/18, zero failures)
+- **reviewer**: APPROVED
+
+### Learnings
+
+- Radix `RadioGroupItem` renders `<button role="radio" data-state="checked">` — test with `getAttribute("data-state")`. Native HTML `<input type="radio">` uses `.checked` property — these are NOT interchangeable
+- The `edit-member-travel-dialog` uses native HTML radio inputs while `create-member-travel-dialog` uses Radix RadioGroup — a consistency-driven fix applied to both broke the edit dialog tests
+- E2E `getByText()` selectors are fragile when text can appear in user-generated content — `getByRole("menuitem", { name: "..." })` is more resilient for menu items
+- When fixing tests, always verify whether the component uses shadcn/Radix primitives or native HTML elements — they have different DOM APIs
+- The 5 "pre-existing" failures from iterations 1–6 were all test-code mismatches, not component bugs
+
+### Phase 5.5 Completion Summary
+
+All 7 tasks across 7 phases are now complete:
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 1.1 | DB schema, shared types, Zod schemas | ✅ |
+| 2.1 | User routes, controller, auth service | ✅ |
+| 3.1 | Dashboard → /trips rename | ✅ |
+| 4.1 | Auth redirects (landing + login) | ✅ |
+| 5.1 | Profile page with form, photo, handles | ✅ |
+| 6.1 | Complete-profile photo upload + auto-detect timezone | ✅ |
+| 7.1 | Full regression check | ✅ |
+
+**Final test counts**: 1,654 unit/integration tests + 18 E2E tests = **1,672 total tests, all passing**

@@ -287,8 +287,8 @@ describe("ItineraryHeader", () => {
 
       const header = container.querySelector(".sticky");
       expect(header).toBeDefined();
-      expect(header?.className).toContain("top-0");
-      expect(header?.className).toContain("z-10");
+      expect(header?.className).toContain("top-14");
+      expect(header?.className).toContain("z-20");
     });
   });
 });
