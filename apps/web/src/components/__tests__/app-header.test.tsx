@@ -147,7 +147,7 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Profile")).toBeDefined();
+      expect(screen.getByText("John Doe")).toBeDefined();
       expect(screen.getByText("Log out")).toBeDefined();
     });
   });
@@ -162,21 +162,6 @@ describe("AppHeader", () => {
     await waitFor(() => {
       expect(screen.getByText("John Doe")).toBeDefined();
       expect(screen.getByText("+15551234567")).toBeDefined();
-    });
-  });
-
-  it("has a Profile menu item that opens a dialog", async () => {
-    const user = userEvent.setup();
-    render(<AppHeader />);
-
-    const avatarButton = screen.getByRole("button", { name: "User menu" });
-    await user.click(avatarButton);
-
-    await waitFor(() => {
-      const profileItem = screen.getByText("Profile");
-      expect(profileItem).toBeDefined();
-      // Profile is now a dialog trigger, not a link
-      expect(profileItem.closest("a")).toBeNull();
     });
   });
 

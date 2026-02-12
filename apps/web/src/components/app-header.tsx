@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/format";
@@ -99,24 +99,20 @@ export function AppHeader() {
             <DropdownMenuContent align="end" className="w-48">
               {user && (
                 <>
-                  <DropdownMenuLabel className="font-normal">
+                  <DropdownMenuItem
+                    onSelect={() => setProfileDialogOpen(true)}
+                    onMouseEnter={preloadProfileDialog}
+                    onFocus={preloadProfileDialog}
+                    className="flex flex-col items-start gap-0"
+                  >
                     <p className="text-sm font-medium">{user.displayName}</p>
                     <p className="text-xs text-muted-foreground">
                       {user.phoneNumber}
                     </p>
-                  </DropdownMenuLabel>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem
-                onSelect={() => setProfileDialogOpen(true)}
-                onMouseEnter={preloadProfileDialog}
-                onFocus={preloadProfileDialog}
-              >
-                <User />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut />
                 Log out
