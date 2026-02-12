@@ -28,7 +28,7 @@ export class TripsPage {
       name: "Upcoming trips",
     });
     this.logoutItem = page.getByRole("menuitem", { name: "Log out" });
-    this.profileItem = page.getByRole("menuitem", { name: "Profile" });
+    this.profileItem = page.getByTestId("profile-menu-item");
   }
 
   async goto() {

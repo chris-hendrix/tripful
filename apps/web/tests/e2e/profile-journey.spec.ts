@@ -8,7 +8,7 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 /**
  * E2E Journey: Profile Management
  *
- * Tests profile page navigation, form editing, photo upload/remove,
+ * Tests profile dialog navigation, form editing, photo upload/remove,
  * and social handle display in a single journey test.
  */
 
@@ -73,8 +73,7 @@ test.describe("Profile Journey", () => {
         await trips.openUserMenu();
         await expect(trips.profileItem).toBeVisible();
         await trips.profileItem.click();
-        await page.waitForURL("**/profile", { timeout: 10000 });
-        await expect(profile.heading).toBeVisible();
+        await expect(profile.heading).toBeVisible({ timeout: 10000 });
       });
 
       await test.step("profile form shows current user data", async () => {
@@ -95,7 +94,7 @@ test.describe("Profile Journey", () => {
 
       await test.step("updated name persists after page reload", async () => {
         await page.reload();
-        await expect(profile.heading).toBeVisible({ timeout: 10000 });
+        await profile.openDialog();
         await expect(profile.displayNameInput).toHaveValue(
           "Updated Profile Name",
           { timeout: 10000 },
@@ -114,7 +113,7 @@ test.describe("Profile Journey", () => {
 
       await test.step("handles persist after page reload", async () => {
         await page.reload();
-        await expect(profile.heading).toBeVisible({ timeout: 10000 });
+        await profile.openDialog();
         await expect(profile.venmoInput).toHaveValue("@testvenmo", {
           timeout: 10000,
         });

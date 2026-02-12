@@ -29,7 +29,16 @@ export class ProfilePage {
     this.profileAvatar = page.getByTestId("profile-avatar");
   }
 
+  /** Navigate to trips page and open the profile dialog from the header dropdown */
   async goto() {
-    await this.page.goto("/profile");
+    await this.page.goto("/trips");
+    await this.openDialog();
+  }
+
+  /** Open the profile dialog from the header dropdown (assumes header is visible) */
+  async openDialog() {
+    await this.page.getByRole("button", { name: "User menu" }).click();
+    await this.page.getByTestId("profile-menu-item").click();
+    await this.heading.waitFor({ state: "visible", timeout: 10000 });
   }
 }

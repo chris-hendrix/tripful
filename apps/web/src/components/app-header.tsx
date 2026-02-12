@@ -104,6 +104,7 @@ export function AppHeader() {
                     onMouseEnter={preloadProfileDialog}
                     onFocus={preloadProfileDialog}
                     className="flex flex-col items-start gap-0"
+                    data-testid="profile-menu-item"
                   >
                     <p className="text-sm font-medium">{user.displayName}</p>
                     <p className="text-xs text-muted-foreground">
