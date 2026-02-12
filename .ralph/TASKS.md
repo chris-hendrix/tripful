@@ -16,7 +16,7 @@
 
 ## Phase 2: Backend API
 
-- [ ] Task 2.1: Create user routes, controller, and extend auth service for profile management
+- [x] Task 2.1: Create user routes, controller, and extend auth service for profile management
   - Implement: Extend `updateProfile()` in `apps/api/src/services/auth.service.ts` to accept `timezone: string | null`, `profilePhotoUrl: string | null`, and `handles: Record<string, string> | null`
   - Implement: Update `updateProfile()` interface in auth service to match new signature
   - Implement: Create `apps/api/src/controllers/user.controller.ts` with `updateProfile`, `uploadProfilePhoto`, `removeProfilePhoto` methods
