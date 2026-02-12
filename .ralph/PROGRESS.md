@@ -331,3 +331,69 @@ The original task spec called for adding the cookie check to `(auth)/layout.tsx`
 - Handles cleanup: converting empty strings to `null` before submission avoids storing empty objects in the database
 - Members list handles display: stripping `@` prefix from handles for URL construction handles both `@username` and `username` input formats
 - The `(app)` layout already provides auth guard, so no additional auth logic needed in the profile page
+
+## Iteration 6 — Task 6.1: Add optional photo upload and auto-detect timezone to complete-profile page ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Shared Constants** (`apps/web/src/lib/constants.ts`):
+
+- Extracted `TIMEZONE_AUTO_DETECT = "__auto__"` sentinel constant from profile-form.tsx to shared constants
+- Added `getDetectedTimezone()` helper — wraps `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- Added `getTimezoneLabel()` helper — looks up IANA timezone in TIMEZONES array for human-readable label
+- Both functions were previously defined locally in profile-form.tsx
+
+**Profile Form Refactoring** (`apps/web/src/components/profile/profile-form.tsx`):
+
+- Removed local definitions of `TIMEZONE_AUTO_DETECT`, `getDetectedTimezone`, `getTimezoneLabel`
+- Added imports from `@/lib/constants` instead — no behavior change, import-only refactoring
+
+**Complete Profile Page** (`apps/web/src/app/(auth)/complete-profile/page.tsx`):
+
+- Added optional circular avatar upload area (Avatar size-20) above the display name field
+- Hidden file input with `accept="image/jpeg,image/png,image/webp"` and 5MB client-side validation
+- Camera icon button triggers file picker; Trash2 button removes selected photo
+- Photo preview via `URL.createObjectURL()` with proper cleanup via `revokeObjectURL`
+- Two-step submission flow: `completeProfile()` first, then `uploadPhoto.mutateAsync()` if file selected
+- Photo upload failure is caught and swallowed — does NOT block onboarding redirect to `/trips`
+- Changed timezone default from `Intl.DateTimeFormat().resolvedOptions().timeZone` (concrete IANA string) to `null` (auto-detect)
+- Added "Auto-detect" as first Select option using `TIMEZONE_AUTO_DETECT` sentinel value
+- Auto-detect option label dynamically shows detected timezone: "Auto-detect (Eastern Time (ET))"
+- When auto-detect is selected, timezone is omitted from the API payload (falsy check: `if (data.timezone)`)
+
+**Complete Profile Tests** (`apps/web/src/app/(auth)/complete-profile/page.test.tsx`):
+
+- Added mocks for `useUploadProfilePhoto` from `@/hooks/use-user` and `getInitials` from `@/lib/format`
+- Added `URL.createObjectURL`/`URL.revokeObjectURL` mocks for photo preview testing
+- 8 new tests:
+  - "renders photo upload section" — verifies avatar, upload button, and hidden file input
+  - "shows photo preview after file selection" — verifies createObjectURL called and button text changes
+  - "removes photo preview when remove button is clicked" — verifies preview cleared
+  - "uploads photo after successful profile completion" — verifies two-step flow
+  - "continues to redirect even if photo upload fails" — verifies graceful failure
+  - "does not upload photo if no file was selected" — verifies mutateAsync not called
+  - "does not accept files with invalid types" — verifies client-side validation
+  - "shows avatar fallback with question mark when no name entered" — verifies accessibility fallback
+- Updated 2 existing tests:
+  - "calls completeProfile with correct data on submit" — no longer expects timezone in payload when auto-detect
+  - "renders the timezone select" — verifies Auto-detect option exists
+- Total: 24 tests passing
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 778/783 — 5 pre-existing failures)
+- **reviewer**: APPROVED (no blocking issues, 3 low-severity suggestions noted as optional)
+
+### Learnings
+
+- The user has a valid auth token on the complete-profile page (set by verify-code), so `POST /api/users/me/photo` works even before profile completion — photo upload doesn't need to wait
+- However, the implementation uploads AFTER `completeProfile()` to ensure consistent state (profile exists before photo is attached)
+- The `completeProfileSchema` already accepted `timezone: z.string().nullable().optional()` — no backend changes needed for auto-detect
+- Extracting shared constants (sentinel values, helper functions) to `@/lib/constants` is cleaner than duplicating across components
+- The falsy check `if (data.timezone)` correctly excludes both `null` and `undefined` from the payload, making auto-detect work by omission
+- Photo upload on onboarding should never block the user — silent failure with redirect is the correct UX pattern
+- `URL.createObjectURL` must be cleaned up with `revokeObjectURL` to avoid memory leaks — both in removal and successful upload paths

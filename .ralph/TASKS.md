@@ -62,7 +62,7 @@
 
 ## Phase 6: Complete Profile Updates
 
-- [ ] Task 6.1: Add optional photo upload and auto-detect timezone to complete-profile page
+- [x] Task 6.1: Add optional photo upload and auto-detect timezone to complete-profile page
   - Implement: Add optional circular avatar upload area to `apps/web/src/app/(auth)/complete-profile/page.tsx` above the display name field
   - Implement: Replace timezone dropdown default with "Auto-detect" option (don't send timezone when auto-detect is selected)
   - Implement: Update redirect from `/dashboard` to `/trips` (if not already done in Phase 3)

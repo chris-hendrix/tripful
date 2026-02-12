@@ -12,7 +12,12 @@ import {
 } from "@/hooks/use-user";
 import { updateProfileSchema } from "@tripful/shared/schemas";
 import type { UpdateProfileInput } from "@tripful/shared/schemas";
-import { TIMEZONES } from "@/lib/constants";
+import {
+  TIMEZONES,
+  TIMEZONE_AUTO_DETECT,
+  getDetectedTimezone,
+  getTimezoneLabel,
+} from "@/lib/constants";
 import { formatPhoneNumber, getInitials } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,24 +41,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Sentinel value used in the timezone select to represent auto-detect (null) */
-const TIMEZONE_AUTO_DETECT = "__auto__";
-
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-
-function getDetectedTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-/**
- * Find a human-readable label for a timezone from the TIMEZONES constant.
- * Falls back to the raw IANA identifier if not found.
- */
-function getTimezoneLabel(tz: string): string {
-  const found = TIMEZONES.find((t) => t.value === tz);
-  return found ? found.label : tz;
-}
 
 export function ProfileForm() {
   const { user, loading } = useAuth();
