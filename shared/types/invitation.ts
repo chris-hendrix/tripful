@@ -25,6 +25,7 @@ export interface MemberWithProfile {
   userId: string;
   displayName: string;
   profilePhotoUrl: string | null;
+  handles: Record<string, string> | null;
   /** Only included when requesting user is an organizer */
   phoneNumber?: string;
   status: "going" | "not_going" | "maybe" | "no_response";

@@ -286,7 +286,7 @@ describe("auth.service", () => {
       expect(user.id).toBeDefined();
       expect(user.phoneNumber).toBe(testPhoneNumber);
       expect(user.displayName).toBe("");
-      expect(user.timezone).toBe("UTC");
+      expect(user.timezone).toBeNull();
       expect(user.profilePhotoUrl).toBeNull();
       expect(user.createdAt).toBeInstanceOf(Date);
       expect(user.updatedAt).toBeInstanceOf(Date);
@@ -339,7 +339,7 @@ describe("auth.service", () => {
 
       expect(updatedUser.id).toBe(user.id);
       expect(updatedUser.displayName).toBe(newDisplayName);
-      expect(updatedUser.timezone).toBe("UTC"); // Should remain unchanged
+      expect(updatedUser.timezone).toBeNull(); // Should remain unchanged
     });
 
     it("should update timezone", async () => {
@@ -621,7 +621,8 @@ describe("auth.service", () => {
         phoneNumber: testPhoneNumber,
         displayName: "Test User",
         profilePhotoUrl: null,
-        timezone: "UTC",
+        timezone: null,
+        handles: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

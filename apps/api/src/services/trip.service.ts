@@ -61,7 +61,7 @@ type OrganizerInfo = {
   displayName: string;
   phoneNumber: string;
   profilePhotoUrl: string | null;
-  timezone: string;
+  timezone: string | null;
 };
 
 /**

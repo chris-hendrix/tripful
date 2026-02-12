@@ -38,6 +38,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "going",
     isOrganizer: true,
     createdAt: "2026-01-01T00:00:00Z",
+    handles: null,
   },
   {
     id: "member-2",
@@ -48,6 +49,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "maybe",
     isOrganizer: false,
     createdAt: "2026-01-02T00:00:00Z",
+    handles: null,
   },
   {
     id: "member-3",
@@ -58,6 +60,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "not_going",
     isOrganizer: false,
     createdAt: "2026-01-03T00:00:00Z",
+    handles: null,
   },
   {
     id: "member-4",
@@ -67,6 +70,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "no_response",
     isOrganizer: false,
     createdAt: "2026-01-04T00:00:00Z",
+    handles: null,
   },
 ];
 
@@ -291,6 +295,7 @@ describe("MembersList", () => {
           status: "going",
           isOrganizer: false,
           createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
         },
       ];
 

@@ -2,7 +2,7 @@
 
 ## Phase 1: Schema & Shared Types
 
-- [ ] Task 1.1: Update DB schema, shared types, and Zod schemas for nullable timezone, handles column, and profile updates
+- [x] Task 1.1: Update DB schema, shared types, and Zod schemas for nullable timezone, handles column, and profile updates
   - Implement: In `apps/api/src/db/schema/index.ts`, change `timezone` from `.notNull().default("UTC")` to nullable, add `handles: jsonb("handles").$type<Record<string, string>>()`
   - Implement: Run `cd apps/api && pnpm db:generate` to generate migration, then `pnpm db:migrate` to apply
   - Implement: In `shared/types/user.ts`, change `timezone: string` to `timezone: string | null`, add `handles: Record<string, string> | null`

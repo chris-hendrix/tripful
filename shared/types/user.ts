@@ -13,8 +13,10 @@ export interface User {
   displayName: string;
   /** Optional profile photo URL */
   profilePhotoUrl?: string;
-  /** User's timezone (IANA timezone string) */
-  timezone: string;
+  /** User's timezone (IANA timezone string, null for auto-detect) */
+  timezone: string | null;
+  /** User social media handles (e.g., venmo, instagram) */
+  handles: Record<string, string> | null;
   /** Account creation timestamp (ISO 8601 string) */
   createdAt: string;
   /** Last update timestamp (ISO 8601 string) */

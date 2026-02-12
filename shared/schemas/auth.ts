@@ -56,7 +56,7 @@ export const completeProfileSchema = z.object({
     .max(50, {
       message: "Display name must not exceed 50 characters",
     }),
-  timezone: z.string().optional(),
+  timezone: z.string().nullable().optional(),
 });
 
 // --- Response schemas ---
@@ -67,7 +67,8 @@ export const userResponseSchema = z.object({
   phoneNumber: z.string(),
   displayName: z.string(),
   profilePhotoUrl: z.string().nullable().optional(),
-  timezone: z.string(),
+  timezone: z.string().nullable(),
+  handles: z.record(z.string(), z.string()).nullable().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

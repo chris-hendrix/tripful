@@ -53,6 +53,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "going",
     isOrganizer: true,
     createdAt: "2026-02-06T12:00:00Z",
+    handles: null,
   },
   {
     id: "member-2",
@@ -63,6 +64,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "maybe",
     isOrganizer: false,
     createdAt: "2026-02-06T13:00:00Z",
+    handles: null,
   },
 ];
 
