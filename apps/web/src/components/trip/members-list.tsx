@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { getInitials, formatPhoneNumber } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 
 interface MembersListProps {
   tripId: string;
@@ -99,7 +100,7 @@ export function MembersList({
             >
               <Avatar size="default">
                 <AvatarImage
-                  src={member.profilePhotoUrl ?? undefined}
+                  src={getUploadUrl(member.profilePhotoUrl)}
                   alt={member.displayName}
                 />
                 <AvatarFallback>

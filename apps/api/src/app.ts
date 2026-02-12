@@ -91,6 +91,7 @@ export async function buildApp(
   // Register helmet (security headers)
   await app.register(helmet, {
     contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
   });
 
   // Register cookie plugin (must be before JWT)

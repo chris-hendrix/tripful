@@ -7,6 +7,7 @@ import { Calendar, MapPin, ClipboardList, ImagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import { usePrefetchTrip } from "@/hooks/use-trips";
 
 interface TripCardProps {
@@ -57,9 +58,10 @@ export const TripCard = memo(function TripCard({
       {trip.coverImageUrl ? (
         <div className="relative h-48 overflow-hidden">
           <Image
-            src={trip.coverImageUrl}
+            src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
+            unoptimized
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
           />
@@ -119,10 +121,11 @@ export const TripCard = memo(function TripCard({
                 org.profilePhotoUrl ? (
                   <Image
                     key={org.id}
-                    src={org.profilePhotoUrl}
+                    src={getUploadUrl(org.profilePhotoUrl)!}
                     alt={org.displayName}
                     width={24}
                     height={24}
+                    unoptimized
                     className="rounded-full ring-2 ring-white"
                   />
                 ) : (

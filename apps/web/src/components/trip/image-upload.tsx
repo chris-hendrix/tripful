@@ -11,7 +11,7 @@ import {
 import Image from "next/image";
 import { Upload, AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_URL } from "@/lib/api";
+import { API_URL, getUploadUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 interface ImageUploadProps {
@@ -41,7 +41,9 @@ export function ImageUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    getUploadUrl(value) ?? null,
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lastFailedFile, setLastFailedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,7 +115,7 @@ export function ImageUpload({
       const uploadedUrl = data.trip.coverImageUrl;
 
       onChange(uploadedUrl);
-      setPreviewUrl(uploadedUrl);
+      setPreviewUrl(getUploadUrl(uploadedUrl) ?? null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Upload failed";
       const isNetworkError =
@@ -127,7 +129,7 @@ export function ImageUpload({
       // Store the file for retry
       setLastFailedFile(file);
       // Revert preview on error
-      setPreviewUrl(value || null);
+      setPreviewUrl(getUploadUrl(value) ?? null);
       setSelectedFile(null);
     } finally {
       setIsUploading(false);

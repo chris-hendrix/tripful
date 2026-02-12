@@ -35,6 +35,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -155,9 +156,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       {trip.coverImageUrl ? (
         <div className="relative h-80 overflow-hidden">
           <Image
-            src={trip.coverImageUrl}
+            src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
+            unoptimized
             priority
             sizes="100vw"
             className="object-cover"
@@ -244,10 +246,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                     org.profilePhotoUrl ? (
                       <Image
                         key={org.id}
-                        src={org.profilePhotoUrl}
+                        src={getUploadUrl(org.profilePhotoUrl)!}
                         alt={org.displayName}
                         width={32}
                         height={32}
+                        unoptimized
                         className="rounded-full ring-2 ring-white"
                       />
                     ) : (

@@ -19,6 +19,7 @@ import {
   getTimezoneLabel,
 } from "@/lib/constants";
 import { formatPhoneNumber, getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -201,7 +202,10 @@ export function ProfileForm() {
                   data-testid="profile-avatar"
                 >
                   {currentPhotoUrl && (
-                    <AvatarImage src={currentPhotoUrl} alt={user.displayName} />
+                    <AvatarImage
+                      src={getUploadUrl(currentPhotoUrl)}
+                      alt={user.displayName}
+                    />
                   )}
                   <AvatarFallback className="text-2xl">
                     {getInitials(user.displayName)}

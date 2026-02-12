@@ -6,6 +6,7 @@ import { LogOut, User } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,7 +26,10 @@ function UserAvatar({
   return (
     <Avatar size="sm">
       {user?.profilePhotoUrl && (
-        <AvatarImage src={user.profilePhotoUrl} alt={user.displayName} />
+        <AvatarImage
+          src={getUploadUrl(user.profilePhotoUrl)}
+          alt={user.displayName}
+        />
       )}
       <AvatarFallback>
         {user ? getInitials(user.displayName) : "?"}
