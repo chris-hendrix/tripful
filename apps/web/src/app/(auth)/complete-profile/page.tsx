@@ -60,7 +60,7 @@ export default function CompleteProfilePage() {
         payload.timezone = data.timezone;
       }
       await completeProfile(payload);
-      router.push("/dashboard");
+      router.push("/trips");
     } catch (error) {
       form.setError("displayName", {
         message:

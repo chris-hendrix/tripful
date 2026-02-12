@@ -108,3 +108,67 @@ Tracking implementation progress for Phase 5.5: User Profile & Auth Redirects.
 - JWT token regeneration should only happen when `displayName` changes (it's in the JWT `name` claim)
 - The `requireCompleteProfile` middleware is intentionally omitted from user profile routes — users need these to complete their profile
 - One flaky API test (`trip.service.test.ts` phone number collision) is a pre-existing test isolation issue, not related to changes
+
+## Iteration 3 — Task 3.1: Move dashboard files to /trips and update all references across codebase ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Dashboard directory deleted** (`apps/web/src/app/(app)/dashboard/`):
+- Removed all 5 files: `page.tsx`, `dashboard-content.tsx`, `dashboard-content.test.tsx`, `page.test.tsx`, `loading.tsx`
+- Replacement files already existed as untracked files in the `trips/` directory
+
+**New files now canonical** (previously untracked, now the active route files):
+- `apps/web/src/app/(app)/trips/page.tsx` — `TripsPage` with metadata `{ title: "My Trips" }`
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — `TripsContent` component
+- `apps/web/src/app/(app)/trips/trips-content.test.tsx` — tests for `TripsContent`
+- `apps/web/src/app/(app)/trips/page.test.tsx` — RSC tests for `TripsPage`
+- `apps/web/src/app/(app)/trips/loading.tsx` — `TripsLoading` skeleton
+
+**E2E page object replaced**:
+- Deleted `apps/web/tests/e2e/helpers/pages/dashboard.page.ts`
+- New `apps/web/tests/e2e/helpers/pages/trips.page.ts` (already existed) with `TripsPage` class
+- Updated barrel export in `pages/index.ts`: `DashboardPage` → `TripsPage`
+
+**Source files updated** (7 files, `/dashboard` → `/trips`):
+- `apps/web/src/components/app-header.tsx` — wordmark href, nav link href, `startsWith` check, nav text "Dashboard" → "My Trips"
+- `apps/web/src/app/(auth)/verify/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(app)/trips/[id]/not-found.tsx` — `href="/trips"`
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — breadcrumb and error link to `/trips`, "Return to trips"
+- `apps/web/src/hooks/use-trips.ts` — `router.push("/trips")` in `useCancelTrip`, updated JSDoc comments
+- `apps/web/src/app/robots.ts` — removed `/dashboard` from disallow, kept `/trips`
+
+**Unit test files updated** (4 files):
+- `apps/web/src/app/(auth)/verify/page.test.tsx` — assertion and test name updated
+- `apps/web/src/app/(auth)/complete-profile/page.test.tsx` — 3 assertions and test name updated
+- `apps/web/src/components/__tests__/app-header.test.tsx` — 14+ references: mockPathname, hrefs, "My Trips" text, test names
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — "Return to trips" text and href assertions
+
+**E2E test files updated** (5 files):
+- `apps/web/tests/e2e/helpers/auth.ts` — 10 URL references: `**/dashboard` → `**/trips`
+- `apps/web/tests/e2e/auth-journey.spec.ts` — imports, variable names, URLs, step text, screenshot name
+- `apps/web/tests/e2e/trip-journey.spec.ts` — imports, variable names, URLs, step text, screenshot name
+- `apps/web/tests/e2e/app-shell.spec.ts` — imports, variable names, "My Trips" link text
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — imports, variable names
+
+**Documentation updated** (2 files):
+- `apps/web/src/components/trip/README.md` — 3 "dashboard" references → "trips page"
+- `apps/web/tests/e2e/README.md` — 6 "dashboard" references → "trips page"/"trips list"
+
+### Verification
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 762/767 — 5 pre-existing failures)
+- **grep for "dashboard"**: ZERO hits in `apps/web/src/` and `apps/web/tests/` (case-insensitive)
+- **grep for "DashboardPage"**: ZERO hits anywhere in `apps/web/`
+- **reviewer**: APPROVED (after 1 round of feedback fixes)
+
+### Learnings
+- Replacement files were pre-created as untracked files — the task was primarily about reference updates and cleanup, not file creation
+- The E2E page object pattern (`DashboardPage` → `TripsPage`) required updating imports and variable names across 5 spec files plus the barrel export
+- Screenshot names in E2E tests should also be updated during renames to avoid confusion
+- JSDoc comments and README documentation are easy to miss — always do a case-insensitive grep sweep for the old term after making changes
+- The `app-header.test.tsx` file had the most references (14+) — the active styling tests for nav links are particularly sensitive to pathname and text changes
+- The `robots.ts` disallow list needed `/dashboard` removed entirely (not replaced) since `/trips` was already there

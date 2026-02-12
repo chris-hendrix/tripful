@@ -4,7 +4,7 @@ import {
   authenticateViaAPIWithPhone,
   createUserViaAPI,
 } from "./helpers/auth";
-import { DashboardPage, TripDetailPage } from "./helpers/pages";
+import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate } from "./helpers/date-pickers";
@@ -26,7 +26,7 @@ test.describe("Trip Journey", () => {
     "trip CRUD journey",
     { tag: "@smoke" },
     async ({ page, request }) => {
-      const dashboard = new DashboardPage(page);
+      const trips = new TripsPage(page);
       const tripDetail = new TripDetailPage(page);
       await authenticateViaAPI(page, request, "Trip Creator");
 
@@ -35,7 +35,7 @@ test.describe("Trip Journey", () => {
       const tripDescription = "A test trip for E2E verification";
 
       await test.step("create trip with full details", async () => {
-        await dashboard.createTripButton.click();
+        await trips.createTripButton.click();
         await expect(tripDetail.createDialogHeading).toBeVisible();
         await expect(tripDetail.step1Indicator).toBeVisible();
         await expect(page.getByText("Basic information")).toBeVisible();
@@ -69,12 +69,12 @@ test.describe("Trip Journey", () => {
         await snap(page, "07-trip-detail");
       });
 
-      await test.step("trip appears in dashboard", async () => {
-        await dashboard.goto();
+      await test.step("trip appears in trips list", async () => {
+        await trips.goto();
         await expect(page.getByText(tripName)).toBeVisible();
         await expect(page.getByText(tripDestination)).toBeVisible();
-        await expect(dashboard.upcomingTripsHeading).toBeVisible();
-        await snap(page, "08-dashboard-with-trips");
+        await expect(trips.upcomingTripsHeading).toBeVisible();
+        await snap(page, "08-trips-list");
 
         await page.getByText(tripName).click();
         await page.waitForURL("**/trips/**");
@@ -121,8 +121,8 @@ test.describe("Trip Journey", () => {
         await expect(page.getByText(updatedDescription)).toBeVisible();
       });
 
-      await test.step("changes persist in dashboard", async () => {
-        await dashboard.goto();
+      await test.step("changes persist in trips list", async () => {
+        await trips.goto();
         await expect(page.getByText(updatedName)).toBeVisible();
         await expect(page.getByText(updatedDestination)).toBeVisible();
         await expect(page.getByText(tripName)).not.toBeVisible();
@@ -156,12 +156,12 @@ test.describe("Trip Journey", () => {
         await page.getByRole("button", { name: "Yes, delete" }).click();
       });
 
-      await test.step("trip removed from dashboard", async () => {
-        await page.waitForURL("**/dashboard", { timeout: 20000 });
+      await test.step("trip removed from trips list", async () => {
+        await page.waitForURL("**/trips", { timeout: 20000 });
         await expect(page.getByText(updatedName)).not.toBeVisible();
 
-        const emptyState = dashboard.emptyStateHeading;
-        const upcomingSection = dashboard.upcomingTripsHeading;
+        const emptyState = trips.emptyStateHeading;
+        const upcomingSection = trips.upcomingTripsHeading;
         await expect(emptyState.or(upcomingSection).first()).toBeVisible();
       });
     },
@@ -170,7 +170,7 @@ test.describe("Trip Journey", () => {
   test(
     "trip permissions journey",
     async ({ page, request }) => {
-      const dashboard = new DashboardPage(page);
+      const trips = new TripsPage(page);
       const tripDetail = new TripDetailPage(page);
       const timestamp = Date.now();
       const shortTimestamp = timestamp.toString().slice(-10);
@@ -184,7 +184,7 @@ test.describe("Trip Journey", () => {
           userAPhone,
           "User A - Trip Creator",
         );
-        await expect(dashboard.heading).toBeVisible();
+        await expect(trips.heading).toBeVisible();
       });
 
       const tripName = `Permission Trip ${timestamp}`;
@@ -192,7 +192,7 @@ test.describe("Trip Journey", () => {
       let tripId: string;
 
       await test.step("create trip with dates", async () => {
-        await dashboard.createTripButton.click();
+        await trips.createTripButton.click();
         await expect(tripDetail.createDialogHeading).toBeVisible();
 
         await tripDetail.nameInput.fill(tripName);
@@ -233,12 +233,12 @@ test.describe("Trip Journey", () => {
         await expect(tripDetail.editButton).not.toBeVisible();
 
         const returnLink = page.getByRole("link", {
-          name: "Return to dashboard",
+          name: "Return to trips",
         });
         await expect(returnLink).toBeVisible();
         await returnLink.click();
-        await page.waitForURL("**/dashboard");
-        await expect(dashboard.heading).toBeVisible();
+        await page.waitForURL("**/trips");
+        await expect(trips.heading).toBeVisible();
         await expect(page.getByText(tripName)).not.toBeVisible();
       });
 
@@ -338,12 +338,12 @@ test.describe("Trip Journey", () => {
   );
 
   test("trip form validation", async ({ page, request }) => {
-    const dashboard = new DashboardPage(page);
+    const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
     await authenticateViaAPI(page, request, "Validation User");
 
     await test.step("empty submission shows validation errors", async () => {
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
       await tripDetail.continueButton.click();
 
@@ -360,7 +360,7 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("back/forward navigation preserves data", async () => {
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
 
       const tripName = `Navigation Test ${Date.now()}`;
@@ -379,7 +379,7 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("create trip with minimal fields", async () => {
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
 
       const tripName = `Minimal Trip ${Date.now()}`;
@@ -402,13 +402,13 @@ test.describe("Trip Journey", () => {
       await page.context().clearCookies();
       await authenticateViaAPI(page, request, "Empty State User");
 
-      await expect(dashboard.emptyStateHeading).toBeVisible();
+      await expect(trips.emptyStateHeading).toBeVisible();
       await expect(
         page.getByText("Start planning your next adventure"),
       ).toBeVisible();
-      await expect(dashboard.emptyStateCreateButton).toBeVisible();
+      await expect(trips.emptyStateCreateButton).toBeVisible();
 
-      await dashboard.emptyStateCreateButton.click();
+      await trips.emptyStateCreateButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
     });
 
@@ -416,7 +416,7 @@ test.describe("Trip Journey", () => {
       // Close dialog and create a trip to edit
       await page.keyboard.press("Escape");
 
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
 
       const tripName = `Validation Trip ${Date.now()}`;

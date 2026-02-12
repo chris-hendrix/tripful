@@ -4,7 +4,7 @@ This directory contains components related to trip display and management.
 
 ## TripCard
 
-A card component for displaying trip summaries in list views (e.g., dashboard).
+A card component for displaying trip summaries in list views (e.g., trips page).
 
 ### Usage
 
@@ -97,7 +97,7 @@ A dialog component for creating new trips with a two-step form.
 ```tsx
 import { CreateTripDialog } from "@/components/trip";
 
-function DashboardHeader() {
+function TripsHeader() {
   return (
     <div>
       <CreateTripDialog />
@@ -210,7 +210,7 @@ function TripHeader({ trip }: { trip: Trip }) {
 
 - Danger zone with trip deletion
 - Confirmation dialog before deletion
-- Navigates to dashboard after deletion
+- Navigates to trips page after deletion
 
 ### Styling
 

@@ -10,7 +10,7 @@ export default function TripNotFound() {
           This trip may have been deleted or you don&apos;t have access.
         </p>
         <Link
-          href="/dashboard"
+          href="/trips"
           className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           Back to trips

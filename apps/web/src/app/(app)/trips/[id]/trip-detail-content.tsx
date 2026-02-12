@@ -122,7 +122,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             This trip doesn't exist or you don't have access to it.
           </p>
           <Button variant="gradient" asChild className="h-12 px-8 rounded-xl">
-            <Link href="/dashboard">Return to dashboard</Link>
+            <Link href="/trips">Return to trips</Link>
           </Button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/dashboard">My Trips</Link>
+              <Link href="/trips">My Trips</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

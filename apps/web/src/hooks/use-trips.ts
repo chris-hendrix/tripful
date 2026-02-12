@@ -41,7 +41,7 @@ interface CancelTripResponse {
  *
  * Features:
  * - Automatic caching: Results are cached with ["trips"] key
- * - Returns TripSummary array with minimal data for dashboard display
+ * - Returns TripSummary array with minimal data for trips list display
  * - Error handling: Provides error state for failed requests
  *
  * @returns Query object with data, loading, and error state
@@ -414,7 +414,7 @@ interface CancelTripContext {
  *
  * Features:
  * - Optimistic updates: Removes trip from cache immediately
- * - Automatic redirect: Navigates to dashboard on success
+ * - Automatic redirect: Navigates to trips page on success
  * - Error rollback: Reverts optimistic update on failure
  * - Network error handling: Provides user-friendly error messages
  *
@@ -461,10 +461,10 @@ export function useCancelTrip() {
       return { previousTrips };
     },
 
-    // On success: Redirect to dashboard
+    // On success: Redirect to trips
     onSuccess: () => {
-      // Redirect to the dashboard
-      router.push("/dashboard");
+      // Redirect to the trips page
+      router.push("/trips");
     },
 
     // On error: Rollback optimistic update

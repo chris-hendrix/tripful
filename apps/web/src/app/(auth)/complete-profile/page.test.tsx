@@ -134,7 +134,7 @@ describe("CompleteProfilePage", () => {
     });
   });
 
-  it("redirects to dashboard on successful profile completion", async () => {
+  it("redirects to trips on successful profile completion", async () => {
     const user = userEvent.setup();
     mockCompleteProfile.mockImplementation(async () => {
       mockUser = {
@@ -153,7 +153,7 @@ describe("CompleteProfilePage", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 
@@ -212,7 +212,7 @@ describe("CompleteProfilePage", () => {
 
     // After successful completion, button stays disabled until navigation
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 
@@ -331,7 +331,7 @@ describe("CompleteProfilePage", () => {
 
     // After successful completion, inputs stay disabled until navigation
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 });

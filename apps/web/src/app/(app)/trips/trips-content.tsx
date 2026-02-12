@@ -39,7 +39,7 @@ function SkeletonCard() {
   );
 }
 
-export function DashboardContent() {
+export function TripsContent() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 

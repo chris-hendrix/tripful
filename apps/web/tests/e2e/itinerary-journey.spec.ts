@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth";
-import { DashboardPage, TripDetailPage } from "./helpers/pages";
+import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
@@ -21,8 +21,8 @@ async function createTrip(
   endDate: string,
 ) {
   const tripDetail = new TripDetailPage(page);
-  const dashboard = new DashboardPage(page);
-  await dashboard.createTripButton.click();
+  const trips = new TripsPage(page);
+  await trips.createTripButton.click();
   await expect(tripDetail.createDialogHeading).toBeVisible();
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
@@ -403,7 +403,7 @@ test.describe("Itinerary Journey", () => {
 
   test("itinerary permissions and validation", async ({ page, request }) => {
     test.slow(); // 4 auth cycles — triple the timeout for CI
-    const dashboard = new DashboardPage(page);
+    const trips = new TripsPage(page);
 
     await test.step("organizer creates trip and verifies action buttons", async () => {
       await authenticateViaAPI(page, request, "Trip Owner A");
@@ -480,7 +480,7 @@ test.describe("Itinerary Journey", () => {
       const tripName = `RSVP Trip ${Date.now()}`;
       const tripDetail = new TripDetailPage(page);
 
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill("Chicago, IL");

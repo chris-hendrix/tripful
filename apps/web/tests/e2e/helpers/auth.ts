@@ -41,7 +41,7 @@ export async function createUserViaAPI(
 /**
  * Login via the browser UI (enter phone → verify code).
  * Assumes the user already exists (created via API or previous browser flow).
- * Ends on /dashboard.
+ * Ends on /trips.
  */
 export async function loginViaBrowser(
   page: Page,
@@ -59,7 +59,7 @@ export async function loginViaBrowser(
   await codeInput.fill("123456");
   await page.locator('button:has-text("Verify")').click();
 
-  await page.waitForURL("**/dashboard", { timeout: 10000 });
+  await page.waitForURL("**/trips", { timeout: 10000 });
 }
 
 /**
@@ -113,8 +113,8 @@ export async function authenticateViaAPI(
       httpOnly: true,
     },
   ]);
-  await page.goto("/dashboard");
-  await page.waitForURL("**/dashboard", { timeout: 10000 });
+  await page.goto("/trips");
+  await page.waitForURL("**/trips", { timeout: 10000 });
   return phone;
 }
 
@@ -139,8 +139,8 @@ export async function authenticateViaAPIWithPhone(
       httpOnly: true,
     },
   ]);
-  await page.goto("/dashboard");
-  await page.waitForURL("**/dashboard", { timeout: 10000 });
+  await page.goto("/trips");
+  await page.waitForURL("**/trips", { timeout: 10000 });
 }
 
 /**
@@ -167,7 +167,7 @@ export async function authenticateUserViaBrowser(
   await page.locator('button:has-text("Verify")').click();
 
   await Promise.race([
-    page.waitForURL("**/dashboard"),
+    page.waitForURL("**/trips"),
     page.waitForURL("**/complete-profile"),
   ]);
 
@@ -176,7 +176,7 @@ export async function authenticateUserViaBrowser(
     const displayNameInput = page.locator('input[type="text"]').first();
     await displayNameInput.fill(displayName);
     await page.locator('button:has-text("Complete profile")').click();
-    await page.waitForURL("**/dashboard");
+    await page.waitForURL("**/trips");
   }
 
   return phone;
@@ -204,7 +204,7 @@ export async function authenticateUserViaBrowserWithPhone(
   await page.locator('button:has-text("Verify")').click();
 
   await Promise.race([
-    page.waitForURL("**/dashboard"),
+    page.waitForURL("**/trips"),
     page.waitForURL("**/complete-profile"),
   ]);
 
@@ -213,6 +213,6 @@ export async function authenticateUserViaBrowserWithPhone(
     const displayNameInput = page.locator('input[type="text"]').first();
     await displayNameInput.fill(displayName);
     await page.locator('button:has-text("Complete profile")').click();
-    await page.waitForURL("**/dashboard");
+    await page.waitForURL("**/trips");
   }
 }

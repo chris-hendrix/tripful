@@ -34,7 +34,7 @@ vi.mock("next/link", () => ({
 
 import { AppHeader } from "../app-header";
 
-let mockPathname = "/dashboard";
+let mockPathname = "/trips";
 
 const mockUser = {
   id: "user-1",
@@ -49,7 +49,7 @@ const mockUser = {
 describe("AppHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPathname = "/dashboard";
+    mockPathname = "/trips";
     mockUseAuth.mockReturnValue({
       user: mockUser,
       loading: false,
@@ -64,11 +64,11 @@ describe("AppHeader", () => {
     expect(wordmark).toBeDefined();
   });
 
-  it("renders the wordmark as a link to /dashboard", () => {
+  it("renders the wordmark as a link to /trips", () => {
     render(<AppHeader />);
 
     const wordmark = screen.getByText("Tripful");
-    expect(wordmark.closest("a")?.getAttribute("href")).toBe("/dashboard");
+    expect(wordmark.closest("a")?.getAttribute("href")).toBe("/trips");
   });
 
   it("renders the wordmark in Playfair Display font", () => {
@@ -80,12 +80,12 @@ describe("AppHeader", () => {
     );
   });
 
-  it("renders a Dashboard nav link", () => {
+  it("renders a My Trips nav link", () => {
     render(<AppHeader />);
 
-    const dashboardLink = screen.getByText("Dashboard");
-    expect(dashboardLink).toBeDefined();
-    expect(dashboardLink.getAttribute("href")).toBe("/dashboard");
+    const myTripsLink = screen.getByText("My Trips");
+    expect(myTripsLink).toBeDefined();
+    expect(myTripsLink.getAttribute("href")).toBe("/trips");
   });
 
   it("renders the main navigation landmark", () => {
@@ -195,29 +195,29 @@ describe("AppHeader", () => {
     expect(mockLogout).toHaveBeenCalledOnce();
   });
 
-  it("applies active styling to Dashboard link when on /dashboard", () => {
-    mockPathname = "/dashboard";
+  it("applies active styling to My Trips link when on /trips", () => {
+    mockPathname = "/trips";
     render(<AppHeader />);
 
-    const dashboardLink = screen.getByText("Dashboard");
-    expect(dashboardLink.className).toContain("text-foreground");
-    expect(dashboardLink.className).not.toContain("text-foreground/60");
+    const myTripsLink = screen.getByText("My Trips");
+    expect(myTripsLink.className).toContain("text-foreground");
+    expect(myTripsLink.className).not.toContain("text-foreground/60");
   });
 
-  it("applies active styling to Dashboard link on nested dashboard routes", () => {
-    mockPathname = "/dashboard/settings";
+  it("applies active styling to My Trips link on nested trips routes", () => {
+    mockPathname = "/trips/settings";
     render(<AppHeader />);
 
-    const dashboardLink = screen.getByText("Dashboard");
-    expect(dashboardLink.className).toContain("text-foreground");
-    expect(dashboardLink.className).not.toContain("text-foreground/60");
+    const myTripsLink = screen.getByText("My Trips");
+    expect(myTripsLink.className).toContain("text-foreground");
+    expect(myTripsLink.className).not.toContain("text-foreground/60");
   });
 
-  it("applies inactive styling to Dashboard link when on a different page", () => {
-    mockPathname = "/trips/123";
+  it("applies inactive styling to My Trips link when on a different page", () => {
+    mockPathname = "/profile";
     render(<AppHeader />);
 
-    const dashboardLink = screen.getByText("Dashboard");
-    expect(dashboardLink.className).toContain("text-foreground/60");
+    const myTripsLink = screen.getByText("My Trips");
+    expect(myTripsLink.className).toContain("text-foreground/60");
   });
 });

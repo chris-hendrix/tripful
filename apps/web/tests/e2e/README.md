@@ -58,23 +58,23 @@ The E2E test suite covers:
    - Login with phone number
    - Verify with code (fixed: 123456)
    - Complete profile with display name
-   - Navigate to dashboard
+   - Navigate to trips page
    - Verify cookie is set
 
 2. **Logout flow**
-   - Logout from dashboard
+   - Logout from trips page
    - Verify redirect to login
    - Verify cookie is cleared
    - Verify cannot access protected routes
 
 3. **Protected route access**
-   - Attempt to access dashboard without auth
+   - Attempt to access trips page without auth
    - Verify redirect to login
 
 4. **Existing user flow**
    - Login with existing phone number
    - Skip profile completion
-   - Direct navigation to dashboard
+   - Direct navigation to trips page
 
 ### Phase 3: Trip Management (trip-flow.spec.ts)
 
@@ -82,7 +82,7 @@ The E2E test suite covers:
 
 1. **Trip Creation Flow**
    - Create trip via CreateTripDialog (2-step form)
-   - Verify trip appears on dashboard
+   - Verify trip appears on trips page
    - Navigate to trip detail page
    - Verify all trip information displayed correctly
 
@@ -114,7 +114,7 @@ The E2E test suite covers:
 - Permission system and access control
 - Co-organizer management
 - Image upload functionality
-- Dashboard trip list and search
+- Trips list and search
 - Trip grouping (Your Trips, Other Trips, Past Trips)
 
 ## Test Data

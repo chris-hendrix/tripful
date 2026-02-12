@@ -1,6 +1,6 @@
 import type { Page, Locator } from "@playwright/test";
 
-export class DashboardPage {
+export class TripsPage {
   readonly page: Page;
   readonly heading: Locator;
   readonly createTripButton: Locator;
@@ -32,7 +32,7 @@ export class DashboardPage {
   }
 
   async goto() {
-    await this.page.goto("/dashboard");
+    await this.page.goto("/trips");
   }
 
   async openUserMenu() {

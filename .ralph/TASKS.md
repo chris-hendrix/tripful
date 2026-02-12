@@ -28,7 +28,7 @@
 
 ## Phase 3: Dashboard to /trips Rename
 
-- [ ] Task 3.1: Move dashboard files to /trips and update all references across codebase
+- [x] Task 3.1: Move dashboard files to /trips and update all references across codebase
   - Implement: Move `apps/web/src/app/(app)/dashboard/page.tsx` → `apps/web/src/app/(app)/trips/page.tsx`
   - Implement: Move + rename `dashboard-content.tsx` → `trips-content.tsx` in `(app)/trips/`
   - Implement: Move + rename `dashboard-content.test.tsx` → `trips-content.test.tsx` in `(app)/trips/`
