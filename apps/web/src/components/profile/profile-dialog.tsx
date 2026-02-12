@@ -38,6 +38,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +52,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function ProfileForm() {
+interface ProfileDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const { user, loading } = useAuth();
   const updateProfile = useUpdateProfile();
   const uploadPhoto = useUploadProfilePhoto();
@@ -105,11 +117,18 @@ export function ProfileForm() {
       }
     }
 
-    updateProfile.mutate({
-      displayName: data.displayName,
-      timezone: data.timezone,
-      handles: Object.keys(cleanHandles).length > 0 ? cleanHandles : null,
-    });
+    updateProfile.mutate(
+      {
+        displayName: data.displayName,
+        timezone: data.timezone,
+        handles: Object.keys(cleanHandles).length > 0 ? cleanHandles : null,
+      },
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+        },
+      },
+    );
   }
 
   function handlePhotoClick() {
@@ -158,47 +177,35 @@ export function ProfileForm() {
   const currentPhotoUrl = photoPreview || user?.profilePhotoUrl;
   const isPhotoLoading = uploadPhoto.isPending || removePhoto.isPending;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50">
-            <div className="space-y-6">
-              <Skeleton className="h-8 w-40" />
-              <Skeleton className="h-24 w-24 rounded-full mx-auto" />
-              <Skeleton className="h-12 w-full rounded-xl" />
-              <Skeleton className="h-12 w-full rounded-xl" />
-              <Skeleton className="h-12 w-full rounded-xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="flex items-center justify-center min-h-[60vh] py-8 px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-                Profile
-              </h1>
-              <p className="text-muted-foreground">
-                Manage your account details and preferences
-              </p>
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+            Profile
+          </DialogTitle>
+          <DialogDescription>
+            Manage your account details and preferences
+          </DialogDescription>
+        </DialogHeader>
 
+        {loading ? (
+          <div className="space-y-6 pb-6">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-20 w-20 rounded-full shrink-0" />
+              <Skeleton className="h-9 w-32 rounded-xl" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+        ) : user ? (
+          <div className="space-y-6 pb-6">
             {/* Profile Photo Section */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative">
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0">
                 <Avatar
-                  className="size-24 text-2xl"
+                  className="size-20 text-xl"
                   data-testid="profile-avatar"
                 >
                   {currentPhotoUrl && (
@@ -207,7 +214,7 @@ export function ProfileForm() {
                       alt={user.displayName}
                     />
                   )}
-                  <AvatarFallback className="text-2xl">
+                  <AvatarFallback className="text-xl">
                     {getInitials(user.displayName)}
                   </AvatarFallback>
                 </Avatar>
@@ -272,21 +279,21 @@ export function ProfileForm() {
                   name="displayName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Display name
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
                           placeholder="John Doe"
-                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           disabled={updateProfile.isPending}
                           autoComplete="name"
                           data-testid="display-name-input"
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription className="text-xs text-muted-foreground">
+                      <FormDescription className="text-sm text-muted-foreground">
                         This is how others will see you on the platform
                       </FormDescription>
                       <FormMessage />
@@ -296,7 +303,7 @@ export function ProfileForm() {
 
                 {/* Phone Number (read-only) */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
+                  <label className="text-base font-semibold text-foreground">
                     Phone number
                   </label>
                   <Input
@@ -304,10 +311,10 @@ export function ProfileForm() {
                     value={formatPhoneNumber(user.phoneNumber)}
                     readOnly
                     disabled
-                    className="h-12 text-base border-input bg-muted cursor-not-allowed"
+                    className="h-12 text-base border-input bg-muted cursor-not-allowed rounded-xl"
                     data-testid="phone-number-input"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Phone number cannot be changed
                   </p>
                 </div>
@@ -318,7 +325,7 @@ export function ProfileForm() {
                   name="timezone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
+                      <FormLabel className="text-base font-semibold text-foreground">
                         Timezone
                       </FormLabel>
                       <Select
@@ -330,7 +337,7 @@ export function ProfileForm() {
                           <SelectTrigger
                             ref={field.ref}
                             onBlur={field.onBlur}
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             data-testid="timezone-select"
                           >
                             <SelectValue placeholder="Select your timezone" />
@@ -347,7 +354,7 @@ export function ProfileForm() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription className="text-xs text-muted-foreground">
+                      <FormDescription className="text-sm text-muted-foreground">
                         Used to show you times in your local timezone
                       </FormDescription>
                       <FormMessage />
@@ -360,10 +367,10 @@ export function ProfileForm() {
                 {/* Social Handles */}
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <h2 className="text-sm font-medium text-foreground">
+                    <h2 className="text-base font-semibold text-foreground">
                       Social handles
                     </h2>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Visible to other trip members
                     </p>
                   </div>
@@ -373,14 +380,14 @@ export function ProfileForm() {
                     name="handles.venmo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Venmo
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="text"
                             placeholder="@your-venmo"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             disabled={updateProfile.isPending}
                             data-testid="venmo-handle-input"
                             {...field}
@@ -396,14 +403,14 @@ export function ProfileForm() {
                     name="handles.instagram"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
+                        <FormLabel className="text-base font-semibold text-foreground">
                           Instagram
                         </FormLabel>
                         <FormControl>
                           <Input
                             type="text"
                             placeholder="@your-instagram"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                             disabled={updateProfile.isPending}
                             data-testid="instagram-handle-input"
                             {...field}
@@ -435,8 +442,8 @@ export function ProfileForm() {
               </form>
             </Form>
           </div>
-        </div>
-      </div>
-    </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -180,7 +180,7 @@ const organizerDetailSchema = z.object({
   displayName: z.string(),
   phoneNumber: z.string(),
   profilePhotoUrl: z.string().nullable(),
-  timezone: z.string(),
+  timezone: z.string().nullable(),
 });
 
 /** Trip detail entity (extends trip with organizers and member count)

@@ -165,7 +165,7 @@ describe("AppHeader", () => {
     });
   });
 
-  it("has a Profile link pointing to /profile", async () => {
+  it("has a Profile menu item that opens a dialog", async () => {
     const user = userEvent.setup();
     render(<AppHeader />);
 
@@ -173,8 +173,10 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      const profileLink = screen.getByText("Profile").closest("a");
-      expect(profileLink?.getAttribute("href")).toBe("/profile");
+      const profileItem = screen.getByText("Profile");
+      expect(profileItem).toBeDefined();
+      // Profile is now a dialog trigger, not a link
+      expect(profileItem.closest("a")).toBeNull();
     });
   });
 
@@ -214,7 +216,7 @@ describe("AppHeader", () => {
   });
 
   it("applies inactive styling to My Trips link when on a different page", () => {
-    mockPathname = "/profile";
+    mockPathname = "/settings";
     render(<AppHeader />);
 
     const myTripsLink = screen.getByText("My Trips");
