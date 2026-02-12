@@ -172,3 +172,59 @@ Tracking implementation progress for Phase 5.5: User Profile & Auth Redirects.
 - JSDoc comments and README documentation are easy to miss — always do a case-insensitive grep sweep for the old term after making changes
 - The `app-header.test.tsx` file had the most references (14+) — the active styling tests for nav links are particularly sensitive to pathname and text changes
 - The `robots.ts` disallow list needed `/dashboard` removed entirely (not replaced) since `/trips` was already there
+
+## Iteration 4 — Task 4.1: Add server-side auth redirects to landing page and auth layout ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Landing Page** (`apps/web/src/app/page.tsx`):
+- Converted from sync to async server component
+- Added `cookies` import from `next/headers` and `redirect` from `next/navigation`
+- Cookie check: if `auth_token` cookie has a truthy value, `redirect("/trips")`
+- All existing landing page JSX preserved for unauthenticated users
+
+**Login Layout** (`apps/web/src/app/(auth)/login/layout.tsx`) — NEW:
+- Async server component layout wrapping only the `/login` page
+- Same cookie check pattern: reads `auth_token` cookie, redirects to `/trips` if present
+- Returns `children` directly (no wrapper markup — parent `(auth)/layout.tsx` provides decoration)
+- This approach was chosen over adding the redirect to `(auth)/layout.tsx` to avoid breaking `/complete-profile` (see Learnings)
+
+**Auth Layout** (`apps/web/src/app/(auth)/layout.tsx`) — UNCHANGED:
+- Remains a sync, purely presentational layout with decorative SVGs and Tripful wordmark
+- No auth logic — this was an intentional design decision (see Learnings)
+
+**Unit Tests** — NEW:
+- `apps/web/src/app/page.test.tsx` (4 tests): redirect with token, render without token, render with empty token, correct cookie name check
+- `apps/web/src/app/(auth)/login/layout.test.tsx` (4 tests): redirect with token, render without token, render with empty token, correct cookie name check
+- Both follow the exact mock pattern from `(app)/layout.test.tsx`: mock `next/headers.cookies()`, mock `next/navigation.redirect()` with `NEXT_REDIRECT` throw
+
+**E2E Tests** (`apps/web/tests/e2e/auth-journey.spec.ts`):
+- Added new test: "authenticated user redirects away from public pages"
+- Step 1: authenticated user visiting `/` is redirected to `/trips`
+- Step 2: authenticated user visiting `/login` is redirected to `/trips`
+- Uses `authenticateUser` helper to set up authenticated state
+
+### Architecture Decision: Login-Specific Layout vs Auth Layout Redirect
+
+The original task spec called for adding the cookie check to `(auth)/layout.tsx`, which wraps `/login`, `/verify`, and `/complete-profile`. Reviewer identified a HIGH severity issue: after phone verification, the API sets the `auth_token` cookie, and then the client navigates to `/complete-profile`. On a hard refresh of `/complete-profile`, the auth layout redirect would kick authenticated users to `/trips` before they could set their display name — breaking the onboarding flow.
+
+**Solution**: Redirect was scoped to `(auth)/login/layout.tsx` instead, which only wraps the `/login` page. This ensures:
+- `/login` redirects authenticated users to `/trips` ✅
+- `/complete-profile` is accessible for authenticated users who need to finish onboarding ✅
+- `/verify` is unaffected (no `auth_token` cookie exists yet when visiting `/verify`) ✅
+
+### Verification
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 770/775 — 5 pre-existing failures)
+- **reviewer**: APPROVED (after 1 round of feedback — moved redirect from auth layout to login layout)
+
+### Learnings
+- Next.js App Router layouts cascade — a redirect in a parent layout fires before child layouts/pages render, with no way for children to opt out
+- Route-segment-specific layouts (e.g., `login/layout.tsx` under `(auth)/`) are the correct pattern when different child routes need different server-side behavior
+- A layout that just `return children` is perfectly valid in Next.js — useful for adding guards/checks without visual wrapping
+- The `(auth)` route group contains pages at different auth states: `/login` (pre-auth), `/verify` (mid-auth), `/complete-profile` (post-auth, pre-profile) — they should NOT all have the same auth redirect
+- The `authToken?.value` check correctly handles both `undefined` (no cookie) and empty string (cleared cookie)
+- The inverse pattern from `(app)/layout.tsx` (`!authToken?.value` → login) is `authToken?.value` → trips

@@ -103,4 +103,23 @@ test.describe("Auth Journey", () => {
       await expect(trips.heading).toBeVisible();
     });
   });
+
+  test("authenticated user redirects away from public pages", async ({
+    page,
+    request,
+  }) => {
+    await authenticateUser(page, request, "Redirect Test User");
+
+    await test.step("authenticated user on landing page redirects to /trips", async () => {
+      await page.goto("/");
+      await page.waitForURL("**/trips", { timeout: 5000 });
+      expect(page.url()).toContain("/trips");
+    });
+
+    await test.step("authenticated user on /login redirects to /trips", async () => {
+      await page.goto("/login");
+      await page.waitForURL("**/trips", { timeout: 5000 });
+      expect(page.url()).toContain("/trips");
+    });
+  });
 });

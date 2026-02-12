@@ -42,7 +42,7 @@
 
 ## Phase 4: Auth Redirects
 
-- [ ] Task 4.1: Add server-side auth redirects to landing page and auth layout
+- [x] Task 4.1: Add server-side auth redirects to landing page and auth layout
   - Implement: Convert `apps/web/src/app/page.tsx` to async server component with cookie check, redirect to `/trips` if authenticated
   - Implement: Add cookie check to `apps/web/src/app/(auth)/layout.tsx`, redirect to `/trips` if authenticated
   - Test: Write E2E tests: authenticated user visiting `/` redirects to `/trips`, authenticated user visiting `/login` redirects to `/trips`
