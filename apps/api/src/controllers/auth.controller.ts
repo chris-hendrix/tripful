@@ -134,10 +134,7 @@ export const authController = {
           e164PhoneNumber,
         );
       } catch (err) {
-        request.log.error(
-          { err },
-          "Failed to process pending invitations",
-        );
+        request.log.error({ err }, "Failed to process pending invitations");
       }
 
       // Generate JWT token

@@ -1,10 +1,7 @@
 "use client";
 
 import { UserPlus, Phone, X, Users } from "lucide-react";
-import {
-  useMembers,
-  useInvitations,
-} from "@/hooks/use-invitations";
+import { useMembers, useInvitations } from "@/hooks/use-invitations";
 import type { MemberWithProfile, Invitation } from "@/hooks/use-invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { getInitials, formatPhoneNumber } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 
 interface MembersListProps {
   tripId: string;
@@ -36,9 +34,16 @@ function MembersListSkeleton() {
   );
 }
 
-export function MembersList({ tripId, isOrganizer, onInvite, onRemove }: MembersListProps) {
+export function MembersList({
+  tripId,
+  isOrganizer,
+  onInvite,
+  onRemove,
+}: MembersListProps) {
   const { data: members, isPending } = useMembers(tripId);
-  const { data: invitations } = useInvitations(tripId, { enabled: isOrganizer });
+  const { data: invitations } = useInvitations(tripId, {
+    enabled: isOrganizer,
+  });
 
   // Find the invitation record for a member by matching phone numbers
   function findInvitationForMember(
@@ -95,7 +100,7 @@ export function MembersList({ tripId, isOrganizer, onInvite, onRemove }: Members
             >
               <Avatar size="default">
                 <AvatarImage
-                  src={member.profilePhotoUrl ?? undefined}
+                  src={getUploadUrl(member.profilePhotoUrl)}
                   alt={member.displayName}
                 />
                 <AvatarFallback>
@@ -115,6 +120,32 @@ export function MembersList({ tripId, isOrganizer, onInvite, onRemove }: Members
                   )}
                   <RsvpBadge status={member.status} />
                 </div>
+                {member.handles && Object.keys(member.handles).length > 0 && (
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {member.handles.venmo && (
+                      <a
+                        href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                        data-testid={`member-venmo-${member.userId}`}
+                      >
+                        Venmo
+                      </a>
+                    )}
+                    {member.handles.instagram && (
+                      <a
+                        href={`https://instagram.com/${member.handles.instagram.replace(/^@/, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                        data-testid={`member-instagram-${member.userId}`}
+                      >
+                        Instagram
+                      </a>
+                    )}
+                  </div>
+                )}
                 {isOrganizer && member.phoneNumber && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <Phone className="w-3 h-3 text-muted-foreground" />

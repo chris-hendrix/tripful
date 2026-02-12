@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { authenticateViaAPI, authenticateViaAPIWithPhone } from "./helpers/auth";
-import { DashboardPage, TripDetailPage } from "./helpers/pages";
+import {
+  authenticateViaAPI,
+  authenticateViaAPIWithPhone,
+} from "./helpers/auth";
+import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
@@ -21,8 +24,8 @@ async function createTrip(
   endDate: string,
 ) {
   const tripDetail = new TripDetailPage(page);
-  const dashboard = new DashboardPage(page);
-  await dashboard.createTripButton.click();
+  const trips = new TripsPage(page);
+  await trips.createTripButton.click();
   await expect(tripDetail.createDialogHeading).toBeVisible();
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
@@ -78,7 +81,9 @@ async function createEvent(
   await page.locator('input[name="name"]').fill(name);
 
   if (options?.description) {
-    await page.locator('textarea[name="description"]').fill(options.description);
+    await page
+      .locator('textarea[name="description"]')
+      .fill(options.description);
   }
 
   if (options?.type) {
@@ -119,7 +124,13 @@ test.describe("Itinerary Journey", () => {
       const tripName = `Itinerary Trip ${Date.now()}`;
 
       await test.step("create trip", async () => {
-        await createTrip(page, tripName, "San Diego, CA", "2026-10-01", "2026-10-03");
+        await createTrip(
+          page,
+          tripName,
+          "San Diego, CA",
+          "2026-10-01",
+          "2026-10-03",
+        );
       });
 
       await test.step("create meal event", async () => {
@@ -135,7 +146,9 @@ test.describe("Itinerary Journey", () => {
         await expect(page.getByText(/6:30 PM/)).toBeVisible();
 
         // Location should be a Google Maps link
-        const locationLink = page.getByRole("link", { name: "Harbor Drive Seafood" });
+        const locationLink = page.getByRole("link", {
+          name: "Harbor Drive Seafood",
+        });
         await expect(locationLink).toBeVisible();
         await expect(locationLink).toHaveAttribute(
           "href",
@@ -151,22 +164,39 @@ test.describe("Itinerary Journey", () => {
 
         const accommodationName = `Downtown Hotel ${Date.now()}`;
         await page.locator('input[name="name"]').fill(accommodationName);
-        await page.locator('input[name="address"]').fill("123 Main St, San Diego");
+        await page
+          .locator('input[name="address"]')
+          .fill("123 Main St, San Diego");
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
-        await pickDate(page, page.getByRole("button", { name: "Check-in date" }), "2026-10-01");
-        await pickDate(page, page.getByRole("button", { name: "Check-out date" }), "2026-10-03");
+        await pickDate(
+          page,
+          page.getByRole("button", { name: "Check-in date" }),
+          "2026-10-01",
+        );
+        await pickDate(
+          page,
+          page.getByRole("button", { name: "Check-out date" }),
+          "2026-10-03",
+        );
 
         const linkInput = page.locator('input[aria-label="Link URL"]');
         await linkInput.fill("https://example.com/hotel");
         // Click the plus button adjacent to the link input (within the same form group)
-        await linkInput.locator("..").locator("button:has(svg.lucide-plus)").click();
+        await linkInput
+          .locator("..")
+          .locator("button:has(svg.lucide-plus)")
+          .click();
 
-        await page.getByRole("button", { name: "Create accommodation" }).click();
+        await page
+          .getByRole("button", { name: "Create accommodation" })
+          .click();
 
         // Address should be a Google Maps link
-        const addressLink = page.getByRole("link", { name: "123 Main St, San Diego" });
+        const addressLink = page.getByRole("link", {
+          name: "123 Main St, San Diego",
+        });
         await expect(addressLink).toBeVisible();
         await expect(addressLink).toHaveAttribute(
           "href",
@@ -184,18 +214,26 @@ test.describe("Itinerary Journey", () => {
 
         await page.getByRole("radio", { name: "Arrival" }).click();
 
-        const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+        const travelTimeTrigger = page.getByRole("button", {
+          name: "Travel time",
+        });
         await pickDateTime(page, travelTimeTrigger, "2026-10-01T14:30");
 
         await page.locator('input[name="location"]').fill("San Diego Airport");
-        await page.locator('textarea[name="details"]').fill("Arriving from Chicago");
+        await page
+          .locator('textarea[name="details"]')
+          .fill("Arriving from Chicago");
         await page.getByRole("button", { name: "Add travel details" }).click();
 
         // Travel card shows "Name · Arrival" title format
-        await expect(page.getByText(/Itinerary Tester · Arrival/)).toBeVisible();
+        await expect(
+          page.getByText(/Itinerary Tester · Arrival/),
+        ).toBeVisible();
 
         // Location should be a Google Maps link
-        const travelLocationLink = page.getByRole("link", { name: "San Diego Airport" });
+        const travelLocationLink = page.getByRole("link", {
+          name: "San Diego Airport",
+        });
         await expect(travelLocationLink).toBeVisible();
         await expect(travelLocationLink).toHaveAttribute(
           "href",
@@ -208,7 +246,10 @@ test.describe("Itinerary Journey", () => {
       });
 
       await test.step("edit event", async () => {
-        await page.getByText(/Dinner at Harbor/).first().click();
+        await page
+          .getByText(/Dinner at Harbor/)
+          .first()
+          .click();
         await page.locator('button[title="Edit event"]').first().click();
         await expect(
           page.getByRole("heading", { name: "Edit event" }),
@@ -228,7 +269,9 @@ test.describe("Itinerary Journey", () => {
 
         await expect(page.getByText(/Updated Dinner/)).toBeVisible();
         // Updated location should also be a Google Maps link
-        const updatedLocationLink = page.getByRole("link", { name: "Gaslamp Quarter" });
+        const updatedLocationLink = page.getByRole("link", {
+          name: "Gaslamp Quarter",
+        });
         await expect(updatedLocationLink).toBeVisible();
         await expect(updatedLocationLink).toHaveAttribute(
           "href",
@@ -239,11 +282,12 @@ test.describe("Itinerary Journey", () => {
 
       await test.step("delete event with cancel then confirm", async () => {
         // Find the event card — it may still be expanded from the edit step
-        const card = page.locator('[role="button"][aria-expanded]')
+        const card = page
+          .locator('[role="button"][aria-expanded]')
           .filter({ hasText: /Updated Dinner/ })
           .first();
-        const expanded = await card.getAttribute('aria-expanded');
-        if (expanded !== 'true') {
+        const expanded = await card.getAttribute("aria-expanded");
+        if (expanded !== "true") {
           await card.click();
         }
         await expect(
@@ -278,7 +322,13 @@ test.describe("Itinerary Journey", () => {
     const tripName = `View Mode Trip ${Date.now()}`;
 
     await test.step("create trip with multiple events", async () => {
-      await createTrip(page, tripName, "Las Vegas, NV", "2027-03-10", "2027-03-13");
+      await createTrip(
+        page,
+        tripName,
+        "Las Vegas, NV",
+        "2027-03-10",
+        "2027-03-13",
+      );
 
       const mealEvent = `Lunch ${Date.now()}`;
       await createEvent(page, mealEvent, "2027-03-10T12:00", { type: "Meal" });
@@ -299,7 +349,9 @@ test.describe("Itinerary Journey", () => {
 
       await page.getByRole("radio", { name: "Arrival" }).click();
 
-      const travelTimeTrigger = page.getByRole("button", { name: "Travel time" });
+      const travelTimeTrigger = page.getByRole("button", {
+        name: "Travel time",
+      });
       await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
 
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
@@ -311,7 +363,10 @@ test.describe("Itinerary Journey", () => {
       // Location is a Google Maps link
       const airportLink = page.getByRole("link", { name: "Las Vegas Airport" });
       await expect(airportLink).toBeVisible();
-      await expect(airportLink).toHaveAttribute("href", /google\.com\/maps\/search/);
+      await expect(airportLink).toHaveAttribute(
+        "href",
+        /google\.com\/maps\/search/,
+      );
     });
 
     await test.step("verify date gutter in day-by-day view", async () => {
@@ -325,7 +380,9 @@ test.describe("Itinerary Journey", () => {
     await snap(page, "10-itinerary-day-by-day");
 
     await test.step("toggle day-by-day to group-by-type", async () => {
-      const dayByDayButton = page.getByRole("button", { name: "Day by Day" }).first();
+      const dayByDayButton = page
+        .getByRole("button", { name: "Day by Day" })
+        .first();
       await expect(dayByDayButton).toBeVisible();
 
       await page.getByRole("button", { name: "Group by Type" }).click();
@@ -337,7 +394,9 @@ test.describe("Itinerary Journey", () => {
       await expect(page.getByText(/Lunch/)).toBeVisible();
       await expect(page.getByText(/Show/)).toBeVisible();
       // Location is still a Google Maps link in group-by-type view
-      const airportLinkGrouped = page.getByRole("link", { name: "Las Vegas Airport" });
+      const airportLinkGrouped = page.getByRole("link", {
+        name: "Las Vegas Airport",
+      });
       await expect(airportLinkGrouped).toBeVisible();
       // Verify date labels appear on cards in group-by-type view
       await expect(page.getByText(/Mar 10, 2027/).first()).toBeVisible();
@@ -403,13 +462,19 @@ test.describe("Itinerary Journey", () => {
 
   test("itinerary permissions and validation", async ({ page, request }) => {
     test.slow(); // 4 auth cycles — triple the timeout for CI
-    const dashboard = new DashboardPage(page);
+    const trips = new TripsPage(page);
 
     await test.step("organizer creates trip and verifies action buttons", async () => {
       await authenticateViaAPI(page, request, "Trip Owner A");
 
       const tripName = `Permission Trip ${Date.now()}`;
-      await createTrip(page, tripName, "Atlanta, GA", "2026-10-25", "2026-10-27");
+      await createTrip(
+        page,
+        tripName,
+        "Atlanta, GA",
+        "2026-10-25",
+        "2026-10-27",
+      );
 
       // Empty state shows direct action buttons for organizer
       await expect(
@@ -480,7 +545,7 @@ test.describe("Itinerary Journey", () => {
       const tripName = `RSVP Trip ${Date.now()}`;
       const tripDetail = new TripDetailPage(page);
 
-      await dashboard.createTripButton.click();
+      await trips.createTripButton.click();
       await expect(tripDetail.createDialogHeading).toBeVisible();
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill("Chicago, IL");

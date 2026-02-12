@@ -62,7 +62,12 @@ export interface IAuthService {
    */
   updateProfile(
     userId: string,
-    data: { displayName?: string; timezone?: string },
+    data: {
+      displayName?: string;
+      timezone?: string | null;
+      profilePhotoUrl?: string | null;
+      handles?: Record<string, string> | null;
+    },
   ): Promise<User>;
 
   /**
@@ -205,7 +210,6 @@ export class AuthService implements IAuthService {
       .values({
         phoneNumber,
         displayName: "", // Empty string by default
-        timezone: "UTC", // UTC by default
       })
       .returning();
 
@@ -241,7 +245,12 @@ export class AuthService implements IAuthService {
    */
   async updateProfile(
     userId: string,
-    data: { displayName?: string; timezone?: string },
+    data: {
+      displayName?: string;
+      timezone?: string | null;
+      profilePhotoUrl?: string | null;
+      handles?: Record<string, string> | null;
+    },
   ): Promise<User> {
     const updateData: Partial<User> = {
       ...data,

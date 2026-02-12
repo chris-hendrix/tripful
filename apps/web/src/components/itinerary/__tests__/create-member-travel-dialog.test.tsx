@@ -102,7 +102,9 @@ describe("CreateMemberTravelDialog", () => {
       );
 
       expect(screen.getByRole("radio", { name: /arrival/i })).toBeDefined();
-      expect(screen.getByRole("button", { name: /travel time/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /travel time/i }),
+      ).toBeDefined();
     });
 
     it("displays optional fields", () => {
@@ -146,7 +148,7 @@ describe("CreateMemberTravelDialog", () => {
       );
 
       const arrivalRadio = screen.getByRole("radio", { name: /arrival/i });
-      expect(arrivalRadio.checked).toBe(true);
+      expect(arrivalRadio.getAttribute("data-state")).toBe("checked");
     });
 
     it("allows selecting departure", async () => {
@@ -163,7 +165,7 @@ describe("CreateMemberTravelDialog", () => {
       const departureRadio = screen.getByRole("radio", { name: /departure/i });
       await user.click(departureRadio);
 
-      expect(departureRadio.checked).toBe(true);
+      expect(departureRadio.getAttribute("data-state")).toBe("checked");
     });
   });
 
@@ -239,7 +241,9 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", {
+        name: /details/i,
+      }) as HTMLTextAreaElement;
       await user.type(detailsInput, "Flight AA123");
 
       expect(detailsInput.value).toBe("Flight AA123");
@@ -256,7 +260,9 @@ describe("CreateMemberTravelDialog", () => {
         />,
       );
 
-      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", {
+        name: /details/i,
+      }) as HTMLTextAreaElement;
       const longText = "a".repeat(400);
 
       await user.click(detailsInput);

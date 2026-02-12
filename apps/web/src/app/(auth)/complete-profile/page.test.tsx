@@ -21,21 +21,60 @@ vi.mock("@/app/providers/auth-provider", () => ({
   }),
 }));
 
+// Mock useUploadProfilePhoto
+const mockUploadMutateAsync = vi.fn().mockResolvedValue({});
+vi.mock("@/hooks/use-user", () => ({
+  useUploadProfilePhoto: () => ({
+    mutateAsync: mockUploadMutateAsync,
+    isPending: false,
+  }),
+}));
+
+// Mock getInitials from format
+vi.mock("@/lib/format", () => ({
+  getInitials: (name: string) =>
+    name
+      ? name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : "",
+}));
+
 describe("CompleteProfilePage", () => {
   const mockPush = vi.fn();
+  let mockCreateObjectURL: ReturnType<typeof vi.fn>;
+  let mockRevokeObjectURL: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.mocked(useRouter).mockReturnValue({
       push: mockPush,
     } as any);
     mockCompleteProfile.mockClear();
+    mockUploadMutateAsync.mockClear();
     mockPush.mockClear();
     mockUser = null;
+
+    mockCreateObjectURL = vi.fn((file) => `blob:${file.name || "photo"}`);
+    mockRevokeObjectURL = vi.fn();
+    global.URL.createObjectURL = mockCreateObjectURL;
+    global.URL.revokeObjectURL = mockRevokeObjectURL;
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
+
+  function createMockFile(
+    name: string,
+    type: string,
+    size: number,
+  ): File {
+    const blob = new Blob(["x".repeat(size)], { type });
+    return new File([blob], name, { type });
+  }
 
   it("renders the complete profile form", () => {
     render(<CompleteProfilePage />);
@@ -48,6 +87,17 @@ describe("CompleteProfilePage", () => {
     expect(screen.getByLabelText(/timezone/i)).toBeDefined();
     expect(
       screen.getByRole("button", { name: /complete profile/i }),
+    ).toBeDefined();
+  });
+
+  it("renders photo upload section", () => {
+    render(<CompleteProfilePage />);
+
+    expect(screen.getByTestId("profile-avatar")).toBeDefined();
+    expect(screen.getByTestId("upload-photo-button")).toBeDefined();
+    expect(screen.getByTestId("photo-file-input")).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: /upload photo/i }),
     ).toBeDefined();
   });
 
@@ -125,16 +175,13 @@ describe("CompleteProfilePage", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockCompleteProfile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          displayName: "John Doe",
-          timezone: expect.any(String),
-        }),
-      );
+      expect(mockCompleteProfile).toHaveBeenCalledWith({
+        displayName: "John Doe",
+      });
     });
   });
 
-  it("redirects to dashboard on successful profile completion", async () => {
+  it("redirects to trips on successful profile completion", async () => {
     const user = userEvent.setup();
     mockCompleteProfile.mockImplementation(async () => {
       mockUser = {
@@ -153,7 +200,7 @@ describe("CompleteProfilePage", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 
@@ -212,7 +259,7 @@ describe("CompleteProfilePage", () => {
 
     // After successful completion, button stays disabled until navigation
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 
@@ -242,16 +289,19 @@ describe("CompleteProfilePage", () => {
     ).toBeDefined();
   });
 
-  it("sets default timezone from browser", () => {
+  it("defaults timezone to auto-detect", () => {
     render(<CompleteProfilePage />);
 
-    // The timezone should be set to browser's timezone
-    // We can verify this by checking that the select has a value
+    // The timezone select should show the auto-detect option by default
     const timezoneSelect = screen.getByRole("combobox", { name: /timezone/i });
     expect(timezoneSelect).toBeDefined();
+    // The auto-detect option text should be visible (may appear in both
+    // the visible trigger and a hidden native <option>)
+    const autoDetectElements = screen.getAllByText(/Auto-detect/);
+    expect(autoDetectElements.length).toBeGreaterThan(0);
   });
 
-  it("submits with timezone from form", async () => {
+  it("submits without timezone when auto-detect is selected", async () => {
     const user = userEvent.setup();
     mockCompleteProfile.mockResolvedValue(undefined);
 
@@ -264,12 +314,10 @@ describe("CompleteProfilePage", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockCompleteProfile).toHaveBeenCalledWith(
-        expect.objectContaining({
-          displayName: "John Doe",
-          timezone: expect.any(String),
-        }),
-      );
+      // When auto-detect is selected (default), timezone should not be sent
+      expect(mockCompleteProfile).toHaveBeenCalledWith({
+        displayName: "John Doe",
+      });
     });
   });
 
@@ -331,7 +379,152 @@ describe("CompleteProfilePage", () => {
 
     // After successful completion, inputs stay disabled until navigation
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
+  });
+
+  it("shows photo preview after file selection", async () => {
+    const user = userEvent.setup();
+    render(<CompleteProfilePage />);
+
+    const fileInput = screen.getByTestId("photo-file-input");
+    const file = createMockFile("photo.jpg", "image/jpeg", 1024);
+
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(mockCreateObjectURL).toHaveBeenCalled();
+      // Button should change to "Change photo" after selecting a file
+      expect(
+        screen.getByRole("button", { name: /change photo/i }),
+      ).toBeDefined();
+      // Remove button should appear
+      expect(screen.getByTestId("remove-photo-button")).toBeDefined();
+    });
+  });
+
+  it("removes photo preview when remove button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<CompleteProfilePage />);
+
+    const fileInput = screen.getByTestId("photo-file-input");
+    const file = createMockFile("photo.jpg", "image/jpeg", 1024);
+
+    await user.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("remove-photo-button")).toBeDefined();
+    });
+
+    const removeButton = screen.getByTestId("remove-photo-button");
+    await user.click(removeButton);
+
+    await waitFor(() => {
+      // After removal, button should go back to "Upload photo"
+      expect(
+        screen.getByRole("button", { name: /upload photo/i }),
+      ).toBeDefined();
+      // Remove button should be gone
+      expect(screen.queryByTestId("remove-photo-button")).toBeNull();
+    });
+  });
+
+  it("uploads photo after successful profile completion", async () => {
+    const user = userEvent.setup();
+    mockCompleteProfile.mockResolvedValue(undefined);
+    mockUploadMutateAsync.mockResolvedValue({});
+
+    render(<CompleteProfilePage />);
+
+    // Select a photo first
+    const fileInput = screen.getByTestId("photo-file-input");
+    const file = createMockFile("photo.jpg", "image/jpeg", 1024);
+    await user.upload(fileInput, file);
+
+    // Fill in display name and submit
+    const input = screen.getByLabelText(/display name/i);
+    await user.type(input, "John Doe");
+
+    const button = screen.getByRole("button", { name: /complete profile/i });
+    await user.click(button);
+
+    await waitFor(() => {
+      // Profile should be completed first
+      expect(mockCompleteProfile).toHaveBeenCalledWith({
+        displayName: "John Doe",
+      });
+      // Photo should be uploaded after profile completion
+      expect(mockUploadMutateAsync).toHaveBeenCalledWith(expect.any(File));
+      // Should redirect to trips
+      expect(mockPush).toHaveBeenCalledWith("/trips");
+    });
+  });
+
+  it("continues to redirect even if photo upload fails", async () => {
+    const user = userEvent.setup();
+    mockCompleteProfile.mockResolvedValue(undefined);
+    mockUploadMutateAsync.mockRejectedValue(new Error("Upload failed"));
+
+    render(<CompleteProfilePage />);
+
+    // Select a photo
+    const fileInput = screen.getByTestId("photo-file-input");
+    const file = createMockFile("photo.jpg", "image/jpeg", 1024);
+    await user.upload(fileInput, file);
+
+    // Fill in display name and submit
+    const input = screen.getByLabelText(/display name/i);
+    await user.type(input, "John Doe");
+
+    const button = screen.getByRole("button", { name: /complete profile/i });
+    await user.click(button);
+
+    await waitFor(() => {
+      // Even though photo upload failed, redirect should happen
+      expect(mockPush).toHaveBeenCalledWith("/trips");
+    });
+  });
+
+  it("does not upload photo if no file was selected", async () => {
+    const user = userEvent.setup();
+    mockCompleteProfile.mockResolvedValue(undefined);
+
+    render(<CompleteProfilePage />);
+
+    const input = screen.getByLabelText(/display name/i);
+    await user.type(input, "John Doe");
+
+    const button = screen.getByRole("button", { name: /complete profile/i });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(mockCompleteProfile).toHaveBeenCalled();
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith("/trips");
+    });
+  });
+
+  it("does not accept files with invalid types", async () => {
+    const user = userEvent.setup();
+    render(<CompleteProfilePage />);
+
+    const fileInput = screen.getByTestId("photo-file-input");
+    const file = createMockFile("document.pdf", "application/pdf", 1024);
+
+    await user.upload(fileInput, file);
+
+    // Should not show preview for invalid type
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /upload photo/i }),
+      ).toBeDefined();
+      expect(screen.queryByTestId("remove-photo-button")).toBeNull();
+    });
+  });
+
+  it("shows avatar fallback with question mark when no name entered", () => {
+    render(<CompleteProfilePage />);
+
+    expect(screen.getByText("?")).toBeDefined();
   });
 });

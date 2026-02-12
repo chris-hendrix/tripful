@@ -15,9 +15,12 @@ const defaultStyles: Record<RsvpStatus, string> = {
 };
 
 const overlayStyles: Record<RsvpStatus, string> = {
-  going: "bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm",
-  maybe: "bg-black/50 backdrop-blur-md text-amber-300 border-white/20 shadow-sm",
-  not_going: "bg-black/50 backdrop-blur-md text-neutral-300 border-white/20 shadow-sm",
+  going:
+    "bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm",
+  maybe:
+    "bg-black/50 backdrop-blur-md text-amber-300 border-white/20 shadow-sm",
+  not_going:
+    "bg-black/50 backdrop-blur-md text-neutral-300 border-white/20 shadow-sm",
   no_response: "",
 };
 

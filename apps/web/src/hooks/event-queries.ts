@@ -45,9 +45,12 @@ export const eventDetailQueryOptions = (eventId: string) =>
     queryKey: eventKeys.detail(eventId),
     staleTime: 60 * 1000,
     queryFn: async ({ signal }) => {
-      const response = await apiRequest<GetEventResponse>(`/events/${eventId}`, {
-        signal,
-      });
+      const response = await apiRequest<GetEventResponse>(
+        `/events/${eventId}`,
+        {
+          signal,
+        },
+      );
       return response.event;
     },
     enabled: !!eventId,

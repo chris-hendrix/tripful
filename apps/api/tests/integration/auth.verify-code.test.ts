@@ -57,7 +57,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(body.user).toHaveProperty("id");
       expect(body.user).toHaveProperty("phoneNumber", phoneNumber);
       expect(body.user).toHaveProperty("displayName", "");
-      expect(body.user).toHaveProperty("timezone", "UTC");
+      expect(body.user).toHaveProperty("timezone", null);
       expect(body.user).toHaveProperty("createdAt");
       expect(body.user).toHaveProperty("updatedAt");
     });
@@ -487,7 +487,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(result[0]).toBeDefined();
       expect(result[0].phoneNumber).toBe(phoneNumber);
       expect(result[0].displayName).toBe("");
-      expect(result[0].timezone).toBe("UTC");
+      expect(result[0].timezone).toBeNull();
       expect(result[0].id).toBeTruthy();
       expect(result[0].createdAt).toBeInstanceOf(Date);
       expect(result[0].updatedAt).toBeInstanceOf(Date);
@@ -631,9 +631,7 @@ describe("POST /api/auth/verify-code", () => {
       const memberRecords = await db
         .select()
         .from(members)
-        .where(
-          and(eq(members.tripId, trip.id), eq(members.userId, userId)),
-        );
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, userId)));
 
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("no_response");

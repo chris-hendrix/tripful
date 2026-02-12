@@ -948,6 +948,7 @@ toast.error("Failed to update trip");
 ```
 
 **Toaster Configuration** (`sonner.tsx`):
+
 - Position: `bottom-right`
 - Z-index: `z-[60]` (above dialogs at z-50)
 
@@ -961,7 +962,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
   onChange={setPhone}
   defaultCountry="US"
   placeholder="Phone number"
-/>
+/>;
 ```
 
 - International country selector with flag dropdown

@@ -43,6 +43,13 @@
       "when": 1770646163882,
       "tag": "0005_early_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770865791835,
+      "tag": "0006_fresh_rogue",
+      "breakpoints": true
     }
   ]
 }

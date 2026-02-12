@@ -143,7 +143,9 @@ describe("EditTripDialog", () => {
       expect(destinationInput.value).toBe("Miami, FL");
 
       // DatePicker buttons should show formatted dates
-      const startDateButton = screen.getByRole("button", { name: /start date/i });
+      const startDateButton = screen.getByRole("button", {
+        name: /start date/i,
+      });
       expect(startDateButton.textContent).toMatch(/jul 1, 2026/i);
 
       const endDateButton = screen.getByRole("button", { name: /end date/i });
@@ -233,7 +235,9 @@ describe("EditTripDialog", () => {
       );
 
       // DatePicker buttons should show placeholder text when no date is set
-      const startDateButton = screen.getByRole("button", { name: /start date/i });
+      const startDateButton = screen.getByRole("button", {
+        name: /start date/i,
+      });
       expect(startDateButton).toBeDefined();
 
       const endDateButton = screen.getByRole("button", { name: /end date/i });
@@ -443,7 +447,9 @@ describe("EditTripDialog", () => {
       );
 
       // DatePicker buttons should show formatted dates
-      const startDateButton = screen.getByRole("button", { name: /start date/i });
+      const startDateButton = screen.getByRole("button", {
+        name: /start date/i,
+      });
       expect(startDateButton.textContent).toMatch(/jul 1, 2026/i);
 
       const endDateButton = screen.getByRole("button", { name: /end date/i });
@@ -678,7 +684,9 @@ describe("EditTripDialog", () => {
 
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
-      expect(screen.getByRole("button", { name: /updating trip/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /updating trip/i }),
+      ).toBeDefined();
     });
 
     it("disables all fields during update", async () => {

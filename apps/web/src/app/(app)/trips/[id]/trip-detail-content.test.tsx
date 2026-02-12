@@ -142,10 +142,7 @@ vi.mock("@/components/trip/members-list", () => ({
         <button
           data-testid="members-remove-btn"
           onClick={() =>
-            onRemove(
-              { id: "user-456", displayName: "Jane Smith" },
-              "inv-123",
-            )
+            onRemove({ id: "user-456", displayName: "Jane Smith" }, "inv-123")
           }
         >
           Remove member
@@ -165,9 +162,7 @@ vi.mock("@/components/trip/trip-preview", () => ({
 // Mock InviteMembersDialog component
 vi.mock("@/components/trip/invite-members-dialog", () => ({
   InviteMembersDialog: ({ open }: { open: boolean }) =>
-    open ? (
-      <div data-testid="invite-members-dialog">Invite Dialog</div>
-    ) : null,
+    open ? <div data-testid="invite-members-dialog">Invite Dialog</div> : null,
 }));
 
 // Mock EditTripDialog component
@@ -815,7 +810,7 @@ describe("TripDetailContent", () => {
       });
     });
 
-    it("return to dashboard link has correct href", async () => {
+    it("return to trips link has correct href", async () => {
       mockUseTripDetail.mockReturnValue({
         data: undefined,
         isPending: false,
@@ -834,8 +829,8 @@ describe("TripDetailContent", () => {
         expect(screen.getByText("Trip not found")).toBeDefined();
       });
 
-      const returnLink = screen.getByText("Return to dashboard");
-      expect(returnLink.closest("a")?.getAttribute("href")).toBe("/dashboard");
+      const returnLink = screen.getByText("Return to trips");
+      expect(returnLink.closest("a")?.getAttribute("href")).toBe("/trips");
     });
   });
 
@@ -994,7 +989,7 @@ describe("TripDetailContent", () => {
       ).toBeDefined();
     });
 
-    it("has a link to dashboard in breadcrumbs", () => {
+    it("has a link to trips in breadcrumbs", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -1011,7 +1006,7 @@ describe("TripDetailContent", () => {
       );
 
       const myTripsLink = screen.getByText("My Trips");
-      expect(myTripsLink.closest("a")?.getAttribute("href")).toBe("/dashboard");
+      expect(myTripsLink.closest("a")?.getAttribute("href")).toBe("/trips");
     });
   });
 

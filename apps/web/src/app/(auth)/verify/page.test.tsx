@@ -156,7 +156,7 @@ describe("VerifyPage", () => {
     });
   });
 
-  it("redirects to dashboard when requiresProfile is false", async () => {
+  it("redirects to trips when requiresProfile is false", async () => {
     const user = userEvent.setup();
     mockVerify.mockImplementation(async () => {
       mockUser = { id: "1", name: "Test User", phoneNumber: "+15551234567" };
@@ -172,7 +172,7 @@ describe("VerifyPage", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/trips");
     });
   });
 

@@ -104,8 +104,7 @@ export const invitationController = {
       }
 
       // Get invitations for the trip
-      const invitations =
-        await invitationService.getInvitationsByTrip(tripId);
+      const invitations = await invitationService.getInvitationsByTrip(tripId);
 
       return reply.status(200).send({
         success: true,
@@ -214,11 +213,7 @@ export const invitationController = {
       const userId = request.user.sub;
 
       // Update RSVP via service
-      const member = await invitationService.updateRsvp(
-        userId,
-        tripId,
-        status,
-      );
+      const member = await invitationService.updateRsvp(userId, tripId, status);
 
       // Return success response
       return reply.status(200).send({

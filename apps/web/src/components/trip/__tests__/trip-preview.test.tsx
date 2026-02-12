@@ -126,8 +126,8 @@ describe("TripPreview", () => {
   it("renders organizer names and avatars", () => {
     render(<TripPreview trip={mockTrip} tripId="trip-1" />);
 
-    expect(screen.getByText("Organizers")).toBeDefined();
-    expect(screen.getByText("John Doe, Jane Smith")).toBeDefined();
+    expect(screen.getByText(/Organized by/)).toBeDefined();
+    expect(screen.getByText(/John Doe, Jane Smith/)).toBeDefined();
 
     // John Doe has no photo, should show initials
     expect(screen.getByText("JD")).toBeDefined();
@@ -135,9 +135,7 @@ describe("TripPreview", () => {
     // Jane Smith has a profile photo
     const janeAvatar = screen.getByAltText("Jane Smith");
     expect(janeAvatar).toBeDefined();
-    expect(janeAvatar.getAttribute("src")).toBe(
-      "https://example.com/jane.jpg",
-    );
+    expect(janeAvatar.getAttribute("src")).toBe("https://example.com/jane.jpg");
   });
 
   it("renders member count", () => {
@@ -150,9 +148,7 @@ describe("TripPreview", () => {
     render(<TripPreview trip={mockTrip} tripId="trip-1" />);
 
     expect(screen.getByText("You've been invited!")).toBeDefined();
-    expect(
-      screen.getByText("RSVP to see the full itinerary."),
-    ).toBeDefined();
+    expect(screen.getByText("RSVP to see the full itinerary.")).toBeDefined();
   });
 
   it("renders all 3 RSVP buttons", () => {
@@ -268,16 +264,13 @@ describe("TripPreview", () => {
   it("renders description when available", () => {
     render(<TripPreview trip={mockTrip} tripId="trip-1" />);
 
-    expect(screen.getByText("About this trip")).toBeDefined();
     expect(screen.getByText("A wonderful summer trip")).toBeDefined();
   });
 
   it("does NOT render description when not provided", () => {
     const tripWithoutDescription = { ...mockTrip, description: null };
-    render(
-      <TripPreview trip={tripWithoutDescription} tripId="trip-1" />,
-    );
+    render(<TripPreview trip={tripWithoutDescription} tripId="trip-1" />);
 
-    expect(screen.queryByText("About this trip")).toBeNull();
+    expect(screen.queryByText("A wonderful summer trip")).toBeNull();
   });
 });

@@ -3,10 +3,7 @@ import type {
   CreateMemberTravelInput,
   UpdateMemberTravelInput,
 } from "@tripful/shared/schemas";
-import {
-  MemberTravelNotFoundError,
-  TripNotFoundError,
-} from "../errors.js";
+import { MemberTravelNotFoundError, TripNotFoundError } from "../errors.js";
 
 /**
  * Member Travel Controller

@@ -170,7 +170,9 @@ describe("CreateEventDialog", () => {
         />,
       );
 
-      const submitButton = screen.getByRole("button", { name: /create event/i });
+      const submitButton = screen.getByRole("button", {
+        name: /create event/i,
+      });
       await user.click(submitButton);
 
       // Wait a moment for validation
@@ -225,7 +227,9 @@ describe("CreateEventDialog", () => {
         />,
       );
 
-      const startTimeButton = screen.getByRole("button", { name: /start time/i });
+      const startTimeButton = screen.getByRole("button", {
+        name: /start time/i,
+      });
       expect(startTimeButton).toBeDefined();
     });
   });

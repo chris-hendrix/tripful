@@ -53,8 +53,7 @@ export function GroupByTypeView({
 
     return {
       accommodations: [...accommodations].sort(
-        (a, b) =>
-          new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
+        (a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
       ),
       arrivals,
       departures,
@@ -84,62 +83,65 @@ export function GroupByTypeView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
-  const sections = useMemo(() => [
-    {
-      title: "Accommodations",
-      icon: Home,
-      iconClassName: "",
-      color: "text-[var(--color-accommodation)]",
-      bgColor: "bg-[var(--color-accommodation-light)]",
-      items: groupedEvents.accommodations,
-      type: "accommodation" as const,
-    },
-    {
-      title: "Arrivals",
-      icon: Plane,
-      iconClassName: "rotate-90",
-      color: "text-[var(--color-member-travel)]",
-      bgColor: "bg-[var(--color-member-travel-light)]",
-      items: groupedEvents.arrivals,
-      type: "memberTravel" as const,
-    },
-    {
-      title: "Travel",
-      icon: Car,
-      iconClassName: "",
-      color: "text-[var(--color-event-travel)]",
-      bgColor: "bg-[var(--color-event-travel-light)]",
-      items: groupedEvents.travel,
-      type: "event" as const,
-    },
-    {
-      title: "Meals",
-      icon: Utensils,
-      iconClassName: "",
-      color: "text-[var(--color-event-meal)]",
-      bgColor: "bg-[var(--color-event-meal-light)]",
-      items: groupedEvents.meal,
-      type: "event" as const,
-    },
-    {
-      title: "Activities",
-      icon: Calendar,
-      iconClassName: "",
-      color: "text-[var(--color-event-activity)]",
-      bgColor: "bg-[var(--color-event-activity-light)]",
-      items: groupedEvents.activity,
-      type: "event" as const,
-    },
-    {
-      title: "Departures",
-      icon: Plane,
-      iconClassName: "-rotate-90",
-      color: "text-[var(--color-member-travel)]",
-      bgColor: "bg-[var(--color-member-travel-light)]",
-      items: groupedEvents.departures,
-      type: "memberTravel" as const,
-    },
-  ], [groupedEvents]);
+  const sections = useMemo(
+    () => [
+      {
+        title: "Accommodations",
+        icon: Home,
+        iconClassName: "",
+        color: "text-[var(--color-accommodation)]",
+        bgColor: "bg-[var(--color-accommodation-light)]",
+        items: groupedEvents.accommodations,
+        type: "accommodation" as const,
+      },
+      {
+        title: "Arrivals",
+        icon: Plane,
+        iconClassName: "rotate-90",
+        color: "text-[var(--color-member-travel)]",
+        bgColor: "bg-[var(--color-member-travel-light)]",
+        items: groupedEvents.arrivals,
+        type: "memberTravel" as const,
+      },
+      {
+        title: "Travel",
+        icon: Car,
+        iconClassName: "",
+        color: "text-[var(--color-event-travel)]",
+        bgColor: "bg-[var(--color-event-travel-light)]",
+        items: groupedEvents.travel,
+        type: "event" as const,
+      },
+      {
+        title: "Meals",
+        icon: Utensils,
+        iconClassName: "",
+        color: "text-[var(--color-event-meal)]",
+        bgColor: "bg-[var(--color-event-meal-light)]",
+        items: groupedEvents.meal,
+        type: "event" as const,
+      },
+      {
+        title: "Activities",
+        icon: Calendar,
+        iconClassName: "",
+        color: "text-[var(--color-event-activity)]",
+        bgColor: "bg-[var(--color-event-activity-light)]",
+        items: groupedEvents.activity,
+        type: "event" as const,
+      },
+      {
+        title: "Departures",
+        icon: Plane,
+        iconClassName: "-rotate-90",
+        color: "text-[var(--color-member-travel)]",
+        bgColor: "bg-[var(--color-member-travel-light)]",
+        items: groupedEvents.departures,
+        type: "memberTravel" as const,
+      },
+    ],
+    [groupedEvents],
+  );
 
   return (
     <div className="divide-y divide-border">
@@ -173,7 +175,9 @@ export function GroupByTypeView({
                           key={item.id}
                           accommodation={item as Accommodation}
                           timezone={timezone}
-                          canEdit={canModifyAccommodation(item as Accommodation)}
+                          canEdit={canModifyAccommodation(
+                            item as Accommodation,
+                          )}
                           canDelete={canModifyAccommodation(
                             item as Accommodation,
                           )}
@@ -183,7 +187,9 @@ export function GroupByTypeView({
                           onDelete={() =>
                             setEditingAccommodation(item as Accommodation)
                           }
-                          createdByName={userNameMap.get((item as Accommodation).createdBy)}
+                          createdByName={userNameMap.get(
+                            (item as Accommodation).createdBy,
+                          )}
                           showDate
                         />
                       ))
@@ -213,7 +219,9 @@ export function GroupByTypeView({
                             canDelete={canModifyEvent(item as Event)}
                             onEdit={() => setEditingEvent(item as Event)}
                             onDelete={() => setEditingEvent(item as Event)}
-                            createdByName={userNameMap.get((item as Event).createdBy)}
+                            createdByName={userNameMap.get(
+                              (item as Event).createdBy,
+                            )}
                             showDate
                           />
                         ))}

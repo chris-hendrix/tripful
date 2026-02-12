@@ -122,7 +122,9 @@ describe("EditEventDialog", () => {
         />,
       );
 
-      const nameInput = screen.getByLabelText(/event name/i) as HTMLInputElement;
+      const nameInput = screen.getByLabelText(
+        /event name/i,
+      ) as HTMLInputElement;
       expect(nameInput.value).toBe("Test Event");
 
       const locationInput = screen.getByLabelText(
@@ -147,7 +149,9 @@ describe("EditEventDialog", () => {
       );
 
       // DateTimePicker buttons should show formatted date/time, not placeholder
-      const startTimeButton = screen.getByRole("button", { name: /start time/i });
+      const startTimeButton = screen.getByRole("button", {
+        name: /start time/i,
+      });
       expect(startTimeButton.textContent).toMatch(/jul 15, 2026/i);
     });
 
@@ -271,7 +275,9 @@ describe("EditEventDialog", () => {
         />,
       );
 
-      expect(screen.getByRole("button", { name: /delete event/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /delete event/i }),
+      ).toBeDefined();
     });
 
     it("shows confirmation dialog when delete button is clicked", async () => {
@@ -410,7 +416,9 @@ describe("EditEventDialog", () => {
       await user.type(locationInput, "Updated Location");
 
       expect((nameInput as HTMLInputElement).value).toBe("Updated Event");
-      expect((locationInput as HTMLInputElement).value).toBe("Updated Location");
+      expect((locationInput as HTMLInputElement).value).toBe(
+        "Updated Location",
+      );
     });
   });
 

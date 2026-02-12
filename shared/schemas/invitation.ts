@@ -51,6 +51,7 @@ const memberWithProfileSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
   profilePhotoUrl: z.string().nullable(),
+  handles: z.record(z.string(), z.string()).nullable().optional(),
   phoneNumber: z.string().optional(),
   status: z.enum(["going", "not_going", "maybe", "no_response"]),
   isOrganizer: z.boolean(),

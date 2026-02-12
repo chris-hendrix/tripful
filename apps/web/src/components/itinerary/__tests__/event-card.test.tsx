@@ -157,9 +157,7 @@ describe("EventCard", () => {
       const card = screen.getByText("Beach Lunch").closest("div");
       if (card) await user.click(card);
 
-      expect(
-        screen.getByText("Lunch at beachside restaurant"),
-      ).toBeDefined();
+      expect(screen.getByText("Lunch at beachside restaurant")).toBeDefined();
     });
 
     it("shows links when expanded", async () => {

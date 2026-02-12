@@ -1,7 +1,16 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token");
+
+  if (authToken?.value) {
+    redirect("/trips");
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       {/* Decorative accent line */}

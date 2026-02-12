@@ -253,7 +253,9 @@ describe("CreateTripDialog", () => {
         <CreateTripDialog open={true} onOpenChange={mockOnOpenChange} />,
       );
 
-      const startDateButton = screen.getByRole("button", { name: /start date/i });
+      const startDateButton = screen.getByRole("button", {
+        name: /start date/i,
+      });
       expect(startDateButton).toBeDefined();
 
       const endDateButton = screen.getByRole("button", { name: /end date/i });

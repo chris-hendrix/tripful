@@ -114,10 +114,14 @@ describe("EditMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/location/i) as HTMLInputElement;
+      const locationInput = screen.getByLabelText(
+        /location/i,
+      ) as HTMLInputElement;
       expect(locationInput.value).toBe("Miami Airport");
 
-      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", {
+        name: /details/i,
+      }) as HTMLTextAreaElement;
       expect(detailsInput.value).toBe("Flight AA123");
     });
 
@@ -147,7 +151,7 @@ describe("EditMemberTravelDialog", () => {
       );
 
       const arrivalRadio = screen.getByRole("radio", { name: /arrival/i });
-      expect(arrivalRadio.checked).toBe(true);
+      expect((arrivalRadio as HTMLInputElement).checked).toBe(true);
     });
 
     it("pre-populates departure travel type", () => {
@@ -166,7 +170,7 @@ describe("EditMemberTravelDialog", () => {
       );
 
       const departureRadio = screen.getByRole("radio", { name: /departure/i });
-      expect(departureRadio.checked).toBe(true);
+      expect((departureRadio as HTMLInputElement).checked).toBe(true);
     });
   });
 
@@ -335,7 +339,9 @@ describe("EditMemberTravelDialog", () => {
       await user.clear(locationInput);
       await user.type(locationInput, "Updated Location");
 
-      expect((locationInput as HTMLInputElement).value).toBe("Updated Location");
+      expect((locationInput as HTMLInputElement).value).toBe(
+        "Updated Location",
+      );
     });
   });
 

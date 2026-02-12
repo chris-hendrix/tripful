@@ -92,3 +92,12 @@ export {
   type CreateInvitationsInput,
   type UpdateRsvpInput,
 } from "./invitation";
+
+// Re-export user profile schemas
+export {
+  ALLOWED_HANDLE_PLATFORMS,
+  type HandlePlatform,
+  userHandlesSchema,
+  updateProfileSchema,
+  type UpdateProfileInput,
+} from "./user";

@@ -19,7 +19,19 @@ const readyResponseSchema = z.object({
 });
 
 export async function healthRoutes(fastify: FastifyInstance) {
-  fastify.get("/", { schema: { response: { 200: healthResponseSchema } } }, healthController.check);
-  fastify.get("/live", { schema: { response: { 200: liveResponseSchema } } }, healthController.live);
-  fastify.get("/ready", { schema: { response: { 200: readyResponseSchema } } }, healthController.ready);
+  fastify.get(
+    "/",
+    { schema: { response: { 200: healthResponseSchema } } },
+    healthController.check,
+  );
+  fastify.get(
+    "/live",
+    { schema: { response: { 200: liveResponseSchema } } },
+    healthController.live,
+  );
+  fastify.get(
+    "/ready",
+    { schema: { response: { 200: readyResponseSchema } } },
+    healthController.ready,
+  );
 }

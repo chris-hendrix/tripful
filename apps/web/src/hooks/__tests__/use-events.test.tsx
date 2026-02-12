@@ -16,7 +16,10 @@ import {
   type Event,
 } from "../use-events";
 import { APIError } from "@/lib/api";
-import type { CreateEventInput, UpdateEventInput } from "@tripful/shared/schemas";
+import type {
+  CreateEventInput,
+  UpdateEventInput,
+} from "@tripful/shared/schemas";
 
 // Mock the API module
 vi.mock("@/lib/api", () => ({
@@ -294,9 +297,7 @@ describe("useCreateEvent", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["events", "list", "trip-123"], [
-        existingEvent,
-      ]);
+      queryClient.setQueryData(["events", "list", "trip-123"], [existingEvent]);
 
       const { result } = renderHook(() => useCreateEvent(), { wrapper });
 
@@ -337,9 +338,7 @@ describe("useCreateEvent", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["events", "list", "trip-123"], [
-        existingEvent,
-      ]);
+      queryClient.setQueryData(["events", "list", "trip-123"], [existingEvent]);
 
       const { result } = renderHook(() => useCreateEvent(), { wrapper });
 

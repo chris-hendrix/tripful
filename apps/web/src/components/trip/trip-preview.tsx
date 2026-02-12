@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateRange, getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import {
   useUpdateRsvp,
   getUpdateRsvpErrorMessage,
@@ -57,9 +58,10 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
       {trip.coverImageUrl ? (
         <div className="relative h-48 sm:h-72 overflow-hidden">
           <Image
-            src={trip.coverImageUrl}
+            src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
+            unoptimized
             priority
             sizes="100vw"
             className="object-cover"
@@ -104,10 +106,11 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
                 org.profilePhotoUrl ? (
                   <Image
                     key={org.id}
-                    src={org.profilePhotoUrl}
+                    src={getUploadUrl(org.profilePhotoUrl)!}
                     alt={org.displayName}
                     width={28}
                     height={28}
+                    unoptimized
                     className="rounded-full ring-2 ring-background"
                   />
                 ) : (
@@ -121,7 +124,8 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
               )}
             </div>
             <span className="text-sm text-muted-foreground">
-              Organized by {trip.organizers.map((org) => org.displayName).join(", ")}
+              Organized by{" "}
+              {trip.organizers.map((org) => org.displayName).join(", ")}
             </span>
           </div>
         )}

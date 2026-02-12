@@ -37,10 +37,10 @@ describe("Database Schema", () => {
       expect(columns.phoneNumber.notNull).toBe(true);
     });
 
-    it("should have timezone with default value UTC", () => {
+    it("should have timezone as nullable without default", () => {
       const columns = getTableColumns(users);
-      expect(columns.timezone.notNull).toBe(true);
-      expect(columns.timezone.default).toBeDefined();
+      expect(columns.timezone.notNull).toBe(false);
+      expect(columns.timezone.default).toBeUndefined();
     });
 
     it("should have type exports", () => {

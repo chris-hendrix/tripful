@@ -149,12 +149,11 @@ describe("accommodation.service", () => {
         links: ["https://resort.example.com"],
       };
 
-      const accommodation =
-        await accommodationService.createAccommodation(
-          testOrganizerId,
-          testTripId,
-          accommodationData,
-        );
+      const accommodation = await accommodationService.createAccommodation(
+        testOrganizerId,
+        testTripId,
+        accommodationData,
+      );
 
       expect(accommodation).toBeDefined();
       expect(accommodation.name).toBe(accommodationData.name);
@@ -238,12 +237,11 @@ describe("accommodation.service", () => {
         checkOut: "2026-09-05",
       };
 
-      const accommodation =
-        await accommodationService.createAccommodation(
-          testOrganizerId,
-          testTripId,
-          accommodationData,
-        );
+      const accommodation = await accommodationService.createAccommodation(
+        testOrganizerId,
+        testTripId,
+        accommodationData,
+      );
 
       expect(accommodation).toBeDefined();
       expect(accommodation.name).toBe(accommodationData.name);
@@ -255,9 +253,8 @@ describe("accommodation.service", () => {
 
   describe("getAccommodation", () => {
     it("should get an accommodation by ID", async () => {
-      const accommodation = await accommodationService.getAccommodation(
-        testAccommodationId,
-      );
+      const accommodation =
+        await accommodationService.getAccommodation(testAccommodationId);
 
       expect(accommodation).toBeDefined();
       expect(accommodation?.id).toBe(testAccommodationId);
@@ -279,9 +276,8 @@ describe("accommodation.service", () => {
         testAccommodationId,
       );
 
-      const accommodation = await accommodationService.getAccommodation(
-        testAccommodationId,
-      );
+      const accommodation =
+        await accommodationService.getAccommodation(testAccommodationId);
 
       expect(accommodation).toBeNull();
     });
@@ -462,9 +458,8 @@ describe("accommodation.service", () => {
         testAccommodationId,
       );
 
-      const accommodation = await accommodationService.getAccommodation(
-        testAccommodationId,
-      );
+      const accommodation =
+        await accommodationService.getAccommodation(testAccommodationId);
       expect(accommodation).toBeNull();
 
       // Verify soft delete (check directly in DB)
@@ -514,9 +509,8 @@ describe("accommodation.service", () => {
       );
 
       // Verify it's deleted
-      let accommodation = await accommodationService.getAccommodation(
-        testAccommodationId,
-      );
+      let accommodation =
+        await accommodationService.getAccommodation(testAccommodationId);
       expect(accommodation).toBeNull();
 
       // Restore the accommodation
@@ -531,9 +525,8 @@ describe("accommodation.service", () => {
       expect(restoredAccommodation.deletedBy).toBeNull();
 
       // Verify it's visible again
-      accommodation = await accommodationService.getAccommodation(
-        testAccommodationId,
-      );
+      accommodation =
+        await accommodationService.getAccommodation(testAccommodationId);
       expect(accommodation).not.toBeNull();
     });
 
@@ -575,12 +568,11 @@ describe("accommodation.service", () => {
         ],
       };
 
-      const accommodation =
-        await accommodationService.createAccommodation(
-          testOrganizerId,
-          testTripId,
-          accommodationData,
-        );
+      const accommodation = await accommodationService.createAccommodation(
+        testOrganizerId,
+        testTripId,
+        accommodationData,
+      );
 
       expect(accommodation.links).toHaveLength(2);
       expect(accommodation.links).toEqual(accommodationData.links);
@@ -611,12 +603,11 @@ describe("accommodation.service", () => {
         checkOut: "2026-12-05",
       };
 
-      const accommodation =
-        await accommodationService.createAccommodation(
-          testOrganizerId,
-          testTripId,
-          accommodationData,
-        );
+      const accommodation = await accommodationService.createAccommodation(
+        testOrganizerId,
+        testTripId,
+        accommodationData,
+      );
 
       expect(accommodation.description).toBe(longDescription);
     });

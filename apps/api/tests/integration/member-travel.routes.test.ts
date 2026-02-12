@@ -208,18 +208,21 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values([
-        {
-          tripId: trip.id,
-          userId: testUser.id,
-          status: "going",
-        },
-        {
-          tripId: trip.id,
-          userId: user2.id,
-          status: "going",
-        },
-      ]).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values([
+          {
+            tripId: trip.id,
+            userId: testUser.id,
+            status: "going",
+          },
+          {
+            tripId: trip.id,
+            userId: user2.id,
+            status: "going",
+          },
+        ])
+        .returning();
 
       // Create member travel records using member IDs
       await db.insert(memberTravel).values([
@@ -300,11 +303,14 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values({
-        tripId: trip.id,
-        userId: testUser.id,
-        status: "going",
-      }).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
 
       const travelResult = await db
         .insert(memberTravel)
@@ -400,11 +406,14 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values({
-        tripId: trip.id,
-        userId: testUser.id,
-        status: "going",
-      }).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
 
       const travelResult = await db
         .insert(memberTravel)
@@ -472,11 +481,14 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values({
-        tripId: trip.id,
-        userId: owner.id,
-        status: "going",
-      }).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: owner.id,
+          status: "going",
+        })
+        .returning();
 
       const travelResult = await db
         .insert(memberTravel)
@@ -551,11 +563,14 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values({
-        tripId: trip.id,
-        userId: testUser.id,
-        status: "going",
-      }).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
 
       const travelResult = await db
         .insert(memberTravel)
@@ -618,11 +633,14 @@ describe("Member Travel Routes", () => {
 
       const trip = tripResult[0];
 
-      const memberRecords = await db.insert(members).values({
-        tripId: trip.id,
-        userId: testUser.id,
-        status: "going",
-      }).returning();
+      const memberRecords = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
 
       const travelResult = await db
         .insert(memberTravel)

@@ -66,7 +66,10 @@ export function formatInTimezone(
  * @param timezone - IANA timezone string
  * @returns Date string in YYYY-MM-DD format
  */
-export function getDayInTimezone(date: Date | string, timezone: string): string {
+export function getDayInTimezone(
+  date: Date | string,
+  timezone: string,
+): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
   // Validate date
@@ -195,8 +198,11 @@ export function localPartsToUTC(
   const [hours, minutes] = time.split(":").map(Number);
 
   if (
-    year === undefined || month === undefined || day === undefined ||
-    hours === undefined || minutes === undefined
+    year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    hours === undefined ||
+    minutes === undefined
   ) {
     return "";
   }

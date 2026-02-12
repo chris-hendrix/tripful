@@ -35,7 +35,9 @@ export function MemberTravelCard({
   const accentColor = "border-l-[var(--color-member-travel)]";
 
   const time = formatInTimezone(memberTravel.time, timezone, "time");
-  const date = showDate ? formatInTimezone(memberTravel.time, timezone, "date") : null;
+  const date = showDate
+    ? formatInTimezone(memberTravel.time, timezone, "date")
+    : null;
 
   return (
     <div
@@ -75,7 +77,9 @@ export function MemberTravelCard({
             onClick={(e) => e.stopPropagation()}
           >
             <MapPin className="w-3.5 h-3.5 shrink-0" />
-            <span className="underline underline-offset-2">{memberTravel.location}</span>
+            <span className="underline underline-offset-2">
+              {memberTravel.location}
+            </span>
           </a>
         )}
       </div>

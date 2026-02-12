@@ -10,6 +10,7 @@ import {
   boolean,
   pgEnum,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // Users table
@@ -20,7 +21,8 @@ export const users = pgTable(
     phoneNumber: varchar("phone_number", { length: 20 }).notNull().unique(),
     displayName: varchar("display_name", { length: 50 }).notNull(),
     profilePhotoUrl: text("profile_photo_url"),
-    timezone: varchar("timezone", { length: 100 }).notNull().default("UTC"),
+    handles: jsonb("handles").$type<Record<string, string>>(),
+    timezone: varchar("timezone", { length: 100 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -181,7 +183,9 @@ export const invitations = pgTable(
   },
   (table) => ({
     tripIdIdx: index("invitations_trip_id_idx").on(table.tripId),
-    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(table.inviteePhone),
+    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(
+      table.inviteePhone,
+    ),
     tripPhoneUnique: unique("invitations_trip_phone_unique").on(
       table.tripId,
       table.inviteePhone,

@@ -83,50 +83,52 @@ export function EventCard({
       {/* Compact view */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-foreground text-sm">
-                {event.name}
-              </h4>
-              {datePrefix && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <Calendar className="w-3 h-3 shrink-0" />
-                  <span>{datePrefix}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                <Clock className="w-3 h-3 shrink-0" />
-                <span>{timeDisplay}</span>
-              </div>
-              {event.location && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="underline underline-offset-2">{event.location}</span>
-                </a>
-              )}
+          <h4 className="font-semibold text-foreground text-sm">
+            {event.name}
+          </h4>
+          {datePrefix && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+              <Calendar className="w-3 h-3 shrink-0" />
+              <span>{datePrefix}</span>
             </div>
+          )}
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>{timeDisplay}</span>
+          </div>
+          {event.location && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span className="underline underline-offset-2">
+                {event.location}
+              </span>
+            </a>
+          )}
+        </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              {event.creatorAttending === false && (
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
-                >
-                  Member no longer attending
-                </Badge>
-              )}
-              {event.isOptional && (
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-background/50 border-border"
-                >
-                  Optional
-                </Badge>
-              )}
+        <div className="flex items-center gap-1 shrink-0">
+          {event.creatorAttending === false && (
+            <Badge
+              variant="outline"
+              className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
+            >
+              Member no longer attending
+            </Badge>
+          )}
+          {event.isOptional && (
+            <Badge
+              variant="outline"
+              className="text-xs bg-background/50 border-border"
+            >
+              Optional
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -163,7 +165,9 @@ export function EventCard({
             </div>
           )}
 
-          <div className={`text-xs text-muted-foreground ${event.creatorAttending === false ? "opacity-50 line-through" : ""}`}>
+          <div
+            className={`text-xs text-muted-foreground ${event.creatorAttending === false ? "opacity-50 line-through" : ""}`}
+          >
             Created by {createdByName || "Unknown"}
           </div>
 

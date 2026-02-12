@@ -36,8 +36,18 @@ import { User, phoneNumberSchema } from "@tripful/shared";
 Or import from specific subpaths:
 
 ```typescript
-import { User, Trip, Event, Accommodation, MemberTravel } from "@tripful/shared/types";
-import { phoneNumberSchema, createEventSchema, createTripSchema } from "@tripful/shared/schemas";
+import {
+  User,
+  Trip,
+  Event,
+  Accommodation,
+  MemberTravel,
+} from "@tripful/shared/types";
+import {
+  phoneNumberSchema,
+  createEventSchema,
+  createTripSchema,
+} from "@tripful/shared/schemas";
 import { convertToUTC } from "@tripful/shared/utils";
 ```
 

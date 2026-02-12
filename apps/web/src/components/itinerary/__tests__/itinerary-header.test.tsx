@@ -31,9 +31,7 @@ describe("ItineraryHeader", () => {
 
   const renderWithQueryClient = (ui: React.ReactElement) => {
     return render(
-      <QueryClientProvider client={queryClient}>
-        {ui}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
     );
   };
 
@@ -42,7 +40,9 @@ describe("ItineraryHeader", () => {
       renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
 
       expect(screen.getByRole("button", { name: "Day by Day" })).toBeDefined();
-      expect(screen.getByRole("button", { name: "Group by Type" })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: "Group by Type" }),
+      ).toBeDefined();
     });
 
     it("renders timezone selector", () => {
@@ -54,14 +54,18 @@ describe("ItineraryHeader", () => {
 
   describe("View mode toggle", () => {
     it("highlights day-by-day button when selected", () => {
-      renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="day-by-day" />);
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} viewMode="day-by-day" />,
+      );
 
       const button = screen.getByRole("button", { name: "Day by Day" });
       expect(button?.dataset.variant).toBe("default");
     });
 
     it("highlights group-by-type button when selected", () => {
-      renderWithQueryClient(<ItineraryHeader {...defaultProps} viewMode="group-by-type" />);
+      renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} viewMode="group-by-type" />,
+      );
 
       const button = screen.getByRole("button", { name: "Group by Type" });
       expect(button?.dataset.variant).toBe("default");
@@ -76,7 +80,7 @@ describe("ItineraryHeader", () => {
           {...defaultProps}
           viewMode="group-by-type"
           onViewModeChange={onViewModeChange}
-        />
+        />,
       );
 
       const button = screen.getByRole("button", { name: "Day by Day" });
@@ -93,7 +97,7 @@ describe("ItineraryHeader", () => {
         <ItineraryHeader
           {...defaultProps}
           onViewModeChange={onViewModeChange}
-        />
+        />,
       );
 
       const button = screen.getByRole("button", { name: "Group by Type" });
@@ -118,7 +122,7 @@ describe("ItineraryHeader", () => {
         <ItineraryHeader
           {...defaultProps}
           selectedTimezone="America/New_York"
-        />
+        />,
       );
 
       const trigger = screen.getByRole("combobox", { name: "Timezone" });
@@ -277,12 +281,14 @@ describe("ItineraryHeader", () => {
 
   describe("Sticky positioning", () => {
     it("applies sticky positioning classes", () => {
-      const { container } = renderWithQueryClient(<ItineraryHeader {...defaultProps} />);
+      const { container } = renderWithQueryClient(
+        <ItineraryHeader {...defaultProps} />,
+      );
 
       const header = container.querySelector(".sticky");
       expect(header).toBeDefined();
-      expect(header?.className).toContain("top-0");
-      expect(header?.className).toContain("z-10");
+      expect(header?.className).toContain("top-14");
+      expect(header?.className).toContain("z-20");
     });
   });
 });

@@ -1,6 +1,6 @@
 import type { Page, Locator } from "@playwright/test";
 
-export class DashboardPage {
+export class TripsPage {
   readonly page: Page;
   readonly heading: Locator;
   readonly createTripButton: Locator;
@@ -27,12 +27,12 @@ export class DashboardPage {
     this.upcomingTripsHeading = page.getByRole("heading", {
       name: "Upcoming trips",
     });
-    this.logoutItem = page.getByText("Log out");
-    this.profileItem = page.getByText("Profile");
+    this.logoutItem = page.getByRole("menuitem", { name: "Log out" });
+    this.profileItem = page.getByTestId("profile-menu-item");
   }
 
   async goto() {
-    await this.page.goto("/dashboard");
+    await this.page.goto("/trips");
   }
 
   async openUserMenu() {

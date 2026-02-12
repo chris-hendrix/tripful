@@ -53,6 +53,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "going",
     isOrganizer: true,
     createdAt: "2026-02-06T12:00:00Z",
+    handles: null,
   },
   {
     id: "member-2",
@@ -63,6 +64,7 @@ const mockMembers: MemberWithProfile[] = [
     status: "maybe",
     isOrganizer: false,
     createdAt: "2026-02-06T13:00:00Z",
+    handles: null,
   },
 ];
 
@@ -293,10 +295,7 @@ describe("useInviteMembers", () => {
         skipped: [],
       });
 
-      queryClient.setQueryData(
-        ["invitations", "list", "trip-123"],
-        [],
-      );
+      queryClient.setQueryData(["invitations", "list", "trip-123"], []);
       queryClient.setQueryData(["members", "list", "trip-123"], []);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -579,9 +578,7 @@ describe("error message helpers", () => {
 
     it("handles unknown APIError codes", () => {
       const error = new APIError("UNKNOWN_ERROR", "Something went wrong");
-      expect(getInviteMembersErrorMessage(error)).toBe(
-        "Something went wrong",
-      );
+      expect(getInviteMembersErrorMessage(error)).toBe("Something went wrong");
     });
 
     it("handles network errors", () => {

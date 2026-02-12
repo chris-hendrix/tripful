@@ -182,7 +182,9 @@ export class AccommodationService implements IAccommodationService {
    * @param accommodationId - The UUID of the accommodation to retrieve
    * @returns The accommodation, or null if not found or soft-deleted
    */
-  async getAccommodation(accommodationId: string): Promise<Accommodation | null> {
+  async getAccommodation(
+    accommodationId: string,
+  ): Promise<Accommodation | null> {
     const result = await this.db
       .select()
       .from(accommodations)

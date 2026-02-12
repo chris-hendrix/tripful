@@ -87,10 +87,7 @@ export function ItineraryHeader({
             {/* Left side: Timezone selector */}
             <div className="flex items-center gap-2 min-w-0">
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Select
-                value={selectedTimezone}
-                onValueChange={onTimezoneChange}
-              >
+              <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
                 <SelectTrigger
                   size="sm"
                   className="h-8 text-xs"
@@ -147,7 +144,9 @@ export function ItineraryHeader({
                   <TooltipTrigger asChild>
                     <Button
                       size="icon"
-                      variant={viewMode === "group-by-type" ? "default" : "ghost"}
+                      variant={
+                        viewMode === "group-by-type" ? "default" : "ghost"
+                      }
                       onClick={() => onViewModeChange("group-by-type")}
                       className="h-8 w-8 rounded-lg"
                       aria-label="Group by Type"
@@ -179,9 +178,7 @@ export function ItineraryHeader({
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" className="w-48">
             {canAddEvent && (
-              <DropdownMenuItem
-                onSelect={() => setIsCreateEventOpen(true)}
-              >
+              <DropdownMenuItem onSelect={() => setIsCreateEventOpen(true)}>
                 <Plus className="w-4 h-4" />
                 Event
               </DropdownMenuItem>

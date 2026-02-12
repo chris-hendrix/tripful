@@ -37,10 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  useCreateEvent,
-  getCreateEventErrorMessage,
-} from "@/hooks/use-events";
+import { useCreateEvent, getCreateEventErrorMessage } from "@/hooks/use-events";
 import { TIMEZONES } from "@/lib/constants";
 
 interface CreateEventDialogProps {
@@ -99,10 +96,11 @@ export function CreateEventDialog({
         },
         onError: (error) => {
           toast.error(
-            getCreateEventErrorMessage(error) ?? "An unexpected error occurred."
+            getCreateEventErrorMessage(error) ??
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -140,7 +138,7 @@ export function CreateEventDialog({
     const currentLinks = form.getValues("links") || [];
     form.setValue(
       "links",
-      currentLinks.filter((link) => link !== linkToRemove)
+      currentLinks.filter((link) => link !== linkToRemove),
     );
   };
 
@@ -159,7 +157,10 @@ export function CreateEventDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Event Name */}
             <FormField
               control={form.control}

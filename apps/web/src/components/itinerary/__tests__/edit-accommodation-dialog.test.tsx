@@ -118,7 +118,9 @@ describe("EditAccommodationDialog", () => {
       ) as HTMLInputElement;
       expect(nameInput.value).toBe("Test Hotel");
 
-      const addressInput = screen.getByLabelText(/address/i) as HTMLInputElement;
+      const addressInput = screen.getByLabelText(
+        /address/i,
+      ) as HTMLInputElement;
       expect(addressInput.value).toBe("123 Main St");
 
       const descriptionInput = screen.getByLabelText(
@@ -137,10 +139,14 @@ describe("EditAccommodationDialog", () => {
       );
 
       // DatePicker buttons should show formatted dates
-      const checkInButton = screen.getByRole("button", { name: /check-in date/i });
+      const checkInButton = screen.getByRole("button", {
+        name: /check-in date/i,
+      });
       expect(checkInButton.textContent).toMatch(/jul 15, 2026/i);
 
-      const checkOutButton = screen.getByRole("button", { name: /check-out date/i });
+      const checkOutButton = screen.getByRole("button", {
+        name: /check-out date/i,
+      });
       expect(checkOutButton.textContent).toMatch(/jul 20, 2026/i);
     });
 

@@ -3,10 +3,7 @@ import type {
   CreateEventInput,
   UpdateEventInput,
 } from "@tripful/shared/schemas";
-import {
-  EventNotFoundError,
-  TripNotFoundError,
-} from "../errors.js";
+import { EventNotFoundError, TripNotFoundError } from "../errors.js";
 
 /**
  * Event Controller
@@ -103,7 +100,10 @@ export const eventController = {
       }
 
       // Non-going, non-organizer members only get preview access (no itinerary data)
-      const canViewFull = await permissionsService.canViewFullTrip(userId, tripId);
+      const canViewFull = await permissionsService.canViewFullTrip(
+        userId,
+        tripId,
+      );
       const isOrg = await permissionsService.isOrganizer(userId, tripId);
       if (!canViewFull && !isOrg) {
         return reply.status(403).send({
@@ -114,14 +114,13 @@ export const eventController = {
       }
 
       // Get events for the trip
-      let events = await eventService.getEventsByTrip(
-        tripId,
-        includeDeleted,
-      );
+      let events = await eventService.getEventsByTrip(tripId, includeDeleted);
 
       // Filter by type if provided
       if (request.query.type) {
-        events = events.filter((event) => event.eventType === request.query.type);
+        events = events.filter(
+          (event) => event.eventType === request.query.type,
+        );
       }
 
       return reply.status(200).send({
@@ -181,7 +180,10 @@ export const eventController = {
       }
 
       // Non-going, non-organizer members only get preview access (no itinerary data)
-      const canViewFull = await permissionsService.canViewFullTrip(userId, event.tripId);
+      const canViewFull = await permissionsService.canViewFullTrip(
+        userId,
+        event.tripId,
+      );
       const isOrg = await permissionsService.isOrganizer(userId, event.tripId);
       if (!canViewFull && !isOrg) {
         return reply.status(403).send({

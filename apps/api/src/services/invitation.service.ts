@@ -80,10 +80,7 @@ export interface IInvitationService {
    * @param userId - The ID of the user
    * @param phoneNumber - The phone number to match invitations against
    */
-  processPendingInvitations(
-    userId: string,
-    phoneNumber: string,
-  ): Promise<void>;
+  processPendingInvitations(userId: string, phoneNumber: string): Promise<void>;
 }
 
 /**
@@ -197,7 +194,8 @@ export class InvitationService implements IInvitationService {
       }
 
       skipped = phoneNumbers.filter(
-        (phone) => alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
+        (phone) =>
+          alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
       );
 
       // Build newPhones
@@ -333,9 +331,7 @@ export class InvitationService implements IInvitationService {
     }
 
     // Delete the invitation record
-    await this.db
-      .delete(invitations)
-      .where(eq(invitations.id, invitationId));
+    await this.db.delete(invitations).where(eq(invitations.id, invitationId));
   }
 
   /**
@@ -381,6 +377,7 @@ export class InvitationService implements IInvitationService {
         userId: members.userId,
         displayName: users.displayName,
         profilePhotoUrl: users.profilePhotoUrl,
+        handles: users.handles,
         status: members.status,
         isOrganizer: members.isOrganizer,
         createdAt: members.createdAt,
@@ -397,6 +394,7 @@ export class InvitationService implements IInvitationService {
       userId: result.userId,
       displayName: result.displayName,
       profilePhotoUrl: result.profilePhotoUrl,
+      handles: result.handles ?? null,
       status: result.status,
       isOrganizer: result.isOrganizer,
       createdAt: result.createdAt.toISOString(),
@@ -435,6 +433,7 @@ export class InvitationService implements IInvitationService {
         userId: members.userId,
         displayName: users.displayName,
         profilePhotoUrl: users.profilePhotoUrl,
+        handles: users.handles,
         phoneNumber: users.phoneNumber,
         status: members.status,
         isOrganizer: members.isOrganizer,
@@ -449,6 +448,7 @@ export class InvitationService implements IInvitationService {
       userId: r.userId,
       displayName: r.displayName,
       profilePhotoUrl: r.profilePhotoUrl,
+      handles: r.handles ?? null,
       ...(isOrg ? { phoneNumber: r.phoneNumber } : {}),
       status: r.status,
       isOrganizer: r.isOrganizer,

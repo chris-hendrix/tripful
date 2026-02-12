@@ -27,13 +27,13 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-// Mock DashboardContent
-vi.mock("./dashboard-content", () => ({
-  DashboardContent: () => <div data-testid="dashboard-content" />,
+// Mock TripsContent
+vi.mock("./trips-content", () => ({
+  TripsContent: () => <div data-testid="trips-content" />,
 }));
 
 // Import AFTER mocks
-import DashboardPage, { metadata } from "./page";
+import TripsPage, { metadata } from "./page";
 
 const mockTripsResponse = {
   data: [
@@ -54,7 +54,7 @@ const mockTripsResponse = {
   meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
 };
 
-describe("DashboardPage (RSC)", () => {
+describe("TripsPage (RSC)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -62,7 +62,7 @@ describe("DashboardPage (RSC)", () => {
   it("prefetches trips and populates query cache on success", async () => {
     mockServerApiRequest.mockResolvedValue(mockTripsResponse);
 
-    const result = await DashboardPage();
+    const result = await TripsPage();
     render(result as React.ReactElement);
 
     expect(mockServerApiRequest).toHaveBeenCalledWith("/trips");
@@ -72,24 +72,24 @@ describe("DashboardPage (RSC)", () => {
     );
   });
 
-  it("renders HydrationBoundary with DashboardContent even when prefetch fails", async () => {
+  it("renders HydrationBoundary with TripsContent even when prefetch fails", async () => {
     mockServerApiRequest.mockRejectedValue(new Error("Server error"));
 
-    const result = await DashboardPage();
+    const result = await TripsPage();
     const { getByTestId } = render(result as React.ReactElement);
 
     expect(getByTestId("hydration-boundary")).toBeDefined();
-    expect(getByTestId("dashboard-content")).toBeDefined();
+    expect(getByTestId("trips-content")).toBeDefined();
     expect(mockSetQueryData).not.toHaveBeenCalled();
   });
 
   it("does not throw when prefetch fails", async () => {
     mockServerApiRequest.mockRejectedValue(new Error("Network error"));
 
-    await expect(DashboardPage()).resolves.not.toThrow();
+    await expect(TripsPage()).resolves.not.toThrow();
   });
 
   it("exports metadata with correct title", () => {
-    expect(metadata).toEqual({ title: "Dashboard" });
+    expect(metadata).toEqual({ title: "My Trips" });
   });
 });

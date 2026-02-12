@@ -72,15 +72,12 @@ describe("TripDetailPage (RSC)", () => {
     render(result as React.ReactElement);
 
     expect(mockServerApiRequest).toHaveBeenCalledWith("/trips/trip-123");
-    expect(mockSetQueryData).toHaveBeenCalledWith(
-      ["trips", "trip-123"],
-      {
-        ...mockTripResponse.trip,
-        isPreview: false,
-        userRsvpStatus: "going",
-        isOrganizer: false,
-      },
-    );
+    expect(mockSetQueryData).toHaveBeenCalledWith(["trips", "trip-123"], {
+      ...mockTripResponse.trip,
+      isPreview: false,
+      userRsvpStatus: "going",
+      isOrganizer: false,
+    });
   });
 
   it("renders HydrationBoundary with TripDetailContent even when prefetch fails", async () => {

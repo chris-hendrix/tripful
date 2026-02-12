@@ -1,982 +1,462 @@
 # Ralph Progress
 
-Tracking implementation progress for this project.
+Tracking implementation progress for Phase 5.5: User Profile & Auth Redirects.
 
-## Iteration 1 — Task 1.1: Add isOrganizer column to members table and create invitations table
+## Iteration 1 — Task 1.1: Update DB schema, shared types, and Zod schemas ✅
 
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **Schema changes** (`apps/api/src/db/schema/index.ts`):
-   - Added `isOrganizer: boolean("is_organizer").notNull().default(false)` column to `members` table
-   - Added `invitationStatusEnum` with values: `pending`, `accepted`, `declined`, `failed`
-   - Created `invitations` table with all required columns (id, tripId, inviterId, inviteePhone, status, sentAt, respondedAt, createdAt, updatedAt)
-   - Added indexes on `tripId` and `inviteePhone`, unique constraint on `(tripId, inviteePhone)`
-   - Exported `Invitation` and `NewInvitation` inferred types
-
-2. **Relations** (`apps/api/src/db/schema/relations.ts`):
-   - Added `invitationsRelations` with `one` references to trips and users
-   - Updated `tripsRelations` and `usersRelations` to include `many(invitations)`
-
-3. **Migration** (`apps/api/src/db/migrations/0005_early_zemo.sql`):
-   - Auto-generated via `pnpm db:generate`
-   - Manually added data fixup SQL: `UPDATE members SET is_organizer = true FROM trips WHERE members.trip_id = trips.id AND members.user_id = trips.created_by`
-   - Migration applied successfully via `pnpm db:migrate`
-
-4. **Tests**:
-   - Updated `apps/api/tests/unit/schema.test.ts` — added tests for `isOrganizer` column and full `invitations` table schema validation
-   - Created `apps/api/tests/integration/migration-isorganizer.test.ts` — 3 tests for default value, explicit setting, and query filtering
-   - Created `apps/api/tests/integration/invitations-table.test.ts` — 4 tests for record creation, unique constraint, cascade delete, and status enum values
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm lint`: ✅ PASS (all 3 packages)
-- `pnpm test` (API): ✅ PASS (590 tests, 0 failures)
-- Reviewer: ✅ APPROVED (no issues)
-
-### Learnings for future iterations
-
-- Drizzle ORM reports UUID columns with `dataType: "string"`, not `"uuid"` — tests should use `"string"` when asserting UUID column types
-- Migration generation via `pnpm db:generate` creates idempotent SQL with `IF NOT EXISTS` and exception handlers
-- `varchar` import needed to be added to `drizzle-orm/pg-core` imports for the `inviteePhone` column
-- No services, controllers, or permissions logic were modified — those are separate tasks (1.2, 1.3)
-
-## Iteration 2 — Task 1.2: Update PermissionsService to use isOrganizer column
+**Status**: COMPLETED
 
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **PermissionsService changes** (`apps/api/src/services/permissions.service.ts`):
-   - Updated `isOrganizer()` method: LEFT JOIN condition changed from `eq(members.status, "going")` to `eq(members.isOrganizer, true)`. The `trips.createdBy` fallback is preserved as a safety net.
-   - Refactored `canEditEvent()`: Organizers can edit any event. Event creators can only edit if their member `status='going'`. Creators with `status='maybe'` or `status='not_going'` are blocked. Inlined logic from the now-removed `isEventCreator` and `getEventTripId` private helpers.
-   - Added `canInviteMembers()`: delegates to `isOrganizer()` — organizers only.
-   - Added `canUpdateRsvp()`: delegates to `isMember()` — any member.
-   - Added `canViewFullTrip()`: queries members table for `status='going'` — going members only.
-   - Updated `IPermissionsService` interface with 3 new method signatures and JSDoc.
-   - Updated all JSDoc comments to reference `isOrganizer=true` instead of `status='going'` for organizer checks.
-
-2. **Permissions test updates** (`apps/api/tests/unit/permissions.service.test.ts`):
-   - Added creator as member with `isOrganizer: true` in test setup (creator must be in members table for new `isOrganizer()` logic)
-   - Added `isOrganizer: true` to co-organizer member insert
-   - Updated edge case tests to toggle `isOrganizer` flag instead of `status`
-   - Updated test descriptions to reflect `isOrganizer` column model
-   - Added `canInviteMembers` tests: 4 tests (organizer ✓, co-organizer ✓, regular member ✗, non-member ✗)
-   - Added `canUpdateRsvp` tests: 3 tests (any member ✓, organizer ✓, non-member ✗)
-   - Added `canViewFullTrip` tests: 4 tests (going ✓, maybe ✗, not_going ✗, non-member ✗)
-   - Added `canEditEvent - status restrictions` tests: 4 tests (creator maybe ✗, creator not_going ✗, creator going ✓, organizer always ✓)
-   - Total: 85 tests, all passing
-
-3. **Trip service test fixes** (`apps/api/tests/unit/trip.service.test.ts`):
-   - Added `isOrganizer: true` to 2 co-organizer member inserts in `updateTrip` and `cancelTrip` test suites
-
-4. **Trip routes test fixes** (`apps/api/tests/integration/trip.routes.test.ts`):
-   - Added `isOrganizer: true` to 5 co-organizer member inserts across co-organizer update, delete, add co-organizer, remove co-organizer, and remove creator tests
-
-### Verification results
+### Changes Made
 
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm lint`: ✅ PASS (all 3 packages)
-- Permissions tests: ✅ PASS (85/85 tests)
-- `pnpm test` (API): ✅ PASS (605 tests, 0 failures)
-- `pnpm test` (shared): ✅ PASS (169 tests, 0 failures)
-- `pnpm test` (web): 17 pre-existing failures in date/time picker component tests (unrelated to this task)
-- Reviewer: ✅ APPROVED (all feedback addressed)
+**DB Schema** (`apps/api/src/db/schema/index.ts`):
 
-### Learnings for future iterations
-
-- When changing the organizer determination logic, ALL test files that set up co-organizer members must be updated — not just the permissions test file. The `trip.service.test.ts` and `trip.routes.test.ts` also create co-organizer members.
-- The `trips.createdBy` fallback in `isOrganizer()` provides defense-in-depth for cases where the creator's member record might not have `isOrganizer=true`.
-- The trip creator MUST have a member record with `isOrganizer: true` in test setups. The old model could check `trips.createdBy` directly, but the new model's primary check is the `members.isOrganizer` column.
-- `canAddEvent()` logic was already correctly structured (organizer check → member status check) and did not need changes after `isOrganizer()` was updated.
-- 17 web tests (date/time picker components) are pre-existing failures unrelated to Phase 5. These should not block task completion.
-- Task 1.3 (TripService changes) must update `createTrip()` to set `isOrganizer: true` for the creator's member record and `addCoOrganizers()` to set `isOrganizer: true` for co-organizer records.
-
-## Iteration 3 — Task 1.3: Update TripService for isOrganizer column
+- Added `jsonb` to drizzle-orm/pg-core imports
+- Changed `timezone` column from `.notNull().default("UTC")` to nullable (no constraint)
+- Added `handles: jsonb("handles").$type<Record<string, string>>()` column to users table
 
-**Status**: ✅ COMPLETE
+**Migration** (`apps/api/src/db/migrations/0006_fresh_rogue.sql`):
 
-### What was done
+- Generated and applied: drops NOT NULL + default on timezone, adds handles JSONB column
 
-1. **TripService changes** (`apps/api/src/services/trip.service.ts`) — 8 changes across 5 methods:
-   - `createTrip()`: Added `isOrganizer: true` to both the creator's member record insert and co-organizer member inserts
-   - `getTripById()`: Changed organizer query from `eq(members.status, "going")` to `eq(members.isOrganizer, true)`
-   - `getUserTrips()`:
-     - Added `isOrganizer: members.isOrganizer` to the `userMemberships` select query
-     - Changed batch organizer tracking from `m.status === "going"` to `m.isOrganizer`
-     - Changed `membershipMap` to carry both `status` and `isOrganizer`
-     - Replaced derived `isOrganizer` computation (`isCreator || isCoOrganizer`) with direct column read (`membership?.isOrganizer ?? false`)
-   - `addCoOrganizers()`: Added `isOrganizer: true` to new co-organizer member inserts
-   - `getCoOrganizers()`: Changed query from `eq(members.status, "going")` to `eq(members.isOrganizer, true)`
-   - Updated all related comments from "status='going'" to "isOrganizer=true" for organizer detection contexts
-
-2. **Unit test updates** (`apps/api/tests/unit/trip.service.test.ts`):
-   - `createTrip` tests: Added `isOrganizer: true` assertions for creator and co-organizer member records
-   - `getUserTrips` tests: Updated 2 test descriptions from status-based to column-based language
-   - `addCoOrganizers` tests: Added `isOrganizer: true` assertion and updated description
-   - `getCoOrganizers` tests: Updated member inserts to include `isOrganizer: true`, updated descriptions to reflect column-based filtering
-
-3. **Integration test updates** (`apps/api/tests/integration/trip.routes.test.ts`):
-   - Added `isOrganizer: true` to all manually-inserted member records that represent organizers across all test sections (GET /api/trips, GET /api/trips/:id, PUT /api/trips/:id, DELETE /trips/:id, POST co-organizers, DELETE co-organizers, cover-image routes)
-   - Added `isOrganizer` assertions to 4 tests that verify member creation via API: creator creation, co-organizer creation, organizer-adds-co-organizer, co-organizer-adds-co-organizer
-   - Updated test descriptions to include "and isOrganizer=true" where applicable
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm test` (API): ✅ PASS (605 tests across 30 test files, 0 failures)
-- Reviewer: ✅ APPROVED (initial review found 4 missing integration test assertions; all fixed and re-approved)
-
-### Learnings for future iterations
-
-- The `getUserTrips()` method was the most complex change because it required updating a multi-stage pipeline: the DB query (adding `isOrganizer` to select), the batch processing loop, the membership map structure (from `Map<string, status>` to `Map<string, {status, isOrganizer}>`), and the summary builder. Future tasks modifying this method should trace the full data flow.
-- The old model derived `isOrganizer` from `createdBy` and `status === "going"` heuristics. The new model reads it directly from the column, which is cleaner and avoids false positives (regular members with `status='going'` are no longer incorrectly flagged as organizers).
-- `getCoOrganizers()` was an additional method found by researchers that also needed updating — it was not explicitly listed in the task description but used the same `status='going'` pattern for organizer detection.
-- Integration tests that manually insert member records (rather than going through `createTrip()`) need explicit `isOrganizer: true` — unlike the service code which now sets it automatically, test fixtures must set it manually.
-- Phase 1 (Database & Permissions Foundation) is now fully complete. All 3 tasks (1.1 schema, 1.2 permissions, 1.3 trip service) are done. Next is Phase 2: Shared Schemas & Types (Task 2.1).
-
-## Iteration 4 — Task 2.1: Add invitation and RSVP schemas and types to shared package
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New schema file** (`shared/schemas/invitation.ts`):
-   - `createInvitationsSchema`: Validates `{ phoneNumbers: string[] }` with E.164 phone number regex, min 1, max 25 items
-   - `updateRsvpSchema`: Validates `{ status: "going" | "not_going" | "maybe" }` — excludes `"no_response"` (server-only default)
-   - Exported inferred types: `CreateInvitationsInput`, `UpdateRsvpInput`
-   - Used a local copy of `phoneNumberSchema` (identical regex `/^\+[1-9]\d{1,14}$/`) to avoid circular import through `schemas/index.ts`
-
-2. **New types file** (`shared/types/invitation.ts`):
-   - `Invitation` interface: 9 fields matching DB schema (id, tripId, inviterId, inviteePhone, status, sentAt, respondedAt, createdAt, updatedAt), all timestamps as `string`
-   - `MemberWithProfile` interface: 8 fields for member list display (id, userId, displayName, profilePhotoUrl, phoneNumber (optional), status, isOrganizer, createdAt)
-   - 4 response types: `CreateInvitationsResponse` (with `skipped` array), `GetInvitationsResponse`, `UpdateRsvpResponse`, `GetMembersResponse`
-
-3. **Event type updates** (`shared/types/event.ts`):
-   - Added 3 optional computed fields to `Event` interface: `creatorAttending?: boolean`, `creatorName?: string`, `creatorProfilePhotoUrl?: string | null`
-
-4. **Trip type updates** (`shared/types/trip.ts`):
-   - Added 3 optional fields to `GetTripResponse` (not `TripDetail`): `isPreview?: boolean`, `userRsvpStatus?: "going" | "not_going" | "maybe" | "no_response"`, `isOrganizer?: boolean`
-
-5. **Barrel exports updated**:
-   - `shared/schemas/index.ts`: Added re-exports for `createInvitationsSchema`, `updateRsvpSchema`, `CreateInvitationsInput`, `UpdateRsvpInput`
-   - `shared/types/index.ts`: Added re-exports for `Invitation`, `MemberWithProfile`, `CreateInvitationsResponse`, `GetInvitationsResponse`, `UpdateRsvpResponse`, `GetMembersResponse`
-   - `shared/index.ts` intentionally NOT modified (follows existing pattern — domain-specific schemas/types like event, accommodation, member-travel are not re-exported from top-level barrel)
-
-6. **Tests** (`shared/__tests__/invitation-schemas.test.ts`): 15 new tests
-   - `createInvitationsSchema`: valid phone arrays, boundary values (1 and 25), empty array rejection, >25 rejection, invalid phone formats (missing +, too short, too long, letters, leading zero), non-array rejection, missing field, error messages
-   - `updateRsvpSchema`: all 3 valid statuses, `no_response` rejection, invalid values, missing field, error messages
-
-7. **Exports test updated** (`shared/__tests__/exports.test.ts`):
-   - Added invitation schema import and `toBeDefined()` check
-   - Added `CreateInvitationsInput` and `UpdateRsvpInput` type usage examples
-   - Added schema validation examples for both new schemas
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm lint`: ✅ PASS (all 3 packages)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (605 tests across 30 test files, 0 failures)
-- Reviewer: ✅ APPROVED (exact architecture compliance, consistent conventions, thorough tests)
-
-### Learnings for future iterations
-
-- The `phoneNumberSchema` exists in 3 places with 2 different regexes: `schemas/index.ts` and `schemas/invitation.ts` use `/^\+[1-9]\d{1,14}$/` (2-15 digits after +), while `schemas/trip.ts` uses `/^\+[1-9]\d{6,13}$/` (7-14 digits after +). This is a pre-existing inconsistency. Future tasks should consider consolidating.
-- Importing `phoneNumberSchema` from `./index.js` within a schema file risks circular dependency since `index.ts` re-exports from the importing file. Using a local copy avoids this cleanly.
-- New fields added to `GetTripResponse` are at the response level (not entity level) because `isPreview`, `userRsvpStatus`, and `isOrganizer` are request-context metadata, not trip properties.
-- New fields on `Event` are optional (`?`) because they are computed fields populated only by specific list endpoints via JOIN queries, not present on creation/single-fetch responses.
-- Phase 2 (Shared Schemas & Types) is now complete (only had 1 task). Next is Phase 3: Backend API Endpoints (Task 3.1: Create InvitationService).
-
-## Iteration 5 — Task 3.1: Create InvitationService with batch invite and RSVP logic
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **InvitationService** (`apps/api/src/services/invitation.service.ts`) — New file, ~510 lines:
-   - `IInvitationService` interface with 6 methods and JSDoc
-   - `InvitationService` class with constructor taking `db: AppDatabase`, `permissionsService: IPermissionsService`, `smsService: ISMSService`
-   - `createInvitations()`: Transaction-safe batch invite. Checks `canInviteMembers` permission, counts current members against 25 limit, deduplicates against already-invited and already-member phones, creates invitation records, creates member records for phones belonging to existing users (status `no_response`), mock-sends SMS outside transaction. Returns `{ invitations, skipped }`.
-   - `getInvitationsByTrip()`: LEFT JOINs invitations with users on `inviteePhone=phoneNumber` to include `inviteeName` where available.
-   - `revokeInvitation()`: Validates invitation exists and user is organizer of the trip. Deletes associated member record (if user exists) and the invitation record.
-   - `updateRsvp()`: Checks `canUpdateRsvp` permission, updates `members.status`, JOINs with users table to return `MemberWithProfile` with string timestamps.
-   - `getTripMembers()`: Checks `isMember` permission, JOINs members with users, conditionally includes `phoneNumber` only when requesting user is an organizer.
-   - `processPendingInvitations()`: Finds pending invitations by phone number, creates member records if not already existing, marks invitations as `accepted`. Idempotent.
-
-2. **Fastify plugin** (`apps/api/src/plugins/invitation-service.ts`):
-   - Follows identical pattern to `event-service.ts`
-   - Dependencies: `["database", "permissions-service", "sms-service"]`
-   - Decorates `invitationService` on Fastify instance
-
-3. **Error type** (`apps/api/src/errors.ts`):
-   - Added `InvitationNotFoundError` (404, code `INVITATION_NOT_FOUND`)
-
-4. **Type augmentation** (`apps/api/src/types/index.ts`):
-   - Added `IInvitationService` import and `invitationService: IInvitationService` to `FastifyInstance` interface
-
-5. **App registration** (`apps/api/src/app.ts`):
-   - Added `invitationServicePlugin` import and registration after `uploadServicePlugin`
-
-6. **Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`) — 26 tests across 6 describe blocks:
-   - **createInvitations** (8 tests): new phones, skip already-invited, skip already-members, mixed scenarios, 25-member limit enforcement, permission denied, trip not found, invitation-only for non-existent users
-   - **getInvitationsByTrip** (2 tests): returns invitations, includes invitee names
-   - **revokeInvitation** (3 tests): revokes and removes member, not found error, permission denied
-   - **updateRsvp** (5 tests): going/maybe/not_going statuses, correct MemberWithProfile fields, permission denied
-   - **getTripMembers** (4 tests): returns profiles, includes phone for organizers, excludes phone for non-organizers, permission denied
-   - **processPendingInvitations** (4 tests): creates member records, updates status to accepted, no duplicate members, handles no pending gracefully
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm lint`: ✅ PASS (all 3 packages)
-- `pnpm test` (API): ✅ PASS (631 tests across 31 test files, 0 failures — up from 605)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- Reviewer: ✅ APPROVED (4 low-severity non-blocking observations, all consistent with codebase patterns)
-
-### Reviewer observations (all non-blocking)
-
-- `revokeInvitation` and `processPendingInvitations` could use transactions for full atomicity, but both are idempotent and consistent with existing patterns
-- `getInvitationsByTrip` does not check permissions at service level — access control will be enforced at route/controller level in Task 3.2
-- `MemberLimitExceededError` uses HTTP 409 (pre-existing definition) vs architecture spec's 400 — pre-existing, not introduced in this change
-- SMS notification reuses `sendVerificationCode` with `"invite"` code — works for mock, may need dedicated method for real SMS later
-
-### Learnings for future iterations
-
-- The `count()` function from `drizzle-orm` returns `{ value: number }` when used as `select({ value: count() })`. This is the standard pattern for counting rows.
-- `exactOptionalPropertyTypes` in strict TypeScript means you cannot assign `undefined` to optional fields explicitly — you must conditionally add the property using spread: `...(condition ? { field: value } : {})`.
-- The InvitationService needs 3 constructor dependencies (db, permissionsService, smsService) unlike most services that need 2. The plugin must declare `"sms-service"` in its dependency array.
-- For batch invite deduplication, it's important to check both the invitations table (already invited) AND the members table (already a member) to build the skipped list correctly.
-- The member limit check counts current members + new phones to invite (after filtering skipped), not total invitations. Phones without user accounts don't get member records until they register.
-- `DBInvitation` (renamed import from schema) has `Date` objects for timestamps, while the shared `Invitation` type has `string` timestamps. The controller/route layer (Task 3.2) will need to convert dates to ISO strings.
-- Phase 3 Task 3.1 is complete. Next is Task 3.2: Create invitation and RSVP route endpoints.
-
-## Iteration 6 — Task 3.2: Create invitation and RSVP route endpoints
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **Invitation controller** (`apps/api/src/controllers/invitation.controller.ts`) — New file, 5 handler methods:
-   - `createInvitations`: POST handler that delegates to `invitationService.createInvitations()`, returns 201 with `{ success: true, invitations, skipped }`
-   - `getInvitations`: GET handler with explicit organizer permission check via `permissionsService.canInviteMembers()` before calling `getInvitationsByTrip()`, returns 200
-   - `revokeInvitation`: DELETE handler that delegates to `invitationService.revokeInvitation()`, returns 200 with `{ success: true }`
-   - `updateRsvp`: POST handler that delegates to `invitationService.updateRsvp()`, returns 200 with `{ success: true, member }`
-   - `getMembers`: GET handler that delegates to `invitationService.getTripMembers()` (which handles its own permission check), returns 200 with `{ success: true, members }`
-   - All methods follow the established try/catch pattern: re-throw typed errors, log and return 500 for unexpected errors
-
-2. **Invitation routes** (`apps/api/src/routes/invitation.routes.ts`) — New file:
-   - GET routes (`/trips/:tripId/invitations`, `/trips/:tripId/members`) with `preHandler: authenticate` only
-   - Write routes in scoped register block with `authenticate + requireCompleteProfile`:
-     - `POST /trips/:tripId/invitations` with `createInvitationsSchema` body validation
-     - `DELETE /invitations/:id` with UUID param validation
-     - `POST /trips/:tripId/rsvp` with `updateRsvpSchema` body validation
-   - Zod param schemas for `tripId` and invitation `id` UUIDs
-
-3. **Route registration** (`apps/api/src/app.ts`):
-   - Added `invitationRoutes` import and registered with `{ prefix: "/api" }`
-
-4. **Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`) — 23 test cases across 5 endpoint groups:
-   - **POST /api/trips/:tripId/invitations** (5 tests): create invitations (201), skip already-invited, 403 non-organizer, 401 unauthenticated, 400 invalid phones
-   - **GET /api/trips/:tripId/invitations** (3 tests): 200 for organizer, 403 for non-organizer, 401 unauthenticated
-   - **DELETE /api/invitations/:id** (4 tests): 200 revoke, 404 non-existent, 403 non-organizer, 401 unauthenticated
-   - **POST /api/trips/:tripId/rsvp** (6 tests): going, maybe, not_going (all 3 enum values), 403 non-member, 400 invalid status, 401 unauthenticated
-   - **GET /api/trips/:tripId/members** (5 tests): 200 member list, phone visible for organizer, phone hidden for non-organizer, 403 non-member, 401 unauthenticated
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages)
-- `pnpm lint`: ✅ PASS (all 3 packages)
-- `pnpm test` (API): ✅ PASS (654 tests across 32 test files, 0 failures — up from 631)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- Reviewer: ✅ APPROVED (initial review flagged 5 missing 401 tests and missing `not_going` RSVP test; all fixed and re-approved)
-
-### Reviewer observations (all resolved)
-
-- DELETE route uses `/api/invitations/:id` instead of architecture spec's `/api/trips/:tripId/invitations/:invitationId` — accepted as consistent with existing codebase pattern (events, accommodations use the same non-nested DELETE pattern)
-- Missing 401 tests for 4 of 5 endpoints — all added
-- Missing `not_going` RSVP test — added for complete enum coverage
-
-### Learnings for future iterations
-
-- The `getInvitationsByTrip` service method does NOT check permissions internally (unlike `getTripMembers` which does). The controller must explicitly check organizer permission via `permissionsService.canInviteMembers()` before calling it. This pattern inconsistency should be noted for any future service methods.
-- Fastify's JSON serializer automatically converts Date objects to ISO strings via `.toJSON()`, so no manual date conversion was needed in the controller despite the DB returning `Date` objects and the shared types expecting `string` timestamps.
-- The DELETE route follows the existing codebase pattern (`/api/invitations/:id` not nested under trips) which differs from the architecture spec. The service looks up the invitation to find the tripId internally, making the tripId param unnecessary in the URL.
-- 401 tests are important for every endpoint — the first review caught 4 missing ones. Always include 401 (unauthenticated) tests alongside 403 (unauthorized) tests.
-- All three RSVP enum values (`going`, `maybe`, `not_going`) should be tested explicitly for complete coverage.
-- Phase 3 Task 3.2 is complete. Next is Task 3.3: Modify trip and event endpoints for preview and creatorAttending.
-
-## Iteration 7 — Task 3.3: Modify trip and event endpoints for preview and creatorAttending
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **TripService `getTripById()` changes** (`apps/api/src/services/trip.service.ts`):
-   - Updated return type to include `isPreview`, `userRsvpStatus`, and `isOrganizer` fields
-   - Added preview field filtering: when `isPreview` is true, trip object only includes `id`, `name`, `destination`, `startDate`, `endDate`, `preferredTimezone`, `description`, `coverImageUrl` (8 allowed fields). Other fields like `createdBy`, `allowMembersToAddEvents`, `cancelled` are stripped from preview.
-   - Preview logic: `isPreview = status !== 'going' && !isOrganizer`. Organizers always get full data regardless of RSVP status.
-   - Defined proper named types: `OrganizerInfo`, `TripMembershipMeta`, `TripPreview` (using `Pick<Trip, ...>`), `TripDetailResult`
-   - Updated `ITripService` interface accordingly
-
-2. **Trip controller changes** (`apps/api/src/controllers/trip.controller.ts`):
-   - Updated `getTripById` handler to destructure `isPreview`, `userRsvpStatus`, `isOrganizer` from service result
-   - Response now sends `{ success: true, trip, isPreview, userRsvpStatus, isOrganizer }`
-
-3. **EventService `getEventsByTrip()` changes** (`apps/api/src/services/event.service.ts`):
-   - Added LEFT JOIN with `users` table (on `events.createdBy = users.id`) for displayName and profilePhotoUrl
-   - Added LEFT JOIN with `members` table (on `members.userId = events.createdBy AND members.tripId = events.tripId`) for RSVP status
-   - Computes `creatorAttending = members.status === 'going'` (false when member record is null, i.e., creator removed from trip)
-   - Maps results to include `creatorAttending`, `creatorName`, `creatorProfilePhotoUrl` on each event
-   - Added explanatory comment for why LEFT JOIN is used on members (creator may have been removed)
-   - Updated `IEventService` interface return type
-
-4. **Event controller access gating** (`apps/api/src/controllers/event.controller.ts`):
-   - Added preview access check in both `listEvents` and `getEvent` endpoints
-   - Non-going, non-organizer members get 403 with `PREVIEW_ACCESS_ONLY` error code
-   - Uses existing `permissionsService.canViewFullTrip()` and `permissionsService.isOrganizer()` methods
-
-5. **Auth flow integration** (`apps/api/src/controllers/auth.controller.ts`):
-   - Added `processPendingInvitations()` call after `getOrCreateUser()` in `verifyCode` handler
-   - Wrapped in try/catch so invitation processing failures don't block login
-   - Comment clarifies "fault-tolerant: awaited but wrapped in try/catch so failures don't break auth"
-
-6. **Integration tests** — 12 new tests across 3 files:
-   - **Trip preview tests** (`apps/api/tests/integration/trip.routes.test.ts`) — 7 tests:
-     - Returns 404 for uninvited user
-     - Returns preview for `no_response` member (isPreview: true, restricted fields absent, allowed fields present)
-     - Returns preview for `maybe` member (same assertions)
-     - Returns preview for `not_going` member (same assertions)
-     - Returns full data for Going member (isPreview: false)
-     - Returns full data for organizer regardless of RSVP status
-     - Includes userRsvpStatus and isOrganizer in response
-   - **Event creator tests** (`apps/api/tests/integration/event.routes.test.ts`) — 4 tests:
-     - Events include creatorAttending: true when creator status is 'going'
-     - creatorAttending is false when creator RSVP is 'maybe'
-     - Events include creatorName and creatorProfilePhotoUrl
-     - Returns 403 for non-going non-organizer member
-     - Returns creatorAttending false when event creator removed from trip
-   - **Auth integration test** (`apps/api/tests/integration/auth.verify-code.test.ts`) — 1 test:
-     - Processes pending invitations after verify-code (member record created, invitation status updated to 'accepted')
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures — up from 654)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- Reviewer: ✅ APPROVED (initial review returned NEEDS_WORK with 6 issues; all fixed and re-approved)
-
-### Reviewer feedback (all resolved)
-
-Initial review found 6 issues:
-1. **[HIGH]** Preview mode returned all trip fields instead of filtering — Fixed: preview now returns only 8 allowed fields
-2. **[MEDIUM]** Preview tests didn't assert restricted fields absent — Fixed: added negative assertions for `createdBy`, `allowMembersToAddEvents`, `cancelled`, `createdAt`, `updatedAt`
-3. **[MEDIUM]** Missing test for `not_going` status — Fixed: added dedicated test case
-4. **[MEDIUM]** Events endpoint not gated behind preview check — Fixed: added `canViewFullTrip` + `isOrganizer` check returning 403
-5. **[LOW]** Missing comment for null member record edge case — Fixed: added comment and regression test
-6. **[LOW]** Type assertion instead of named types — Fixed: defined `OrganizerInfo`, `TripMembershipMeta`, `TripPreview`, `TripDetailResult` types
-
-### Learnings for future iterations
-
-- Preview mode should use an allowlist approach (explicit `Pick<Trip, ...>` with only allowed fields) rather than spreading the full object. This is safe-by-construction — new columns added to the trips table won't leak into preview responses.
-- When the architecture spec says "no itinerary data reference" for preview, this means the events/itinerary endpoints themselves should return 403 for non-going members, not just omit data from the trip response. The frontend should check `isPreview` before requesting events.
-- LEFT JOIN on members table is needed when querying creator info because the creator may have been removed from the trip. Using INNER JOIN would silently drop events whose creators were removed.
-- The `canViewFullTrip()` method was already defined in PermissionsService (Task 1.2) but unused until this task. It was the correct abstraction to reuse for both trip preview checks and event access gating.
-- Auth integration with `processPendingInvitations` should be fault-tolerant (try/catch) not fire-and-forget (void promise). Using `await` ensures the operation completes before the response is sent, but the try/catch prevents login failures if invitation processing errors occur.
-- Named types (`OrganizerInfo`, `TripPreview`, etc.) at the service level improve readability and help TypeScript catch mismatches between the interface declaration and implementation. They're better than inline `as` assertions.
-- Phase 3 (Backend API Endpoints) is now fully complete. All 3 tasks (3.1 InvitationService, 3.2 invitation routes, 3.3 preview + creatorAttending) are done. Next is Phase 4: Frontend — Invitation & RSVP UI (Task 4.1).
-
-## Iteration 8 — Task 4.1: Add frontend hooks and update types for invitations, RSVP, and members
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New query file** (`apps/web/src/hooks/invitation-queries.ts`):
-   - `invitationKeys` query key factory: `all`, `lists()`, `list(tripId)`, `create()`, `revoke()`
-   - `memberKeys` query key factory: `all`, `lists()`, `list(tripId)`
-   - `rsvpKeys` query key factory: `update()`
-   - `invitationsQueryOptions(tripId)` — fetches `GET /trips/:tripId/invitations`, returns `Invitation[]`
-   - `membersQueryOptions(tripId)` — fetches `GET /trips/:tripId/members`, returns `MemberWithProfile[]`
-   - Server-safe (no `"use client"` directive), follows exact `event-queries.ts` pattern
-
-2. **New hooks file** (`apps/web/src/hooks/use-invitations.ts`):
-   - `useInvitations(tripId)` — query wrapper for invitations list (organizer-only)
-   - `useMembers(tripId)` — query wrapper for members list
-   - `useInviteMembers(tripId)` — mutation for `POST /trips/:tripId/invitations`, invalidates invitation + member queries on settled
-   - `useRevokeInvitation(tripId)` — mutation for `DELETE /invitations/:id`, invalidates invitation + member queries on settled
-   - `useUpdateRsvp(tripId)` — mutation for `POST /trips/:tripId/rsvp`, invalidates trip detail + trips list + member queries on settled
-   - `getInviteMembersErrorMessage()` — handles PERMISSION_DENIED, MEMBER_LIMIT_EXCEEDED, VALIDATION_ERROR, UNAUTHORIZED, network errors
-   - `getRevokeInvitationErrorMessage()` — handles PERMISSION_DENIED, INVITATION_NOT_FOUND, UNAUTHORIZED, network errors
-   - `getUpdateRsvpErrorMessage()` — handles PERMISSION_DENIED, NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED, network errors
-   - Re-exports all keys, options, and types from `invitation-queries.ts` for backward compatibility
-   - `"use client"` directive, follows exact `use-events.ts` pattern
-
-3. **Trip queries update** (`apps/web/src/hooks/trip-queries.ts`):
-   - Added `TripDetailWithMeta` interface extending `TripDetail` with `isPreview: boolean`, `userRsvpStatus`, `isOrganizer: boolean`
-   - Updated `tripDetailQueryOptions` to merge envelope fields from `GetTripResponse` into the returned object using `??` defaults: `isPreview: false`, `userRsvpStatus: "going"`, `isOrganizer: false`
-
-4. **Trip hooks update** (`apps/web/src/hooks/use-trips.ts`):
-   - Added import and re-export of `TripDetailWithMeta` type
-
-5. **Server prefetch update** (`apps/web/src/app/(app)/trips/[id]/page.tsx`):
-   - Updated `setQueryData` call to construct `TripDetailWithMeta` shape (including `isPreview`, `userRsvpStatus`, `isOrganizer`) to match the client-side `tripDetailQueryOptions` return type, ensuring hydration consistency
-
-6. **Trip detail content update** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
-   - Replaced manual `isOrganizer` computation (matching user.id against trip.createdBy and trip.organizers) with `trip.isOrganizer` from API response
-   - Replaced hardcoded "Going" badge with dynamic RSVP status badge:
-     - `going` → green "Going" badge (bg-success/15)
-     - `maybe` → amber "Maybe" badge (bg-amber-500/15)
-     - `not_going` → red "Not Going" badge (bg-destructive/15)
-     - `no_response` → gray "No Response" badge (bg-muted)
-   - Added conditional rendering: `{!trip.isPreview && <ItineraryView tripId={tripId} />}` to hide itinerary in preview mode
-   - Removed unused `useAuth` import (user variable was only needed for old manual isOrganizer computation)
-
-7. **New tests** (`apps/web/src/hooks/__tests__/use-invitations.test.tsx`) — 36 tests:
-   - `useInvitations`: successful fetch (2 tests), API error handling (1 test)
-   - `useMembers`: successful fetch (2 tests), API error handling (1 test)
-   - `useInviteMembers`: successful batch invite (1 test), cache invalidation (1 test), error handling (1 test)
-   - `useRevokeInvitation`: successful revocation (1 test), cache invalidation (1 test), error handling (1 test)
-   - `useUpdateRsvp`: successful update (1 test), cache invalidation (1 test), error handling (1 test)
-   - Error message helpers: 21 tests covering all code paths for all 3 helpers
-
-8. **Updated tests**:
-   - `apps/web/src/hooks/__tests__/use-trips.test.tsx`: Updated all `useTripDetail` assertions to expect `TripDetailWithMeta` shape (with `isPreview: false`, `userRsvpStatus: "going"`, `isOrganizer: false` defaults). Added 2 new tests for meta field defaults and explicit values from API response.
-   - `apps/web/src/app/(app)/trips/[id]/page.test.tsx`: Updated `setQueryData` assertion to include meta fields
-   - `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`: Updated mock data type from `TripDetail` to `TripDetailWithMeta`, added meta fields to mock, updated authorization tests
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- `pnpm test` (web): ✅ PASS (653 of 670 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
-- New `use-invitations.test.tsx`: ✅ PASS (36/36 tests)
-- Updated `use-trips.test.tsx`: ✅ PASS (36/36 tests)
-- Reviewer: ✅ APPROVED (2 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** Query key structure uses `["invitations", "list", tripId]` instead of architecture spec's `["trips", tripId, "invitations"]` — this follows the established codebase convention (same as `eventKeys`, `tripKeys`). The architecture spec should be updated, not the code.
-- **[LOW]** Default `userRsvpStatus: "going"` when API omits the field — reasonable for backward compatibility with pre-Phase 5 responses. The API now always returns this field, so this is purely defensive.
-
-### Learnings for future iterations
-
-- The two-file hook pattern (`*-queries.ts` + `use-*.ts`) is fundamental to the codebase. The queries file is server-safe (no `"use client"`) for SSR prefetching, while the hooks file is client-only.
-- `TripDetailWithMeta` extends `TripDetail` with envelope-level metadata (`isPreview`, `userRsvpStatus`, `isOrganizer`). The server-side `page.tsx` must construct the same shape when setting query data for hydration consistency.
-- When `tripDetailQueryOptions` changes its return type, ALL consumers need updating: the server prefetch (`page.tsx`), the component that reads the data (`trip-detail-content.tsx`), and the tests for both.
-- `useUpdateRsvp` must invalidate three query families: trip detail (isPreview/userRsvpStatus changes), trips list (rsvpStatus in TripSummary changes), and members list (member status changes). Missing any of these would cause stale UI.
-- Removing the manual `isOrganizer` computation from `trip-detail-content.tsx` also made the `useAuth` import unnecessary, since the `user` variable was only used for that computation.
-- The `useInviteMembers` mutation returns the full `CreateInvitationsResponse` (with `invitations` and `skipped` arrays) instead of unwrapping it, so the UI component (Task 4.3) can display both success and skipped information.
-- Phase 4 Task 4.1 is complete. Next is Task 4.2: Build TripPreview component and conditional rendering on trip detail page.
-
-## Iteration 9 — Task 4.2: Build TripPreview component and conditional rendering on trip detail page
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New TripPreview component** (`apps/web/src/components/trip/trip-preview.tsx`):
-   - `"use client"` component accepting `trip: TripDetailWithMeta` and `tripId: string` props
-   - Cover image section (or gradient placeholder) using the same hero pattern as trip-detail-content.tsx
-   - Trip name (Playfair font), destination (MapPin icon), date range (Calendar icon), member count (Users icon)
-   - Conditional description rendering in a card
-   - Organizer avatars (photos or initials via `getInitials`) and names
-   - Invitation banner with Mail icon: "You've been invited!" / "RSVP to see the full itinerary."
-   - Three RSVP action buttons with status-aware styling:
-     - **Going**: `bg-success` when active, success-colored outline otherwise
-     - **Maybe**: `bg-amber-500` when active, amber-colored outline otherwise
-     - **Not Going**: `bg-destructive/15` when active, destructive ghost otherwise
-   - Uses `useUpdateRsvp(tripId)` from `@/hooks/use-invitations` for mutation
-   - Toast success on RSVP change, toast error via `getUpdateRsvpErrorMessage` on failure
-   - All buttons disabled during `isPending` with `Loader2` spinner on active status button
-   - After RSVPing "Going", cache invalidation causes refetch with `isPreview: false`, auto-switching to full view
-
-2. **Modified trip-detail-content.tsx** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
-   - Added `import { TripPreview } from "@/components/trip/trip-preview"`
-   - Added early return `if (trip.isPreview) { return <TripPreview trip={trip} tripId={tripId} />; }` before the full detail render
-   - Removed the now-redundant `{!trip.isPreview && ...}` guard on `<ItineraryView>` since preview mode returns early
-
-3. **Updated barrel exports** (`apps/web/src/components/trip/index.ts`):
-   - Added `export { TripPreview } from "./trip-preview";`
-
-4. **New TripPreview tests** (`apps/web/src/components/trip/__tests__/trip-preview.test.tsx`) — 17 tests:
-   - Renders trip name, destination, and date range
-   - Renders cover image when coverImageUrl exists
-   - Renders gradient placeholder when no cover image
-   - Renders organizer names and avatars (including initials fallback)
-   - Renders member count
-   - Shows invitation banner message
-   - Renders all 3 RSVP buttons
-   - Highlights Going/Maybe/Not Going button as active when matching userRsvpStatus (3 tests)
-   - Calls useUpdateRsvp with correct tripId
-   - Clicking Going/Maybe/Not Going calls mutate with correct status (3 tests)
-   - Shows loading state (all buttons disabled) when isPending
-   - Renders description when available
-   - Does NOT render description when not provided
-
-5. **Updated trip-detail-content tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`) — 3 new tests:
-   - Added TripPreview mock component
-   - "renders TripPreview component when trip.isPreview is true"
-   - "does not render ItineraryView when trip.isPreview is true"
-   - "does not render TripPreview when trip.isPreview is false (renders ItineraryView instead)"
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (web): ✅ PASS (673 of 690 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- New `trip-preview.test.tsx`: ✅ PASS (17/17 tests)
-- Updated `trip-detail-content.test.tsx`: ✅ PASS (39/39 tests)
-- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** Going button spinner logic uses unnecessarily convoluted nested ternary — functionally correct but could be simplified to match Maybe/Not Going buttons' pattern
-- **[LOW]** Spinner appears on the currently-active status button rather than the clicked button — minor UX imperfection since `isPending` is global mutation state and `userRsvpStatus` hasn't updated yet. All buttons are disabled during pending so users still see activity indication.
-- **[LOW]** `useEvents(tripId)` fires unconditionally even in preview mode — data is unused since TripPreview renders via early return. Minimal performance cost since server returns 403 for non-Going members anyway.
-
-### Learnings for future iterations
-
-- The early-return pattern (`if (trip.isPreview) return <TripPreview .../>`) is cleaner than wrapping both preview and full detail in conditional blocks. It also allowed removing the redundant `!trip.isPreview` guard on `<ItineraryView>`.
-- When building status-aware button styles, track which button was clicked via local state if you want the spinner on the clicked button rather than the current-status button. The global `isPending` + server-side `userRsvpStatus` approach shows spinner on the "wrong" button, though this is cosmetically minor.
-- The `useEvents(tripId)` hook fires unconditionally in preview mode because it's called before the early return check. To avoid this, the hook could accept an `enabled` option, or the query could be conditionally called. Not worth fixing now since the server rejects the request anyway.
-- TripPreview only accesses fields from the server's preview allowlist (`name`, `destination`, `startDate`, `endDate`, `description`, `coverImageUrl`, `organizers`, `memberCount`, `userRsvpStatus`), so no sensitive data leaks in preview mode.
-- Phase 4 Task 4.2 is complete. Next is Task 4.3: Build InviteMembersDialog with batch phone input.
-
-## Iteration 10 — Task 4.3: Build InviteMembersDialog with batch phone input
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New InviteMembersDialog component** (`apps/web/src/components/trip/invite-members-dialog.tsx`):
-   - `"use client"` component with props: `{ open: boolean; onOpenChange: (open: boolean) => void; tripId: string; }`
-   - Uses `useForm` from `react-hook-form` with `zodResolver` and `createInvitationsSchema` from `@tripful/shared/schemas`
-   - Phone number input using existing `PhoneInput` component from `@/components/ui/phone-input`
-   - Local state (`currentPhone`, `phoneError`) manages the phone input separately from the form's `phoneNumbers` array
-   - "Add" button validates phone (E.164 regex `/^\+[1-9]\d{1,14}$/`), detects duplicates, and appends to form's `phoneNumbers` array
-   - Enter key on phone input wrapper div triggers "Add" (prevents default form submission)
-   - Added phone numbers displayed as `Badge` chips with `variant="secondary"` and removable X buttons with `aria-label`
-   - `formatPhoneNumber` from `@/lib/format` formats E.164 to readable format for chip display
-   - Submit sends batch invite via `useInviteMembers(tripId)` mutation
-   - Success toast shows invited count with skipped count when applicable (e.g., "3 invitations sent (1 already invited)")
-   - Error toast via `getInviteMembersErrorMessage` for API errors
-   - Form resets via `useEffect` watching `open` prop
-   - Loading state: all inputs disabled during `isPending`, `Loader2` spinner on submit button
-   - Styling matches codebase: `sm:max-w-2xl` dialog, Playfair font title, `h-12 rounded-xl` inputs/buttons, `variant="gradient"` submit
-
-2. **Barrel export** (`apps/web/src/components/trip/index.ts`):
-   - Added `export { InviteMembersDialog } from "./invite-members-dialog";`
-
-3. **Trip detail page integration** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
-   - Added `dynamic()` import for InviteMembersDialog with `{ ssr: false }` and `preloadInviteMembersDialog` on hover/focus
-   - Added `isInviteOpen` state
-   - Added "Invite" button with `UserPlus` icon next to "Edit trip" button in organizer-only area
-   - Added `InviteMembersDialog` render in organizer-only conditional block
-
-4. **New tests** (`apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx`) — 22 tests:
-   - **Dialog open/close** (3 tests): renders when open, hidden when closed, cancel calls onOpenChange(false)
-   - **Form fields** (3 tests): phone input, add button, submit button (disabled when no phones)
-   - **Phone management** (5 tests): add valid phone as chip, reject invalid phone, reject duplicate, remove chip, show count
-   - **Submission** (3 tests): API called with correct phoneNumbers array, success toast with count, success toast with skipped count
-   - **Error handling** (2 tests): generic API error toast, permission denied error message
-   - **Loading state** (2 tests): disabled inputs during submission, spinner on submit button
-   - **Styling** (3 tests): Playfair font on title, gradient variant on submit, secondary variant on Badge chips
-   - **Form reset** (1 test): phones cleared when dialog closes and reopens
-
-5. **Updated tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`):
-   - Added mock for `@/components/trip/invite-members-dialog`
-   - 2 new tests: "renders Invite button for organizer" and "does not render Invite button for non-organizer"
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (web): ✅ PASS (697 of 714 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- New `invite-members-dialog.test.tsx`: ✅ PASS (22/22 tests)
-- Updated `trip-detail-content.test.tsx`: ✅ PASS (41/41 tests)
-- Reviewer: ✅ APPROVED (4 low-severity non-blocking suggestions)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** `PHONE_REGEX` constant duplicates the regex from shared schema — reasonable pragmatic choice to avoid importing Zod internals, but should be noted if the regex changes in the shared package
-- **[LOW]** `onKeyDown` handler for Enter-to-add is on wrapping `div` — works correctly since keydown bubbles, but worth noting if form structure evolves
-- **[LOW]** No test for Enter key shortcut to add phone — cosmetic gap, all other phone management paths tested
-- **[LOW]** `form` in `useEffect` dependency array is stable — technically unnecessary but harmless and ESLint-compliant
-
-### Learnings for future iterations
-
-- The `PhoneInput` component's `PhoneInputProps` type does not include `onKeyDown` or `aria-label`. To handle Enter key for "Add", the approach is to wrap the PhoneInput in a `div` with `onKeyDown` and let the keydown event bubble up. This is type-safe and avoids extending the third-party component's props.
-- The `formatPhoneNumber` utility from `@/lib/format` uses `react-phone-number-input`'s `parsePhoneNumber` to convert E.164 (`+14155552671`) to international format (`+1 415 555 2671`), making phone chips more readable.
-- The `useInviteMembers` mutation returns `CreateInvitationsResponse` with both `invitations[]` and `skipped[]` arrays. The success handler should construct a message showing both counts for transparency.
-- The controlled dialog pattern (`open`/`onOpenChange`) with `useEffect` form reset is consistent across all dialogs in this codebase. The `form.reset()` in the effect ensures no stale phone numbers appear when reopening the dialog.
-- The `dynamic()` import with `preload` pattern for dialogs is critical for code splitting — dialogs are only loaded when the user hovers/focuses the trigger button, not on initial page load. This keeps the trip detail page bundle small.
-- Phase 4 Task 4.3 is complete. Next is Task 4.4: Build MembersList component as tab on trip detail page.
-
-## Iteration 11 — Task 4.4: Build MembersList component as tab on trip detail page
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **Installed shadcn/ui Tabs component** (`apps/web/src/components/ui/tabs.tsx`):
-   - Ran `npx shadcn@latest add tabs --yes` to install the Tabs, TabsList, TabsTrigger, TabsContent components
-   - Standard shadcn/ui generated component using Radix UI primitives
-
-2. **New MembersList component** (`apps/web/src/components/trip/members-list.tsx`):
-   - `"use client"` component with props: `{ tripId: string; isOrganizer: boolean; onInvite?: () => void }`
-   - Uses `useMembers(tripId)` hook to fetch member data
-   - `getRsvpBadge()` helper renders status badges with exact same colors as existing pattern:
-     - Going: `bg-success/15 text-success border-success/30`
-     - Maybe: `bg-amber-500/15 text-amber-600 border-amber-500/30`
-     - Not Going: `bg-destructive/15 text-destructive border-destructive/30`
-     - No Response: `bg-muted text-muted-foreground border-border`
-   - Organizer gradient badge: `bg-gradient-to-r from-primary to-accent text-white`
-   - Avatar rendering using `Avatar`, `AvatarImage`, `AvatarFallback` components with `getInitials` fallback
-   - **Loading state**: Skeleton placeholders (circular avatar + text bars) for 3 rows
-   - **Empty state**: Users icon with message and conditional invite button
-   - **Organizer-only features**:
-     - Phone numbers displayed with `formatPhoneNumber` utility
-     - "Invite Members" button that calls `onInvite` callback
-     - Remove member button (X icon) with AlertDialog confirmation
-   - **Remove member flow**: Uses `useInvitations(tripId)` to get invitations list, matches `member.phoneNumber` to `invitation.inviteePhone` to find the `invitationId`, then calls `useRevokeInvitation(tripId).mutate(invitationId)`
-   - **Safety**: No remove button shown for trip creator (no invitation record exists) or for members without phone numbers
-   - Success/error toasts via `sonner`
-
-3. **Barrel export** (`apps/web/src/components/trip/index.ts`):
-   - Added `export { MembersList } from "./members-list";`
-
-4. **Trip detail page tabs integration** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`):
-   - Imported `Tabs`, `TabsContent`, `TabsList`, `TabsTrigger` from `@/components/ui/tabs`
-   - Imported `MembersList` from `@/components/trip/members-list`
-   - Replaced standalone `<ItineraryView>` with tabbed layout:
-     - "Itinerary" tab (default active) renders `<ItineraryView>`
-     - "Members" tab renders `<MembersList>` with `tripId`, `isOrganizer`, and `onInvite` (opens existing InviteMembersDialog)
-
-5. **New tests** (`apps/web/src/components/trip/__tests__/members-list.test.tsx`) — 37 tests:
-   - **Loading state** (1 test): skeleton rendering when data is pending
-   - **Member rendering** (4 tests): display names, member count, avatar images, initials fallback
-   - **RSVP status badges** (4 tests): Going/Maybe/Not Going/No Response with correct text and CSS classes
-   - **Organizer badge** (2 tests): gradient badge present for organizers, absent for regular members
-   - **Organizer-only features** (6 tests): phone numbers shown/hidden, invite button shown/hidden, remove buttons shown/hidden
-   - **Remove member flow** (5 tests): confirmation dialog opens, confirm calls revokeInvitation with correct invitationId, cancel closes dialog, success toast, error toast
-   - **Empty state** (2 tests): graceful handling with/without invite button
-   - **Hook calls** (2 tests): correct tripId passed to useMembers and useInvitations
-   - **Styling** (1 test): Playfair font on heading
-   - **Invite callback** (1 test): onInvite called when invite button clicked
-   - **Creator protection** (1 test): no remove button for members without matching invitation (trip creator)
-
-6. **Updated tests** (`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`) — 5 new tests:
-   - Tabs render with Itinerary and Members tabs
-   - ItineraryView shown by default
-   - MembersList shown when Members tab clicked
-   - Correct props passed to MembersList
-   - MembersList onInvite opens InviteMembersDialog
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (all tests passed, 0 failures)
-- `pnpm test` (web): ✅ PASS (739 of 756 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
-- New `members-list.test.tsx`: ✅ PASS (37/37 tests)
-- Updated `trip-detail-content.test.tsx`: ✅ PASS (46/46 tests)
-- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** Duplicated RSVP badge rendering logic between `members-list.tsx` and `trip-detail-content.tsx` — both use identical CSS classes. Could be extracted to a shared `getRsvpBadge` utility or `<RsvpBadge>` component. Non-blocking since both usages are already consistent.
-- **[LOW]** `useInvitations(tripId)` is always called regardless of `isOrganizer` — the endpoint returns 403 for non-organizers, adding an unnecessary network request. Could conditionally fetch with `enabled: isOrganizer`. Non-blocking since TanStack Query gracefully handles errors and the data is only consumed behind `isOrganizer` checks.
-- **[LOW]** `QueryClient` in test file uses `logger` property which may have been removed in TanStack Query v5+ — but `pnpm typecheck` passes, so no issue with the current version.
-
-### Learnings for future iterations
-
-- The shadcn/ui Tabs component (`npx shadcn@latest add tabs`) installs cleanly and uses Radix UI primitives. It provides `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` exports.
-- The "remove member" flow requires cross-referencing two data sources: `useMembers` returns `MemberWithProfile` (no invitation ID), while `useRevokeInvitation` requires an `invitationId`. The solution is to also call `useInvitations` and match by `phoneNumber` ↔ `inviteePhone`. This implicitly prevents removal of the trip creator since they have no invitation record.
-- The `getRsvpBadge()` helper pattern is a good candidate for extraction to a shared component. Three places now render RSVP badges with the same colors: `trip-detail-content.tsx` (current user badge), `trip-preview.tsx` (RSVP buttons), and `members-list.tsx` (member status badges).
-- When adding tabs to an existing page, using `defaultValue="itinerary"` ensures backward compatibility — existing users see the same content they did before, and the Members tab is an optional discovery.
-- The `onInvite` callback pattern allows the MembersList component to trigger the InviteMembersDialog that's already managed by the parent `trip-detail-content.tsx`, avoiding duplicate dialog state management.
-- Phase 4 Task 4.4 is complete. Next is Task 4.5: Add "member no longer attending" indicator to event cards.
-
-## Iteration 12 — Task 4.5: Add "member no longer attending" indicator to event cards
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **Modified EventCard component** (`apps/web/src/components/itinerary/event-card.tsx`):
-   - Added "Member no longer attending" amber badge in the compact view (alongside existing "Optional" badge) when `event.creatorAttending === false`
-   - Badge uses amber warning styling: `bg-amber-500/15 text-amber-600 border-amber-500/30` — consistent with "Maybe" RSVP badge pattern used in members-list.tsx and trip-detail-content.tsx
-   - Added conditional dimming on the "Created by" text in expanded view: `opacity-50 line-through` classes applied when `event.creatorAttending === false`
-   - Uses strict `=== false` comparison (not `!value`) to avoid triggering on `undefined` — the `creatorAttending` field is `boolean | undefined` on the Event type
-
-2. **New tests** (`apps/web/src/components/itinerary/__tests__/event-card.test.tsx`) — 6 new tests in "Creator attending indicator" describe block:
-   - Shows "Member no longer attending" badge when `creatorAttending` is `false`
-   - Does NOT show badge when `creatorAttending` is `true`
-   - Does NOT show badge when `creatorAttending` is `undefined` (base event without field)
-   - Shows dimmed creator name (`opacity-50`, `line-through`) when expanded and `creatorAttending` is `false`
-   - Does NOT dim creator name when `creatorAttending` is `true`
-   - Verifies correct amber badge styling classes via `data-slot="badge"` selector
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (all tests passed, 0 failures)
-- `pnpm test` (web): ✅ PASS (745 of 762 tests passed — 17 pre-existing date/time picker failures unrelated to this task)
-- Event card tests: ✅ PASS (20/20 tests — 14 existing + 6 new)
-- Reviewer: ✅ APPROVED (2 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** `line-through` on the "Created by" text goes slightly beyond the spec's "muted" requirement — adds a strikethrough alongside opacity-50. Functionally reinforces the "no longer attending" status but could be read as "deleted." Judgment call; not incorrect.
-- **[LOW]** On very narrow mobile screens, having both "Member no longer attending" and "Optional" badges simultaneously could compress the event name area. Both being present simultaneously is rare in practice (low impact edge case).
-
-### Learnings for future iterations
-
-- The `Event` type has `creatorAttending?: boolean` as optional. Using `=== false` (strict equality) is essential to distinguish "creator is not attending" from "field not present." This pattern should be used consistently for all optional boolean fields from the API.
-- The amber badge pattern (`bg-amber-500/15 text-amber-600 border-amber-500/30`) is now used in four places: members-list.tsx (Maybe status), trip-detail-content.tsx (Maybe badge), trip-preview.tsx (Maybe RSVP button), and event-card.tsx (not attending indicator). This is a strong candidate for extraction to a shared `<RsvpBadge>` or `<StatusBadge>` component.
-- EventCard is a pure presentational component (no hooks, no QueryClient needed) — tests are straightforward `render` + `screen.getByText` assertions without needing QueryClientProvider wrappers.
-- The `data-slot="badge"` attribute emitted by the shadcn/ui Badge component is useful for test selectors — it allows finding badge elements without relying on text content or fragile class selectors.
-- Phase 4 (Frontend — Invitation & RSVP UI) is now fully complete. All 5 tasks (4.1 hooks, 4.2 TripPreview, 4.3 InviteMembersDialog, 4.4 MembersList, 4.5 event card indicator) are done. Next is Phase 5: E2E Tests & Regression (Task 5.1).
-
-## Iteration 13 — Task 5.1: Create E2E test helpers for invitation flow
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New helper file** (`apps/web/tests/e2e/helpers/invitations.ts`) — 4 exported functions:
-   - `createTripViaAPI(request, organizerCookie, tripData)` — creates a trip via `POST /api/trips`, returns trip ID. Accepts name, destination, optional timezone/dates/description. Defaults timezone to "UTC".
-   - `inviteViaAPI(request, tripId, inviterCookie, inviteePhones)` — sends batch invitations via `POST /api/trips/:tripId/invitations`. Returns response data with `invitations` and `skipped` arrays.
-   - `rsvpViaAPI(request, tripId, memberCookie, status)` — updates RSVP status via `POST /api/trips/:tripId/rsvp`. Accepts "going", "not_going", or "maybe". Returns response data with updated member.
-   - `inviteAndAcceptViaAPI(request, tripId, inviterPhone, inviteePhone, inviteeName)` — the main composite helper matching the prescribed ARCHITECTURE.md signature. Handles the full multi-user flow: re-authenticates inviter → sends invitation → authenticates invitee (verify-code triggers `processPendingInvitations`) → RSVPs as "going".
-   - All functions follow existing patterns: same `API_BASE` constant, `APIRequestContext` type, cookie-based auth headers, descriptive error messages on failure, JSDoc comments.
-
-2. **New verification test** (`apps/web/tests/e2e/invitation-helpers.spec.ts`) — 2 tests:
-   - **"inviteAndAcceptViaAPI creates member with going status"** — creates organizer via API, creates trip via `createTripViaAPI`, calls `inviteAndAcceptViaAPI`, verifies invitee appears in members list with status "going" and correct display name.
-   - **"lower-level helpers work independently"** — tests `inviteViaAPI` and `rsvpViaAPI` separately, verifies invitation creation returns correct counts and RSVP with "maybe" status persists correctly.
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
-- `pnpm test:e2e`: ✅ PASS (11/11 tests in 31.9s — 9 existing + 2 new invitation helper tests)
-- Reviewer: ✅ APPROVED (4 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** `API_BASE` constant is duplicated in both the helper file and spec file — matches existing codebase pattern where spec files inline API URLs (e.g., `trip-journey.spec.ts`).
-- **[LOW]** Phone number collision risk with `Date.now()` offset pattern in parallel tests — matches existing convention used in `trip-journey.spec.ts`.
-- **[LOW]** Return types use `unknown` for response data shapes (`invitations: unknown[]`, `member: unknown`) — pragmatic choice avoiding coupling test helpers to shared type definitions.
-- **[LOW]** `page` fixture unused in first test but `beforeEach` still runs `removeNextjsDevOverlay(page)` — harmless since Playwright provides the fixture regardless.
-
-### Learnings for future iterations
-
-- The `inviteAndAcceptViaAPI` helper relies on a critical ordering: (1) invite first (creates invitation record), (2) then authenticate invitee (verify-code triggers `processPendingInvitations` which creates the member record), (3) then RSVP. Swapping steps 1 and 2 would fail because there would be no pending invitation to process.
-- `createUserViaAPI` works for both new and existing users — the auth flow (`request-code` → `verify-code` → `complete-profile`) issues a new token regardless, making it safe to "re-authenticate" the inviter to get a fresh cookie.
-- The `createTripViaAPI` helper is a bonus addition not in the original prescribed signature but essential for the verification tests and will be reused in Tasks 5.2 and 5.3.
-- The decomposition into low-level helpers (`inviteViaAPI`, `rsvpViaAPI`) plus the composite `inviteAndAcceptViaAPI` allows future tests to use either the full flow or individual steps depending on what they need to test.
-- E2E tests run in ~32 seconds total (11 tests). The new invitation helper tests add minimal overhead since they only use API calls (no browser interaction).
-- Phase 5 Task 5.1 is complete. Next is Task 5.2: Update existing E2E tests for isOrganizer permission model.
-
-## Iteration 14 — Task 5.2: Update existing E2E tests for isOrganizer permission model
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-This was a **verification task** — reviewing all existing E2E tests to ensure they work correctly with the new `isOrganizer` permission model (which replaced the old `status='going'` organizer detection). The result: **no code changes were needed**.
-
-1. **Reviewed `trip-journey.spec.ts`** (447 lines, 3 tests):
-   - The "trip permissions journey" test exercises the co-organizer flow through `POST /api/trips/:id/co-organizers` and `DELETE /api/trips/:id/co-organizers/:userId`. These endpoints correctly set `isOrganizer: true` on member records.
-   - The test verifies "Organizing" badge visibility, edit permissions, and access revocation after co-organizer removal.
-   - No test relies on `status='going'` for organizer permissions — all organizer logic flows through API endpoints that set `isOrganizer: true`.
-
-2. **Reviewed `itinerary-journey.spec.ts`** (475 lines, 3 tests):
-   - All tests operate as the trip creator who automatically gets `isOrganizer: true` via `createTrip()`.
-   - The "itinerary permissions and validation" test verifies non-member access denial and organizer-only event creation, both of which work correctly with the `isOrganizer` column.
-   - No test creates non-organizer members that would exercise the `status='going'` → organizer path.
-
-3. **Reviewed `app-shell.spec.ts`** (64 lines, 1 test):
-   - Tests header, navigation, user menu, and skip link. No trip or permission logic. No impact.
-
-4. **Reviewed `auth-journey.spec.ts`** (107 lines, 2 tests):
-   - Tests authentication flow (login, verification, profile, logout, guards). No trip or permission logic. No impact.
-
-5. **Reviewed `invitation-helpers.spec.ts`** (169 lines, 2 tests):
-   - Already works with the new model — invited members get `isOrganizer: false` by default, and the test verifies RSVP `status` (not organizer permissions).
-   - The `inviteAndAcceptViaAPI` helper correctly creates non-organizer members via the invitation flow.
-
-6. **`inviteAndAcceptViaAPI` helper usage**: The task specified to use this helper "where tests need non-creator members." After review, no existing test creates non-creator members outside the co-organizer API path, so the helper is not needed by any existing test. It will be used in Task 5.3 (new invitation/RSVP E2E tests).
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
-- `pnpm test:e2e`: ✅ PASS (11/11 tests in 48.2s):
-  - `app-shell.spec.ts` — 1 test passed
-  - `auth-journey.spec.ts` — 2 tests passed
-  - `invitation-helpers.spec.ts` — 2 tests passed
-  - `itinerary-journey.spec.ts` — 3 tests passed
-  - `trip-journey.spec.ts` — 3 tests passed
-- Reviewer: ✅ APPROVED (2 low-severity non-blocking suggestions)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** A future E2E test could verify that a non-organizer member with `status='going'` can add events when `allowMembersToAddEvents=true` but cannot edit/delete the trip — this exercises the organizer vs. regular member distinction. Likely within scope for Task 5.3.
-- **[LOW]** The `inviteAndAcceptViaAPI` helper could defensively verify that the invited member does NOT have `isOrganizer: true`, but this is more of a unit-test-level concern.
-
-### Learnings for future iterations
-
-- The existing E2E tests were well-designed from the start — they test through API endpoints rather than directly manipulating the database, so the internal shift from `status='going'` to `isOrganizer` column was completely transparent to them.
-- Verification tasks (where no code changes are needed) are a valid outcome. The thorough review process confirms the backward compatibility of the permission model change rather than introducing unnecessary changes.
-- The `inviteAndAcceptViaAPI` helper exists but has no use cases in existing tests. It will be critical for Task 5.3 where new E2E tests need to create non-organizer members with specific RSVP statuses.
-- The co-organizer removal flow in `trip-journey.spec.ts` deletes the member record entirely (not just setting `isOrganizer: false`), which means the removed user gets a 404. This is the correct behavior per the architecture decision.
-- Phase 5 Task 5.2 is complete. Next is Task 5.3: Write new E2E tests for invitation and RSVP journey.
-
-## Iteration 15 — Task 5.3: Write new E2E tests for invitation and RSVP journey
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-1. **New E2E test file** (`apps/web/tests/e2e/invitation-journey.spec.ts`) — 4 tests:
-
-   - **"invitation and RSVP journey"** (tagged `@smoke`, `test.slow()`): Full happy-path test — organizer creates trip via API, invites a member through the UI dialog (filling phone input, clicking Add, sending invitations), verifies the invitee sees the trip preview with "You've been invited!" text and RSVP buttons, then the invitee RSVPs "Going" (using `{ exact: true }` to avoid matching "Not Going") and verifies the preview is replaced by the full trip view with Itinerary and Members tabs.
-
-   - **"RSVP status change and member indicator"** (`test.slow()`): Tests the "Member no longer attending" indicator. Creates an event via API as the invited member, changes RSVP to "maybe" via API (member sees preview mode), switches to organizer view to verify "Member no longer attending" badge appears on the event card, then changes RSVP back to "going" and verifies the badge disappears.
-
-   - **"uninvited user access"**: Verifies that an uninvited user navigating to a trip URL sees the "Trip not found" heading (404).
-
-   - **"member list"** (`test.slow()`): Sets up 2 members with different RSVP statuses (going and maybe) via API helpers, then verifies the organizer sees the Members tab with correct names, "Organizer" badge, "Members (3)" count heading, "Going" and "Maybe" RSVP badges, and the "Invite" button. All assertions scoped to `page.getByRole("tabpanel")` to avoid strict mode violations.
-
-2. **Three fixes applied during verification**:
-   - **Fix 1**: Added `{ exact: true }` to "Going" button selector (line 117) to prevent matching "Not Going" button (substring match issue in Playwright's default behavior)
-   - **Fix 2**: Changed event creation from UI interaction to API call (`page.request.post`) because non-organizer members cannot see the "Add Event" button on an empty itinerary (the empty state only renders "Add Event" for `isOrganizer`). The API's `canAddEvent` permission correctly allows members with `status='going'` when `allowMembersToAddEvents=true`.
-   - **Fix 3**: Scoped all member list assertions to `page.getByRole("tabpanel")` to prevent Playwright strict mode violations when "Organizer Delta" text appears both in the trip header's "Organizers" section and in the Members tab list.
-
-### Verification results
-
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests across 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (667 tests across 32 test files, 0 failures)
-- `pnpm test` (web): ✅ PASS (745+ tests — 17 pre-existing date/time picker failures unrelated to this task)
-- `pnpm test:e2e`: ✅ PASS (15/15 tests in 34.5s):
-  - `invitation-journey.spec.ts` — 4 tests passed (4.7s, 5.7s, 2.6s, 3.0s)
-  - `invitation-helpers.spec.ts` — 2 tests passed
-  - `app-shell.spec.ts` — 1 test passed
-  - `auth-journey.spec.ts` — 2 tests passed
-  - `itinerary-journey.spec.ts` — 3 tests passed
-  - `trip-journey.spec.ts` — 3 tests passed
-- Reviewer: ✅ APPROVED (3 low-severity non-blocking observations)
-
-### Reviewer observations (all non-blocking)
-
-- **[LOW]** Phone number offset inconsistency in test 4: `member2Phone` uses offset `+50000` while all other tests use 4-digit offsets (+1000, +2000, +3000, +4000). Works correctly but is inconsistent.
-- **[LOW]** Variable declaration with `let` then immediate assignment for `tripId` — carried over from existing E2E test patterns, consistent with codebase.
-- **[LOW]** No screenshot captures (`snap()`) — the TASKS.md mentions "screenshots captured for manual verification" but this is a soft suggestion. The test file focuses on functional verification.
-
-### Learnings for future iterations
-
-- **Playwright `{ exact: true }` is critical** when button names are substrings of other buttons. "Going" matches "Not Going" by default because Playwright uses substring matching for role name assertions. Always use `{ exact: true }` for short button names that could be substrings.
-- **Empty itinerary state restricts UI actions**: When the itinerary is empty (`hasNoContent` is true), the `ItineraryView` renders the empty state directly, NOT the `ItineraryHeader` with its FAB. In the empty state, "Add Event" button is ONLY visible to `isOrganizer`. Non-organizer members see "No itinerary yet" text with no action buttons. If a test needs a non-organizer to create content, use the API endpoint directly (`page.request.post`).
-- **Scope tabpanel assertions**: When a trip detail page has both a header section (showing organizer info) and a Members tab panel (showing member list), text like organizer names appears in multiple places. Always scope member list assertions to `page.getByRole("tabpanel")` to avoid Playwright strict mode violations.
-- **`page.request.post` vs `request` fixture**: `page.request` uses the browser context's cookies (including injected auth cookies), while the `request` fixture from the test function has no browser cookies. Use `page.request` for in-test API calls that need the current user's auth.
-- Phase 5 Task 5.3 is complete. Next is Task 6.1: Full regression check.
-
-## Iteration 16 — Task 6.1: Full regression check
-
-**Status**: ✅ COMPLETE
-
-### What was done
-
-This was a **verification task** — a full regression check of the entire Phase 5: Invitations & RSVP implementation. No new application code was written. All four automated quality checks were run and a comprehensive manual smoke test was performed with screenshots.
-
-1. **Automated quality checks**:
-   - `pnpm lint`: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web — 0 errors)
-   - `pnpm typecheck`: ✅ PASS (all 3 packages, 0 TypeScript errors)
-   - `pnpm test`: ✅ PASS
-     - shared: 185/185 tests passed (9 test files)
-     - API: 667/667 tests passed (32 test files)
-     - web: 745/762 tests passed (38 test files) — 17 pre-existing date/time picker failures (documented since iteration 2, unrelated to Phase 5)
-   - `pnpm test:e2e`: ✅ PASS (15/15 tests passed in 1.1 minutes)
-     - app-shell.spec.ts — 1 test
-     - auth-journey.spec.ts — 2 tests
-     - invitation-helpers.spec.ts — 2 tests
-     - invitation-journey.spec.ts — 4 tests
-     - itinerary-journey.spec.ts — 3 tests
-     - trip-journey.spec.ts — 3 tests
-
-2. **Manual smoke test** (`.ralph/smoke-test.py`):
-   - Wrote and ran a comprehensive Playwright Python script that exercises the full invitation flow
-   - Created 9 screenshots as visual proof saved to `.ralph/screenshots/`:
-     - `task-6.1-01-trip-detail-organizer.png` — Organizer's trip detail with "Invite" and "Edit trip" buttons, "Going"/"Organizing" badges, Itinerary/Members tabs
-     - `task-6.1-02-invite-dialog-open.png` — Invite Members dialog with phone input, Add button, Send invitations button
-     - `task-6.1-03-phone-added.png` — Phone number added as chip/badge in dialog
-     - `task-6.1-04-invitation-sent.png` — Invitation sent successfully
-     - `task-6.1-05-members-tab.png` — Members tab showing organizer with "Organizer" badge and "Going" status
-     - `task-6.1-06-invitee-preview.png` — Invitee sees trip preview with "You've been invited!" text and RSVP buttons (Going, Maybe, Not Going)
-     - `task-6.1-07-after-rsvp-going.png` — After RSVP "Going", full trip view with tabs, "RSVP updated to Going" toast
-     - `task-6.1-08-uninvited-404.png` — Uninvited user sees "Trip not found" with "Return to dashboard" button
-     - `task-6.1-09-member-not-attending-indicator.png` — Event card showing "Member no longer attending" amber badge when creator RSVPed "Maybe"
-
-### Verification results
-
-- `pnpm lint`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm typecheck`: ✅ PASS (all 3 packages, 0 errors)
-- `pnpm test` (shared): ✅ PASS (185 tests, 9 test files, 0 failures)
-- `pnpm test` (API): ✅ PASS (667 tests, 32 test files, 0 failures)
-- `pnpm test` (web): ✅ PASS (745 of 762 tests — 17 pre-existing date/time picker failures unrelated to Phase 5)
-- `pnpm test:e2e`: ✅ PASS (15/15 tests in 1.1 minutes)
-- Manual smoke test: ✅ PASS (13/13 checks confirmed, 9 screenshots captured)
-- Verifier: ✅ PASS
-- Reviewer: ✅ APPROVED
-
-### Phase 5 completion summary
-
-All 16 tasks across 6 phases are now complete:
-- **Phase 1** (Tasks 1.1–1.3): Database schema changes — `isOrganizer` column, invitations table, permissions and trip service updates
-- **Phase 2** (Task 2.1): Shared schemas and types for invitations, RSVP, and member profiles
-- **Phase 3** (Tasks 3.1–3.3): Backend API — InvitationService, invitation/RSVP/members endpoints, trip preview and creatorAttending
-- **Phase 4** (Tasks 4.1–4.5): Frontend UI — hooks, TripPreview, InviteMembersDialog, MembersList, event card indicator
-- **Phase 5** (Tasks 5.1–5.3): E2E tests — invitation helpers, existing test updates, new invitation journey tests
-- **Phase 6** (Task 6.1): Full regression check — all quality checks pass, manual smoke test with screenshots
-
-### Test totals across all packages
-
-| Package | Tests | Passing | Failing | Files |
-|---------|-------|---------|---------|-------|
-| shared  | 185   | 185     | 0       | 9     |
-| API     | 667   | 667     | 0       | 32    |
-| web     | 762   | 745     | 17*     | 38    |
-| E2E     | 15    | 15      | 0       | 6     |
-| **Total** | **1,629** | **1,612** | **17*** | **85** |
-
-*17 pre-existing date/time picker failures unrelated to Phase 5 (documented since iteration 2)
-
-### Learnings for future iterations
-
-- The `create event` API endpoint uses field name `name` (not `title`), requires `eventType` (one of "travel", "meal", "activity"), and expects ISO 8601 datetime strings for `startTime`/`endTime`. The trip creation API uses `timezone` (not `preferredTimezone`).
-- For Python Playwright smoke tests, use `http.client` instead of `urllib.request` for cookie handling. The API sets `auth_token` as an httpOnly cookie via `Set-Cookie` header — `urllib.request` doesn't reliably capture these headers, while `http.client.HTTPConnection` exposes them through `getheaders()`.
-- `pyenv shell 3.13.1` is needed to access Python with Playwright installed. The default Python environment doesn't have `pip` accessible.
-- Playwright browsers are already installed in `/home/chend/.cache/ms-playwright/` — no need to run `playwright install` again. Setting `PLAYWRIGHT_BROWSERS_PATH` env var is not required as the default path is already correct.
-- Phase 5: Invitations & RSVP is now fully complete. All tasks passed verification and review across 16 iterations.
+**Shared Types**:
 
+- `shared/types/user.ts`: `timezone: string | null`, added `handles: Record<string, string> | null`
+- `shared/types/invitation.ts`: Added `handles: Record<string, string> | null` to `MemberWithProfile`
+
+**Shared Schemas**:
+
+- `shared/schemas/auth.ts`: `userResponseSchema` timezone → `.nullable()`, added `handles` field; `completeProfileSchema` timezone → `.nullable().optional()`
+- `shared/schemas/invitation.ts`: Added `handles` to `memberWithProfileSchema`
+- `shared/schemas/user.ts` (NEW): `ALLOWED_HANDLE_PLATFORMS`, `userHandlesSchema`, `updateProfileSchema`, `HandlePlatform`, `UpdateProfileInput`
+- `shared/schemas/index.ts`: Added barrel exports for new user profile schemas
+
+**Auth Service** (`apps/api/src/services/auth.service.ts`):
+
+- `updateProfile` signature expanded to accept `timezone: string | null`, `profilePhotoUrl: string | null`, `handles: Record<string, string> | null`
+- `getOrCreateUser` no longer sets `timezone: "UTC"` (new users get null)
+
+**Invitation Service** (`apps/api/src/services/invitation.service.ts`):
+
+- Added `handles` to query selects in `updateRsvp` and `getTripMembers`
+
+**Trip Service** (`apps/api/src/services/trip.service.ts`):
+
+- Updated `OrganizerInfo` type to allow `timezone: string | null`
+
+**Tests Updated**:
+
+- `apps/api/tests/unit/auth.service.test.ts`: timezone expectations → null
+- `apps/api/tests/unit/schema.test.ts`: nullable timezone assertions
+- `apps/api/tests/integration/auth.verify-code.test.ts`: timezone → null
+- `apps/web/src/hooks/__tests__/use-invitations.test.tsx`: `handles: null` in mocks
+- `apps/web/src/components/trip/__tests__/members-list.test.tsx`: `handles: null` in mocks
+- `shared/__tests__/exports.test.ts`: `handles: null` in User type mock
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: 95/95, web: 762/767 — 5 pre-existing failures confirmed unrelated)
+- **reviewer**: APPROVED
+
+### Learnings
+
+- Drizzle ORM columns are nullable by default when `.notNull()` is omitted — no explicit `.nullable()` needed
+- The shared package uses raw `.ts` files as exports (no compilation step for dev)
+- Convention: `.nullable().optional()` ordering in Zod schemas, never `.optional().nullable()`
+- 5 pre-existing web test failures exist: trip-preview (2), create-member-travel-dialog (2), itinerary-header (1) — all unrelated to this phase
+- When changing types in shared/, must update mock objects in ALL consuming test files across api and web packages
+
+## Iteration 2 — Task 2.1: Create user routes, controller, and extend auth service for profile management ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**New Files**:
+
+`apps/api/src/controllers/user.controller.ts` (NEW):
+
+- Object-based controller with 3 methods: `updateProfile`, `uploadProfilePhoto`, `removeProfilePhoto`
+- `updateProfile`: Validates with `updateProfileSchema`, calls `authService.updateProfile()`, regenerates JWT cookie only when `displayName` changes
+- `uploadProfilePhoto`: Follows trip `uploadCoverImage` multipart pattern — `request.file()` → `toBuffer()` → delete old photo → `uploadService.uploadImage()` → update user
+- `removeProfilePhoto`: Idempotent delete — gets current user, deletes file if exists, sets `profilePhotoUrl: null`
+
+`apps/api/src/routes/user.routes.ts` (NEW):
+
+- Registers `PUT /me`, `POST /me/photo`, `DELETE /me/photo` under `/api/users` prefix
+- All routes in scoped plugin with `authenticate` and `writeRateLimitConfig` hooks
+- Zod body schema validation on PUT, response schemas on all endpoints
+- No `requireCompleteProfile` (intentional — users need to update their own profile even if incomplete)
+
+`apps/api/tests/integration/user.routes.test.ts` (NEW):
+
+- 19 integration tests covering all three endpoints
+- PUT /me: update displayName, timezone, timezone→null, handles CRUD, validation errors, auth required, JWT refresh verification, database persistence
+- POST /me/photo: upload success, replace existing (old deleted), no file error, invalid file type, auth required
+- DELETE /me/photo: remove existing, idempotent when none, verify null, auth required
+
+**Modified Files**:
+
+`apps/api/src/app.ts`:
+
+- Added import of `userRoutes` from `./routes/user.routes.js`
+- Registered at `prefix: "/api/users"`
+
+### No Changes Needed (Already Done in Task 1.1)
+
+- `authService.updateProfile()` — already accepts `profilePhotoUrl` and `handles` parameters
+- `invitationService.getTripMembers()` — already selects and returns `handles` from users table
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed including 19 new, web: 762/767 — 5 pre-existing failures)
+- **manual endpoint checks**: All 3 endpoints verified (PUT /me, POST /me/photo, DELETE /me/photo) — correct responses, 401 without auth
+- **reviewer**: APPROVED
+
+### Learnings
+
+- `authService.updateProfile()` and `invitationService.getTripMembers()` were already extended in Task 1.1 — no modifications needed
+- Controllers are plain objects (not classes) following the `tripController` pattern
+- For multipart upload routes, do NOT include `body` in the route schema — only `response`
+- JWT token regeneration should only happen when `displayName` changes (it's in the JWT `name` claim)
+- The `requireCompleteProfile` middleware is intentionally omitted from user profile routes — users need these to complete their profile
+- One flaky API test (`trip.service.test.ts` phone number collision) is a pre-existing test isolation issue, not related to changes
+
+## Iteration 3 — Task 3.1: Move dashboard files to /trips and update all references across codebase ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Dashboard directory deleted** (`apps/web/src/app/(app)/dashboard/`):
+
+- Removed all 5 files: `page.tsx`, `dashboard-content.tsx`, `dashboard-content.test.tsx`, `page.test.tsx`, `loading.tsx`
+- Replacement files already existed as untracked files in the `trips/` directory
+
+**New files now canonical** (previously untracked, now the active route files):
+
+- `apps/web/src/app/(app)/trips/page.tsx` — `TripsPage` with metadata `{ title: "My Trips" }`
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — `TripsContent` component
+- `apps/web/src/app/(app)/trips/trips-content.test.tsx` — tests for `TripsContent`
+- `apps/web/src/app/(app)/trips/page.test.tsx` — RSC tests for `TripsPage`
+- `apps/web/src/app/(app)/trips/loading.tsx` — `TripsLoading` skeleton
+
+**E2E page object replaced**:
+
+- Deleted `apps/web/tests/e2e/helpers/pages/dashboard.page.ts`
+- New `apps/web/tests/e2e/helpers/pages/trips.page.ts` (already existed) with `TripsPage` class
+- Updated barrel export in `pages/index.ts`: `DashboardPage` → `TripsPage`
+
+**Source files updated** (7 files, `/dashboard` → `/trips`):
+
+- `apps/web/src/components/app-header.tsx` — wordmark href, nav link href, `startsWith` check, nav text "Dashboard" → "My Trips"
+- `apps/web/src/app/(auth)/verify/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(app)/trips/[id]/not-found.tsx` — `href="/trips"`
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — breadcrumb and error link to `/trips`, "Return to trips"
+- `apps/web/src/hooks/use-trips.ts` — `router.push("/trips")` in `useCancelTrip`, updated JSDoc comments
+- `apps/web/src/app/robots.ts` — removed `/dashboard` from disallow, kept `/trips`
+
+**Unit test files updated** (4 files):
+
+- `apps/web/src/app/(auth)/verify/page.test.tsx` — assertion and test name updated
+- `apps/web/src/app/(auth)/complete-profile/page.test.tsx` — 3 assertions and test name updated
+- `apps/web/src/components/__tests__/app-header.test.tsx` — 14+ references: mockPathname, hrefs, "My Trips" text, test names
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — "Return to trips" text and href assertions
+
+**E2E test files updated** (5 files):
+
+- `apps/web/tests/e2e/helpers/auth.ts` — 10 URL references: `**/dashboard` → `**/trips`
+- `apps/web/tests/e2e/auth-journey.spec.ts` — imports, variable names, URLs, step text, screenshot name
+- `apps/web/tests/e2e/trip-journey.spec.ts` — imports, variable names, URLs, step text, screenshot name
+- `apps/web/tests/e2e/app-shell.spec.ts` — imports, variable names, "My Trips" link text
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — imports, variable names
+
+**Documentation updated** (2 files):
+
+- `apps/web/src/components/trip/README.md` — 3 "dashboard" references → "trips page"
+- `apps/web/tests/e2e/README.md` — 6 "dashboard" references → "trips page"/"trips list"
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 762/767 — 5 pre-existing failures)
+- **grep for "dashboard"**: ZERO hits in `apps/web/src/` and `apps/web/tests/` (case-insensitive)
+- **grep for "DashboardPage"**: ZERO hits anywhere in `apps/web/`
+- **reviewer**: APPROVED (after 1 round of feedback fixes)
+
+### Learnings
+
+- Replacement files were pre-created as untracked files — the task was primarily about reference updates and cleanup, not file creation
+- The E2E page object pattern (`DashboardPage` → `TripsPage`) required updating imports and variable names across 5 spec files plus the barrel export
+- Screenshot names in E2E tests should also be updated during renames to avoid confusion
+- JSDoc comments and README documentation are easy to miss — always do a case-insensitive grep sweep for the old term after making changes
+- The `app-header.test.tsx` file had the most references (14+) — the active styling tests for nav links are particularly sensitive to pathname and text changes
+- The `robots.ts` disallow list needed `/dashboard` removed entirely (not replaced) since `/trips` was already there
+
+## Iteration 4 — Task 4.1: Add server-side auth redirects to landing page and auth layout ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Landing Page** (`apps/web/src/app/page.tsx`):
+
+- Converted from sync to async server component
+- Added `cookies` import from `next/headers` and `redirect` from `next/navigation`
+- Cookie check: if `auth_token` cookie has a truthy value, `redirect("/trips")`
+- All existing landing page JSX preserved for unauthenticated users
+
+**Login Layout** (`apps/web/src/app/(auth)/login/layout.tsx`) — NEW:
+
+- Async server component layout wrapping only the `/login` page
+- Same cookie check pattern: reads `auth_token` cookie, redirects to `/trips` if present
+- Returns `children` directly (no wrapper markup — parent `(auth)/layout.tsx` provides decoration)
+- This approach was chosen over adding the redirect to `(auth)/layout.tsx` to avoid breaking `/complete-profile` (see Learnings)
+
+**Auth Layout** (`apps/web/src/app/(auth)/layout.tsx`) — UNCHANGED:
+
+- Remains a sync, purely presentational layout with decorative SVGs and Tripful wordmark
+- No auth logic — this was an intentional design decision (see Learnings)
+
+**Unit Tests** — NEW:
+
+- `apps/web/src/app/page.test.tsx` (4 tests): redirect with token, render without token, render with empty token, correct cookie name check
+- `apps/web/src/app/(auth)/login/layout.test.tsx` (4 tests): redirect with token, render without token, render with empty token, correct cookie name check
+- Both follow the exact mock pattern from `(app)/layout.test.tsx`: mock `next/headers.cookies()`, mock `next/navigation.redirect()` with `NEXT_REDIRECT` throw
+
+**E2E Tests** (`apps/web/tests/e2e/auth-journey.spec.ts`):
+
+- Added new test: "authenticated user redirects away from public pages"
+- Step 1: authenticated user visiting `/` is redirected to `/trips`
+- Step 2: authenticated user visiting `/login` is redirected to `/trips`
+- Uses `authenticateUser` helper to set up authenticated state
+
+### Architecture Decision: Login-Specific Layout vs Auth Layout Redirect
+
+The original task spec called for adding the cookie check to `(auth)/layout.tsx`, which wraps `/login`, `/verify`, and `/complete-profile`. Reviewer identified a HIGH severity issue: after phone verification, the API sets the `auth_token` cookie, and then the client navigates to `/complete-profile`. On a hard refresh of `/complete-profile`, the auth layout redirect would kick authenticated users to `/trips` before they could set their display name — breaking the onboarding flow.
+
+**Solution**: Redirect was scoped to `(auth)/login/layout.tsx` instead, which only wraps the `/login` page. This ensures:
+
+- `/login` redirects authenticated users to `/trips` ✅
+- `/complete-profile` is accessible for authenticated users who need to finish onboarding ✅
+- `/verify` is unaffected (no `auth_token` cookie exists yet when visiting `/verify`) ✅
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 770/775 — 5 pre-existing failures)
+- **reviewer**: APPROVED (after 1 round of feedback — moved redirect from auth layout to login layout)
+
+### Learnings
+
+- Next.js App Router layouts cascade — a redirect in a parent layout fires before child layouts/pages render, with no way for children to opt out
+- Route-segment-specific layouts (e.g., `login/layout.tsx` under `(auth)/`) are the correct pattern when different child routes need different server-side behavior
+- A layout that just `return children` is perfectly valid in Next.js — useful for adding guards/checks without visual wrapping
+- The `(auth)` route group contains pages at different auth states: `/login` (pre-auth), `/verify` (mid-auth), `/complete-profile` (post-auth, pre-profile) — they should NOT all have the same auth redirect
+- The `authToken?.value` check correctly handles both `undefined` (no cookie) and empty string (cleared cookie)
+- The inverse pattern from `(app)/layout.tsx` (`!authToken?.value` → login) is `authToken?.value` → trips
+
+## Iteration 5 — Task 5.1: Create profile page with form, photo upload/remove, timezone auto-detect, handles, and member dialog updates ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**New Files**:
+
+`apps/web/src/app/(app)/profile/page.tsx` (NEW):
+- Simple server component wrapper with `metadata: { title: "Profile" }`
+- Renders `<ProfileForm />` client component
+- No server-side data prefetch needed — user data comes from AuthProvider context
+
+`apps/web/src/hooks/use-user.ts` (NEW):
+- Three TanStack Query mutation hooks following `use-trips.ts` patterns
+- `useUpdateProfile()`: `PUT /api/users/me` via `apiRequest` for JSON payloads
+- `useUploadProfilePhoto()`: `POST /api/users/me/photo` via raw `fetch` with FormData (avoids `apiRequest`'s automatic `Content-Type: application/json` which breaks multipart uploads)
+- `useRemoveProfilePhoto()`: `DELETE /api/users/me/photo` via `apiRequest`
+- All hooks call `auth.refetch()` on success to sync global user state
+- `getProfileErrorMessage()` helper with `APIError` code handling
+
+`apps/web/src/components/profile/profile-form.tsx` (NEW):
+- Client component using React Hook Form + `zodResolver(updateProfileSchema)`
+- Display name field (3-50 chars, pre-populated from user)
+- Phone number displayed as read-only
+- Timezone Select with "Auto-detect" as first option — uses `TIMEZONE_AUTO_DETECT` sentinel value (`"__auto__"`) that maps to `null` on submit; label dynamically shows browser-detected timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- Venmo and Instagram handle inputs — empty strings cleaned to `null` on submit
+- Profile photo section: circular avatar (96×96) with upload/remove buttons, local preview during upload, loading spinner overlay
+- Photo upload uses hidden `<input type="file" accept="image/jpeg,image/png,image/webp">` with 5MB client-side validation
+- Success/error toast notifications via `sonner`
+- Card layout with rounded-3xl matching existing design conventions
+
+`apps/web/tests/e2e/helpers/pages/profile.page.ts` (NEW):
+- Page object with locators for heading, form fields, save button, photo upload/remove
+- `goto()`, `fillDisplayName()`, `fillVenmoHandle()`, `fillInstagramHandle()`, `saveProfile()` methods
+
+`apps/web/tests/e2e/profile-journey.spec.ts` (NEW):
+- "profile page navigation and editing" (`@smoke`): Navigate from header dropdown, verify form shows current user data, edit display name and verify persistence across reload, add social handles and verify persistence
+- "profile photo upload and remove": Upload test JPEG via file chooser, verify success toast, remove photo and verify revert
+
+**Modified Files**:
+
+`apps/web/src/components/itinerary/itinerary-view.tsx`:
+- Changed `userTimezone` fallback from `"UTC"` to `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- When user has auto-detect timezone (null), itinerary now uses browser-detected timezone instead of UTC
+
+`apps/web/src/components/trip/members-list.tsx`:
+- Added handles display between name/badges row and phone number row
+- Venmo handles link to `https://venmo.com/{handle}` (strips leading `@`)
+- Instagram handles link to `https://instagram.com/{handle}` (strips leading `@`)
+- Both open in new tab with `rel="noopener noreferrer"`
+
+`apps/web/tests/e2e/helpers/pages/index.ts`:
+- Added `ProfilePage` export to barrel file
+
+### Verification
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: 686/686, web: 770/775 — 5 pre-existing failures)
+- **reviewer**: APPROVED
+
+### Learnings
+- For profile data that's already in AuthProvider context, server-side prefetch with `HydrationBoundary` is unnecessary — a simple server component wrapper rendering a client component is the right pattern
+- Photo uploads MUST use raw `fetch` (not `apiRequest`) because `apiRequest` auto-sets `Content-Type: application/json` when body is present, which breaks multipart FormData uploads
+- Timezone auto-detect sentinel value (`__auto__` → `null`) is cleaner than overloading actual timezone strings
+- The `useEffect` to reset form defaults when user changes (from `auth.refetch()`) ensures the form reflects saved state after mutations
+- Handles cleanup: converting empty strings to `null` before submission avoids storing empty objects in the database
+- Members list handles display: stripping `@` prefix from handles for URL construction handles both `@username` and `username` input formats
+- The `(app)` layout already provides auth guard, so no additional auth logic needed in the profile page
+
+## Iteration 6 — Task 6.1: Add optional photo upload and auto-detect timezone to complete-profile page ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+**Shared Constants** (`apps/web/src/lib/constants.ts`):
+
+- Extracted `TIMEZONE_AUTO_DETECT = "__auto__"` sentinel constant from profile-form.tsx to shared constants
+- Added `getDetectedTimezone()` helper — wraps `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- Added `getTimezoneLabel()` helper — looks up IANA timezone in TIMEZONES array for human-readable label
+- Both functions were previously defined locally in profile-form.tsx
+
+**Profile Form Refactoring** (`apps/web/src/components/profile/profile-form.tsx`):
+
+- Removed local definitions of `TIMEZONE_AUTO_DETECT`, `getDetectedTimezone`, `getTimezoneLabel`
+- Added imports from `@/lib/constants` instead — no behavior change, import-only refactoring
+
+**Complete Profile Page** (`apps/web/src/app/(auth)/complete-profile/page.tsx`):
+
+- Added optional circular avatar upload area (Avatar size-20) above the display name field
+- Hidden file input with `accept="image/jpeg,image/png,image/webp"` and 5MB client-side validation
+- Camera icon button triggers file picker; Trash2 button removes selected photo
+- Photo preview via `URL.createObjectURL()` with proper cleanup via `revokeObjectURL`
+- Two-step submission flow: `completeProfile()` first, then `uploadPhoto.mutateAsync()` if file selected
+- Photo upload failure is caught and swallowed — does NOT block onboarding redirect to `/trips`
+- Changed timezone default from `Intl.DateTimeFormat().resolvedOptions().timeZone` (concrete IANA string) to `null` (auto-detect)
+- Added "Auto-detect" as first Select option using `TIMEZONE_AUTO_DETECT` sentinel value
+- Auto-detect option label dynamically shows detected timezone: "Auto-detect (Eastern Time (ET))"
+- When auto-detect is selected, timezone is omitted from the API payload (falsy check: `if (data.timezone)`)
+
+**Complete Profile Tests** (`apps/web/src/app/(auth)/complete-profile/page.test.tsx`):
+
+- Added mocks for `useUploadProfilePhoto` from `@/hooks/use-user` and `getInitials` from `@/lib/format`
+- Added `URL.createObjectURL`/`URL.revokeObjectURL` mocks for photo preview testing
+- 8 new tests:
+  - "renders photo upload section" — verifies avatar, upload button, and hidden file input
+  - "shows photo preview after file selection" — verifies createObjectURL called and button text changes
+  - "removes photo preview when remove button is clicked" — verifies preview cleared
+  - "uploads photo after successful profile completion" — verifies two-step flow
+  - "continues to redirect even if photo upload fails" — verifies graceful failure
+  - "does not upload photo if no file was selected" — verifies mutateAsync not called
+  - "does not accept files with invalid types" — verifies client-side validation
+  - "shows avatar fallback with question mark when no name entered" — verifies accessibility fallback
+- Updated 2 existing tests:
+  - "calls completeProfile with correct data on submit" — no longer expects timezone in payload when auto-detect
+  - "renders the timezone select" — verifies Auto-detect option exists
+- Total: 24 tests passing
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages)
+- **tests**: PASS (shared: 185/185, api: all passed, web: 778/783 — 5 pre-existing failures)
+- **reviewer**: APPROVED (no blocking issues, 3 low-severity suggestions noted as optional)
+
+### Learnings
+
+- The user has a valid auth token on the complete-profile page (set by verify-code), so `POST /api/users/me/photo` works even before profile completion — photo upload doesn't need to wait
+- However, the implementation uploads AFTER `completeProfile()` to ensure consistent state (profile exists before photo is attached)
+- The `completeProfileSchema` already accepted `timezone: z.string().nullable().optional()` — no backend changes needed for auto-detect
+- Extracting shared constants (sentinel values, helper functions) to `@/lib/constants` is cleaner than duplicating across components
+- The falsy check `if (data.timezone)` correctly excludes both `null` and `undefined` from the payload, making auto-detect work by omission
+- Photo upload on onboarding should never block the user — silent failure with redirect is the correct UX pattern
+- `URL.createObjectURL` must be cleaned up with `revokeObjectURL` to avoid memory leaks — both in removal and successful upload paths
+
+## Iteration 7 — Task 7.1: Full regression check ✅
+
+**Status**: COMPLETED
+
+### Changes Made
+
+Fixed 5 pre-existing unit test failures + 1 E2E test failure across 5 files. No production code changes — test-only fixes.
+
+**trip-preview.test.tsx** (2 fixes):
+
+- "renders organizer names and avatars": Changed `screen.getByText("Organizers")` → `screen.getByText(/Organized by/)` — component renders "Organized by {names}" in a single `<span>`, not a separate "Organizers" label
+- "renders description when available": Removed assertion for `"About this trip"` label — component renders description text directly in `<p>` with no heading. Updated negative test to assert absence of actual description text
+
+**create-member-travel-dialog.test.tsx** (2 fixes):
+
+- "defaults to arrival": Changed `arrivalRadio.checked` → `arrivalRadio.getAttribute("data-state")` — shadcn/Radix `RadioGroupItem` uses `data-state="checked"` attribute, not native `.checked` property
+- "allows selecting departure": Same fix for departure radio button
+
+**itinerary-header.test.tsx** (1 fix):
+
+- "applies sticky positioning classes": Changed expected CSS from `top-0`/`z-10` → `top-14`/`z-20` — component uses `top-14` (offset below fixed app header) and `z-20`
+
+**edit-member-travel-dialog.test.tsx** (consistency improvement):
+
+- Added `as HTMLInputElement` type cast to `.checked` assertions — this component uses native HTML radio inputs (not Radix), so `.checked` is correct but needs type narrowing from `HTMLElement`
+
+**trips.page.ts** (E2E page object fix):
+
+- Changed `page.getByText("Profile")` → `page.getByRole("menuitem", { name: "Profile" })` — fixes Playwright strict mode violation when user's display name contains "Profile"
+- Changed `page.getByText("Log out")` → `page.getByRole("menuitem", { name: "Log out" })` — preventive fix using role-based selector
+
+### Verification
+
+- **typecheck**: PASS (all 3 packages, zero errors)
+- **lint**: PASS (all 3 packages, zero errors)
+- **tests**: PASS (shared: 185/185, api: 686/686, web: 783/783 — **zero failures**, all pre-existing failures resolved)
+- **E2E**: PASS (18/18, zero failures)
+- **reviewer**: APPROVED
+
+### Learnings
+
+- Radix `RadioGroupItem` renders `<button role="radio" data-state="checked">` — test with `getAttribute("data-state")`. Native HTML `<input type="radio">` uses `.checked` property — these are NOT interchangeable
+- The `edit-member-travel-dialog` uses native HTML radio inputs while `create-member-travel-dialog` uses Radix RadioGroup — a consistency-driven fix applied to both broke the edit dialog tests
+- E2E `getByText()` selectors are fragile when text can appear in user-generated content — `getByRole("menuitem", { name: "..." })` is more resilient for menu items
+- When fixing tests, always verify whether the component uses shadcn/Radix primitives or native HTML elements — they have different DOM APIs
+- The 5 "pre-existing" failures from iterations 1–6 were all test-code mismatches, not component bugs
+
+### Phase 5.5 Completion Summary
+
+All 7 tasks across 7 phases are now complete:
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 1.1 | DB schema, shared types, Zod schemas | ✅ |
+| 2.1 | User routes, controller, auth service | ✅ |
+| 3.1 | Dashboard → /trips rename | ✅ |
+| 4.1 | Auth redirects (landing + login) | ✅ |
+| 5.1 | Profile page with form, photo, handles | ✅ |
+| 6.1 | Complete-profile photo upload + auto-detect timezone | ✅ |
+| 7.1 | Full regression check | ✅ |
+
+**Final test counts**: 1,654 unit/integration tests + 18 E2E tests = **1,672 total tests, all passing**

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPI } from "./helpers/auth";
-import { DashboardPage } from "./helpers/pages";
+import { TripsPage } from "./helpers/pages";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 
 /**
@@ -20,7 +20,7 @@ test.describe("App Shell", () => {
     "app shell structure and navigation",
     { tag: "@smoke" },
     async ({ page, request }) => {
-      const dashboard = new DashboardPage(page);
+      const trips = new TripsPage(page);
       await authenticateViaAPI(page, request);
 
       await test.step("header with Tripful wordmark is visible", async () => {
@@ -33,12 +33,12 @@ test.describe("App Shell", () => {
         await expect(wordmark).toBeVisible();
       });
 
-      await test.step("navigation contains Dashboard link", async () => {
+      await test.step("navigation contains My Trips link", async () => {
         const nav = page.getByRole("navigation", { name: "Main navigation" });
         await expect(nav).toBeVisible();
 
-        const dashboardLink = nav.getByRole("link", { name: "Dashboard" });
-        await expect(dashboardLink).toBeVisible();
+        const myTripsLink = nav.getByRole("link", { name: "My Trips" });
+        await expect(myTripsLink).toBeVisible();
       });
 
       await test.step("main content area has correct id", async () => {
@@ -47,9 +47,9 @@ test.describe("App Shell", () => {
       });
 
       await test.step("user menu opens with profile and logout", async () => {
-        await dashboard.openUserMenu();
-        await expect(dashboard.profileItem).toBeVisible();
-        await expect(dashboard.logoutItem).toBeVisible();
+        await trips.openUserMenu();
+        await expect(trips.profileItem).toBeVisible();
+        await expect(trips.logoutItem).toBeVisible();
         await expect(page.getByText("Test User")).toBeVisible();
       });
 

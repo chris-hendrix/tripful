@@ -2,12 +2,12 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/get-query-client";
 import { tripKeys } from "@/hooks/trip-queries";
 import { serverApiRequest } from "@/lib/server-api";
-import { DashboardContent } from "./dashboard-content";
+import { TripsContent } from "./trips-content";
 import type { GetTripsResponse } from "@tripful/shared/types";
 
-export const metadata = { title: "Dashboard" };
+export const metadata = { title: "My Trips" };
 
-export default async function DashboardPage() {
+export default async function TripsPage() {
   const queryClient = getQueryClient();
 
   try {
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <DashboardContent />
+      <TripsContent />
     </HydrationBoundary>
   );
 }

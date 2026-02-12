@@ -85,7 +85,7 @@ export interface TripDetail extends Trip {
     /** Organizer's profile photo URL */
     profilePhotoUrl: string | null;
     /** Organizer's IANA timezone */
-    timezone: string;
+    timezone: string | null;
   }>;
   /** Total number of trip members */
   memberCount: number;

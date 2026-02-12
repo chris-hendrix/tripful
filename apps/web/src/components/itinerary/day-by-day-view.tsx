@@ -141,12 +141,18 @@ export function DayByDayView({
       day.events.sort((a, b) => {
         if (a.allDay && !b.allDay) return -1;
         if (!a.allDay && b.allDay) return 1;
-        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        return (
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
       });
 
       // Sort travels by time
-      day.arrivals.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-      day.departures.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      day.arrivals.sort(
+        (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+      );
+      day.departures.sort(
+        (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+      );
     });
 
     return sortedDays;
@@ -196,7 +202,10 @@ export function DayByDayView({
 
         const maybeInsertNow = (itemTime: string | Date) => {
           if (!isToday || nowInserted) return;
-          const t = typeof itemTime === "string" ? new Date(itemTime).getTime() : itemTime.getTime();
+          const t =
+            typeof itemTime === "string"
+              ? new Date(itemTime).getTime()
+              : itemTime.getTime();
           if (now < t) {
             cardElements.push(<NowIndicator key="now-line" />);
             nowInserted = true;
@@ -291,32 +300,32 @@ export function DayByDayView({
             {/* Date gutter — outer cell stretches to row height so sticky works */}
             <div className="relative">
               <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3 bg-background">
-              <span
-                className={cn(
-                  "text-xs font-medium uppercase",
-                  isToday ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {getMonthAbbrev(day.date, timezone)}
-              </span>
-              <span
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full text-2xl font-bold leading-none",
-                  isToday
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground",
-                )}
-              >
-                {getDayNumber(day.date)}
-              </span>
-              <span
-                className={cn(
-                  "text-xs font-medium uppercase",
-                  isToday ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {getWeekdayAbbrev(day.date, timezone)}
-              </span>
+                <span
+                  className={cn(
+                    "text-xs font-medium uppercase",
+                    isToday ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {getMonthAbbrev(day.date, timezone)}
+                </span>
+                <span
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full text-2xl font-bold leading-none",
+                    isToday
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground",
+                  )}
+                >
+                  {getDayNumber(day.date)}
+                </span>
+                <span
+                  className={cn(
+                    "text-xs font-medium uppercase",
+                    isToday ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {getWeekdayAbbrev(day.date, timezone)}
+                </span>
               </div>
             </div>
 

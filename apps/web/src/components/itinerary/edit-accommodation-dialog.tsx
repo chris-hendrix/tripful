@@ -107,10 +107,10 @@ export function EditAccommodationDialog({
         onError: (error) => {
           toast.error(
             getUpdateAccommodationErrorMessage(error) ??
-              "An unexpected error occurred."
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -124,7 +124,7 @@ export function EditAccommodationDialog({
       onError: (error) => {
         toast.error(
           getDeleteAccommodationErrorMessage(error) ??
-            "Failed to delete accommodation"
+            "Failed to delete accommodation",
         );
       },
     });
@@ -164,7 +164,7 @@ export function EditAccommodationDialog({
     const currentLinks = form.getValues("links") || [];
     form.setValue(
       "links",
-      currentLinks.filter((link) => link !== linkToRemove)
+      currentLinks.filter((link) => link !== linkToRemove),
     );
   };
 
@@ -183,7 +183,10 @@ export function EditAccommodationDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Accommodation Name */}
             <FormField
               control={form.control}

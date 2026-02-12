@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  authenticateViaAPIWithPhone,
-  createUserViaAPI,
-} from "./helpers/auth";
+import { authenticateViaAPIWithPhone, createUserViaAPI } from "./helpers/auth";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { snap } from "./helpers/screenshots";
 import {
@@ -63,7 +60,10 @@ test.describe("Invitation Journey", () => {
 
         await page.goto(`/trips/${tripId}`);
         await expect(
-          page.getByRole("heading", { level: 1, name: `Invite Trip ${timestamp}` }),
+          page.getByRole("heading", {
+            level: 1,
+            name: `Invite Trip ${timestamp}`,
+          }),
         ).toBeVisible({ timeout: 15000 });
 
         await snap(page, "09-trip-detail-invite-button");
@@ -91,7 +91,9 @@ test.describe("Invitation Journey", () => {
         await dialog.getByRole("button", { name: "Send invitations" }).click();
 
         // Verify toast with "invitation" text appears
-        await expect(page.getByText(/invitation/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/invitation/i)).toBeVisible({
+          timeout: 10000,
+        });
         await snap(page, "12-invite-sent");
       });
 
@@ -127,156 +129,151 @@ test.describe("Invitation Journey", () => {
           .click();
 
         // Verify toast
-        await expect(
-          page.getByText('RSVP updated to "Going"'),
-        ).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
+          timeout: 10000,
+        });
 
         // Preview should disappear
-        await expect(
-          page.getByText("You've been invited!"),
-        ).not.toBeVisible({ timeout: 10000 });
+        await expect(page.getByText("You've been invited!")).not.toBeVisible({
+          timeout: 10000,
+        });
 
         // Full trip view should show destination and member count
         await expect(page.getByText("Honolulu, HI")).toBeVisible();
-        await expect(
-          page.getByText(/\d+ members?/),
-        ).toBeVisible();
+        await expect(page.getByText(/\d+ members?/)).toBeVisible();
         await snap(page, "14-rsvp-going-full-view");
       });
     },
   );
 
-  test(
-    "RSVP status change and member indicator",
-    async ({ page, request }) => {
-      test.slow();
+  test("RSVP status change and member indicator", async ({ page, request }) => {
+    test.slow();
 
-      const timestamp = Date.now();
-      const shortTimestamp = timestamp.toString().slice(-10);
-      const organizerPhone = `+1555${shortTimestamp}`;
-      const inviteePhone = `+1555${(parseInt(shortTimestamp) + 2000).toString()}`;
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+    const inviteePhone = `+1555${(parseInt(shortTimestamp) + 2000).toString()}`;
 
-      let tripId: string;
+    let tripId: string;
 
-      // Setup: create organizer, trip, and invite+accept a member
-      const organizerCookie = await createUserViaAPI(
+    // Setup: create organizer, trip, and invite+accept a member
+    const organizerCookie = await createUserViaAPI(
+      request,
+      organizerPhone,
+      "Organizer Beta",
+    );
+
+    tripId = await createTripViaAPI(request, organizerCookie, {
+      name: `RSVP Change Trip ${timestamp}`,
+      destination: "Denver, CO",
+      startDate: "2026-11-10",
+      endDate: "2026-11-14",
+    });
+
+    await inviteAndAcceptViaAPI(
+      request,
+      tripId,
+      organizerPhone,
+      inviteePhone,
+      "Member Beta",
+    );
+
+    const eventName = `Test Event ${timestamp}`;
+
+    await test.step("member creates an event via API", async () => {
+      // Auth as member in browser
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        inviteePhone,
+        "Member Beta",
+      );
+
+      // Create event via API (member has canAddEvent permission)
+      const eventResponse = await page.request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: eventName,
+            eventType: "activity",
+            startTime: "2026-11-11T10:00:00.000Z",
+          },
+        },
+      );
+      expect(eventResponse.ok()).toBeTruthy();
+
+      // Navigate to trip to verify event is visible
+      await page.goto(`/trips/${tripId}`);
+      await expect(page.getByText(eventName)).toBeVisible({ timeout: 15000 });
+    });
+
+    await test.step("member changes RSVP to Maybe", async () => {
+      // Use API shortcut to change RSVP
+      const inviteeCookie = await createUserViaAPI(
+        request,
+        inviteePhone,
+        "Member Beta",
+      );
+      await rsvpViaAPI(request, tripId, inviteeCookie, "maybe");
+
+      // Refresh page
+      await page.reload();
+
+      // Since member is now "maybe" (non-Going), they should see preview
+      await expect(page.getByText("You've been invited!")).toBeVisible({
+        timeout: 15000,
+      });
+      await snap(page, "15-rsvp-changed-to-maybe");
+    });
+
+    await test.step("organizer sees member no longer attending indicator", async () => {
+      await page.context().clearCookies();
+      await authenticateViaAPIWithPhone(
+        page,
         request,
         organizerPhone,
         "Organizer Beta",
       );
 
-      tripId = await createTripViaAPI(request, organizerCookie, {
-        name: `RSVP Change Trip ${timestamp}`,
-        destination: "Denver, CO",
-        startDate: "2026-11-10",
-        endDate: "2026-11-14",
-      });
+      await page.goto(`/trips/${tripId}`);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `RSVP Change Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
 
-      await inviteAndAcceptViaAPI(
+      // Verify "Member no longer attending" badge is visible
+      await expect(page.getByText("Member no longer attending")).toBeVisible({
+        timeout: 10000,
+      });
+      await snap(page, "16-member-not-attending-indicator");
+    });
+
+    await test.step("member RSVPs Going again, indicator removed", async () => {
+      // Use API shortcut to change RSVP back to going
+      const inviteeCookie = await createUserViaAPI(
         request,
-        tripId,
-        organizerPhone,
         inviteePhone,
         "Member Beta",
       );
+      await rsvpViaAPI(request, tripId, inviteeCookie, "going");
 
-      const eventName = `Test Event ${timestamp}`;
+      // Reload organizer's page
+      await page.reload();
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `RSVP Change Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
 
-      await test.step("member creates an event via API", async () => {
-        // Auth as member in browser
-        await authenticateViaAPIWithPhone(
-          page,
-          request,
-          inviteePhone,
-          "Member Beta",
-        );
-
-        // Create event via API (member has canAddEvent permission)
-        const eventResponse = await page.request.post(
-          `http://localhost:8000/api/trips/${tripId}/events`,
-          {
-            data: {
-              name: eventName,
-              eventType: "activity",
-              startTime: "2026-11-11T10:00:00.000Z",
-            },
-          },
-        );
-        expect(eventResponse.ok()).toBeTruthy();
-
-        // Navigate to trip to verify event is visible
-        await page.goto(`/trips/${tripId}`);
-        await expect(page.getByText(eventName)).toBeVisible({ timeout: 15000 });
-      });
-
-      await test.step("member changes RSVP to Maybe", async () => {
-        // Use API shortcut to change RSVP
-        const inviteeCookie = await createUserViaAPI(
-          request,
-          inviteePhone,
-          "Member Beta",
-        );
-        await rsvpViaAPI(request, tripId, inviteeCookie, "maybe");
-
-        // Refresh page
-        await page.reload();
-
-        // Since member is now "maybe" (non-Going), they should see preview
-        await expect(page.getByText("You've been invited!")).toBeVisible({
-          timeout: 15000,
-        });
-        await snap(page, "15-rsvp-changed-to-maybe");
-      });
-
-      await test.step("organizer sees member no longer attending indicator", async () => {
-        await page.context().clearCookies();
-        await authenticateViaAPIWithPhone(
-          page,
-          request,
-          organizerPhone,
-          "Organizer Beta",
-        );
-
-        await page.goto(`/trips/${tripId}`);
-        await expect(
-          page.getByRole("heading", {
-            level: 1,
-            name: `RSVP Change Trip ${timestamp}`,
-          }),
-        ).toBeVisible({ timeout: 15000 });
-
-        // Verify "Member no longer attending" badge is visible
-        await expect(
-          page.getByText("Member no longer attending"),
-        ).toBeVisible({ timeout: 10000 });
-        await snap(page, "16-member-not-attending-indicator");
-      });
-
-      await test.step("member RSVPs Going again, indicator removed", async () => {
-        // Use API shortcut to change RSVP back to going
-        const inviteeCookie = await createUserViaAPI(
-          request,
-          inviteePhone,
-          "Member Beta",
-        );
-        await rsvpViaAPI(request, tripId, inviteeCookie, "going");
-
-        // Reload organizer's page
-        await page.reload();
-        await expect(
-          page.getByRole("heading", {
-            level: 1,
-            name: `RSVP Change Trip ${timestamp}`,
-          }),
-        ).toBeVisible({ timeout: 15000 });
-
-        // Verify badge is gone
-        await expect(
-          page.getByText("Member no longer attending"),
-        ).not.toBeVisible();
-      });
-    },
-  );
+      // Verify badge is gone
+      await expect(
+        page.getByText("Member no longer attending"),
+      ).not.toBeVisible();
+    });
+  });
 
   test("uninvited user access", async ({ page, request }) => {
     const timestamp = Date.now();
@@ -391,7 +388,9 @@ test.describe("Invitation Journey", () => {
 
       // Verify organizer is listed with "Organizer" badge
       await expect(dialog.getByText("Organizer Delta")).toBeVisible();
-      await expect(dialog.getByText("Organizer", { exact: true }).first()).toBeVisible();
+      await expect(
+        dialog.getByText("Organizer", { exact: true }).first(),
+      ).toBeVisible();
 
       // Verify Member 1 with "Going" badge
       await expect(dialog.getByText("Member One")).toBeVisible();

@@ -1,13 +1,14 @@
-# Phase 5: Invitations & RSVP - Verification
+# Phase 5.5: User Profile & Auth Redirects - Verification
 
 ## Environment Setup
 
 ### Prerequisites
+
 - Node.js 20+
-- pnpm (required - never use npm or yarn)
+- pnpm (package manager)
 - Docker (for PostgreSQL)
 
-### Start Services
+### Start services
 
 ```bash
 # Start PostgreSQL
@@ -19,109 +20,145 @@ pnpm install
 # Run database migrations
 cd apps/api && pnpm db:migrate && cd ../..
 
-# Start dev servers (both web + api)
-pnpm dev
+# Build shared package (needed for imports)
+cd shared && pnpm build && cd ..
 ```
 
-### Ports & URLs
+### Environment variables
 
-| Service      | URL                            |
-|-------------|--------------------------------|
-| Frontend     | http://localhost:3000           |
-| Backend API  | http://localhost:8000           |
-| Health check | http://localhost:8000/api/health|
-| PostgreSQL   | localhost:5433 (external)      |
-| Drizzle Studio | `cd apps/api && pnpm db:studio` |
-| Playwright UI | http://localhost:9323 (when using `pnpm test:e2e:ui`) |
+- `apps/api/.env` — requires `DATABASE_URL` and `JWT_SECRET` (min 32 chars)
+- `apps/web/.env.local` — requires `NEXT_PUBLIC_API_URL=http://localhost:8000/api`
 
-### Environment Variables
+### Start dev servers
 
-- `apps/api/.env` - Must have `DATABASE_URL` and `JWT_SECRET` (min 32 chars)
-- `apps/web/.env.local` - Must have `NEXT_PUBLIC_API_URL=http://localhost:8000`
+```bash
+pnpm dev  # Starts both web (port 3000) and api (port 8000)
+```
 
 ## Test Commands
 
-### Unit & Integration Tests (Vitest)
+### Type checking
 
 ```bash
-# All tests
-pnpm test
-
-# Watch mode
-pnpm test -- --watch
-
-# API tests only
-cd apps/api && pnpm test
-
-# Shared package tests only
-cd shared && pnpm test
-
-# Specific test file
-cd apps/api && pnpm test -- src/services/invitation.service.test.ts
-```
-
-### E2E Tests (Playwright)
-
-```bash
-# Run all E2E tests (starts servers if not running)
-pnpm test:e2e
-
-# Run with UI mode (interactive debugging)
-pnpm test:e2e:ui
-
-# Run specific test file
-cd apps/web && npx playwright test tests/e2e/invitation-journey.spec.ts
-
-# Run with headed browser (visible)
-cd apps/web && npx playwright test --headed
-
-# View last test report
-cd apps/web && npx playwright show-report
-```
-
-**Important**: E2E tests require both web (port 3000) and API (port 8000) servers running. Playwright config auto-starts them if not already running.
-
-### Code Quality
-
-```bash
-# TypeScript type checking
 pnpm typecheck
-
-# ESLint
-pnpm lint
-
-# Prettier formatting
-pnpm format
 ```
+
+### Linting
+
+```bash
+pnpm lint
+```
+
+### Unit + Integration tests
+
+```bash
+pnpm test
+```
+
+### E2E tests
+
+```bash
+pnpm test:e2e
+```
+
+### E2E tests with UI
+
+```bash
+pnpm test:e2e:ui  # Opens on port 9323
+```
+
+### Run specific test file
+
+```bash
+# API integration tests
+cd apps/api && pnpm vitest run src/routes/user.routes.test.ts
+
+# Web unit tests
+cd apps/web && pnpm vitest run src/components/profile/profile-form.test.tsx
+
+# Specific E2E test
+cd apps/web && pnpm playwright test tests/e2e/auth-journey.spec.ts
+```
+
+## Ports and URLs
+
+| Service            | URL                       |
+| ------------------ | ------------------------- |
+| Frontend (Next.js) | http://localhost:3000     |
+| Backend (Fastify)  | http://localhost:8000     |
+| API base           | http://localhost:8000/api |
+| PostgreSQL         | localhost:5433            |
+| Playwright UI      | http://localhost:9323     |
 
 ## Test Credentials
 
-No real credentials needed - the app uses mock SMS service that logs verification codes to console. E2E tests use `authenticateViaAPI` helper that bypasses UI auth flow.
+For E2E and manual testing, use the mock SMS service which logs verification codes to console:
+
+- Any phone number in E.164 format (e.g., `+15551234567`)
+- Verification code appears in API server console output
+- In test environment, code is `123456`
 
 ## Database
 
+### Drizzle Studio (visual browser)
+
 ```bash
-# Generate migration from schema changes
-cd apps/api && pnpm db:generate
-
-# Apply pending migrations
-cd apps/api && pnpm db:migrate
-
-# Visual database browser
 cd apps/api && pnpm db:studio
 ```
 
-## Feature Flags
+### Generate migration after schema change
 
-None required. Phase 5 features are always enabled.
+```bash
+cd apps/api && pnpm db:generate
+```
 
-## Verification Checklist
+### Apply migrations
 
-For each task, run:
+```bash
+cd apps/api && pnpm db:migrate
+```
 
-1. `pnpm typecheck` - TypeScript compilation
-2. `pnpm lint` - Linting
-3. `pnpm test` - Unit + integration tests
-4. `pnpm test:e2e` - E2E tests (for UI tasks)
+## Key Verification Points
 
-All four must pass before a task is considered complete.
+### After Task 1.1 (Schema changes)
+
+- `pnpm typecheck` passes (may need to fix type errors in existing code from timezone becoming nullable)
+- Migration generated and applied successfully
+- `shared/` package builds
+
+### After Task 2.1 (Backend API)
+
+- `PUT /api/users/me` updates display name, timezone, handles
+- `POST /api/users/me/photo` uploads profile photo
+- `DELETE /api/users/me/photo` removes profile photo
+- All three endpoints require auth (401 without cookie)
+- Integration tests pass
+
+### After Task 3.1 (Route rename)
+
+- `/trips` shows the trip list (formerly `/dashboard`)
+- `/dashboard` returns 404
+- All links in UI point to `/trips`
+- All unit and E2E tests pass with new paths
+
+### After Task 4.1 (Auth redirects)
+
+- Authenticated user visiting `/` redirects to `/trips`
+- Authenticated user visiting `/login` redirects to `/trips`
+- Unauthenticated user sees landing page at `/`
+- Unauthenticated user sees login page at `/login`
+
+### After Task 5.1 (Profile page)
+
+- Profile page accessible from header dropdown
+- Can edit display name and save
+- Can upload, replace, and remove profile photo
+- Timezone dropdown has "Auto-detect" option
+- Venmo/Instagram handles can be added and show in members dialog
+- Itinerary timezone toggle uses browser timezone when user timezone is null
+
+### After Task 6.1 (Complete profile updates)
+
+- Complete profile page has optional photo upload
+- Timezone defaults to "Auto-detect"
+- Redirect goes to `/trips` after completion

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authenticateUser, generateUniquePhone } from "./helpers/auth";
-import { LoginPage, DashboardPage } from "./helpers/pages";
+import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { formatPhoneNumber } from "../../src/lib/format";
@@ -21,7 +21,7 @@ test.describe("Auth Journey", () => {
   test("complete auth journey", { tag: "@smoke" }, async ({ page }) => {
     const phone = generateUniquePhone();
     const loginPage = new LoginPage(page);
-    const dashboard = new DashboardPage(page);
+    const trips = new TripsPage(page);
 
     await test.step("login page renders correctly", async () => {
       await loginPage.goto();
@@ -54,10 +54,10 @@ test.describe("Auth Journey", () => {
       await loginPage.completeProfile("Test User");
     });
 
-    await test.step("lands on dashboard", async () => {
-      await page.waitForURL("**/dashboard");
-      await expect(dashboard.heading).toBeVisible();
-      await snap(page, "04-dashboard-empty");
+    await test.step("lands on trips", async () => {
+      await page.waitForURL("**/trips");
+      await expect(trips.heading).toBeVisible();
+      await snap(page, "04-trips-empty");
     });
 
     await test.step("auth cookie is set correctly", async () => {
@@ -69,7 +69,7 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("logout clears session and redirects", async () => {
-      await dashboard.logout();
+      await trips.logout();
       await page.waitForURL("**/login");
       expect(page.url()).toContain("/login");
 
@@ -81,7 +81,7 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("cannot access protected route after logout", async () => {
-      await page.goto("/dashboard");
+      await page.goto("/trips");
       await page.waitForURL("**/login", { timeout: 5000 });
       expect(page.url()).toContain("/login");
     });
@@ -89,10 +89,10 @@ test.describe("Auth Journey", () => {
 
   test("auth guards", async ({ page, request }) => {
     const loginPage = new LoginPage(page);
-    const dashboard = new DashboardPage(page);
+    const trips = new TripsPage(page);
 
     await test.step("unauthenticated user redirects to login", async () => {
-      await page.goto("/dashboard");
+      await page.goto("/trips");
       await page.waitForURL("**/login", { timeout: 5000 });
       expect(page.url()).toContain("/login");
       await expect(loginPage.heading).toBeVisible();
@@ -100,7 +100,26 @@ test.describe("Auth Journey", () => {
 
     await test.step("existing user skips complete-profile", async () => {
       await authenticateUser(page, request, "Existing User");
-      await expect(dashboard.heading).toBeVisible();
+      await expect(trips.heading).toBeVisible();
+    });
+  });
+
+  test("authenticated user redirects away from public pages", async ({
+    page,
+    request,
+  }) => {
+    await authenticateUser(page, request, "Redirect Test User");
+
+    await test.step("authenticated user on landing page redirects to /trips", async () => {
+      await page.goto("/");
+      await page.waitForURL("**/trips", { timeout: 5000 });
+      expect(page.url()).toContain("/trips");
+    });
+
+    await test.step("authenticated user on /login redirects to /trips", async () => {
+      await page.goto("/login");
+      await page.waitForURL("**/trips", { timeout: 5000 });
+      expect(page.url()).toContain("/trips");
     });
   });
 });

@@ -54,7 +54,7 @@ function VerifyPageContent() {
       if (result.requiresProfile) {
         router.push("/complete-profile");
       } else {
-        router.push("/dashboard");
+        router.push("/trips");
       }
     } catch (error) {
       form.setError("code", {

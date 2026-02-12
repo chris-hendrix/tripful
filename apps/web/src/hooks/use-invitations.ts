@@ -72,11 +72,7 @@ export function useMembers(tripId: string) {
 export function useInviteMembers(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    CreateInvitationsResponse,
-    Error,
-    CreateInvitationsInput
-  >({
+  return useMutation<CreateInvitationsResponse, Error, CreateInvitationsInput>({
     mutationKey: invitationKeys.create(),
     mutationFn: async (data) => {
       const response = await apiRequest<CreateInvitationsResponse>(
@@ -227,9 +223,7 @@ export function getRevokeInvitationErrorMessage(
  * @param error - Error from mutation
  * @returns User-friendly error message
  */
-export function getUpdateRsvpErrorMessage(
-  error: Error | null,
-): string | null {
+export function getUpdateRsvpErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {

@@ -55,7 +55,8 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     "day-by-day",
   );
   const tripTimezone = trip?.preferredTimezone || "UTC";
-  const userTimezone = user?.timezone || "UTC";
+  const userTimezone =
+    user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [selectedTimezone, setSelectedTimezone] = useState(tripTimezone);
 
   // Dialog state for empty state
@@ -118,7 +119,8 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   }
 
   // Error state
-  const hasError = tripError || eventsError || accommodationsError || memberTravelsError;
+  const hasError =
+    tripError || eventsError || accommodationsError || memberTravelsError;
   if (hasError) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">

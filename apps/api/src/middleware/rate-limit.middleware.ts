@@ -71,9 +71,7 @@ export const defaultRateLimitConfig: RateLimitOptions = {
     (request as FastifyRequest & { user?: { sub: string } }).user?.sub ||
     request.ip,
   errorResponseBuilder: (_request, context) => {
-    const error = new Error(
-      "Too many requests. Please slow down.",
-    ) as Error & {
+    const error = new Error("Too many requests. Please slow down.") as Error & {
       statusCode: number;
       code: string;
       customRateLimitMessage: string;
@@ -105,8 +103,7 @@ export const writeRateLimitConfig: RateLimitOptions = {
     };
     error.statusCode = context.statusCode;
     error.code = "RATE_LIMIT_EXCEEDED";
-    error.customRateLimitMessage =
-      "Too many write requests. Please slow down.";
+    error.customRateLimitMessage = "Too many write requests. Please slow down.";
     return error;
   },
 };

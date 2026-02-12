@@ -3,10 +3,7 @@ import type {
   CreateAccommodationInput,
   UpdateAccommodationInput,
 } from "@tripful/shared/schemas";
-import {
-  AccommodationNotFoundError,
-  TripNotFoundError,
-} from "../errors.js";
+import { AccommodationNotFoundError, TripNotFoundError } from "../errors.js";
 
 /**
  * Accommodation Controller
@@ -282,10 +279,7 @@ export const accommodationController = {
       const userId = request.user.sub;
 
       // Call service to delete accommodation (soft delete)
-      await request.server.accommodationService.deleteAccommodation(
-        userId,
-        id,
-      );
+      await request.server.accommodationService.deleteAccommodation(userId, id);
 
       // Return success response
       return reply.status(200).send({

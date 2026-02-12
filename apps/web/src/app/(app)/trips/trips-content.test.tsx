@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, type ReactNode } from "react";
 import type { TripSummary } from "@/hooks/use-trips";
-import { DashboardContent } from "./dashboard-content";
+import { TripsContent } from "./trips-content";
 
 // Mock next/dynamic
 vi.mock("next/dynamic", () => ({
@@ -63,7 +63,7 @@ vi.mock("@/components/trip/create-trip-dialog", () => ({
   },
 }));
 
-describe("DashboardContent", () => {
+describe("TripsContent", () => {
   let queryClient: QueryClient;
 
   const mockTrips: TripSummary[] = [
@@ -163,7 +163,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       // Should show 3 skeleton cards
       const skeletons = document.querySelectorAll(".animate-pulse");
@@ -179,7 +179,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       // Should not show the trip count text (e.g., "3 trips")
       expect(screen.queryByText(/\d+ trips?/)).toBeNull();
@@ -197,7 +197,7 @@ describe("DashboardContent", () => {
         refetch: mockRefetch,
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("Failed to load trips")).toBeDefined();
       expect(screen.getByText("Network error")).toBeDefined();
@@ -215,7 +215,7 @@ describe("DashboardContent", () => {
         refetch: mockRefetch,
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const retryButton = screen.getByText("Try again");
       await user.click(retryButton);
@@ -232,7 +232,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("An unexpected error occurred")).toBeDefined();
     });
@@ -248,7 +248,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("No trips yet")).toBeDefined();
       expect(
@@ -269,7 +269,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const createButton = screen.getByText("Create your first trip");
       await user.click(createButton);
@@ -290,7 +290,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("My Trips")).toBeDefined();
       expect(screen.getByText("3 trips")).toBeDefined();
@@ -308,7 +308,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("1 trip")).toBeDefined();
     });
@@ -322,7 +322,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("Upcoming trips")).toBeDefined();
       expect(screen.getByText("Past trips")).toBeDefined();
@@ -337,7 +337,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const upcomingTrip1 = screen.getByTestId("trip-card-trip-1");
       const upcomingTrip2 = screen.getByTestId("trip-card-trip-2");
@@ -358,7 +358,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const searchInput = screen.getByPlaceholderText("Search trips...");
       await user.type(searchInput, "Summer");
@@ -380,7 +380,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const searchInput = screen.getByPlaceholderText("Search trips...");
       await user.type(searchInput, "Aspen");
@@ -401,7 +401,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const searchInput = screen.getByPlaceholderText("Search trips...");
       await user.type(searchInput, "hawaii");
@@ -421,7 +421,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const searchInput = screen.getByPlaceholderText("Search trips...");
       await user.type(searchInput, "xyz123");
@@ -444,7 +444,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const searchInput = screen.getByPlaceholderText("Search trips...");
       await user.type(searchInput, "Summer");
@@ -480,7 +480,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("Upcoming trips")).toBeDefined();
       expect(screen.getByText("TBD Trip")).toBeDefined();
@@ -496,7 +496,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.getByText("Upcoming trips")).toBeDefined();
       expect(screen.queryByText("Past trips")).toBeNull();
@@ -511,7 +511,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       expect(screen.queryByText("Upcoming trips")).toBeNull();
       expect(screen.getByText("Past trips")).toBeDefined();
@@ -528,7 +528,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const fab = screen.getByLabelText("Create new trip");
       expect(fab).toBeDefined();
@@ -544,7 +544,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       const fab = screen.getByLabelText("Create new trip");
       await user.click(fab);
@@ -566,7 +566,7 @@ describe("DashboardContent", () => {
         refetch: vi.fn(),
       });
 
-      renderWithClient(<DashboardContent />);
+      renderWithClient(<TripsContent />);
 
       // Dialog should not be visible initially
       expect(screen.queryByTestId("create-trip-dialog")).toBeNull();
