@@ -386,8 +386,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         setRemovingMember(null);
                       },
                       onError: (error) => {
-                        const message =
-                          getRevokeInvitationErrorMessage(error);
+                        const message = getRevokeInvitationErrorMessage(error);
                         toast.error(message ?? "Failed to remove member");
                         setRemovingMember(null);
                       },

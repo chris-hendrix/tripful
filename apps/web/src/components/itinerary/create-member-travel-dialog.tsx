@@ -95,10 +95,10 @@ export function CreateMemberTravelDialog({
         onError: (error) => {
           toast.error(
             getCreateMemberTravelErrorMessage(error) ??
-              "An unexpected error occurred."
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -115,7 +115,10 @@ export function CreateMemberTravelDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Travel Type */}
             <FormField
               control={form.control}
@@ -135,13 +138,22 @@ export function CreateMemberTravelDialog({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="arrival" id="travel-arrival" />
-                        <Label htmlFor="travel-arrival" className="text-sm font-medium cursor-pointer">
+                        <Label
+                          htmlFor="travel-arrival"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Arrival
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="departure" id="travel-departure" />
-                        <Label htmlFor="travel-departure" className="text-sm font-medium cursor-pointer">
+                        <RadioGroupItem
+                          value="departure"
+                          id="travel-departure"
+                        />
+                        <Label
+                          htmlFor="travel-departure"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Departure
                         </Label>
                       </div>

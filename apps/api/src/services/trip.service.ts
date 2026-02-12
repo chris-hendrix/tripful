@@ -118,10 +118,7 @@ export interface ITripService {
    * @param userId - The UUID of the user requesting the trip
    * @returns Promise that resolves to the trip with organizers, memberCount, and membership info, or null if not found or not authorized
    */
-  getTripById(
-    tripId: string,
-    userId: string,
-  ): Promise<TripDetailResult | null>;
+  getTripById(tripId: string, userId: string): Promise<TripDetailResult | null>;
 
   /**
    * Gets all trips for a user with summary information
@@ -525,7 +522,10 @@ export class TripService implements ITripService {
 
     // Build trip summaries
     const membershipMap = new Map(
-      userMemberships.map((m) => [m.tripId, { status: m.status, isOrganizer: m.isOrganizer }]),
+      userMemberships.map((m) => [
+        m.tripId,
+        { status: m.status, isOrganizer: m.isOrganizer },
+      ]),
     );
 
     const summaries: TripSummary[] = userTrips.map((trip) => {

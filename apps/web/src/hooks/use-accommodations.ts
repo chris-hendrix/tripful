@@ -587,85 +587,84 @@ interface RestoreAccommodationContext {
 export function useRestoreAccommodation() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    Accommodation,
-    Error,
-    string,
-    RestoreAccommodationContext
-  >({
-    mutationKey: accommodationKeys.restore(),
-    mutationFn: async (accommodationId: string) => {
-      const response = await apiRequest<RestoreAccommodationResponse>(
-        `/accommodations/${accommodationId}/restore`,
-        {
-          method: "POST",
-        },
-      );
-      return response.accommodation;
-    },
-
-    // Optimistic update: Add accommodation back to cache immediately
-    onMutate: async (accommodationId) => {
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: accommodationKeys.lists() });
-
-      // Get the accommodation to find its tripId
-      const accommodation = queryClient.getQueryData<Accommodation>(
-        accommodationKeys.detail(accommodationId),
-      );
-      const tripId = accommodation?.tripId;
-
-      // Snapshot the previous value for rollback
-      let previousAccommodations: Accommodation[] | undefined;
-      if (tripId) {
-        previousAccommodations = queryClient.getQueryData<Accommodation[]>(
-          accommodationKeys.list(tripId),
+  return useMutation<Accommodation, Error, string, RestoreAccommodationContext>(
+    {
+      mutationKey: accommodationKeys.restore(),
+      mutationFn: async (accommodationId: string) => {
+        const response = await apiRequest<RestoreAccommodationResponse>(
+          `/accommodations/${accommodationId}/restore`,
+          {
+            method: "POST",
+          },
         );
-      }
+        return response.accommodation;
+      },
 
-      // Return context with previous data for rollback
-      return { previousAccommodations, tripId };
-    },
+      // Optimistic update: Add accommodation back to cache immediately
+      onMutate: async (accommodationId) => {
+        // Cancel any outgoing refetches to avoid overwriting our optimistic update
+        await queryClient.cancelQueries({
+          queryKey: accommodationKeys.lists(),
+        });
 
-    // On success: Update cache with restored accommodation
-    onSuccess: (restoredAccommodation) => {
-      const tripId = restoredAccommodation.tripId;
-
-      // Update the accommodation in the accommodations list cache
-      const previousAccommodations = queryClient.getQueryData<Accommodation[]>(
-        accommodationKeys.list(tripId),
-      );
-      if (previousAccommodations) {
-        queryClient.setQueryData<Accommodation[]>(
-          accommodationKeys.list(tripId),
-          [restoredAccommodation, ...previousAccommodations],
+        // Get the accommodation to find its tripId
+        const accommodation = queryClient.getQueryData<Accommodation>(
+          accommodationKeys.detail(accommodationId),
         );
-      }
+        const tripId = accommodation?.tripId;
 
-      // Update the individual accommodation cache
-      queryClient.setQueryData<Accommodation>(
-        accommodationKeys.detail(restoredAccommodation.id),
-        restoredAccommodation,
-      );
-    },
+        // Snapshot the previous value for rollback
+        let previousAccommodations: Accommodation[] | undefined;
+        if (tripId) {
+          previousAccommodations = queryClient.getQueryData<Accommodation[]>(
+            accommodationKeys.list(tripId),
+          );
+        }
 
-    // On error: Rollback optimistic update
-    onError: (_error, _accommodationId, context) => {
-      // Rollback to previous accommodations list if we had one
-      if (context?.previousAccommodations && context.tripId) {
-        queryClient.setQueryData(
-          accommodationKeys.list(context.tripId),
-          context.previousAccommodations,
+        // Return context with previous data for rollback
+        return { previousAccommodations, tripId };
+      },
+
+      // On success: Update cache with restored accommodation
+      onSuccess: (restoredAccommodation) => {
+        const tripId = restoredAccommodation.tripId;
+
+        // Update the accommodation in the accommodations list cache
+        const previousAccommodations = queryClient.getQueryData<
+          Accommodation[]
+        >(accommodationKeys.list(tripId));
+        if (previousAccommodations) {
+          queryClient.setQueryData<Accommodation[]>(
+            accommodationKeys.list(tripId),
+            [restoredAccommodation, ...previousAccommodations],
+          );
+        }
+
+        // Update the individual accommodation cache
+        queryClient.setQueryData<Accommodation>(
+          accommodationKeys.detail(restoredAccommodation.id),
+          restoredAccommodation,
         );
-      }
-    },
+      },
 
-    // Always invalidate queries after mutation settles (success or error)
-    // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: accommodationKeys.lists() });
+      // On error: Rollback optimistic update
+      onError: (_error, _accommodationId, context) => {
+        // Rollback to previous accommodations list if we had one
+        if (context?.previousAccommodations && context.tripId) {
+          queryClient.setQueryData(
+            accommodationKeys.list(context.tripId),
+            context.previousAccommodations,
+          );
+        }
+      },
+
+      // Always invalidate queries after mutation settles (success or error)
+      // This ensures the cache stays in sync with the server
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: accommodationKeys.lists() });
+      },
     },
-  });
+  );
 }
 
 /**

@@ -257,9 +257,8 @@ describe("member-travel.service", () => {
 
   describe("getMemberTravel", () => {
     it("should get member travel by ID", async () => {
-      const travel = await memberTravelService.getMemberTravel(
-        testMemberTravelId,
-      );
+      const travel =
+        await memberTravelService.getMemberTravel(testMemberTravelId);
 
       expect(travel).toBeDefined();
       expect(travel?.id).toBe(testMemberTravelId);
@@ -282,9 +281,8 @@ describe("member-travel.service", () => {
         testMemberTravelId,
       );
 
-      const travel = await memberTravelService.getMemberTravel(
-        testMemberTravelId,
-      );
+      const travel =
+        await memberTravelService.getMemberTravel(testMemberTravelId);
 
       expect(travel).toBeNull();
     });
@@ -292,9 +290,8 @@ describe("member-travel.service", () => {
 
   describe("getMemberTravelByTrip", () => {
     it("should get all member travel records for a trip", async () => {
-      const travelList = await memberTravelService.getMemberTravelByTrip(
-        testTripId,
-      );
+      const travelList =
+        await memberTravelService.getMemberTravelByTrip(testTripId);
 
       expect(travelList).toHaveLength(1);
       expect(travelList[0].id).toBe(testMemberTravelId);
@@ -307,9 +304,8 @@ describe("member-travel.service", () => {
         testMemberTravelId,
       );
 
-      const travelList = await memberTravelService.getMemberTravelByTrip(
-        testTripId,
-      );
+      const travelList =
+        await memberTravelService.getMemberTravelByTrip(testTripId);
 
       expect(travelList).toHaveLength(0);
     });
@@ -464,9 +460,8 @@ describe("member-travel.service", () => {
         testMemberTravelId,
       );
 
-      const travel = await memberTravelService.getMemberTravel(
-        testMemberTravelId,
-      );
+      const travel =
+        await memberTravelService.getMemberTravel(testMemberTravelId);
       expect(travel).toBeNull();
 
       // Verify soft delete (check directly in DB)
@@ -485,9 +480,8 @@ describe("member-travel.service", () => {
         testMemberTravelId,
       );
 
-      const travel = await memberTravelService.getMemberTravel(
-        testMemberTravelId,
-      );
+      const travel =
+        await memberTravelService.getMemberTravel(testMemberTravelId);
       expect(travel).toBeNull();
 
       // Verify deletedBy is the organizer
@@ -536,9 +530,8 @@ describe("member-travel.service", () => {
       );
 
       // Verify it's deleted
-      let travel = await memberTravelService.getMemberTravel(
-        testMemberTravelId,
-      );
+      let travel =
+        await memberTravelService.getMemberTravel(testMemberTravelId);
       expect(travel).toBeNull();
 
       // Restore as organizer
@@ -603,7 +596,10 @@ describe("member-travel.service", () => {
         .select()
         .from(members)
         .where(
-          and(eq(members.tripId, testTripId), eq(members.userId, testOrganizerId)),
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
         );
 
       const travelResult = await db
@@ -631,7 +627,9 @@ describe("member-travel.service", () => {
       expect(restoredTravel.deletedAt).toBeNull();
 
       // Cleanup
-      await db.delete(memberTravel).where(eq(memberTravel.id, organizerTravelId));
+      await db
+        .delete(memberTravel)
+        .where(eq(memberTravel.id, organizerTravelId));
     });
   });
 
@@ -670,9 +668,8 @@ describe("member-travel.service", () => {
       expect(travel).toBeDefined();
 
       // Verify both records exist
-      const travelList = await memberTravelService.getMemberTravelByTrip(
-        testTripId,
-      );
+      const travelList =
+        await memberTravelService.getMemberTravelByTrip(testTripId);
       expect(travelList).toHaveLength(2);
     });
 
@@ -692,9 +689,8 @@ describe("member-travel.service", () => {
       expect(travel.memberId).toBe(testMember2MemberId);
 
       // Verify both members' travel exists
-      const travelList = await memberTravelService.getMemberTravelByTrip(
-        testTripId,
-      );
+      const travelList =
+        await memberTravelService.getMemberTravelByTrip(testTripId);
       expect(travelList).toHaveLength(2);
       expect(travelList.map((t) => t.memberId)).toContain(testMember1MemberId);
       expect(travelList.map((t) => t.memberId)).toContain(testMember2MemberId);

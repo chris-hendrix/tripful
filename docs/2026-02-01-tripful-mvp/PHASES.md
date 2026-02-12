@@ -16,6 +16,7 @@
 ## ✅ Phase 2: SMS Authentication
 
 **Backend:**
+
 - [x] Phone-based authentication with SMS verification codes
 - [x] JWT token generation with httpOnly cookies
 - [x] Database-backed verification codes (5-minute expiry)
@@ -26,6 +27,7 @@
 - [x] Unit + integration tests for all auth endpoints
 
 **Frontend:**
+
 - [x] Login page with phone number input
 - [x] Verification page with 6-digit code entry
 - [x] Complete profile page with timezone selection
@@ -33,16 +35,19 @@
 - [x] AuthProvider context for global auth state
 
 **Database:**
+
 - [x] `users` table (id, phone_number, display_name, timezone, profile_photo_url)
 - [x] `verification_codes` table (phone_number PK, code, expires_at)
 
 **E2E:**
+
 - [x] Complete auth journey (login → verify → profile → dashboard)
 - [x] Logout flow, protected route access control, existing user skip
 
 ## ✅ Phase 3: Trip Management
 
 **Backend:**
+
 - [x] Trip CRUD operations (create, read, update, delete/cancel)
 - [x] List user's trips with role information (organizer/member)
 - [x] Co-organizer management (add/remove)
@@ -51,6 +56,7 @@
 - [x] Unit + integration tests
 
 **Frontend:**
+
 - [x] Dashboard with trip list, search, and grouping (Your Trips, Other Trips, Past Trips)
 - [x] CreateTripDialog with 2-step form (details + optional cover image)
 - [x] EditTripDialog with tabbed interface (Details, Settings, Cover Image, Delete)
@@ -58,10 +64,12 @@
 - [x] Permission-based UI rendering
 
 **Database:**
+
 - [x] `trips` table (name, destination, dates, timezone, cover_image_url, settings)
 - [x] `members` table (trip membership, RSVP status, co-organizer tracking)
 
 **E2E:**
+
 - [x] Trip creation, editing, permissions, co-organizer management
 
 ## ✅ Frontend Design Overhaul
@@ -78,6 +86,7 @@
 ## ✅ Phase 4: Itinerary View Modes
 
 **Backend:**
+
 - [x] Events CRUD with soft delete and restore (EventService)
 - [x] Accommodations CRUD with soft delete and restore (AccommodationService)
 - [x] Member travel CRUD with soft delete and restore (MemberTravelService)
@@ -86,6 +95,7 @@
 - [x] Unit + integration tests
 
 **Frontend:**
+
 - [x] Day-by-day and group-by-type view modes
 - [x] Timezone toggle (trip timezone vs user timezone)
 - [x] Event, accommodation, and member travel card components
@@ -95,14 +105,17 @@
 - [x] Permission-based UI rendering, responsive design
 
 **Database:**
+
 - [x] `events` table with event_type enum (travel, meal, activity), soft delete
 - [x] `accommodations` table with date ranges, soft delete
 - [x] `member_travel` table with member_travel_type enum (arrival, departure), soft delete
 
 **Shared:**
+
 - [x] Zod schemas + TypeScript types for events, accommodations, member travel
 
 **E2E:**
+
 - [x] 35 tests covering creation, editing, deletion, view modes, timezone toggle, permissions
 
 ## ✅ Mobile UX Fixes
@@ -119,6 +132,7 @@
 ## ✅ Phase 5: Invitations & RSVP
 
 **Backend:**
+
 - [x] `invitations` table with batch phone-number-based invite flow
 - [x] `isOrganizer` column added to members table (replaces role-based permissions)
 - [x] InvitationService with batch invite, RSVP, and pending invitation processing
@@ -129,6 +143,7 @@
 - [x] Unit + integration tests (invitation service, routes, permissions)
 
 **Frontend:**
+
 - [x] InviteMembersDialog with batch phone input
 - [x] TripPreview component with RSVP buttons (Going/Maybe/Not Going)
 - [x] MembersList component in dialog (replaces old tab layout)
@@ -138,17 +153,20 @@
 - [x] TanStack Query hooks for invitations, RSVP, and members
 
 **Shared:**
+
 - [x] Invitation schemas (createInvitationsSchema, updateRsvpSchema)
 - [x] Invitation types (Invitation, MemberWithProfile, TripPreview)
 - [x] Canonical PHONE_REGEX extracted to shared package
 - [x] Response schemas for auth, events, accommodations, member travel, trips
 
 **Database:**
+
 - [x] `invitations` table (id, trip_id, inviter_id, invitee_phone, status, timestamps)
 - [x] `isOrganizer` boolean column on members table
 - [x] Migration: `0005_early_zemo.sql`
 
 **E2E:**
+
 - [x] Invitation journey: invite via dialog, trip preview, RSVP Going/Maybe/Not Going
 - [x] Member list dialog with status badges
 - [x] Uninvited user 404 access control
@@ -158,10 +176,12 @@
 ## 🚧 Phase 5.5: User Profile & Auth Redirects
 
 **Auth Redirects:**
+
 - [ ] Landing page (`/page.tsx`): server-side cookie check, redirect authenticated users to `/dashboard`
 - [ ] Auth layout (`(auth)/layout.tsx`): server-side cookie check, redirect authenticated users to `/dashboard` (covers `/login`, `/verify`, `/complete-profile`)
 
 **User Profile:**
+
 - [ ] Profile/settings page (`/settings`) for editing display name and timezone
 - [ ] Profile photo upload (reuse existing image upload service pattern from trip cover images)
 - [ ] Optional profile photo during initial registration (PRD §1)
@@ -170,6 +190,7 @@
 **Notes:** Landing page "Get started" button currently sends authenticated users through the login flow again. Auth redirect pattern mirrors existing `(app)/layout.tsx` server-side cookie check. Profile page promise exists in complete-profile UI ("You can update this information later in your settings") but was never built.
 
 **E2E:**
+
 - [ ] Authenticated user visiting `/` redirects to dashboard
 - [ ] Authenticated user visiting `/login` redirects to dashboard
 - [ ] User can edit profile from settings page
@@ -177,12 +198,14 @@
 ## 🚧 Phase 6: Advanced Itinerary & Trip Management
 
 **Backend:**
+
 - [ ] Deleted items listing endpoint for organizers
 - [ ] Meetup location/time fields on events (PRD §8: `meetup_location`, `meetup_time` — schema + API)
 - [ ] Auto-lock past trips — prevent adding events after trip end date (PRD §9, AC8)
 - [ ] Remove member from trip endpoint (distinct from revoking invitation) (PRD §10, AC12)
 
 **Frontend:**
+
 - [ ] Deleted items section (organizers only) with restore UI
 - [ ] Multi-day event badges in day-by-day view
 - [ ] Member status indicators on itinerary
@@ -190,6 +213,7 @@
 - [ ] Remove member UI in members dialog (organizer only)
 
 **E2E:**
+
 - [ ] Organizer can view and restore deleted events
 - [ ] Past trip prevents adding new events
 - [ ] Organizer can remove a member

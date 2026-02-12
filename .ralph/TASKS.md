@@ -50,7 +50,7 @@
 
 ## Phase 5: Profile Page & Handles
 
-- [ ] Task 5.1: Create profile page with form, photo upload/remove, timezone auto-detect, handles, and member dialog updates
+- [x] Task 5.1: Create profile page with form, photo upload/remove, timezone auto-detect, handles, and member dialog updates
   - Implement: Create `apps/web/src/app/(app)/profile/page.tsx` (server component wrapper)
   - Implement: Create `apps/web/src/hooks/use-user.ts` with `useUpdateProfile`, `useUploadProfilePhoto`, `useRemoveProfilePhoto` TanStack Query mutations
   - Implement: Create `apps/web/src/components/profile/profile-form.tsx` with React Hook Form: display name, phone (read-only), timezone with "Auto-detect" option, Venmo/Instagram handle inputs, profile photo upload/remove

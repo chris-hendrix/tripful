@@ -434,9 +434,7 @@ describe("InviteMembersDialog", () => {
               () =>
                 resolve({
                   success: true,
-                  invitations: [
-                    { id: "inv-1", inviteePhone: "+14155552671" },
-                  ],
+                  invitations: [{ id: "inv-1", inviteePhone: "+14155552671" }],
                   skipped: [],
                 }),
               100,
@@ -481,9 +479,7 @@ describe("InviteMembersDialog", () => {
               () =>
                 resolve({
                   success: true,
-                  invitations: [
-                    { id: "inv-1", inviteePhone: "+14155552671" },
-                  ],
+                  invitations: [{ id: "inv-1", inviteePhone: "+14155552671" }],
                   skipped: [],
                 }),
               100,
@@ -545,7 +541,9 @@ describe("InviteMembersDialog", () => {
       await user.click(addButton);
 
       await waitFor(() => {
-        const badge = screen.getByText("+14155552671").closest("[data-slot='badge']");
+        const badge = screen
+          .getByText("+14155552671")
+          .closest("[data-slot='badge']");
         expect(badge).not.toBeNull();
         expect(badge!.getAttribute("data-variant")).toBe("secondary");
       });

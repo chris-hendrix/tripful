@@ -84,10 +84,10 @@ export function CreateAccommodationDialog({
         onError: (error) => {
           toast.error(
             getCreateAccommodationErrorMessage(error) ??
-              "An unexpected error occurred."
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -125,7 +125,7 @@ export function CreateAccommodationDialog({
     const currentLinks = form.getValues("links") || [];
     form.setValue(
       "links",
-      currentLinks.filter((link) => link !== linkToRemove)
+      currentLinks.filter((link) => link !== linkToRemove),
     );
   };
 
@@ -144,7 +144,10 @@ export function CreateAccommodationDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Accommodation Name */}
             <FormField
               control={form.control}

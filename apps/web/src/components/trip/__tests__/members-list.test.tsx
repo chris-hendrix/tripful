@@ -218,7 +218,9 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
-      const goingBadge = screen.getByText("Going").closest("[data-slot='badge']");
+      const goingBadge = screen
+        .getByText("Going")
+        .closest("[data-slot='badge']");
       expect(goingBadge).not.toBeNull();
       expect(goingBadge!.className).toContain("bg-success/15");
       expect(goingBadge!.className).toContain("text-success");
@@ -229,7 +231,9 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
-      const maybeBadge = screen.getByText("Maybe").closest("[data-slot='badge']");
+      const maybeBadge = screen
+        .getByText("Maybe")
+        .closest("[data-slot='badge']");
       expect(maybeBadge).not.toBeNull();
       expect(maybeBadge!.className).toContain("bg-amber-500/15");
       expect(maybeBadge!.className).toContain("text-amber-600");
@@ -378,7 +382,11 @@ describe("MembersList", () => {
     it("shows remove button for members with matching invitations when organizer and onRemove provided", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onRemove={onRemove}
+        />,
       );
 
       // Jane Smith (inv-2) and Bob Wilson (inv-3) have invitations
@@ -403,7 +411,11 @@ describe("MembersList", () => {
     it("does NOT show remove button for trip creator (no matching invitation)", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onRemove={onRemove}
+        />,
       );
 
       // John Doe is organizer/creator with no matching invitation
@@ -415,7 +427,11 @@ describe("MembersList", () => {
     it("does NOT show remove button for members without phone numbers (no match possible)", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onRemove={onRemove}
+        />,
       );
 
       // Alice Brown has no phoneNumber, so no invitation match
@@ -427,7 +443,11 @@ describe("MembersList", () => {
     it("does NOT show remove buttons for non-organizers", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={false}
+          onRemove={onRemove}
+        />,
       );
 
       expect(
@@ -444,7 +464,11 @@ describe("MembersList", () => {
       const user = userEvent.setup();
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onRemove={onRemove}
+        />,
       );
 
       const removeButton = screen.getByRole("button", {
@@ -465,7 +489,11 @@ describe("MembersList", () => {
       const user = userEvent.setup();
       const onRemove = vi.fn();
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} onRemove={onRemove} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onRemove={onRemove}
+        />,
       );
 
       const removeButton = screen.getByRole("button", {

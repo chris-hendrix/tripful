@@ -104,7 +104,9 @@ export function EditEventDialog({
         startTime: event.startTime
           ? new Date(event.startTime).toISOString()
           : "",
-        endTime: event.endTime ? new Date(event.endTime).toISOString() : undefined,
+        endTime: event.endTime
+          ? new Date(event.endTime).toISOString()
+          : undefined,
         allDay: event.allDay,
         isOptional: event.isOptional,
         links: event.links || [],
@@ -126,10 +128,11 @@ export function EditEventDialog({
         },
         onError: (error) => {
           toast.error(
-            getUpdateEventErrorMessage(error) ?? "An unexpected error occurred."
+            getUpdateEventErrorMessage(error) ??
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -142,7 +145,7 @@ export function EditEventDialog({
       },
       onError: (error) => {
         toast.error(
-          getDeleteEventErrorMessage(error) ?? "Failed to delete event"
+          getDeleteEventErrorMessage(error) ?? "Failed to delete event",
         );
       },
     });
@@ -182,7 +185,7 @@ export function EditEventDialog({
     const currentLinks = form.getValues("links") || [];
     form.setValue(
       "links",
-      currentLinks.filter((link) => link !== linkToRemove)
+      currentLinks.filter((link) => link !== linkToRemove),
     );
   };
 
@@ -199,7 +202,10 @@ export function EditEventDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Event Name */}
             <FormField
               control={form.control}

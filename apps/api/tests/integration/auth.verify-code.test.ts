@@ -631,9 +631,7 @@ describe("POST /api/auth/verify-code", () => {
       const memberRecords = await db
         .select()
         .from(members)
-        .where(
-          and(eq(members.tripId, trip.id), eq(members.userId, userId)),
-        );
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, userId)));
 
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("no_response");

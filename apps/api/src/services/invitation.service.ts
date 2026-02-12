@@ -80,10 +80,7 @@ export interface IInvitationService {
    * @param userId - The ID of the user
    * @param phoneNumber - The phone number to match invitations against
    */
-  processPendingInvitations(
-    userId: string,
-    phoneNumber: string,
-  ): Promise<void>;
+  processPendingInvitations(userId: string, phoneNumber: string): Promise<void>;
 }
 
 /**
@@ -197,7 +194,8 @@ export class InvitationService implements IInvitationService {
       }
 
       skipped = phoneNumbers.filter(
-        (phone) => alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
+        (phone) =>
+          alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
       );
 
       // Build newPhones
@@ -333,9 +331,7 @@ export class InvitationService implements IInvitationService {
     }
 
     // Delete the invitation record
-    await this.db
-      .delete(invitations)
-      .where(eq(invitations.id, invitationId));
+    await this.db.delete(invitations).where(eq(invitations.id, invitationId));
   }
 
   /**

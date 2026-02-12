@@ -116,10 +116,10 @@ export function EditMemberTravelDialog({
         onError: (error) => {
           toast.error(
             getUpdateMemberTravelErrorMessage(error) ??
-              "An unexpected error occurred."
+              "An unexpected error occurred.",
           );
         },
-      }
+      },
     );
   };
 
@@ -133,7 +133,7 @@ export function EditMemberTravelDialog({
       onError: (error) => {
         toast.error(
           getDeleteMemberTravelErrorMessage(error) ??
-            "Failed to delete travel details"
+            "Failed to delete travel details",
         );
       },
     });
@@ -150,7 +150,10 @@ export function EditMemberTravelDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             {/* Travel Type */}
             <FormField
               control={form.control}
@@ -162,7 +165,11 @@ export function EditMemberTravelDialog({
                     <span className="text-destructive ml-1">*</span>
                   </FormLabel>
                   <FormControl>
-                    <div className="flex gap-4" role="radiogroup" aria-label="Travel type">
+                    <div
+                      className="flex gap-4"
+                      role="radiogroup"
+                      aria-label="Travel type"
+                    >
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="radio"

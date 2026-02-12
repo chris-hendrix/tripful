@@ -6,7 +6,10 @@ import {
   type Event,
 } from "@/db/schema/index.js";
 import { eq, and, isNull } from "drizzle-orm";
-import type { CreateEventInput, UpdateEventInput } from "@tripful/shared/schemas";
+import type {
+  CreateEventInput,
+  UpdateEventInput,
+} from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import {

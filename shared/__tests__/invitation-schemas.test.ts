@@ -1,10 +1,7 @@
 // Tests for invitation validation schemas
 
 import { describe, it, expect } from "vitest";
-import {
-  createInvitationsSchema,
-  updateRsvpSchema,
-} from "../schemas/index.js";
+import { createInvitationsSchema, updateRsvpSchema } from "../schemas/index.js";
 
 describe("createInvitationsSchema", () => {
   it("should accept valid phone number arrays", () => {

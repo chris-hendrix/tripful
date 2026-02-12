@@ -17,7 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function UserAvatar({ user }: { user: { displayName: string; profilePhotoUrl?: string | null } | null }) {
+function UserAvatar({
+  user,
+}: {
+  user: { displayName: string; profilePhotoUrl?: string | null } | null;
+}) {
   return (
     <Avatar size="sm">
       {user?.profilePhotoUrl && (

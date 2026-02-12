@@ -121,7 +121,8 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
               )}
             </div>
             <span className="text-sm text-muted-foreground">
-              Organized by {trip.organizers.map((org) => org.displayName).join(", ")}
+              Organized by{" "}
+              {trip.organizers.map((org) => org.displayName).join(", ")}
             </span>
           </div>
         )}

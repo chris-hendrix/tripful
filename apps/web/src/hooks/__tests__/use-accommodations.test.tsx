@@ -229,10 +229,13 @@ describe("useCreateAccommodation", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123/accommodations", {
-        method: "POST",
-        body: JSON.stringify(mockAccommodationInput),
-      });
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/trips/trip-123/accommodations",
+        {
+          method: "POST",
+          body: JSON.stringify(mockAccommodationInput),
+        },
+      );
       expect(result.current.data).toEqual(mockAccommodationResponse);
     });
 
@@ -298,9 +301,10 @@ describe("useCreateAccommodation", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["accommodations", "list", "trip-123"], [
-        existingAccommodation,
-      ]);
+      queryClient.setQueryData(
+        ["accommodations", "list", "trip-123"],
+        [existingAccommodation],
+      );
 
       const { result } = renderHook(() => useCreateAccommodation(), {
         wrapper,
@@ -343,9 +347,10 @@ describe("useCreateAccommodation", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["accommodations", "list", "trip-123"], [
-        existingAccommodation,
-      ]);
+      queryClient.setQueryData(
+        ["accommodations", "list", "trip-123"],
+        [existingAccommodation],
+      );
 
       const { result } = renderHook(() => useCreateAccommodation(), {
         wrapper,
@@ -439,10 +444,13 @@ describe("useUpdateAccommodation", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/accommodations/accommodation-123", {
-      method: "PUT",
-      body: JSON.stringify(mockUpdateInput),
-    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/accommodations/accommodation-123",
+      {
+        method: "PUT",
+        body: JSON.stringify(mockUpdateInput),
+      },
+    );
   });
 
   it("handles PERMISSION_DENIED error", async () => {
@@ -513,9 +521,10 @@ describe("useDeleteAccommodation", () => {
       ["accommodations", "detail", "accommodation-123"],
       mockAccommodation,
     );
-    queryClient.setQueryData(["accommodations", "list", "trip-123"], [
-      mockAccommodation,
-    ]);
+    queryClient.setQueryData(
+      ["accommodations", "list", "trip-123"],
+      [mockAccommodation],
+    );
 
     const { result } = renderHook(() => useDeleteAccommodation(), { wrapper });
 
@@ -525,9 +534,12 @@ describe("useDeleteAccommodation", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/accommodations/accommodation-123", {
-      method: "DELETE",
-    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/accommodations/accommodation-123",
+      {
+        method: "DELETE",
+      },
+    );
   });
 
   it("removes accommodation from cache optimistically", async () => {
@@ -543,9 +555,10 @@ describe("useDeleteAccommodation", () => {
       ["accommodations", "detail", "accommodation-123"],
       mockAccommodation,
     );
-    queryClient.setQueryData(["accommodations", "list", "trip-123"], [
-      mockAccommodation,
-    ]);
+    queryClient.setQueryData(
+      ["accommodations", "list", "trip-123"],
+      [mockAccommodation],
+    );
 
     const { result } = renderHook(() => useDeleteAccommodation(), { wrapper });
 

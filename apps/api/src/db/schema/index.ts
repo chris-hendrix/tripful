@@ -183,7 +183,9 @@ export const invitations = pgTable(
   },
   (table) => ({
     tripIdIdx: index("invitations_trip_id_idx").on(table.tripId),
-    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(table.inviteePhone),
+    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(
+      table.inviteePhone,
+    ),
     tripPhoneUnique: unique("invitations_trip_phone_unique").on(
       table.tripId,
       table.inviteePhone,

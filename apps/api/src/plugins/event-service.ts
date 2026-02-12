@@ -8,7 +8,10 @@ import { EventService } from "@/services/event.service.js";
  */
 export default fp(
   async function eventServicePlugin(fastify: FastifyInstance) {
-    const eventService = new EventService(fastify.db, fastify.permissionsService);
+    const eventService = new EventService(
+      fastify.db,
+      fastify.permissionsService,
+    );
     fastify.decorate("eventService", eventService);
   },
   {

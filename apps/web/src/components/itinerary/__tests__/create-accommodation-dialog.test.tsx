@@ -302,7 +302,9 @@ describe("CreateAccommodationDialog", () => {
       );
 
       // Form validation prevents submission without required fields, but button should still work
-      expect(screen.getByRole("button", { name: /create accommodation/i })).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: /create accommodation/i }),
+      ).toBeDefined();
     });
   });
 

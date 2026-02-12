@@ -142,10 +142,7 @@ vi.mock("@/components/trip/members-list", () => ({
         <button
           data-testid="members-remove-btn"
           onClick={() =>
-            onRemove(
-              { id: "user-456", displayName: "Jane Smith" },
-              "inv-123",
-            )
+            onRemove({ id: "user-456", displayName: "Jane Smith" }, "inv-123")
           }
         >
           Remove member
@@ -165,9 +162,7 @@ vi.mock("@/components/trip/trip-preview", () => ({
 // Mock InviteMembersDialog component
 vi.mock("@/components/trip/invite-members-dialog", () => ({
   InviteMembersDialog: ({ open }: { open: boolean }) =>
-    open ? (
-      <div data-testid="invite-members-dialog">Invite Dialog</div>
-    ) : null,
+    open ? <div data-testid="invite-members-dialog">Invite Dialog</div> : null,
 }));
 
 // Mock EditTripDialog component

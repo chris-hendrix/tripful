@@ -37,19 +37,16 @@ export const eventsRelations = relations(events, ({ one }) => ({
   creator: one(users, { fields: [events.createdBy], references: [users.id] }),
 }));
 
-export const accommodationsRelations = relations(
-  accommodations,
-  ({ one }) => ({
-    trip: one(trips, {
-      fields: [accommodations.tripId],
-      references: [trips.id],
-    }),
-    creator: one(users, {
-      fields: [accommodations.createdBy],
-      references: [users.id],
-    }),
+export const accommodationsRelations = relations(accommodations, ({ one }) => ({
+  trip: one(trips, {
+    fields: [accommodations.tripId],
+    references: [trips.id],
   }),
-);
+  creator: one(users, {
+    fields: [accommodations.createdBy],
+    references: [users.id],
+  }),
+}));
 
 export const memberTravelRelations = relations(memberTravel, ({ one }) => ({
   trip: one(trips, {
@@ -64,5 +61,8 @@ export const memberTravelRelations = relations(memberTravel, ({ one }) => ({
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
   trip: one(trips, { fields: [invitations.tripId], references: [trips.id] }),
-  inviter: one(users, { fields: [invitations.inviterId], references: [users.id] }),
+  inviter: one(users, {
+    fields: [invitations.inviterId],
+    references: [users.id],
+  }),
 }));

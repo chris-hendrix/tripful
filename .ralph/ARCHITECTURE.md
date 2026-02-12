@@ -81,8 +81,11 @@ export type HandlePlatform = (typeof ALLOWED_HANDLE_PLATFORMS)[number];
 export const userHandlesSchema = z
   .record(z.string(), z.string().max(100))
   .refine(
-    (obj) => Object.keys(obj).every((k) => ALLOWED_HANDLE_PLATFORMS.includes(k as HandlePlatform)),
-    { message: "Only venmo and instagram handles are supported" }
+    (obj) =>
+      Object.keys(obj).every((k) =>
+        ALLOWED_HANDLE_PLATFORMS.includes(k as HandlePlatform),
+      ),
+    { message: "Only venmo and instagram handles are supported" },
   )
   .optional()
   .nullable();
@@ -258,6 +261,7 @@ The trips list page lives at `(app)/trips/page.tsx` and individual trip pages at
 ### Reference updates (all `/dashboard` → `/trips`)
 
 **Source files** (~10 files):
+
 - `apps/web/src/app/(auth)/verify/page.tsx` — `router.push("/trips")`
 - `apps/web/src/app/(auth)/complete-profile/page.tsx` — `router.push("/trips")`
 - `apps/web/src/app/(app)/trips/[id]/not-found.tsx` — `href="/trips"`
@@ -267,12 +271,14 @@ The trips list page lives at `(app)/trips/page.tsx` and individual trip pages at
 - `apps/web/src/app/robots.ts` — disallow list (remove `/dashboard`, keep `/trips`)
 
 **Test files** (~5 files):
+
 - `apps/web/src/app/(auth)/verify/page.test.tsx`
 - `apps/web/src/app/(auth)/complete-profile/page.test.tsx`
 - `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`
 - `apps/web/src/components/__tests__/app-header.test.tsx`
 
 **E2E tests** (~2 files):
+
 - `apps/web/tests/e2e/auth-journey.spec.ts`
 - `apps/web/tests/e2e/trip-journey.spec.ts`
 
@@ -295,6 +301,7 @@ Server component wrapper (within `(app)` layout, so auth is already checked).
 Client component with React Hook Form + Zod validation.
 
 **Fields:**
+
 - **Profile photo**: Circular avatar preview with upload/remove buttons. Reuse `ImageUpload` pattern (FormData multipart upload). Shows current photo or initials fallback.
 - **Display name**: Text input (3-50 chars). Pre-filled with current value.
 - **Phone number**: Read-only display.
@@ -302,11 +309,13 @@ Client component with React Hook Form + Zod validation.
 - **Handles**: Two text inputs for Venmo and Instagram usernames. Optional. Saved as part of `PUT /api/users/me` body. Show platform icons/labels next to inputs.
 
 **Timezone dropdown behavior:**
+
 - First option: "Auto-detect (detected: America/New_York)" — label dynamically shows detected timezone, value maps to `null` on submit
 - Remaining options: Standard IANA timezone list from `TIMEZONES` constant
 - Default selection: If `user.timezone` is `null`, select "Auto-detect". Otherwise select the stored timezone.
 
 **API calls:**
+
 - Profile update: `PUT /api/users/me` via TanStack Query mutation
 - Photo upload: `POST /api/users/me/photo` via `fetch` with FormData
 - Photo remove: `DELETE /api/users/me/photo` via `fetch`
@@ -315,9 +324,15 @@ Client component with React Hook Form + Zod validation.
 ### TanStack Query hooks: `apps/web/src/hooks/use-user.ts` (new file)
 
 ```typescript
-export function useUpdateProfile() { /* useMutation for PUT /api/users/me */ }
-export function useUploadProfilePhoto() { /* useMutation for POST /api/users/me/photo */ }
-export function useRemoveProfilePhoto() { /* useMutation for DELETE /api/users/me/photo */ }
+export function useUpdateProfile() {
+  /* useMutation for PUT /api/users/me */
+}
+export function useUploadProfilePhoto() {
+  /* useMutation for POST /api/users/me/photo */
+}
+export function useRemoveProfilePhoto() {
+  /* useMutation for DELETE /api/users/me/photo */
+}
 ```
 
 ## Frontend: Handles in Members Dialog
@@ -327,6 +342,7 @@ export function useRemoveProfilePhoto() { /* useMutation for DELETE /api/users/m
 **File**: `apps/web/src/components/trip/members-list.tsx`
 
 Show Venmo and Instagram handles on member cards when available. Display as clickable links:
+
 - Venmo: `https://venmo.com/{handle}` (open in new tab)
 - Instagram: `https://instagram.com/{handle}` (open in new tab)
 
@@ -365,7 +381,8 @@ Where `user.timezone` is consumed and might be `null`:
 const userTimezone = user?.timezone || "UTC";
 
 // AFTER
-const userTimezone = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+const userTimezone =
+  user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 ```
 
 Any other place that reads `user.timezone` with a fallback should use the browser timezone instead of "UTC".
@@ -373,17 +390,20 @@ Any other place that reads `user.timezone` with a fallback should use the browse
 ## Testing Strategy
 
 ### Unit tests
+
 - `user.controller.ts` — test updateProfile, uploadProfilePhoto, removeProfilePhoto
 - `auth.service.ts` — test updateProfile with nullable timezone and profilePhotoUrl
 - `updateProfileSchema` validation — test all field combinations
 
 ### Integration tests
+
 - `PUT /api/users/me` — update displayName, timezone, timezone to null
 - `POST /api/users/me/photo` — upload, replace existing, invalid file type, too large
 - `DELETE /api/users/me/photo` — remove existing, remove when none exists
 - Auth on all endpoints (401 without cookie)
 
 ### E2E tests
+
 - Authenticated user visiting `/` redirects to `/trips`
 - Authenticated user visiting `/login` redirects to `/trips`
 - User can navigate to profile page from header dropdown
@@ -392,5 +412,6 @@ Any other place that reads `user.timezone` with a fallback should use the browse
 - Complete-profile page redirects to `/trips`
 
 ### Existing test updates
+
 - All E2E tests: `/dashboard` → `/trips`
 - All unit tests referencing `/dashboard` → `/trips`

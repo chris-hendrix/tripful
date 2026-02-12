@@ -48,10 +48,7 @@ export type { Event };
  * return events.map(event => <EventCard key={event.id} event={event} />);
  * ```
  */
-export function useEvents(
-  tripId: string,
-  options?: { enabled?: boolean },
-) {
+export function useEvents(tripId: string, options?: { enabled?: boolean }) {
   return useQuery({
     ...eventsQueryOptions(tripId),
     enabled: (options?.enabled ?? true) && !!tripId,
@@ -190,7 +187,10 @@ export function useCreateEvent() {
     onError: (_error, { tripId }, context) => {
       // Rollback to previous events list if we had one
       if (context?.previousEvents) {
-        queryClient.setQueryData(eventKeys.list(tripId), context.previousEvents);
+        queryClient.setQueryData(
+          eventKeys.list(tripId),
+          context.previousEvents,
+        );
       }
     },
 
@@ -474,9 +474,7 @@ export function useDeleteEvent() {
       await queryClient.cancelQueries({ queryKey: eventKeys.lists() });
 
       // Get the event to find its tripId
-      const event = queryClient.getQueryData<Event>(
-        eventKeys.detail(eventId),
-      );
+      const event = queryClient.getQueryData<Event>(eventKeys.detail(eventId));
       const tripId = event?.tripId;
 
       // Snapshot the previous value for rollback
@@ -601,9 +599,7 @@ export function useRestoreEvent() {
       await queryClient.cancelQueries({ queryKey: eventKeys.lists() });
 
       // Get the event to find its tripId
-      const event = queryClient.getQueryData<Event>(
-        eventKeys.detail(eventId),
-      );
+      const event = queryClient.getQueryData<Event>(eventKeys.detail(eventId));
       const tripId = event?.tripId;
 
       // Snapshot the previous value for rollback

@@ -54,27 +54,29 @@ export function AccommodationCard({
         <h4 className="font-semibold text-foreground text-sm">
           {accommodation.name}
         </h4>
-              {datePrefix && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <Calendar className="w-3 h-3 shrink-0" />
-                  <span>{datePrefix}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                <Clock className="w-3 h-3 shrink-0" />
-                <span>{nightsLabel}</span>
-              </div>
-              {accommodation.address && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="underline underline-offset-2">{accommodation.address}</span>
-                </a>
+        {datePrefix && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+            <Calendar className="w-3 h-3 shrink-0" />
+            <span>{datePrefix}</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+          <Clock className="w-3 h-3 shrink-0" />
+          <span>{nightsLabel}</span>
+        </div>
+        {accommodation.address && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span className="underline underline-offset-2">
+              {accommodation.address}
+            </span>
+          </a>
         )}
       </div>
 

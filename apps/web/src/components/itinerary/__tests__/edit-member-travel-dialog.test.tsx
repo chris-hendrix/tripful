@@ -114,10 +114,14 @@ describe("EditMemberTravelDialog", () => {
         />,
       );
 
-      const locationInput = screen.getByLabelText(/location/i) as HTMLInputElement;
+      const locationInput = screen.getByLabelText(
+        /location/i,
+      ) as HTMLInputElement;
       expect(locationInput.value).toBe("Miami Airport");
 
-      const detailsInput = screen.getByRole("textbox", { name: /details/i }) as HTMLTextAreaElement;
+      const detailsInput = screen.getByRole("textbox", {
+        name: /details/i,
+      }) as HTMLTextAreaElement;
       expect(detailsInput.value).toBe("Flight AA123");
     });
 
@@ -335,7 +339,9 @@ describe("EditMemberTravelDialog", () => {
       await user.clear(locationInput);
       await user.type(locationInput, "Updated Location");
 
-      expect((locationInput as HTMLInputElement).value).toBe("Updated Location");
+      expect((locationInput as HTMLInputElement).value).toBe(
+        "Updated Location",
+      );
     });
   });
 

@@ -240,9 +240,7 @@ export function InviteMembersDialog({
                 variant="gradient"
                 className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                )}
+                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {isPending ? "Sending invitations..." : "Send invitations"}
               </Button>
             </div>

@@ -82,13 +82,13 @@ cd apps/web && pnpm playwright test tests/e2e/auth-journey.spec.ts
 
 ## Ports and URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend (Next.js) | http://localhost:3000 |
-| Backend (Fastify) | http://localhost:8000 |
-| API base | http://localhost:8000/api |
-| PostgreSQL | localhost:5433 |
-| Playwright UI | http://localhost:9323 |
+| Service            | URL                       |
+| ------------------ | ------------------------- |
+| Frontend (Next.js) | http://localhost:3000     |
+| Backend (Fastify)  | http://localhost:8000     |
+| API base           | http://localhost:8000/api |
+| PostgreSQL         | localhost:5433            |
+| Playwright UI      | http://localhost:9323     |
 
 ## Test Credentials
 
@@ -121,11 +121,13 @@ cd apps/api && pnpm db:migrate
 ## Key Verification Points
 
 ### After Task 1.1 (Schema changes)
+
 - `pnpm typecheck` passes (may need to fix type errors in existing code from timezone becoming nullable)
 - Migration generated and applied successfully
 - `shared/` package builds
 
 ### After Task 2.1 (Backend API)
+
 - `PUT /api/users/me` updates display name, timezone, handles
 - `POST /api/users/me/photo` uploads profile photo
 - `DELETE /api/users/me/photo` removes profile photo
@@ -133,18 +135,21 @@ cd apps/api && pnpm db:migrate
 - Integration tests pass
 
 ### After Task 3.1 (Route rename)
+
 - `/trips` shows the trip list (formerly `/dashboard`)
 - `/dashboard` returns 404
 - All links in UI point to `/trips`
 - All unit and E2E tests pass with new paths
 
 ### After Task 4.1 (Auth redirects)
+
 - Authenticated user visiting `/` redirects to `/trips`
 - Authenticated user visiting `/login` redirects to `/trips`
 - Unauthenticated user sees landing page at `/`
 - Unauthenticated user sees login page at `/login`
 
 ### After Task 5.1 (Profile page)
+
 - Profile page accessible from header dropdown
 - Can edit display name and save
 - Can upload, replace, and remove profile photo
@@ -153,6 +158,7 @@ cd apps/api && pnpm db:migrate
 - Itinerary timezone toggle uses browser timezone when user timezone is null
 
 ### After Task 6.1 (Complete profile updates)
+
 - Complete profile page has optional photo upload
 - Timezone defaults to "Auto-detect"
 - Redirect goes to `/trips` after completion

@@ -62,7 +62,12 @@ export interface IAuthService {
    */
   updateProfile(
     userId: string,
-    data: { displayName?: string; timezone?: string | null; profilePhotoUrl?: string | null; handles?: Record<string, string> | null },
+    data: {
+      displayName?: string;
+      timezone?: string | null;
+      profilePhotoUrl?: string | null;
+      handles?: Record<string, string> | null;
+    },
   ): Promise<User>;
 
   /**
@@ -240,7 +245,12 @@ export class AuthService implements IAuthService {
    */
   async updateProfile(
     userId: string,
-    data: { displayName?: string; timezone?: string | null; profilePhotoUrl?: string | null; handles?: Record<string, string> | null },
+    data: {
+      displayName?: string;
+      timezone?: string | null;
+      profilePhotoUrl?: string | null;
+      handles?: Record<string, string> | null;
+    },
   ): Promise<User> {
     const updateData: Partial<User> = {
       ...data,

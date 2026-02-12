@@ -295,10 +295,7 @@ describe("useInviteMembers", () => {
         skipped: [],
       });
 
-      queryClient.setQueryData(
-        ["invitations", "list", "trip-123"],
-        [],
-      );
+      queryClient.setQueryData(["invitations", "list", "trip-123"], []);
       queryClient.setQueryData(["members", "list", "trip-123"], []);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -581,9 +578,7 @@ describe("error message helpers", () => {
 
     it("handles unknown APIError codes", () => {
       const error = new APIError("UNKNOWN_ERROR", "Something went wrong");
-      expect(getInviteMembersErrorMessage(error)).toBe(
-        "Something went wrong",
-      );
+      expect(getInviteMembersErrorMessage(error)).toBe("Something went wrong");
     });
 
     it("handles network errors", () => {

@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/config/database.js";
-import { users, trips, members, invitations, events } from "@/db/schema/index.js";
+import {
+  users,
+  trips,
+  members,
+  invitations,
+  events,
+} from "@/db/schema/index.js";
 import { eq, or, and } from "drizzle-orm";
 import { InvitationService } from "@/services/invitation.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
@@ -38,9 +44,7 @@ describe("invitation.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
-      await db
-        .delete(invitations)
-        .where(eq(invitations.tripId, testTripId));
+      await db.delete(invitations).where(eq(invitations.tripId, testTripId));
       await db.delete(events).where(eq(events.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));
       await db.delete(trips).where(eq(trips.id, testTripId));
@@ -156,16 +160,11 @@ describe("invitation.service", () => {
       expect(dbInvitations).toHaveLength(2);
 
       // Clean up extra phones
-      await db
-        .delete(invitations)
-        .where(eq(invitations.tripId, testTripId));
+      await db.delete(invitations).where(eq(invitations.tripId, testTripId));
       await db
         .delete(users)
         .where(
-          or(
-            eq(users.phoneNumber, phone1),
-            eq(users.phoneNumber, phone2),
-          ),
+          or(eq(users.phoneNumber, phone1), eq(users.phoneNumber, phone2)),
         );
     });
 
@@ -243,18 +242,13 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, extraUser.id),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, extraUser.id)),
         );
       expect(extraMember).toHaveLength(1);
       expect(extraMember[0].status).toBe("no_response");
 
       // Clean up extra users
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, extraUserPhone));
+      await db.delete(users).where(eq(users.phoneNumber, extraUserPhone));
     });
 
     it("should enforce 25 member limit", async () => {
@@ -292,9 +286,7 @@ describe("invitation.service", () => {
       // Clean up extra users
       await db
         .delete(users)
-        .where(
-          or(...extraPhones.map((phone) => eq(users.phoneNumber, phone))),
-        );
+        .where(or(...extraPhones.map((phone) => eq(users.phoneNumber, phone))));
     });
 
     it("should throw PermissionDeniedError for non-organizers", async () => {
@@ -374,9 +366,7 @@ describe("invitation.service", () => {
       expect(result[0].inviteeName).toBe("Known Invitee");
 
       // Clean up
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, inviteePhone));
+      await db.delete(users).where(eq(users.phoneNumber, inviteePhone));
     });
   });
 
@@ -394,11 +384,9 @@ describe("invitation.service", () => {
         .returning();
 
       const { invitations: created } =
-        await invitationService.createInvitations(
-          testOrganizerId,
-          testTripId,
-          [inviteePhone],
-        );
+        await invitationService.createInvitations(testOrganizerId, testTripId, [
+          inviteePhone,
+        ]);
       expect(created).toHaveLength(1);
 
       // Verify member record was created
@@ -414,10 +402,7 @@ describe("invitation.service", () => {
       expect(membersBefore).toHaveLength(1);
 
       // Revoke
-      await invitationService.revokeInvitation(
-        testOrganizerId,
-        created[0].id,
-      );
+      await invitationService.revokeInvitation(testOrganizerId, created[0].id);
 
       // Verify invitation deleted
       const remainingInvitations = await db
@@ -439,9 +424,7 @@ describe("invitation.service", () => {
       expect(membersAfter).toHaveLength(0);
 
       // Clean up
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, inviteePhone));
+      await db.delete(users).where(eq(users.phoneNumber, inviteePhone));
     });
 
     it("should throw InvitationNotFoundError for non-existent invitation", async () => {
@@ -456,11 +439,9 @@ describe("invitation.service", () => {
     it("should throw PermissionDeniedError for non-organizers", async () => {
       const phone = generateUniquePhone();
       const { invitations: created } =
-        await invitationService.createInvitations(
-          testOrganizerId,
-          testTripId,
-          [phone],
-        );
+        await invitationService.createInvitations(testOrganizerId, testTripId, [
+          phone,
+        ]);
 
       await expect(
         invitationService.revokeInvitation(testMemberId, created[0].id),
@@ -608,19 +589,14 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, newUser.id),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, newUser.id)),
         );
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("no_response");
       expect(memberRecords[0].isOrganizer).toBe(false);
 
       // Clean up
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, newUserPhone));
+      await db.delete(users).where(eq(users.phoneNumber, newUserPhone));
     });
 
     it("should update invitation status to accepted", async () => {
@@ -657,9 +633,7 @@ describe("invitation.service", () => {
       expect(invitation.respondedAt).not.toBeNull();
 
       // Clean up
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, newUserPhone));
+      await db.delete(users).where(eq(users.phoneNumber, newUserPhone));
     });
 
     it("should not create duplicate member records", async () => {
@@ -697,9 +671,7 @@ describe("invitation.service", () => {
       expect(memberRecords).toHaveLength(1);
 
       // Clean up
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, existingUserPhone));
+      await db.delete(users).where(eq(users.phoneNumber, existingUserPhone));
     });
 
     it("should handle no pending invitations gracefully", async () => {

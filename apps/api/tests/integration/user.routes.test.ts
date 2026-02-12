@@ -516,9 +516,7 @@ describe("POST /api/users/me/photo", () => {
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
       expect(body).toHaveProperty("user");
-      expect(body.user.profilePhotoUrl).toMatch(
-        /^\/uploads\/[a-f0-9-]+\.png$/,
-      );
+      expect(body.user.profilePhotoUrl).toMatch(/^\/uploads\/[a-f0-9-]+\.png$/);
     });
 
     it("should replace existing photo and return new URL", async () => {
@@ -570,9 +568,7 @@ describe("POST /api/users/me/photo", () => {
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
       expect(body.user.profilePhotoUrl).not.toBe("/uploads/old-photo.jpg");
-      expect(body.user.profilePhotoUrl).toMatch(
-        /^\/uploads\/[a-f0-9-]+\.png$/,
-      );
+      expect(body.user.profilePhotoUrl).toMatch(/^\/uploads\/[a-f0-9-]+\.png$/);
     });
   });
 

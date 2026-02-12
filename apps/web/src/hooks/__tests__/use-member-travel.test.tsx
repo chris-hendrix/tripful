@@ -288,9 +288,10 @@ describe("useCreateMemberTravel", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["memberTravels", "list", "trip-123"], [
-        existingMemberTravel,
-      ]);
+      queryClient.setQueryData(
+        ["memberTravels", "list", "trip-123"],
+        [existingMemberTravel],
+      );
 
       const { result } = renderHook(() => useCreateMemberTravel(), {
         wrapper,
@@ -333,9 +334,10 @@ describe("useCreateMemberTravel", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["memberTravels", "list", "trip-123"], [
-        existingMemberTravel,
-      ]);
+      queryClient.setQueryData(
+        ["memberTravels", "list", "trip-123"],
+        [existingMemberTravel],
+      );
 
       const { result } = renderHook(() => useCreateMemberTravel(), {
         wrapper,
@@ -427,10 +429,13 @@ describe("useUpdateMemberTravel", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/member-travel/member-travel-123", {
-      method: "PUT",
-      body: JSON.stringify(mockUpdateInput),
-    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/member-travel/member-travel-123",
+      {
+        method: "PUT",
+        body: JSON.stringify(mockUpdateInput),
+      },
+    );
   });
 
   it("handles PERMISSION_DENIED error", async () => {
@@ -499,9 +504,10 @@ describe("useDeleteMemberTravel", () => {
       ["memberTravels", "detail", "member-travel-123"],
       mockMemberTravel,
     );
-    queryClient.setQueryData(["memberTravels", "list", "trip-123"], [
-      mockMemberTravel,
-    ]);
+    queryClient.setQueryData(
+      ["memberTravels", "list", "trip-123"],
+      [mockMemberTravel],
+    );
 
     const { result } = renderHook(() => useDeleteMemberTravel(), { wrapper });
 
@@ -511,9 +517,12 @@ describe("useDeleteMemberTravel", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(apiRequest).toHaveBeenCalledWith("/member-travel/member-travel-123", {
-      method: "DELETE",
-    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/member-travel/member-travel-123",
+      {
+        method: "DELETE",
+      },
+    );
   });
 
   it("removes member travel from cache optimistically", async () => {
@@ -529,9 +538,10 @@ describe("useDeleteMemberTravel", () => {
       ["memberTravels", "detail", "member-travel-123"],
       mockMemberTravel,
     );
-    queryClient.setQueryData(["memberTravels", "list", "trip-123"], [
-      mockMemberTravel,
-    ]);
+    queryClient.setQueryData(
+      ["memberTravels", "list", "trip-123"],
+      [mockMemberTravel],
+    );
 
     const { result } = renderHook(() => useDeleteMemberTravel(), { wrapper });
 

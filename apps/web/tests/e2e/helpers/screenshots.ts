@@ -2,7 +2,10 @@ import type { Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 
-const SCREENSHOTS_DIR = path.resolve(__dirname, "../../../playwright-screenshots");
+const SCREENSHOTS_DIR = path.resolve(
+  __dirname,
+  "../../../playwright-screenshots",
+);
 
 const isCI = !!process.env.CI;
 

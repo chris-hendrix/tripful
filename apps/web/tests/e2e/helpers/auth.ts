@@ -49,7 +49,6 @@ export async function loginViaBrowser(
 ): Promise<void> {
   await page.goto("/login");
 
-
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);
   await page.locator('button:has-text("Continue")').click();
@@ -156,7 +155,6 @@ export async function authenticateUserViaBrowser(
 
   await page.goto("/login");
 
-
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);
   await page.locator('button:has-text("Continue")').click();
@@ -192,7 +190,6 @@ export async function authenticateUserViaBrowserWithPhone(
   displayName: string = "Test User",
 ): Promise<void> {
   await page.goto("/login");
-
 
   const phoneInput = page.locator('input[type="tel"]');
   await phoneInput.fill(phone);
