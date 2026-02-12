@@ -1,521 +1,396 @@
-# Phase 5: Invitations & RSVP - Architecture
+# Phase 5.5: User Profile & Auth Redirects
 
-Phase 5 adds trip invitations by phone number, RSVP management, partial trip previews for invited-but-not-RSVP'd members, member list UI, and the "member no longer attending" indicator on events.
+User profile management page, auth redirect improvements, and dashboard-to-trips route rename. Enables users to edit their profile (name, photo, timezone) and prevents authenticated users from re-entering the login flow.
 
-## Key Decisions
+## Overview
 
-- **Mock SMS only** - No Twilio integration; use existing mock SMS service (console logging)
-- **Reuse `/trips/[id]`** - Conditional rendering on existing trip detail page (no new `/t/[id]` route)
-- **Add `isOrganizer` column** to members table - Replaces the current "all going = organizer" model
-- **Server-side filtering** for partial preview - API returns limited data for non-RSVP'd members
-- **Invitation + member on invite** - Both records created when organizer invites someone
-- **25 member limit enforced** on invitations
-- **Batch invite** - Dialog supports multiple phone numbers at once
-- **`creatorAttending` computed field** on event responses for "member no longer attending" indicator
+Three interconnected changes:
+
+1. **Auth redirects** — Server-side cookie checks on landing page (`/`) and auth layout redirect authenticated users to `/trips`
+2. **Route rename** — Move `/dashboard` to `/trips` across all code, tests, and E2E
+3. **Profile page** — New `/profile` page with display name editing, profile photo upload/removal, and timezone selection with auto-detect support
 
 ## DB Schema Changes
 
-### New: `invitations` table
+### Make `timezone` nullable
 
-File: `apps/api/src/db/schema/index.ts`
+The `users.timezone` column changes from `NOT NULL DEFAULT 'UTC'` to nullable. `NULL` = auto-detect (resolved to browser timezone on the client).
 
-```typescript
-export const invitationStatusEnum = pgEnum("invitation_status", [
-  "pending",
-  "accepted",
-  "declined",
-  "failed",
-]);
-
-export const invitations = pgTable(
-  "invitations",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tripId: uuid("trip_id")
-      .notNull()
-      .references(() => trips.id, { onDelete: "cascade" }),
-    inviterId: uuid("inviter_id")
-      .notNull()
-      .references(() => users.id),
-    inviteePhone: varchar("invitee_phone", { length: 20 }).notNull(),
-    status: invitationStatusEnum("status").notNull().default("pending"),
-    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
-    respondedAt: timestamp("responded_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    tripIdIdx: index("invitations_trip_id_idx").on(table.tripId),
-    inviteePhoneIdx: index("invitations_invitee_phone_idx").on(table.inviteePhone),
-    tripPhoneUnique: unique("invitations_trip_phone_unique").on(
-      table.tripId,
-      table.inviteePhone,
-    ),
-  }),
-);
-```
-
-### Modified: `members` table - Add `isOrganizer` column
+**File**: `apps/api/src/db/schema/index.ts`
 
 ```typescript
-// Add to members table definition:
-isOrganizer: boolean("is_organizer").notNull().default(false),
+// BEFORE
+timezone: varchar("timezone", { length: 100 }).notNull().default("UTC"),
+
+// AFTER
+timezone: varchar("timezone", { length: 100 }),
 ```
 
-Migration must:
-1. Add `is_organizer` column with default `false`
-2. Set `is_organizer = true` for members whose `user_id = trips.created_by` (trip creators only)
+**Migration**: `ALTER TABLE users ALTER COLUMN timezone DROP NOT NULL; ALTER TABLE users ALTER COLUMN timezone DROP DEFAULT;`
 
-### Modified: Event responses - Add `creatorAttending` computed field
+### Add `handles` JSONB column
 
-The event list endpoint (`GET /api/trips/:tripId/events`) must join with members table to check if each event's creator currently has `status = 'going'` and include `creatorAttending: boolean` in the response.
+New column on `users` table for social handles (Venmo, Instagram). Stored as JSON object with platform keys.
 
-## Permissions Service Changes
-
-File: `apps/api/src/services/permissions.service.ts`
-
-The `isOrganizer` method currently checks: creator OR member with `status='going'`. This must change to: creator OR member with `isOrganizer=true`.
+**File**: `apps/api/src/db/schema/index.ts`
 
 ```typescript
-// BEFORE:
-.leftJoin(members, and(
-  eq(members.tripId, trips.id),
-  eq(members.userId, userId),
-  eq(members.status, "going"),  // <-- REMOVE THIS
-))
-
-// AFTER:
-.leftJoin(members, and(
-  eq(members.tripId, trips.id),
-  eq(members.userId, userId),
-  eq(members.isOrganizer, true),  // <-- NEW
-))
+handles: jsonb("handles").$type<Record<string, string>>(),
 ```
 
-All downstream methods that delegate to `isOrganizer` (canEditTrip, canDeleteTrip, canManageCoOrganizers, canAddAccommodation, etc.) automatically inherit the fix.
+Currently allowed platforms: `venmo`, `instagram`. The schema validates allowed keys while the DB stores arbitrary JSON for future extensibility.
 
-### New permission methods:
+### No new tables
+
+Profile photo uses existing `profilePhotoUrl` column on `users` table. No new tables required.
+
+## Shared Schema Changes
+
+### Update `userResponseSchema`
+
+**File**: `shared/schemas/auth.ts`
 
 ```typescript
-canInviteMembers(userId: string, tripId: string): Promise<boolean>;  // organizers only
-canUpdateRsvp(userId: string, tripId: string): Promise<boolean>;     // any member
-canViewFullTrip(userId: string, tripId: string): Promise<boolean>;   // members with status='going'
+// BEFORE
+timezone: z.string(),
+
+// AFTER
+timezone: z.string().nullable(),
 ```
 
-### Updated `canAddEvent` logic:
+### Update `User` type
 
-Currently checks `status='going'` for member event permissions. With the new model:
-- Organizers (`isOrganizer=true`) can always add events
-- Regular members need `status='going'` AND `allowMembersToAddEvents=true`
-- Members who changed from Going to Maybe/Not Going can no longer add/edit events
-
-### Updated `canEditEvent` logic:
-
-Event creator can only edit if they still have `status='going'`. If they changed to Maybe/Not Going, only organizers can edit their events.
-
-## API Endpoints
-
-### Invitation Endpoints
-
-File: `apps/api/src/routes/invitation.routes.ts`
-
-**POST /api/trips/:tripId/invitations** - Batch invite members
-```
-Request:
-  { phoneNumbers: string[] }  // Array of E.164 phone numbers
-
-Response (201):
-  {
-    success: true,
-    invitations: Invitation[],
-    skipped: string[]  // Phone numbers already invited
-  }
-
-Errors:
-  403 - Not an organizer
-  404 - Trip not found
-  400 - MEMBER_LIMIT_EXCEEDED (would exceed 25)
-  400 - VALIDATION_ERROR (invalid phone numbers)
-```
-
-Logic:
-1. Check user is organizer
-2. Check member count + new invites <= 25
-3. For each phone number:
-   a. Skip if already invited (return in `skipped`)
-   b. Create invitation record (status='pending')
-   c. If user exists in DB: create member record (status='no_response')
-   d. If user doesn't exist: create invitation only (member created on first login/auth)
-   e. Mock-send SMS via existing SMS service
-4. Return created invitations and skipped phones
-
-**GET /api/trips/:tripId/invitations** - List invitations (organizers only)
-```
-Response (200):
-  {
-    success: true,
-    invitations: Array<Invitation & { inviteeName?: string }>
-  }
-```
-
-**DELETE /api/trips/:tripId/invitations/:invitationId** - Revoke invitation (organizers only)
-```
-Response (200):
-  { success: true }
-```
-
-### RSVP Endpoint
-
-**POST /api/trips/:tripId/rsvp** - Update RSVP status
-```
-Request:
-  { status: "going" | "not_going" | "maybe" }
-
-Response (200):
-  {
-    success: true,
-    member: { id, userId, tripId, status, isOrganizer }
-  }
-
-Errors:
-  403 - Not a member of this trip
-  404 - Trip not found
-```
-
-Logic:
-1. Check user has a member record for this trip
-2. Update member.status
-3. Return updated member
-
-### Modified: GET /api/trips/:tripId
-
-Currently returns null (404) for non-members. Must now differentiate:
-
-1. **Uninvited user** -> 404 "Trip not found"
-2. **Invited member (not RSVP'd Going)** -> 200 with partial preview:
-   ```json
-   {
-     "trip": {
-       "id", "name", "destination", "startDate", "endDate",
-       "preferredTimezone", "description", "coverImageUrl"
-     },
-     "organizers": [...],
-     "memberCount": number,
-     "userRsvpStatus": "no_response" | "maybe" | "not_going",
-     "isOrganizer": boolean,
-     "isPreview": true
-   }
-   ```
-3. **Going member** -> 200 with full trip data (current behavior + `isPreview: false`)
-
-### Modified: GET /api/trips/:tripId/events
-
-Add `creatorAttending` field to each event in response:
-```json
-{
-  "events": [
-    {
-      "id": "...",
-      "creatorAttending": true,  // NEW: creator's current RSVP status = 'going'
-      "creatorName": "John",     // NEW: creator's display name
-      "creatorProfilePhotoUrl": "..."  // NEW: creator's avatar
-      // ... existing fields
-    }
-  ]
-}
-```
-
-### New: GET /api/trips/:tripId/members - List trip members
-
-```
-Response (200):
-  {
-    success: true,
-    members: Array<{
-      id: string,
-      userId: string,
-      displayName: string,
-      profilePhotoUrl: string | null,
-      phoneNumber: string,  // Only visible to organizers
-      status: "going" | "not_going" | "maybe" | "no_response",
-      isOrganizer: boolean,
-      createdAt: string
-    }>
-  }
-```
-
-Access: Any member can view (but phone numbers only visible to organizers).
-
-## Invitation Service
-
-File: `apps/api/src/services/invitation.service.ts`
+**File**: `shared/types/user.ts`
 
 ```typescript
-export interface IInvitationService {
-  createInvitations(
-    userId: string,
-    tripId: string,
-    phoneNumbers: string[],
-  ): Promise<{ invitations: Invitation[]; skipped: string[] }>;
+// BEFORE
+timezone: string;
 
-  getInvitationsByTrip(tripId: string): Promise<Invitation[]>;
-
-  revokeInvitation(userId: string, invitationId: string): Promise<void>;
-
-  updateRsvp(
-    userId: string,
-    tripId: string,
-    status: "going" | "not_going" | "maybe",
-  ): Promise<Member>;
-
-  getTripMembers(
-    tripId: string,
-    requestingUserId: string,
-  ): Promise<MemberWithProfile[]>;
-
-  // Called during auth flow: when a new user registers, check for pending
-  // invitations matching their phone and create member records
-  processPendingInvitations(userId: string, phoneNumber: string): Promise<void>;
-}
+// AFTER
+timezone: string | null;
 ```
 
-Plugin: `apps/api/src/plugins/invitation-service.ts`
+### New `updateProfileSchema`
 
-## Shared Schemas
-
-File: `shared/schemas/invitation.ts`
+**File**: `shared/schemas/user.ts` (new file)
 
 ```typescript
-export const createInvitationsSchema = z.object({
-  phoneNumbers: z.array(phoneNumberSchema).min(1).max(25),
+export const ALLOWED_HANDLE_PLATFORMS = ["venmo", "instagram"] as const;
+export type HandlePlatform = (typeof ALLOWED_HANDLE_PLATFORMS)[number];
+
+export const userHandlesSchema = z
+  .record(z.string(), z.string().max(100))
+  .refine(
+    (obj) => Object.keys(obj).every((k) => ALLOWED_HANDLE_PLATFORMS.includes(k as HandlePlatform)),
+    { message: "Only venmo and instagram handles are supported" }
+  )
+  .optional()
+  .nullable();
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(3).max(50).optional(),
+  timezone: z.string().nullable().optional(), // null = auto-detect, string = specific IANA tz
+  handles: userHandlesSchema,
 });
-
-export const updateRsvpSchema = z.object({
-  status: z.enum(["going", "not_going", "maybe"]),
-});
-
-export type CreateInvitationsInput = z.infer<typeof createInvitationsSchema>;
-export type UpdateRsvpInput = z.infer<typeof updateRsvpSchema>;
 ```
 
-File: `shared/schemas/index.ts` - Add re-exports
+### Update `User` type for handles
 
-## Shared Types
-
-File: `shared/types/invitation.ts`
+**File**: `shared/types/user.ts`
 
 ```typescript
-export interface Invitation {
-  id: string;
-  tripId: string;
-  inviterId: string;
-  inviteePhone: string;
-  status: "pending" | "accepted" | "declined" | "failed";
-  sentAt: string;
-  respondedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MemberWithProfile {
-  id: string;
-  userId: string;
-  displayName: string;
-  profilePhotoUrl: string | null;
-  phoneNumber?: string;  // Only included for organizers
-  status: "going" | "not_going" | "maybe" | "no_response";
-  isOrganizer: boolean;
-  createdAt: string;
-}
-
-export interface CreateInvitationsResponse {
-  success: true;
-  invitations: Invitation[];
-  skipped: string[];
-}
-
-export interface GetInvitationsResponse {
-  success: true;
-  invitations: Invitation[];
-}
-
-export interface UpdateRsvpResponse {
-  success: true;
-  member: MemberWithProfile;
-}
-
-export interface GetMembersResponse {
-  success: true;
-  members: MemberWithProfile[];
-}
+// ADD
+handles: Record<string, string> | null;
 ```
 
-File: `shared/types/index.ts` - Add re-exports
+### Update `userResponseSchema` for handles
 
-## Frontend Changes
-
-### Modified: Trip Detail Page
-
-File: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
-
-Add conditional rendering based on `isPreview` flag from API:
-
-```
-if (isPreview) {
-  return <TripPreview trip={trip} onRsvp={handleRsvp} />;
-}
-// ... existing full trip detail rendering
-```
-
-### New: TripPreview Component
-
-File: `apps/web/src/components/trip/trip-preview.tsx`
-
-Shows:
-- Trip name, destination, dates, description, cover image
-- Organizer names and avatars
-- RSVP buttons (Going / Maybe / Not Going)
-- After RSVPing "Going", invalidate queries and show full trip
-
-### New: InviteMembersDialog
-
-File: `apps/web/src/components/trip/invite-members-dialog.tsx`
-
-- Phone number input with PhoneInput component (existing)
-- "Add" button to add to list
-- List of phone numbers to invite (removable chips)
-- Submit sends batch invite request
-- Shows results (invited, skipped, errors)
-- Uses React Hook Form + Zod (createInvitationsSchema)
-
-### New: MembersList Component
-
-File: `apps/web/src/components/trip/members-list.tsx`
-
-- Tab/section on trip detail page
-- Shows member avatars, names, RSVP status badges
-- Organizer badge on organizers
-- Organizer-only: phone numbers, remove member button, invite button
-
-### Modified: Event Cards
-
-File: `apps/web/src/components/itinerary/event-card.tsx`
-
-- If `creatorAttending === false`, show "Member no longer attending" badge/indicator
-- Muted/dimmed styling on the creator name area
-
-### New: TanStack Query Hooks
-
-File: `apps/web/src/hooks/use-invitations.ts` + `invitation-queries.ts`
+**File**: `shared/schemas/auth.ts`
 
 ```typescript
-export const invitationKeys = {
-  all: (tripId: string) => ["trips", tripId, "invitations"] as const,
-};
-
-export function useInviteMembers(tripId: string);  // mutation
-export function useInvitations(tripId: string);     // query (organizers)
-export function useRevokeInvitation(tripId: string); // mutation
+// ADD to userResponseSchema
+handles: z.record(z.string(), z.string()).nullable().optional(),
 ```
 
-File: `apps/web/src/hooks/use-members.ts` + `member-queries.ts`
+### Update `MemberWithProfile` for handles
+
+**File**: `shared/types/invitation.ts`
 
 ```typescript
-export const memberKeys = {
-  all: (tripId: string) => ["trips", tripId, "members"] as const,
-};
-
-export function useMembers(tripId: string);  // query
-export function useUpdateRsvp(tripId: string);  // mutation
+// ADD to MemberWithProfile interface
+handles: Record<string, string> | null;
 ```
 
-### Modified: Existing Hooks
-
-- `useTripDetail` - handle `isPreview` in response type
-- `useEvents` - include `creatorAttending` in Event type
-
-## Trip Service Changes
-
-File: `apps/api/src/services/trip.service.ts`
-
-### `createTrip` changes:
-- When creating trip, set creator's member record `isOrganizer: true`
-- When adding co-organizers, set their member records `isOrganizer: true`
-
-### `addCoOrganizers` changes:
-- Set `isOrganizer: true` on new co-organizer member records
-
-### `removeCoOrganizer` changes:
-- No longer deletes the member record entirely
-- Instead sets `isOrganizer: false` and `status: 'no_response'` (removed from trip effectively)
-- OR: keep current delete behavior (removes member entirely)
-
-Decision: Keep delete behavior - removing a co-organizer removes them from the trip.
-
-### `getTripById` changes:
-- Organizer detection: check `isOrganizer` column instead of `status='going'`
-- Add `isPreview` and `userRsvpStatus` to response
-- For non-Going members, return partial data (no itinerary reference)
-
-### `getUserTrips` changes:
-- Update organizer detection to use `isOrganizer` column instead of `status='going'`
-
-## Auth Flow Integration
-
-File: `apps/api/src/services/auth.service.ts`
-
-After a new user completes registration (or existing user logs in), call `invitationService.processPendingInvitations(userId, phoneNumber)` to:
-1. Find all invitations matching this phone number
-2. For each, create a member record if one doesn't exist
-3. Update invitation status to 'accepted' (they've at least created an account)
-
-## E2E Test Updates
-
-### Existing tests must be updated:
-
-The `isOrganizer` migration changes permissions. Currently co-organizers are added with `status='going'`, which made them organizers. After the migration:
-- Co-organizers need `isOrganizer: true` in the members table
-- The `addCoOrganizers` endpoint already handles this (it will set `isOrganizer: true`)
-- The API-level co-organizer addition in `trip-journey.spec.ts` should still work because it calls the API endpoint
-
-Key test changes:
-- `trip-journey.spec.ts` - The permission test uses `POST /api/trips/:tripId/co-organizers` which will be updated to set `isOrganizer: true`. Should work without E2E test changes.
-- `itinerary-journey.spec.ts` - Tests where a trip creator operates should work since creator's member record gets `isOrganizer: true` in `createTrip`.
-
-### New E2E test helpers:
-
-File: `apps/web/tests/e2e/helpers/invitations.ts`
+**File**: `shared/schemas/invitation.ts`
 
 ```typescript
-// API-level helper: invite a user to a trip and RSVP
-export async function inviteAndAcceptViaAPI(
-  request: APIRequestContext,
-  tripId: string,
-  inviterPhone: string,
-  inviteePhone: string,
-  inviteeName: string,
-): Promise<void>;
+// ADD to memberWithProfileSchema
+handles: z.record(z.string(), z.string()).nullable().optional(),
 ```
 
-### New E2E test file:
+### Update `completeProfileSchema`
 
-File: `apps/web/tests/e2e/invitation-journey.spec.ts`
+**File**: `shared/schemas/auth.ts`
 
-Tests:
-1. Organizer invites members via UI dialog
-2. Invited member sees partial preview
-3. Member RSVPs Going and sees full itinerary
-4. Member changes RSVP and "member no longer attending" appears on events
-5. Uninvited user sees 404
-6. Member list shows correct statuses
+Allow `timezone` to be `null` (auto-detect):
+
+```typescript
+// BEFORE
+timezone: z.string().optional(),
+
+// AFTER
+timezone: z.string().nullable().optional(),
+```
+
+### Barrel exports
+
+**File**: `shared/schemas/index.ts` — add `export * from "./user.js";`
+
+## API: New User Routes
+
+### Route file: `apps/api/src/routes/user.routes.ts`
+
+Register at prefix `/api/users` in `apps/api/src/app.ts`.
+
+#### `PUT /api/users/me` — Update profile
+
+- **Auth**: Required (JWT cookie)
+- **Body**: `{ displayName?: string, timezone?: string | null, handles?: Record<string, string> | null }`
+- **Response**: `{ success: true, user: User }`
+- **Logic**: Calls `authService.updateProfile()` with updated fields. If `displayName` changes, regenerate JWT (since JWT payload includes `name`). If only timezone changes, no JWT refresh needed.
+
+#### `POST /api/users/me/photo` — Upload profile photo
+
+- **Auth**: Required (JWT cookie)
+- **Body**: Multipart form data with `file` field
+- **Response**: `{ success: true, user: User }`
+- **Logic**: Follow trip cover image upload pattern:
+  1. `await request.file()` to get multipart data
+  2. `await data.toBuffer()` to get buffer
+  3. `uploadService.validateImage()` + `uploadService.uploadImage()`
+  4. If user has existing photo, `uploadService.deleteImage()` to clean up old file
+  5. Update user's `profilePhotoUrl` in DB
+
+#### `DELETE /api/users/me/photo` — Remove profile photo
+
+- **Auth**: Required (JWT cookie)
+- **Response**: `{ success: true, user: User }`
+- **Logic**: Delete file via `uploadService.deleteImage()`, set `profilePhotoUrl` to `null` in DB.
+
+### Service changes
+
+**File**: `apps/api/src/services/auth.service.ts`
+
+Extend `updateProfile()` to accept `profilePhotoUrl`:
+
+```typescript
+// BEFORE
+async updateProfile(userId: string, data: { displayName?: string; timezone?: string })
+
+// AFTER
+async updateProfile(userId: string, data: { displayName?: string; timezone?: string | null; profilePhotoUrl?: string | null; handles?: Record<string, string> | null })
+```
+
+### Controller: `apps/api/src/controllers/user.controller.ts` (new file)
+
+Three methods: `updateProfile`, `uploadProfilePhoto`, `removeProfilePhoto`.
+
+Pattern follows `apps/api/src/controllers/trip.controller.ts` for the multipart upload handling.
+
+## Frontend: Auth Redirects
+
+### Landing page redirect
+
+**File**: `apps/web/src/app/page.tsx`
+
+Convert to async server component. Check for `auth_token` cookie, redirect to `/trips` if present:
+
+```typescript
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export default async function Home() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token");
+  if (authToken?.value) {
+    redirect("/trips");
+  }
+  // ... existing landing page JSX
+}
+```
+
+### Auth layout redirect
+
+**File**: `apps/web/src/app/(auth)/layout.tsx`
+
+Add server-side cookie check. Redirect authenticated users to `/trips`:
+
+```typescript
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export default async function AuthLayout({ children }) {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get("auth_token");
+  if (authToken?.value) {
+    redirect("/trips");
+  }
+  // ... existing layout JSX
+}
+```
+
+## Frontend: Dashboard to /trips Rename
+
+### File move
+
+Move `apps/web/src/app/(app)/dashboard/` → merge into `apps/web/src/app/(app)/trips/`
+
+The trips list page lives at `(app)/trips/page.tsx` and individual trip pages at `(app)/trips/[id]/page.tsx`.
+
+### Files in dashboard directory
+
+- `page.tsx` → move to `(app)/trips/page.tsx`
+- `dashboard-content.tsx` → rename to `trips-content.tsx`, move to `(app)/trips/`
+- `dashboard-content.test.tsx` → rename to `trips-content.test.tsx`, move to `(app)/trips/`
+- `page.test.tsx` → move to `(app)/trips/page.test.tsx`
+- `loading.tsx` → move to `(app)/trips/loading.tsx`
+
+### Reference updates (all `/dashboard` → `/trips`)
+
+**Source files** (~10 files):
+- `apps/web/src/app/(auth)/verify/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(auth)/complete-profile/page.tsx` — `router.push("/trips")`
+- `apps/web/src/app/(app)/trips/[id]/not-found.tsx` — `href="/trips"`
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — breadcrumb links
+- `apps/web/src/components/app-header.tsx` — wordmark href, nav link text ("My Trips"), pathname check
+- `apps/web/src/hooks/use-trips.ts` — `router.push("/trips")`
+- `apps/web/src/app/robots.ts` — disallow list (remove `/dashboard`, keep `/trips`)
+
+**Test files** (~5 files):
+- `apps/web/src/app/(auth)/verify/page.test.tsx`
+- `apps/web/src/app/(auth)/complete-profile/page.test.tsx`
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`
+- `apps/web/src/components/__tests__/app-header.test.tsx`
+
+**E2E tests** (~2 files):
+- `apps/web/tests/e2e/auth-journey.spec.ts`
+- `apps/web/tests/e2e/trip-journey.spec.ts`
+
+### Nav update
+
+**File**: `apps/web/src/components/app-header.tsx`
+
+- Wordmark link: `/dashboard` → `/trips`
+- Nav link: "Dashboard" → "My Trips", href `/trips`
+- Active state check: `pathname.startsWith("/trips")`
+
+## Frontend: Profile Page
+
+### New page: `apps/web/src/app/(app)/profile/page.tsx`
+
+Server component wrapper (within `(app)` layout, so auth is already checked).
+
+### New component: `apps/web/src/components/profile/profile-form.tsx`
+
+Client component with React Hook Form + Zod validation.
+
+**Fields:**
+- **Profile photo**: Circular avatar preview with upload/remove buttons. Reuse `ImageUpload` pattern (FormData multipart upload). Shows current photo or initials fallback.
+- **Display name**: Text input (3-50 chars). Pre-filled with current value.
+- **Phone number**: Read-only display.
+- **Timezone**: Select dropdown with "Auto-detect" as first option. When "Auto-detect" is selected, send `timezone: null` to API.
+- **Handles**: Two text inputs for Venmo and Instagram usernames. Optional. Saved as part of `PUT /api/users/me` body. Show platform icons/labels next to inputs.
+
+**Timezone dropdown behavior:**
+- First option: "Auto-detect (detected: America/New_York)" — label dynamically shows detected timezone, value maps to `null` on submit
+- Remaining options: Standard IANA timezone list from `TIMEZONES` constant
+- Default selection: If `user.timezone` is `null`, select "Auto-detect". Otherwise select the stored timezone.
+
+**API calls:**
+- Profile update: `PUT /api/users/me` via TanStack Query mutation
+- Photo upload: `POST /api/users/me/photo` via `fetch` with FormData
+- Photo remove: `DELETE /api/users/me/photo` via `fetch`
+- On success: call `auth.refetch()` to update user state in AuthProvider
+
+### TanStack Query hooks: `apps/web/src/hooks/use-user.ts` (new file)
+
+```typescript
+export function useUpdateProfile() { /* useMutation for PUT /api/users/me */ }
+export function useUploadProfilePhoto() { /* useMutation for POST /api/users/me/photo */ }
+export function useRemoveProfilePhoto() { /* useMutation for DELETE /api/users/me/photo */ }
+```
+
+## Frontend: Handles in Members Dialog
+
+### Update members list
+
+**File**: `apps/web/src/components/trip/members-list.tsx`
+
+Show Venmo and Instagram handles on member cards when available. Display as clickable links:
+- Venmo: `https://venmo.com/{handle}` (open in new tab)
+- Instagram: `https://instagram.com/{handle}` (open in new tab)
+
+Small icon + handle text below the member's name in the members dialog.
+
+### Backend: Include handles in member query
+
+**File**: `apps/api/src/services/invitation.service.ts`
+
+The `getMembers()` query joins with users table — add `handles` to the selected fields so it's included in `MemberWithProfile` responses.
+
+## Frontend: Complete Profile Changes
+
+### Add optional photo upload
+
+**File**: `apps/web/src/app/(auth)/complete-profile/page.tsx`
+
+Add a circular avatar upload area above the display name field. Optional — user can skip. Photo gets uploaded immediately after profile completion (two API calls: complete profile, then upload photo if selected).
+
+### Add "Auto-detect" to timezone dropdown
+
+Same pattern as profile page. Default to "Auto-detect" instead of pre-selecting the detected timezone. When "Auto-detect" is selected, don't send timezone in the request body.
+
+### Update redirect
+
+Change `router.push("/dashboard")` → `router.push("/trips")`
+
+## Frontend: Timezone Auto-detect Resolution
+
+Where `user.timezone` is consumed and might be `null`:
+
+**File**: `apps/web/src/components/itinerary/itinerary-view.tsx`
+
+```typescript
+// BEFORE
+const userTimezone = user?.timezone || "UTC";
+
+// AFTER
+const userTimezone = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+```
+
+Any other place that reads `user.timezone` with a fallback should use the browser timezone instead of "UTC".
 
 ## Testing Strategy
 
-- **Unit tests**: InvitationService methods, permissions changes, schema validation
-- **Integration tests**: Invitation endpoints, RSVP endpoint, modified trip endpoints
-- **E2E tests**: Full invitation flow, RSVP flow, preview, member list, status changes
-- **Manual testing**: UI polish, responsive design, toast notifications
+### Unit tests
+- `user.controller.ts` — test updateProfile, uploadProfilePhoto, removeProfilePhoto
+- `auth.service.ts` — test updateProfile with nullable timezone and profilePhotoUrl
+- `updateProfileSchema` validation — test all field combinations
+
+### Integration tests
+- `PUT /api/users/me` — update displayName, timezone, timezone to null
+- `POST /api/users/me/photo` — upload, replace existing, invalid file type, too large
+- `DELETE /api/users/me/photo` — remove existing, remove when none exists
+- Auth on all endpoints (401 without cookie)
+
+### E2E tests
+- Authenticated user visiting `/` redirects to `/trips`
+- Authenticated user visiting `/login` redirects to `/trips`
+- User can navigate to profile page from header dropdown
+- User can edit display name and save
+- User can upload and remove profile photo
+- Complete-profile page redirects to `/trips`
+
+### Existing test updates
+- All E2E tests: `/dashboard` → `/trips`
+- All unit tests referencing `/dashboard` → `/trips`
