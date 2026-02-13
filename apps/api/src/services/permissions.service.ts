@@ -183,6 +183,14 @@ export interface IPermissionsService {
    * @returns Promise that resolves to true if user can view full trip, false otherwise
    */
   canViewFullTrip(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a trip is locked (past its end date)
+   * A trip is locked when its endDate has fully passed (end of day UTC)
+   * @param tripId - The UUID of the trip to check
+   * @returns Promise that resolves to true if trip is locked, false otherwise
+   */
+  isTripLocked(tripId: string): Promise<boolean>;
 }
 
 /**
@@ -533,5 +541,25 @@ export class PermissionsService implements IPermissionsService {
       )
       .limit(1);
     return result.length > 0;
+  }
+
+  /**
+   * Checks if a trip is locked (past its end date)
+   * A trip is locked when its endDate has fully passed (end of day UTC)
+   * @param tripId - The UUID of the trip to check
+   * @returns true if trip is locked, false otherwise
+   */
+  async isTripLocked(tripId: string): Promise<boolean> {
+    const [trip] = await this.db
+      .select({ endDate: trips.endDate })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+
+    if (!trip || !trip.endDate) return false;
+
+    const endOfTripDay = new Date(trip.endDate);
+    endOfTripDay.setUTCHours(23, 59, 59, 999);
+    return new Date() > endOfTripDay;
   }
 }

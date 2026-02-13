@@ -79,3 +79,48 @@ Tracking implementation progress for Phase 6: Advanced Itinerary & Trip Manageme
 - **DateTimePicker has no `mode` prop** — Always shows date+time calendar. Use the same component for meetupTime as for startTime/endTime.
 - **Form defaultValues must include all fields** — React Hook Form requires all controlled fields in defaultValues. Missing fields cause uncontrolled-to-controlled warnings.
 - **Edit dialog pre-population pattern** — Nullable strings: `event.field || ""`. Nullable dates: `event.field ? new Date(event.field).toISOString() : undefined`. Follow endTime pattern for datetime fields.
+
+## Iteration 3 — Task 3.1: Backend auto-lock and frontend read-only UI for past trips
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/api/src/errors.ts` | Added `TripLockedError` (403, code "TRIP_LOCKED", message "This trip has ended and is now read-only") |
+| `apps/api/src/services/permissions.service.ts` | Added `isTripLocked(tripId)` to `IPermissionsService` interface and `PermissionsService` class — queries trip endDate, compares end-of-day UTC with current time |
+| `apps/api/src/services/event.service.ts` | Added lock checks (throw `TripLockedError`) to `createEvent`, `updateEvent`, `deleteEvent`; NOT added to `restoreEvent` |
+| `apps/api/src/services/accommodation.service.ts` | Added lock checks to `createAccommodation`, `updateAccommodation`, `deleteAccommodation`; NOT added to `restoreAccommodation` |
+| `apps/api/src/services/member-travel.service.ts` | Added lock checks to `createMemberTravel`, `updateMemberTravel`, `deleteMemberTravel`; NOT added to `restoreMemberTravel` |
+| `apps/web/src/components/itinerary/itinerary-view.tsx` | Added `isLocked` computation from `trip.endDate`, read-only banner with Lock icon, passed `isLocked` to child components, hid empty-state action buttons when locked |
+| `apps/web/src/components/itinerary/itinerary-header.tsx` | Added `isLocked` prop to `ItineraryHeaderProps`, hid FAB with `!isLocked` condition |
+| `apps/web/src/components/itinerary/day-by-day-view.tsx` | Added `isLocked` prop, `canModifyEvent`/`canModifyAccommodation`/`canModifyMemberTravel` return `false` when locked |
+| `apps/web/src/components/itinerary/group-by-type-view.tsx` | Added `isLocked` prop, same `canModify*` gating as day-by-day-view |
+| `apps/api/tests/unit/permissions.service.test.ts` | 4 new tests: past endDate returns true, future returns false, null returns false, non-existent trip returns false |
+| `apps/api/tests/integration/event.routes.test.ts` | 4 new tests: create/update/delete return 403 on locked trip, restore returns 200 |
+| `apps/api/tests/integration/accommodation.routes.test.ts` | 4 new tests: create/update/delete return 403 on locked trip, restore returns 200 |
+| `apps/api/tests/integration/member-travel.routes.test.ts` | 4 new tests: create/update/delete return 403 on locked trip, restore returns 200 |
+
+### Verification Results
+
+- **Typecheck**: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web)
+- **Linting**: ✅ PASS (all 3 packages)
+- **API tests**: ✅ PASS (33 files, 704 tests — 16 new lock tests)
+- **Shared tests**: ✅ PASS (9 files, 185 tests)
+- **Web tests**: ✅ PASS (41 files, 723 tests). Pre-existing failures in `create-trip-dialog.test.tsx` and `edit-trip-dialog.test.tsx` remain (unrelated)
+
+### Reviewer Assessment
+
+**APPROVED** — All 11 requirements met. Issues noted:
+- [MEDIUM, non-blocking] Lock check ordering: in update/delete methods, lock check comes after permission check (could cause confusing error message if user lacks permission on a locked trip). Functionally correct — the user cannot modify the trip either way.
+- [LOW, fixed] Variable naming `isLocked2`/`isLocked3` in member-travel.service.ts — renamed to `tripLocked` for consistency.
+
+### Learnings for Future Iterations
+
+- **Lock checks go in service layer, not routes** — Consistent with existing permission check pattern. Services have `this.permissionsService` injected. For create operations, `tripId` is a direct parameter. For update/delete, the entity must be fetched first to get its `tripId`.
+- **`TripLockedError` uses static message (no `%s` placeholder)** — Unlike `PermissionDeniedError` which uses `%s` for dynamic messages, `TripLockedError` has a fixed message since there's no context-specific information needed.
+- **Card components need no changes for locking** — `event-card.tsx`, `accommodation-card.tsx`, `member-travel-card.tsx` already respect `canEdit`/`canDelete` boolean props. Setting those to `false` from parent view components (`day-by-day-view.tsx`, `group-by-type-view.tsx`) is sufficient.
+- **`canModify*` functions are duplicated** — Both `day-by-day-view.tsx` and `group-by-type-view.tsx` have identical `canModifyEvent`, `canModifyAccommodation`, `canModifyMemberTravel` functions. Any permission logic change requires updating both files. Consider extracting to shared utility in the future.
+- **Drizzle `date()` type returns string** — The `endDate` column is a PostgreSQL `DATE` stored as `"YYYY-MM-DD"` string. Both backend and frontend use `setUTCHours(23, 59, 59, 999)` / `T23:59:59.999Z` for end-of-day UTC comparison.
+- **No Alert/Banner shadcn component** — Used a styled `div` with `bg-muted/50` and `Lock` lucide icon, consistent with existing error/empty state patterns in the codebase.

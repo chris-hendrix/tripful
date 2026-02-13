@@ -15,6 +15,7 @@ import {
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
+  TripLockedError,
 } from "../errors.js";
 
 /**
@@ -123,6 +124,10 @@ export class AccommodationService implements IAccommodationService {
     tripId: string,
     data: CreateAccommodationInput,
   ): Promise<Accommodation> {
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(tripId);
+    if (isLocked) throw new TripLockedError();
+
     // Check if user can add accommodations to this trip (organizer only)
     const canAdd = await this.permissionsService.canAddAccommodation(
       userId,
@@ -285,6 +290,12 @@ export class AccommodationService implements IAccommodationService {
       throw new AccommodationNotFoundError();
     }
 
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(
+      existingAccommodation.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Validate date range if both dates will be set after update
     const finalCheckIn = data.checkIn
       ? new Date(data.checkIn)
@@ -353,6 +364,20 @@ export class AccommodationService implements IAccommodationService {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can delete accommodations",
       );
+    }
+
+    // Check if trip is locked (past end date) - need to get accommodation's tripId
+    const [accForLock] = await this.db
+      .select({ tripId: accommodations.tripId })
+      .from(accommodations)
+      .where(eq(accommodations.id, accommodationId))
+      .limit(1);
+
+    if (accForLock) {
+      const isLocked = await this.permissionsService.isTripLocked(
+        accForLock.tripId,
+      );
+      if (isLocked) throw new TripLockedError();
     }
 
     // Perform soft delete

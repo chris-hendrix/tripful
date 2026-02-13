@@ -49,6 +49,7 @@ interface ItineraryHeaderProps {
   isOrganizer: boolean;
   isMember: boolean;
   allowMembersToAddEvents: boolean;
+  isLocked?: boolean;
 }
 
 export function ItineraryHeader({
@@ -62,6 +63,7 @@ export function ItineraryHeader({
   isOrganizer,
   isMember,
   allowMembersToAddEvents,
+  isLocked,
 }: ItineraryHeaderProps) {
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
@@ -163,7 +165,7 @@ export function ItineraryHeader({
       </div>
 
       {/* Floating Action Button */}
-      {hasAnyAction && (
+      {hasAnyAction && !isLocked && (
         <DropdownMenu open={fabOpen} onOpenChange={setFabOpen}>
           <DropdownMenuTrigger asChild>
             <Button

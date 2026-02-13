@@ -26,7 +26,7 @@
 
 ## Phase 3: Auto-Lock Past Trips
 
-- [ ] Task 3.1: Backend auto-lock and frontend read-only UI for past trips
+- [x] Task 3.1: Backend auto-lock and frontend read-only UI for past trips
   - Implement: Add `isTripLocked(tripId)` method to `apps/api/src/services/permissions.service.ts` — returns true when trip end date has passed
   - Implement: Add lock check to event create/update/delete routes in `apps/api/src/routes/event.routes.ts` — return 403 "This trip has ended and is now read-only"
   - Implement: Add lock check to accommodation create/update/delete routes in `apps/api/src/routes/accommodation.routes.ts`

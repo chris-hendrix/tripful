@@ -16,6 +16,7 @@ import {
   MemberTravelNotFoundError,
   PermissionDeniedError,
   TripNotFoundError,
+  TripLockedError,
 } from "../errors.js";
 
 /**
@@ -121,6 +122,10 @@ export class MemberTravelService implements IMemberTravelService {
     tripId: string,
     data: CreateMemberTravelInput,
   ): Promise<MemberTravel> {
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(tripId);
+    if (isLocked) throw new TripLockedError();
+
     // Check if user can add member travel to this trip (any member can)
     const canAdd = await this.permissionsService.canAddMemberTravel(
       userId,
@@ -260,6 +265,20 @@ export class MemberTravelService implements IMemberTravelService {
       );
     }
 
+    // Check if trip is locked (past end date) - need to get travel's tripId
+    const [travelForLock] = await this.db
+      .select({ tripId: memberTravel.tripId })
+      .from(memberTravel)
+      .where(eq(memberTravel.id, memberTravelId))
+      .limit(1);
+
+    if (travelForLock) {
+      const tripLocked = await this.permissionsService.isTripLocked(
+        travelForLock.tripId,
+      );
+      if (tripLocked) throw new TripLockedError();
+    }
+
     // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
     const updateData: Record<string, unknown> = {
       ...data,
@@ -319,6 +338,20 @@ export class MemberTravelService implements IMemberTravelService {
       throw new PermissionDeniedError(
         "Permission denied: only the owner or trip organizers can delete member travel",
       );
+    }
+
+    // Check if trip is locked (past end date) - need to get travel's tripId
+    const [travelForDeleteLock] = await this.db
+      .select({ tripId: memberTravel.tripId })
+      .from(memberTravel)
+      .where(eq(memberTravel.id, memberTravelId))
+      .limit(1);
+
+    if (travelForDeleteLock) {
+      const tripLocked = await this.permissionsService.isTripLocked(
+        travelForDeleteLock.tripId,
+      );
+      if (tripLocked) throw new TripLockedError();
     }
 
     // Perform soft delete

@@ -27,6 +27,7 @@ interface DayByDayViewProps {
   isOrganizer: boolean;
   userId: string;
   userNameMap: Map<string, string>;
+  isLocked?: boolean;
 }
 
 interface DayData {
@@ -57,6 +58,7 @@ export function DayByDayView({
   isOrganizer,
   userId,
   userNameMap,
+  isLocked,
 }: DayByDayViewProps) {
   // Track current time for the "now" indicator
   const [now, setNow] = useState(() => Date.now());
@@ -167,14 +169,17 @@ export function DayByDayView({
 
   // Check permissions
   const canModifyEvent = (event: Event) => {
+    if (isLocked) return false;
     return isOrganizer || event.createdBy === userId;
   };
 
   const canModifyAccommodation = (accommodation: Accommodation) => {
+    if (isLocked) return false;
     return isOrganizer || accommodation.createdBy === userId;
   };
 
   const canModifyMemberTravel = (travel: MemberTravel) => {
+    if (isLocked) return false;
     return isOrganizer || travel.memberId === userId;
   };
 

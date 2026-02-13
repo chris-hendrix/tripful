@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, CalendarX } from "lucide-react";
+import { AlertCircle, CalendarX, Lock } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents } from "@/hooks/use-events";
 import { useAccommodations } from "@/hooks/use-accommodations";
@@ -77,6 +77,11 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   // For now, assume all authenticated users viewing the trip are members
   // In the future, this should check actual membership status from the API
   const isMember = !!user && !!trip;
+
+  // Check if trip is locked (past end date)
+  const isLocked = trip?.endDate
+    ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
+    : false;
 
   // Build userId→displayName lookup from organizers + members
   const userNameMap = useMemo(() => {
@@ -168,7 +173,13 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
               Start planning your trip by adding events, accommodations, and
               travel details.
             </p>
-            {isOrganizer && (
+            {isLocked && (
+              <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground">
+                <Lock className="w-4 h-4 inline mr-2" />
+                This trip has ended. The itinerary is read-only.
+              </div>
+            )}
+            {isOrganizer && !isLocked && (
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button
                   variant="gradient"
@@ -219,10 +230,17 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
         isOrganizer={!!isOrganizer}
         isMember={!!isMember}
         allowMembersToAddEvents={trip?.allowMembersToAddEvents || false}
+        isLocked={isLocked}
       />
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-8">
+        {isLocked && (
+          <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground mb-6">
+            <Lock className="w-4 h-4 inline mr-2" />
+            This trip has ended. The itinerary is read-only.
+          </div>
+        )}
         {viewMode === "day-by-day" ? (
           <DayByDayView
             events={events}
@@ -234,6 +252,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
             userNameMap={userNameMap}
+            isLocked={isLocked}
           />
         ) : (
           <GroupByTypeView
@@ -244,6 +263,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             isOrganizer={!!isOrganizer}
             userId={user?.id || ""}
             userNameMap={userNameMap}
+            isLocked={isLocked}
           />
         )}
       </div>

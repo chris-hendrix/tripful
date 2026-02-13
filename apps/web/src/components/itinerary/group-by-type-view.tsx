@@ -18,6 +18,7 @@ interface GroupByTypeViewProps {
   isOrganizer: boolean;
   userId: string;
   userNameMap: Map<string, string>;
+  isLocked?: boolean;
 }
 
 export function GroupByTypeView({
@@ -28,6 +29,7 @@ export function GroupByTypeView({
   isOrganizer,
   userId,
   userNameMap,
+  isLocked,
 }: GroupByTypeViewProps) {
   // Group events by type
   const groupedEvents = useMemo(() => {
@@ -65,14 +67,17 @@ export function GroupByTypeView({
 
   // Check permissions
   const canModifyEvent = (event: Event) => {
+    if (isLocked) return false;
     return isOrganizer || event.createdBy === userId;
   };
 
   const canModifyAccommodation = (accommodation: Accommodation) => {
+    if (isLocked) return false;
     return isOrganizer || accommodation.createdBy === userId;
   };
 
   const canModifyMemberTravel = (travel: MemberTravel) => {
+    if (isLocked) return false;
     return isOrganizer || travel.memberId === userId;
   };
 

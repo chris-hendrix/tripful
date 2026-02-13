@@ -644,4 +644,243 @@ describe("Accommodation Routes", () => {
       expect(body.accommodation.deletedAt).toBeNull();
     });
   });
+
+  describe("Trip Lock", () => {
+    it("should return 403 when creating accommodation on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/accommodations`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "Hotel",
+          checkIn: "2025-01-02",
+          checkOut: "2025-01-04",
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should return 403 when updating accommodation on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [accommodation] = await db
+        .insert(accommodations)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Hotel",
+          checkIn: "2025-01-02",
+          checkOut: "2025-01-04",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "PUT",
+        url: `/api/accommodations/${accommodation.id}`,
+        cookies: { auth_token: token },
+        payload: { name: "Updated Hotel" },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should return 403 when deleting accommodation on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [accommodation] = await db
+        .insert(accommodations)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Hotel",
+          checkIn: "2025-01-02",
+          checkOut: "2025-01-04",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/accommodations/${accommodation.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should allow restoring accommodation on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [accommodation] = await db
+        .insert(accommodations)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Deleted Hotel",
+          checkIn: "2025-01-02",
+          checkOut: "2025-01-04",
+          deletedAt: new Date(),
+          deletedBy: user.id,
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/accommodations/${accommodation.id}/restore`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.accommodation.deletedAt).toBeNull();
+    });
+  });
 });

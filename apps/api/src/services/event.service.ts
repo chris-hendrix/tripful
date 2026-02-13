@@ -17,6 +17,7 @@ import {
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
+  TripLockedError,
 } from "../errors.js";
 
 /**
@@ -127,6 +128,10 @@ export class EventService implements IEventService {
     tripId: string,
     data: CreateEventInput,
   ): Promise<Event> {
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(tripId);
+    if (isLocked) throw new TripLockedError();
+
     // Check if user can add events to this trip
     const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
     if (!canAdd) {
@@ -297,6 +302,12 @@ export class EventService implements IEventService {
       throw new EventNotFoundError();
     }
 
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(
+      existingEvent.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Validate date range if both times will be set after update
     const finalStartTime = data.startTime
       ? new Date(data.startTime)
@@ -370,6 +381,20 @@ export class EventService implements IEventService {
       throw new PermissionDeniedError(
         "Permission denied: only event creator or trip organizers can delete events",
       );
+    }
+
+    // Check if trip is locked (past end date) - need to get event's tripId
+    const [eventForLock] = await this.db
+      .select({ tripId: events.tripId })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (eventForLock) {
+      const isLocked = await this.permissionsService.isTripLocked(
+        eventForLock.tripId,
+      );
+      if (isLocked) throw new TripLockedError();
     }
 
     // Perform soft delete
