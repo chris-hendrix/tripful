@@ -1,7 +1,7 @@
 # Tripful MVP - Implementation Phases
 
-> **Status**: Phases 1-5 complete | Phases 5.5-7 pending
-> **Last Updated**: 2026-02-10
+> **Status**: Phases 1-5.5 complete | Phases 6-7 pending
+> **Last Updated**: 2026-02-12
 
 ## ✅ Phase 1: Monorepo Setup
 
@@ -173,27 +173,27 @@
 - [x] RSVP status change and "member no longer attending" indicator
 - [x] 15 total E2E tests, all passing
 
-## 🚧 Phase 5.5: User Profile & Auth Redirects
+## ✅ Phase 5.5: User Profile & Auth Redirects
 
 **Auth Redirects:**
 
-- [ ] Landing page (`/page.tsx`): server-side cookie check, redirect authenticated users to `/dashboard`
-- [ ] Auth layout (`(auth)/layout.tsx`): server-side cookie check, redirect authenticated users to `/dashboard` (covers `/login`, `/verify`, `/complete-profile`)
+- [x] Landing page (`/page.tsx`): server-side cookie check, redirect authenticated users to `/trips`
+- [x] Auth layout (`(auth)/layout.tsx`): server-side cookie check, redirect authenticated users to `/trips` (covers `/login`, `/verify`, `/complete-profile`)
 
 **User Profile:**
 
-- [ ] Profile/settings page (`/settings`) for editing display name and timezone
-- [ ] Profile photo upload (reuse existing image upload service pattern from trip cover images)
-- [ ] Optional profile photo during initial registration (PRD §1)
-- [ ] API endpoint for profile updates (backend `updateProfile()` method exists, needs a dedicated route)
+- [x] Profile/settings page (`/settings`) for editing display name and timezone
+- [x] Profile photo upload (reuse existing image upload service pattern from trip cover images)
+- [x] Optional profile photo during initial registration (PRD §1)
+- [x] API endpoint for profile updates (backend `updateProfile()` method exists, needs a dedicated route)
 
 **Notes:** Landing page "Get started" button currently sends authenticated users through the login flow again. Auth redirect pattern mirrors existing `(app)/layout.tsx` server-side cookie check. Profile page promise exists in complete-profile UI ("You can update this information later in your settings") but was never built.
 
 **E2E:**
 
-- [ ] Authenticated user visiting `/` redirects to dashboard
-- [ ] Authenticated user visiting `/login` redirects to dashboard
-- [ ] User can edit profile from settings page
+- [x] Authenticated user visiting `/` redirects to trips
+- [x] Authenticated user visiting `/login` redirects to trips
+- [x] User can edit profile from settings page
 
 ## 🚧 Phase 6: Advanced Itinerary & Trip Management
 

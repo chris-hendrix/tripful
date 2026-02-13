@@ -160,6 +160,8 @@ export function useCreateEvent() {
         description: data.description || null,
         eventType: data.eventType,
         location: data.location || null,
+        meetupLocation: data.meetupLocation || null,
+        meetupTime: data.meetupTime ? new Date(data.meetupTime) : null,
         startTime: new Date(data.startTime),
         endTime: data.endTime ? new Date(data.endTime) : null,
         allDay: data.allDay ?? false,
@@ -324,6 +326,16 @@ export function useUpdateEvent() {
             data.location !== undefined
               ? (data.location ?? null)
               : previousEvent.location,
+          meetupLocation:
+            data.meetupLocation !== undefined
+              ? (data.meetupLocation ?? null)
+              : previousEvent.meetupLocation,
+          meetupTime:
+            data.meetupTime !== undefined
+              ? data.meetupTime
+                ? new Date(data.meetupTime)
+                : null
+              : previousEvent.meetupTime,
           startTime: data.startTime
             ? new Date(data.startTime)
             : previousEvent.startTime,

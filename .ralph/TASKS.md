@@ -2,7 +2,7 @@
 
 ## Phase 1: Schema & Migration
 
-- [ ] Task 1.1: Add meetup fields to events schema, shared types, and generate migration
+- [x] Task 1.1: Add meetup fields to events schema, shared types, and generate migration
   - Implement: Add `meetupLocation` (text, nullable) and `meetupTime` (timestamp with timezone, nullable) to events table in `apps/api/src/db/schema/index.ts`
   - Implement: Update `baseEventSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().max(200).optional()` and `meetupTime: z.string().datetime().optional()`
   - Implement: Update `eventResponseSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().nullable()` and `meetupTime: z.string().nullable()`

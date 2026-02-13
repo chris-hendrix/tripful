@@ -165,6 +165,8 @@ export class EventService implements IEventService {
         description: data.description || null,
         eventType: data.eventType,
         location: data.location || null,
+        meetupLocation: data.meetupLocation || null,
+        meetupTime: data.meetupTime ? new Date(data.meetupTime) : null,
         startTime: new Date(data.startTime),
         endTime: data.endTime ? new Date(data.endTime) : null,
         allDay: data.allDay ?? false,
@@ -319,6 +321,9 @@ export class EventService implements IEventService {
     }
     if (data.endTime) {
       updateData.endTime = new Date(data.endTime);
+    }
+    if (data.meetupTime) {
+      updateData.meetupTime = new Date(data.meetupTime);
     }
 
     // Perform update
