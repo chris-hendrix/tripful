@@ -87,6 +87,8 @@ export function EditEventDialog({
       location: "",
       startTime: "",
       endTime: undefined,
+      meetupLocation: "",
+      meetupTime: undefined,
       allDay: false,
       isOptional: false,
       links: [],
@@ -110,6 +112,8 @@ export function EditEventDialog({
         allDay: event.allDay,
         isOptional: event.isOptional,
         links: event.links || [],
+        meetupLocation: event.meetupLocation || "",
+        meetupTime: event.meetupTime ? new Date(event.meetupTime).toISOString() : undefined,
       });
       setNewLink("");
       setLinkError(null);
@@ -357,6 +361,59 @@ export function EditEventDialog({
                   </FormControl>
                   <FormDescription className="text-sm text-muted-foreground">
                     Optional: Leave empty if end time is unknown
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Meetup Location */}
+            <FormField
+              control={form.control}
+              name="meetupLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Meetup location
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Hotel lobby, parking lot, etc."
+                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                      disabled={isPending || isDeleting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-muted-foreground">
+                    Where to meet before the event
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Meetup Time */}
+            <FormField
+              control={form.control}
+              name="meetupTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Meetup time
+                  </FormLabel>
+                  <FormControl>
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={(val) => field.onChange(val || undefined)}
+                      timezone={selectedTimezone}
+                      placeholder="Select meetup time"
+                      aria-label="Meetup time"
+                      disabled={isPending || isDeleting}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-muted-foreground">
+                    When to meet (can be before event start)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

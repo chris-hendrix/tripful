@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Clock, MapPin, ExternalLink } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink, Users } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,6 +142,18 @@ export function EventCard({
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
               {event.description}
             </p>
+          )}
+
+          {(event.meetupLocation || event.meetupTime) && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Users className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                Meet{event.meetupLocation ? ` at ${event.meetupLocation}` : ""}
+                {event.meetupTime
+                  ? ` at ${formatInTimezone(event.meetupTime, timezone, "time")}`
+                  : ""}
+              </span>
+            </div>
           )}
 
           {event.links && event.links.length > 0 && (

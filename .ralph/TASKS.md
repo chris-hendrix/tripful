@@ -14,7 +14,7 @@
 
 ## Phase 2: Meetup Location/Time Feature
 
-- [ ] Task 2.1: Backend and frontend support for meetup fields on events
+- [x] Task 2.1: Backend and frontend support for meetup fields on events
   - Implement: Verify EventService passes meetup fields through to DB on create/update (may need no changes if pass-through is generic)
   - Implement: Add meetup fields to event route response schemas in `apps/api/src/routes/event.routes.ts` if needed
   - Implement: Add meetup location and meetup time form fields to `apps/web/src/components/itinerary/create-event-dialog.tsx` after the end time section
