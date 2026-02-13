@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MembersList } from "../members-list";
-import type { MemberWithProfile, Invitation } from "@/hooks/use-invitations";
+import type { MemberWithProfile } from "@/hooks/use-invitations";
 
 // Mock format
 vi.mock("@/lib/format", () => ({
@@ -19,11 +19,9 @@ vi.mock("@/lib/format", () => ({
 
 // Mock hooks
 const mockUseMembers = vi.fn();
-const mockUseInvitations = vi.fn();
 
 vi.mock("@/hooks/use-invitations", () => ({
   useMembers: (tripId: string) => mockUseMembers(tripId),
-  useInvitations: (tripId: string) => mockUseInvitations(tripId),
 }));
 
 let queryClient: QueryClient;
@@ -74,31 +72,6 @@ const mockMembers: MemberWithProfile[] = [
   },
 ];
 
-const mockInvitations: Invitation[] = [
-  {
-    id: "inv-2",
-    tripId: "trip-123",
-    inviterId: "user-1",
-    inviteePhone: "+14155555678",
-    status: "accepted",
-    sentAt: "2026-01-01T00:00:00Z",
-    respondedAt: "2026-01-02T00:00:00Z",
-    createdAt: "2026-01-01T00:00:00Z",
-    updatedAt: "2026-01-02T00:00:00Z",
-  },
-  {
-    id: "inv-3",
-    tripId: "trip-123",
-    inviterId: "user-1",
-    inviteePhone: "+14155559999",
-    status: "accepted",
-    sentAt: "2026-01-01T00:00:00Z",
-    respondedAt: "2026-01-03T00:00:00Z",
-    createdAt: "2026-01-01T00:00:00Z",
-    updatedAt: "2026-01-03T00:00:00Z",
-  },
-];
-
 beforeEach(() => {
   queryClient = new QueryClient({
     defaultOptions: {
@@ -115,11 +88,6 @@ beforeEach(() => {
 
   mockUseMembers.mockReturnValue({
     data: mockMembers,
-    isPending: false,
-  });
-
-  mockUseInvitations.mockReturnValue({
-    data: mockInvitations,
     isPending: false,
   });
 });
@@ -379,28 +347,36 @@ describe("MembersList", () => {
       expect(onInvite).toHaveBeenCalledOnce();
     });
 
-    it("shows remove button for members with matching invitations when organizer and onRemove provided", () => {
+    it("shows remove button for non-creator members when organizer and onRemove provided", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
           isOrganizer={true}
+          createdBy="user-1"
           onRemove={onRemove}
         />,
       );
 
-      // Jane Smith (inv-2) and Bob Wilson (inv-3) have invitations
+      // Jane Smith, Bob Wilson, and Alice Brown are non-creators
       expect(
         screen.getByRole("button", { name: "Remove Jane Smith" }),
       ).toBeDefined();
       expect(
         screen.getByRole("button", { name: "Remove Bob Wilson" }),
       ).toBeDefined();
+      expect(
+        screen.getByRole("button", { name: "Remove Alice Brown" }),
+      ).toBeDefined();
     });
 
     it("does NOT show remove button when onRemove is not provided", () => {
       renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+        />,
       );
 
       expect(
@@ -408,35 +384,20 @@ describe("MembersList", () => {
       ).toBeNull();
     });
 
-    it("does NOT show remove button for trip creator (no matching invitation)", () => {
+    it("does NOT show remove button for trip creator", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
           isOrganizer={true}
+          createdBy="user-1"
           onRemove={onRemove}
         />,
       );
 
-      // John Doe is organizer/creator with no matching invitation
+      // John Doe (user-1) is the creator
       expect(
         screen.queryByRole("button", { name: "Remove John Doe" }),
-      ).toBeNull();
-    });
-
-    it("does NOT show remove button for members without phone numbers (no match possible)", () => {
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          onRemove={onRemove}
-        />,
-      );
-
-      // Alice Brown has no phoneNumber, so no invitation match
-      expect(
-        screen.queryByRole("button", { name: "Remove Alice Brown" }),
       ).toBeNull();
     });
 
@@ -446,6 +407,7 @@ describe("MembersList", () => {
         <MembersList
           tripId="trip-123"
           isOrganizer={false}
+          createdBy="user-1"
           onRemove={onRemove}
         />,
       );
@@ -460,13 +422,14 @@ describe("MembersList", () => {
   });
 
   describe("remove member flow", () => {
-    it("calls onRemove with member and invitationId when remove button is clicked", async () => {
+    it("calls onRemove with member when remove button is clicked", async () => {
       const user = userEvent.setup();
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
           isOrganizer={true}
+          createdBy="user-1"
           onRemove={onRemove}
         />,
       );
@@ -481,17 +444,17 @@ describe("MembersList", () => {
           id: "member-2",
           displayName: "Jane Smith",
         }),
-        "inv-2",
       );
     });
 
-    it("calls onRemove with correct invitationId for different members", async () => {
+    it("calls onRemove with correct member for different members", async () => {
       const user = userEvent.setup();
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
           isOrganizer={true}
+          createdBy="user-1"
           onRemove={onRemove}
         />,
       );
@@ -506,7 +469,6 @@ describe("MembersList", () => {
           id: "member-3",
           displayName: "Bob Wilson",
         }),
-        "inv-3",
       );
     });
   });
@@ -564,14 +526,6 @@ describe("MembersList", () => {
       );
 
       expect(mockUseMembers).toHaveBeenCalledWith("trip-123");
-    });
-
-    it("calls useInvitations with correct tripId", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      expect(mockUseInvitations).toHaveBeenCalledWith("trip-123");
     });
   });
 });

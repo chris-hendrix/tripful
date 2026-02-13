@@ -18,8 +18,8 @@ import {
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
 import {
-  useRevokeInvitation,
-  getRevokeInvitationErrorMessage,
+  useRemoveMember,
+  getRemoveMemberErrorMessage,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { Badge } from "@/components/ui/badge";
@@ -92,10 +92,9 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [removingMember, setRemovingMember] = useState<{
     member: MemberWithProfile;
-    invitationId: string;
   } | null>(null);
 
-  const revokeInvitation = useRevokeInvitation(tripId);
+  const removeMember = useRemoveMember(tripId);
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -366,22 +365,23 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   <span className="font-medium text-foreground">
                     {removingMember.member.displayName}
                   </span>{" "}
-                  from this trip? This will revoke their invitation.
+                  from this trip? This will remove their membership and any
+                  associated invitation.
                 </p>
               </div>
               <div className="flex gap-3 justify-end mt-auto pt-4 border-t border-border">
                 <Button
                   variant="outline"
                   onClick={() => setRemovingMember(null)}
-                  disabled={revokeInvitation.isPending}
+                  disabled={removeMember.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={revokeInvitation.isPending}
+                  disabled={removeMember.isPending}
                   onClick={() => {
-                    revokeInvitation.mutate(removingMember.invitationId, {
+                    removeMember.mutate(removingMember.member.id, {
                       onSuccess: () => {
                         toast.success(
                           `${removingMember.member.displayName} has been removed`,
@@ -389,14 +389,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         setRemovingMember(null);
                       },
                       onError: (error) => {
-                        const message = getRevokeInvitationErrorMessage(error);
+                        const message = getRemoveMemberErrorMessage(error);
                         toast.error(message ?? "Failed to remove member");
                         setRemovingMember(null);
                       },
                     });
                   }}
                 >
-                  {revokeInvitation.isPending ? "Removing..." : "Remove"}
+                  {removeMember.isPending ? "Removing..." : "Remove"}
                 </Button>
               </div>
             </div>
@@ -404,13 +404,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <MembersList
               tripId={tripId}
               isOrganizer={isOrganizer}
+              createdBy={trip.createdBy}
               onInvite={() => {
                 setIsMembersOpen(false);
                 setIsInviteOpen(true);
               }}
-              onRemove={(member, invitationId) =>
-                setRemovingMember({ member, invitationId })
-              }
+              onRemove={(member) => setRemovingMember({ member })}
             />
           )}
         </DialogContent>

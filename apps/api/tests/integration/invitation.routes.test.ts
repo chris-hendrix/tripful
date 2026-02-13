@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
 import { users, trips, members, invitations } from "@/db/schema/index.js";
+import { and, eq } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
 describe("Invitation Routes", () => {
@@ -976,6 +977,397 @@ describe("Invitation Routes", () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/trips/:tripId/members/:memberId", () => {
+    it("should remove member and return 204", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Bali",
+          preferredTimezone: "Asia/Makassar",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create a regular member
+      const memberResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const regularMember = memberResult[0];
+
+      const [memberRecord] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: regularMember.id,
+          status: "going",
+          isOrganizer: false,
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${memberRecord.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(204);
+    });
+
+    it("should return 403 for non-organizer", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Cancun",
+          preferredTimezone: "America/Cancun",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create regular member (the one who will try to remove)
+      const memberResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const regularMember = memberResult[0];
+
+      await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: regularMember.id,
+          status: "going",
+          isOrganizer: false,
+        });
+
+      // Create another member to be the target
+      const targetResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Target Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const targetMember = targetResult[0];
+
+      const [targetRecord] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: targetMember.id,
+          status: "going",
+          isOrganizer: false,
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: regularMember.id,
+        phone: regularMember.phoneNumber,
+        name: regularMember.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${targetRecord.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("should return 400 when trying to remove trip creator", async () => {
+      app = await buildApp();
+
+      // Create organizer (who is the creator)
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const creator = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Dubai",
+          preferredTimezone: "Asia/Dubai",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      const [creatorMemberRecord] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: creator.id,
+          status: "going",
+          isOrganizer: true,
+        })
+        .returning();
+
+      // Add a second organizer who will attempt the removal
+      const secondOrgResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Second Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const secondOrg = secondOrgResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: secondOrg.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: secondOrg.id,
+        phone: secondOrg.phoneNumber,
+        name: secondOrg.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${creatorMemberRecord.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("should return 404 for non-existent member", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Fiji",
+          preferredTimezone: "Pacific/Fiji",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/550e8400-e29b-41d4-a716-446655440000`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("should return 401 if not authenticated", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/550e8400-e29b-41d4-a716-446655440000/members/550e8400-e29b-41d4-a716-446655440001",
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("should return 400 when trying to remove last organizer", async () => {
+      app = await buildApp();
+
+      // Create trip creator
+      const creatorResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Creator",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const creator = creatorResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Iceland",
+          preferredTimezone: "Atlantic/Reykjavik",
+          createdBy: creator.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: creator.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Add a co-organizer (not the creator) as the sole other organizer
+      const coOrgResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Co-Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const coOrg = coOrgResult[0];
+
+      const [coOrgMember] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: coOrg.id,
+          status: "going",
+          isOrganizer: true,
+        })
+        .returning();
+
+      // Demote creator so coOrg is the last organizer
+      await db
+        .update(members)
+        .set({ isOrganizer: false })
+        .where(
+          and(eq(members.tripId, trip.id), eq(members.userId, creator.id)),
+        );
+
+      // coOrg tries to remove themselves (they are the last organizer)
+      const token = app.jwt.sign({
+        sub: coOrg.id,
+        phone: coOrg.phoneNumber,
+        name: coOrg.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${coOrgMember.id}`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 

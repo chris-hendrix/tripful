@@ -32,6 +32,11 @@ const invitationIdParamsSchema = z.object({
   id: z.string().uuid({ message: "Invalid invitation ID format" }),
 });
 
+const memberRemovalParamsSchema = z.object({
+  tripId: z.string().uuid({ message: "Invalid trip ID format" }),
+  memberId: z.string().uuid({ message: "Invalid member ID format" }),
+});
+
 /**
  * Invitation Routes
  * Registers all invitation and RSVP-related endpoints
@@ -117,6 +122,21 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         },
       },
       invitationController.revokeInvitation,
+    );
+
+    /**
+     * DELETE /trips/:tripId/members/:memberId
+     * Remove a member from a trip
+     * Only organizers can remove members
+     */
+    scope.delete<{ Params: { tripId: string; memberId: string } }>(
+      "/trips/:tripId/members/:memberId",
+      {
+        schema: {
+          params: memberRemovalParamsSchema,
+        },
+      },
+      invitationController.removeMember,
     );
 
     /**

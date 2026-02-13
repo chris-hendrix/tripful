@@ -80,5 +80,17 @@ export const InvitationNotFoundError = createError(
   404,
 );
 
+// Member removal errors
+export const MemberNotFoundError = createError(
+  "MEMBER_NOT_FOUND",
+  "Member not found",
+  404,
+);
+export const LastOrganizerError = createError(
+  "LAST_ORGANIZER",
+  "Cannot remove the last organizer of a trip",
+  400,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);

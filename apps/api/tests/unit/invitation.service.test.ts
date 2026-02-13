@@ -17,6 +17,9 @@ import {
   TripNotFoundError,
   MemberLimitExceededError,
   InvitationNotFoundError,
+  MemberNotFoundError,
+  CannotRemoveCreatorError,
+  LastOrganizerError,
 } from "@/errors.js";
 
 // Create service instances with db for testing
@@ -683,6 +686,318 @@ describe("invitation.service", () => {
         testMemberId,
         randomPhone,
       );
+    });
+  });
+
+  describe("removeMember", () => {
+    it("should remove a non-organizer member and their invitation", async () => {
+      // Create a user and invite them so they have both member and invitation records
+      const inviteePhone = generateUniquePhone();
+      const [inviteeUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: inviteePhone,
+          displayName: "Removable User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const { invitations: created } =
+        await invitationService.createInvitations(testOrganizerId, testTripId, [
+          inviteePhone,
+        ]);
+      expect(created).toHaveLength(1);
+
+      // Find the member record
+      const [memberRecord] = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, inviteeUser.id),
+          ),
+        );
+      expect(memberRecord).toBeDefined();
+
+      // Remove the member
+      await invitationService.removeMember(
+        testOrganizerId,
+        testTripId,
+        memberRecord.id,
+      );
+
+      // Verify member record deleted
+      const membersAfter = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, inviteeUser.id),
+          ),
+        );
+      expect(membersAfter).toHaveLength(0);
+
+      // Verify invitation record deleted
+      const invitationsAfter = await db
+        .select()
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.tripId, testTripId),
+            eq(invitations.inviteePhone, inviteePhone),
+          ),
+        );
+      expect(invitationsAfter).toHaveLength(0);
+
+      // Clean up
+      await db.delete(users).where(eq(users.phoneNumber, inviteePhone));
+    });
+
+    it("should remove a member without an invitation record", async () => {
+      // testMemberId was added directly (no invitation). Get member record.
+      const [memberRecord] = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(memberRecord).toBeDefined();
+
+      // Remove the member
+      await invitationService.removeMember(
+        testOrganizerId,
+        testTripId,
+        memberRecord.id,
+      );
+
+      // Verify member record deleted
+      const membersAfter = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(membersAfter).toHaveLength(0);
+    });
+
+    it("should throw PermissionDeniedError for non-organizers", async () => {
+      // testMemberId is a regular member, not an organizer
+      const [memberRecord] = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+
+      await expect(
+        invitationService.removeMember(
+          testNonMemberId,
+          testTripId,
+          memberRecord.id,
+        ),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should throw CannotRemoveCreatorError when trying to remove trip creator", async () => {
+      // testOrganizerId is the trip creator. Get their member record.
+      const [memberRecord] = await db
+        .select()
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+
+      // We need a second organizer to perform the removal (so they can be an organizer)
+      const secondOrgPhone = generateUniquePhone();
+      const [secondOrg] = await db
+        .insert(users)
+        .values({
+          phoneNumber: secondOrgPhone,
+          displayName: "Second Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: secondOrg.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await expect(
+        invitationService.removeMember(
+          secondOrg.id,
+          testTripId,
+          memberRecord.id,
+        ),
+      ).rejects.toThrow(CannotRemoveCreatorError);
+
+      // Clean up
+      await db.delete(users).where(eq(users.phoneNumber, secondOrgPhone));
+    });
+
+    it("should throw LastOrganizerError when trying to remove the last organizer", async () => {
+      // Make testMemberId an organizer, then try to remove testOrganizerId
+      // But wait - testOrganizerId is also the creator. So let's create a different scenario.
+      // Create a new organizer who is NOT the creator, then try to remove them
+      // when they're the only non-creator organizer and the creator is the other organizer.
+      // Actually the simpler approach: make a trip where the organizer is not the creator
+      // ... or just test that removing the only co-organizer when there's only 1 organizer fails.
+
+      // The organizer (testOrganizerId) is also the creator. Add a second organizer.
+      const coOrgPhone = generateUniquePhone();
+      const [coOrg] = await db
+        .insert(users)
+        .values({
+          phoneNumber: coOrgPhone,
+          displayName: "Co-Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: coOrg.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Now demote the original organizer to regular member so coOrg is the last organizer
+      await db
+        .update(members)
+        .set({ isOrganizer: false })
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+
+      // Get coOrg member record
+      const [coOrgMember] = await db
+        .select()
+        .from(members)
+        .where(
+          and(eq(members.tripId, testTripId), eq(members.userId, coOrg.id)),
+        );
+
+      // Re-promote organizer so they can perform the removal
+      await db
+        .update(members)
+        .set({ isOrganizer: true })
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+
+      // Now there are 2 organizers, so removing coOrg should work.
+      // Let's set up the real test: only 1 organizer and try to remove them.
+      // Demote testOrganizerId again
+      await db
+        .update(members)
+        .set({ isOrganizer: false })
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+
+      // Now coOrg is the sole organizer. Try to have coOrg remove themselves.
+      // But coOrg is not the creator, so CannotRemoveCreatorError won't fire.
+      await expect(
+        invitationService.removeMember(coOrg.id, testTripId, coOrgMember.id),
+      ).rejects.toThrow(LastOrganizerError);
+
+      // Clean up: restore organizer status and remove coOrg
+      await db
+        .update(members)
+        .set({ isOrganizer: true })
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+      await db.delete(users).where(eq(users.phoneNumber, coOrgPhone));
+    });
+
+    it("should throw MemberNotFoundError for non-existent member", async () => {
+      await expect(
+        invitationService.removeMember(
+          testOrganizerId,
+          testTripId,
+          "00000000-0000-0000-0000-000000000000",
+        ),
+      ).rejects.toThrow(MemberNotFoundError);
+    });
+
+    it("should throw MemberNotFoundError when memberId belongs to different trip", async () => {
+      // Create a second trip with a member
+      const trip2Result = await db
+        .insert(trips)
+        .values({
+          name: "Second Trip",
+          destination: "Test Destination 2",
+          preferredTimezone: "UTC",
+          createdBy: testOrganizerId,
+        })
+        .returning();
+      const trip2Id = trip2Result[0].id;
+
+      await db.insert(members).values({
+        tripId: trip2Id,
+        userId: testOrganizerId,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const otherMemberPhone = generateUniquePhone();
+      const [otherUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: otherMemberPhone,
+          displayName: "Other User",
+          timezone: "UTC",
+        })
+        .returning();
+      const [otherMember] = await db
+        .insert(members)
+        .values({
+          tripId: trip2Id,
+          userId: otherUser.id,
+          status: "going",
+        })
+        .returning();
+
+      // Try to remove other trip's member from testTripId
+      await expect(
+        invitationService.removeMember(
+          testOrganizerId,
+          testTripId,
+          otherMember.id,
+        ),
+      ).rejects.toThrow(MemberNotFoundError);
+
+      // Clean up
+      await db.delete(members).where(eq(members.tripId, trip2Id));
+      await db.delete(trips).where(eq(trips.id, trip2Id));
+      await db.delete(users).where(eq(users.phoneNumber, otherMemberPhone));
     });
   });
 });

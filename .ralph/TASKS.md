@@ -42,7 +42,7 @@
 
 ## Phase 4: Remove Member
 
-- [ ] Task 4.1: Backend endpoint and frontend UI for direct member removal
+- [x] Task 4.1: Backend endpoint and frontend UI for direct member removal
   - Implement: Add `removeMember(userId, tripId, memberId)` method to `InvitationService` in `apps/api/src/services/invitation.service.ts`
   - Implement: Add guard — cannot remove trip creator, cannot remove last organizer
   - Implement: Delete member record from members table and associated invitation record if exists
