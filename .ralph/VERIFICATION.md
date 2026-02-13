@@ -1,17 +1,16 @@
-# Phase 5.5: User Profile & Auth Redirects - Verification
+# Phase 6: Advanced Itinerary & Trip Management - Verification
 
 ## Environment Setup
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm (package manager)
-- Docker (for PostgreSQL)
+- Node.js 20+ and pnpm installed
+- Docker running (for PostgreSQL)
 
-### Start services
+### Start Services
 
 ```bash
-# Start PostgreSQL
+# Start PostgreSQL (port 5433 -> 5432 in container)
 pnpm docker:up
 
 # Install dependencies
@@ -20,145 +19,114 @@ pnpm install
 # Run database migrations
 cd apps/api && pnpm db:migrate && cd ../..
 
-# Build shared package (needed for imports)
-cd shared && pnpm build && cd ..
+# Start dev servers (frontend :3000, backend :8000)
+pnpm dev
 ```
 
-### Environment variables
+### Environment Variables
 
 - `apps/api/.env` — requires `DATABASE_URL` and `JWT_SECRET` (min 32 chars)
-- `apps/web/.env.local` — requires `NEXT_PUBLIC_API_URL=http://localhost:8000/api`
+- `apps/web/.env.local` — requires `NEXT_PUBLIC_API_URL=http://localhost:8000`
 
-### Start dev servers
-
-```bash
-pnpm dev  # Starts both web (port 3000) and api (port 8000)
-```
+Copy from `.env.example` / `.env.local.example` if not present.
 
 ## Test Commands
 
-### Type checking
+### Unit & Integration Tests
 
 ```bash
-pnpm typecheck
-```
-
-### Linting
-
-```bash
-pnpm lint
-```
-
-### Unit + Integration tests
-
-```bash
+# All tests (unit + integration)
 pnpm test
+
+# API tests only
+cd apps/api && pnpm test
+
+# Run specific test file
+cd apps/api && pnpm test -- --run src/services/__tests__/permissions.service.test.ts
 ```
 
-### E2E tests
+### E2E Tests (Playwright)
 
 ```bash
+# Requires both dev servers running (pnpm dev)
 pnpm test:e2e
+
+# With UI mode (port 9323)
+pnpm test:e2e:ui
+
+# Run specific test file
+cd apps/web && npx playwright test tests/phase-6.spec.ts
 ```
 
-### E2E tests with UI
+### Static Analysis
 
 ```bash
-pnpm test:e2e:ui  # Opens on port 9323
+# Linting
+pnpm lint
+
+# Type checking
+pnpm typecheck
+
+# Formatting
+pnpm format
 ```
 
-### Run specific test file
+## Ports & URLs
 
-```bash
-# API integration tests
-cd apps/api && pnpm vitest run src/routes/user.routes.test.ts
-
-# Web unit tests
-cd apps/web && pnpm vitest run src/components/profile/profile-form.test.tsx
-
-# Specific E2E test
-cd apps/web && pnpm playwright test tests/e2e/auth-journey.spec.ts
-```
-
-## Ports and URLs
-
-| Service            | URL                       |
-| ------------------ | ------------------------- |
-| Frontend (Next.js) | http://localhost:3000     |
-| Backend (Fastify)  | http://localhost:8000     |
-| API base           | http://localhost:8000/api |
-| PostgreSQL         | localhost:5433            |
-| Playwright UI      | http://localhost:9323     |
+| Service | URL |
+|---------|-----|
+| Frontend (Next.js) | http://localhost:3000 |
+| Backend (Fastify API) | http://localhost:8000 |
+| PostgreSQL | localhost:5433 |
+| Drizzle Studio | `cd apps/api && pnpm db:studio` |
+| Playwright UI | http://localhost:9323 |
 
 ## Test Credentials
 
-For E2E and manual testing, use the mock SMS service which logs verification codes to console:
+Authentication uses mock SMS (verification codes logged to API console).
 
-- Any phone number in E.164 format (e.g., `+15551234567`)
-- Verification code appears in API server console output
-- In test environment, code is `123456`
+1. Navigate to http://localhost:3000/login
+2. Enter any phone number (e.g., +12025551234)
+3. Check API server console for the verification code
+4. Enter the code to authenticate
 
-## Database
+For E2E tests, the Playwright test helpers handle auth automatically via `helpers/auth.ts`.
 
-### Drizzle Studio (visual browser)
+## Database Verification
+
+After running migration for meetup fields:
 
 ```bash
 cd apps/api && pnpm db:studio
 ```
 
-### Generate migration after schema change
+Verify `events` table has new columns: `meetup_location` (text, nullable) and `meetup_time` (timestamp with timezone, nullable).
 
-```bash
-cd apps/api && pnpm db:generate
-```
+## Feature-Specific Verification
 
-### Apply migrations
+### Meetup Fields
+- Create an event with meetup location and time filled in
+- Verify values display on event card in expanded view
+- Edit the event and change meetup fields, verify update persists
 
-```bash
-cd apps/api && pnpm db:migrate
-```
+### Auto-Lock Past Trips
+- Create a trip with end date in the past
+- Verify FAB is hidden and read-only banner shows
+- Verify API returns 403 for create/update/delete on events/accommodations/member-travel
+- Verify restore still works on locked trips
 
-## Key Verification Points
+### Remove Member
+- As organizer, remove a member from members dialog
+- Verify member disappears from member list
+- Verify member's events remain with "member no longer attending" indicator
 
-### After Task 1.1 (Schema changes)
+### Deleted Items
+- As organizer, delete an event/accommodation/member-travel
+- Scroll to bottom of itinerary, verify "Deleted Items" section appears
+- Click to expand, verify deleted items listed with restore buttons
+- Restore an item, verify it returns to the itinerary
 
-- `pnpm typecheck` passes (may need to fix type errors in existing code from timezone becoming nullable)
-- Migration generated and applied successfully
-- `shared/` package builds
-
-### After Task 2.1 (Backend API)
-
-- `PUT /api/users/me` updates display name, timezone, handles
-- `POST /api/users/me/photo` uploads profile photo
-- `DELETE /api/users/me/photo` removes profile photo
-- All three endpoints require auth (401 without cookie)
-- Integration tests pass
-
-### After Task 3.1 (Route rename)
-
-- `/trips` shows the trip list (formerly `/dashboard`)
-- `/dashboard` returns 404
-- All links in UI point to `/trips`
-- All unit and E2E tests pass with new paths
-
-### After Task 4.1 (Auth redirects)
-
-- Authenticated user visiting `/` redirects to `/trips`
-- Authenticated user visiting `/login` redirects to `/trips`
-- Unauthenticated user sees landing page at `/`
-- Unauthenticated user sees login page at `/login`
-
-### After Task 5.1 (Profile page)
-
-- Profile page accessible from header dropdown
-- Can edit display name and save
-- Can upload, replace, and remove profile photo
-- Timezone dropdown has "Auto-detect" option
-- Venmo/Instagram handles can be added and show in members dialog
-- Itinerary timezone toggle uses browser timezone when user timezone is null
-
-### After Task 6.1 (Complete profile updates)
-
-- Complete profile page has optional photo upload
-- Timezone defaults to "Auto-detect"
-- Redirect goes to `/trips` after completion
+### Multi-Day Event Badges
+- Create an event spanning multiple days (e.g., start Feb 10, end Feb 12)
+- Verify date range badge appears on the event card (e.g., "Feb 10–12")
+- Event should only appear on start day in day-by-day view
