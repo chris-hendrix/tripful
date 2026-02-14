@@ -96,7 +96,7 @@ This approach:
 
 ### 4. Member RSVP & Preview
 
-- Invited member clicks trip link (format: `/t/{uuid}`)
+- Invited member clicks trip link (format: `/trips/{uuid}`)
 - System verifies user's phone number is in Invitation table
 - If not invited, shows "Trip not found" or "You haven't been invited to this trip"
 - If invited but not logged in, prompted to authenticate with phone number
@@ -766,7 +766,7 @@ This approach:
 
 **Given** an organizer has created a trip
 **When** they access the trip details
-**Then** they should see the trip URL in format `/t/{uuid}`
+**Then** they should see the trip URL in format `/trips/{uuid}`
 
 **Given** a user accesses a trip URL
 **And** their phone number is NOT in the Invitation table for this trip
@@ -876,7 +876,7 @@ This approach:
 - updated_at
 - cancelled (boolean)
 
-**Note**: Trip URL format is `/t/{uuid}` where uuid is the trip ID. All trips are private - users must be invited to view.
+**Note**: Trip URL format is `/trips/{uuid}` where uuid is the trip ID. All trips are private - users must be invited to view.
 
 #### Organizer
 
@@ -1020,7 +1020,7 @@ This approach:
 - Phone numbers stored securely (hashed)
 - Rate limiting on SMS sends
 - All trips are private (not publicly discoverable)
-- Trip URL format: `/t/{uuid}` - must be invited to view
+- Trip URL format: `/trips/{uuid}` - must be invited to view
 - Access verification: Check user's phone number in Invitation table
 - Invited members can only view trip preview until RSVP "Going"
 - Permission model:

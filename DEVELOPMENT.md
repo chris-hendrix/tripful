@@ -300,10 +300,10 @@ Expected: `localhost:5432 - accepting connections`
 ## Next Steps
 
 1. Review the API routes in `apps/api/src/routes/`
-2. Explore the web pages in `apps/web/app/`
-3. Check shared utilities in `packages/shared/`
+2. Explore the web pages in `apps/web/src/app/`
+3. Check shared utilities in `shared/`
 4. Set up database migrations with Drizzle
-5. Add more features as needed
+5. See `docs/2026-02-01-tripful-mvp/PHASES.md` for implementation status
 
 ## Support
 

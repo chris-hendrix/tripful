@@ -26,7 +26,7 @@ Tripful helps groups plan trips together by coordinating:
 - Event scheduling with RSVP tracking
 - Member availability and travel logistics
 
-**Current Status**: Phase 5 (Invitations & RSVP) complete. See `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` for implementation progress.
+**Current Status**: Phase 6 (Advanced Itinerary) complete. See `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` for implementation progress.
 
 ## How (Development Workflow)
 

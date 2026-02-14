@@ -18,13 +18,13 @@ Itineraries in 2 minutes.
 
 ## Project Overview
 
-Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-5 plus a frontend design overhaul:
+Tripful is a modern travel itinerary planning application built as a full-stack monorepo. This repository contains Phases 1-6 plus a frontend design overhaul:
 
 - **Frontend**: Next.js 16 web application with React 19, Tailwind CSS 4, and a Mediterranean-inspired design system
 - **Backend**: Fastify REST API with PostgreSQL database (plugin architecture)
 - **Shared**: Common utilities, types, and Zod schemas used across applications
 
-### Current Scope (Phases 1-5 + Design Overhaul)
+### Current Scope (Phases 1-6 + Design Overhaul)
 
 The current implementation includes:
 
@@ -39,16 +39,20 @@ The current implementation includes:
 - Trip management with CRUD operations, co-organizers, and image uploads
 - Itinerary management with events (travel, meals, activities), accommodations, and member travel
 - Day-by-day and group-by-type itinerary view modes with timezone toggle
-- Soft delete and restore for itinerary items (organizer-only restore)
+- Soft delete and restore for itinerary items with deleted items section (organizer-only restore UI)
+- Meetup coordination: meetup location and time fields on events
+- Auto-lock past trips: prevents modifications after trip end date
+- Member removal: organizers can remove accepted members from trips
+- Multi-day event badges in both view modes
 - Invitation system with batch phone-number invite flow and trip preview for invitees
 - RSVP management (Going/Maybe/Not Going) with member status badges
-- Members dialog with organizer controls (invite, remove)
+- Members dialog with organizer controls (invite, remove member)
 - Fine-grained permissions with `isOrganizer` column on members table
 - Security hardening: Helmet, rate limiting, Zod route schemas, typed errors
 - Response schemas on all Fastify routes
 - Drizzle ORM with relations, transactions, and pagination
 - Health check endpoints (`/health`, `/health/live`, `/health/ready`)
-- Comprehensive testing (Vitest unit/integration, Playwright E2E - 15 E2E tests)
+- Comprehensive testing (Vitest unit/integration, Playwright E2E)
 - Git hooks with Husky, lint-staged, and Prettier
 
 ## Prerequisites
@@ -356,6 +360,7 @@ tripful/
 │   ├── GIT_HOOKS.md           # Git hooks setup guide
 │   └── 2026-02-01-tripful-mvp/  # MVP documentation
 │       ├── ARCHITECTURE.md    # High-level architecture (implementation progress)
+│       ├── PHASES.md          # Implementation phases and status
 │       ├── DESIGN.md          # UI/UX design system documentation
 │       └── PRD.md             # Product requirements document
 │
