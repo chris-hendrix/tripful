@@ -112,8 +112,7 @@ export async function authenticateViaAPI(
       httpOnly: true,
     },
   ]);
-  await page.goto("/trips");
-  await page.waitForURL("**/trips", { timeout: 10000 });
+  await page.goto("/trips", { waitUntil: "networkidle" });
   return phone;
 }
 
@@ -138,8 +137,7 @@ export async function authenticateViaAPIWithPhone(
       httpOnly: true,
     },
   ]);
-  await page.goto("/trips");
-  await page.waitForURL("**/trips", { timeout: 10000 });
+  await page.goto("/trips", { waitUntil: "networkidle" });
 }
 
 /**
