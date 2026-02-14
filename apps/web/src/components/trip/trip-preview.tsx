@@ -61,7 +61,6 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
-            unoptimized
             priority
             sizes="100vw"
             className="object-cover"
@@ -110,7 +109,6 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
                     alt={org.displayName}
                     width={28}
                     height={28}
-                    unoptimized
                     className="rounded-full ring-2 ring-background"
                   />
                 ) : (

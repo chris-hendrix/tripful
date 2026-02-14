@@ -214,7 +214,7 @@ export function ImageUpload({
               src={previewUrl}
               alt="Preview"
               fill
-              unoptimized
+              unoptimized // Required: previewUrl may be a blob URL from file selection
               className="object-cover"
             />
             {isUploading && (

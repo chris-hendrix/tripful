@@ -13,6 +13,7 @@ vi.mock("sonner", () => ({
 // Mock the API module
 vi.mock("@/lib/api", () => ({
   apiRequest: vi.fn(),
+  getUploadUrl: (path: string | null | undefined) => path ?? undefined,
   APIError: class APIError extends Error {
     constructor(
       public code: string,

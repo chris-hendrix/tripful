@@ -485,9 +485,9 @@ export function CreateEventDialog({
                   {/* List of added links */}
                   {links.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {links.map((link, index) => (
+                      {links.map((link) => (
                         <div
-                          key={`${link}-${index}`}
+                          key={link}
                           className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                         >
                           <span className="text-sm font-medium text-foreground truncate">

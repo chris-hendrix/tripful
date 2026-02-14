@@ -465,9 +465,9 @@ export function CreateTripDialog({
                         {/* List of added co-organizers */}
                         {phones.length > 0 && (
                           <div className="space-y-2 mt-2">
-                            {phones.map((phone, index) => (
+                            {phones.map((phone) => (
                               <div
-                                key={`${phone}-${index}`}
+                                key={phone}
                                 className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                               >
                                 <span className="text-sm font-medium text-foreground">

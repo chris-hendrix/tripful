@@ -61,7 +61,6 @@ export const TripCard = memo(function TripCard({
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
-            unoptimized
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
           />
@@ -125,7 +124,6 @@ export const TripCard = memo(function TripCard({
                     alt={org.displayName}
                     width={24}
                     height={24}
-                    unoptimized
                     className="rounded-full ring-2 ring-white"
                   />
                 ) : (

@@ -9,12 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CreateTripDialog = dynamic(
-  () =>
-    import("@/components/trip/create-trip-dialog").then((mod) => ({
-      default: mod.CreateTripDialog,
-    })),
-  { ssr: false },
+const CreateTripDialog = dynamic(() =>
+  import("@/components/trip/create-trip-dialog").then((mod) => ({
+    default: mod.CreateTripDialog,
+  })),
 );
 
 const preloadCreateTripDialog = () =>

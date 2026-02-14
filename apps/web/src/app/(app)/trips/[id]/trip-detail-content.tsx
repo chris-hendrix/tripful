@@ -47,23 +47,19 @@ import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
-const EditTripDialog = dynamic(
-  () =>
-    import("@/components/trip/edit-trip-dialog").then((mod) => ({
-      default: mod.EditTripDialog,
-    })),
-  { ssr: false },
+const EditTripDialog = dynamic(() =>
+  import("@/components/trip/edit-trip-dialog").then((mod) => ({
+    default: mod.EditTripDialog,
+  })),
 );
 
 const preloadEditTripDialog = () =>
   void import("@/components/trip/edit-trip-dialog");
 
-const InviteMembersDialog = dynamic(
-  () =>
-    import("@/components/trip/invite-members-dialog").then((mod) => ({
-      default: mod.InviteMembersDialog,
-    })),
-  { ssr: false },
+const InviteMembersDialog = dynamic(() =>
+  import("@/components/trip/invite-members-dialog").then((mod) => ({
+    default: mod.InviteMembersDialog,
+  })),
 );
 
 const preloadInviteMembersDialog = () =>
@@ -158,7 +154,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
-            unoptimized
             priority
             sizes="100vw"
             className="object-cover"
@@ -249,7 +244,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         alt={org.displayName}
                         width={32}
                         height={32}
-                        unoptimized
                         className="rounded-full ring-2 ring-white"
                       />
                     ) : (
