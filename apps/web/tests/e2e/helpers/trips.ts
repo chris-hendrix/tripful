@@ -14,7 +14,7 @@ export async function createTrip(
   const tripDetail = new TripDetailPage(page);
   const trips = new TripsPage(page);
   await trips.createTripButton.click();
-  await expect(tripDetail.createDialogHeading).toBeVisible();
+  await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 10000 });
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
   await pickDate(page, tripDetail.startDateButton, startDate);

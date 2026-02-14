@@ -239,6 +239,7 @@
 
 ## 🚧 Phase 7: Polish & Testing
 
+- [ ] Add co-organizers post-creation UI (API exists at `POST /trips/:id/co-organizers`, needs dialog in members list)
 - [ ] Entity count limits: max 50 events/trip, max 10 accommodations/trip, max 20 member travel/member (PRD Data Validation — only member limit of 25 is currently enforced)
 - [ ] Responsive design refinements
 - [ ] Performance optimization (query optimization, caching)

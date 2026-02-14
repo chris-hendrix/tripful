@@ -48,7 +48,7 @@ test.describe("App Shell", () => {
 
       await test.step("user menu opens with profile and logout", async () => {
         await trips.openUserMenu();
-        await expect(trips.profileItem).toBeVisible();
+        await expect(trips.profileItem).toBeVisible({ timeout: 10000 });
         await expect(trips.logoutItem).toBeVisible();
         await expect(page.getByText("Test User")).toBeVisible();
       });

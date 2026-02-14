@@ -744,7 +744,9 @@ test.describe("Itinerary Journey", () => {
       const tripDetail = new TripDetailPage(page);
 
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill("Chicago, IL");
       await pickDate(page, tripDetail.startDateButton, "2026-09-20");

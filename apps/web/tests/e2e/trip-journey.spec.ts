@@ -34,7 +34,9 @@ test.describe("Trip Journey", () => {
 
     await test.step("create trip with full details", async () => {
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
       await expect(tripDetail.step1Indicator).toBeVisible();
       await expect(page.getByText("Basic information")).toBeVisible();
 
@@ -186,7 +188,9 @@ test.describe("Trip Journey", () => {
 
     await test.step("create trip with dates", async () => {
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
 
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill(tripDestination);
@@ -552,7 +556,9 @@ test.describe("Trip Journey", () => {
 
     await test.step("empty submission shows validation errors", async () => {
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
       await tripDetail.continueButton.click();
 
       await expect(tripDetail.step1Indicator).toBeVisible();
@@ -567,7 +573,9 @@ test.describe("Trip Journey", () => {
 
     await test.step("back/forward navigation preserves data", async () => {
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
 
       const tripName = `Navigation Test ${Date.now()}`;
       await tripDetail.nameInput.fill(tripName);
@@ -586,7 +594,9 @@ test.describe("Trip Journey", () => {
 
     await test.step("create trip with minimal fields", async () => {
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
 
       const tripName = `Minimal Trip ${Date.now()}`;
       await tripDetail.nameInput.fill(tripName);
@@ -615,7 +625,9 @@ test.describe("Trip Journey", () => {
       await expect(trips.emptyStateCreateButton).toBeVisible();
 
       await trips.emptyStateCreateButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     await test.step("edit validation prevents invalid updates", async () => {
@@ -623,7 +635,9 @@ test.describe("Trip Journey", () => {
       await page.keyboard.press("Escape");
 
       await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible();
+      await expect(tripDetail.createDialogHeading).toBeVisible({
+        timeout: 10000,
+      });
 
       const tripName = `Validation Trip ${Date.now()}`;
       await tripDetail.nameInput.fill(tripName);

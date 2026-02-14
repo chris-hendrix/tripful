@@ -467,19 +467,42 @@ export function EditTripDialog({
                   )}
                 />
 
-                {/* Delete Button with AlertDialog */}
-                <div className="pt-4 border-t border-border">
+                {/* Action Buttons */}
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBack}
+                    disabled={isPending || isDeleting}
+                    className="flex-1 h-12 rounded-xl border-input"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isPending || isDeleting}
+                    variant="gradient"
+                    className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isPending && (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    )}
+                    {isPending ? "Updating trip..." : "Update trip"}
+                  </Button>
+                </div>
+
+                {/* Delete — low-prominence link at the bottom */}
+                <div className="flex justify-center pt-2">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button
+                      <button
                         type="button"
                         disabled={isPending || isDeleting}
-                        variant="destructive"
-                        className="w-full h-12 rounded-xl"
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
                       >
-                        <Trash2 className="w-4 h-4 mr-2" />
+                        <Trash2 className="w-3 h-3" />
                         Delete trip
-                      </Button>
+                      </button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
@@ -507,30 +530,6 @@ export function EditTripDialog({
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={isPending || isDeleting}
-                    className="flex-1 h-12 rounded-xl border-input"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isPending || isDeleting}
-                    variant="gradient"
-                    className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPending && (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    )}
-                    {isPending ? "Updating trip..." : "Update trip"}
-                  </Button>
                 </div>
               </div>
             )}

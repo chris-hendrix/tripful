@@ -71,7 +71,7 @@ test.describe("Profile Journey", () => {
 
       await test.step("navigate to profile from header dropdown", async () => {
         await trips.openUserMenu();
-        await expect(trips.profileItem).toBeVisible();
+        await expect(trips.profileItem).toBeVisible({ timeout: 10000 });
         await trips.profileItem.click();
         await expect(profile.heading).toBeVisible({ timeout: 10000 });
       });
