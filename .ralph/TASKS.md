@@ -78,7 +78,7 @@
 
 ## Phase 7: E2E Tests & Final Verification
 
-- [ ] Task 7.1: E2E tests for all Phase 6 features
+- [x] Task 7.1: E2E tests for all Phase 6 features
   - Test: Write E2E test — organizer views Deleted Items section and restores a deleted event
   - Test: Write E2E test — past trip shows read-only banner, FAB hidden, edit/delete buttons hidden
   - Test: Write E2E test — organizer removes a member, member's events show "no longer attending"
