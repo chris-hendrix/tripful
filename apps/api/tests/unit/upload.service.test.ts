@@ -1,14 +1,34 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, readdirSync, unlinkSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, unlinkSync, rmSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { UploadService } from "@/services/upload.service.js";
+import { LocalStorageService } from "@/services/storage.service.js";
 
-// Create service instance for testing
-const uploadService = new UploadService();
+// Minimal valid image buffers for magic byte detection
+// 1x1 PNG (smallest valid PNG)
+const VALID_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+// Minimal valid JPEG (SOI + APP0/JFIF + minimal data + EOI)
+const VALID_JPEG = Buffer.from(
+  "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYI4Q/SFhSRFJiY0SFJkdEVVhXbGFJR3N0Fm7CoaOys8TV5fYXJ0gZajw+b2RldYWGlpeoqaq5ur3Dxsa/ysfM09bX+Nna5+jp7fL19vj5+v/aAAwDAQACEQMRAD8AQAAA/9k=",
+  "base64",
+);
+
+// Minimal valid WebP (1x1 lossless)
+const VALID_WEBP = Buffer.from(
+  "UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AA/v8dAAA=",
+  "base64",
+);
+
+// Create service instance with local storage for testing
+const testUploadsDir = resolve(process.cwd(), "uploads");
+const storage = new LocalStorageService(testUploadsDir);
+const uploadService = new UploadService(storage);
 
 describe("upload.service", () => {
-  const testUploadsDir = resolve(process.cwd(), "uploads");
-
   // Clean up test uploads directory after each test
   const cleanup = () => {
     if (existsSync(testUploadsDir)) {
@@ -24,30 +44,26 @@ describe("upload.service", () => {
 
   describe("validateImage", () => {
     it("should accept valid MIME type: image/jpeg", async () => {
-      const buffer = Buffer.from("fake image data");
       await expect(
-        uploadService.validateImage(buffer, "image/jpeg"),
+        uploadService.validateImage(VALID_JPEG, "image/jpeg"),
       ).resolves.not.toThrow();
     });
 
     it("should accept valid MIME type: image/png", async () => {
-      const buffer = Buffer.from("fake image data");
       await expect(
-        uploadService.validateImage(buffer, "image/png"),
+        uploadService.validateImage(VALID_PNG, "image/png"),
       ).resolves.not.toThrow();
     });
 
     it("should accept valid MIME type: image/webp", async () => {
-      const buffer = Buffer.from("fake image data");
       await expect(
-        uploadService.validateImage(buffer, "image/webp"),
+        uploadService.validateImage(VALID_WEBP, "image/webp"),
       ).resolves.not.toThrow();
     });
 
     it("should reject invalid MIME type", async () => {
-      const buffer = Buffer.from("fake image data");
       await expect(
-        uploadService.validateImage(buffer, "image/gif"),
+        uploadService.validateImage(VALID_PNG, "image/gif"),
       ).rejects.toThrow(
         "Invalid file type. Only JPG, PNG, and WEBP are allowed",
       );
@@ -63,7 +79,9 @@ describe("upload.service", () => {
     });
 
     it("should reject file larger than 5MB", async () => {
-      const largeBuffer = Buffer.alloc(6 * 1024 * 1024); // 6MB
+      // Create a large buffer with valid JPEG header
+      const largeBuffer = Buffer.alloc(6 * 1024 * 1024);
+      VALID_JPEG.copy(largeBuffer);
       await expect(
         uploadService.validateImage(largeBuffer, "image/jpeg"),
       ).rejects.toThrow(
@@ -72,26 +90,68 @@ describe("upload.service", () => {
     });
 
     it("should accept file exactly at 5MB", async () => {
-      const buffer = Buffer.alloc(5 * 1024 * 1024); // Exactly 5MB
+      const buffer = Buffer.alloc(5 * 1024 * 1024);
+      VALID_JPEG.copy(buffer);
       await expect(
         uploadService.validateImage(buffer, "image/jpeg"),
       ).resolves.not.toThrow();
     });
 
     it("should accept file smaller than 5MB", async () => {
-      const buffer = Buffer.alloc(1 * 1024 * 1024); // 1MB
       await expect(
-        uploadService.validateImage(buffer, "image/png"),
+        uploadService.validateImage(VALID_PNG, "image/png"),
       ).resolves.not.toThrow();
     });
 
     it("should reject file just over 5MB", async () => {
-      const buffer = Buffer.alloc(5 * 1024 * 1024 + 1); // 5MB + 1 byte
+      const buffer = Buffer.alloc(5 * 1024 * 1024 + 1);
+      VALID_WEBP.copy(buffer);
       await expect(
         uploadService.validateImage(buffer, "image/webp"),
       ).rejects.toThrow(
         "Image must be under 5MB. Please choose a smaller file",
       );
+    });
+  });
+
+  describe("validateImage - magic byte detection", () => {
+    it("should reject a text file with image/jpeg MIME type", async () => {
+      const textBuffer = Buffer.from("This is plain text, not a JPEG");
+      await expect(
+        uploadService.validateImage(textBuffer, "image/jpeg"),
+      ).rejects.toThrow("File content does not match declared type");
+    });
+
+    it("should reject a text file with image/png MIME type", async () => {
+      const textBuffer = Buffer.from("This is plain text, not a PNG");
+      await expect(
+        uploadService.validateImage(textBuffer, "image/png"),
+      ).rejects.toThrow("File content does not match declared type");
+    });
+
+    it("should reject an empty buffer", async () => {
+      const emptyBuffer = Buffer.alloc(0);
+      await expect(
+        uploadService.validateImage(emptyBuffer, "image/jpeg"),
+      ).rejects.toThrow("File content does not match declared type");
+    });
+
+    it("should reject a PNG declared as JPEG", async () => {
+      await expect(
+        uploadService.validateImage(VALID_PNG, "image/jpeg"),
+      ).rejects.toThrow("File content does not match declared type");
+    });
+
+    it("should reject a JPEG declared as PNG", async () => {
+      await expect(
+        uploadService.validateImage(VALID_JPEG, "image/png"),
+      ).rejects.toThrow("File content does not match declared type");
+    });
+
+    it("should reject a JPEG declared as WebP", async () => {
+      await expect(
+        uploadService.validateImage(VALID_JPEG, "image/webp"),
+      ).rejects.toThrow("File content does not match declared type");
     });
   });
 
@@ -102,9 +162,8 @@ describe("upload.service", () => {
         rmSync(testUploadsDir, { recursive: true });
       }
 
-      const buffer = Buffer.from("test image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test.jpg",
         "image/jpeg",
       );
@@ -114,9 +173,8 @@ describe("upload.service", () => {
     });
 
     it("should save file with UUID filename for JPEG", async () => {
-      const buffer = Buffer.from("test jpeg image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "photo.jpg",
         "image/jpeg",
       );
@@ -128,9 +186,8 @@ describe("upload.service", () => {
     });
 
     it("should save file with UUID filename for PNG", async () => {
-      const buffer = Buffer.from("test png image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_PNG,
         "photo.png",
         "image/png",
       );
@@ -142,9 +199,8 @@ describe("upload.service", () => {
     });
 
     it("should save file with UUID filename for WEBP", async () => {
-      const buffer = Buffer.from("test webp image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_WEBP,
         "photo.webp",
         "image/webp",
       );
@@ -156,9 +212,8 @@ describe("upload.service", () => {
     });
 
     it("should return correct URL path format", async () => {
-      const buffer = Buffer.from("test image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test.jpg",
         "image/jpeg",
       );
@@ -168,19 +223,18 @@ describe("upload.service", () => {
     });
 
     it("should generate unique filenames for multiple uploads", async () => {
-      const buffer = Buffer.from("test image data");
       const url1 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test1.jpg",
         "image/jpeg",
       );
       const url2 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test2.jpg",
         "image/jpeg",
       );
       const url3 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test3.jpg",
         "image/jpeg",
       );
@@ -191,19 +245,16 @@ describe("upload.service", () => {
     });
 
     it("should save file contents correctly", async () => {
-      const testContent = "test image data content";
-      const buffer = Buffer.from(testContent);
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_PNG,
         "test.png",
         "image/png",
       );
 
       const filename = url.split("/").pop();
       const filepath = resolve(testUploadsDir, filename!);
-      const fs = await import("node:fs");
-      const savedContent = fs.readFileSync(filepath, "utf-8");
-      expect(savedContent).toBe(testContent);
+      const savedContent = readFileSync(filepath);
+      expect(savedContent.equals(VALID_PNG)).toBe(true);
     });
 
     it("should validate image before uploading", async () => {
@@ -234,9 +285,8 @@ describe("upload.service", () => {
 
   describe("deleteImage", () => {
     it("should delete existing file", async () => {
-      const buffer = Buffer.from("test image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test.jpg",
         "image/jpeg",
       );
@@ -257,9 +307,8 @@ describe("upload.service", () => {
     });
 
     it("should extract filename from URL path correctly", async () => {
-      const buffer = Buffer.from("test image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_PNG,
         "test.png",
         "image/png",
       );
@@ -272,14 +321,13 @@ describe("upload.service", () => {
     });
 
     it("should only delete the specified file", async () => {
-      const buffer = Buffer.from("test image data");
       const url1 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test1.jpg",
         "image/jpeg",
       );
       const url2 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test2.jpg",
         "image/jpeg",
       );
@@ -297,9 +345,8 @@ describe("upload.service", () => {
 
     it("should safely handle path traversal attempts in deleteImage", async () => {
       // Create a test file first
-      const buffer = Buffer.from("test image data");
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "test.jpg",
         "image/jpeg",
       );
@@ -331,11 +378,9 @@ describe("upload.service", () => {
 
   describe("integration: complete upload lifecycle", () => {
     it("should handle full upload-delete cycle", async () => {
-      const buffer = Buffer.from("lifecycle test image data");
-
       // Upload
       const url = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "lifecycle.jpg",
         "image/jpeg",
       );
@@ -355,21 +400,19 @@ describe("upload.service", () => {
     });
 
     it("should handle multiple uploads and selective deletion", async () => {
-      const buffer = Buffer.from("test image data");
-
       // Upload multiple files
       const url1 = await uploadService.uploadImage(
-        buffer,
+        VALID_JPEG,
         "file1.jpg",
         "image/jpeg",
       );
       const url2 = await uploadService.uploadImage(
-        buffer,
+        VALID_PNG,
         "file2.png",
         "image/png",
       );
       const url3 = await uploadService.uploadImage(
-        buffer,
+        VALID_WEBP,
         "file3.webp",
         "image/webp",
       );

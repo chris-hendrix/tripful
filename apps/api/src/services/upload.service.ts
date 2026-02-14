@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { fileTypeFromBuffer } from "file-type";
 import { env } from "@/config/env.js";
 import { InvalidFileTypeError, FileTooLargeError } from "../errors.js";
+import type { IStorageService } from "./storage.service.js";
 
 /**
  * Upload Service Interface
@@ -34,22 +34,22 @@ export interface IUploadService {
 
   /**
    * Validates an image file
-   * Checks MIME type and file size constraints
+   * Checks MIME type, file size, and magic bytes
    * @param file - The image file buffer to validate
    * @param mimetype - The MIME type to validate
    * @returns Promise that resolves if validation passes
-   * @throws Error if MIME type is invalid or file size exceeds 5MB
+   * @throws Error if MIME type is invalid, magic bytes don't match, or file size exceeds 5MB
    */
   validateImage(file: Buffer, mimetype: string): Promise<void>;
 }
 
 /**
  * Upload Service Implementation
- * Handles image file uploads, validation, and deletion
- * Stores files locally in the uploads/ directory with UUID-based filenames
+ * Handles image file uploads, validation, and deletion.
+ * Delegates storage operations to a StorageService backend.
  */
 export class UploadService implements IUploadService {
-  private readonly uploadsDir: string;
+  private readonly storage: IStorageService;
   private readonly MAX_FILE_SIZE: number;
   private readonly ALLOWED_MIME_TYPES: string[];
   private readonly MIME_TO_EXT: Record<string, string> = {
@@ -58,31 +58,20 @@ export class UploadService implements IUploadService {
     "image/webp": ".webp",
   };
 
-  constructor() {
-    this.uploadsDir = resolve(import.meta.dirname, "..", "..", env.UPLOAD_DIR);
+  constructor(storage: IStorageService) {
+    this.storage = storage;
     this.MAX_FILE_SIZE = env.MAX_FILE_SIZE;
     this.ALLOWED_MIME_TYPES = env.ALLOWED_MIME_TYPES;
-    this.ensureUploadsDirExists();
   }
 
   /**
-   * Ensures the uploads directory exists
-   * Creates the directory if it doesn't exist
-   */
-  private ensureUploadsDirExists(): void {
-    if (!existsSync(this.uploadsDir)) {
-      mkdirSync(this.uploadsDir, { recursive: true });
-    }
-  }
-
-  /**
-   * Validates an image file against MIME type and size constraints
+   * Validates an image file against MIME type, size, and magic byte constraints
    * @param file - The image file buffer
    * @param mimetype - The MIME type of the file
    * @throws Error if MIME type is not allowed or file size exceeds limit
    */
   async validateImage(file: Buffer, mimetype: string): Promise<void> {
-    // Check MIME type
+    // Check declared MIME type
     if (!this.ALLOWED_MIME_TYPES.includes(mimetype)) {
       throw new InvalidFileTypeError(
         "Invalid file type. Only JPG, PNG, and WEBP are allowed",
@@ -95,11 +84,19 @@ export class UploadService implements IUploadService {
         "Image must be under 5MB. Please choose a smaller file",
       );
     }
+
+    // Verify magic bytes match declared MIME type
+    const detectedType = await fileTypeFromBuffer(file);
+    if (!detectedType || detectedType.mime !== mimetype) {
+      throw new InvalidFileTypeError(
+        "File content does not match declared type. Only JPG, PNG, and WEBP are allowed",
+      );
+    }
   }
 
   /**
-   * Uploads an image file to the uploads directory
-   * Generates a UUID-based filename and saves the file
+   * Uploads an image file via the storage backend
+   * Generates a UUID-based filename and delegates to storage
    * @param file - The image file buffer
    * @param _filename - The original filename (not used, kept for interface compatibility)
    * @param mimetype - The MIME type of the file
@@ -113,52 +110,20 @@ export class UploadService implements IUploadService {
     // Validate image first
     await this.validateImage(file, mimetype);
 
-    // Ensure uploads directory exists
-    this.ensureUploadsDirExists();
-
     // Generate UUID filename with appropriate extension
     const uuid = randomUUID();
     const extension = this.MIME_TO_EXT[mimetype];
-    const filename_generated = `${uuid}${extension}`;
-    const filePath = resolve(this.uploadsDir, filename_generated);
+    const generatedFilename = `${uuid}${extension}`;
 
-    // Save file to disk
-    writeFileSync(filePath, file);
-
-    // Return URL path
-    return `/uploads/${filename_generated}`;
+    // Delegate to storage backend
+    return this.storage.upload(file, generatedFilename, mimetype);
   }
 
   /**
-   * Deletes an image file from the uploads directory
-   * Extracts filename from URL path and deletes the file
-   * Handles non-existent files gracefully
+   * Deletes an image file via the storage backend
    * @param url - The URL path of the image (format: /uploads/{uuid}.{ext})
    */
   async deleteImage(url: string): Promise<void> {
-    // Extract filename from URL path
-    const filename = url.split("/").pop();
-    if (!filename) {
-      return;
-    }
-
-    const filePath = resolve(this.uploadsDir, filename);
-
-    // Security check: ensure resolved path is within uploads directory
-    // This prevents path traversal attacks like /uploads/../../../etc/passwd
-    if (!filePath.startsWith(this.uploadsDir)) {
-      // Silently fail for security (don't reveal system info)
-      return;
-    }
-
-    // Delete file if it exists
-    try {
-      if (existsSync(filePath)) {
-        unlinkSync(filePath);
-      }
-    } catch {
-      // Silently handle errors (e.g., file already deleted)
-      // This makes the operation idempotent
-    }
+    await this.storage.delete(url);
   }
 }
