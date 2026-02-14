@@ -1267,6 +1267,152 @@ describe("Event Routes", () => {
     });
   });
 
+  describe("Entity count limits", () => {
+    it("should return 400 when event limit exceeded", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Limit Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Limit Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Bulk insert 50 events (at the limit)
+      await db.insert(events).values(
+        Array.from({ length: 50 }, (_, i) => ({
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: `Event ${i + 1}`,
+          eventType: "activity" as const,
+          startTime: new Date(
+            `2026-06-15T${String(i % 24).padStart(2, "0")}:00:00Z`,
+          ),
+        })),
+      );
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "One Too Many",
+          eventType: "activity",
+          startTime: "2026-06-16T14:00:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchObject({
+        success: false,
+        error: {
+          code: "EVENT_LIMIT_EXCEEDED",
+          message: "Maximum 50 events per trip reached.",
+        },
+      });
+    });
+
+    it("should allow creating event when soft-deleted events bring count below limit", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Soft Delete Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Soft Delete Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Insert 49 active events + 1 soft-deleted event
+      await db.insert(events).values(
+        Array.from({ length: 49 }, (_, i) => ({
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: `Event ${i + 1}`,
+          eventType: "activity" as const,
+          startTime: new Date(
+            `2026-06-15T${String(i % 24).padStart(2, "0")}:00:00Z`,
+          ),
+        })),
+      );
+
+      // Insert 1 soft-deleted event (should not count)
+      await db.insert(events).values({
+        tripId: trip.id,
+        createdBy: testUser.id,
+        name: "Deleted Event",
+        eventType: "activity" as const,
+        startTime: new Date("2026-06-16T12:00:00Z"),
+        deletedAt: new Date(),
+        deletedBy: testUser.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "Should Succeed",
+          eventType: "activity",
+          startTime: "2026-06-16T14:00:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.event.name).toBe("Should Succeed");
+    });
+  });
+
   describe("Trip Lock", () => {
     it("should return 403 when creating event on a locked trip", async () => {
       app = await buildApp();

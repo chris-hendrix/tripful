@@ -3,7 +3,7 @@ import {
   trips,
   type Accommodation,
 } from "@/db/schema/index.js";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, count } from "drizzle-orm";
 import type {
   CreateAccommodationInput,
   UpdateAccommodationInput,
@@ -12,6 +12,7 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import {
   AccommodationNotFoundError,
+  AccommodationLimitExceededError,
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
@@ -156,6 +157,22 @@ export class AccommodationService implements IAccommodationService {
     if (checkOut <= checkIn) {
       throw new InvalidDateRangeError(
         "Check-out date must be after check-in date",
+      );
+    }
+
+    // Check accommodation count limit
+    const [accCount] = await this.db
+      .select({ value: count() })
+      .from(accommodations)
+      .where(
+        and(
+          eq(accommodations.tripId, tripId),
+          isNull(accommodations.deletedAt),
+        ),
+      );
+    if ((accCount?.value ?? 0) >= 10) {
+      throw new AccommodationLimitExceededError(
+        "Maximum 10 accommodations per trip reached.",
       );
     }
 
@@ -409,6 +426,22 @@ export class AccommodationService implements IAccommodationService {
     if (!isOrganizer) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can restore accommodations",
+      );
+    }
+
+    // Check accommodation count limit before restoring
+    const [accCount] = await this.db
+      .select({ value: count() })
+      .from(accommodations)
+      .where(
+        and(
+          eq(accommodations.tripId, accommodation.tripId),
+          isNull(accommodations.deletedAt),
+        ),
+      );
+    if ((accCount?.value ?? 0) >= 10) {
+      throw new AccommodationLimitExceededError(
+        "Maximum 10 accommodations per trip reached.",
       );
     }
 

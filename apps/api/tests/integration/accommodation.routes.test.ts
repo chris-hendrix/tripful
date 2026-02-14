@@ -645,6 +645,148 @@ describe("Accommodation Routes", () => {
     });
   });
 
+  describe("Entity count limits", () => {
+    it("should return 400 when accommodation limit exceeded", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Limit Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Limit Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Bulk insert 10 accommodations (at the limit)
+      await db.insert(accommodations).values(
+        Array.from({ length: 10 }, (_, i) => ({
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: `Hotel ${i + 1}`,
+          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
+          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+        })),
+      );
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/accommodations`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "One Too Many Hotel",
+          checkIn: "2026-07-01",
+          checkOut: "2026-07-05",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchObject({
+        success: false,
+        error: {
+          code: "ACCOMMODATION_LIMIT_EXCEEDED",
+          message: "Maximum 10 accommodations per trip reached.",
+        },
+      });
+    });
+
+    it("should allow creating accommodation when soft-deleted ones bring count below limit", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Soft Delete Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Soft Delete Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Insert 9 active accommodations + 1 soft-deleted
+      await db.insert(accommodations).values(
+        Array.from({ length: 9 }, (_, i) => ({
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: `Hotel ${i + 1}`,
+          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
+          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+        })),
+      );
+
+      // Insert 1 soft-deleted accommodation (should not count)
+      await db.insert(accommodations).values({
+        tripId: trip.id,
+        createdBy: testUser.id,
+        name: "Deleted Hotel",
+        checkIn: new Date("2026-07-01T15:00:00Z"),
+        checkOut: new Date("2026-07-05T11:00:00Z"),
+        deletedAt: new Date(),
+        deletedBy: testUser.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/accommodations`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "Should Succeed Hotel",
+          checkIn: "2026-07-10",
+          checkOut: "2026-07-15",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.accommodation.name).toBe("Should Succeed Hotel");
+    });
+  });
+
   describe("Trip Lock", () => {
     it("should return 403 when creating accommodation on a locked trip", async () => {
       app = await buildApp();

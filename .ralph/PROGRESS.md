@@ -157,3 +157,45 @@ Tracking implementation progress for this project.
 - The `useMembers(tripId)` hook is called unconditionally even when dialog is closed, but TanStack Query caching makes this acceptable since the data is likely already cached from other components
 - Test count: shared unchanged at 196, api unchanged at 772, web 821→830 (+9); total 1,789→1,798 (+9)
 - 4 pre-existing E2E test failures exist in the codebase that should be addressed in a future test coverage task (Task 7.1)
+
+## Iteration 5 — Task 3.1: Implement entity count limits for events, accommodations, and member travel
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Added three new error classes to `apps/api/src/errors.ts`:
+  - `EventLimitExceededError` (code: `EVENT_LIMIT_EXCEEDED`, status 400)
+  - `AccommodationLimitExceededError` (code: `ACCOMMODATION_LIMIT_EXCEEDED`, status 400)
+  - `MemberTravelLimitExceededError` (code: `MEMBER_TRAVEL_LIMIT_EXCEEDED`, status 400)
+- Added count check in `EventService.createEvent()` and `restoreEvent()` (`apps/api/src/services/event.service.ts`):
+  - Counts active events per trip (WHERE deleted_at IS NULL)
+  - Throws `EventLimitExceededError` if count >= 50
+- Added count check in `AccommodationService.createAccommodation()` and `restoreAccommodation()` (`apps/api/src/services/accommodation.service.ts`):
+  - Counts active accommodations per trip (WHERE deleted_at IS NULL)
+  - Throws `AccommodationLimitExceededError` if count >= 10
+- Added count check in `MemberTravelService.createMemberTravel()` and `restoreMemberTravel()` (`apps/api/src/services/member-travel.service.ts`):
+  - Counts active member travel entries per member (WHERE deleted_at IS NULL AND member_id = ?)
+  - Throws `MemberTravelLimitExceededError` if count >= 20
+- Added `count` import from `drizzle-orm` in all three service files
+
+### Tests written
+- **Integration tests** (`apps/api/tests/integration/event.routes.test.ts`): 2 new tests in "Entity count limits" describe block — creating 51st event returns 400 with `EVENT_LIMIT_EXCEEDED`, soft-deleted events don't count toward limit
+- **Integration tests** (`apps/api/tests/integration/accommodation.routes.test.ts`): 2 new tests in "Entity count limits" describe block — creating 11th accommodation returns 400 with `ACCOMMODATION_LIMIT_EXCEEDED`, soft-deleted accommodations don't count toward limit
+- **Integration tests** (`apps/api/tests/integration/member-travel.routes.test.ts`): 2 new tests in "Entity count limits" describe block — creating 21st travel entry returns 400 with `MEMBER_TRAVEL_LIMIT_EXCEEDED`, soft-deleted entries don't count toward limit
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,164 tests — shared: 196, api: 778, web: 190)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- The error middleware at `apps/api/src/middleware/error.middleware.ts` automatically handles any `@fastify/error` instance with `statusCode < 500` — no error handler changes needed when adding new error classes
+- Count queries use `db.select({ value: count() }).from(table).where(and(eq(...), isNull(table.deletedAt)))` — the `count()` function is imported from `drizzle-orm`
+- Restore methods (`restoreEvent`, `restoreAccommodation`, `restoreMemberTravel`) also need limit checks to prevent restoring soft-deleted records when already at the limit
+- The `createdBy` field in member-travel test bulk inserts is silently ignored by Drizzle ORM (the `memberTravel` table has no `createdBy` column) — this is a pre-existing pattern in the test file, not harmful but worth noting
+- Member travel limit is per-member (using `memberId`), not per-trip — this is because `memberId` is already scoped to a trip via the members table
+- The new error classes use HTTP 400 (per TASKS.md spec), while the existing `MemberLimitExceededError` uses 409 — this inconsistency is noted but not blocking
+- Test count: shared unchanged at 196, api 772→778 (+6), web unchanged at 190; total 1,158→1,164 (+6)
+- A pre-existing flaky test in `trip.service.test.ts` was observed due to `generateUniquePhone()` using `Date.now() % 10000` which can collide during parallel execution — not caused by this task

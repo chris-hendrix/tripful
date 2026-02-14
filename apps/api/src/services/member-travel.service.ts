@@ -5,7 +5,7 @@ import {
   trips,
   type MemberTravel,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, getTableColumns } from "drizzle-orm";
+import { eq, and, isNull, getTableColumns, count } from "drizzle-orm";
 import type {
   CreateMemberTravelInput,
   UpdateMemberTravelInput,
@@ -14,6 +14,7 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import {
   MemberTravelNotFoundError,
+  MemberTravelLimitExceededError,
   MemberNotFoundError,
   PermissionDeniedError,
   TripNotFoundError,
@@ -189,6 +190,22 @@ export class MemberTravelService implements IMemberTravelService {
       }
 
       resolvedMemberId = member.id;
+    }
+
+    // Check member travel count limit
+    const [travelCount] = await this.db
+      .select({ value: count() })
+      .from(memberTravel)
+      .where(
+        and(
+          eq(memberTravel.memberId, resolvedMemberId),
+          isNull(memberTravel.deletedAt),
+        ),
+      );
+    if ((travelCount?.value ?? 0) >= 20) {
+      throw new MemberTravelLimitExceededError(
+        "Maximum 20 travel entries per member reached.",
+      );
     }
 
     // Destructure to exclude memberId from data before insert
@@ -421,6 +438,22 @@ export class MemberTravelService implements IMemberTravelService {
     if (!isOrganizer) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can restore member travel",
+      );
+    }
+
+    // Check member travel count limit before restoring
+    const [travelCount] = await this.db
+      .select({ value: count() })
+      .from(memberTravel)
+      .where(
+        and(
+          eq(memberTravel.memberId, travel.memberId),
+          isNull(memberTravel.deletedAt),
+        ),
+      );
+    if ((travelCount?.value ?? 0) >= 20) {
+      throw new MemberTravelLimitExceededError(
+        "Maximum 20 travel entries per member reached.",
       );
     }
 

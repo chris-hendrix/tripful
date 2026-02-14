@@ -104,6 +104,23 @@ export const CannotModifyOwnRoleError = createError(
   400,
 );
 
+// Entity count limit errors
+export const EventLimitExceededError = createError(
+  "EVENT_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
+export const AccommodationLimitExceededError = createError(
+  "ACCOMMODATION_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
+export const MemberTravelLimitExceededError = createError(
+  "MEMBER_TRAVEL_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
 export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);

@@ -55,7 +55,7 @@
 
 ## Phase 3: Entity Count Limits
 
-- [ ] Task 3.1: Implement entity count limits for events, accommodations, and member travel
+- [x] Task 3.1: Implement entity count limits for events, accommodations, and member travel
   - Implement: Add error classes to `apps/api/src/errors.ts`:
     - `EventLimitExceededError` (code: `EVENT_LIMIT_EXCEEDED`, status 400, message: "Maximum 50 events per trip reached.")
     - `AccommodationLimitExceededError` (code: `ACCOMMODATION_LIMIT_EXCEEDED`, status 400, message: "Maximum 10 accommodations per trip reached.")

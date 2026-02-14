@@ -5,7 +5,7 @@ import {
   members,
   type Event,
 } from "@/db/schema/index.js";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, count } from "drizzle-orm";
 import type {
   CreateEventInput,
   UpdateEventInput,
@@ -14,6 +14,7 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import {
   EventNotFoundError,
+  EventLimitExceededError,
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
@@ -158,6 +159,17 @@ export class EventService implements IEventService {
       if (endTime <= startTime) {
         throw new InvalidDateRangeError("End time must be after start time");
       }
+    }
+
+    // Check event count limit
+    const [eventCount] = await this.db
+      .select({ value: count() })
+      .from(events)
+      .where(and(eq(events.tripId, tripId), isNull(events.deletedAt)));
+    if ((eventCount?.value ?? 0) >= 50) {
+      throw new EventLimitExceededError(
+        "Maximum 50 events per trip reached.",
+      );
     }
 
     // Create the event
@@ -423,6 +435,17 @@ export class EventService implements IEventService {
     if (!isOrganizer) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can restore events",
+      );
+    }
+
+    // Check event count limit before restoring
+    const [eventCount] = await this.db
+      .select({ value: count() })
+      .from(events)
+      .where(and(eq(events.tripId, event.tripId), isNull(events.deletedAt)));
+    if ((eventCount?.value ?? 0) >= 50) {
+      throw new EventLimitExceededError(
+        "Maximum 50 events per trip reached.",
       );
     }
 
