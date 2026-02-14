@@ -9,6 +9,11 @@ import { MemberTravelCard } from "./member-travel-card";
 import { EditEventDialog } from "./edit-event-dialog";
 import { EditAccommodationDialog } from "./edit-accommodation-dialog";
 import { EditMemberTravelDialog } from "./edit-member-travel-dialog";
+import {
+  canModifyEvent,
+  canModifyAccommodation,
+  canModifyMemberTravel,
+} from "./utils/permissions";
 
 interface GroupByTypeViewProps {
   events: Event[];
@@ -18,6 +23,7 @@ interface GroupByTypeViewProps {
   isOrganizer: boolean;
   userId: string;
   userNameMap: Map<string, string>;
+  isLocked?: boolean;
 }
 
 export function GroupByTypeView({
@@ -28,6 +34,7 @@ export function GroupByTypeView({
   isOrganizer,
   userId,
   userNameMap,
+  isLocked,
 }: GroupByTypeViewProps) {
   // Group events by type
   const groupedEvents = useMemo(() => {
@@ -62,19 +69,6 @@ export function GroupByTypeView({
       activity: activity.sort(sortByStartTime),
     };
   }, [events, accommodations, memberTravels]);
-
-  // Check permissions
-  const canModifyEvent = (event: Event) => {
-    return isOrganizer || event.createdBy === userId;
-  };
-
-  const canModifyAccommodation = (accommodation: Accommodation) => {
-    return isOrganizer || accommodation.createdBy === userId;
-  };
-
-  const canModifyMemberTravel = (travel: MemberTravel) => {
-    return isOrganizer || travel.memberId === userId;
-  };
 
   // Edit dialog state
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -177,9 +171,15 @@ export function GroupByTypeView({
                           timezone={timezone}
                           canEdit={canModifyAccommodation(
                             item as Accommodation,
+                            userId,
+                            isOrganizer,
+                            isLocked,
                           )}
                           canDelete={canModifyAccommodation(
                             item as Accommodation,
+                            userId,
+                            isOrganizer,
+                            isLocked,
                           )}
                           onEdit={() =>
                             setEditingAccommodation(item as Accommodation)
@@ -202,8 +202,8 @@ export function GroupByTypeView({
                               memberTravel={travel}
                               memberName={travel.memberName || "Unknown"}
                               timezone={timezone}
-                              canEdit={canModifyMemberTravel(travel)}
-                              canDelete={canModifyMemberTravel(travel)}
+                              canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
+                              canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
                               onEdit={() => setEditingMemberTravel(travel)}
                               onDelete={() => setEditingMemberTravel(travel)}
                               showDate
@@ -215,8 +215,8 @@ export function GroupByTypeView({
                             key={item.id}
                             event={item as Event}
                             timezone={timezone}
-                            canEdit={canModifyEvent(item as Event)}
-                            canDelete={canModifyEvent(item as Event)}
+                            canEdit={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
+                            canDelete={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
                             onEdit={() => setEditingEvent(item as Event)}
                             onDelete={() => setEditingEvent(item as Event)}
                             createdByName={userNameMap.get(

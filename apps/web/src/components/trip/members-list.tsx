@@ -1,8 +1,8 @@
 "use client";
 
 import { UserPlus, Phone, X, Users } from "lucide-react";
-import { useMembers, useInvitations } from "@/hooks/use-invitations";
-import type { MemberWithProfile, Invitation } from "@/hooks/use-invitations";
+import { useMembers } from "@/hooks/use-invitations";
+import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,9 @@ import { getUploadUrl } from "@/lib/api";
 interface MembersListProps {
   tripId: string;
   isOrganizer: boolean;
+  createdBy?: string;
   onInvite?: () => void;
-  onRemove?: (member: MemberWithProfile, invitationId: string) => void;
+  onRemove?: (member: MemberWithProfile) => void;
 }
 
 function MembersListSkeleton() {
@@ -37,24 +38,11 @@ function MembersListSkeleton() {
 export function MembersList({
   tripId,
   isOrganizer,
+  createdBy,
   onInvite,
   onRemove,
 }: MembersListProps) {
   const { data: members, isPending } = useMembers(tripId);
-  const { data: invitations } = useInvitations(tripId, {
-    enabled: isOrganizer,
-  });
-
-  // Find the invitation record for a member by matching phone numbers
-  function findInvitationForMember(
-    member: MemberWithProfile,
-    invitationsList: Invitation[] | undefined,
-  ): Invitation | undefined {
-    if (!invitationsList || !member.phoneNumber) return undefined;
-    return invitationsList.find(
-      (inv) => inv.inviteePhone === member.phoneNumber,
-    );
-  }
 
   if (isPending) {
     return <MembersListSkeleton />;
@@ -88,10 +76,10 @@ export function MembersList({
     <div className="flex flex-col flex-1">
       <div className="flex-1 divide-y divide-border">
         {members.map((member) => {
-          const invitation = isOrganizer
-            ? findInvitationForMember(member, invitations)
-            : undefined;
-          const canRemove = isOrganizer && !!invitation && !!onRemove;
+          const canRemove =
+            isOrganizer &&
+            !!onRemove &&
+            member.userId !== createdBy;
 
           return (
             <div
@@ -161,7 +149,7 @@ export function MembersList({
                   variant="ghost"
                   size="icon-xs"
                   className="text-muted-foreground hover:text-destructive"
-                  onClick={() => onRemove(member, invitation.id)}
+                  onClick={() => onRemove(member)}
                   aria-label={`Remove ${member.displayName}`}
                 >
                   <X className="w-4 h-4" />

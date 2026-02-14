@@ -13,6 +13,8 @@ export interface Event {
   description: string | null;
   eventType: "travel" | "meal" | "activity";
   location: string | null;
+  meetupLocation: string | null;
+  meetupTime: Date | null;
   startTime: Date;
   endTime: Date | null;
   allDay: boolean;

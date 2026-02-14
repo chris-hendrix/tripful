@@ -1,7 +1,7 @@
 # Tripful MVP - Implementation Phases
 
-> **Status**: Phases 1-5 complete | Phases 5.5-7 pending
-> **Last Updated**: 2026-02-10
+> **Status**: Phases 1-6 complete | Phase 7 pending
+> **Last Updated**: 2026-02-14
 
 ## ✅ Phase 1: Monorepo Setup
 
@@ -173,63 +173,80 @@
 - [x] RSVP status change and "member no longer attending" indicator
 - [x] 15 total E2E tests, all passing
 
-## 🚧 Phase 5.5: User Profile & Auth Redirects
+## ✅ Phase 5.5: User Profile & Auth Redirects
 
 **Auth Redirects:**
 
-- [ ] Landing page (`/page.tsx`): server-side cookie check, redirect authenticated users to `/dashboard`
-- [ ] Auth layout (`(auth)/layout.tsx`): server-side cookie check, redirect authenticated users to `/dashboard` (covers `/login`, `/verify`, `/complete-profile`)
+- [x] Landing page (`/page.tsx`): server-side cookie check, redirect authenticated users to `/trips`
+- [x] Auth layout (`(auth)/layout.tsx`): server-side cookie check, redirect authenticated users to `/trips` (covers `/login`, `/verify`, `/complete-profile`)
 
 **User Profile:**
 
-- [ ] Profile/settings page (`/settings`) for editing display name and timezone
-- [ ] Profile photo upload (reuse existing image upload service pattern from trip cover images)
-- [ ] Optional profile photo during initial registration (PRD §1)
-- [ ] API endpoint for profile updates (backend `updateProfile()` method exists, needs a dedicated route)
+- [x] Profile/settings page (`/settings`) for editing display name and timezone
+- [x] Profile photo upload (reuse existing image upload service pattern from trip cover images)
+- [x] Optional profile photo during initial registration (PRD §1)
+- [x] API endpoint for profile updates (backend `updateProfile()` method exists, needs a dedicated route)
 
 **Notes:** Landing page "Get started" button currently sends authenticated users through the login flow again. Auth redirect pattern mirrors existing `(app)/layout.tsx` server-side cookie check. Profile page promise exists in complete-profile UI ("You can update this information later in your settings") but was never built.
 
 **E2E:**
 
-- [ ] Authenticated user visiting `/` redirects to dashboard
-- [ ] Authenticated user visiting `/login` redirects to dashboard
-- [ ] User can edit profile from settings page
+- [x] Authenticated user visiting `/` redirects to trips
+- [x] Authenticated user visiting `/login` redirects to trips
+- [x] User can edit profile from settings page
 
-## 🚧 Phase 6: Advanced Itinerary & Trip Management
+## ✅ Phase 6: Advanced Itinerary & Trip Management
 
 **Backend:**
 
-- [ ] Deleted items listing endpoint for organizers
-- [ ] Meetup location/time fields on events (PRD §8: `meetup_location`, `meetup_time` — schema + API)
-- [ ] Auto-lock past trips — prevent adding events after trip end date (PRD §9, AC8)
-- [ ] Remove member from trip endpoint (distinct from revoking invitation) (PRD §10, AC12)
+- [x] Meetup location/time fields on events (`meetup_location` text, `meetup_time` timestamptz)
+- [x] Migration: `0007_heavy_deathstrike.sql` (adds meetup columns to events table)
+- [x] Auto-lock past trips — `isTripLocked()` in PermissionsService prevents mutations after trip end date
+- [x] `TripLockedError` enforced in EventService, AccommodationService, MemberTravelService
+- [x] Remove member from trip endpoint (`DELETE /api/trips/:tripId/members/:memberId`)
+- [x] `removeMember()` in InvitationService with transaction-based cleanup
+- [x] Unit + integration tests for all new endpoints and services
 
 **Frontend:**
 
-- [ ] Deleted items section (organizers only) with restore UI
-- [ ] Multi-day event badges in day-by-day view
-- [ ] Member status indicators on itinerary
-- [ ] Meetup location/time in event create/edit dialogs and event cards
-- [ ] Remove member UI in members dialog (organizer only)
+- [x] Meetup location/time fields in event create/edit dialogs
+- [x] Meetup info displayed on event cards (blue info box with group icon)
+- [x] Deleted items section at bottom of itinerary (organizer-only) with restore UI
+- [x] Multi-day event badges in both day-by-day and group-by-type views
+- [x] Past trip read-only UI (FAB hidden, edit/delete buttons disabled, lock indicator)
+- [x] Remove member button in members dialog (organizer only)
+- [x] `useRemoveMember` TanStack Query mutation hook
+
+**Database:**
+
+- [x] `meetup_location` (text) and `meetup_time` (timestamptz) columns added to events table
+- [x] Migration: `0007_heavy_deathstrike.sql`
+
+**Shared:**
+
+- [x] Updated event schemas with meetup fields (createEventSchema, updateEventSchema)
+- [x] Updated Event type with meetupLocation and meetupTime properties
 
 **E2E:**
 
-- [ ] Organizer can view and restore deleted events
-- [ ] Past trip prevents adding new events
-- [ ] Organizer can remove a member
-
-**Notes:** Soft delete/restore API endpoints and TanStack Query hooks (`useRestoreEvent`, etc.) exist from Phase 4, but no frontend UI for browsing or restoring deleted items. `includeDeleted` query param is supported by the API but unused by frontend. Multi-day events are supported in the schema but day-by-day view only shows events on their start day. Only `revokeInvitation` exists currently — no way to remove an accepted member from a trip.
+- [x] Deleted items and restore flow (organizer views deleted section, restores event)
+- [x] Meetup location/time displayed on event cards
+- [x] Multi-day event badge rendering
+- [x] Auto-lock past trips (prevents adding events after trip end date)
+- [x] Remove member from trip (organizer removes accepted member)
+- [x] Itinerary permissions and validation
+- [x] Role-based Playwright selectors for stability
 
 ## 🚧 Phase 7: Polish & Testing
 
-- [ ] Trip URL format `/t/{uuid}` (PRD AC15 — currently `/trips/[id]`)
+- [ ] Add co-organizers post-creation UI (API exists at `POST /trips/:id/co-organizers`, needs dialog in members list)
 - [ ] Entity count limits: max 50 events/trip, max 10 accommodations/trip, max 20 member travel/member (PRD Data Validation — only member limit of 25 is currently enforced)
 - [ ] Responsive design refinements
 - [ ] Performance optimization (query optimization, caching)
 - [ ] Comprehensive test coverage
-- [ ] Documentation
+- [ ] Documentation updates
 
-**Notes:** Error handling (global error boundary, route-level error pages, typed API errors, toasts) and loading states (skeleton pages, component-level loading) are already well-implemented from earlier phases. Trip updates, cancellation, and RSVP changes are already functional from Phases 3 and 5.
+**Notes:** Error handling (global error boundary, route-level error pages, typed API errors, toasts) and loading states (skeleton pages, component-level loading) are already well-implemented from earlier phases. Trip updates, cancellation, and RSVP changes are already functional from Phases 3 and 5. Phase 6 added auto-lock for past trips, comprehensive E2E tests, and role-based Playwright selectors.
 
 ## Future Enhancements (Post-MVP)
 

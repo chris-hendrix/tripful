@@ -22,29 +22,43 @@ vi.mock("@/hooks/use-trips", () => ({
 
 vi.mock("@/hooks/use-events", () => ({
   useEvents: () => mockUseEvents(),
+  useEventsWithDeleted: () => ({ data: [], isPending: false, isError: false }),
   useEvent: () => ({ data: null, isLoading: false }),
   useCreateEvent: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateEvent: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteEvent: () => ({ mutate: vi.fn(), isPending: false }),
   useRestoreEvent: () => ({ mutate: vi.fn(), isPending: false }),
+  getRestoreEventErrorMessage: () => null,
 }));
 
 vi.mock("@/hooks/use-accommodations", () => ({
   useAccommodations: () => mockUseAccommodations(),
+  useAccommodationsWithDeleted: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+  }),
   useAccommodation: () => ({ data: null, isLoading: false }),
   useCreateAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
   useRestoreAccommodation: () => ({ mutate: vi.fn(), isPending: false }),
+  getRestoreAccommodationErrorMessage: () => null,
 }));
 
 vi.mock("@/hooks/use-member-travel", () => ({
   useMemberTravels: () => mockUseMemberTravels(),
+  useMemberTravelsWithDeleted: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+  }),
   useMemberTravel: () => ({ data: null, isLoading: false }),
   useCreateMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
   useUpdateMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
   useRestoreMemberTravel: () => ({ mutate: vi.fn(), isPending: false }),
+  getRestoreMemberTravelErrorMessage: () => null,
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {

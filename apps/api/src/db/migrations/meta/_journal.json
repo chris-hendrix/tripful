@@ -50,6 +50,13 @@
       "when": 1770865791835,
       "tag": "0006_fresh_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770958644081,
+      "tag": "0007_heavy_deathstrike",
+      "breakpoints": true
     }
   ]
 }

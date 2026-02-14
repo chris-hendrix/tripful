@@ -19,6 +19,11 @@ export const PermissionDeniedError = createError(
   "%s",
   403,
 );
+export const TripLockedError = createError(
+  "TRIP_LOCKED",
+  "This trip has ended and is now read-only",
+  403,
+);
 export const MemberLimitExceededError = createError(
   "MEMBER_LIMIT_EXCEEDED",
   "%s",
@@ -73,6 +78,18 @@ export const InvitationNotFoundError = createError(
   "INVITATION_NOT_FOUND",
   "Invitation not found",
   404,
+);
+
+// Member removal errors
+export const MemberNotFoundError = createError(
+  "MEMBER_NOT_FOUND",
+  "Member not found",
+  404,
+);
+export const LastOrganizerError = createError(
+  "LAST_ORGANIZER",
+  "Cannot remove the last organizer of a trip",
+  400,
 );
 
 // Generic

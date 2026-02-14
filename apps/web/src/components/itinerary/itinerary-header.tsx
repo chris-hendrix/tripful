@@ -49,6 +49,7 @@ interface ItineraryHeaderProps {
   isOrganizer: boolean;
   isMember: boolean;
   allowMembersToAddEvents: boolean;
+  isLocked?: boolean;
 }
 
 export function ItineraryHeader({
@@ -62,6 +63,7 @@ export function ItineraryHeader({
   isOrganizer,
   isMember,
   allowMembersToAddEvents,
+  isLocked,
 }: ItineraryHeaderProps) {
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
@@ -81,7 +83,7 @@ export function ItineraryHeader({
 
   return (
     <>
-      <div className="sticky top-14 z-20 bg-background border-b border-border p-4">
+      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border p-4">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between gap-3">
             {/* Left side: Timezone selector */}
@@ -163,7 +165,7 @@ export function ItineraryHeader({
       </div>
 
       {/* Floating Action Button */}
-      {hasAnyAction && (
+      {hasAnyAction && !isLocked && (
         <DropdownMenu open={fabOpen} onOpenChange={setFabOpen}>
           <DropdownMenuTrigger asChild>
             <Button

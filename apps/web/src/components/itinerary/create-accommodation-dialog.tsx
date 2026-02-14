@@ -297,9 +297,9 @@ export function CreateAccommodationDialog({
                   {/* List of added links */}
                   {links.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {links.map((link, index) => (
+                      {links.map((link) => (
                         <div
-                          key={`${link}-${index}`}
+                          key={link}
                           className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                         >
                           <span className="text-sm font-medium text-foreground truncate">
@@ -348,6 +348,7 @@ export function CreateAccommodationDialog({
                         disabled={isPending}
                         className="h-12 px-4 bg-muted hover:bg-muted text-foreground rounded-xl"
                         variant="outline"
+                        aria-label="Add link"
                       >
                         <Plus className="w-5 h-5" />
                       </Button>

@@ -17,6 +17,7 @@ import {
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
+  TripLockedError,
 } from "../errors.js";
 
 /**
@@ -127,6 +128,10 @@ export class EventService implements IEventService {
     tripId: string,
     data: CreateEventInput,
   ): Promise<Event> {
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(tripId);
+    if (isLocked) throw new TripLockedError();
+
     // Check if user can add events to this trip
     const canAdd = await this.permissionsService.canAddEvent(userId, tripId);
     if (!canAdd) {
@@ -165,6 +170,8 @@ export class EventService implements IEventService {
         description: data.description || null,
         eventType: data.eventType,
         location: data.location || null,
+        meetupLocation: data.meetupLocation || null,
+        meetupTime: data.meetupTime ? new Date(data.meetupTime) : null,
         startTime: new Date(data.startTime),
         endTime: data.endTime ? new Date(data.endTime) : null,
         allDay: data.allDay ?? false,
@@ -265,26 +272,7 @@ export class EventService implements IEventService {
     eventId: string,
     data: UpdateEventInput,
   ): Promise<Event> {
-    // Check permissions
-    const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
-    if (!canEdit) {
-      // Check if event exists to provide better error message - select only id column
-      const eventExists = await this.db
-        .select({ id: events.id })
-        .from(events)
-        .where(eq(events.id, eventId))
-        .limit(1);
-
-      if (eventExists.length === 0) {
-        throw new EventNotFoundError();
-      }
-
-      throw new PermissionDeniedError(
-        "Permission denied: only event creator or trip organizers can edit events",
-      );
-    }
-
-    // Load existing event to validate date range
+    // Load existing event first (need tripId for lock check and data for validation)
     const [existingEvent] = await this.db
       .select()
       .from(events)
@@ -293,6 +281,20 @@ export class EventService implements IEventService {
 
     if (!existingEvent) {
       throw new EventNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      existingEvent.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
+    // Check permissions
+    const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
+    if (!canEdit) {
+      throw new PermissionDeniedError(
+        "Permission denied: only event creator or trip organizers can edit events",
+      );
     }
 
     // Validate date range if both times will be set after update
@@ -320,6 +322,9 @@ export class EventService implements IEventService {
     if (data.endTime) {
       updateData.endTime = new Date(data.endTime);
     }
+    if (data.meetupTime) {
+      updateData.meetupTime = new Date(data.meetupTime);
+    }
 
     // Perform update
     const result = await this.db
@@ -345,23 +350,29 @@ export class EventService implements IEventService {
    * @throws PermissionDeniedError if user lacks permission
    */
   async deleteEvent(userId: string, eventId: string): Promise<void> {
+    // Load event to get tripId for lock check
+    const [eventRecord] = await this.db
+      .select({ id: events.id, tripId: events.tripId })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+
+    if (!eventRecord) {
+      throw new EventNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      eventRecord.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Check permissions
     const canDelete = await this.permissionsService.canDeleteEvent(
       userId,
       eventId,
     );
     if (!canDelete) {
-      // Check if event exists for better error message - select only id column
-      const eventExists = await this.db
-        .select({ id: events.id })
-        .from(events)
-        .where(eq(events.id, eventId))
-        .limit(1);
-
-      if (eventExists.length === 0) {
-        throw new EventNotFoundError();
-      }
-
       throw new PermissionDeniedError(
         "Permission denied: only event creator or trip organizers can delete events",
       );

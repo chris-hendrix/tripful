@@ -18,8 +18,8 @@ import {
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
 import {
-  useRevokeInvitation,
-  getRevokeInvitationErrorMessage,
+  useRemoveMember,
+  getRemoveMemberErrorMessage,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { Badge } from "@/components/ui/badge";
@@ -47,23 +47,19 @@ import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
-const EditTripDialog = dynamic(
-  () =>
-    import("@/components/trip/edit-trip-dialog").then((mod) => ({
-      default: mod.EditTripDialog,
-    })),
-  { ssr: false },
+const EditTripDialog = dynamic(() =>
+  import("@/components/trip/edit-trip-dialog").then((mod) => ({
+    default: mod.EditTripDialog,
+  })),
 );
 
 const preloadEditTripDialog = () =>
   void import("@/components/trip/edit-trip-dialog");
 
-const InviteMembersDialog = dynamic(
-  () =>
-    import("@/components/trip/invite-members-dialog").then((mod) => ({
-      default: mod.InviteMembersDialog,
-    })),
-  { ssr: false },
+const InviteMembersDialog = dynamic(() =>
+  import("@/components/trip/invite-members-dialog").then((mod) => ({
+    default: mod.InviteMembersDialog,
+  })),
 );
 
 const preloadInviteMembersDialog = () =>
@@ -92,10 +88,9 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [removingMember, setRemovingMember] = useState<{
     member: MemberWithProfile;
-    invitationId: string;
   } | null>(null);
 
-  const revokeInvitation = useRevokeInvitation(tripId);
+  const removeMember = useRemoveMember(tripId);
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -159,7 +154,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
-            unoptimized
             priority
             sizes="100vw"
             className="object-cover"
@@ -250,7 +244,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         alt={org.displayName}
                         width={32}
                         height={32}
-                        unoptimized
                         className="rounded-full ring-2 ring-white"
                       />
                     ) : (
@@ -366,22 +359,23 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   <span className="font-medium text-foreground">
                     {removingMember.member.displayName}
                   </span>{" "}
-                  from this trip? This will revoke their invitation.
+                  from this trip? This will remove their membership and any
+                  associated invitation.
                 </p>
               </div>
               <div className="flex gap-3 justify-end mt-auto pt-4 border-t border-border">
                 <Button
                   variant="outline"
                   onClick={() => setRemovingMember(null)}
-                  disabled={revokeInvitation.isPending}
+                  disabled={removeMember.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={revokeInvitation.isPending}
+                  disabled={removeMember.isPending}
                   onClick={() => {
-                    revokeInvitation.mutate(removingMember.invitationId, {
+                    removeMember.mutate(removingMember.member.id, {
                       onSuccess: () => {
                         toast.success(
                           `${removingMember.member.displayName} has been removed`,
@@ -389,14 +383,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         setRemovingMember(null);
                       },
                       onError: (error) => {
-                        const message = getRevokeInvitationErrorMessage(error);
+                        const message = getRemoveMemberErrorMessage(error);
                         toast.error(message ?? "Failed to remove member");
                         setRemovingMember(null);
                       },
                     });
                   }}
                 >
-                  {revokeInvitation.isPending ? "Removing..." : "Remove"}
+                  {removeMember.isPending ? "Removing..." : "Remove"}
                 </Button>
               </div>
             </div>
@@ -404,13 +398,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <MembersList
               tripId={tripId}
               isOrganizer={isOrganizer}
+              createdBy={trip.createdBy}
               onInvite={() => {
                 setIsMembersOpen(false);
                 setIsInviteOpen(true);
               }}
-              onRemove={(member, invitationId) =>
-                setRemovingMember({ member, invitationId })
-              }
+              onRemove={(member) => setRemovingMember({ member })}
             />
           )}
         </DialogContent>

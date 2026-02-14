@@ -6,13 +6,13 @@
  * Format a date in a specific timezone
  * @param date - Date to format (Date object or ISO string)
  * @param timezone - IANA timezone string (e.g., "America/New_York")
- * @param format - Format type: "date", "time", or "datetime"
+ * @param format - Format type: "date", "time", "datetime", or "short-date"
  * @returns Formatted string
  */
 export function formatInTimezone(
   date: Date | string,
   timezone: string,
-  format: "date" | "time" | "datetime",
+  format: "date" | "time" | "datetime" | "short-date",
 ): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
@@ -22,6 +22,15 @@ export function formatInTimezone(
   }
 
   try {
+    // Format short date (e.g., "Feb 10")
+    if (format === "short-date") {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        month: "short",
+        day: "numeric",
+      }).format(dateObj);
+    }
+
     // Format date
     if (format === "date") {
       return new Intl.DateTimeFormat("en-US", {

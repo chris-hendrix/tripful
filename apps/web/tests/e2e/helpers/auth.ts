@@ -114,6 +114,8 @@ export async function authenticateViaAPI(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: 10000 });
+  // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
+  await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
   return phone;
 }
 
@@ -140,6 +142,8 @@ export async function authenticateViaAPIWithPhone(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: 10000 });
+  // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
+  await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
 }
 
 /**

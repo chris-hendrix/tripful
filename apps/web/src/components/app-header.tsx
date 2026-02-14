@@ -19,12 +19,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const ProfileDialog = dynamic(
-  () =>
-    import("@/components/profile/profile-dialog").then((mod) => ({
-      default: mod.ProfileDialog,
-    })),
-  { ssr: false },
+const ProfileDialog = dynamic(() =>
+  import("@/components/profile/profile-dialog").then((mod) => ({
+    default: mod.ProfileDialog,
+  })),
 );
 
 const preloadProfileDialog = () =>

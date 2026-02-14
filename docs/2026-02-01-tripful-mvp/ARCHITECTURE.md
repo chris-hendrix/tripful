@@ -1,8 +1,8 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-5 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 6-7 Pending
-last_updated: 2026-02-10
+status: Phase 1-6 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 7 Pending
+last_updated: 2026-02-14
 ---
 
 # Tripful - High-Level Architecture
@@ -16,10 +16,10 @@ last_updated: 2026-02-10
 > - ✅ **Phase 4 Complete**: Itinerary view modes with events, accommodations, member travel, and comprehensive testing
 > - ✅ **Mobile UX Fixes Complete**: Touch targets, phone input, compact itinerary header, display names, event counts, FAB
 > - ✅ **Phase 5 Complete**: Invitations & RSVP with batch invite, trip preview, members dialog
-> - 🚧 **Phase 6**: Pending (Advanced Itinerary Features)
+> - ✅ **Phase 6 Complete**: Advanced itinerary with meetup fields, auto-lock past trips, member removal, deleted items restore, multi-day badges
 > - 🚧 **Phase 7**: Pending (Polish & Testing)
 >
-> **Important**: This document describes both implemented features (Phases 1-5) and planned features (Phases 6-7). Features, tables, routes, and components marked as 🚧 or described in Phase 6-7 sections do not yet exist in the codebase.
+> **Important**: This document describes both implemented features (Phases 1-6) and planned features (Phase 7). Features, tables, routes, and components marked as 🚧 or described in Phase 7 sections do not yet exist in the codebase.
 
 ## Implementation Progress
 
@@ -399,16 +399,60 @@ Complete invitation and RSVP system enabling organizers to invite members by pho
 - `POST /api/trips/:tripId/rsvp` - Update RSVP status (going/maybe/not_going)
 - `DELETE /api/invitations/:id` - Revoke invitation (organizer only)
 
-### 🚧 Phase 6: Advanced Itinerary Features (Planned)
+### ✅ Phase 6: Advanced Itinerary & Trip Management (Complete)
 
-- [ ] Backend: Soft delete restore UI, multi-day events, deleted items section
-- [ ] Frontend: Deleted items (organizers), multi-day badges, member status indicators
-- [ ] E2E test: Organizer can restore deleted events
+**Branch**: `ralph/20260212-2332-phase-6-advanced-itinerary`
+
+Complete implementation of advanced itinerary features including meetup coordination, trip lifecycle management, member removal, deleted items restoration, and multi-day event display.
+
+**Backend (Fastify):**
+
+- [x] Meetup fields added to events: `meetup_location` (text) and `meetup_time` (timestamptz)
+- [x] Auto-lock past trips via `isTripLocked()` in PermissionsService (checks trip end date)
+- [x] `TripLockedError` enforced in EventService, AccommodationService, MemberTravelService
+- [x] Remove member endpoint: `DELETE /api/trips/:tripId/members/:memberId`
+- [x] `removeMember()` in InvitationService with transactional cleanup
+- [x] Comprehensive unit and integration tests
+
+**Frontend (Next.js 16):**
+
+- [x] Meetup location/time fields in event create/edit dialogs
+- [x] Meetup info displayed on event cards (blue info box with group icon)
+- [x] Deleted items section at bottom of itinerary (organizer-only) with restore buttons
+- [x] Multi-day event badges in both day-by-day and group-by-type views
+- [x] Past trip read-only UI (FAB hidden, edit/delete buttons disabled, lock indicator)
+- [x] Remove member button in members dialog (organizer only)
+- [x] `useRemoveMember` TanStack Query mutation hook
+
+**Database Schema:**
+
+- [x] `meetup_location` (text) and `meetup_time` (timestamptz) columns on events table
+- [x] Migration: `0007_heavy_deathstrike.sql`
+
+**Shared Package:**
+
+- [x] Updated event schemas with meetup fields (createEventSchema, updateEventSchema)
+- [x] Updated Event type with meetupLocation and meetupTime properties
+
+**E2E Testing (Playwright):**
+
+- [x] Deleted items and restore flow
+- [x] Meetup location/time displayed on event cards
+- [x] Multi-day event badge rendering
+- [x] Auto-lock past trips (prevents mutations after trip end date)
+- [x] Remove member from trip
+- [x] Itinerary permissions and validation
+- [x] Role-based Playwright selectors for test stability
+
+**API Endpoints Implemented:**
+
+- `DELETE /api/trips/:tripId/members/:memberId` - Remove member from trip (organizer only)
+
+**Note:** All existing itinerary endpoints (events, accommodations, member travel) now enforce `isTripLocked()` checks to prevent modifications to past trips.
 
 ### 🚧 Phase 7: Polish & Testing (Planned)
 
-- [ ] Error handling and validation
-- [ ] Loading states and optimistic updates
+- [ ] Entity count limits (max 50 events/trip, max 10 accommodations/trip, max 20 member travel/member)
 - [ ] Responsive design refinements
 - [ ] Performance optimization (query optimization, caching strategy)
 - [ ] Comprehensive test coverage
@@ -774,7 +818,7 @@ apps/api/
 │   │   ├── event.routes.ts       # ✅ Events CRUD + soft delete/restore
 │   │   ├── accommodation.routes.ts # ✅ Accommodations CRUD + soft delete/restore
 │   │   ├── member-travel.routes.ts # ✅ Member travel CRUD + soft delete/restore
-│   │   └── rsvp.routes.ts        # 🚧 Future
+│   │   └── invitation.routes.ts   # ✅ Invitations, RSVP, member removal
 │   ├── controllers/
 │   │   ├── auth.controller.ts
 │   │   ├── trip.controller.ts
@@ -1062,8 +1106,8 @@ export const events = pgTable("events", {
   endTime: time("end_time"),
   allDay: boolean("all_day").notNull().default(false),
   location: varchar("location", { length: 500 }),
-  meetupLocation: varchar("meetup_location", { length: 200 }),
-  meetupTime: time("meetup_time"),
+  meetupLocation: text("meetup_location"),
+  meetupTime: timestamp("meetup_time", { withTimezone: true }),
   description: text("description"),
   links: text("links").array(),
   isOptional: boolean("is_optional").notNull().default(false),

@@ -18,6 +18,7 @@ import type {
 import {
   memberTravelKeys,
   memberTravelsQueryOptions,
+  memberTravelsWithDeletedQueryOptions,
   memberTravelDetailQueryOptions,
 } from "./member-travel-queries";
 
@@ -25,6 +26,7 @@ import {
 export {
   memberTravelKeys,
   memberTravelsQueryOptions,
+  memberTravelsWithDeletedQueryOptions,
   memberTravelDetailQueryOptions,
 };
 
@@ -54,6 +56,18 @@ export type { MemberTravel };
  */
 export function useMemberTravels(tripId: string) {
   return useQuery(memberTravelsQueryOptions(tripId));
+}
+
+/**
+ * Hook for fetching all member travels for a trip, including soft-deleted ones
+ *
+ * Used by organizers to view and restore deleted items.
+ *
+ * @param tripId - The ID of the trip to fetch member travels for
+ * @returns Query object with data, loading, and error state
+ */
+export function useMemberTravelsWithDeleted(tripId: string) {
+  return useQuery(memberTravelsWithDeletedQueryOptions(tripId));
 }
 
 /**

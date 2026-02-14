@@ -69,6 +69,8 @@ export function CreateEventDialog({
       location: "",
       startTime: "",
       endTime: undefined,
+      meetupLocation: "",
+      meetupTime: undefined,
       allDay: false,
       isOptional: false,
       links: [],
@@ -320,6 +322,59 @@ export function CreateEventDialog({
               )}
             />
 
+            {/* Meetup Location */}
+            <FormField
+              control={form.control}
+              name="meetupLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Meetup location
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Hotel lobby, parking lot, etc."
+                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                      disabled={isPending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-muted-foreground">
+                    Where to meet before the event
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Meetup Time */}
+            <FormField
+              control={form.control}
+              name="meetupTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Meetup time
+                  </FormLabel>
+                  <FormControl>
+                    <DateTimePicker
+                      value={field.value || ""}
+                      onChange={(val) => field.onChange(val || undefined)}
+                      timezone={selectedTimezone}
+                      placeholder="Select meetup time"
+                      aria-label="Meetup time"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-sm text-muted-foreground">
+                    When to meet (can be before event start)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* All Day Checkbox */}
             <FormField
               control={form.control}
@@ -430,9 +485,9 @@ export function CreateEventDialog({
                   {/* List of added links */}
                   {links.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {links.map((link, index) => (
+                      {links.map((link) => (
                         <div
-                          key={`${link}-${index}`}
+                          key={link}
                           className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                         >
                           <span className="text-sm font-medium text-foreground truncate">

@@ -36,6 +36,8 @@ describe("EditEventDialog", () => {
     description: "Test description",
     eventType: "activity",
     location: "Test Location",
+    meetupLocation: null,
+    meetupTime: null,
     startTime: new Date("2026-07-15T14:00:00.000Z"),
     endTime: new Date("2026-07-15T16:00:00.000Z"),
     allDay: false,
@@ -128,7 +130,7 @@ describe("EditEventDialog", () => {
       expect(nameInput.value).toBe("Test Event");
 
       const locationInput = screen.getByLabelText(
-        /location/i,
+        /^location$/i,
       ) as HTMLInputElement;
       expect(locationInput.value).toBe("Test Location");
 
@@ -411,7 +413,7 @@ describe("EditEventDialog", () => {
       await user.clear(nameInput);
       await user.type(nameInput, "Updated Event");
 
-      const locationInput = screen.getByLabelText(/location/i);
+      const locationInput = screen.getByLabelText(/^location$/i);
       await user.clear(locationInput);
       await user.type(locationInput, "Updated Location");
 

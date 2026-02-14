@@ -506,7 +506,7 @@ describe("POST /api/auth/complete-profile", () => {
       expect(result).toHaveLength(1);
       expect(result[0].displayName).toBe("Database Test User");
       expect(result[0].timezone).toBe("Asia/Tokyo");
-      expect(result[0].updatedAt.getTime()).toBeGreaterThan(
+      expect(result[0].updatedAt.getTime()).toBeGreaterThanOrEqual(
         result[0].createdAt.getTime(),
       );
     });

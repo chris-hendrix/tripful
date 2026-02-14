@@ -172,6 +172,67 @@ describe("Event Routes", () => {
       expect(response.statusCode).toBe(403);
     });
 
+    it("should create an event with meetup fields", async () => {
+      app = await buildApp();
+
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: {
+          name: "Group Dinner",
+          eventType: "meal",
+          startTime: "2026-06-15T19:00:00Z",
+          meetupLocation: "Hotel lobby",
+          meetupTime: "2026-06-15T18:30:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.event.meetupLocation).toBe("Hotel lobby");
+      expect(body.event.meetupTime).toBeTruthy();
+    });
+
     it("should return 400 for invalid event data", async () => {
       app = await buildApp();
 
@@ -920,6 +981,75 @@ describe("Event Routes", () => {
       expect(body.event.description).toBe("Updated description");
     });
 
+    it("should update event meetup fields", async () => {
+      app = await buildApp();
+
+      const testUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const testUser = testUserResult[0];
+
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      const eventResult = await db
+        .insert(events)
+        .values({
+          tripId: trip.id,
+          createdBy: testUser.id,
+          name: "Museum Visit",
+          eventType: "activity",
+          startTime: new Date("2026-06-15T14:00:00Z"),
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "PUT",
+        url: `/api/events/${eventResult[0].id}`,
+        cookies: {
+          auth_token: token,
+        },
+        payload: {
+          meetupLocation: "Bus stop",
+          meetupTime: "2026-06-15T13:30:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.event.meetupLocation).toBe("Bus stop");
+      expect(body.event.meetupTime).toBeTruthy();
+    });
+
     it("should return 403 if user lacks permission", async () => {
       app = await buildApp();
 
@@ -1133,6 +1263,245 @@ describe("Event Routes", () => {
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
       expect(body).toHaveProperty("event");
+      expect(body.event.deletedAt).toBeNull();
+    });
+  });
+
+  describe("Trip Lock", () => {
+    it("should return 403 when creating event on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/events`,
+        cookies: { auth_token: token },
+        payload: {
+          name: "New Event",
+          eventType: "activity",
+          startTime: "2025-01-03T14:00:00Z",
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should return 403 when updating event on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [event] = await db
+        .insert(events)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Existing Event",
+          eventType: "activity",
+          startTime: new Date("2025-01-03T14:00:00Z"),
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "PUT",
+        url: `/api/events/${event.id}`,
+        cookies: { auth_token: token },
+        payload: { name: "Updated Event" },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should return 403 when deleting event on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [event] = await db
+        .insert(events)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Existing Event",
+          eventType: "activity",
+          startTime: new Date("2025-01-03T14:00:00Z"),
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/events/${event.id}`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("TRIP_LOCKED");
+    });
+
+    it("should allow restoring event on a locked trip", async () => {
+      app = await buildApp();
+
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Past Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: user.id,
+          startDate: "2025-01-01",
+          endDate: "2025-01-05",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const [event] = await db
+        .insert(events)
+        .values({
+          tripId: trip.id,
+          createdBy: user.id,
+          name: "Deleted Event",
+          eventType: "activity",
+          startTime: new Date("2025-01-03T14:00:00Z"),
+          deletedAt: new Date(),
+          deletedBy: user.id,
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/events/${event.id}/restore`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
       expect(body.event.deletedAt).toBeNull();
     });
   });

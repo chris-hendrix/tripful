@@ -104,14 +104,14 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
-// Mock useRevokeInvitation hook
-const mockRevokeInvitation = vi.hoisted(() => ({
+// Mock useRemoveMember hook
+const mockRemoveMember = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
 }));
 vi.mock("@/hooks/use-invitations", () => ({
-  useRevokeInvitation: () => mockRevokeInvitation,
-  getRevokeInvitationErrorMessage: () => null,
+  useRemoveMember: () => mockRemoveMember,
+  getRemoveMemberErrorMessage: () => null,
 }));
 
 // Mock MembersList component
@@ -119,18 +119,21 @@ vi.mock("@/components/trip/members-list", () => ({
   MembersList: ({
     tripId,
     isOrganizer,
+    createdBy,
     onInvite,
     onRemove,
   }: {
     tripId: string;
     isOrganizer: boolean;
+    createdBy?: string;
     onInvite?: () => void;
-    onRemove?: (member: any, invitationId: string) => void;
+    onRemove?: (member: any) => void;
   }) => (
     <div
       data-testid="members-list"
       data-trip-id={tripId}
       data-is-organizer={isOrganizer}
+      data-created-by={createdBy}
     >
       Members List for trip {tripId}
       {onInvite && (
@@ -142,7 +145,7 @@ vi.mock("@/components/trip/members-list", () => ({
         <button
           data-testid="members-remove-btn"
           onClick={() =>
-            onRemove({ id: "user-456", displayName: "Jane Smith" }, "inv-123")
+            onRemove({ id: "member-456", userId: "user-456", displayName: "Jane Smith" })
           }
         >
           Remove member

@@ -186,6 +186,59 @@ export const invitationController = {
   },
 
   /**
+   * Remove member endpoint
+   * Removes a member from a trip and deletes associated invitation
+   *
+   * @route DELETE /api/trips/:tripId/members/:memberId
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with tripId and memberId in params
+   * @param reply - Fastify reply object
+   * @returns 204 No Content on success
+   */
+  async removeMember(
+    request: FastifyRequest<{
+      Params: { tripId: string; memberId: string };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { tripId, memberId } = request.params;
+      const userId = request.user.sub;
+
+      await request.server.invitationService.removeMember(
+        userId,
+        tripId,
+        memberId,
+      );
+
+      return reply.status(204).send();
+    } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
+      request.log.error(
+        {
+          error,
+          userId: request.user.sub,
+          tripId: request.params.tripId,
+          memberId: request.params.memberId,
+        },
+        "Failed to remove member",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to remove member",
+        },
+      });
+    }
+  },
+
+  /**
    * Update RSVP endpoint
    * Updates a member's RSVP status for a trip
    *

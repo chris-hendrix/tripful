@@ -15,6 +15,9 @@ import {
   TripNotFoundError,
   MemberLimitExceededError,
   InvitationNotFoundError,
+  MemberNotFoundError,
+  CannotRemoveCreatorError,
+  LastOrganizerError,
 } from "../errors.js";
 
 /**
@@ -74,6 +77,14 @@ export interface IInvitationService {
     tripId: string,
     requestingUserId: string,
   ): Promise<MemberWithProfile[]>;
+
+  /**
+   * Removes a member from a trip
+   * @param userId - The ID of the user performing the removal (must be organizer)
+   * @param tripId - The ID of the trip
+   * @param memberId - The ID of the member record to remove
+   */
+  removeMember(userId: string, tripId: string, memberId: string): Promise<void>;
 
   /**
    * Processes pending invitations for a user after signup/login
@@ -332,6 +343,82 @@ export class InvitationService implements IInvitationService {
 
     // Delete the invitation record
     await this.db.delete(invitations).where(eq(invitations.id, invitationId));
+  }
+
+  /**
+   * Removes a member from a trip
+   * Deletes the member record and associated invitation if one exists
+   */
+  async removeMember(
+    userId: string,
+    tripId: string,
+    memberId: string,
+  ): Promise<void> {
+    // Check if requesting user is organizer
+    const isOrg = await this.permissionsService.isOrganizer(userId, tripId);
+    if (!isOrg) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can remove members",
+      );
+    }
+
+    // Look up the target member
+    const [member] = await this.db
+      .select()
+      .from(members)
+      .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
+      .limit(1);
+
+    if (!member) {
+      throw new MemberNotFoundError();
+    }
+
+    // Check if target is the trip creator
+    const [trip] = await this.db
+      .select({ createdBy: trips.createdBy })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+
+    if (trip && member.userId === trip.createdBy) {
+      throw new CannotRemoveCreatorError();
+    }
+
+    // If target is an organizer, check they're not the last one
+    if (member.isOrganizer) {
+      const [organizerCount] = await this.db
+        .select({ value: count() })
+        .from(members)
+        .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
+
+      if (organizerCount!.value <= 1) {
+        throw new LastOrganizerError();
+      }
+    }
+
+    // Delete invitation and member in a transaction for consistency
+    await this.db.transaction(async (tx) => {
+      // Find and delete associated invitation via user's phone number
+      const [targetUser] = await tx
+        .select({ phoneNumber: users.phoneNumber })
+        .from(users)
+        .where(eq(users.id, member.userId))
+        .limit(1);
+
+      if (targetUser) {
+        await tx
+          .delete(invitations)
+          .where(
+            and(
+              eq(invitations.tripId, tripId),
+              eq(invitations.inviteePhone, targetUser.phoneNumber),
+            ),
+          );
+      }
+
+      // Delete the member record (cascades to member_travel)
+      await tx.delete(members).where(eq(members.id, memberId));
+    });
   }
 
   /**

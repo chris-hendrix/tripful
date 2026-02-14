@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - UI/UX Design Documentation
-last_updated: 2026-02-08
+last_updated: 2026-02-14
 ---
 
 # Tripful - Design System & Page Overview
@@ -500,6 +500,13 @@ last_updated: 2026-02-08
     - Shows time and/or location if either is set
 - **Expand icon**: Chevron, rotates 180° when expanded
 
+**Multi-Day Event Badge**:
+
+- Events spanning multiple days show a "Multi-day" badge with date range
+- Badge: `bg-purple-100 text-purple-700 border-purple-200`
+- Shows in both day-by-day and group-by-type views
+- Events appear once on their start date (not duplicated across days)
+
 **Expanded Event**:
 
 - Border-top: slate-100
@@ -510,6 +517,7 @@ last_updated: 2026-02-08
   - Shows time and location with formatting
 - Links: Clickable with external icon
 - Footer: Creator avatar (6×6) + edit button
+- Past trip: Edit/delete buttons hidden when trip is locked
 
 **Event Type Colors**:
 
@@ -532,6 +540,7 @@ last_updated: 2026-02-08
   - "Add My Travel" (Plane icon) — opens create member travel dialog
 - Permission-aware: shows only actions the user has permission for
 - Only visible when user is organizer or member with event permission
+- Hidden when trip is locked (past its end date) — no mutations allowed on past trips
 
 **Location Change Design**:
 
@@ -756,6 +765,70 @@ last_updated: 2026-02-08
 - Returns to itinerary view
 - Smooth page transition
 - New event highlighted briefly (pulse animation)
+
+---
+
+### 8. Deleted Items Section (Organizer Only)
+
+**Purpose**: Allow organizers to view and restore soft-deleted itinerary items
+
+**Layout**:
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│ [Itinerary content above...]        │
+│                                     │
+│ ─────────────────────────────────── │
+│                                     │
+│ 🗑️ Deleted Items (3)               │
+│                                     │
+│ ┌─────────────────────────────┐    │
+│ │ Deleted Event Name          │    │
+│ │ Deleted by Mike · 2 days ago│    │
+│ │                  [Restore]  │    │
+│ └─────────────────────────────┘    │
+│                                     │
+│ ┌─────────────────────────────┐    │
+│ │ Deleted Accommodation       │    │
+│ │ Deleted by Jane · 1 day ago │    │
+│ │                  [Restore]  │    │
+│ └─────────────────────────────┘    │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Design Details**:
+
+- Appears at the bottom of the itinerary view, below all active items
+- Only visible to organizers (permission-gated)
+- Section header with trash icon and count of deleted items
+- Each deleted item shows:
+  - Item name and type
+  - Who deleted it and when
+  - Restore button (outline variant)
+- Restore action uses existing restore API endpoints (`POST /api/events/:id/restore`, etc.)
+- TanStack Query cache invalidation on restore
+
+---
+
+### 9. Past Trip (Locked State)
+
+**Purpose**: Read-only mode for trips past their end date
+
+**Behavior**:
+
+- Backend: `isTripLocked()` returns true when trip's `endDate` has fully passed (end of day UTC)
+- All mutation endpoints (create, update, delete, restore) return `TripLockedError`
+- Frontend detects locked state and disables mutation UI
+
+**Visual Indicators**:
+
+- FAB (Floating Action Button) is completely hidden
+- Edit and delete buttons on event/accommodation/member travel cards are hidden
+- Restore buttons in deleted items section are hidden
+- Members dialog hides "Invite" and "Remove" actions
+- Read-only banner or lock icon indicates trip is in locked state
 
 ---
 
@@ -1052,14 +1125,17 @@ rsvp: {
 - ✅ Create event page
 - ✅ Frontend design overhaul (Vivid Capri palette, app shell, accessibility)
 - ✅ Mobile UX fixes (44px touch targets, phone input, compact itinerary header, FAB, display names, event counts)
+- ✅ Invitations & RSVP (batch invite, trip preview, members dialog, RSVP management)
+- ✅ User profile & auth redirects (profile editing, photo upload, auth redirect flows)
+- ✅ Advanced itinerary (meetup fields, deleted items section, multi-day badges, auto-lock past trips, member removal)
 
-### MVP Phase 2:
+### Phase 7 (Polish & Testing):
 
-- Edit event page
-- Group by type view
-- Member list UI
-- Trip settings page
-- Notification center
+- Trip URL format `/t/{uuid}`
+- Entity count limits
+- Responsive design refinements
+- Performance optimization
+- Comprehensive test coverage
 
 ### Future Enhancements:
 
@@ -1070,6 +1146,7 @@ rsvp: {
 - Rich text editor
 - Photo uploads
 - Real-time collaboration indicators
+- Notification center
 
 ---
 
@@ -1084,5 +1161,6 @@ rsvp: {
 - Phone input: `apps/web/src/components/ui/phone-input.tsx`
 - Trip components: `apps/web/src/components/trip/`
 - Itinerary components: `apps/web/src/components/itinerary/`
+- Deleted items section: `apps/web/src/components/itinerary/deleted-items-section.tsx`
 - Pages: `apps/web/src/app/*/page.tsx`
 - PRD: `docs/2026-02-01-tripful-mvp/PRD.md`

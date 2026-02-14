@@ -212,6 +212,8 @@ export const events = pgTable(
     description: text("description"),
     eventType: eventTypeEnum("event_type").notNull(),
     location: text("location"),
+    meetupLocation: text("meetup_location"),
+    meetupTime: timestamp("meetup_time", { withTimezone: true }),
     startTime: timestamp("start_time", { withTimezone: true }).notNull(),
     endTime: timestamp("end_time", { withTimezone: true }),
     allDay: boolean("all_day").notNull().default(false),

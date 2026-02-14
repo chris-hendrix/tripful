@@ -15,6 +15,7 @@ import {
   PermissionDeniedError,
   TripNotFoundError,
   InvalidDateRangeError,
+  TripLockedError,
 } from "../errors.js";
 
 /**
@@ -123,6 +124,10 @@ export class AccommodationService implements IAccommodationService {
     tripId: string,
     data: CreateAccommodationInput,
   ): Promise<Accommodation> {
+    // Check if trip is locked (past end date)
+    const isLocked = await this.permissionsService.isTripLocked(tripId);
+    if (isLocked) throw new TripLockedError();
+
     // Check if user can add accommodations to this trip (organizer only)
     const canAdd = await this.permissionsService.canAddAccommodation(
       userId,
@@ -252,29 +257,7 @@ export class AccommodationService implements IAccommodationService {
     accommodationId: string,
     data: UpdateAccommodationInput,
   ): Promise<Accommodation> {
-    // Check permissions (organizer only)
-    const canEdit = await this.permissionsService.canEditAccommodation(
-      userId,
-      accommodationId,
-    );
-    if (!canEdit) {
-      // Check if accommodation exists to provide better error message - select only id column
-      const accommodationExists = await this.db
-        .select({ id: accommodations.id })
-        .from(accommodations)
-        .where(eq(accommodations.id, accommodationId))
-        .limit(1);
-
-      if (accommodationExists.length === 0) {
-        throw new AccommodationNotFoundError();
-      }
-
-      throw new PermissionDeniedError(
-        "Permission denied: only organizers can edit accommodations",
-      );
-    }
-
-    // Load existing accommodation to validate date range
+    // Load existing accommodation first (need tripId for lock check and data for validation)
     const [existingAccommodation] = await this.db
       .select()
       .from(accommodations)
@@ -283,6 +266,23 @@ export class AccommodationService implements IAccommodationService {
 
     if (!existingAccommodation) {
       throw new AccommodationNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      existingAccommodation.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
+    // Check permissions (organizer only)
+    const canEdit = await this.permissionsService.canEditAccommodation(
+      userId,
+      accommodationId,
+    );
+    if (!canEdit) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can edit accommodations",
+      );
     }
 
     // Validate date range if both dates will be set after update
@@ -333,23 +333,29 @@ export class AccommodationService implements IAccommodationService {
     userId: string,
     accommodationId: string,
   ): Promise<void> {
+    // Load accommodation to get tripId for lock check
+    const [accRecord] = await this.db
+      .select({ id: accommodations.id, tripId: accommodations.tripId })
+      .from(accommodations)
+      .where(eq(accommodations.id, accommodationId))
+      .limit(1);
+
+    if (!accRecord) {
+      throw new AccommodationNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      accRecord.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Check permissions (organizer only)
     const canDelete = await this.permissionsService.canDeleteAccommodation(
       userId,
       accommodationId,
     );
     if (!canDelete) {
-      // Check if accommodation exists for better error message - select only id column
-      const accommodationExists = await this.db
-        .select({ id: accommodations.id })
-        .from(accommodations)
-        .where(eq(accommodations.id, accommodationId))
-        .limit(1);
-
-      if (accommodationExists.length === 0) {
-        throw new AccommodationNotFoundError();
-      }
-
       throw new PermissionDeniedError(
         "Permission denied: only organizers can delete accommodations",
       );

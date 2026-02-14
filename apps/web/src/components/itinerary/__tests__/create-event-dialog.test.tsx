@@ -136,7 +136,7 @@ describe("CreateEventDialog", () => {
         />,
       );
 
-      expect(screen.getByLabelText(/location/i)).toBeDefined();
+      expect(screen.getByLabelText(/^location$/i)).toBeDefined();
       expect(screen.getByRole("button", { name: /end time/i })).toBeDefined();
       expect(screen.getByLabelText(/all day event/i)).toBeDefined();
       expect(screen.getByLabelText(/optional event/i)).toBeDefined();

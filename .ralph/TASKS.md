@@ -1,78 +1,93 @@
-# Phase 5.5: User Profile & Auth Redirects - Tasks
+# Phase 6: Advanced Itinerary & Trip Management - Tasks
 
-## Phase 1: Schema & Shared Types
+## Phase 1: Schema & Migration
 
-- [x] Task 1.1: Update DB schema, shared types, and Zod schemas for nullable timezone, handles column, and profile updates
-  - Implement: In `apps/api/src/db/schema/index.ts`, change `timezone` from `.notNull().default("UTC")` to nullable, add `handles: jsonb("handles").$type<Record<string, string>>()`
-  - Implement: Run `cd apps/api && pnpm db:generate` to generate migration, then `pnpm db:migrate` to apply
-  - Implement: In `shared/types/user.ts`, change `timezone: string` to `timezone: string | null`, add `handles: Record<string, string> | null`
-  - Implement: In `shared/types/invitation.ts`, add `handles: Record<string, string> | null` to `MemberWithProfile`
-  - Implement: In `shared/schemas/auth.ts`, update `userResponseSchema` timezone to `z.string().nullable()`, add `handles: z.record(z.string(), z.string()).nullable().optional()`, update `completeProfileSchema` timezone to `z.string().nullable().optional()`
-  - Implement: Create `shared/schemas/user.ts` with `updateProfileSchema`, `userHandlesSchema`, `ALLOWED_HANDLE_PLATFORMS`
-  - Implement: In `shared/schemas/invitation.ts`, add `handles` to `memberWithProfileSchema`
-  - Implement: Update barrel exports in `shared/schemas/index.ts` and `shared/types/index.ts`
-  - Test: Run `pnpm typecheck` to verify all types compile
-  - Verify: Run full test suite, fix any failures from the type changes
+- [x] Task 1.1: Add meetup fields to events schema, shared types, and generate migration
+  - Implement: Add `meetupLocation` (text, nullable) and `meetupTime` (timestamp with timezone, nullable) to events table in `apps/api/src/db/schema/index.ts`
+  - Implement: Update `baseEventSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().max(200).optional()` and `meetupTime: z.string().datetime().optional()`
+  - Implement: Update `eventResponseSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().nullable()` and `meetupTime: z.string().nullable()`
+  - Implement: Update Event TypeScript types in `shared/types/` if separate from schema inference
+  - Implement: Generate migration with `cd apps/api && pnpm db:generate`
+  - Implement: Apply migration with `cd apps/api && pnpm db:migrate`
+  - Test: Run `pnpm typecheck` to verify schema compiles across all packages
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 2: Backend API
+## Phase 2: Meetup Location/Time Feature
 
-- [x] Task 2.1: Create user routes, controller, and extend auth service for profile management
-  - Implement: Extend `updateProfile()` in `apps/api/src/services/auth.service.ts` to accept `timezone: string | null`, `profilePhotoUrl: string | null`, and `handles: Record<string, string> | null`
-  - Implement: Update `updateProfile()` interface in auth service to match new signature
-  - Implement: Create `apps/api/src/controllers/user.controller.ts` with `updateProfile`, `uploadProfilePhoto`, `removeProfilePhoto` methods
-  - Implement: Create `apps/api/src/routes/user.routes.ts` with `PUT /me`, `POST /me/photo`, `DELETE /me/photo`
-  - Implement: Register user routes in `apps/api/src/app.ts` at prefix `/api/users`
-  - Implement: Update `getMembers()` in invitation service to include `handles` in joined user fields
-  - Test: Write integration tests for all three endpoints (happy path, auth required, validation errors, photo upload/replace/remove, handles CRUD)
-  - Verify: Run full test suite, all tests pass
+- [x] Task 2.1: Backend and frontend support for meetup fields on events
+  - Implement: Verify EventService passes meetup fields through to DB on create/update (may need no changes if pass-through is generic)
+  - Implement: Add meetup fields to event route response schemas in `apps/api/src/routes/event.routes.ts` if needed
+  - Implement: Add meetup location and meetup time form fields to `apps/web/src/components/itinerary/create-event-dialog.tsx` after the end time section
+  - Implement: Add meetup location and meetup time form fields to `apps/web/src/components/itinerary/edit-event-dialog.tsx` with pre-populated values
+  - Implement: Display meetup info on `apps/web/src/components/itinerary/event-card.tsx` in expanded view — "Meet at {location} at {time}" with Users icon
+  - Test: Write integration test for creating event with meetup fields and reading them back
+  - Test: Write integration test for updating event meetup fields
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 3: Dashboard to /trips Rename
+## Phase 3: Auto-Lock Past Trips
 
-- [x] Task 3.1: Move dashboard files to /trips and update all references across codebase
-  - Implement: Move `apps/web/src/app/(app)/dashboard/page.tsx` → `apps/web/src/app/(app)/trips/page.tsx`
-  - Implement: Move + rename `dashboard-content.tsx` → `trips-content.tsx` in `(app)/trips/`
-  - Implement: Move + rename `dashboard-content.test.tsx` → `trips-content.test.tsx` in `(app)/trips/`
-  - Implement: Move `page.test.tsx` and `loading.tsx` to `(app)/trips/`
-  - Implement: Delete `apps/web/src/app/(app)/dashboard/` directory
-  - Implement: Update all `/dashboard` → `/trips` references in source files: `verify/page.tsx`, `complete-profile/page.tsx`, `trips/[id]/not-found.tsx`, `trips/[id]/trip-detail-content.tsx`, `app-header.tsx` (also rename nav text to "My Trips"), `use-trips.ts`, `robots.ts`
-  - Implement: Update all `/dashboard` → `/trips` in test files: `verify/page.test.tsx`, `complete-profile/page.test.tsx`, `trip-detail-content.test.tsx`, `app-header.test.tsx`
-  - Implement: Update all `/dashboard` → `/trips` in E2E tests: `auth-journey.spec.ts`, `trip-journey.spec.ts`
-  - Test: Run `pnpm typecheck` to verify no broken imports
-  - Verify: Run full test suite (unit + E2E), all tests pass
+- [x] Task 3.1: Backend auto-lock and frontend read-only UI for past trips
+  - Implement: Add `isTripLocked(tripId)` method to `apps/api/src/services/permissions.service.ts` — returns true when trip end date has passed
+  - Implement: Add lock check to event create/update/delete routes in `apps/api/src/routes/event.routes.ts` — return 403 "This trip has ended and is now read-only"
+  - Implement: Add lock check to accommodation create/update/delete routes in `apps/api/src/routes/accommodation.routes.ts`
+  - Implement: Add lock check to member travel create/update/delete routes in `apps/api/src/routes/member-travel.routes.ts`
+  - Implement: Ensure restore endpoints are NOT locked (events, accommodations, member travel restore remain available)
+  - Implement: Add `isLocked` prop computation in `apps/web/src/components/itinerary/itinerary-view.tsx` based on trip end date
+  - Implement: Hide FAB when trip is locked
+  - Implement: Show read-only banner "This trip has ended. The itinerary is read-only." when locked
+  - Implement: Pass `isLocked` to event, accommodation, and member travel card components to hide edit/delete buttons
+  - Test: Write unit test for `isTripLocked` with past date, future date, null date
+  - Test: Write integration tests for locked trip — verify create/update/delete return 403, verify restore still works
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 4: Auth Redirects
+## Phase 4: Remove Member
 
-- [x] Task 4.1: Add server-side auth redirects to landing page and auth layout
-  - Implement: Convert `apps/web/src/app/page.tsx` to async server component with cookie check, redirect to `/trips` if authenticated
-  - Implement: Add cookie check to `apps/web/src/app/(auth)/layout.tsx`, redirect to `/trips` if authenticated
-  - Test: Write E2E tests: authenticated user visiting `/` redirects to `/trips`, authenticated user visiting `/login` redirects to `/trips`
-  - Verify: Run full test suite, all tests pass
+- [x] Task 4.1: Backend endpoint and frontend UI for direct member removal
+  - Implement: Add `removeMember(userId, tripId, memberId)` method to `InvitationService` in `apps/api/src/services/invitation.service.ts`
+  - Implement: Add guard — cannot remove trip creator, cannot remove last organizer
+  - Implement: Delete member record from members table and associated invitation record if exists
+  - Implement: Register `DELETE /api/trips/:tripId/members/:memberId` route in `apps/api/src/routes/invitation.routes.ts`
+  - Implement: Add `useRemoveMember` hook in `apps/web/src/hooks/use-invitations.ts`
+  - Implement: Update `apps/web/src/components/trip/members-list.tsx` to pass `member.userId` to `onRemove` instead of requiring `invitationId`
+  - Implement: Update `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` to use `useRemoveMember` mutation instead of `revokeInvitation`
+  - Test: Write unit test for `removeMember` — happy path, permission denied, last organizer error
+  - Test: Write integration test for `DELETE /trips/:tripId/members/:memberId` endpoint
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 5: Profile Page & Handles
+## Phase 5: Deleted Items & Restore UI
 
-- [x] Task 5.1: Create profile page with form, photo upload/remove, timezone auto-detect, handles, and member dialog updates
-  - Implement: Create `apps/web/src/app/(app)/profile/page.tsx` (server component wrapper)
-  - Implement: Create `apps/web/src/hooks/use-user.ts` with `useUpdateProfile`, `useUploadProfilePhoto`, `useRemoveProfilePhoto` TanStack Query mutations
-  - Implement: Create `apps/web/src/components/profile/profile-form.tsx` with React Hook Form: display name, phone (read-only), timezone with "Auto-detect" option, Venmo/Instagram handle inputs, profile photo upload/remove
-  - Implement: Add "Auto-detect" as first timezone option using sentinel value. When selected, submit `timezone: null`. Label dynamically shows detected timezone.
-  - Implement: Update `apps/web/src/components/itinerary/itinerary-view.tsx` timezone fallback from `"UTC"` to `Intl.DateTimeFormat().resolvedOptions().timeZone`
-  - Implement: Update `apps/web/src/components/trip/members-list.tsx` to show Venmo/Instagram handles as clickable links on member cards
-  - Test: Write E2E tests for profile page: navigate from header dropdown, edit display name, upload photo, remove photo, verify handles display in members dialog
-  - Verify: Run full test suite, all tests pass
+- [x] Task 5.1: Deleted items section at bottom of itinerary with restore functionality
+  - Implement: Update event/accommodation/member-travel hooks to pass `includeDeleted: true` query param when user is organizer
+  - Implement: Create `DeletedItemsSection` component in `apps/web/src/components/itinerary/deleted-items-section.tsx`
+  - Implement: Filter fetched items client-side to separate active vs deleted items (by `deletedAt !== null`)
+  - Implement: Render collapsible section at bottom of itinerary in `apps/web/src/components/itinerary/itinerary-view.tsx`, visible only to organizers
+  - Implement: Group deleted items by type (Events, Accommodations, Member Travel) with item name, deletion date, and Restore button
+  - Implement: Wire restore buttons to existing `useRestoreEvent()`, `useRestoreAccommodation()`, `useRestoreMemberTravel()` hooks
+  - Implement: Show success toast on restore, auto-collapse section if no more deleted items
+  - Test: Manual test — create items, delete them, verify they appear in Deleted Items section, restore and verify they return to itinerary
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 6: Complete Profile Updates
+## Phase 6: Multi-Day Event Badges
 
-- [x] Task 6.1: Add optional photo upload and auto-detect timezone to complete-profile page
-  - Implement: Add optional circular avatar upload area to `apps/web/src/app/(auth)/complete-profile/page.tsx` above the display name field
-  - Implement: Replace timezone dropdown default with "Auto-detect" option (don't send timezone when auto-detect is selected)
-  - Implement: Update redirect from `/dashboard` to `/trips` (if not already done in Phase 3)
-  - Implement: After profile completion, upload photo if selected (second API call to `POST /api/users/me/photo`)
-  - Test: Update existing complete-profile tests for new timezone behavior and redirect
-  - Verify: Run full test suite, all tests pass
+- [x] Task 6.1: Multi-day event badges in day-by-day and group-by-type views
+  - Implement: Add `isMultiDay` computation to `apps/web/src/components/itinerary/event-card.tsx` — check if endTime exists and is on a different day than startTime using `getDayInTimezone`
+  - Implement: Render date range Badge (e.g., "Feb 10–12") on multi-day events in both compact and expanded views
+  - Implement: Ensure badge shows in both day-by-day and group-by-type view modes
+  - Test: Manual test — create multi-day event, verify badge appears with correct date range
+  - Verify: Run full test suite (`pnpm test`), all tests pass
 
-## Phase 7: Final Verification
+## Phase 7: E2E Tests & Final Verification
 
-- [x] Task 7.1: Full regression check
+- [x] Task 7.1: E2E tests for all Phase 6 features
+  - Test: Write E2E test — organizer views Deleted Items section and restores a deleted event
+  - Test: Write E2E test — past trip shows read-only banner, FAB hidden, edit/delete buttons hidden
+  - Test: Write E2E test — organizer removes a member, member's events show "no longer attending"
+  - Test: Write E2E test — create event with meetup location/time, verify display on event card
+  - Test: Write E2E test — multi-day event shows date range badge in day-by-day view
+  - Verify: Run full E2E suite (`pnpm test:e2e`), all tests pass
+  - Verify: Run full unit/integration suite (`pnpm test`), all tests pass
+
+- [x] Task 7.2: Final regression check
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All E2E tests pass (`pnpm test:e2e`)
   - Verify: Linting passes (`pnpm lint`)

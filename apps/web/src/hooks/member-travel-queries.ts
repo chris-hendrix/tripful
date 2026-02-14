@@ -38,6 +38,23 @@ export const memberTravelsQueryOptions = (tripId: string) =>
   });
 
 /**
+ * Query options for fetching all member travels for a trip, including soft-deleted ones
+ */
+export const memberTravelsWithDeletedQueryOptions = (tripId: string) =>
+  queryOptions({
+    queryKey: [...memberTravelKeys.list(tripId), "withDeleted"] as const,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const response = await apiRequest<GetMemberTravelsResponse>(
+        `/trips/${tripId}/member-travel?includeDeleted=true`,
+        { signal },
+      );
+      return response.memberTravels;
+    },
+    enabled: !!tripId,
+  });
+
+/**
  * Query options factory for fetching a single member travel's details
  */
 export const memberTravelDetailQueryOptions = (memberTravelId: string) =>
