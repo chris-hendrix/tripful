@@ -17,6 +17,8 @@ import {
   InvitationNotFoundError,
   MemberNotFoundError,
   CannotRemoveCreatorError,
+  CannotDemoteCreatorError,
+  CannotModifyOwnRoleError,
   LastOrganizerError,
 } from "../errors.js";
 
@@ -85,6 +87,21 @@ export interface IInvitationService {
    * @param memberId - The ID of the member record to remove
    */
   removeMember(userId: string, tripId: string, memberId: string): Promise<void>;
+
+  /**
+   * Updates the organizer role of a trip member
+   * @param userId - The ID of the user performing the update (must be organizer)
+   * @param tripId - The ID of the trip
+   * @param memberId - The ID of the member record to update
+   * @param isOrganizer - Whether the member should be a co-organizer
+   * @returns Updated member with profile information
+   */
+  updateMemberRole(
+    userId: string,
+    tripId: string,
+    memberId: string,
+    isOrganizer: boolean,
+  ): Promise<MemberWithProfile>;
 
   /**
    * Processes pending invitations for a user after signup/login
@@ -541,6 +558,111 @@ export class InvitationService implements IInvitationService {
       isOrganizer: r.isOrganizer,
       createdAt: r.createdAt.toISOString(),
     }));
+  }
+
+  /**
+   * Updates the organizer role of a trip member
+   * Validates permissions, prevents demoting trip creator and self-modification
+   */
+  async updateMemberRole(
+    userId: string,
+    tripId: string,
+    memberId: string,
+    isOrganizer: boolean,
+  ): Promise<MemberWithProfile> {
+    // Check if requesting user is organizer
+    const canManage = await this.permissionsService.isOrganizer(userId, tripId);
+    if (!canManage) {
+      // Check if trip exists for better error message
+      const tripExists = await this.db
+        .select({ id: trips.id })
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1);
+
+      if (tripExists.length === 0) {
+        throw new TripNotFoundError();
+      }
+
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can update member roles",
+      );
+    }
+
+    // Look up the target member
+    const [member] = await this.db
+      .select()
+      .from(members)
+      .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
+      .limit(1);
+
+    if (!member) {
+      throw new MemberNotFoundError();
+    }
+
+    // Prevent self-promote/demote
+    if (member.userId === userId) {
+      throw new CannotModifyOwnRoleError();
+    }
+
+    // Prevent demoting trip creator
+    const [trip] = await this.db
+      .select({ createdBy: trips.createdBy })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+
+    if (trip && member.userId === trip.createdBy) {
+      throw new CannotDemoteCreatorError();
+    }
+
+    // If demoting, check they're not the last organizer
+    if (!isOrganizer && member.isOrganizer) {
+      const [organizerCount] = await this.db
+        .select({ value: count() })
+        .from(members)
+        .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
+
+      if (organizerCount!.value <= 1) {
+        throw new LastOrganizerError();
+      }
+    }
+
+    // Update the member's organizer status
+    await this.db
+      .update(members)
+      .set({ isOrganizer, updatedAt: new Date() })
+      .where(eq(members.id, memberId));
+
+    // Query updated member with profile info
+    const queryResult = await this.db
+      .select({
+        id: members.id,
+        userId: members.userId,
+        displayName: users.displayName,
+        profilePhotoUrl: users.profilePhotoUrl,
+        handles: users.handles,
+        status: members.status,
+        isOrganizer: members.isOrganizer,
+        createdAt: members.createdAt,
+      })
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(eq(members.id, memberId))
+      .limit(1);
+
+    const result = queryResult[0]!;
+
+    return {
+      id: result.id,
+      userId: result.userId,
+      displayName: result.displayName,
+      profilePhotoUrl: result.profilePhotoUrl,
+      handles: result.handles ?? null,
+      status: result.status,
+      isOrganizer: result.isOrganizer,
+      createdAt: result.createdAt.toISOString(),
+    };
   }
 
   /**

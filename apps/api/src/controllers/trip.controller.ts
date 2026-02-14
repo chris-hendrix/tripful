@@ -4,6 +4,7 @@ import type {
   UpdateTripInput,
   AddCoOrganizerInput,
   PaginationInput,
+  UpdateMemberRoleInput,
 } from "@tripful/shared/schemas";
 import { TripNotFoundError, PermissionDeniedError } from "../errors.js";
 import { auditLog } from "@/utils/audit.js";
@@ -653,6 +654,71 @@ export const tripController = {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to delete cover image",
+        },
+      });
+    }
+  },
+
+  /**
+   * Update member role endpoint
+   * Promotes or demotes a member's co-organizer status
+   *
+   * @route PATCH /api/trips/:tripId/members/:memberId
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with tripId and memberId in params, isOrganizer in body
+   * @param reply - Fastify reply object
+   * @returns Success response with updated member data
+   */
+  async updateMemberRole(
+    request: FastifyRequest<{
+      Params: { tripId: string; memberId: string };
+      Body: UpdateMemberRoleInput;
+    }>,
+    reply: FastifyReply,
+  ): Promise<void> {
+    try {
+      const { tripId, memberId } = request.params;
+      const { isOrganizer } = request.body;
+      const userId = request.user.sub;
+
+      const member = await request.server.invitationService.updateMemberRole(
+        userId,
+        tripId,
+        memberId,
+        isOrganizer,
+      );
+
+      auditLog(request, "member.role_updated", {
+        resourceType: "trip",
+        resourceId: tripId,
+        metadata: { memberId, isOrganizer },
+      });
+
+      return reply.status(200).send({
+        success: true,
+        member,
+      });
+    } catch (error) {
+      // Re-throw typed errors for error handler
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
+      request.log.error(
+        {
+          error,
+          userId: request.user.sub,
+          tripId: request.params.tripId,
+          memberId: request.params.memberId,
+        },
+        "Failed to update member role",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update member role",
         },
       });
     }

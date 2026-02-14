@@ -92,6 +92,18 @@ export const LastOrganizerError = createError(
   400,
 );
 
+// Member role errors
+export const CannotDemoteCreatorError = createError(
+  "CANNOT_DEMOTE_CREATOR",
+  "Cannot change the role of the trip creator",
+  400,
+);
+export const CannotModifyOwnRoleError = createError(
+  "CANNOT_MODIFY_OWN_ROLE",
+  "Cannot modify your own organizer role",
+  400,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
 export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);

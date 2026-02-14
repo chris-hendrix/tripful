@@ -134,7 +134,67 @@ No frontend changes needed beyond existing error handling. The API returns error
 
 ---
 
-## 4. Responsive Design Audit
+## 4. Accommodation Redesign
+
+Redesign accommodations to be more minimal, show on all spanned days, and support check-in/check-out times.
+
+### Data Model Changes
+
+Add optional `checkInTime` and `checkOutTime` varchar(5) columns ("HH:MM" format) to the accommodations table. Keep existing DATE columns for day range computation — times are display/informational.
+
+**DB schema** (`apps/api/src/db/schema/index.ts`):
+```typescript
+checkInTime: varchar("check_in_time", { length: 5 }),  // "14:00"
+checkOutTime: varchar("check_out_time", { length: 5 }), // "11:00"
+```
+
+**Shared types** (`shared/types/accommodation.ts`):
+```typescript
+checkInTime: string | null;
+checkOutTime: string | null;
+```
+
+**Shared schemas** (`shared/schemas/accommodation.ts`):
+- Add to `baseAccommodationSchema`: `checkInTime: z.string().regex(/^\d{2}:\d{2}$/).optional()` and same for `checkOutTime`
+- Add to `accommodationEntitySchema`: `checkInTime: z.string().nullable()` and same for `checkOutTime`
+
+**Service** (`apps/api/src/services/accommodation.service.ts`):
+- Add `checkInTime` and `checkOutTime` to `createAccommodation` insert values
+- The update method uses `...data` spread which handles new fields automatically
+
+### Frontend: Day-by-Day View
+
+**`apps/web/src/components/itinerary/day-by-day-view.tsx`**:
+
+Currently accommodations only appear on check-in day. Change to show on every day the stay spans (check-in through check-out minus 1 day, since check-out day you're leaving).
+
+- Change `DayData.accommodation: Accommodation | null` → `DayData.accommodations: Accommodation[]`
+- In the data grouping logic, iterate each date from `checkIn` to the day before `checkOut` and push the accommodation to each day's array
+- Render `day.accommodations` array at the top of each day
+
+### Frontend: Accommodation Card Redesign
+
+**`apps/web/src/components/itinerary/accommodation-card.tsx`**:
+
+Redesign from big bordered card to a compact card with dropdown. Keep it visually distinct from the plain-text member travel lines (it's a card, not invisible) but much smaller:
+
+- Compact state: Small pill/card with accommodation name, nights count, and check-in/check-out times. Uses subtle accommodation-colored border.
+- Expanded state: Click to expand showing address (maps link), description, links, created-by, and edit button (opens edit dialog).
+- Click opens expand/collapse (not the edit dialog directly — unlike member travel, accommodations have enough details to warrant an expand view).
+
+### Frontend: Create/Edit Dialogs
+
+**`apps/web/src/components/itinerary/create-accommodation-dialog.tsx`**:
+- Add time input fields alongside the existing date pickers (e.g., `<Input type="time" />` next to each DatePicker)
+- Layout: 2-column grid per row — [Date picker | Time input] for check-in and check-out
+
+**`apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`**:
+- Same time input additions as create dialog
+- Fix delete button: change from big red `Button variant="destructive"` to subtle link style matching edit-trip-dialog pattern (small `Trash2` icon + text, `text-muted-foreground hover:text-destructive`)
+
+---
+
+## 5. Responsive Design Audit
 
 Audit all pages at three breakpoints and fix issues.
 
@@ -158,7 +218,7 @@ Audit all pages at three breakpoints and fix issues.
 
 ---
 
-## 5. Performance Audit
+## 6. Performance Audit
 
 ### Backend
 - **Query analysis**: Review all service methods for N+1 queries
@@ -174,7 +234,7 @@ Audit all pages at three breakpoints and fix issues.
 
 ---
 
-## 6. Test Coverage Gaps
+## 7. Test Coverage Gaps
 
 ### Approach
 - Run `pnpm test -- --coverage` to identify untested areas
@@ -190,7 +250,7 @@ Audit all pages at three breakpoints and fix issues.
 
 ---
 
-## 7. Documentation
+## 8. Documentation
 
 ### ARCHITECTURE.md
 - Update `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` to reflect Phase 7 changes
@@ -210,6 +270,7 @@ Audit all pages at three breakpoints and fix issues.
 | Co-org promote/demote | Service method tests | Route tests (permissions, edge cases) | Promote member in members dialog |
 | Member travel delegation | Service method tests | Route tests (organizer vs member) | Organizer adds travel for another member |
 | Entity count limits | Service method tests | Route tests (hitting each limit) | - |
+| Accommodation redesign | - | Existing tests pass with new columns | Accommodation shows on spanned days |
 | Responsive design | - | - | Screenshots at breakpoints |
 | Performance | - | - | Lighthouse checks |
 | Test coverage gaps | New unit tests | New integration tests | - |
@@ -221,6 +282,14 @@ Audit all pages at three breakpoints and fix issues.
 - API docs file (format TBD)
 
 ### Modified Files
+- `apps/api/src/db/schema/index.ts` - add checkInTime, checkOutTime columns to accommodations
+- `shared/types/accommodation.ts` - add checkInTime, checkOutTime fields
+- `shared/schemas/accommodation.ts` - add time fields to base/entity schemas
+- `apps/api/src/services/accommodation.service.ts` - pass time fields in create, accommodation count limit
+- `apps/web/src/components/itinerary/accommodation-card.tsx` - minimal card redesign with dropdown
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` - show accommodations on all spanned days
+- `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` - add time inputs
+- `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` - add time inputs, fix delete button
 - `shared/schemas/member-travel.ts` - add optional memberId
 - `shared/schemas/index.ts` - export new schemas
 - `apps/api/src/errors.ts` - add limit error classes

@@ -2,7 +2,7 @@
 
 ## Phase 1: Co-organizer Promote/Demote
 
-- [ ] Task 1.1: Implement backend co-organizer promote/demote
+- [x] Task 1.1: Implement backend co-organizer promote/demote
   - Implement: Create `shared/schemas/member.ts` with `updateMemberRoleSchema` (`{ isOrganizer: boolean }`)
   - Implement: Export from `shared/schemas/index.ts`
   - Implement: Add `updateMemberRole(userId, tripId, memberId, isOrganizer)` method to `apps/api/src/services/invitation.service.ts`
@@ -73,7 +73,51 @@
   - Test: Verify soft-deleted items don't count toward limit (delete one, create succeeds)
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-## Phase 4: Responsive Design
+## Phase 4: Accommodation Redesign
+
+- [ ] Task 4.1: Add check-in/check-out times to accommodation data model
+  - Implement: Add `checkInTime` varchar("check_in_time", { length: 5 }) and `checkOutTime` varchar("check_out_time", { length: 5 }) columns to accommodations table in `apps/api/src/db/schema/index.ts`
+  - Implement: Generate migration: `cd apps/api && pnpm db:generate`
+  - Implement: Run migration: `cd apps/api && pnpm db:migrate`
+  - Implement: Add `checkInTime: string | null` and `checkOutTime: string | null` to `Accommodation` interface in `shared/types/accommodation.ts`
+  - Implement: Add `checkInTime: z.string().regex(/^\d{2}:\d{2}$/).optional()` and `checkOutTime` to `baseAccommodationSchema` in `shared/schemas/accommodation.ts`
+  - Implement: Add `checkInTime: z.string().nullable()` and `checkOutTime: z.string().nullable()` to `accommodationEntitySchema`
+  - Implement: Add `checkInTime: data.checkInTime || null` and `checkOutTime: data.checkOutTime || null` to create insert values in `apps/api/src/services/accommodation.service.ts`
+  - Implement: Add `checkInTime` and `checkOutTime` to the explicit select fields in `getAccommodationsByTrip` method
+  - Test: Existing integration tests still pass with new nullable columns
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
+
+- [ ] Task 4.2: Show accommodations on all spanned days in day-by-day view
+  - Implement: In `apps/web/src/components/itinerary/day-by-day-view.tsx`:
+    - Change `DayData.accommodation: Accommodation | null` to `DayData.accommodations: Accommodation[]`
+    - Initialize as `accommodations: []` in `ensureDay`
+    - Change accommodation grouping: iterate each date from `checkIn` to day before `checkOut`, push accommodation to each day's array
+    - Update `hasContent` check: `day.accommodations.length > 0` instead of `day.accommodation`
+    - Render `day.accommodations.map(...)` at top of each day's card list
+    - Update all references from `day.accommodation` to `day.accommodations`
+  - Verify: `pnpm typecheck` passes
+
+- [ ] Task 4.3: Redesign accommodation card to minimal style with dropdown
+  - Implement: Rewrite `apps/web/src/components/itinerary/accommodation-card.tsx`:
+    - Compact state: Small card with subtle accommodation-colored left border, showing: name, nights count, check-in/check-out times if set
+    - Expanded state (click to toggle): address (Google Maps link), description, links, created-by info, edit button (opens edit dialog)
+    - Remove big bordered card style, use compact pill-like design
+    - Keep accessible: role="button", tabIndex, keyboard support
+  - Verify: `pnpm typecheck` passes
+
+- [ ] Task 4.4: Add time inputs to create/edit accommodation dialogs
+  - Implement: Update `apps/web/src/components/itinerary/create-accommodation-dialog.tsx`:
+    - Add `checkInTime` and `checkOutTime` to form defaultValues (empty string)
+    - Add `<Input type="time" />` next to each DatePicker in a 2-column grid layout per row
+    - Labels: "Check-in date" + "Check-in time", "Check-out date" + "Check-out time"
+  - Implement: Update `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`:
+    - Same time input additions as create dialog
+    - Pre-populate time fields from `accommodation.checkInTime` and `accommodation.checkOutTime`
+    - Fix delete button: change from `Button variant="destructive" className="w-full h-12 rounded-xl"` to subtle link: `<button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors ...">`
+    - Match the edit-trip-dialog delete button pattern (small Trash2 icon + text, centered, `pt-2`)
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
+
+## Phase 5: Responsive Design
 
 - [ ] Task 4.1: Audit and fix responsive design across all pages
   - Implement: Use Playwright to navigate each page at mobile (375px), tablet (768px), and desktop (1024px) viewports
@@ -90,9 +134,9 @@
   - Test: Re-screenshot all pages to verify fixes
   - Verify: `pnpm typecheck` passes, `pnpm test` passes, screenshots show correct layouts at all breakpoints
 
-## Phase 5: Performance Optimization
+## Phase 6: Performance Optimization
 
-- [ ] Task 5.1: Audit and optimize backend performance
+- [ ] Task 6.1: Audit and optimize backend performance
   - Implement: Review all service methods for N+1 query patterns
   - Implement: Review database indexes - check that all frequently-queried foreign keys and filter columns have indexes
   - Implement: Optimize slow queries (use JOINs, reduce round-trips)
@@ -101,7 +145,7 @@
   - Test: Run integration tests to ensure optimizations don't break functionality
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 5.2: Audit and optimize frontend performance
+- [ ] Task 6.2: Audit and optimize frontend performance
   - Implement: Review TanStack Query hook configurations (staleTime, gcTime, refetchOnWindowFocus)
   - Implement: Ensure appropriate caching for stable data (members list, trip details)
   - Implement: Check for unnecessary re-renders in key components (itinerary views, member lists)
@@ -110,9 +154,9 @@
   - Test: Verify no regressions in E2E tests
   - Verify: `pnpm typecheck` passes, `pnpm test` passes, `pnpm test:e2e` passes
 
-## Phase 6: Test Coverage
+## Phase 7: Test Coverage
 
-- [ ] Task 6.1: Fill test coverage gaps in unit and integration tests
+- [ ] Task 7.1: Fill test coverage gaps in unit and integration tests
   - Implement: Run `pnpm test -- --coverage` and identify untested service methods and routes
   - Implement: Add missing unit tests for service edge cases and error paths
   - Implement: Add missing integration tests for API error responses and permission checks
@@ -123,9 +167,9 @@
     - Validation error messages
   - Verify: `pnpm test` passes, coverage improved in key areas
 
-## Phase 7: Documentation
+## Phase 8: Documentation
 
-- [ ] Task 7.1: Update architecture documentation and create API docs
+- [ ] Task 8.1: Update architecture documentation and create API docs
   - Implement: Update `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md`:
     - Mark Phase 7 as complete
     - Document co-organizer promote/demote endpoint
@@ -139,9 +183,9 @@
     - Document rate limiting configuration
   - Verify: Documentation is accurate and consistent with implementation
 
-## Phase 8: Final Verification
+## Phase 9: Final Verification
 
-- [ ] Task 8.1: Full regression check
+- [ ] Task 9.1: Full regression check
   - Verify: `pnpm lint` passes
   - Verify: `pnpm typecheck` passes
   - Verify: `pnpm test` passes (all unit + integration tests)
