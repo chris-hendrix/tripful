@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { users, verificationCodes, type User } from "@/db/schema/index.js";
 import type { JWTPayload, AppDatabase } from "@/types/index.js";
 import { eq } from "drizzle-orm";
+import { AccountLockedError } from "@/errors.js";
 
 /**
  * Authentication Service Interface
@@ -26,10 +27,12 @@ export interface IAuthService {
 
   /**
    * Verifies a code for a phone number
-   * Checks that the code exists, matches, and has not expired
+   * Checks that the code exists, matches, and has not expired.
+   * Tracks failed attempts and locks the account after 5 failures (15-min cooldown).
    * @param phoneNumber - The phone number to verify
    * @param code - The code to verify
    * @returns Promise that resolves to true if valid, false otherwise
+   * @throws AccountLockedError if too many failed attempts
    */
   verifyCode(phoneNumber: string, code: string): Promise<boolean>;
 
@@ -137,6 +140,8 @@ export class AuthService implements IAuthService {
         set: {
           code,
           expiresAt,
+          failedAttempts: 0,
+          lockedUntil: null,
           createdAt: new Date(), // Reset creation time on update
         },
       });
@@ -144,10 +149,12 @@ export class AuthService implements IAuthService {
 
   /**
    * Verifies a code for a phone number
-   * Checks that the code exists, matches, and has not expired
+   * Checks that the code exists, matches, and has not expired.
+   * Tracks failed attempts and locks the account after 5 failures (15-min cooldown).
    * @param phoneNumber - The phone number to verify
    * @param code - The code to verify
    * @returns true if the code is valid and not expired, false otherwise
+   * @throws AccountLockedError if too many failed attempts
    */
   async verifyCode(phoneNumber: string, code: string): Promise<boolean> {
     const result = await this.db
@@ -162,12 +169,54 @@ export class AuthService implements IAuthService {
       return false; // No code found for this phone number
     }
 
+    const now = new Date();
+
+    // Check if account is locked
+    if (record.lockedUntil && record.lockedUntil > now) {
+      const remainingMs = record.lockedUntil.getTime() - now.getTime();
+      const remainingMin = Math.ceil(remainingMs / 60_000);
+      throw new AccountLockedError(
+        `Too many failed attempts. Try again in ${remainingMin} minute${remainingMin === 1 ? "" : "s"}.`,
+      );
+    }
+
+    // If lockout expired, reset failed attempts
+    if (record.lockedUntil && record.lockedUntil <= now) {
+      await this.db
+        .update(verificationCodes)
+        .set({ failedAttempts: 0, lockedUntil: null })
+        .where(eq(verificationCodes.phoneNumber, phoneNumber));
+      record.failedAttempts = 0;
+      record.lockedUntil = null;
+    }
+
     if (record.code !== code) {
+      // Increment failed attempts
+      const newAttempts = record.failedAttempts + 1;
+      const lockout =
+        newAttempts >= 5 ? new Date(now.getTime() + 15 * 60_000) : null;
+
+      await this.db
+        .update(verificationCodes)
+        .set({
+          failedAttempts: newAttempts,
+          ...(lockout && { lockedUntil: lockout }),
+        })
+        .where(eq(verificationCodes.phoneNumber, phoneNumber));
+
       return false; // Code doesn't match
     }
 
-    if (new Date() > record.expiresAt) {
+    if (now > record.expiresAt) {
       return false; // Code has expired
+    }
+
+    // Success — reset failed attempts
+    if (record.failedAttempts > 0) {
+      await this.db
+        .update(verificationCodes)
+        .set({ failedAttempts: 0, lockedUntil: null })
+        .where(eq(verificationCodes.phoneNumber, phoneNumber));
     }
 
     return true; // Code is valid

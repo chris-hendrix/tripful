@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { phoneNumberSchema } from "./phone";
+import { stripControlChars } from "../utils/sanitize";
 
 /**
  * Validates IANA timezone strings using Intl.supportedValuesOf
@@ -26,10 +27,14 @@ const baseTripSchema = z.object({
     })
     .max(100, {
       message: "Trip name must not exceed 100 characters",
-    }),
-  destination: z.string().min(1, {
-    message: "Destination is required",
-  }),
+    })
+    .transform(stripControlChars),
+  destination: z
+    .string()
+    .min(1, {
+      message: "Destination is required",
+    })
+    .transform(stripControlChars),
   startDate: z.string().date().optional(),
   endDate: z.string().date().optional(),
   timezone: timezoneSchema,
@@ -38,6 +43,7 @@ const baseTripSchema = z.object({
     .max(2000, {
       message: "Description must not exceed 2000 characters",
     })
+    .transform(stripControlChars)
     .optional(),
   coverImageUrl: z
     .string()

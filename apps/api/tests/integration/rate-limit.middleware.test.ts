@@ -105,7 +105,7 @@ describe("Rate Limit Middleware", () => {
       expect(response.statusCode).toBe(429);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "RATE_LIMIT_EXCEEDED",
@@ -143,7 +143,7 @@ describe("Rate Limit Middleware", () => {
       expect(response.statusCode).toBe(429);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "RATE_LIMIT_EXCEEDED",
@@ -237,8 +237,8 @@ describe("Rate Limit Middleware", () => {
         "Too many verification code requests. Please try again later.",
       );
 
-      // Ensure no extra properties
-      expect(Object.keys(body)).toEqual(["success", "error"]);
+      // Ensure no extra properties (requestId added by error middleware)
+      expect(Object.keys(body)).toEqual(["success", "error", "requestId"]);
       expect(Object.keys(body.error)).toEqual(["code", "message"]);
     });
   });

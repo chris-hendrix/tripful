@@ -359,7 +359,7 @@ describe("POST /api/trips", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
@@ -559,7 +559,7 @@ describe("POST /api/trips", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -630,7 +630,7 @@ describe("POST /api/trips", () => {
       expect(response.statusCode).toBe(403);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "PROFILE_INCOMPLETE",
@@ -683,7 +683,7 @@ describe("POST /api/trips", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "CO_ORGANIZER_NOT_FOUND",
@@ -747,7 +747,7 @@ describe("POST /api/trips", () => {
       expect(response.statusCode).toBe(409);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "MEMBER_LIMIT_EXCEEDED",
@@ -1149,7 +1149,7 @@ describe("GET /api/trips", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",

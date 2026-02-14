@@ -260,7 +260,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
@@ -284,7 +284,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
@@ -316,7 +316,7 @@ describe("POST /api/auth/verify-code", () => {
         expect(response.statusCode).toBe(400);
 
         const body = JSON.parse(response.body);
-        expect(body).toEqual({
+        expect(body).toMatchObject({
           success: false,
           error: {
             code: "VALIDATION_ERROR",
@@ -378,7 +378,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "INVALID_CODE",
@@ -412,7 +412,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "INVALID_CODE",
@@ -441,7 +441,7 @@ describe("POST /api/auth/verify-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "INVALID_CODE",

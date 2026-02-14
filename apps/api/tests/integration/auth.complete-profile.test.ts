@@ -237,7 +237,7 @@ describe("POST /api/auth/complete-profile", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
@@ -387,7 +387,7 @@ describe("POST /api/auth/complete-profile", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",

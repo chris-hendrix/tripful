@@ -17,6 +17,8 @@ export async function errorHandler(
     },
   });
 
+  const requestId = request.id;
+
   // Zod validation errors from fastify-type-provider-zod
   if (hasZodFastifySchemaValidationErrors(error)) {
     return reply.status(400).send({
@@ -26,6 +28,7 @@ export async function errorHandler(
         message: "Invalid request data",
         details: error.validation,
       },
+      requestId,
     });
   }
 
@@ -38,20 +41,7 @@ export async function errorHandler(
         message: "Invalid request data",
         details: error.validation,
       },
-    });
-  }
-
-  // Rate limit errors
-  if (error.statusCode === 429) {
-    const rateLimitError = error as Error & { customRateLimitMessage?: string };
-    return reply.status(429).send({
-      success: false,
-      error: {
-        code: "RATE_LIMIT_EXCEEDED",
-        message:
-          rateLimitError.customRateLimitMessage ||
-          "Too many requests. Please try again later.",
-      },
+      requestId,
     });
   }
 
@@ -63,6 +53,7 @@ export async function errorHandler(
         code: "UNAUTHORIZED",
         message: "Invalid or expired token",
       },
+      requestId,
     });
   }
 
@@ -84,6 +75,7 @@ export async function errorHandler(
         code: "VALIDATION_ERROR",
         message: "Image must be under 5MB. Please choose a smaller file",
       },
+      requestId,
     });
   }
 
@@ -98,6 +90,7 @@ export async function errorHandler(
         code: "VALIDATION_ERROR",
         message: "No file uploaded",
       },
+      requestId,
     });
   }
 
@@ -109,10 +102,12 @@ export async function errorHandler(
         code: "DATABASE_CONSTRAINT_VIOLATION",
         message: "Database constraint violation",
       },
+      requestId,
     });
   }
 
   // Handle custom @fastify/error instances (typed errors with statusCode and code)
+  // This catches AccountLockedError (429), InvalidCodeError (400), etc.
   if (error.statusCode && error.statusCode < 500 && error.code) {
     return reply.status(error.statusCode).send({
       success: false,
@@ -120,6 +115,19 @@ export async function errorHandler(
         code: error.code,
         message: error.message,
       },
+      requestId,
+    });
+  }
+
+  // Rate limit errors (plain objects thrown by @fastify/rate-limit, no code property)
+  if (error.statusCode === 429) {
+    return reply.status(429).send({
+      success: false,
+      error: {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "Too many requests. Please try again later.",
+      },
+      requestId,
     });
   }
 
@@ -132,5 +140,6 @@ export async function errorHandler(
       message: exposeDetails ? error.message : "An unexpected error occurred",
       ...(exposeDetails && { stack: error.stack }),
     },
+    requestId,
   });
 }

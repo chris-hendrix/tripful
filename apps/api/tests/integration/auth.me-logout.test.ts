@@ -108,7 +108,7 @@ describe("GET /api/auth/me", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -192,7 +192,7 @@ describe("GET /api/auth/me", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -274,7 +274,7 @@ describe("POST /api/auth/logout", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -393,7 +393,7 @@ describe("POST /api/auth/logout", () => {
       expect(getMeResponse2.statusCode).toBe(401);
 
       const body = JSON.parse(getMeResponse2.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",

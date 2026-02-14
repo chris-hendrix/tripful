@@ -104,6 +104,34 @@ describe("Security & Schema Validation", () => {
       expect(response.headers["x-content-type-options"]).toBe("nosniff");
       expect(response.headers["x-frame-options"]).toBe("SAMEORIGIN");
     });
+
+    it("should include Content-Security-Policy header", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/health",
+      });
+
+      const csp = response.headers["content-security-policy"];
+      expect(csp).toBeDefined();
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).toContain("frame-ancestors 'none'");
+    });
+
+    it("should include Strict-Transport-Security header", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/health",
+      });
+
+      const hsts = response.headers["strict-transport-security"];
+      expect(hsts).toBeDefined();
+      expect(hsts).toContain("max-age=31536000");
+      expect(hsts).toContain("includeSubDomains");
+    });
   });
 
   describe("Not-Found Handler", () => {
@@ -194,6 +222,35 @@ describe("Security & Schema Validation", () => {
       expect(body).toHaveProperty("error");
       expect(body.error).toHaveProperty("code");
       expect(body.error).toHaveProperty("message");
+    });
+
+    it("should include requestId in error responses", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/request-code",
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("requestId");
+      expect(typeof body.requestId).toBe("string");
+    });
+
+    it("should include requestId in 404 responses", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/nonexistent",
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("requestId");
+      expect(typeof body.requestId).toBe("string");
     });
   });
 });

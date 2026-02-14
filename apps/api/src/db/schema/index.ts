@@ -8,6 +8,7 @@ import {
   char,
   date,
   boolean,
+  integer,
   pgEnum,
   unique,
   jsonb,
@@ -42,6 +43,8 @@ export const verificationCodes = pgTable(
     phoneNumber: varchar("phone_number", { length: 20 }).primaryKey(),
     code: char("code", { length: 6 }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

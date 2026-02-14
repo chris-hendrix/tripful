@@ -1,6 +1,7 @@
 // Accommodation validation schemas for the Tripful platform
 
 import { z } from "zod";
+import { stripControlChars } from "../utils/sanitize";
 
 /**
  * Base accommodation data schema (without cross-field validation)
@@ -14,7 +15,8 @@ const baseAccommodationSchema = z.object({
     })
     .max(255, {
       message: "Accommodation name must not exceed 255 characters",
-    }),
+    })
+    .transform(stripControlChars),
   address: z.string().optional(),
   description: z
     .string()

@@ -6,6 +6,7 @@ import type {
   PaginationInput,
 } from "@tripful/shared/schemas";
 import { TripNotFoundError, PermissionDeniedError } from "../errors.js";
+import { auditLog } from "@/utils/audit.js";
 
 /**
  * Trip Controller
@@ -38,6 +39,11 @@ export const tripController = {
 
       // Create trip via service
       const trip = await tripService.createTrip(userId, data);
+
+      auditLog(request, "trip.create", {
+        resourceType: "trip",
+        resourceId: trip.id,
+      });
 
       // Return success response with 201 status
       return reply.status(201).send({
@@ -201,6 +207,11 @@ export const tripController = {
         data,
       );
 
+      auditLog(request, "trip.update", {
+        resourceType: "trip",
+        resourceId: id,
+      });
+
       // Return success response
       return reply.status(200).send({
         success: true,
@@ -252,6 +263,11 @@ export const tripController = {
 
       // Call service to cancel trip (soft delete)
       await request.server.tripService.cancelTrip(id, userId);
+
+      auditLog(request, "trip.cancel", {
+        resourceType: "trip",
+        resourceId: id,
+      });
 
       // Return success response
       return reply.status(200).send({
@@ -310,6 +326,11 @@ export const tripController = {
         phoneNumber,
       ]);
 
+      auditLog(request, "trip.co_organizer_added", {
+        resourceType: "trip",
+        resourceId: id,
+      });
+
       // Return success response
       return reply.status(200).send({
         success: true,
@@ -364,6 +385,12 @@ export const tripController = {
         userId,
         coOrgUserId,
       );
+
+      auditLog(request, "trip.co_organizer_removed", {
+        resourceType: "trip",
+        resourceId: id,
+        metadata: { targetUserId: coOrgUserId },
+      });
 
       // Return success response
       return reply.status(200).send({

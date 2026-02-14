@@ -1,6 +1,7 @@
 // Event validation schemas for the Tripful platform
 
 import { z } from "zod";
+import { stripControlChars } from "../utils/sanitize";
 
 /**
  * Base event data schema (without cross-field validation)
@@ -14,7 +15,8 @@ const baseEventSchema = z.object({
     })
     .max(255, {
       message: "Event name must not exceed 255 characters",
-    }),
+    })
+    .transform(stripControlChars),
   description: z
     .string()
     .max(2000, {

@@ -4,6 +4,7 @@ import type {
   UpdateEventInput,
 } from "@tripful/shared/schemas";
 import { EventNotFoundError, TripNotFoundError } from "../errors.js";
+import { auditLog } from "@/utils/audit.js";
 
 /**
  * Event Controller
@@ -301,6 +302,11 @@ export const eventController = {
 
       // Call service to delete event (soft delete)
       await request.server.eventService.deleteEvent(userId, id);
+
+      auditLog(request, "event.delete", {
+        resourceType: "event",
+        resourceId: id,
+      });
 
       // Return success response
       return reply.status(200).send({
