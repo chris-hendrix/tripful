@@ -171,7 +171,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -194,7 +194,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -245,7 +245,7 @@ describe("Authentication Middleware", () => {
         expect(response.statusCode).toBe(401);
 
         const body = JSON.parse(response.body);
-        expect(body).toEqual({
+        expect(body).toMatchObject({
           success: false,
           error: {
             code: "UNAUTHORIZED",
@@ -276,7 +276,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",
@@ -360,7 +360,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(403);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "PROFILE_INCOMPLETE",
@@ -404,7 +404,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(403);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "PROFILE_INCOMPLETE",
@@ -428,7 +428,7 @@ describe("Authentication Middleware", () => {
       expect(response.statusCode).toBe(401);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "UNAUTHORIZED",

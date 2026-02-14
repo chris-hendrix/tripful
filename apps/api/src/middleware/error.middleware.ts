@@ -17,6 +17,8 @@ export async function errorHandler(
     },
   });
 
+  const requestId = request.id;
+
   // Zod validation errors from fastify-type-provider-zod
   if (hasZodFastifySchemaValidationErrors(error)) {
     return reply.status(400).send({
@@ -26,6 +28,7 @@ export async function errorHandler(
         message: "Invalid request data",
         details: error.validation,
       },
+      requestId,
     });
   }
 
@@ -38,6 +41,7 @@ export async function errorHandler(
         message: "Invalid request data",
         details: error.validation,
       },
+      requestId,
     });
   }
 
@@ -52,6 +56,7 @@ export async function errorHandler(
           rateLimitError.customRateLimitMessage ||
           "Too many requests. Please try again later.",
       },
+      requestId,
     });
   }
 
@@ -63,6 +68,7 @@ export async function errorHandler(
         code: "UNAUTHORIZED",
         message: "Invalid or expired token",
       },
+      requestId,
     });
   }
 
@@ -84,6 +90,7 @@ export async function errorHandler(
         code: "VALIDATION_ERROR",
         message: "Image must be under 5MB. Please choose a smaller file",
       },
+      requestId,
     });
   }
 
@@ -98,6 +105,7 @@ export async function errorHandler(
         code: "VALIDATION_ERROR",
         message: "No file uploaded",
       },
+      requestId,
     });
   }
 
@@ -109,6 +117,7 @@ export async function errorHandler(
         code: "DATABASE_CONSTRAINT_VIOLATION",
         message: "Database constraint violation",
       },
+      requestId,
     });
   }
 
@@ -120,6 +129,7 @@ export async function errorHandler(
         code: error.code,
         message: error.message,
       },
+      requestId,
     });
   }
 
@@ -132,5 +142,6 @@ export async function errorHandler(
       message: exposeDetails ? error.message : "An unexpected error occurred",
       ...(exposeDetails && { stack: error.stack }),
     },
+    requestId,
   });
 }

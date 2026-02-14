@@ -1,6 +1,7 @@
 // Authentication validation schemas for the Tripful platform
 
 import { z } from "zod";
+import { stripControlChars } from "../utils/sanitize";
 
 /**
  * Validates phone number for requesting verification code
@@ -55,7 +56,8 @@ export const completeProfileSchema = z.object({
     })
     .max(50, {
       message: "Display name must not exceed 50 characters",
-    }),
+    })
+    .transform(stripControlChars),
   timezone: z.string().nullable().optional(),
 });
 

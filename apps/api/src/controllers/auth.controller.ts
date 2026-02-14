@@ -143,7 +143,9 @@ export const authController = {
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: request.server.config.COOKIE_SECURE,
+        secure:
+          request.server.config.NODE_ENV === "production" ||
+          request.server.config.COOKIE_SECURE,
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
@@ -221,7 +223,9 @@ export const authController = {
       // Set httpOnly cookie with token
       reply.setCookie("auth_token", token, {
         httpOnly: true,
-        secure: request.server.config.COOKIE_SECURE,
+        secure:
+          request.server.config.NODE_ENV === "production" ||
+          request.server.config.COOKIE_SECURE,
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds

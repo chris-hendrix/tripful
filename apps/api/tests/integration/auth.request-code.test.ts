@@ -166,7 +166,7 @@ describe("POST /api/auth/request-code", () => {
       expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
@@ -234,7 +234,7 @@ describe("POST /api/auth/request-code", () => {
         expect(response.statusCode).toBe(400);
 
         const body = JSON.parse(response.body);
-        expect(body).toEqual({
+        expect(body).toMatchObject({
           success: false,
           error: {
             code: "VALIDATION_ERROR",
@@ -265,8 +265,8 @@ describe("POST /api/auth/request-code", () => {
       expect(body.error).toHaveProperty("code", "VALIDATION_ERROR");
       expect(body.error).toHaveProperty("message");
 
-      // Ensure no extra top-level properties
-      expect(Object.keys(body)).toEqual(["success", "error"]);
+      // Ensure no extra top-level properties (requestId added by error middleware)
+      expect(Object.keys(body)).toEqual(["success", "error", "requestId"]);
     });
   });
 
@@ -321,7 +321,7 @@ describe("POST /api/auth/request-code", () => {
       expect(response.statusCode).toBe(429);
 
       const body = JSON.parse(response.body);
-      expect(body).toEqual({
+      expect(body).toMatchObject({
         success: false,
         error: {
           code: "RATE_LIMIT_EXCEEDED",

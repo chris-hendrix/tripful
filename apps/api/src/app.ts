@@ -90,7 +90,16 @@ export async function buildApp(
 
   // Register helmet (security headers)
   await app.register(helmet, {
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    strictTransportSecurity: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" },
   });
 
@@ -183,6 +192,7 @@ export async function buildApp(
         code: "NOT_FOUND",
         message: `Route ${request.method} ${request.url} not found`,
       },
+      requestId: request.id,
     });
   });
 

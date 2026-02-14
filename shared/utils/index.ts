@@ -2,6 +2,8 @@
 
 import { fromZonedTime, formatInTimeZone as formatInTz } from "date-fns-tz";
 
+export { stripControlChars } from "./sanitize";
+
 /**
  * Converts a date/time from a specific timezone to UTC
  * @param dateTime The date/time to convert (interpreted as being in the specified timezone)

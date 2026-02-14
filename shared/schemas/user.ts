@@ -1,6 +1,7 @@
 // User profile validation schemas for the Tripful platform
 
 import { z } from "zod";
+import { stripControlChars } from "../utils/sanitize";
 
 /** Allowed social media handle platforms */
 export const ALLOWED_HANDLE_PLATFORMS = ["venmo", "instagram"] as const;
@@ -38,6 +39,7 @@ export const updateProfileSchema = z.object({
     .max(50, {
       message: "Display name must not exceed 50 characters",
     })
+    .transform(stripControlChars)
     .optional(),
   timezone: z.string().nullable().optional(),
   handles: userHandlesSchema,
