@@ -7,6 +7,7 @@ import { PermissionsService } from "@/services/permissions.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import {
   MemberTravelNotFoundError,
+  MemberNotFoundError,
   PermissionDeniedError,
   TripNotFoundError,
 } from "@/errors.js";
@@ -694,6 +695,135 @@ describe("member-travel.service", () => {
       expect(travelList).toHaveLength(2);
       expect(travelList.map((t) => t.memberId)).toContain(testMember1MemberId);
       expect(travelList.map((t) => t.memberId)).toContain(testMember2MemberId);
+    });
+  });
+
+  describe("member travel delegation", () => {
+    it("should allow organizer to create travel for another member", async () => {
+      const travelData = {
+        travelType: "arrival" as const,
+        time: "2026-06-10T14:00:00Z",
+        location: "Airport",
+        details: "Flight AA123",
+        memberId: testMember1MemberId,
+      };
+
+      const travel = await memberTravelService.createMemberTravel(
+        testOrganizerId,
+        testTripId,
+        travelData,
+      );
+
+      expect(travel).toBeDefined();
+      expect(travel.memberId).toBe(testMember1MemberId);
+      expect(travel.travelType).toBe("arrival");
+      expect(travel.location).toBe("Airport");
+      expect(travel.details).toBe("Flight AA123");
+      expect(travel.tripId).toBe(testTripId);
+    });
+
+    it("should throw PermissionDeniedError when non-organizer creates travel for another member", async () => {
+      const travelData = {
+        travelType: "arrival" as const,
+        time: "2026-06-10T14:00:00Z",
+        location: "Airport",
+        memberId: testMember2MemberId,
+      };
+
+      await expect(
+        memberTravelService.createMemberTravel(
+          testMember1Id,
+          testTripId,
+          travelData,
+        ),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should throw MemberNotFoundError when memberId does not belong to trip", async () => {
+      // Create a user and member in a different trip
+      const otherTripPhone = generateUniquePhone();
+      const [otherUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: otherTripPhone,
+          displayName: "Other Trip User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [otherTrip] = await db
+        .insert(trips)
+        .values({
+          name: "Other Trip",
+          destination: "Other Destination",
+          preferredTimezone: "UTC",
+          createdBy: otherUser.id,
+        })
+        .returning();
+
+      const [otherMember] = await db
+        .insert(members)
+        .values({
+          tripId: otherTrip.id,
+          userId: otherUser.id,
+          status: "going",
+        })
+        .returning();
+
+      const travelData = {
+        travelType: "arrival" as const,
+        time: "2026-06-10T14:00:00Z",
+        memberId: otherMember.id,
+      };
+
+      await expect(
+        memberTravelService.createMemberTravel(
+          testOrganizerId,
+          testTripId,
+          travelData,
+        ),
+      ).rejects.toThrow(MemberNotFoundError);
+
+      // Cleanup
+      await db.delete(members).where(eq(members.tripId, otherTrip.id));
+      await db.delete(trips).where(eq(trips.id, otherTrip.id));
+      await db
+        .delete(users)
+        .where(eq(users.phoneNumber, otherTripPhone));
+    });
+
+    it("should throw MemberNotFoundError when memberId is completely non-existent", async () => {
+      const travelData = {
+        travelType: "arrival" as const,
+        time: "2026-06-10T14:00:00Z",
+        memberId: "00000000-0000-0000-0000-000000000000",
+      };
+
+      await expect(
+        memberTravelService.createMemberTravel(
+          testOrganizerId,
+          testTripId,
+          travelData,
+        ),
+      ).rejects.toThrow(MemberNotFoundError);
+    });
+
+    it("should still create travel for self without memberId (backward compatibility)", async () => {
+      const travelData = {
+        travelType: "departure" as const,
+        time: "2026-06-20T16:00:00Z",
+        location: "Train Station",
+      };
+
+      const travel = await memberTravelService.createMemberTravel(
+        testMember1Id,
+        testTripId,
+        travelData,
+      );
+
+      expect(travel).toBeDefined();
+      expect(travel.memberId).toBe(testMember1MemberId);
+      expect(travel.travelType).toBe("departure");
     });
   });
 });

@@ -26,8 +26,11 @@ const baseMemberTravelSchema = z.object({
  * - time: ISO 8601 datetime string (required)
  * - location: string (optional)
  * - details: max 500 characters (optional)
+ * - memberId: UUID of target member for delegation (optional, organizer-only)
  */
-export const createMemberTravelSchema = baseMemberTravelSchema;
+export const createMemberTravelSchema = baseMemberTravelSchema.extend({
+  memberId: z.string().uuid({ message: "Invalid member ID format" }).optional(),
+});
 
 /**
  * Validates member travel update data (all fields optional)

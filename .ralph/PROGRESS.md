@@ -81,3 +81,35 @@ Tracking implementation progress for this project.
 - The `trip-detail-content.test.tsx` mock for `@/hooks/use-invitations` needed to include the new exports (`useUpdateMemberRole`, `getUpdateMemberRoleErrorMessage`) to prevent import errors — always update mocks when adding new exports to hoisted modules
 - Test count went from 804 to 821 web tests (+17: 7 unit + 10 hook tests)
 
+## Iteration 3 — Task 2.1: Implement backend member travel delegation
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Added optional `memberId: z.string().uuid().optional()` to `createMemberTravelSchema` in `shared/schemas/member-travel.ts` via `.extend()` on the base schema
+- Modified `MemberTravelService.createMemberTravel()` in `apps/api/src/services/member-travel.service.ts`:
+  - Added delegation branch: if `data.memberId` is provided, checks organizer permission via `permissionsService.isOrganizer()`, validates target member belongs to trip, uses provided memberId
+  - If `data.memberId` not provided: keeps existing self-resolution behavior (resolve memberId from userId)
+  - Destructures `memberId` out of data before insert to prevent it leaking into DB values
+  - Imported `MemberNotFoundError` for invalid delegation targets
+- No controller or route changes needed — the existing route already passes `request.body` (typed as `CreateMemberTravelInput`) through to the service, and Fastify validates the optional UUID field via the schema
+
+### Tests written
+- **Schema tests** (`shared/__tests__/member-travel-schemas.test.ts`): 3 new tests — valid UUID memberId accepted, absent memberId backward compatibility, invalid memberId format rejected
+- **Unit tests** (`apps/api/tests/unit/member-travel.service.test.ts`): 5 new tests in "member travel delegation" describe block — organizer creates travel for another member (happy path), non-organizer cannot delegate (PermissionDeniedError), memberId not in trip (MemberNotFoundError), non-existent memberId (MemberNotFoundError), backward compat without memberId
+- **Integration tests** (`apps/api/tests/integration/member-travel.routes.test.ts`): 4 new tests in "Member travel delegation" describe block — POST with memberId as organizer (201), POST with memberId as non-organizer (403), POST with invalid memberId (404), POST without memberId backward compat (201)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,789 tests — shared: 196, api: 772, web: 821)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- The controller/route layer does not need modification when adding optional fields to the request body — Zod schema changes propagate through `CreateMemberTravelInput` type automatically
+- Permission check order matters for security: check `isOrganizer` BEFORE validating the target member exists, to prevent information leakage about member existence to unauthorized users
+- Destructure `memberId` out of `data` before spreading into insert values: `const { memberId: _memberId, ...insertData } = data` prevents schema-only fields from reaching the database
+- Lint caught an unused variable (`member1`) in the integration test — always check that destructured variables from `db.insert().returning()` are actually used; if not, skip the destructuring
+- Test count: shared 193→196 (+3), api 763→772 (+9), web unchanged at 821; total 1,777→1,789 (+12)
+- The `MemberNotFoundError` (404) already existed in `errors.ts` and was reused — no new error classes needed for this feature

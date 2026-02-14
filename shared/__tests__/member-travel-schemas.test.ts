@@ -185,6 +185,54 @@ describe("createMemberTravelSchema", () => {
 
     expect(() => createMemberTravelSchema.parse(memberTravel)).not.toThrow();
   });
+
+  it("should accept valid create data with memberId (UUID)", () => {
+    const memberTravel = {
+      travelType: "arrival" as const,
+      time: "2026-07-15T10:30:00Z",
+      memberId: "550e8400-e29b-41d4-a716-446655440000",
+    };
+
+    expect(() => createMemberTravelSchema.parse(memberTravel)).not.toThrow();
+    const parsed = createMemberTravelSchema.parse(memberTravel);
+    expect(parsed.memberId).toBe("550e8400-e29b-41d4-a716-446655440000");
+  });
+
+  it("should accept valid create data without memberId (backward compatibility)", () => {
+    const memberTravel = {
+      travelType: "departure" as const,
+      time: "2026-07-20T15:45:00Z",
+      location: "Airport",
+    };
+
+    const parsed = createMemberTravelSchema.parse(memberTravel);
+    expect(parsed.memberId).toBeUndefined();
+  });
+
+  it("should reject invalid memberId format (non-UUID string)", () => {
+    const invalidMemberIds = [
+      "not-a-uuid",
+      "12345",
+      "",
+      "550e8400-e29b-41d4-a716",
+    ];
+
+    invalidMemberIds.forEach((memberId) => {
+      const memberTravel = {
+        travelType: "arrival" as const,
+        time: "2026-07-15T10:30:00Z",
+        memberId,
+      };
+
+      const result = createMemberTravelSchema.safeParse(memberTravel);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toContain(
+          "Invalid member ID format",
+        );
+      }
+    });
+  });
 });
 
 describe("updateMemberTravelSchema", () => {

@@ -14,6 +14,7 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import {
   MemberTravelNotFoundError,
+  MemberNotFoundError,
   PermissionDeniedError,
   TripNotFoundError,
   TripLockedError,
@@ -148,27 +149,61 @@ export class MemberTravelService implements IMemberTravelService {
       );
     }
 
-    // Resolve memberId from userId and tripId - select only id column
-    const [member] = await this.db
-      .select({ id: members.id })
-      .from(members)
-      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
-      .limit(1);
+    // Resolve memberId: either from delegation (data.memberId) or from authenticated user
+    let resolvedMemberId: string;
 
-    if (!member) {
-      throw new TripNotFoundError();
+    if (data.memberId) {
+      // Delegation: organizer creating travel for another member
+      const isOrganizer = await this.permissionsService.isOrganizer(
+        userId,
+        tripId,
+      );
+      if (!isOrganizer) {
+        throw new PermissionDeniedError(
+          "Permission denied: only organizers can add travel for other members",
+        );
+      }
+
+      // Verify target member belongs to this trip
+      const [targetMember] = await this.db
+        .select({ id: members.id })
+        .from(members)
+        .where(and(eq(members.id, data.memberId), eq(members.tripId, tripId)))
+        .limit(1);
+
+      if (!targetMember) {
+        throw new MemberNotFoundError();
+      }
+
+      resolvedMemberId = data.memberId;
+    } else {
+      // Self: existing logic to resolve memberId from userId
+      const [member] = await this.db
+        .select({ id: members.id })
+        .from(members)
+        .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+        .limit(1);
+
+      if (!member) {
+        throw new TripNotFoundError();
+      }
+
+      resolvedMemberId = member.id;
     }
+
+    // Destructure to exclude memberId from data before insert
+    const { memberId: _memberId, ...insertData } = data;
 
     // Create the member travel
     const [travel] = await this.db
       .insert(memberTravel)
       .values({
         tripId,
-        memberId: member.id,
-        travelType: data.travelType,
-        time: new Date(data.time),
-        location: data.location || null,
-        details: data.details || null,
+        memberId: resolvedMemberId,
+        travelType: insertData.travelType,
+        time: new Date(insertData.time),
+        location: insertData.location || null,
+        details: insertData.details || null,
       })
       .returning();
 

@@ -31,7 +31,7 @@
 
 ## Phase 2: Member Travel Delegation
 
-- [ ] Task 2.1: Implement backend member travel delegation
+- [x] Task 2.1: Implement backend member travel delegation
   - Implement: Add optional `memberId: z.string().uuid().optional()` to `createMemberTravelSchema` in `shared/schemas/member-travel.ts`
   - Implement: Update `MemberTravelService.createMemberTravel()` in `apps/api/src/services/member-travel.service.ts`:
     - If `data.memberId` provided: validate organizer permission, validate memberId is a trip member, use provided memberId
