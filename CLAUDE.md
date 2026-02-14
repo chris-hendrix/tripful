@@ -75,6 +75,7 @@ Required: `DATABASE_URL` and `JWT_SECRET` (minimum 32 characters).
 - **TypeScript**: Strict mode enabled across all packages
 - **Formatting**: Prettier runs automatically via pre-commit hooks
 - **Linting**: ESLint with TypeScript plugin (auto-fix available)
+- **Dependency Audit**: `pnpm audit --audit-level=high` runs in CI; Dependabot creates PRs for vulnerable dependencies
 - **Pre-commit**: GitGuardian scans for secrets (requires Docker running)
 
 ### Testing Requirements

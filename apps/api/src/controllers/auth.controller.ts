@@ -5,6 +5,7 @@ import type {
   CompleteProfileInput,
 } from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
+import { auditLog } from "@/utils/audit.js";
 import { InvalidCodeError } from "../errors.js";
 
 /**
@@ -121,6 +122,9 @@ export const authController = {
       const isValid = await authService.verifyCode(e164PhoneNumber, code);
 
       if (!isValid) {
+        auditLog(request, "auth.login_failure", {
+          metadata: { phoneNumber: e164PhoneNumber },
+        });
         throw new InvalidCodeError("Invalid or expired verification code");
       }
 
@@ -153,6 +157,10 @@ export const authController = {
 
       // Delete verification code after successful verification
       await authService.deleteCode(e164PhoneNumber);
+
+      auditLog(request, "auth.login_success", {
+        metadata: { userId: user.id },
+      });
 
       // Determine if user needs to complete profile
       const requiresProfile =
@@ -230,6 +238,8 @@ export const authController = {
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
       });
+
+      auditLog(request, "auth.profile_completed");
 
       // Return success response
       return reply.status(200).send({
@@ -331,6 +341,8 @@ export const authController = {
    */
   async logout(request: FastifyRequest, reply: FastifyReply) {
     try {
+      auditLog(request, "auth.logout");
+
       // Clear the auth_token cookie
       reply.clearCookie("auth_token", { path: "/" });
 

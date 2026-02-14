@@ -4,6 +4,7 @@ import type {
   UpdateRsvpInput,
 } from "@tripful/shared/schemas";
 import { PermissionDeniedError } from "../errors.js";
+import { auditLog } from "@/utils/audit.js";
 
 /**
  * Invitation Controller
@@ -43,6 +44,12 @@ export const invitationController = {
         tripId,
         phoneNumbers,
       );
+
+      auditLog(request, "invitation.created", {
+        resourceType: "trip",
+        resourceId: tripId,
+        metadata: { count: result.invitations.length },
+      });
 
       // Return success response with 201 status
       return reply.status(201).send({
@@ -155,6 +162,11 @@ export const invitationController = {
       // Call service to revoke invitation
       await request.server.invitationService.revokeInvitation(userId, id);
 
+      auditLog(request, "invitation.revoked", {
+        resourceType: "invitation",
+        resourceId: id,
+      });
+
       // Return success response
       return reply.status(200).send({
         success: true,
@@ -210,6 +222,12 @@ export const invitationController = {
         tripId,
         memberId,
       );
+
+      auditLog(request, "member.removed", {
+        resourceType: "trip",
+        resourceId: tripId,
+        metadata: { memberId },
+      });
 
       return reply.status(204).send();
     } catch (error) {
@@ -267,6 +285,12 @@ export const invitationController = {
 
       // Update RSVP via service
       const member = await invitationService.updateRsvp(userId, tripId, status);
+
+      auditLog(request, "member.rsvp_updated", {
+        resourceType: "trip",
+        resourceId: tripId,
+        metadata: { status },
+      });
 
       // Return success response
       return reply.status(200).send({

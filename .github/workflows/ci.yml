@@ -90,6 +90,9 @@ jobs:
         if: github.event_name == 'pull_request'
         run: pnpm turbo typecheck --affected
 
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+
   # Step 3: Unit Tests (API)
   unit-tests:
     name: Unit Tests

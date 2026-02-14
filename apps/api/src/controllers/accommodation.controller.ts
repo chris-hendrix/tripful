@@ -4,6 +4,7 @@ import type {
   UpdateAccommodationInput,
 } from "@tripful/shared/schemas";
 import { AccommodationNotFoundError, TripNotFoundError } from "../errors.js";
+import { auditLog } from "@/utils/audit.js";
 
 /**
  * Accommodation Controller
@@ -280,6 +281,11 @@ export const accommodationController = {
 
       // Call service to delete accommodation (soft delete)
       await request.server.accommodationService.deleteAccommodation(userId, id);
+
+      auditLog(request, "accommodation.delete", {
+        resourceType: "accommodation",
+        resourceId: id,
+      });
 
       // Return success response
       return reply.status(200).send({
