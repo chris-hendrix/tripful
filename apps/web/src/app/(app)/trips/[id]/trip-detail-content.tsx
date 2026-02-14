@@ -20,8 +20,11 @@ import { useEvents } from "@/hooks/use-events";
 import {
   useRemoveMember,
   getRemoveMemberErrorMessage,
+  useUpdateMemberRole,
+  getUpdateMemberRoleErrorMessage,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
+import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
@@ -91,6 +94,30 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   } | null>(null);
 
   const removeMember = useRemoveMember(tripId);
+  const updateRole = useUpdateMemberRole(tripId);
+  const { user } = useAuth();
+
+  const handleUpdateRole = (
+    member: MemberWithProfile,
+    isOrganizer: boolean,
+  ) => {
+    updateRole.mutate(
+      { memberId: member.id, isOrganizer },
+      {
+        onSuccess: () => {
+          toast.success(
+            isOrganizer
+              ? `${member.displayName} is now a co-organizer`
+              : `${member.displayName} is no longer a co-organizer`,
+          );
+        },
+        onError: (error) => {
+          const message = getUpdateMemberRoleErrorMessage(error);
+          toast.error(message ?? "Failed to update member role");
+        },
+      },
+    );
+  };
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -399,11 +426,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               tripId={tripId}
               isOrganizer={isOrganizer}
               createdBy={trip.createdBy}
+              currentUserId={user?.id}
               onInvite={() => {
                 setIsMembersOpen(false);
                 setIsInviteOpen(true);
               }}
               onRemove={(member) => setRemovingMember({ member })}
+              onUpdateRole={handleUpdateRole}
             />
           )}
         </DialogContent>

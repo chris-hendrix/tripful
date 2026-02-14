@@ -40,3 +40,44 @@ Tracking implementation progress for this project.
 - Lint caught unused imports (`and`, `eq`) in the integration test — always double-check imports after writing tests
 - Unit tests instantiate services directly: `new InvitationService(db, permissionsService)`; integration tests use `buildApp()` + HTTP injection
 
+## Iteration 2 — Task 1.2: Implement frontend co-organizer promote/demote UI
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Added `updateRole` key to `memberKeys` in `apps/web/src/hooks/invitation-queries.ts`
+- Added `useUpdateMemberRole` mutation hook in `apps/web/src/hooks/use-invitations.ts`:
+  - Calls `PATCH /trips/${tripId}/members/${memberId}` with `{ isOrganizer }` body
+  - Invalidates invitations, members, trip detail, and trips list caches on settled
+- Added `getUpdateMemberRoleErrorMessage` error helper covering: PERMISSION_DENIED, MEMBER_NOT_FOUND, CANNOT_MODIFY_OWN_ROLE, CANNOT_DEMOTE_CREATOR, LAST_ORGANIZER, network errors
+- Updated `apps/web/src/components/trip/members-list.tsx`:
+  - Replaced standalone X remove button with DropdownMenu (EllipsisVertical trigger)
+  - Added `onUpdateRole` and `currentUserId` props
+  - Conditional menu items: "Make co-organizer" (ShieldCheck icon) for non-organizers, "Remove co-organizer" (ShieldOff icon) for organizers
+  - "Remove from trip" (UserMinus icon, variant="destructive") preserved in dropdown
+  - DropdownMenuSeparator between role and remove actions
+  - Actions hidden for trip creator and current user rows
+- Wired mutation in `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`:
+  - `handleUpdateRole` handler with personalized toast messages
+  - Passes `onUpdateRole` and `currentUserId` to MembersList
+
+### Tests written
+- **Unit tests** (`apps/web/src/components/trip/__tests__/members-list.test.tsx`): 7 new tests — promote option for regular member, demote option for co-organizer, no dropdown for creator, no dropdown for current user, promote callback args, demote callback args, combined role+remove with separator
+- **Hook tests** (`apps/web/src/hooks/__tests__/use-invitations.test.tsx`): 10 new tests — PATCH endpoint call, cache invalidation, and error message helper for all 6 error codes + null + network + unknown
+- **E2E test** (`apps/web/tests/e2e/trip-journey.spec.ts`): 1 new test — "promote and demote co-organizer via members dialog" covering full flow with toast and badge assertions
+- Updated existing tests in `members-list.test.tsx` and `trip-detail-content.test.tsx` for new dropdown UI pattern and mock exports
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,777 tests — shared: 193, api: 763, web: 821)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- `MembersList` follows a callback-prop pattern (`onRemove`, `onUpdateRole`) where the parent handles mutation logic and toasts — keep this consistent for future member actions
+- `DropdownMenuItem` uses `onSelect` handler (not `onClick`) and supports `variant="destructive"` for destructive actions
+- When replacing a standalone button with a DropdownMenu, existing tests that look for the button by aria-label need updating to use the dropdown trigger's aria-label instead
+- The `trip-detail-content.test.tsx` mock for `@/hooks/use-invitations` needed to include the new exports (`useUpdateMemberRole`, `getUpdateMemberRoleErrorMessage`) to prevent import errors — always update mocks when adding new exports to hoisted modules
+- Test count went from 804 to 821 web tests (+17: 7 unit + 10 hook tests)
+

@@ -18,7 +18,7 @@
   - Test: Integration tests for PATCH route (permissions, edge cases, error responses)
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 1.2: Implement frontend co-organizer promote/demote UI
+- [x] Task 1.2: Implement frontend co-organizer promote/demote UI
   - Implement: Add `useUpdateMemberRole` TanStack Query mutation hook in `apps/web/src/lib/hooks/`
   - Implement: Update `apps/web/src/components/trip/members-list.tsx`:
     - Add dropdown menu (DropdownMenu from shadcn/ui) on each member row for organizers

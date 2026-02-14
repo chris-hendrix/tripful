@@ -24,6 +24,7 @@ export const memberKeys = {
   lists: () => ["members", "list"] as const,
   list: (tripId: string) => ["members", "list", tripId] as const,
   remove: (tripId: string) => ["members", "remove", tripId] as const,
+  updateRole: (tripId: string) => ["members", "updateRole", tripId] as const,
 };
 
 /**

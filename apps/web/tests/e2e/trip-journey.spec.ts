@@ -549,6 +549,127 @@ test.describe("Trip Journey", () => {
     });
   });
 
+  test("promote and demote co-organizer via members dialog", async ({
+    page,
+    request,
+  }) => {
+    test.slow();
+
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+    const memberPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
+
+    let tripId: string;
+
+    await test.step("setup: create organizer, trip, and invite member", async () => {
+      const organizerCookie = await createUserViaAPI(
+        request,
+        organizerPhone,
+        "Promote Test Org",
+      );
+
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Promote Trip ${timestamp}`,
+        destination: "Denver, CO",
+        startDate: "2026-11-01",
+        endDate: "2026-11-05",
+      });
+
+      await inviteAndAcceptViaAPI(
+        request,
+        tripId,
+        organizerPhone,
+        memberPhone,
+        "Test Promotee",
+      );
+    });
+
+    await test.step("organizer navigates to trip and opens members dialog", async () => {
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        organizerPhone,
+        "Promote Test Org",
+      );
+
+      await page.goto(`/trips/${tripId}`);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `Promote Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
+
+      await expect(page.getByText(/2 members?/)).toBeVisible();
+      await page.getByText(/2 members?/).click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(
+        dialog.getByRole("heading", { name: "Members" }),
+      ).toBeVisible();
+
+      await expect(dialog.getByText("Promote Test Org")).toBeVisible();
+      await expect(dialog.getByText("Test Promotee")).toBeVisible();
+    });
+
+    await test.step("promote member to co-organizer", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Find the actions button for the member (not the organizer)
+      const memberRow = dialog.locator("div").filter({ hasText: "Test Promotee" });
+      const actionsButton = memberRow.getByRole("button", {
+        name: "Actions for Test Promotee",
+      });
+      await actionsButton.click();
+
+      // Click "Make co-organizer" in the dropdown
+      await page.getByText("Make co-organizer").click();
+
+      // Verify toast success message
+      await expect(
+        page.getByText("Test Promotee is now a co-organizer"),
+      ).toBeVisible({ timeout: 10000 });
+
+      // Verify "Organizer" badge appears on that member in the dialog
+      // The dialog should still be open and now show the badge
+      await expect(
+        dialog
+          .locator("div")
+          .filter({ hasText: "Test Promotee" })
+          .getByText("Organizer"),
+      ).toBeVisible({ timeout: 10000 });
+    });
+
+    await test.step("demote member from co-organizer", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Open dropdown again on the same member
+      const memberRow = dialog.locator("div").filter({ hasText: "Test Promotee" });
+      const actionsButton = memberRow.getByRole("button", {
+        name: "Actions for Test Promotee",
+      });
+      await actionsButton.click();
+
+      // Click "Remove co-organizer" in the dropdown
+      await page.getByText("Remove co-organizer").click();
+
+      // Verify toast success message
+      await expect(
+        page.getByText("Test Promotee is no longer a co-organizer"),
+      ).toBeVisible({ timeout: 10000 });
+
+      // Verify "Organizer" badge is removed from that member
+      // Wait for the UI to update
+      await expect(
+        dialog
+          .locator("div")
+          .filter({ hasText: "Test Promotee" })
+          .getByText("Organizer"),
+      ).not.toBeVisible({ timeout: 10000 });
+    });
+  });
+
   test("trip form validation", async ({ page, request }) => {
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
