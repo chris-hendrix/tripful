@@ -86,8 +86,8 @@ test.describe("Phase 6: Advanced Itinerary Features", () => {
         },
       );
       expect(response.ok()).toBeTruthy();
-      const event = await response.json();
-      eventId = event.id;
+      const data = await response.json();
+      eventId = data.event.id;
       expect(eventId).toBeTruthy();
     });
 
@@ -369,13 +369,17 @@ test.describe("Phase 6: Advanced Itinerary Features", () => {
     });
 
     await test.step("confirm removal", async () => {
+      // Start waiting for the toast before clicking to avoid missing it
+      const toastPromise = page
+        .getByText(/Test Member has been removed/)
+        .waitFor({ state: "visible", timeout: 15000 });
+
       // Click the "Remove" button in the confirmation dialog
       await page.getByRole("button", { name: "Remove", exact: true }).click();
 
-      // Verify success toast
-      await expect(page.getByText(/Test Member has been removed/)).toBeVisible({
-        timeout: 10000,
-      });
+      // Wait for the toast to appear
+      await toastPromise;
+
       await snap(page, "24-member-removed");
     });
 

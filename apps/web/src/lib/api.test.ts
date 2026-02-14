@@ -117,6 +117,22 @@ describe("apiRequest", () => {
     );
   });
 
+  it("handles 204 No Content responses without parsing body", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new Error("No body");
+      },
+    } as unknown as Response);
+
+    const result = await apiRequest("/trips/123/members/456", {
+      method: "DELETE",
+    });
+
+    expect(result).toBeUndefined();
+  });
+
   it("throws APIError with correct code and message on non-2xx response", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,

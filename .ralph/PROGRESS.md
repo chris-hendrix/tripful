@@ -307,3 +307,58 @@ Low-severity note (non-blocking):
 - **Screenshot numbering** — Each spec file uses its own snapshot number range. Phase 6 uses 20-28.
 - **`createTripViaAPI` defaults timezone to UTC** — When creating trips via API helper, the trip timezone defaults to UTC. This affects how times are displayed in the itinerary (meetup times, date badges). The Playwright browser timezone is `America/Chicago` but the trip's internal timezone determines time formatting.
 - **`inviteAndAcceptViaAPI` internally calls `createUserViaAPI`** — To get a member's cookie after calling `inviteAndAcceptViaAPI`, call `createUserViaAPI` again with the same phone — it re-authenticates and returns a fresh cookie rather than creating a duplicate user.
+
+## Iteration 8 — Task 7.2: Final regression check
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/lib/api.ts` | Fixed `apiRequest()` to handle HTTP 204 No Content responses — returns `undefined` instead of attempting `.json()` on empty body (which throws `SyntaxError`) |
+| `apps/web/src/lib/api.test.ts` | Added unit test for 204 No Content response handling |
+| `apps/web/src/hooks/use-invitations.ts` | Added `tripKeys.detail(tripId)`, `tripKeys.all`, and `eventKeys.list(tripId)` cache invalidation to `useRemoveMember` `onSettled` callback — ensures `memberCount` and `creatorAttending` refresh after member removal |
+| `apps/web/tests/e2e/phase6-journey.spec.ts` | Fixed event ID extraction from wrapped API response (`data.event.id` instead of `event.id`); Made toast assertion for member removal more robust using `waitFor` before click pattern |
+
+### Issues Found & Fixed
+
+**Issue 1: E2E test "deleted items and restore" failure**
+- **Symptom**: `eventId` was `undefined` after creating event via API
+- **Root cause**: API returns `{ success: true, event: {...} }` but test accessed `event.id` directly instead of `data.event.id`
+- **Fix**: Changed `const event = await response.json(); eventId = event.id;` to `const data = await response.json(); eventId = data.event.id;`
+
+**Issue 2: E2E test "remove member from trip" failure**
+- **Symptom**: Toast "Test Member has been removed" never appeared
+- **Root cause (primary)**: `apiRequest()` called `.json()` on HTTP 204 No Content responses from `DELETE /trips/:tripId/members/:memberId`, throwing a `SyntaxError`. This caused TanStack Query's `onError` to fire instead of `onSuccess`, so the success toast was never triggered.
+- **Root cause (secondary)**: `useRemoveMember` hook didn't invalidate trip detail, trip list, or events queries, causing stale `memberCount` and `creatorAttending` data.
+- **Fix**: Added 204 check in `apiRequest()` before `.json()` call; added missing cache invalidations to `useRemoveMember`
+
+### Verification Results
+
+- **Linting**: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web)
+- **Typecheck**: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web)
+- **Shared tests**: ✅ PASS (9 files, 185 tests)
+- **API tests**: ✅ PASS (33 files, 717 tests)
+- **Web tests**: ✅ PASS (40 of 42 files, 742 tests). Pre-existing failures in `create-trip-dialog.test.tsx` and `edit-trip-dialog.test.tsx` remain (unrelated `getUploadUrl` mock issue)
+- **E2E tests**: ✅ PASS (23 tests passed, 0 failed — all 5 Phase 6 tests + 18 existing tests)
+
+### Reviewer Assessment
+
+**APPROVED** — All 3 fixes are correct, complete, and follow existing codebase patterns. Specific strengths:
+- `apiRequest()` 204 fix is generic and will protect future 204 endpoints
+- Only one endpoint currently returns 204 (`DELETE /trips/:tripId/members/:memberId`), making the fix complete for the current API surface
+- Cache invalidation additions follow the pattern used by `useUpdateRsvp`
+- E2E toast assertion uses `waitFor` before click to prevent race conditions
+
+Low-severity notes (non-blocking):
+- `undefined as T` type cast is acceptable since only caller uses `void` return type
+- `useRemoveMember` now invalidates 5 query keys total (cheap GET requests, TanStack Query deduplicates)
+
+### Learnings for Future Iterations
+
+- **`apiRequest()` must handle empty responses** — HTTP 204 No Content has no response body. Calling `.json()` on it throws `SyntaxError: Unexpected end of JSON input`. Always check `response.status === 204` before parsing.
+- **E2E test API response envelopes** — The Tripful API wraps all responses in `{ success: true, <entity>: {...} }`. When extracting entity IDs from API responses in E2E tests, access `data.<entity>.id`, not `data.id`.
+- **Playwright toast race conditions** — Start `waitFor` (or `toBeVisible`) BEFORE the click that triggers the toast. Toasts appear and disappear within ~4 seconds (sonner default). If the click completes before the assertion starts watching, the toast may vanish.
+- **Cache invalidation scope for member mutations** — Member removal affects: (1) `members` list, (2) `invitations` list, (3) trip detail `memberCount`, (4) trip list `memberCount`, (5) events `creatorAttending`. All must be invalidated.
+- **PostgreSQL setup without Docker** — When Docker is unavailable in WSL2, use local PG: `initdb -D /tmp/pg-data-17 --auth=trust --username=tripful`, create socket dir, start with `pg_ctl`, create database and set password, then run migrations.

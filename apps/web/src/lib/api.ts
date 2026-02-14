@@ -57,6 +57,11 @@ export async function apiRequest<T>(
       },
     });
 
+    // Handle 204 No Content responses (e.g. DELETE endpoints)
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     const data = await response.json();
 
     if (!response.ok) {

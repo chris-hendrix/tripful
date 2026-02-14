@@ -87,7 +87,7 @@
   - Verify: Run full E2E suite (`pnpm test:e2e`), all tests pass
   - Verify: Run full unit/integration suite (`pnpm test`), all tests pass
 
-- [ ] Task 7.2: Final regression check
+- [x] Task 7.2: Final regression check
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All E2E tests pass (`pnpm test:e2e`)
   - Verify: Linting passes (`pnpm lint`)
