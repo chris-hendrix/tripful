@@ -94,3 +94,4 @@ export const LastOrganizerError = createError(
 
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
+export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);
