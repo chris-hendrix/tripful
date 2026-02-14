@@ -18,11 +18,17 @@ import type {
 import {
   eventKeys,
   eventsQueryOptions,
+  eventsWithDeletedQueryOptions,
   eventDetailQueryOptions,
 } from "./event-queries";
 
 // Re-export for backward compatibility
-export { eventKeys, eventsQueryOptions, eventDetailQueryOptions };
+export {
+  eventKeys,
+  eventsQueryOptions,
+  eventsWithDeletedQueryOptions,
+  eventDetailQueryOptions,
+};
 
 // Re-export types for backward compatibility with existing imports
 export type { Event };
@@ -53,6 +59,18 @@ export function useEvents(tripId: string, options?: { enabled?: boolean }) {
     ...eventsQueryOptions(tripId),
     enabled: (options?.enabled ?? true) && !!tripId,
   });
+}
+
+/**
+ * Hook for fetching all events for a trip, including soft-deleted ones
+ *
+ * Used by organizers to view and restore deleted items.
+ *
+ * @param tripId - The ID of the trip to fetch events for
+ * @returns Query object with data, loading, and error state
+ */
+export function useEventsWithDeleted(tripId: string) {
+  return useQuery(eventsWithDeletedQueryOptions(tripId));
 }
 
 /**

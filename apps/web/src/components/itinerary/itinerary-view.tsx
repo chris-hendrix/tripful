@@ -15,6 +15,7 @@ import { DayByDayView } from "./day-by-day-view";
 import { GroupByTypeView } from "./group-by-type-view";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
+import { DeletedItemsSection } from "./deleted-items-section";
 
 interface ItineraryViewProps {
   tripId: string;
@@ -198,6 +199,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
               </div>
             )}
           </div>
+          {isOrganizer && (
+            <DeletedItemsSection tripId={tripId} timezone={timezone} />
+          )}
         </div>
 
         {/* Dialogs for empty state */}
@@ -265,6 +269,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             userNameMap={userNameMap}
             isLocked={isLocked}
           />
+        )}
+        {isOrganizer && (
+          <DeletedItemsSection tripId={tripId} timezone={timezone} />
         )}
       </div>
     </div>

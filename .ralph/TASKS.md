@@ -56,7 +56,7 @@
 
 ## Phase 5: Deleted Items & Restore UI
 
-- [ ] Task 5.1: Deleted items section at bottom of itinerary with restore functionality
+- [x] Task 5.1: Deleted items section at bottom of itinerary with restore functionality
   - Implement: Update event/accommodation/member-travel hooks to pass `includeDeleted: true` query param when user is organizer
   - Implement: Create `DeletedItemsSection` component in `apps/web/src/components/itinerary/deleted-items-section.tsx`
   - Implement: Filter fetched items client-side to separate active vs deleted items (by `deletedAt !== null`)

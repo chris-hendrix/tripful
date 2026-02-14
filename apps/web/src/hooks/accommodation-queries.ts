@@ -38,6 +38,23 @@ export const accommodationsQueryOptions = (tripId: string) =>
   });
 
 /**
+ * Query options for fetching all accommodations for a trip, including soft-deleted ones
+ */
+export const accommodationsWithDeletedQueryOptions = (tripId: string) =>
+  queryOptions({
+    queryKey: [...accommodationKeys.list(tripId), "withDeleted"] as const,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const response = await apiRequest<GetAccommodationsResponse>(
+        `/trips/${tripId}/accommodations?includeDeleted=true`,
+        { signal },
+      );
+      return response.accommodations;
+    },
+    enabled: !!tripId,
+  });
+
+/**
  * Query options factory for fetching a single accommodation's details
  */
 export const accommodationDetailQueryOptions = (accommodationId: string) =>

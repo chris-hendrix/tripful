@@ -174,3 +174,52 @@ Low-severity notes (non-blocking):
 - **Member deletion cascades to `memberTravel`** — The `memberTravel` table has `onDelete: "cascade"` on its `memberId` FK. Deleting a member automatically deletes their travel records.
 - **Frontend `onRemove` signature changes require updating both component and all consumers** — The `MembersList` prop change from `(member, invitationId) => void` to `(member) => void` required updates in `trip-detail-content.tsx` and all related tests.
 - **PostgreSQL environment setup** — When Docker isn't available, a local PG instance can be initialized with `initdb -D /tmp/pg-data --auth=trust --username=tripful` and started with `pg_ctl -D /tmp/pg-data -o "-p 5433 -k /tmp/pg-sock" start`. Then create the database with `CREATE DATABASE tripful` and run migrations.
+
+## Iteration 5 — Task 5.1: Deleted items section at bottom of itinerary with restore functionality
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/hooks/event-queries.ts` | Added `eventsWithDeletedQueryOptions(tripId)` — fetches `/trips/${tripId}/events?includeDeleted=true` with query key `["events", "list", tripId, "withDeleted"]` |
+| `apps/web/src/hooks/accommodation-queries.ts` | Added `accommodationsWithDeletedQueryOptions(tripId)` — same pattern for accommodations |
+| `apps/web/src/hooks/member-travel-queries.ts` | Added `memberTravelsWithDeletedQueryOptions(tripId)` — same pattern for member travel |
+| `apps/web/src/hooks/use-events.ts` | Added `useEventsWithDeleted(tripId)` hook, re-exported `eventsWithDeletedQueryOptions` |
+| `apps/web/src/hooks/use-accommodations.ts` | Added `useAccommodationsWithDeleted(tripId)` hook, re-exported `accommodationsWithDeletedQueryOptions` |
+| `apps/web/src/hooks/use-member-travel.ts` | Added `useMemberTravelsWithDeleted(tripId)` hook, re-exported `memberTravelsWithDeletedQueryOptions` |
+| `apps/web/src/components/itinerary/deleted-items-section.tsx` | **New file** — `DeletedItemsSection` component: collapsible section showing deleted items grouped by type (Events, Accommodations, Member Travel), with item name, deletion date, type badge, and Restore button. Uses `useRestoreEvent`/`useRestoreAccommodation`/`useRestoreMemberTravel` hooks. Shows toast on restore success/error. Auto-collapses when all items restored. |
+| `apps/web/src/components/itinerary/itinerary-view.tsx` | Added `DeletedItemsSection` import and render in both empty state and content state, gated by `isOrganizer` |
+| `apps/web/src/components/itinerary/__tests__/deleted-items-section.test.tsx` | **New file** — 16 tests: rendering nothing when empty, count display, filtering active vs deleted, collapsed by default, expand/collapse toggle, grouped type headers, restore button calls for all 3 types, conditional group headers, member travel label with/without name, aria-expanded |
+| `apps/web/src/components/itinerary/__tests__/itinerary-view.test.tsx` | Updated mocks for `use-events`, `use-accommodations`, `use-member-travel` to include new `useEventsWithDeleted`, `useAccommodationsWithDeleted`, `useMemberTravelsWithDeleted` and `getRestore*ErrorMessage` exports |
+
+### Verification Results
+
+- **Typecheck**: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web)
+- **Linting**: ✅ PASS (all 3 packages)
+- **Shared tests**: ✅ PASS (9 files, 185 tests)
+- **API tests**: ✅ PASS (all files pass)
+- **Web tests**: ✅ PASS (40 files, 737 tests — 16 new deleted-items-section tests). Pre-existing failures in `create-trip-dialog.test.tsx` and `edit-trip-dialog.test.tsx` remain (unrelated `getUploadUrl` mock issue)
+
+### Reviewer Assessment
+
+**APPROVED** — All 7 requirements met. Specific strengths noted:
+- Smart query key design: `["events", "list", tripId, "withDeleted"]` extends existing key, so restore hooks' `onSettled` invalidation (`eventKeys.lists()`) automatically covers the withDeleted queries
+- Clean component decomposition: three internal row sub-components (`DeletedEventRow`, `DeletedAccommodationRow`, `DeletedMemberTravelRow`) with per-item loading states
+- Correct client-side filtering via `useMemo` with `deletedAt !== null`
+- Good UX: auto-collapse, per-item loading spinners, disabled buttons during restore, toast notifications
+- Proper accessibility with `aria-expanded`
+- Component rendered in both empty state and content state for organizers
+
+Low-severity notes (non-blocking):
+- `useEffect` dependency array includes `isExpanded` which is unnecessary (could simplify to `[totalDeleted]` only)
+- No explicit test for auto-collapse behavior (covered implicitly by component returning null when no deleted items)
+
+### Learnings for Future Iterations
+
+- **Query key suffix pattern for filtered variants** — To create a filtered variant of an existing query, append a suffix like `"withDeleted"` to the existing key array. This ensures parent-level `invalidateQueries` calls (which use prefix matching) will automatically invalidate both the base and variant queries. No changes needed to existing mutation hooks.
+- **Component-level gating vs hook-level `enabled`** — When a component is conditionally rendered (`{isOrganizer && <DeletedItemsSection />}`), the hooks inside it only fire when mounted. This is sufficient gating — no need to pass `enabled` to every hook. But if the component were ever rendered unconditionally, defense-in-depth via `enabled` would be needed.
+- **Empty state needs both normal and deleted items sections** — The empty state returns early (line 163), so any section that should appear even when there are no active items must be added within the empty state return, not just the main content return.
+- **`deletedAt` arrives as ISO string from API** — Even though the TypeScript type says `Date | null`, JSON serialization means the value is actually a `string | null` at runtime. `formatInTimezone` accepts strings, so this works. Don't try to call `.toISOString()` on it.
+- **No shadcn Collapsible installed** — The project uses custom `useState` toggle pattern for expand/collapse. Follow this pattern for consistency rather than installing new shadcn components.

@@ -18,6 +18,7 @@ import type {
 import {
   accommodationKeys,
   accommodationsQueryOptions,
+  accommodationsWithDeletedQueryOptions,
   accommodationDetailQueryOptions,
 } from "./accommodation-queries";
 
@@ -25,6 +26,7 @@ import {
 export {
   accommodationKeys,
   accommodationsQueryOptions,
+  accommodationsWithDeletedQueryOptions,
   accommodationDetailQueryOptions,
 };
 
@@ -54,6 +56,18 @@ export type { Accommodation };
  */
 export function useAccommodations(tripId: string) {
   return useQuery(accommodationsQueryOptions(tripId));
+}
+
+/**
+ * Hook for fetching all accommodations for a trip, including soft-deleted ones
+ *
+ * Used by organizers to view and restore deleted items.
+ *
+ * @param tripId - The ID of the trip to fetch accommodations for
+ * @returns Query object with data, loading, and error state
+ */
+export function useAccommodationsWithDeleted(tripId: string) {
+  return useQuery(accommodationsWithDeletedQueryOptions(tripId));
 }
 
 /**

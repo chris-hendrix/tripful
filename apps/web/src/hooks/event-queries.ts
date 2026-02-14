@@ -38,6 +38,23 @@ export const eventsQueryOptions = (tripId: string) =>
   });
 
 /**
+ * Query options for fetching all events for a trip, including soft-deleted ones
+ */
+export const eventsWithDeletedQueryOptions = (tripId: string) =>
+  queryOptions({
+    queryKey: [...eventKeys.list(tripId), "withDeleted"] as const,
+    staleTime: 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const response = await apiRequest<GetEventsResponse>(
+        `/trips/${tripId}/events?includeDeleted=true`,
+        { signal },
+      );
+      return response.events;
+    },
+    enabled: !!tripId,
+  });
+
+/**
  * Query options factory for fetching a single event's details
  */
 export const eventDetailQueryOptions = (eventId: string) =>
