@@ -1,22 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
 import { TripCard } from "@/components/trip/trip-card";
+import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const CreateTripDialog = dynamic(() =>
-  import("@/components/trip/create-trip-dialog").then((mod) => ({
-    default: mod.CreateTripDialog,
-  })),
-);
-
-const preloadCreateTripDialog = () =>
-  void import("@/components/trip/create-trip-dialog");
 
 function SkeletonCard() {
   return (
@@ -158,8 +149,7 @@ export function TripsContent() {
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
-                onMouseEnter={preloadCreateTripDialog}
-                onFocus={preloadCreateTripDialog}
+
                 variant="gradient"
                 className="h-12 px-8 rounded-xl"
               >
@@ -220,8 +210,6 @@ export function TripsContent() {
       {/* Floating Action Button (FAB) */}
       <Button
         onClick={() => setCreateDialogOpen(true)}
-        onMouseEnter={preloadCreateTripDialog}
-        onFocus={preloadCreateTripDialog}
         variant="gradient"
         size="icon"
         className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 rounded-full z-50"
