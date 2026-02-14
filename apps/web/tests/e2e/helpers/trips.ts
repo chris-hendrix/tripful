@@ -13,6 +13,13 @@ export async function createTrip(
 ) {
   const tripDetail = new TripDetailPage(page);
   const trips = new TripsPage(page);
+
+  // Dismiss any Sonner toast that could intercept the FAB click
+  const toast = page.locator("[data-sonner-toast]").first();
+  if (await toast.isVisible().catch(() => false)) {
+    await toast.waitFor({ state: "hidden", timeout: 10000 });
+  }
+
   await trips.createTripButton.click();
   await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 10000 });
   await tripDetail.nameInput.fill(tripName);
