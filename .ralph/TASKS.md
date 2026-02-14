@@ -69,7 +69,7 @@
 
 ## Phase 6: Multi-Day Event Badges
 
-- [ ] Task 6.1: Multi-day event badges in day-by-day and group-by-type views
+- [x] Task 6.1: Multi-day event badges in day-by-day and group-by-type views
   - Implement: Add `isMultiDay` computation to `apps/web/src/components/itinerary/event-card.tsx` — check if endTime exists and is on a different day than startTime using `getDayInTimezone`
   - Implement: Render date range Badge (e.g., "Feb 10–12") on multi-day events in both compact and expanded views
   - Implement: Ensure badge shows in both day-by-day and group-by-type view modes

@@ -223,3 +223,43 @@ Low-severity notes (non-blocking):
 - **Empty state needs both normal and deleted items sections** — The empty state returns early (line 163), so any section that should appear even when there are no active items must be added within the empty state return, not just the main content return.
 - **`deletedAt` arrives as ISO string from API** — Even though the TypeScript type says `Date | null`, JSON serialization means the value is actually a `string | null` at runtime. `formatInTimezone` accepts strings, so this works. Don't try to call `.toISOString()` on it.
 - **No shadcn Collapsible installed** — The project uses custom `useState` toggle pattern for expand/collapse. Follow this pattern for consistency rather than installing new shadcn components.
+
+## Iteration 6 — Task 6.1: Multi-day event badges in day-by-day and group-by-type views
+
+**Status**: ✅ COMPLETED
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/lib/utils/timezone.ts` | Added `"short-date"` format option to `formatInTimezone` — produces "Feb 10" style output (month: "short", day: "numeric", no year). Extended format union type from `"date" \| "time" \| "datetime"` to include `"short-date"`. |
+| `apps/web/src/components/itinerary/event-card.tsx` | Added `getDayInTimezone` import from `@/lib/utils/timezone`. Added `isMultiDay` computation using `getDayInTimezone` to compare start and end date days in the trip's timezone. Added `Badge variant="outline"` with en-dash date range (e.g., "Feb 10–Feb 12") in the compact view badge container, before existing "Member no longer attending" and "Optional" badges. |
+| `apps/web/src/components/itinerary/__tests__/event-card.test.tsx` | Added 4 new tests in "Multi-day badge" describe block: multi-day event shows badge, same-day event does NOT show badge, null endTime does NOT show badge, correct date range text format with en-dash. |
+
+### Verification Results
+
+- **Typecheck**: ✅ PASS (all 3 packages — @tripful/shared, @tripful/api, @tripful/web)
+- **Linting**: ✅ PASS (all 3 packages)
+- **Shared tests**: ✅ PASS (9 files, 185 tests)
+- **API tests**: ✅ PASS (all files pass)
+- **Web tests**: ✅ PASS (40 of 42 files, 741 tests — 4 new multi-day badge tests, 27 total event-card tests). Pre-existing failures in `create-trip-dialog.test.tsx` and `edit-trip-dialog.test.tsx` remain (unrelated `getUploadUrl` mock issue)
+
+### Reviewer Assessment
+
+**APPROVED** — All 5 requirements met. Specific strengths noted:
+- Clean, minimal 3-file change — badge logic is entirely within EventCard, no view component changes needed
+- `isMultiDay` correctly uses `getDayInTimezone` for timezone-aware comparison
+- `"short-date"` format follows exact same `Intl.DateTimeFormat` pattern as existing formats
+- En-dash (U+2013) used correctly for date range separator
+- Null safety properly handled via ternary guard on `event.endTime`
+- Badge visible in both day-by-day and group-by-type views via compact section (always rendered)
+
+Low-severity note (non-blocking):
+- Tests use `timezone="UTC"` which is fine for deterministic testing. A timezone-boundary test could further validate timezone-aware behavior but is not required.
+
+### Learnings for Future Iterations
+
+- **`formatInTimezone` is extensible via union type** — Adding a new format like `"short-date"` only requires: (1) extending the union type in the function signature, (2) adding a new branch in the function body with `Intl.DateTimeFormat` options, (3) updating the JSDoc. All existing callers are unaffected since the union was expanded.
+- **Badge container in EventCard compact view is always visible** — The compact section (which contains the badge `<div>`) renders regardless of expanded state. Placing a badge there means it's visible in both compact and expanded views without needing to add it to two separate sections.
+- **`getDayInTimezone` returns "YYYY-MM-DD" string** — Simple string comparison (`!==`) is sufficient for determining if two dates fall on different calendar days in a timezone. No Date arithmetic needed.
+- **No changes to view components for EventCard-internal features** — Both `day-by-day-view.tsx` and `group-by-type-view.tsx` render `EventCard` and pass through event data + timezone. Any feature that only needs event data and timezone can be implemented entirely within EventCard.

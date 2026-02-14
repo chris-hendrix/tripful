@@ -5,7 +5,7 @@ import { Calendar, Clock, MapPin, ExternalLink, Users } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatInTimezone } from "@/lib/utils/timezone";
+import { formatInTimezone, getDayInTimezone } from "@/lib/utils/timezone";
 
 interface EventCardProps {
   event: Event;
@@ -65,6 +65,10 @@ export function EventCard({
   const datePrefix = showDate
     ? formatInTimezone(event.startTime, timezone, "date")
     : null;
+  const isMultiDay = event.endTime
+    ? getDayInTimezone(event.startTime, timezone) !==
+      getDayInTimezone(event.endTime, timezone)
+    : false;
 
   return (
     <div
@@ -113,6 +117,13 @@ export function EventCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {isMultiDay && (
+            <Badge variant="outline" className="text-xs">
+              {formatInTimezone(event.startTime, timezone, "short-date")}
+              {"\u2013"}
+              {formatInTimezone(event.endTime!, timezone, "short-date")}
+            </Badge>
+          )}
           {event.creatorAttending === false && (
             <Badge
               variant="outline"

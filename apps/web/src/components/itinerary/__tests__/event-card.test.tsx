@@ -380,6 +380,94 @@ describe("EventCard", () => {
     });
   });
 
+  describe("Multi-day badge", () => {
+    it("shows multi-day badge when endTime is on a different day than startTime", () => {
+      const event = {
+        ...baseEvent,
+        startTime: new Date("2026-02-10T10:00:00Z"),
+        endTime: new Date("2026-02-12T18:00:00Z"),
+      };
+      render(
+        <EventCard
+          event={event}
+          timezone="UTC"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      expect(screen.getByText(/Feb 10/)).toBeDefined();
+      expect(screen.getByText(/Feb 12/)).toBeDefined();
+    });
+
+    it("does not show multi-day badge when endTime is on the same day as startTime", () => {
+      const event = {
+        ...baseEvent,
+        startTime: new Date("2026-02-10T10:00:00Z"),
+        endTime: new Date("2026-02-10T18:00:00Z"),
+      };
+      render(
+        <EventCard
+          event={event}
+          timezone="UTC"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      // There should be no badge with a date range containing an en-dash
+      const badges = document.querySelectorAll('[data-slot="badge"]');
+      const multiDayBadge = Array.from(badges).find((badge) =>
+        badge.textContent?.includes("\u2013"),
+      );
+      expect(multiDayBadge).toBeUndefined();
+    });
+
+    it("does not show multi-day badge when endTime is null", () => {
+      const event = {
+        ...baseEvent,
+        endTime: null,
+      };
+      render(
+        <EventCard
+          event={event}
+          timezone="UTC"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const badges = document.querySelectorAll('[data-slot="badge"]');
+      const multiDayBadge = Array.from(badges).find((badge) =>
+        badge.textContent?.includes("\u2013"),
+      );
+      expect(multiDayBadge).toBeUndefined();
+    });
+
+    it("shows correct date range format in the badge", () => {
+      const event = {
+        ...baseEvent,
+        startTime: new Date("2026-02-10T10:00:00Z"),
+        endTime: new Date("2026-02-12T18:00:00Z"),
+      };
+      render(
+        <EventCard
+          event={event}
+          timezone="UTC"
+          canEdit={false}
+          canDelete={false}
+        />,
+      );
+
+      const badges = document.querySelectorAll('[data-slot="badge"]');
+      const multiDayBadge = Array.from(badges).find((badge) =>
+        badge.textContent?.includes("\u2013"),
+      );
+      expect(multiDayBadge).not.toBeUndefined();
+      expect(multiDayBadge?.textContent).toBe("Feb 10\u2013Feb 12");
+    });
+  });
+
   describe("Meetup info display", () => {
     it("should display meetup info when meetup fields are present", async () => {
       const user = userEvent.setup();
