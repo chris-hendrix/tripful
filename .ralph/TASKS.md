@@ -75,16 +75,13 @@
 
 ## Phase 4: Accommodation Redesign
 
-- [ ] Task 4.1: Add check-in/check-out times to accommodation data model
-  - Implement: Add `checkInTime` varchar("check_in_time", { length: 5 }) and `checkOutTime` varchar("check_out_time", { length: 5 }) columns to accommodations table in `apps/api/src/db/schema/index.ts`
-  - Implement: Generate migration: `cd apps/api && pnpm db:generate`
+- [ ] Task 4.1: Convert checkIn/checkOut columns from date to timestamp with timezone
+  - Implement: In `apps/api/src/db/schema/index.ts`, change `checkIn: date("check_in").notNull()` to `checkIn: timestamp("check_in", { withTimezone: true }).notNull()` and same for `checkOut`
+  - Implement: Generate migration: `cd apps/api && pnpm db:generate` — verify it generates `ALTER COLUMN ... TYPE timestamp with time zone`
   - Implement: Run migration: `cd apps/api && pnpm db:migrate`
-  - Implement: Add `checkInTime: string | null` and `checkOutTime: string | null` to `Accommodation` interface in `shared/types/accommodation.ts`
-  - Implement: Add `checkInTime: z.string().regex(/^\d{2}:\d{2}$/).optional()` and `checkOutTime` to `baseAccommodationSchema` in `shared/schemas/accommodation.ts`
-  - Implement: Add `checkInTime: z.string().nullable()` and `checkOutTime: z.string().nullable()` to `accommodationEntitySchema`
-  - Implement: Add `checkInTime: data.checkInTime || null` and `checkOutTime: data.checkOutTime || null` to create insert values in `apps/api/src/services/accommodation.service.ts`
-  - Implement: Add `checkInTime` and `checkOutTime` to the explicit select fields in `getAccommodationsByTrip` method
-  - Test: Existing integration tests still pass with new nullable columns
+  - Implement: In `shared/schemas/accommodation.ts`, change `checkIn: z.string().date()` to `checkIn: z.string().datetime({ offset: true }).or(z.string().datetime())` and same for `checkOut`
+  - Implement: Update existing tests to use ISO datetime strings (e.g. `"2026-03-01T14:00:00.000Z"`) instead of date strings (e.g. `"2026-03-01"`)
+  - Test: All existing accommodation tests pass with datetime values
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
 - [ ] Task 4.2: Show accommodations on all spanned days in day-by-day view
@@ -107,12 +104,12 @@
 
 - [ ] Task 4.4: Add time inputs to create/edit accommodation dialogs
   - Implement: Update `apps/web/src/components/itinerary/create-accommodation-dialog.tsx`:
-    - Add `checkInTime` and `checkOutTime` to form defaultValues (empty string)
-    - Add `<Input type="time" />` next to each DatePicker in a 2-column grid layout per row
+    - Add `<Input type="time" />` next to each existing DatePicker in a 2-column grid layout
+    - Combine selected date + time into ISO datetime string before form submission
     - Labels: "Check-in date" + "Check-in time", "Check-out date" + "Check-out time"
   - Implement: Update `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`:
     - Same time input additions as create dialog
-    - Pre-populate time fields from `accommodation.checkInTime` and `accommodation.checkOutTime`
+    - Pre-populate date and time fields by parsing `checkIn`/`checkOut` ISO datetime strings
     - Fix delete button: change from `Button variant="destructive" className="w-full h-12 rounded-xl"` to subtle link: `<button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors ...">`
     - Match the edit-trip-dialog delete button pattern (small Trash2 icon + text, centered, `pt-2`)
   - Verify: `pnpm typecheck` passes, `pnpm test` passes

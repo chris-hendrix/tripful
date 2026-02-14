@@ -136,31 +136,37 @@ No frontend changes needed beyond existing error handling. The API returns error
 
 ## 4. Accommodation Redesign
 
-Redesign accommodations to be more minimal, show on all spanned days, and support check-in/check-out times.
+Redesign accommodations to be more minimal, show on all spanned days, and replace date-only check-in/check-out with full datetime columns.
 
 ### Data Model Changes
 
-Add optional `checkInTime` and `checkOutTime` varchar(5) columns ("HH:MM" format) to the accommodations table. Keep existing DATE columns for day range computation — times are display/informational.
+Convert the existing `checkIn` and `checkOut` columns from DATE to TIMESTAMP WITH TIMEZONE. Column names stay the same — only the type changes.
 
 **DB schema** (`apps/api/src/db/schema/index.ts`):
 ```typescript
-checkInTime: varchar("check_in_time", { length: 5 }),  // "14:00"
-checkOutTime: varchar("check_out_time", { length: 5 }), // "11:00"
+// BEFORE:
+// checkIn: date("check_in").notNull(),
+// checkOut: date("check_out").notNull(),
+// AFTER:
+checkIn: timestamp("check_in", { withTimezone: true }).notNull(),
+checkOut: timestamp("check_out", { withTimezone: true }).notNull(),
 ```
 
-**Shared types** (`shared/types/accommodation.ts`):
-```typescript
-checkInTime: string | null;
-checkOutTime: string | null;
-```
+Index stays the same (`checkInIdx` on `table.checkIn`).
+
+**Migration**: Drizzle generates `ALTER COLUMN check_in TYPE timestamp with time zone`. Existing date values auto-cast to midnight UTC.
+
+**Shared types** (`shared/types/accommodation.ts`): No changes needed — `checkIn: string` and `checkOut: string` already work for ISO datetime strings.
 
 **Shared schemas** (`shared/schemas/accommodation.ts`):
-- Add to `baseAccommodationSchema`: `checkInTime: z.string().regex(/^\d{2}:\d{2}$/).optional()` and same for `checkOutTime`
-- Add to `accommodationEntitySchema`: `checkInTime: z.string().nullable()` and same for `checkOutTime`
+- Replace `checkIn: z.string().date()` with `checkIn: z.string().datetime({ offset: true }).or(z.string().datetime())` (accepts ISO datetime with or without timezone)
+- Same for `checkOut`
+- Cross-field validation unchanged (date comparison still works with ISO datetime strings)
+- Update `accommodationEntitySchema` if it has `.date()` validation
 
-**Service** (`apps/api/src/services/accommodation.service.ts`):
-- Add `checkInTime` and `checkOutTime` to `createAccommodation` insert values
-- The update method uses `...data` spread which handles new fields automatically
+**Service** (`apps/api/src/services/accommodation.service.ts`): No field name changes needed.
+
+**Frontend impact**: Components derive dates from `new Date(checkIn)` for day-by-day grouping. Display formatting may need updating to show time alongside date.
 
 ### Frontend: Day-by-Day View
 
@@ -185,11 +191,13 @@ Redesign from big bordered card to a compact card with dropdown. Keep it visuall
 ### Frontend: Create/Edit Dialogs
 
 **`apps/web/src/components/itinerary/create-accommodation-dialog.tsx`**:
-- Add time input fields alongside the existing date pickers (e.g., `<Input type="time" />` next to each DatePicker)
-- Layout: 2-column grid per row — [Date picker | Time input] for check-in and check-out
+- Add time input (`<Input type="time" />`) next to each existing DatePicker in a 2-column grid
+- Combine selected date + time into ISO datetime string before form submission
+- Labels: "Check-in date" + "Check-in time", "Check-out date" + "Check-out time"
 
 **`apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`**:
 - Same time input additions as create dialog
+- Pre-populate date and time fields by parsing `checkIn`/`checkOut` ISO datetime strings
 - Fix delete button: change from big red `Button variant="destructive"` to subtle link style matching edit-trip-dialog pattern (small `Trash2` icon + text, `text-muted-foreground hover:text-destructive`)
 
 ---
@@ -282,10 +290,9 @@ Audit all pages at three breakpoints and fix issues.
 - API docs file (format TBD)
 
 ### Modified Files
-- `apps/api/src/db/schema/index.ts` - add checkInTime, checkOutTime columns to accommodations
-- `shared/types/accommodation.ts` - add checkInTime, checkOutTime fields
-- `shared/schemas/accommodation.ts` - add time fields to base/entity schemas
-- `apps/api/src/services/accommodation.service.ts` - pass time fields in create, accommodation count limit
+- `apps/api/src/db/schema/index.ts` - convert checkIn/checkOut from date to timestamp with timezone
+- `shared/schemas/accommodation.ts` - update Zod validation from `.date()` to `.datetime()`
+- `apps/api/src/services/accommodation.service.ts` - accommodation count limit
 - `apps/web/src/components/itinerary/accommodation-card.tsx` - minimal card redesign with dropdown
 - `apps/web/src/components/itinerary/day-by-day-view.tsx` - show accommodations on all spanned days
 - `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` - add time inputs
