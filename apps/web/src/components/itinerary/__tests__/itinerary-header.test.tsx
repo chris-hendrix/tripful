@@ -4,6 +4,46 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ItineraryHeader } from "../itinerary-header";
 
+// Mock useAuth (required by CreateMemberTravelDialog rendered inside ItineraryHeader)
+vi.mock("@/app/providers/auth-provider", () => ({
+  useAuth: () => ({
+    user: { id: "user-1", displayName: "Test User", phoneNumber: "+15551234567" },
+  }),
+}));
+
+// Mock useMembers (required by CreateMemberTravelDialog rendered inside ItineraryHeader)
+vi.mock("@/hooks/use-invitations", () => ({
+  useMembers: () => ({
+    data: [
+      {
+        id: "member-1",
+        userId: "user-1",
+        displayName: "Test User",
+        profilePhotoUrl: null,
+        handles: null,
+        isOrganizer: true,
+        status: "going",
+        createdAt: "2026-01-01",
+      },
+    ],
+  }),
+}));
+
+// Mock getUploadUrl (required by CreateMemberTravelDialog)
+vi.mock("@/lib/api", () => ({
+  apiRequest: vi.fn(),
+  getUploadUrl: (path: string | null | undefined) => path ?? undefined,
+  APIError: class APIError extends Error {
+    constructor(
+      public code: string,
+      message: string,
+    ) {
+      super(message);
+      this.name = "APIError";
+    }
+  },
+}));
+
 describe("ItineraryHeader", () => {
   let queryClient: QueryClient;
 

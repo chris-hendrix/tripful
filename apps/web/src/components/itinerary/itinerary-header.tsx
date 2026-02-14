@@ -222,6 +222,7 @@ export function ItineraryHeader({
         onOpenChange={setIsCreateMemberTravelOpen}
         tripId={tripId}
         timezone={selectedTimezone}
+        isOrganizer={isOrganizer}
       />
     </>
   );

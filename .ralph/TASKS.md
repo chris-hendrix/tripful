@@ -41,7 +41,7 @@
   - Test: Integration tests for POST /trips/:tripId/member-travel with memberId parameter
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 2.2: Implement frontend member travel delegation UI
+- [x] Task 2.2: Implement frontend member travel delegation UI
   - Implement: Update `apps/web/src/components/itinerary/create-member-travel-dialog.tsx`:
     - Add member selector (Select from shadcn/ui) at top of form
     - Fetch trip members using existing hooks

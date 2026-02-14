@@ -7,7 +7,7 @@ import {
 import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { pickDate } from "./helpers/date-pickers";
+import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
 
 /**
@@ -667,6 +667,158 @@ test.describe("Trip Journey", () => {
           .filter({ hasText: "Test Promotee" })
           .getByText("Organizer"),
       ).not.toBeVisible({ timeout: 10000 });
+    });
+  });
+
+  test("organizer can add travel for another member via delegation", async ({
+    page,
+    request,
+  }) => {
+    test.slow();
+
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+    const memberPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
+
+    let tripId: string;
+
+    await test.step("setup: create organizer, trip, event, and invite member", async () => {
+      const organizerCookie = await createUserViaAPI(
+        request,
+        organizerPhone,
+        "Delegation Org",
+      );
+
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Delegation Trip ${timestamp}`,
+        destination: "Seattle, WA",
+        startDate: "2026-12-01",
+        endDate: "2026-12-05",
+      });
+
+      // Create an event so the itinerary has content and the FAB is visible
+      // (empty state only shows "Add Event" / "Add Accommodation" buttons, not the FAB)
+      const eventResponse = await request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Welcome Dinner",
+            eventType: "meal",
+            startTime: "2026-12-01T18:00:00.000Z",
+          },
+          headers: { cookie: organizerCookie },
+        },
+      );
+      if (!eventResponse.ok()) {
+        throw new Error(
+          `Failed to create event: ${eventResponse.status()} ${await eventResponse.text()}`,
+        );
+      }
+
+      await inviteAndAcceptViaAPI(
+        request,
+        tripId,
+        organizerPhone,
+        memberPhone,
+        "Delegated Member",
+      );
+    });
+
+    await test.step("organizer navigates to trip", async () => {
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        organizerPhone,
+        "Delegation Org",
+      );
+
+      await page.goto(`/trips/${tripId}`);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `Delegation Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
+    });
+
+    await test.step("open My Travel dialog via FAB", async () => {
+      // Wait for any toast to disappear
+      const toast = page.locator("[data-sonner-toast]").first();
+      if (await toast.isVisible().catch(() => false)) {
+        await toast.waitFor({ state: "hidden", timeout: 10000 });
+      }
+
+      const fab = page.getByRole("button", { name: "Add to itinerary" });
+      await expect(fab).toBeVisible({ timeout: 10000 });
+      await fab.click();
+      await page.getByRole("menuitem", { name: "My Travel" }).click();
+
+      await expect(
+        page.getByRole("heading", { name: "Add your travel details" }),
+      ).toBeVisible();
+    });
+
+    await test.step("verify member selector is visible for organizer", async () => {
+      // Organizer should see the member selector
+      const memberSelector = page.locator('[data-testid="member-selector"]');
+      await expect(memberSelector).toBeVisible();
+
+      // Should show the helper text
+      await expect(
+        page.getByText("As organizer, you can add travel for any member"),
+      ).toBeVisible();
+    });
+
+    await test.step("select the other member", async () => {
+      const memberSelector = page.locator('[data-testid="member-selector"]');
+      await memberSelector.click();
+
+      // Wait for the dropdown options to appear
+      const delegatedOption = page.getByRole("option", { name: /Delegated Member/ });
+      await expect(delegatedOption).toBeVisible({ timeout: 5000 });
+
+      // Select the delegated member
+      await delegatedOption.click();
+
+      // Verify the selector now shows the selected member
+      await expect(memberSelector).toContainText("Delegated Member");
+    });
+
+    await test.step("fill in travel details and submit", async () => {
+      await page.getByRole("radio", { name: "Arrival" }).click();
+
+      const travelTimeTrigger = page.getByRole("button", {
+        name: "Travel time",
+      });
+      await pickDateTime(page, travelTimeTrigger, "2026-12-01T14:00");
+
+      await page.locator('input[name="location"]').fill("Seattle-Tacoma Airport");
+      await page
+        .locator('textarea[name="details"]')
+        .fill("Arriving on behalf of member");
+      await page.getByRole("button", { name: "Add travel details" }).click();
+
+      // Wait for success toast
+      await expect(
+        page.getByText("Travel details added successfully"),
+      ).toBeVisible({ timeout: 10000 });
+    });
+
+    await test.step("verify delegated travel appears with correct member name", async () => {
+      // The travel card shows "Name · Time · Location" format
+      // Verify the delegated member's name appears on the travel card
+      await expect(
+        page.getByText("Delegated Member").first(),
+      ).toBeVisible({ timeout: 10000 });
+
+      // Location should also be visible
+      const locationLink = page.getByRole("link", {
+        name: "Seattle-Tacoma Airport",
+      });
+      await expect(locationLink).toBeVisible();
+
+      await snap(page, "30-member-travel-delegation");
     });
   });
 

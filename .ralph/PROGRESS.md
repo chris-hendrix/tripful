@@ -113,3 +113,47 @@ Tracking implementation progress for this project.
 - Lint caught an unused variable (`member1`) in the integration test — always check that destructured variables from `db.insert().returning()` are actually used; if not, skip the destructuring
 - Test count: shared 193→196 (+3), api 763→772 (+9), web unchanged at 821; total 1,777→1,789 (+12)
 - The `MemberNotFoundError` (404) already existed in `errors.ts` and was reused — no new error classes needed for this feature
+
+## Iteration 4 — Task 2.2: Implement frontend member travel delegation UI
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Updated `apps/web/src/components/itinerary/create-member-travel-dialog.tsx`:
+  - Added `isOrganizer?: boolean` prop to the dialog interface
+  - Added `useAuth()` hook to get current user and `useMembers(tripId)` hook to fetch trip members
+  - Added member selector at top of form with two modes:
+    - **Organizers**: Interactive `<Select>` dropdown showing all trip members with avatars, defaulting to "self"; helper text: "As organizer, you can add travel for any member"
+    - **Non-organizers**: Static display showing own avatar + name (read-only)
+  - Uses `useState("self")` for selected member ID with `"self"` sentinel value
+  - Updated `handleSubmit` to include `memberId` (the member record ID, not userId) only when a different member is selected
+  - Form reset on dialog close also resets member selection to "self"
+- Updated `apps/web/src/components/itinerary/itinerary-header.tsx`:
+  - Passes `isOrganizer` prop through to `CreateMemberTravelDialog`
+
+### Tests written
+- **Unit tests** (`apps/web/src/components/itinerary/__tests__/create-member-travel-dialog.test.tsx`): 9 new tests in "Member delegation" describe block — non-organizer no dropdown, non-organizer sees own name, organizer sees selector, organizer sees helper text, helper text hidden for non-organizer, organizer selector is interactive, default selection is self, form submission for self does not include memberId, selector not disabled for organizer
+- **Unit tests** (`apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx`): Updated mocks for `useAuth`, `useMembers`, `getUploadUrl` since `CreateMemberTravelDialog` rendered inside `ItineraryHeader` now depends on those hooks
+- **E2E test** (`apps/web/tests/e2e/trip-journey.spec.ts`): 1 new test — "organizer can add travel for another member via delegation" covering: create organizer + trip via API, invite + accept member, create event (to exit empty state), navigate to trip, open FAB → "My Travel", select delegated member from dropdown, fill travel details, submit, verify travel card shows delegated member's name
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,798 tests — shared: 196, api: 772, web: 830)
+- `pnpm test:e2e`: ✅ NEW delegation test PASSES (21/25 passed; 4 pre-existing failures unrelated to Task 2.2)
+- Reviewer: ✅ APPROVED
+
+### Pre-existing E2E failures (not caused by Task 2.2)
+- `itinerary-journey.spec.ts:198` — member travel card text format mismatch (`Name · Arrival` vs actual `Name · time · location`)
+- `itinerary-journey.spec.ts:328` — same text format mismatch in view modes test
+- `trip-journey.spec.ts:502` — remove member button pattern changed to dropdown menu
+- `trip-journey.spec.ts:641` — promote/demote locator ambiguity (strict mode finds 2 "Organizer" elements)
+
+### Learnings for future iterations
+- When a trip has no itinerary items, the UI shows an empty state without the FAB — E2E tests that need the FAB must first add an event (via API or empty state button) to get out of the empty state
+- `MemberWithProfile.id` is the membership record ID (what backend expects as `memberId`), NOT `member.userId` — always use `member.id` for delegation
+- Radix UI `<Select>` has JSDOM limitations (`hasPointerCapture` not available), so unit tests that need select interaction should use non-interactive assertions; the actual select flow is better tested in E2E
+- The `useMembers(tripId)` hook is called unconditionally even when dialog is closed, but TanStack Query caching makes this acceptable since the data is likely already cached from other components
+- Test count: shared unchanged at 196, api unchanged at 772, web 821→830 (+9); total 1,789→1,798 (+9)
+- 4 pre-existing E2E test failures exist in the codebase that should be addressed in a future test coverage task (Task 7.1)
