@@ -396,26 +396,29 @@ export class InvitationService implements IInvitationService {
       }
     }
 
-    // Find and delete associated invitation via user's phone number
-    const [targetUser] = await this.db
-      .select({ phoneNumber: users.phoneNumber })
-      .from(users)
-      .where(eq(users.id, member.userId))
-      .limit(1);
+    // Delete invitation and member in a transaction for consistency
+    await this.db.transaction(async (tx) => {
+      // Find and delete associated invitation via user's phone number
+      const [targetUser] = await tx
+        .select({ phoneNumber: users.phoneNumber })
+        .from(users)
+        .where(eq(users.id, member.userId))
+        .limit(1);
 
-    if (targetUser) {
-      await this.db
-        .delete(invitations)
-        .where(
-          and(
-            eq(invitations.tripId, tripId),
-            eq(invitations.inviteePhone, targetUser.phoneNumber),
-          ),
-        );
-    }
+      if (targetUser) {
+        await tx
+          .delete(invitations)
+          .where(
+            and(
+              eq(invitations.tripId, tripId),
+              eq(invitations.inviteePhone, targetUser.phoneNumber),
+            ),
+          );
+      }
 
-    // Delete the member record (cascades to member_travel)
-    await this.db.delete(members).where(eq(members.id, memberId));
+      // Delete the member record (cascades to member_travel)
+      await tx.delete(members).where(eq(members.id, memberId));
+    });
   }
 
   /**

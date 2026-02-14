@@ -23,6 +23,7 @@ export const memberKeys = {
   all: ["members"] as const,
   lists: () => ["members", "list"] as const,
   list: (tripId: string) => ["members", "list", tripId] as const,
+  remove: (tripId: string) => ["members", "remove", tripId] as const,
 };
 
 /**

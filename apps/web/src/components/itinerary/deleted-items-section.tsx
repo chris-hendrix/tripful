@@ -67,10 +67,10 @@ export function DeletedItemsSection({
 
   // Auto-collapse when no more deleted items
   useEffect(() => {
-    if (totalDeleted === 0 && isExpanded) {
+    if (totalDeleted === 0) {
       setIsExpanded(false);
     }
-  }, [totalDeleted, isExpanded]);
+  }, [totalDeleted]);
 
   // Don't render if no deleted items
   if (totalDeleted === 0) {

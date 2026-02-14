@@ -4,6 +4,7 @@ import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
+import { createTrip } from "./helpers/trips";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -11,31 +12,6 @@ import { pickDate, pickDateTime } from "./helpers/date-pickers";
  * Consolidates 12 individual itinerary tests into 3 journey tests.
  * Uses authenticateViaAPI for fast auth.
  */
-
-/** Helper: create a trip via the UI and land on the trip detail page. */
-async function createTrip(
-  page: import("@playwright/test").Page,
-  tripName: string,
-  destination: string,
-  startDate: string,
-  endDate: string,
-) {
-  const tripDetail = new TripDetailPage(page);
-  const trips = new TripsPage(page);
-  await trips.createTripButton.click();
-  await expect(tripDetail.createDialogHeading).toBeVisible();
-  await tripDetail.nameInput.fill(tripName);
-  await tripDetail.destinationInput.fill(destination);
-  await pickDate(page, tripDetail.startDateButton, startDate);
-  await pickDate(page, tripDetail.endDateButton, endDate);
-  await tripDetail.continueButton.click();
-  await expect(tripDetail.step2Indicator).toBeVisible();
-  await tripDetail.createTripButton.click();
-  await page.waitForURL("**/trips/**");
-  await expect(
-    page.getByRole("heading", { level: 1, name: tripName }),
-  ).toBeVisible();
-}
 
 /** Helper: open the FAB dropdown and click a menu item, or fall back to empty-state button. */
 async function clickFabAction(

@@ -243,40 +243,32 @@ export class MemberTravelService implements IMemberTravelService {
     memberTravelId: string,
     data: UpdateMemberTravelInput,
   ): Promise<MemberTravel> {
+    // Load member travel to get tripId for lock check
+    const [travelRecord] = await this.db
+      .select({ id: memberTravel.id, tripId: memberTravel.tripId })
+      .from(memberTravel)
+      .where(eq(memberTravel.id, memberTravelId))
+      .limit(1);
+
+    if (!travelRecord) {
+      throw new MemberTravelNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      travelRecord.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Check permissions (owner or organizer)
     const canEdit = await this.permissionsService.canEditMemberTravel(
       userId,
       memberTravelId,
     );
     if (!canEdit) {
-      // Check if member travel exists to provide better error message - select only id column
-      const travelExists = await this.db
-        .select({ id: memberTravel.id })
-        .from(memberTravel)
-        .where(eq(memberTravel.id, memberTravelId))
-        .limit(1);
-
-      if (travelExists.length === 0) {
-        throw new MemberTravelNotFoundError();
-      }
-
       throw new PermissionDeniedError(
         "Permission denied: only the owner or trip organizers can edit member travel",
       );
-    }
-
-    // Check if trip is locked (past end date) - need to get travel's tripId
-    const [travelForLock] = await this.db
-      .select({ tripId: memberTravel.tripId })
-      .from(memberTravel)
-      .where(eq(memberTravel.id, memberTravelId))
-      .limit(1);
-
-    if (travelForLock) {
-      const tripLocked = await this.permissionsService.isTripLocked(
-        travelForLock.tripId,
-      );
-      if (tripLocked) throw new TripLockedError();
     }
 
     // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
@@ -318,40 +310,32 @@ export class MemberTravelService implements IMemberTravelService {
     userId: string,
     memberTravelId: string,
   ): Promise<void> {
+    // Load member travel to get tripId for lock check
+    const [travelRecord] = await this.db
+      .select({ id: memberTravel.id, tripId: memberTravel.tripId })
+      .from(memberTravel)
+      .where(eq(memberTravel.id, memberTravelId))
+      .limit(1);
+
+    if (!travelRecord) {
+      throw new MemberTravelNotFoundError();
+    }
+
+    // Check if trip is locked before permission check
+    const isLocked = await this.permissionsService.isTripLocked(
+      travelRecord.tripId,
+    );
+    if (isLocked) throw new TripLockedError();
+
     // Check permissions (owner or organizer)
     const canDelete = await this.permissionsService.canDeleteMemberTravel(
       userId,
       memberTravelId,
     );
     if (!canDelete) {
-      // Check if member travel exists for better error message - select only id column
-      const travelExists = await this.db
-        .select({ id: memberTravel.id })
-        .from(memberTravel)
-        .where(eq(memberTravel.id, memberTravelId))
-        .limit(1);
-
-      if (travelExists.length === 0) {
-        throw new MemberTravelNotFoundError();
-      }
-
       throw new PermissionDeniedError(
         "Permission denied: only the owner or trip organizers can delete member travel",
       );
-    }
-
-    // Check if trip is locked (past end date) - need to get travel's tripId
-    const [travelForDeleteLock] = await this.db
-      .select({ tripId: memberTravel.tripId })
-      .from(memberTravel)
-      .where(eq(memberTravel.id, memberTravelId))
-      .limit(1);
-
-    if (travelForDeleteLock) {
-      const tripLocked = await this.permissionsService.isTripLocked(
-        travelForDeleteLock.tripId,
-      );
-      if (tripLocked) throw new TripLockedError();
     }
 
     // Perform soft delete

@@ -127,6 +127,7 @@ export function useRemoveMember(tripId: string) {
   const queryClient = useQueryClient();
 
   return useMutation<void, Error, string>({
+    mutationKey: memberKeys.remove(tripId),
     mutationFn: async (memberId: string) => {
       await apiRequest(`/trips/${tripId}/members/${memberId}`, {
         method: "DELETE",
