@@ -83,7 +83,7 @@ export function ItineraryHeader({
 
   return (
     <>
-      <div className="sticky top-14 z-20 bg-background border-b border-border p-4">
+      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border p-4">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between gap-3">
             {/* Left side: Timezone selector */}

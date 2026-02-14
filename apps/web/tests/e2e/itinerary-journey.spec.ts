@@ -75,12 +75,10 @@ async function createEvent(
     page.getByRole("heading", { name: "Create a new event" }),
   ).toBeVisible();
 
-  await page.locator('input[name="name"]').fill(name);
+  await page.getByLabel(/event name/i).fill(name);
 
   if (options?.description) {
-    await page
-      .locator('textarea[name="description"]')
-      .fill(options.description);
+    await page.getByLabel(/description/i).fill(options.description);
   }
 
   if (options?.type) {
@@ -180,11 +178,7 @@ test.describe("Itinerary Journey", () => {
 
         const linkInput = page.locator('input[aria-label="Link URL"]');
         await linkInput.fill("https://example.com/hotel");
-        // Click the plus button adjacent to the link input (within the same form group)
-        await linkInput
-          .locator("..")
-          .locator("button:has(svg.lucide-plus)")
-          .click();
+        await page.getByRole("button", { name: "Add link" }).click();
 
         await page
           .getByRole("button", { name: "Create accommodation" })
@@ -426,8 +420,7 @@ test.describe("Itinerary Journey", () => {
     await test.step("mobile viewport", async () => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      // Use the itinerary header (has border-b) to distinguish from date gutter sticky elements
-      const header = page.locator(".sticky.top-0.border-b").first();
+      const header = page.getByTestId("itinerary-header");
       await expect(header).toBeVisible();
 
       await expect(

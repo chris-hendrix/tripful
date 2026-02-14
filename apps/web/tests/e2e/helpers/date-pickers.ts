@@ -28,7 +28,7 @@ async function navigateToMonth(
 
   for (let i = 0; i < 24; i++) {
     const captionText = await calendar
-      .locator(".rdp-caption_label")
+      .locator('[role="status"]')
       .textContent();
     if (captionText?.trim() === targetCaption) return;
 
@@ -41,9 +41,11 @@ async function navigateToMonth(
       targetYear * 12 + targetMonth - (currentYear * 12 + currentMonthIdx);
 
     if (diff > 0) {
-      await calendar.locator(".rdp-button_next").click();
+      await calendar.getByRole("button", { name: /next month/i }).click();
     } else if (diff < 0) {
-      await calendar.locator(".rdp-button_previous").click();
+      await calendar
+        .getByRole("button", { name: /previous month/i })
+        .click();
     } else {
       break;
     }
@@ -77,7 +79,7 @@ export async function pickDate(
 
   // Click the day button (exclude outside days from adjacent months)
   await calendar
-    .locator("td.rdp-day:not(.rdp-outside) button")
+    .locator('[role="gridcell"]:not([data-outside]) button')
     .getByText(String(day), { exact: true })
     .click();
 }
@@ -110,7 +112,7 @@ export async function pickDateTime(
   await navigateToMonth(calendar, year, month);
 
   await calendar
-    .locator("td.rdp-day:not(.rdp-outside) button")
+    .locator('[role="gridcell"]:not([data-outside]) button')
     .getByText(String(day), { exact: true })
     .click();
 

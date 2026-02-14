@@ -225,7 +225,7 @@ describe("CreateAccommodationDialog", () => {
       const linkInput = screen.getByLabelText(/link url/i);
       await user.type(linkInput, "https://example.com");
 
-      const addButton = screen.getByRole("button", { name: "" });
+      const addButton = screen.getByRole("button", { name: /add link/i });
       await user.click(addButton);
 
       await waitFor(() => {
@@ -246,7 +246,7 @@ describe("CreateAccommodationDialog", () => {
       const linkInput = screen.getByLabelText(/link url/i);
       await user.type(linkInput, "invalid-url");
 
-      const addButton = screen.getByRole("button", { name: "" });
+      const addButton = screen.getByRole("button", { name: /add link/i });
       await user.click(addButton);
 
       await waitFor(() => {
