@@ -26,7 +26,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       shared: ${{ steps.filter.outputs.shared }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: dorny/paths-filter@v3
         id: filter
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -126,7 +126,7 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -189,7 +189,7 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
 
