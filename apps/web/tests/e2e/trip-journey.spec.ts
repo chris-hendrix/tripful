@@ -8,6 +8,7 @@ import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate } from "./helpers/date-pickers";
+import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -323,6 +324,224 @@ test.describe("Trip Journey", () => {
       ).toBeVisible();
       await expect(tripDetail.editButton).not.toBeVisible();
       await expect(page.getByText("Organizing")).not.toBeVisible();
+    });
+  });
+
+  test("auto-lock past trips", async ({ page, request }) => {
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+
+    let tripId: string;
+
+    await test.step("create user and past trip via API", async () => {
+      const organizerCookie = await createUserViaAPI(
+        request,
+        organizerPhone,
+        "Past Trip Organizer",
+      );
+
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Past Trip ${timestamp}`,
+        destination: "Historic City",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      });
+      expect(tripId).toBeTruthy();
+    });
+
+    await test.step("authenticate and navigate to past trip", async () => {
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        organizerPhone,
+        "Past Trip Organizer",
+      );
+
+      await page.goto(`/trips/${tripId}`);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `Past Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
+    });
+
+    await test.step("verify read-only banner is visible", async () => {
+      await expect(
+        page.getByText("This trip has ended. The itinerary is read-only."),
+      ).toBeVisible({ timeout: 10000 });
+      await snap(page, "22-past-trip-read-only-banner");
+    });
+
+    await test.step("verify FAB is not visible", async () => {
+      await expect(
+        page.getByRole("button", { name: "Add to itinerary" }),
+      ).not.toBeVisible();
+    });
+
+    await test.step("verify empty state has no add buttons", async () => {
+      await expect(
+        page.getByRole("button", { name: "Add Event" }),
+      ).not.toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Add Accommodation" }),
+      ).not.toBeVisible();
+    });
+
+    await test.step("API rejects event creation for locked trip", async () => {
+      const response = await page.request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Should Fail",
+            eventType: "activity",
+            startTime: "2025-01-02T10:00:00.000Z",
+          },
+        },
+      );
+      expect(response.status()).toBe(403);
+    });
+  });
+
+  test("remove member from trip", async ({ page, request }) => {
+    test.slow(); // Multiple auth cycles
+
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+    const memberPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
+
+    let tripId: string;
+
+    await test.step("setup: create organizer, trip, invite member, and member creates event", async () => {
+      const organizerCookie = await createUserViaAPI(
+        request,
+        organizerPhone,
+        "Remove Test Org",
+      );
+
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Remove Member Trip ${timestamp}`,
+        destination: "Austin, TX",
+        startDate: "2026-10-01",
+        endDate: "2026-10-05",
+      });
+
+      await inviteAndAcceptViaAPI(
+        request,
+        tripId,
+        organizerPhone,
+        memberPhone,
+        "Test Member",
+      );
+
+      const memberCookie = await createUserViaAPI(
+        request,
+        memberPhone,
+        "Test Member",
+      );
+      const eventResponse = await request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Member's Dinner Plan",
+            eventType: "meal",
+            startTime: "2026-10-02T19:00:00.000Z",
+          },
+          headers: { cookie: memberCookie },
+        },
+      );
+      if (!eventResponse.ok()) {
+        throw new Error(
+          `Failed to create member event: ${eventResponse.status()} ${await eventResponse.text()}`,
+        );
+      }
+    });
+
+    await test.step("organizer navigates to trip and verifies member's event", async () => {
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        organizerPhone,
+        "Remove Test Org",
+      );
+
+      await page.goto(`/trips/${tripId}`);
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: `Remove Member Trip ${timestamp}`,
+        }),
+      ).toBeVisible({ timeout: 15000 });
+
+      await expect(page.getByText("Member's Dinner Plan")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    await test.step("verify 2 members and open members dialog", async () => {
+      await expect(page.getByText(/2 members?/)).toBeVisible();
+      await page.getByText(/2 members?/).click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(
+        dialog.getByRole("heading", { name: "Members" }),
+      ).toBeVisible();
+
+      await expect(dialog.getByText("Remove Test Org")).toBeVisible();
+      await expect(dialog.getByText("Test Member")).toBeVisible();
+      await snap(page, "23-members-dialog-before-remove");
+    });
+
+    await test.step("click remove button for member", async () => {
+      await page.getByRole("button", { name: /Remove Test Member/ }).click();
+
+      await expect(
+        page.getByRole("heading", { name: "Remove member" }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(/Are you sure you want to remove/),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Test Member", { exact: false }),
+      ).toBeVisible();
+    });
+
+    await test.step("confirm removal", async () => {
+      const toastPromise = page
+        .getByText(/Test Member has been removed/)
+        .waitFor({ state: "visible", timeout: 15000 });
+
+      await page.getByRole("button", { name: "Remove", exact: true }).click();
+
+      await toastPromise;
+
+      await snap(page, "24-member-removed");
+    });
+
+    await test.step("verify member count updated", async () => {
+      await expect(page.getByText("Test Member")).not.toBeVisible({
+        timeout: 10000,
+      });
+
+      await page.keyboard.press("Escape");
+
+      await expect(page.getByText(/1 member(?!s)/)).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    await test.step("verify member's event shows 'no longer attending' badge", async () => {
+      await expect(page.getByText("Member's Dinner Plan")).toBeVisible({
+        timeout: 10000,
+      });
+
+      await expect(
+        page.getByText("Member no longer attending"),
+      ).toBeVisible({ timeout: 10000 });
+
+      await snap(page, "25-member-no-longer-attending");
     });
   });
 

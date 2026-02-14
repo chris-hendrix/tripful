@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-  authenticateViaAPI,
-  authenticateViaAPIWithPhone,
-} from "./helpers/auth";
+import { authenticateViaAPI } from "./helpers/auth";
 import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
@@ -457,6 +454,238 @@ test.describe("Itinerary Journey", () => {
       // Restore desktop viewport
       await page.setViewportSize({ width: 1280, height: 720 });
       await expect(page.getByText(/Lunch/)).toBeVisible();
+    });
+  });
+
+  test("deleted items and restore", async ({ page, request }) => {
+    await authenticateViaAPI(page, request, "Delete Restore User");
+    const tripName = `Delete Restore Trip ${Date.now()}`;
+    let tripId: string;
+    let eventId: string;
+
+    await test.step("create trip via UI", async () => {
+      await createTrip(
+        page,
+        tripName,
+        "Portland, OR",
+        "2026-10-01",
+        "2026-10-05",
+      );
+      tripId = page.url().split("/trips/")[1];
+      expect(tripId).toBeTruthy();
+    });
+
+    await test.step("create event via API", async () => {
+      const response = await page.request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Dinner at Joe's",
+            eventType: "meal",
+            startTime: "2026-10-01T18:00:00.000Z",
+          },
+        },
+      );
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      eventId = data.event.id;
+      expect(eventId).toBeTruthy();
+    });
+
+    await test.step("reload and verify event is visible", async () => {
+      await page.reload();
+      await expect(page.getByText("Dinner at Joe's")).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    await test.step("expand event card and delete via edit dialog", async () => {
+      // Click on the event card to expand it
+      const card = page
+        .locator('[role="button"][aria-expanded]')
+        .filter({ hasText: /Dinner at Joe's/ })
+        .first();
+      const expanded = await card.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await card.click();
+      }
+
+      // Click the Edit button, then Delete event in the edit dialog
+      await expect(
+        page.locator('button[title="Edit event"]').first(),
+      ).toBeVisible({ timeout: 5000 });
+      await page.locator('button[title="Edit event"]').first().click();
+      await expect(
+        page.getByRole("heading", { name: "Edit event" }),
+      ).toBeVisible();
+
+      await page.getByRole("button", { name: "Delete event" }).click();
+      await expect(page.getByText("Are you sure?")).toBeVisible();
+      await page.getByRole("button", { name: "Yes, delete" }).click();
+    });
+
+    await test.step("verify event deleted and toast shown", async () => {
+      await expect(page.getByText("Event deleted")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    await test.step("find and expand Deleted Items section", async () => {
+      await expect(page.getByText(/Deleted Items \(\d+\)/)).toBeVisible({
+        timeout: 10000,
+      });
+
+      const toggleButton = page
+        .locator("button[aria-expanded]")
+        .filter({ hasText: /Deleted Items/ });
+      const isExpanded = await toggleButton.getAttribute("aria-expanded");
+      if (isExpanded !== "true") {
+        await toggleButton.click();
+      }
+
+      await expect(
+        page.locator(".border-t").filter({ hasText: /Dinner at Joe's/ }),
+      ).toBeVisible();
+      await snap(page, "20-deleted-items-section");
+    });
+
+    await test.step("restore the event", async () => {
+      const restoreButton = page
+        .getByRole("button", { name: "Restore" })
+        .first();
+      await restoreButton.click();
+
+      await expect(page.getByText("Event restored")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    await test.step("verify event reappears in the itinerary", async () => {
+      await expect(page.getByText("Dinner at Joe's")).toBeVisible({
+        timeout: 10000,
+      });
+
+      await expect(page.getByText(/Deleted Items/)).not.toBeVisible();
+
+      await snap(page, "21-event-restored");
+    });
+  });
+
+  test("meetup location and time on event card", async ({ page, request }) => {
+    await authenticateViaAPI(page, request, "Meetup Fields User");
+    const tripName = `Meetup Trip ${Date.now()}`;
+    let tripId: string;
+
+    await test.step("create trip via UI", async () => {
+      await createTrip(
+        page,
+        tripName,
+        "San Francisco, CA",
+        "2026-10-01",
+        "2026-10-05",
+      );
+      tripId = page.url().split("/trips/")[1];
+      expect(tripId).toBeTruthy();
+    });
+
+    await test.step("create event with meetup fields via API", async () => {
+      const response = await page.request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Museum Visit",
+            eventType: "activity",
+            startTime: "2026-10-02T10:00:00.000Z",
+            meetupLocation: "Hotel Lobby",
+            meetupTime: "2026-10-02T09:30:00.000Z",
+          },
+        },
+      );
+      expect(response.ok()).toBeTruthy();
+    });
+
+    await test.step("reload and verify event appears", async () => {
+      await page.reload();
+      await expect(page.getByText("Museum Visit")).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    await test.step("expand event card and verify meetup info", async () => {
+      const card = page
+        .locator('[role="button"][aria-expanded]')
+        .filter({ hasText: /Museum Visit/ })
+        .first();
+      const expanded = await card.getAttribute("aria-expanded");
+      if (expanded !== "true") {
+        await card.click();
+      }
+
+      await expect(page.getByText(/Meet at Hotel Lobby at/)).toBeVisible({
+        timeout: 5000,
+      });
+
+      await snap(page, "26-meetup-fields-expanded");
+    });
+  });
+
+  test("multi-day event badge", async ({ page, request }) => {
+    await authenticateViaAPI(page, request, "Multi Day User");
+    const tripName = `Multi Day Trip ${Date.now()}`;
+    let tripId: string;
+
+    await test.step("create trip via UI", async () => {
+      await createTrip(
+        page,
+        tripName,
+        "Nashville, TN",
+        "2026-10-01",
+        "2026-10-10",
+      );
+      tripId = page.url().split("/trips/")[1];
+      expect(tripId).toBeTruthy();
+    });
+
+    await test.step("create multi-day event via API", async () => {
+      const response = await page.request.post(
+        `http://localhost:8000/api/trips/${tripId}/events`,
+        {
+          data: {
+            name: "Music Festival",
+            eventType: "activity",
+            startTime: "2026-10-03T10:00:00.000Z",
+            endTime: "2026-10-05T22:00:00.000Z",
+          },
+        },
+      );
+      expect(response.ok()).toBeTruthy();
+    });
+
+    await test.step("reload and verify event appears", async () => {
+      await page.reload();
+      await expect(page.getByText("Music Festival")).toBeVisible({
+        timeout: 15000,
+      });
+    });
+
+    await test.step("verify multi-day date range badge", async () => {
+      await expect(page.getByText(/Oct 3.*Oct 5/)).toBeVisible({
+        timeout: 5000,
+      });
+
+      await snap(page, "27-multi-day-badge");
+    });
+
+    await test.step("verify badge also visible in group-by-type view", async () => {
+      await page.getByRole("button", { name: "Group by Type" }).click();
+
+      await expect(page.getByText(/Oct 3.*Oct 5/)).toBeVisible({
+        timeout: 5000,
+      });
+
+      await snap(page, "28-multi-day-badge-group-view");
+
+      await page.getByRole("button", { name: "Day by Day" }).click();
     });
   });
 
