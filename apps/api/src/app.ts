@@ -27,6 +27,7 @@ import uploadServicePlugin from "./plugins/upload-service.js";
 import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
+import messageServicePlugin from "./plugins/message-service.js";
 
 // Middleware
 import { errorHandler } from "./middleware/error.middleware.js";
@@ -170,6 +171,7 @@ export async function buildApp(
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
   await app.register(invitationServicePlugin);
+  await app.register(messageServicePlugin);
 
   // Register error handler
   app.setErrorHandler(errorHandler);

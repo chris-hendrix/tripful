@@ -121,6 +121,28 @@ export const MemberTravelLimitExceededError = createError(
   400,
 );
 
+// Messaging errors
+export const MessageNotFoundError = createError(
+  "MESSAGE_NOT_FOUND",
+  "Message not found",
+  404,
+);
+export const MemberMutedError = createError(
+  "MEMBER_MUTED",
+  "You have been muted and cannot post messages",
+  403,
+);
+export const MessageLimitExceededError = createError(
+  "MESSAGE_LIMIT_EXCEEDED",
+  "Maximum 100 messages per trip reached",
+  409,
+);
+export const InvalidReplyTargetError = createError(
+  "INVALID_REPLY_TARGET",
+  "Can only reply to top-level messages",
+  400,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
 export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);

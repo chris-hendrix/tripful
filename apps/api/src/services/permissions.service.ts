@@ -4,6 +4,7 @@ import {
   events,
   accommodations,
   memberTravel,
+  mutedMembers,
 } from "@/db/schema/index.js";
 import { eq, and, or, isNull } from "drizzle-orm";
 import type { AppDatabase } from "@/types/index.js";
@@ -275,6 +276,39 @@ export interface IPermissionsService {
     userId: string,
     tripId: string,
   ): Promise<{ isMember: boolean; isOrganizer: boolean }>;
+
+  /**
+   * Checks if a user can view messages in a trip
+   * Only going members can view messages
+   */
+  canViewMessages(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can post a message in a trip
+   * Must be going member, not muted, and trip not locked
+   */
+  canPostMessage(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can moderate messages (pin, delete others' messages)
+   * Only organizers can moderate
+   */
+  canModerateMessages(userId: string, tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can mute a member in a trip
+   * Organizer only, and cannot mute other organizers
+   */
+  canMuteMember(
+    userId: string,
+    tripId: string,
+    targetId: string,
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a member is muted in a trip
+   */
+  isMemberMuted(tripId: string, userId: string): Promise<boolean>;
 }
 
 /**
@@ -787,5 +821,67 @@ export class PermissionsService implements IPermissionsService {
       isMember: true,
       isOrganizer: row.memberIsOrganizer || row.tripCreatedBy === userId,
     };
+  }
+
+  /**
+   * Checks if a user can view messages in a trip
+   * Only going members can view messages
+   */
+  async canViewMessages(userId: string, tripId: string): Promise<boolean> {
+    return this.canViewFullTrip(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can post a message in a trip
+   * Must be going member, not muted, and trip not locked
+   */
+  async canPostMessage(userId: string, tripId: string): Promise<boolean> {
+    const [canView, isLocked, isMuted] = await Promise.all([
+      this.canViewFullTrip(userId, tripId),
+      this.isTripLocked(tripId),
+      this.isMemberMuted(tripId, userId),
+    ]);
+    return canView && !isLocked && !isMuted;
+  }
+
+  /**
+   * Checks if a user can moderate messages (pin, delete others' messages)
+   * Only organizers can moderate
+   */
+  async canModerateMessages(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean> {
+    return this.isOrganizer(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can mute a member in a trip
+   * Organizer only, and cannot mute other organizers
+   */
+  async canMuteMember(
+    userId: string,
+    tripId: string,
+    targetId: string,
+  ): Promise<boolean> {
+    const [isOrg, targetIsOrg] = await Promise.all([
+      this.isOrganizer(userId, tripId),
+      this.isOrganizer(targetId, tripId),
+    ]);
+    return isOrg && !targetIsOrg;
+  }
+
+  /**
+   * Checks if a member is muted in a trip
+   */
+  async isMemberMuted(tripId: string, userId: string): Promise<boolean> {
+    const result = await this.db
+      .select({ id: mutedMembers.id })
+      .from(mutedMembers)
+      .where(
+        and(eq(mutedMembers.tripId, tripId), eq(mutedMembers.userId, userId)),
+      )
+      .limit(1);
+    return result.length > 0;
   }
 }

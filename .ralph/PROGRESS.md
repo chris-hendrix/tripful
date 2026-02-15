@@ -87,3 +87,56 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The root barrel (`shared/index.ts`) only exports auth and trip schemas/types — newer domains are only accessible via subpath imports (`@tripful/shared/types`, `@tripful/shared/schemas`)
 - Response entity schemas use `z.date()` while TypeScript types use `string` for timestamps — this is a known inconsistency across the codebase, not worth fixing in isolation
 - The shared package now has 216 total tests (up from 197 in iteration 1)
+
+---
+
+## Iteration 3 — Task 2.1: Create MessageService with CRUD, permissions, and reactions ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/api/src/services/message.service.ts` — Full MessageService implementation with IMessageService interface and MessageService class (751 lines)
+  - **Queries**: `getMessages` (paginated top-level messages with author profiles, reaction summaries with `reacted` flag via `bool_or()` SQL aggregate, 2 most recent replies per message, reply count, soft-deleted placeholders), `getMessageCount` (non-deleted top-level only), `getLatestMessage` (most recent non-deleted with author and reactions)
+  - **Mutations**: `createMessage` (validates trip exists, going member, not locked, not muted, reply parent validation, 100 top-level limit), `editMessage` (author only, sets editedAt), `deleteMessage` (author or organizer, soft delete with deletedAt/deletedBy), `togglePin` (organizer only, top-level only), `toggleReaction` (add/remove toggle via existence check, returns updated summaries)
+  - **Soft-delete placeholders**: `buildMessageResult` returns empty content and empty reactions for deleted messages while preserving envelope fields
+- Created `apps/api/src/plugins/message-service.ts` — Fastify plugin following event-service pattern, depends on `['database', 'permissions-service']`
+- Modified `apps/api/src/errors.ts` — Added 4 messaging error types: `MessageNotFoundError` (404), `MemberMutedError` (403), `MessageLimitExceededError` (409), `InvalidReplyTargetError` (400)
+- Modified `apps/api/src/services/permissions.service.ts` — Added `mutedMembers` import and 5 new methods to both interface and implementation:
+  - `canViewMessages` — delegates to `canViewFullTrip` (going member check)
+  - `canPostMessage` — parallel check of canViewFullTrip + isTripLocked + isMemberMuted
+  - `canModerateMessages` — delegates to `isOrganizer`
+  - `canMuteMember` — organizer + target not organizer (parallel checks)
+  - `isMemberMuted` — queries mutedMembers table
+- Modified `apps/api/src/types/index.ts` — Added `IMessageService` import and `messageService` to FastifyInstance augmentation
+- Modified `apps/api/src/app.ts` — Added messageServicePlugin import and registration
+- Created `apps/api/tests/unit/message.service.test.ts` — 47 tests covering all service methods and permission checks
+
+### Key implementation details
+- Service uses internal result types with Date objects (MessageResult, MessageWithRepliesResult, ReactionSummaryResult) — NOT the shared Message type which has string dates for JSON serialization
+- Reaction summaries use `sql<boolean>\`bool_or(${messageReactions.userId} = ${userId})\`` for efficient per-emoji `reacted` flag computation
+- `getMessages` intentionally includes soft-deleted top-level messages (no `isNull(deletedAt)` filter) to return placeholders, while the count query only counts non-deleted messages
+- `getLatestMessage` takes an extra `userId` parameter (deviating from architecture spec) to compute reaction summaries with `reacted` flag — justified deviation
+- `createMessage` does granular permission checks (canViewMessages, isTripLocked, isMemberMuted) individually rather than using composite `canPostMessage`, to provide specific error types (PermissionDeniedError vs TripLockedError vs MemberMutedError)
+- Reply validation: parent must exist, be in same trip, be top-level (parentId IS NULL), and not be deleted
+- N+1 query pattern in `getMessages` (3 queries per top-level message + per-reply reactions) — acceptable for MVP with 100-message limit
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit`
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 850 API tests pass (47 new), 216 shared tests pass, all tests green
+- **Message service tests**: ✅ 47/47 pass covering createMessage (8), editMessage (5), deleteMessage (4), togglePin (5), toggleReaction (5), getMessages (4), getMessageCount (3), getLatestMessage (2), permissions (11)
+
+### Reviewer verdict: APPROVED
+- All requirements from task spec met
+- All 4 file modifications applied correctly
+- Soft-deleted message placeholders implemented
+- Thorough test coverage across all methods and error cases
+- Code follows existing codebase conventions (ESM .js extensions, @/ path aliases, fastify-plugin pattern)
+- 3 low-severity non-blocking notes: pagination count/data inconsistency for deleted messages, N+1 query pattern acceptable for MVP, `togglePin` reuses `InvalidReplyTargetError` for pin-on-reply case
+
+### Learnings for future iterations
+- When the coder agent creates new files, explicitly verify that ALL modifications to existing files were also applied — the coder can miss these
+- The `bool_or()` SQL aggregate is available in PostgreSQL for computing boolean flags across grouped rows (useful for reaction summaries)
+- Service methods should use granular permission checks when different error types are needed (e.g., PermissionDeniedError vs TripLockedError vs MemberMutedError)
+- Tests use real PostgreSQL database (not mocks) — cleanup must respect FK dependency order: messageReactions → messages → mutedMembers → members → trips → users
+- The API now has 850 total tests (up from 803 in iteration 2)

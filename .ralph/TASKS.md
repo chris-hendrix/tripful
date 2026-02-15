@@ -22,7 +22,7 @@
 
 ## Phase 2: Backend Messaging
 
-- [ ] Task 2.1: Create MessageService with CRUD, permissions, and reactions
+- [x] Task 2.1: Create MessageService with CRUD, permissions, and reactions
   - Implement: Add messaging permission methods to `apps/api/src/services/permissions.service.ts` (canViewMessages, canPostMessage, canModerateMessages, canMuteMember, isTripLocked)
   - Implement: Add error types to `apps/api/src/errors.ts` (MessageNotFoundError, MemberMutedError, MessageLimitExceededError, InvalidReplyTargetError)
   - Implement: Create `apps/api/src/services/message.service.ts` with IMessageService interface and MessageService class
