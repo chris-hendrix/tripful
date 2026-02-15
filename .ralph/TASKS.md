@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation (Database & Shared Package)
 
-- [ ] Task 1.1: Add database schemas, relations, and migration for messaging and notifications
+- [x] Task 1.1: Add database schemas, relations, and migration for messaging and notifications
   - Implement: Add `messages`, `message_reactions`, `notifications`, `notification_preferences`, `muted_members`, `sent_reminders` tables to `apps/api/src/db/schema/index.ts`
   - Implement: Add all Drizzle indexes (trip_toplevel partial, user_unread partial, sent_reminders_lookup)
   - Implement: Add relations for all new tables in `apps/api/src/db/schema/relations.ts` (extend existing tripsRelations/usersRelations + new messagesRelations, messageReactionsRelations, notificationsRelations, notificationPreferencesRelations, mutedMembersRelations, sentRemindersRelations)
