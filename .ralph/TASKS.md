@@ -176,7 +176,7 @@
 
 ## Phase 6: E2E Testing & Polish
 
-- [ ] Task 6.1: E2E tests for messaging flows
+- [x] Task 6.1: E2E tests for messaging flows
   - Test: Create `apps/web/tests/e2e/messaging.spec.ts`
   - Test: Post a message, verify it appears in feed
   - Test: Reply to a message, verify thread expands

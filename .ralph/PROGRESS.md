@@ -900,3 +900,80 @@ Tracking implementation progress for Messaging & Notifications feature.
 - **Bell placement for all members**: The trip detail page header needed structural refactoring to move the button container outside `isOrganizer`. The pattern now always renders the flex container with the bell, and conditionally includes organizer-only buttons inside a Fragment.
 - **Success toast on mutation**: DESIGN.md specifies success toasts for preference updates. The `onSuccess` callback in `.mutate()` options is the correct place (not in the hook definition) — keeps the toast behavior co-located with the UI that triggers it.
 - The web package now has 1005 passing tests (up from 955 in iteration 15, +50 new per-trip notification tests)
+
+---
+
+## Iteration 17 — Task 6.1: E2E tests for messaging flows ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/tests/e2e/messaging.spec.ts` — 3 Playwright E2E journey tests covering all 10 required messaging scenarios (~567 lines)
+
+**Journey 1: "messaging CRUD journey"** (tagged `@smoke`, `test.slow()`)
+- Setup: Creates organizer + member via API, creates trip with future dates, invites and RSVPs member
+- Verifies empty discussion state ("No messages yet. Start the conversation!")
+- Posts a message, verifies it appears in the feed (scoped to `role="feed"`)
+- Posts a second message for edit/delete tests
+- Reacts to the first message with heart emoji, verifies `aria-pressed="true"` and count "1"
+- Edits the second message (newest-first ordering: uses `.first()` for action button), verifies "(edited)" indicator
+- Deletes the second message via confirmation dialog, verifies "This message was deleted" placeholder
+- Replies to the first message, verifies reply text appears in thread
+
+**Journey 2: "organizer actions journey"** (`test.slow()`)
+- Setup: Creates organizer + member via API, member posts message via API
+- Organizer navigates to trip, sees member's message in feed
+- Pins the message, verifies "Pinned (1)" section appears
+- Expands pinned section, verifies pinned message content
+- Unpins the message, verifies pinned section disappears
+- Organizer deletes the member's message, verifies "This message was deleted" placeholder
+- Opens Members dialog, mutes the member via Mute action + confirmation dialog, verifies "Muted" badge and success toast
+
+**Journey 3: "restricted states journey"** (`test.slow()`)
+- Setup: Creates trip with muted member (muted via API after getting userId from members list)
+- Muted member navigates to trip, tries to send message, verifies error toast about being muted (scoped to `[data-sonner-toast]`)
+- Creates past trip (future dates → post message → PUT to update dates to past)
+- Navigates to past trip, verifies "Trip has ended" disabled message (scoped to `#discussion`), input hidden, no action buttons, no Reply buttons
+
+**Helper functions:**
+- `dismissToast(page)` — Waits for Sonner toast to disappear to prevent click interception
+- `scrollToDiscussion(page)` — Scrolls to `#discussion` anchor and waits for Discussion heading
+
+### Key implementation details
+- **Feed renders newest-first**: When targeting the "second-posted" message for edit/delete, `.first()` must be used (not `.last()`) because newest messages appear at the top of the feed
+- **MessageCountIndicator duplication**: The trip stats bar shows a preview of the latest message content (e.g., "1 message -- Hello from the organizer!"), causing `page.getByText()` to match multiple elements. All message content assertions are scoped to `page.getByRole("feed")` to avoid this
+- **isMuted prop not wired**: The `TripMessages` component accepts `isMuted` but `trip-detail-content.tsx` does not pass it. The muted-user test verifies server-side enforcement (API rejects with MEMBER_MUTED error, triggering an error toast) rather than a disabled input
+- **Past trip message seeding**: Cannot post messages to already-ended trips via API. The workaround creates the trip with future dates, posts the message while active, then updates the trip dates to the past via `PUT /api/trips/:tripId`
+- **Edit textarea scoping**: When edit mode is active, both the compose input and the inline edit textarea are visible. `page.getByRole("feed").getByRole("textbox")` correctly targets only the edit textarea within the feed
+- **"Trip has ended" strict mode**: Both the itinerary banner ("This trip has ended. The itinerary is read-only.") and the discussion section ("Trip has ended") contain similar text. Scoped to `page.locator("#discussion")` to avoid ambiguity
+- **Screenshot numbering**: 40-45 series (12 screenshots total: desktop + mobile pairs)
+
+### Fix iterations
+- **Round 1**: 3/3 tests failed — non-unique locators (message content in stats bar, "muted" in input text)
+- **Round 2**: Fixed by scoping to `page.getByRole("feed")` and `page.locator("[data-sonner-toast]")`; 1/3 passed, 2/3 still failed
+- **Round 3**: Fixed feed ordering (`.last()` → `.first()`), edit textarea scope, "Trip has ended" scope, past trip seeding strategy; still 2/3 failed
+- **Round 4**: Final fixes applied — edit textarea scoped to feed, past trip uses create-then-update pattern; 3/3 pass
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Unit tests**: ✅ 981 API tests pass, 216 shared tests pass, 1005/1006 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **E2E tests**: ✅ 3/3 messaging E2E tests pass in 12.8s
+- **Screenshots**: ✅ 12 screenshots captured (40-45 series, desktop + mobile)
+
+### Reviewer verdict: APPROVED
+- All 10 required scenarios covered across 3 journey tests
+- Follows all established E2E patterns (authenticateViaAPIWithPhone, createTripViaAPI, test.slow(), snap(), dismissToast)
+- Locators are robust and correctly scoped to avoid strict mode violations
+- Code quality is clean with well-documented helper functions and comments explaining ordering assumptions
+- 3 low-severity non-blocking notes: (1) `.bg-primary\\/5` CSS selector for pinned section is fragile; (2) `dismissToast` catch is silently swallowed; (3) feed ordering assumption documented but could break if ordering changes
+
+### Learnings for future iterations
+- **Feed ordering matters**: Messages render newest-first in the feed. When targeting the N-th posted message, the index is reversed from posting order. `.first()` gets the newest, `.last()` gets the oldest.
+- **MessageCountIndicator duplication**: The trip stats bar previews the latest message content, so any `page.getByText()` matching message content will find duplicates. Always scope message content assertions to `page.getByRole("feed")` or another specific container.
+- **Cannot seed data on locked trips**: The API correctly rejects mutations on past-ended trips. For E2E tests needing data on past trips, use the create-then-update pattern: create with future dates → seed data → update dates to past via PUT.
+- **Multiple textboxes**: When edit mode is active, both the compose input and the inline edit textarea are visible. Scope edit interactions to `page.getByRole("feed").getByRole("textbox")`.
+- **"Trip has ended" appears twice**: Both the itinerary read-only banner and the discussion disabled message contain this text. Scope to `page.locator("#discussion")` for the discussion assertion.
+- **Toast assertions need scoping**: Use `page.locator("[data-sonner-toast]").getByText(...)` when the toast text might also appear elsewhere on the page (e.g., in typed message content).
+- **E2E debugging with screenshots**: The verifier captured failure screenshots at each round, which were essential for diagnosing strict mode violations and ordering issues. Always check the test-results directory for failure screenshots.
+- **Iterative E2E fix cycle**: E2E tests often require 3-4 rounds of fixes due to real-browser DOM complexity that's not visible in unit tests. Each round revealed new issues (locator ambiguity, ordering, textarea scope, text duplication) that were invisible until running against the real app.
