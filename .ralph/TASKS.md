@@ -70,7 +70,7 @@
   - Test: Write unit tests for SMS service in `apps/api/tests/unit/sms.service.test.ts` (sendMessage delegation to provider)
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 3.2: Create notification API routes, controller, and integration tests
+- [x] Task 3.2: Create notification API routes, controller, and integration tests
   - Implement: Create `apps/api/src/controllers/notification.controller.ts`
   - Implement: Create `apps/api/src/routes/notification.routes.ts` with all notification endpoints (GET list/unread-count, PATCH read/read-all, GET trip-scoped list/unread-count, GET/PUT preferences)
   - Implement: Register notification routes and plugin in `apps/api/src/app.ts`

@@ -325,3 +325,67 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The `onConflictDoNothing()` with no arguments provides simple INSERT-or-skip idempotency
 - Test files that instantiate `MockSMSService()` without directly calling/spying on the method (e.g., invitation.service.test.ts, update-member-role.test.ts) do NOT need updates when renaming the method — they pass through to the real implementation
 - The API now has 925 total tests (up from 893 in iteration 5, +32 new notification tests)
+
+---
+
+## Iteration 7 — Task 3.2: Create notification API routes, controller, and integration tests ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/api/src/controllers/notification.controller.ts` — Notification controller with 8 handler methods following the established const-object pattern:
+  - `listNotifications` — GET /api/notifications (paginated, with unreadOnly and tripId query filters)
+  - `getUnreadCount` — GET /api/notifications/unread-count (global unread count for bell badge)
+  - `markAsRead` — PATCH /api/notifications/:notificationId/read (mark single notification read)
+  - `markAllAsRead` — PATCH /api/notifications/read-all (mark all read, optional tripId body param for scoping)
+  - `listTripNotifications` — GET /api/trips/:tripId/notifications (trip-scoped paginated list)
+  - `getTripUnreadCount` — GET /api/trips/:tripId/notifications/unread-count (trip-scoped unread count)
+  - `getPreferences` — GET /api/trips/:tripId/notification-preferences (returns defaults if none exist)
+  - `updatePreferences` — PUT /api/trips/:tripId/notification-preferences (upserts preferences)
+- Created `apps/api/src/routes/notification.routes.ts` — Route definitions with three-tier auth:
+  - 5 GET routes with `authenticate` + `defaultRateLimitConfig` preHandlers
+  - 2 PATCH mark-as-read routes with `authenticate` + `writeRateLimitConfig` (no requireCompleteProfile per architecture spec)
+  - 1 PUT preferences route in scoped register with `authenticate` + `requireCompleteProfile` + `writeRateLimitConfig`
+  - Local Zod schemas for params (tripIdParamsSchema, notificationIdParamsSchema), query (notificationQuerySchema, globalNotificationQuerySchema)
+  - Response schemas imported from `@tripful/shared/schemas`
+- Modified `apps/api/src/app.ts` — Added `notificationRoutes` import and registration with `/api` prefix after message routes
+- Created `apps/api/tests/integration/notification.routes.test.ts` — 30 integration tests covering all 8 endpoints
+
+### Key implementation details
+- Routes use `:notificationId` param naming (more explicit than architecture spec's `:id`) for consistency with `:tripId`, `:messageId`, `:memberId`
+- Three-tier auth middleware: GET routes need only `authenticate`, PATCH mark-as-read routes need `authenticate` + write rate limit, PUT preferences needs `authenticate` + `requireCompleteProfile` + write rate limit
+- The `markAllAsRead` route does NOT define a body schema because Fastify's Zod validation rejects PATCH requests with no body when a body schema is defined (even if `.optional()`). The controller safely accesses `request.body?.tripId` instead.
+- Controller maps service result to response shape: `{ data, meta, unreadCount }` → `{ success: true, notifications: data, meta, unreadCount }`
+- Test helpers `createTestData()` and `createNotification()` reduce duplication in the 30 tests
+- Used `...(tripId != null ? { tripId } : {})` spread pattern to satisfy `exactOptionalPropertyTypes` in TypeScript
+
+### Test coverage (30 tests)
+- **GET /api/notifications** (5 tests): paginated results, unreadOnly filter, empty list, tripId filter, 401 unauthenticated
+- **GET /api/notifications/unread-count** (3 tests): correct count, zero count, 401 unauthenticated
+- **PATCH /api/notifications/:notificationId/read** (4 tests): mark as read, 404 non-existent, 404 other user's, 401 unauthenticated
+- **PATCH /api/notifications/read-all** (3 tests): mark all read with verification, tripId scoping, 401 unauthenticated
+- **GET /api/trips/:tripId/notifications** (3 tests): trip-scoped list, cross-trip isolation, 401 unauthenticated
+- **GET /api/trips/:tripId/notifications/unread-count** (3 tests): trip-scoped count, cross-trip isolation, 401 unauthenticated
+- **GET /api/trips/:tripId/notification-preferences** (3 tests): defaults (all true), saved prefs, 401 unauthenticated
+- **PUT /api/trips/:tripId/notification-preferences** (6 tests): create, update, invalid body, missing fields, 401 unauthenticated, 403 incomplete profile
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 955 API tests pass (30 new), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **Notification route tests**: ✅ 30/30 pass in 1924ms
+
+### Reviewer verdict: APPROVED
+- All 8 endpoints from architecture spec implemented with correct HTTP methods, paths, auth, and schema validation
+- Controller follows const-object pattern with proper error handling
+- Routes correctly implement three-tier auth (read, mark-as-read, write)
+- Integration tests cover success paths, auth errors (401), permission errors (403), not-found errors (404), validation errors (400), and edge cases (empty results, filtering, cross-trip isolation)
+- app.ts properly imports and registers routes with /api prefix
+- 2 low-severity non-blocking notes: markAllAsRead body schema omitted for Fastify compatibility (controller handles safely), architecture spec deviation for trip-scoped unread count endpoint (logically needed for trip notification bell)
+
+### Learnings for future iterations
+- Fastify's Zod body schema validation rejects PATCH/POST requests with no Content-Type header when a body schema is defined, even if the schema is `.optional()`. For optional body params, it's safer to omit the body schema and handle it in the controller with `request.body?.field`.
+- The `...(x != null ? { key: x } : {})` spread pattern satisfies `exactOptionalPropertyTypes` when passing optional fields to service methods
+- Using descriptive param names (`:notificationId` vs `:id`) improves code readability and is consistent with the codebase convention
+- The three-tier auth pattern (read-only, write-without-profile, write-with-profile) provides flexibility for endpoints that need mutation but shouldn't require profile completion (like marking notifications as read)
+- The API now has 955 total tests (up from 925 in iteration 6, +30 new notification route tests)
