@@ -158,6 +158,13 @@ export const CannotMuteOrganizerError = createError(
   403,
 );
 
+// Notification errors
+export const NotificationNotFoundError = createError(
+  "NOTIFICATION_NOT_FOUND",
+  "Notification not found",
+  404,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
 export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);

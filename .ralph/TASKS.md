@@ -56,7 +56,7 @@
 
 ## Phase 3: Backend Notifications
 
-- [ ] Task 3.1: Refactor SMS service and create NotificationService with preferences
+- [x] Task 3.1: Refactor SMS service and create NotificationService with preferences
   - Implement: Refactor ISMSService in `apps/api/src/services/sms.service.ts` to a generic `sendMessage(phoneNumber: string, message: string)` interface, replacing `sendVerificationCode`. Update MockSMSService and all existing callers accordingly.
   - Implement: Add NotificationNotFoundError to `apps/api/src/errors.ts`
   - Implement: Create `apps/api/src/services/notification.service.ts` with INotificationService interface and NotificationService class

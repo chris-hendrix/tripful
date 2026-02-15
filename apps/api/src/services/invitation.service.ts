@@ -282,7 +282,7 @@ export class InvitationService implements IInvitationService {
 
     // Send SMS for each new phone (mock - just logs)
     for (const phone of newPhones) {
-      await this.smsService.sendVerificationCode(phone, "invite");
+      await this.smsService.sendMessage(phone, "You've been invited to a trip on Tripful!");
     }
 
     return { invitations: createdInvitations, skipped };

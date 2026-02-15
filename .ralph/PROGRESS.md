@@ -263,3 +263,65 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The `successResponseSchema` from `@tripful/shared/schemas` is reusable for any endpoint that returns `{ success: true }` without entity data
 - Route params like `memberId` in `/trips/:tripId/members/:memberId/mute` refer to user IDs, not the members table PK — this is consistent across the codebase (invitation routes use the same pattern)
 - The API now has 893 total tests (up from 873 in iteration 4)
+
+---
+
+## Iteration 6 — Task 3.1: Refactor SMS service and create NotificationService with preferences ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Refactored `apps/api/src/services/sms.service.ts` — Changed `ISMSService` interface from `sendVerificationCode(phoneNumber, code)` to `sendMessage(phoneNumber, message)`. Updated `MockSMSService` implementation to log `{ phoneNumber, message }` with label `"SMS Message Sent"`. SMS service is now a generic transport layer where callers format their own messages.
+- Modified `apps/api/src/controllers/auth.controller.ts` — Updated caller to `smsService.sendMessage(e164PhoneNumber, \`Your Tripful verification code is: ${code}\`)` (line 57)
+- Modified `apps/api/src/services/invitation.service.ts` — Updated caller to `smsService.sendMessage(phone, "You've been invited to a trip on Tripful!")` (line 285)
+- Added `NotificationNotFoundError` to `apps/api/src/errors.ts` in a new "Notification errors" section (404 status)
+- Created `apps/api/src/services/notification.service.ts` — Full `NotificationService` with `INotificationService` interface (~498 lines):
+  - **Queries**: `getNotifications` (paginated with `tripId` filter, `unreadOnly` filter, returns `unreadCount`), `getUnreadCount`, `getTripUnreadCount`
+  - **Mutations**: `markAsRead` (with ownership check, throws `NotificationNotFoundError`), `markAllAsRead` (with optional `tripId` scope)
+  - **Creation & Delivery**: `createNotification` (inserts notification + sends SMS if preference allows), `notifyTripMembers` (queries going members, checks individual preferences, creates notifications + SMS, supports `excludeUserId`)
+  - **Preferences**: `getPreferences` (returns defaults `{eventReminders: true, dailyItinerary: true, tripMessages: true}` when no row exists), `updatePreferences` (upsert via `onConflictDoUpdate`), `createDefaultPreferences` (idempotent via `onConflictDoNothing`)
+  - **Private helper**: `shouldSendSms` maps notification type to preference field (`event_reminder`→`eventReminders`, `daily_itinerary`→`dailyItinerary`, `trip_message`→`tripMessages`, `trip_update`→always send)
+- Created `apps/api/src/plugins/notification-service.ts` — Fastify plugin using `fastify-plugin` with dependencies `["database", "sms-service"]`, decorates `fastify.notificationService`
+- Modified `apps/api/src/types/index.ts` — Added `INotificationService` import and `notificationService: INotificationService` to FastifyInstance augmentation
+- Modified `apps/api/src/app.ts` — Added `notificationServicePlugin` import and registration after `messageServicePlugin`
+- Rewrote `apps/api/tests/unit/sms.service.test.ts` — 7 tests for `sendMessage` interface (method existence, no-logger behavior, logger.info call, phone/message in log output, different message content, log label)
+- Created `apps/api/tests/unit/notification.service.test.ts` — 32 tests covering all service methods:
+  - `createNotification` (4 tests): basic creation, data field, global notification, SMS delivery
+  - `getNotifications` (6 tests): pagination, tripId filter, unreadOnly filter, unreadCount, empty results, DESC ordering
+  - `getUnreadCount` (2 tests): correct count, zero after read
+  - `getTripUnreadCount` (2 tests): trip-scoped count, zero for different trip
+  - `markAsRead` (3 tests): success, non-existent notification, wrong user
+  - `markAllAsRead` (3 tests): all read, trip-scoped, user isolation
+  - `notifyTripMembers` (5 tests): all going members, excludeUserId, preference-based SMS gating (positive + negative), SMS delivery verification
+  - `getPreferences` (2 tests): stored values, defaults
+  - `updatePreferences` (3 tests): upsert insert, upsert update, return values
+  - `createDefaultPreferences` (2 tests): creation, idempotency
+
+### Key implementation details
+- NotificationService constructor takes `(db: AppDatabase, smsService: ISMSService)` — no PermissionsService needed since it directly queries members table for going status
+- The `notifyTripMembers` method queries `members INNER JOIN users WHERE status='going'`, then iterates to create individual notifications via `createNotification`, which handles SMS delivery internally
+- Preference-based SMS gating: for each notification type, checks if the user has preferences stored; if no row exists, defaults to all-true (send SMS). For `trip_update` type, always sends regardless of preferences.
+- The `shouldSendSms` method handles the type-to-preference-field mapping and also accepts preferences with no row (defaults to true for all types)
+- `updatePreferences` uses Drizzle's `onConflictDoUpdate` targeting `[notificationPreferences.userId, notificationPreferences.tripId]` for proper upsert
+- `createDefaultPreferences` uses `onConflictDoNothing` for idempotency (safe to call multiple times)
+- Internal `NotificationResult` uses `Date` objects (matching Drizzle return types); the controller layer (Task 3.2) will handle serialization to string dates
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 925 API tests pass (32 new notification + 7 rewritten SMS), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **No stale references**: Zero remaining `sendVerificationCode` references in apps/ directory
+
+### Reviewer verdict: APPROVED
+- All requirements from task spec met: SMS refactor complete, NotificationService complete, plugin registered, tests comprehensive
+- SMS refactor correctly applied across all 3 source files (sms.service.ts, auth.controller.ts, invitation.service.ts) and test file
+- NotificationService follows codebase patterns exactly (ESM .js extensions, @/ path aliases, fastify-plugin, error pattern)
+- 32 unit tests cover all interface methods including edge cases (ownership checks, preference defaults, idempotency)
+- 2 low-severity non-blocking notes: `totalPages` in `getNotifications` doesn't account for `unreadOnly` filter (acceptable UX tradeoff); `NotificationResult.data` uses `unknown` vs shared type's `Record<string, unknown> | null` (internal type, controller will handle mapping)
+
+### Learnings for future iterations
+- **CRITICAL**: When the coder agent creates new files, it may NOT apply edits to existing files. Always verify ALL modifications were actually applied — check each file listed in the task's "files to modify" list after the coder finishes. In this iteration, the coder created 3 new files correctly but missed all 7 existing file edits.
+- The `onConflictDoUpdate` upsert in Drizzle targets columns (not constraint names) via array: `target: [table.col1, table.col2]`
+- The `onConflictDoNothing()` with no arguments provides simple INSERT-or-skip idempotency
+- Test files that instantiate `MockSMSService()` without directly calling/spying on the method (e.g., invitation.service.test.ts, update-member-role.test.ts) do NOT need updates when renaming the method — they pass through to the real implementation
+- The API now has 925 total tests (up from 893 in iteration 5, +32 new notification tests)
