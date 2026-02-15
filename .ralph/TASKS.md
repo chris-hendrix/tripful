@@ -98,7 +98,7 @@
 
 ## Phase 4: Frontend Messaging
 
-- [ ] Task 4.1: Create messaging TanStack Query hooks with optimistic updates
+- [x] Task 4.1: Create messaging TanStack Query hooks with optimistic updates
   - Implement: Create `apps/web/src/hooks/use-messages.ts` with messageKeys factory
   - Implement: Implement useMessages(tripId, enabled) with 5s polling via refetchInterval
   - Implement: Implement useMessageCount(tripId) and useLatestMessage(tripId) with 30s polling

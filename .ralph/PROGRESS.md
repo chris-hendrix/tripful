@@ -504,3 +504,74 @@ Tracking implementation progress for Messaging & Notifications feature.
 - Cross-service side-effect calls should be error-isolated (try/catch) when the side effect is non-critical (notifications should not break message creation), but may be left un-wrapped when the operation is inherently safe (idempotent via `onConflictDoNothing()`)
 - Unit test files that instantiate services with real implementations (not mocks) need their constructor calls updated when new dependencies are added — check ALL test files in `tests/unit/` that construct the modified services
 - The API now has 981 total tests (up from 976 in iteration 8, +5 new notification hooks integration tests)
+
+---
+
+## Iteration 10 — Task 4.1: Create messaging TanStack Query hooks with optimistic updates ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/src/hooks/message-queries.ts` — Server-safe module (no `"use client"`) with:
+  - `messageKeys` query key factory with keys for: `all`, `lists`, `list(tripId)`, `count(tripId)`, `latest(tripId)`, `create`, `update`, `delete`, `pin`, `reaction`, `mute`, `unmute`
+  - `messagesQueryOptions(tripId)` — returns full `GetMessagesResponse` (messages + meta) with 30s staleTime, `enabled: !!tripId`
+  - `messageCountQueryOptions(tripId)` — returns `number` with 30s staleTime
+  - `latestMessageQueryOptions(tripId)` — returns `Message | null` with 30s staleTime
+- Created `apps/web/src/hooks/use-messages.ts` — Client-side `"use client"` module (~1028 lines) with:
+  - **Query hooks**:
+    - `useMessages(tripId, options?)` — paginated messages with 5s `refetchInterval` gated by `enabled` param
+    - `useMessageCount(tripId)` — count with 30s `refetchInterval` polling
+    - `useLatestMessage(tripId)` — latest message with 30s `refetchInterval` polling
+  - **Mutation hooks with full optimistic updates** (onMutate → onError rollback → onSettled invalidation):
+    - `useCreateMessage(tripId)` — optimistic add with temp ID to messages list, count +1, latest cache update
+    - `useEditMessage(tripId)` — optimistic content + editedAt update (handles both top-level and replies)
+    - `useDeleteMessage(tripId)` — optimistic soft delete (sets deletedAt, clears content, does NOT remove from list)
+    - `useToggleReaction(tripId)` — optimistic toggle using `toggleReactionInList` helper (add/remove/increment/decrement)
+    - `usePinMessage(tripId)` — optimistic isPinned toggle
+  - **Simple mutations** (no optimistic update):
+    - `useMuteMember(tripId)` — POST mute, invalidates `memberKeys.list` on settle
+    - `useUnmuteMember(tripId)` — DELETE mute, invalidates `memberKeys.list` on settle
+  - **Error helper functions** (one per mutation):
+    - `getCreateMessageErrorMessage` — PERMISSION_DENIED, MEMBER_MUTED, MESSAGE_LIMIT_EXCEEDED, INVALID_REPLY_TARGET, NOT_FOUND, VALIDATION_ERROR, UNAUTHORIZED
+    - `getEditMessageErrorMessage` — PERMISSION_DENIED, MESSAGE_NOT_FOUND, MEMBER_MUTED, VALIDATION_ERROR, UNAUTHORIZED
+    - `getDeleteMessageErrorMessage` — PERMISSION_DENIED, MESSAGE_NOT_FOUND, UNAUTHORIZED
+    - `getToggleReactionErrorMessage` — PERMISSION_DENIED, MESSAGE_NOT_FOUND, MEMBER_MUTED, VALIDATION_ERROR, UNAUTHORIZED
+    - `getPinMessageErrorMessage` — PERMISSION_DENIED, MESSAGE_NOT_FOUND, UNAUTHORIZED
+    - `getMuteMemberErrorMessage` — PERMISSION_DENIED, ALREADY_MUTED, CANNOT_MUTE_ORGANIZER, NOT_FOUND, UNAUTHORIZED
+    - `getUnmuteMemberErrorMessage` — PERMISSION_DENIED, NOT_MUTED, NOT_FOUND, UNAUTHORIZED
+  - Re-exports of all `message-queries.ts` exports + types for backward compatibility
+
+### Key implementation details
+- Follows the established two-file pattern (`*-queries.ts` + `use-*.ts`) matching `event-queries.ts`/`use-events.ts` and `invitation-queries.ts`/`use-invitations.ts`
+- `messagesQueryOptions` returns the full `GetMessagesResponse` (messages + meta with pagination info), not just the messages array — consumers need pagination meta for "Load more" UI
+- Optimistic create builds a full `MessageWithReplies` with `id: "temp-" + Date.now()`, empty replies array, replyCount 0, and placeholder author info
+- Optimistic delete sets `deletedAt` and clears `content` to empty string (soft delete placeholder), does NOT remove from list — matching backend behavior where soft-deleted messages appear as placeholders
+- `toggleReactionInList` pure helper handles all three cases: (1) user already reacted → decrement count, set reacted=false, remove if count=0; (2) emoji exists but user hasn't reacted → increment, set reacted=true; (3) new emoji → append new ReactionSummary entry
+- `useEditMessage`, `useDeleteMessage`, and `useToggleReaction` all traverse both top-level messages AND their nested `.replies[]` arrays for thorough optimistic cache updates
+- Cross-query invalidation: create/delete invalidate list + count + latest; edit/pin/reaction invalidate list only
+- `memberKeys` imported from `./invitation-queries` for mute/unmute cache invalidation (that's where memberKeys is defined and exported)
+- This is the first use of `refetchInterval` in the codebase — a new pattern for messaging-specific polling
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 981 API tests pass, 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **Git status**: ✅ Only 2 untracked files, zero existing files modified
+
+### Reviewer verdict: APPROVED
+- All 10 required hooks implemented per architecture spec
+- Two-file split with `"use client"` directive correctly applied
+- Polling intervals correct (5s messages, 30s count/latest)
+- Optimistic updates follow correct three-step pattern (onMutate → onError rollback → onSettled invalidation)
+- Simple mutations for mute/unmute (no optimistic update, matching invitation pattern)
+- Error helper functions provided for each mutation with correct error codes
+- Re-exports from use-messages.ts present for backward compatibility
+- 3 low-severity non-blocking notes: (1) key factory uses flat structure matching codebase convention over architecture spec pseudo-code; (2) usePinMessage doesn't traverse replies for optimistic update (pinning is top-level only per spec); (3) useDeleteMessage doesn't optimistically decrement count (soft delete placeholder remains in list, count will sync on onSettled)
+
+### Learnings for future iterations
+- `refetchInterval` is a new pattern in this codebase, introduced for messaging polling (5s for message feed, 30s for count/latest) — future features may reference this pattern
+- The two-file split pattern (`*-queries.ts` for server-safe + `use-*.ts` for client hooks) is consistent across all domains and should always be followed for new hook files
+- `memberKeys` is exported from `invitation-queries.ts`, not from a dedicated member queries file — this is the existing convention for member-related query keys
+- For paginated endpoints, returning the full response object (including `meta`) from `queryOptions` is more flexible than extracting just the data array — consumers can access pagination info for load-more/infinite-scroll UI
+- Optimistic updates for deeply nested data (messages → replies) require traversing both levels of the data structure — all mutations that can target replies must include the nested `.replies.map()` logic
+- No new tests were needed for this task since the task spec only requires `pnpm typecheck` verification — hook tests will be added if specified in a future task
