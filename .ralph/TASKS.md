@@ -165,7 +165,7 @@
   - Test: Verify components compile with `pnpm typecheck`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 5.3: Build per-trip notification bell, dialog with tabs, and preferences
+- [x] Task 5.3: Build per-trip notification bell, dialog with tabs, and preferences
   - Implement: Create `apps/web/src/components/notifications/notification-preferences.tsx` (3 toggle switches using shadcn Switch, immediate save on toggle, footer note about SMS)
   - Implement: Create `apps/web/src/components/notifications/trip-notification-bell.tsx` (bell icon + badge for trip-scoped unread count)
   - Implement: Create `apps/web/src/components/notifications/trip-notification-dialog.tsx` (Dialog with Tabs: Notifications list + Preferences tab, mark all read, pagination)

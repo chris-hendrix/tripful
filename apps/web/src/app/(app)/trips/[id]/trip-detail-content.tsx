@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
+import { TripNotificationBell } from "@/components/notifications";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
@@ -213,32 +214,35 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
-            {isOrganizer && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  onClick={() => setIsInviteOpen(true)}
-                  onMouseEnter={preloadInviteMembersDialog}
-                  onFocus={preloadInviteMembersDialog}
-                  variant="outline"
-                  size="sm"
-                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite
-                </Button>
-                <Button
-                  onClick={() => setIsEditOpen(true)}
-                  onMouseEnter={preloadEditTripDialog}
-                  onFocus={preloadEditTripDialog}
-                  variant="outline"
-                  size="sm"
-                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Edit trip
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <TripNotificationBell tripId={tripId} />
+              {isOrganizer && (
+                <>
+                  <Button
+                    onClick={() => setIsInviteOpen(true)}
+                    onMouseEnter={preloadInviteMembersDialog}
+                    onFocus={preloadInviteMembersDialog}
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite
+                  </Button>
+                  <Button
+                    onClick={() => setIsEditOpen(true)}
+                    onMouseEnter={preloadEditTripDialog}
+                    onFocus={preloadEditTripDialog}
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Edit trip
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-lg text-muted-foreground mb-4">

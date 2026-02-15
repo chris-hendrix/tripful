@@ -847,3 +847,56 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The `useNotifications({ limit: 10 })` hook handles pagination server-side; the dropdown only shows the first page of results
 - The pre-existing accommodation-card.test.tsx failure continues across all iterations — it tests "3 nights" text that was removed in a component redesign (commit 162b7ed)
 - The web package now has 955 passing tests (up from 940 in iteration 14, +15 new notification bell tests)
+
+---
+
+## Iteration 16 — Task 5.3: Build per-trip notification bell, dialog with tabs, and preferences ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/src/components/notifications/notification-preferences.tsx` — Three toggle switches (Event Reminders, Daily Itinerary, Trip Messages) using shadcn Switch component. Each toggle immediately saves via `useUpdateNotificationPreferences(tripId)` mutation, sending the full preferences object with the toggled field changed. Includes loading skeletons, success toast on save ("Preferences updated"), error toast with `getUpdatePreferencesErrorMessage`, and SMS footer note ("Notifications are sent in-app and via SMS to your phone number."). Labels linked to switches via `htmlFor`/`id` for accessibility.
+- Created `apps/web/src/components/notifications/trip-notification-bell.tsx` — Per-trip bell icon button with unread count badge, using `useTripUnreadCount(tripId)` hook. Badge displays "9+" when count exceeds 9, hidden when 0 or undefined. Badge uses `bg-destructive` color with `badgePulse` animation (matching global NotificationBell pattern). Opens `TripNotificationDialog` on click via controlled Dialog state. Dynamic `aria-label`: "Trip notifications, X unread" or "Trip notifications".
+- Created `apps/web/src/components/notifications/trip-notification-dialog.tsx` — Dialog (not Popover) with two tabs (Notifications + Preferences) using shadcn Dialog + Tabs components. Notifications tab: fetches trip-scoped notifications via `useNotifications({ tripId, limit: PAGE_SIZE * page })`, renders NotificationItem list with click handler (marks as read if unread, navigates to trip with `#discussion` hash for trip_message type, closes dialog), "Mark all as read" button scoped to tripId via `markAllAsRead.mutate({ tripId })`, "Load more" pagination button that increases the limit, loading skeleton state, empty state with Bell icon. Preferences tab: renders NotificationPreferences component. DialogTitle uses Playfair font matching existing dialog convention.
+- Installed `apps/web/src/components/ui/switch.tsx` — shadcn/ui Switch component via `pnpm dlx shadcn@latest add switch`.
+- Modified `apps/web/src/components/notifications/index.ts` — Added 3 new exports: `NotificationPreferences`, `TripNotificationBell`, `TripNotificationDialog`.
+- Modified `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Restructured the trip header button area so `TripNotificationBell` renders for ALL members (not just organizers), while Invite/Edit buttons remain inside the `isOrganizer` conditional. The flex container always renders with the bell, and organizer-only buttons are inside a Fragment.
+- Modified `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — Added mock for `TripNotificationBell` and 5 new tests: bell renders with correct tripId for organizer, bell renders for non-organizer members, bell not rendered in preview/error/loading states.
+
+### Key implementation details
+- **Dialog vs Popover**: The global NotificationBell uses Popover; the per-trip TripNotificationBell uses Dialog (controlled via state). Dialog is appropriate because it contains tabs with substantial content (notification list + preferences).
+- **Pagination via limit increase**: Instead of traditional page-based pagination, the "Load more" increases the `limit` parameter (PAGE_SIZE * page counter) to fetch more results. This approach avoids complex page state management with optimistic updates (mark-as-read could shift items between pages).
+- **Success toast on preference save**: Added `onSuccess: () => toast.success("Preferences updated")` per DESIGN.md specification (line 376). Error toast uses `getUpdatePreferencesErrorMessage` + fallback message.
+- **TripNotificationBell placement**: Moved outside the `isOrganizer` conditional so all going members see it. The `flex items-center gap-2 shrink-0` container now always renders, containing the bell and conditionally rendering Invite/Edit buttons.
+- **Notification click in trip context**: Since user is already on the trip page, `trip_message` notifications navigate to `#discussion` hash (scroll to discussion), and other notification types navigate to the trip page (essentially a refresh). Dialog closes after click.
+- **Switch component**: Installed via shadcn CLI (`pnpm dlx shadcn@latest add switch`). Standard Radix UI primitive with proper checked/unchecked states.
+
+### Test coverage (50 new tests across 4 files)
+- **trip-notification-bell.test.tsx** (15 tests): bell icon rendering, badge with count (> 0, = 0, > 9, undefined), aria-labels ("Trip notifications, X unread"), tripId propagation, dialog opening on click, notification click (mark read + navigate + close), discussion hash navigation for trip_message type, already-read notification skip, mark all as read with tripId
+- **trip-notification-dialog.test.tsx** (19 tests): dialog title, Notifications/Preferences tabs, default tab active, empty state, loading state, notifications list rendering, "Mark all as read" visibility (shown when unread, hidden when all read), mark all as read calls with tripId, notification click (mark read + navigate + close), discussion hash for trip_message, already-read skip, Preferences tab switching, preference descriptions visible, closed dialog renders nothing, "Load more" button visibility (shown when more, hidden when all loaded), Load more increases limit
+- **notification-preferences.test.tsx** (11 tests): three toggle labels, descriptions, SMS footer note, loading skeletons, tripId propagation, switch checked state (true/false), toggle mutations for all 3 preferences (eventReminders, dailyItinerary, tripMessages) with full preferences object, success toast on mutation success, error toast on mutation failure
+- **trip-detail-content.test.tsx** (5 new tests): bell renders for organizer, bell renders for non-organizer, bell excluded from preview/error/loading states
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 1005 web tests pass (50 new), 981 API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+- **New component tests**: ✅ 50/50 pass across 4 test files
+
+### Reviewer verdict: APPROVED
+- All task requirements met including pagination ("Load more" button)
+- Excellent pattern consistency with global NotificationBell (badge logic, aria labels, pulse animation)
+- Correct hook API usage for all 6 notification hooks
+- TripNotificationBell correctly placed outside isOrganizer conditional for all members
+- Dialog + Tabs combination is the first in the codebase — clean implementation
+- Accessibility: proper aria-labels, htmlFor/id switch-label association, sr-only DialogDescription
+- Success toast added per DESIGN.md spec
+- Comprehensive test coverage with correct mock patterns
+
+### Learnings for future iterations
+- **Dialog + Tabs**: This is the first Dialog + Tabs combination in the codebase. The pattern is: controlled Dialog via `open`/`onOpenChange` props, with `<Tabs defaultValue="...">` inside `<DialogContent>`. TabsList gets `className="w-full"` for full-width tab bar.
+- **Switch component**: Had to be installed via `pnpm dlx shadcn@latest add switch` — it wasn't in the project before. Standard Radix primitive with `checked`/`onCheckedChange` props and `data-state="checked"/"unchecked"` for testing.
+- **Pagination via limit increase**: For optimistic-update-heavy lists (notifications with mark-as-read), increasing the `limit` parameter instead of paginating by `page` avoids items shifting between pages. The tradeoff is potentially fetching redundant data, but for a dialog showing at most ~100 notifications this is acceptable.
+- **Bell placement for all members**: The trip detail page header needed structural refactoring to move the button container outside `isOrganizer`. The pattern now always renders the flex container with the bell, and conditionally includes organizer-only buttons inside a Fragment.
+- **Success toast on mutation**: DESIGN.md specifies success toasts for preference updates. The `onSuccess` callback in `.mutate()` options is the correct place (not in the hook definition) — keeps the toast behavior co-located with the UI that triggers it.
+- The web package now has 1005 passing tests (up from 955 in iteration 15, +50 new per-trip notification tests)
