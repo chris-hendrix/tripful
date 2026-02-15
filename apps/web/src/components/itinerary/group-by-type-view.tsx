@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Home, Car, Utensils, Calendar, Plane } from "lucide-react";
+import { Building2, Car, Utensils, Calendar, PlaneLanding, PlaneTakeoff } from "lucide-react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
@@ -96,7 +96,7 @@ export function GroupByTypeView({
     () => [
       {
         title: "Accommodations",
-        icon: Home,
+        icon: Building2,
         iconClassName: "",
         color: "text-[var(--color-accommodation)]",
         bgColor: "bg-[var(--color-accommodation-light)]",
@@ -105,8 +105,8 @@ export function GroupByTypeView({
       },
       {
         title: "Arrivals",
-        icon: Plane,
-        iconClassName: "rotate-90",
+        icon: PlaneLanding,
+        iconClassName: "",
         color: "text-[var(--color-member-travel)]",
         bgColor: "bg-[var(--color-member-travel-light)]",
         items: groupedEvents.arrivals,
@@ -141,8 +141,8 @@ export function GroupByTypeView({
       },
       {
         title: "Departures",
-        icon: Plane,
-        iconClassName: "-rotate-90",
+        icon: PlaneTakeoff,
+        iconClassName: "",
         color: "text-[var(--color-member-travel)]",
         bgColor: "bg-[var(--color-member-travel-light)]",
         items: groupedEvents.departures,
