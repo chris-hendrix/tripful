@@ -27,7 +27,7 @@ export const TripLockedError = createError(
 export const MemberLimitExceededError = createError(
   "MEMBER_LIMIT_EXCEEDED",
   "%s",
-  409,
+  400,
 );
 export const CoOrganizerNotFoundError = createError(
   "CO_ORGANIZER_NOT_FOUND",

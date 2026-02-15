@@ -565,7 +565,7 @@ Readiness probe. Returns 503 if database is disconnected.
 | `MEMBER_NOT_FOUND` | 404 | Member not found |
 | `CO_ORGANIZER_NOT_IN_TRIP` | 404 | Co-organizer not in trip |
 | `DUPLICATE_MEMBER` | 409 | Already a trip member |
-| `MEMBER_LIMIT_EXCEEDED` | 409 | Max 25 members per trip |
+| `MEMBER_LIMIT_EXCEEDED` | 400 | Max 25 members per trip |
 | `EVENT_CONFLICT` | 409 | Event time conflict |
 | `ACCOUNT_LOCKED` | 429 | Too many failed attempts |
 | `RATE_LIMIT_EXCEEDED` | 429 | Rate limit exceeded |

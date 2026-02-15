@@ -1,19 +1,15 @@
-import { randomInt } from "crypto";
-
-// Counter for guaranteed uniqueness within same process
-let phoneCounter = 0;
+import { randomInt, randomUUID } from "crypto";
 
 /**
  * Generates a unique phone number for testing
- * Uses timestamp + counter + random to ensure uniqueness across all test runs
+ * Uses UUID-derived digits for guaranteed uniqueness across parallel workers and test files
  * @returns A unique phone number in E.164 format starting with +1555
  */
 export function generateUniquePhone(): string {
-  // Use timestamp (last 4 digits) + counter (3 digits) + random (3 digits) for guaranteed uniqueness
-  const timestamp = Date.now() % 10000; // Last 4 digits of timestamp
-  const counter = (++phoneCounter % 1000).toString().padStart(3, "0");
-  const random = randomInt(100, 1000); // 3 random digits
-  return `+1555${timestamp}${counter}${random}`;
+  // Extract 10 hex digits from a UUID and convert to decimal digits
+  const hex = randomUUID().replace(/-/g, "").slice(0, 10);
+  const digits = BigInt("0x" + hex) % 10000000000n;
+  return `+1555${digits.toString().padStart(10, "0")}`;
 }
 
 /**

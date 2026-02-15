@@ -918,9 +918,14 @@ export async function buildApp(
 
   // 4. Error handler + routes
   fastify.setErrorHandler(errorHandler);
+  await fastify.register(healthRoutes, { prefix: "/api/health" });
   await fastify.register(authRoutes, { prefix: "/api/auth" });
   await fastify.register(tripRoutes, { prefix: "/api/trips" });
-  await fastify.register(healthRoutes, { prefix: "/api/health" });
+  await fastify.register(eventRoutes, { prefix: "/api" });
+  await fastify.register(accommodationRoutes, { prefix: "/api" });
+  await fastify.register(memberTravelRoutes, { prefix: "/api" });
+  await fastify.register(invitationRoutes, { prefix: "/api" });
+  await fastify.register(userRoutes, { prefix: "/api/users" });
 
   return fastify;
 }
@@ -1763,7 +1768,7 @@ Response (200):
 
 #### Trips (✅ Implemented)
 
-**File:** `apps/api/src/routes/trips.routes.ts`
+**File:** `apps/api/src/routes/trip.routes.ts`
 
 **1. List User's Trips**
 
@@ -1774,35 +1779,39 @@ Authentication: Required
 Response (200):
   {
     "success": true,
-    "data": {
-      "trips": [
-        {
-          "id": "uuid",
-          "name": "Summer Vacation",
-          "destination": "Hawaii",
-          "startDate": "2026-07-01",
-          "endDate": "2026-07-10",
-          "preferredTimezone": "Pacific/Honolulu",
-          "description": "Beach vacation with friends",
-          "coverImageUrl": "https://example.com/image.jpg",
-          "allowMembersToAddEvents": true,
-          "cancelled": false,
-          "createdBy": "uuid",
-          "createdAt": "2026-02-01T...",
-          "updatedAt": "2026-02-01T...",
-          "isOrganizer": true,
-          "rsvpStatus": "going",
-          "organizerInfo": [
-            {
-              "id": "uuid",
-              "displayName": "John Doe",
-              "profilePhotoUrl": null
-            }
-          ],
-          "memberCount": 5,
-          "eventCount": 12
-        }
-      ]
+    "data": [
+      {
+        "id": "uuid",
+        "name": "Summer Vacation",
+        "destination": "Hawaii",
+        "startDate": "2026-07-01",
+        "endDate": "2026-07-10",
+        "preferredTimezone": "Pacific/Honolulu",
+        "description": "Beach vacation with friends",
+        "coverImageUrl": "https://example.com/image.jpg",
+        "allowMembersToAddEvents": true,
+        "cancelled": false,
+        "createdBy": "uuid",
+        "createdAt": "2026-02-01T...",
+        "updatedAt": "2026-02-01T...",
+        "isOrganizer": true,
+        "rsvpStatus": "going",
+        "organizerInfo": [
+          {
+            "id": "uuid",
+            "displayName": "John Doe",
+            "profilePhotoUrl": null
+          }
+        ],
+        "memberCount": 5,
+        "eventCount": 12
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 50,
+      "total": 1,
+      "totalPages": 1
     }
   }
 
@@ -2444,7 +2453,7 @@ GET    /api/health/ready
 | `MEMBER_NOT_FOUND` | 404 | Member not found |
 | `CO_ORGANIZER_NOT_IN_TRIP` | 404 | Co-organizer not found in trip |
 | `DUPLICATE_MEMBER` | 409 | User is already a member of the trip |
-| `MEMBER_LIMIT_EXCEEDED` | 409 | Maximum 25 members per trip reached |
+| `MEMBER_LIMIT_EXCEEDED` | 400 | Maximum 25 members per trip reached |
 | `EVENT_CONFLICT` | 409 | Event time conflicts with existing event |
 | `ACCOUNT_LOCKED` | 429 | Too many failed verification attempts |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
