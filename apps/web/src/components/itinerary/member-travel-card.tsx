@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Clock, MapPin, PlaneLanding, PlaneTakeoff } from "lucide-react";
 import type { MemberTravel } from "@tripful/shared/types";
 import { formatInTimezone } from "@/lib/utils/timezone";
@@ -10,12 +11,12 @@ interface MemberTravelCardProps {
   timezone: string;
   canEdit: boolean;
   canDelete: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  onEdit?: (memberTravel: MemberTravel) => void;
+  onDelete?: (memberTravel: MemberTravel) => void;
   showDate?: boolean;
 }
 
-export function MemberTravelCard({
+export const MemberTravelCard = memo(function MemberTravelCard({
   memberTravel,
   memberName,
   timezone,
@@ -38,13 +39,13 @@ export function MemberTravelCard({
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
       className={`rounded-lg py-1.5 px-2 transition-all ${isClickable ? "hover:bg-muted/50 cursor-pointer" : ""}`}
-      onClick={isClickable ? onEdit : undefined}
+      onClick={isClickable ? () => onEdit?.(memberTravel) : undefined}
       onKeyDown={
         isClickable
           ? (e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onEdit?.();
+                onEdit?.(memberTravel);
               }
             }
           : undefined
@@ -82,4 +83,4 @@ export function MemberTravelCard({
       </div>
     </div>
   );
-}
+});

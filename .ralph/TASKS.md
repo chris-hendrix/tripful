@@ -142,7 +142,7 @@
   - Test: Run integration tests to ensure optimizations don't break functionality
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 6.2: Audit and optimize frontend performance
+- [x] Task 6.2: Audit and optimize frontend performance
   - Implement: Review TanStack Query hook configurations (staleTime, gcTime, refetchOnWindowFocus)
   - Implement: Ensure appropriate caching for stable data (members list, trip details)
   - Implement: Check for unnecessary re-renders in key components (itinerary views, member lists)

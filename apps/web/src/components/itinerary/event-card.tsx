@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Calendar, Clock, MapPin, ExternalLink, Users } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,8 @@ interface EventCardProps {
   timezone: string;
   canEdit: boolean;
   canDelete: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  onEdit?: (event: Event) => void;
+  onDelete?: (event: Event) => void;
   createdByName?: string | undefined;
   showDate?: boolean;
 }
@@ -36,7 +36,7 @@ const EVENT_TYPE_CONFIG = {
   },
 } as const;
 
-export function EventCard({
+export const EventCard = memo(function EventCard({
   event,
   timezone,
   canEdit,
@@ -202,7 +202,7 @@ export function EventCard({
                   variant="outline"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onEdit();
+                    onEdit(event);
                   }}
                   className="h-9 sm:h-8 text-xs"
                   title="Edit event"
@@ -216,7 +216,7 @@ export function EventCard({
                   variant="destructive"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete();
+                    onDelete(event);
                   }}
                   className="h-9 sm:h-8 text-xs"
                   title="Delete event"
@@ -230,4 +230,4 @@ export function EventCard({
       )}
     </div>
   );
-}
+});

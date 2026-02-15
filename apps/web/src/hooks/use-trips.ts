@@ -358,9 +358,9 @@ export function useUpdateTrip() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: (_data, _error, { tripId }) => {
+    onSettled: () => {
+      // tripKeys.all (["trips"]) prefix-matches all trip queries including details
       queryClient.invalidateQueries({ queryKey: tripKeys.all });
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
     },
   });
 }
@@ -477,8 +477,13 @@ export function useCancelTrip() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+    onSettled: (_data, _error, tripId) => {
+      // Only invalidate the trips list (exact match) and the specific cancelled trip
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
     },
   });
 }

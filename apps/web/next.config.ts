@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@tripful/shared"],
   reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["lucide-react", "date-fns"],
   },
   async rewrites() {
     return [

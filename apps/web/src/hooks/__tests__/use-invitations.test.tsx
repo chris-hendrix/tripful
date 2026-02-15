@@ -513,6 +513,7 @@ describe("useUpdateRsvp", () => {
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ["trips"],
+        exact: true,
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ["members", "list", "trip-123"],
@@ -829,6 +830,7 @@ describe("useUpdateMemberRole", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["trips"],
+      exact: true,
     });
   });
 });

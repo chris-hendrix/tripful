@@ -511,3 +511,94 @@ All new methods added to the `IPermissionsService` interface. Original methods p
 - Index naming convention: `{table_name}_{col1}_{col2}_idx` — consistent with existing single-column indexes
 - No new tests were needed — all optimizations are internal implementation changes that preserve identical external behavior, validated by the existing 778 API tests
 - Test count: unchanged at 1,820 (shared: 197, api: 778, web: 845)
+
+## Iteration 12 — Task 6.2: Audit and optimize frontend performance
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+
+**1. Scoped TanStack Query cache invalidations to specific trips** (5 files):
+- `use-events.ts`: Changed `useUpdateEvent`, `useDeleteEvent`, `useRestoreEvent` `onSettled` handlers to invalidate `eventKeys.list(tripId)` instead of broad `eventKeys.lists()` which prefix-matched ALL trips' event lists
+- `use-accommodations.ts`: Same pattern — scoped `useUpdateAccommodation`, `useDeleteAccommodation`, `useRestoreAccommodation` to `accommodationKeys.list(tripId)`
+- `use-member-travel.ts`: Same pattern — scoped `useUpdateMemberTravel`, `useDeleteMemberTravel`, `useRestoreMemberTravel` to `memberTravelKeys.list(tripId)`
+- `use-trips.ts`: Removed redundant `tripKeys.detail(tripId)` invalidation from `useUpdateTrip` (already covered by `tripKeys.all` prefix match). Changed `useCancelTrip` to use `{ queryKey: tripKeys.all, exact: true }` + specific `tripKeys.detail(tripId)` instead of broad `tripKeys.all`
+- `use-invitations.ts`: Changed `useRemoveMember`, `useUpdateMemberRole`, `useUpdateRsvp` to use `{ queryKey: tripKeys.all, exact: true }` to avoid invalidating all trip detail queries
+
+**2. Increased staleTime for stable data** (`invitation-queries.ts`):
+- Invitations list: 30s → 2 min
+- Members list: 30s → 2 min
+- Rationale: Invitations and member lists change only through explicit user actions (invite, remove, role change), not from external updates
+
+**3. Added React.memo to list-rendered card components** (3 files):
+- `event-card.tsx`: Wrapped with `React.memo` using named function pattern
+- `accommodation-card.tsx`: Same pattern
+- `member-travel-card.tsx`: Same pattern
+- All follow the existing `TripCard` convention: `export const EventCard = memo(function EventCard({ ... }) { ... })`
+
+**4. Stabilized callback props with useCallback** (5 files):
+- Refactored card component callback types from `() => void` to `(item: ItemType) => void` so cards pass their item data through the callback
+- `day-by-day-view.tsx`: Created stable `handleEditEvent`, `handleEditAccommodation`, `handleEditMemberTravel` with `useCallback([], [])` and passed directly as props instead of inline arrow wrappers
+- `group-by-type-view.tsx`: Same pattern
+- This enables proper `React.memo` memoization — stable callbacks + memo = cards skip re-render when their specific data hasn't changed
+
+**5. Added date-fns to optimizePackageImports** (`next.config.ts`):
+- Added `"date-fns"` alongside existing `"lucide-react"` for better tree-shaking of barrel imports
+
+**6. Made ReactQueryDevtools load conditionally** (`providers.tsx`):
+- Changed from static import to `next/dynamic` with `ssr: false`, only loaded when `process.env.NODE_ENV === 'development'`
+- Removes DevTools from production bundle entirely
+
+**7. Added tripId to update mutation contexts for robust invalidation** (3 files):
+- `use-events.ts`: Added `tripId` to `UpdateEventContext`, used as fallback in `onSettled`
+- `use-accommodations.ts`: Same pattern for `UpdateAccommodationContext`
+- `use-member-travel.ts`: Same pattern for `UpdateMemberTravelContext`
+- Prevents silent invalidation skip on error paths when detail cache is empty
+
+### Files changed (13 total)
+- `apps/web/src/hooks/use-events.ts` — scoped invalidations, update context tripId
+- `apps/web/src/hooks/use-accommodations.ts` — scoped invalidations, update context tripId
+- `apps/web/src/hooks/use-member-travel.ts` — scoped invalidations, update context tripId
+- `apps/web/src/hooks/use-trips.ts` — removed redundant invalidation, scoped useCancelTrip
+- `apps/web/src/hooks/use-invitations.ts` — exact:true on tripKeys.all invalidations
+- `apps/web/src/hooks/invitation-queries.ts` — staleTime 30s → 2min
+- `apps/web/src/components/itinerary/event-card.tsx` — React.memo, callback type change
+- `apps/web/src/components/itinerary/accommodation-card.tsx` — React.memo, callback type change
+- `apps/web/src/components/itinerary/member-travel-card.tsx` — React.memo, callback type change
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` — useCallback, direct callback passing
+- `apps/web/src/components/itinerary/group-by-type-view.tsx` — useCallback, direct callback passing
+- `apps/web/next.config.ts` — date-fns in optimizePackageImports
+- `apps/web/src/app/providers/providers.tsx` — conditional ReactQueryDevtools
+
+### Tests updated
+- `apps/web/src/hooks/__tests__/use-invitations.test.tsx`: Updated 2 assertions for `exact: true` in `tripKeys.all` invalidation (useUpdateRsvp and useUpdateMemberRole tests)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,820 tests — shared: 197, api: 778, web: 845)
+- `pnpm test:e2e`: 20 passed, 5 failed (all 5 pre-existing failures from prior iterations — see note below)
+- Reviewer: ✅ APPROVED (after one round of fixes)
+
+### Pre-existing E2E failures (NOT caused by Task 6.2)
+All 5 E2E failures are pre-existing from prior iterations:
+1. `itinerary-journey.spec.ts:90` — accommodation creation looks for "Check-in date" button label, but Task 4.4 changed label to "Check-in" (DateTimePicker)
+2. `itinerary-journey.spec.ts:287` — member travel card text format mismatch (pre-existing since Iteration 4)
+3. `itinerary-journey.spec.ts:429` — cascading failure from test 1 (deleted items depend on created accommodation)
+4. `trip-journey.spec.ts:411` — remove member button pattern changed to dropdown menu (pre-existing since Iteration 2)
+5. `trip-journey.spec.ts:552` — promote/demote locator ambiguity with 2 "Organizer" elements (pre-existing since Iteration 2)
+
+### Reviewer feedback addressed
+- **HIGH fix (Round 1)**: Updated 2 test assertions in `use-invitations.test.tsx` to include `exact: true`
+- **MEDIUM fix (Round 1)**: Refactored card callback types from `() => void` to `(item: ItemType) => void` so parent views pass stable `useCallback` refs directly instead of inline arrow wrappers, enabling proper React.memo memoization
+- **LOW fix (Round 1)**: Added `tripId` to update mutation context types and `onMutate` return values for robust tripId resolution in `onSettled` error paths
+
+### Learnings for future iterations
+- TanStack Query's `invalidateQueries` uses prefix matching by default — `invalidateQueries({ queryKey: ["trips"] })` matches ALL queries starting with `["trips"]`, including `["trips", "abc-123"]`. Use `{ exact: true }` when you only want to match the exact key
+- The `lists()` key factories (e.g., `eventKeys.lists()` = `["events", "list"]`) are designed for broad invalidation but should rarely be used in mutation `onSettled` — use the specific `list(tripId)` instead
+- When using `React.memo` on list-rendered components, the callback props MUST be stabilized with `useCallback`. If callbacks need to close over loop variables (e.g., the specific event item), refactor the callback type to accept the item as a parameter (`onEdit: (event: Event) => void`) so the parent can pass a single stable function
+- The `onMutate` context is a reliable place to capture `tripId` for later use in `onSettled`, since `onMutate` runs before the mutation and has access to the query cache (which may be modified or cleared during the mutation)
+- `next/dynamic` with `ssr: false` is the cleanest way to conditionally load client-only libraries like ReactQueryDevtools — combined with `process.env.NODE_ENV === 'development'`, it completely excludes the devtools from the production bundle
+- All 5 E2E test failures are pre-existing from iterations 2, 4, and 9 — they should be addressed in Task 7.1 (test coverage gaps)
+- Test count: unchanged at 1,820 (shared: 197, api: 778, web: 845) — no new tests added, 2 existing tests updated

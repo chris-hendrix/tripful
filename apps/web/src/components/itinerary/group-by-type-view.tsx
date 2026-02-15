@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Home, Car, Utensils, Calendar, Plane } from "lucide-react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
@@ -77,6 +77,20 @@ export function GroupByTypeView({
     useState<Accommodation | null>(null);
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
+
+  // Stable callbacks for card props
+  const handleEditEvent = useCallback(
+    (event: Event) => setEditingEvent(event),
+    [],
+  );
+  const handleEditAccommodation = useCallback(
+    (acc: Accommodation) => setEditingAccommodation(acc),
+    [],
+  );
+  const handleEditMemberTravel = useCallback(
+    (travel: MemberTravel) => setEditingMemberTravel(travel),
+    [],
+  );
 
   const sections = useMemo(
     () => [
@@ -191,12 +205,8 @@ export function GroupByTypeView({
                                     isOrganizer,
                                     isLocked,
                                   )}
-                                  onEdit={() =>
-                                    setEditingAccommodation(item as Accommodation)
-                                  }
-                                  onDelete={() =>
-                                    setEditingAccommodation(item as Accommodation)
-                                  }
+                                  onEdit={handleEditAccommodation}
+                                  onDelete={handleEditAccommodation}
                                   createdByName={userNameMap.get(
                                     (item as Accommodation).createdBy,
                                   )}
@@ -213,8 +223,8 @@ export function GroupByTypeView({
                                       timezone={timezone}
                                       canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
                                       canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-                                      onEdit={() => setEditingMemberTravel(travel)}
-                                      onDelete={() => setEditingMemberTravel(travel)}
+                                      onEdit={handleEditMemberTravel}
+                                      onDelete={handleEditMemberTravel}
                                     />
                                   );
                                 })
@@ -225,8 +235,8 @@ export function GroupByTypeView({
                                     timezone={timezone}
                                     canEdit={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
                                     canDelete={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
-                                    onEdit={() => setEditingEvent(item as Event)}
-                                    onDelete={() => setEditingEvent(item as Event)}
+                                    onEdit={handleEditEvent}
+                                    onDelete={handleEditEvent}
                                     createdByName={userNameMap.get(
                                       (item as Event).createdBy,
                                     )}

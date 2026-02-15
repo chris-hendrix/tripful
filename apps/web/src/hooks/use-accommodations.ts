@@ -263,6 +263,7 @@ export function getCreateAccommodationErrorMessage(
 interface UpdateAccommodationContext {
   previousAccommodations: Accommodation[] | undefined;
   previousAccommodation: Accommodation | undefined;
+  tripId: string | undefined;
 }
 
 /**
@@ -371,7 +372,7 @@ export function useUpdateAccommodation() {
       }
 
       // Return context with previous data for rollback
-      return { previousAccommodations, previousAccommodation };
+      return { previousAccommodations, previousAccommodation, tripId };
     },
 
     // On error: Rollback optimistic update
@@ -395,14 +396,24 @@ export function useUpdateAccommodation() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: (_data, _error, { accommodationId }) => {
+    onSettled: (data, _error, { accommodationId }, context) => {
       // Invalidate detail query
       queryClient.invalidateQueries({
         queryKey: accommodationKeys.detail(accommodationId),
       });
 
-      // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: accommodationKeys.lists() });
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      const tripId =
+        data?.tripId ??
+        queryClient.getQueryData<Accommodation>(
+          accommodationKeys.detail(accommodationId),
+        )?.tripId ??
+        context?.tripId;
+      if (tripId) {
+        queryClient.invalidateQueries({
+          queryKey: accommodationKeys.list(tripId),
+        });
+      }
     },
   });
 }
@@ -528,8 +539,13 @@ export function useDeleteAccommodation() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: accommodationKeys.lists() });
+    onSettled: (_data, _error, _accommodationId, context) => {
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      if (context?.tripId) {
+        queryClient.invalidateQueries({
+          queryKey: accommodationKeys.list(context.tripId),
+        });
+      }
     },
   });
 }
@@ -674,8 +690,14 @@ export function useRestoreAccommodation() {
 
       // Always invalidate queries after mutation settles (success or error)
       // This ensures the cache stays in sync with the server
-      onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: accommodationKeys.lists() });
+      onSettled: (data, _error, _accommodationId, context) => {
+        // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+        const tripId = data?.tripId ?? context?.tripId;
+        if (tripId) {
+          queryClient.invalidateQueries({
+            queryKey: accommodationKeys.list(tripId),
+          });
+        }
       },
     },
   );

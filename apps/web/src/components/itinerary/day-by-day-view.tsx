@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
@@ -189,6 +189,20 @@ export function DayByDayView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
+  // Stable callbacks for card props
+  const handleEditEvent = useCallback(
+    (event: Event) => setEditingEvent(event),
+    [],
+  );
+  const handleEditAccommodation = useCallback(
+    (acc: Accommodation) => setEditingAccommodation(acc),
+    [],
+  );
+  const handleEditMemberTravel = useCallback(
+    (travel: MemberTravel) => setEditingMemberTravel(travel),
+    [],
+  );
+
   return (
     <div className="divide-y divide-border">
       {dayData.map((day, index) => {
@@ -225,8 +239,8 @@ export function DayByDayView({
               timezone={timezone}
               canEdit={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
               canDelete={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingAccommodation(acc)}
-              onDelete={() => setEditingAccommodation(acc)}
+              onEdit={handleEditAccommodation}
+              onDelete={handleEditAccommodation}
               createdByName={userNameMap.get(acc.createdBy)}
             />,
           );
@@ -243,8 +257,8 @@ export function DayByDayView({
                 timezone={timezone}
                 canEdit={canModifyEvent(event, userId, isOrganizer, isLocked)}
                 canDelete={canModifyEvent(event, userId, isOrganizer, isLocked)}
-                onEdit={() => setEditingEvent(event)}
-                onDelete={() => setEditingEvent(event)}
+                onEdit={handleEditEvent}
+                onDelete={handleEditEvent}
                 createdByName={userNameMap.get(event.createdBy)}
               />,
             );
@@ -279,8 +293,8 @@ export function DayByDayView({
                 timezone={timezone}
                 canEdit={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
                 canDelete={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
-                onEdit={() => setEditingEvent(item.event)}
-                onDelete={() => setEditingEvent(item.event)}
+                onEdit={handleEditEvent}
+                onDelete={handleEditEvent}
                 createdByName={userNameMap.get(item.event.createdBy)}
               />,
             );
@@ -294,8 +308,8 @@ export function DayByDayView({
                 timezone={timezone}
                 canEdit={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
                 canDelete={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
-                onEdit={() => setEditingMemberTravel(item.travel)}
-                onDelete={() => setEditingMemberTravel(item.travel)}
+                onEdit={handleEditMemberTravel}
+                onDelete={handleEditMemberTravel}
               />,
             );
           }

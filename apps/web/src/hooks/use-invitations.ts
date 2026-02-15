@@ -137,7 +137,10 @@ export function useRemoveMember(tripId: string) {
       queryClient.invalidateQueries({ queryKey: invitationKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
       // Invalidate events since creatorAttending depends on the member's existence
       queryClient.invalidateQueries({ queryKey: eventKeys.list(tripId) });
     },
@@ -214,7 +217,10 @@ export function useUpdateMemberRole(tripId: string) {
       });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
     },
   });
 }
@@ -282,7 +288,10 @@ export function useUpdateRsvp(tripId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
     },
   });

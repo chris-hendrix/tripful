@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   Building2,
   MapPin,
@@ -18,13 +18,13 @@ interface AccommodationCardProps {
   timezone: string;
   canEdit: boolean;
   canDelete: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  onEdit?: (accommodation: Accommodation) => void;
+  onDelete?: (accommodation: Accommodation) => void;
   createdByName?: string | undefined;
   showDate?: boolean;
 }
 
-export function AccommodationCard({
+export const AccommodationCard = memo(function AccommodationCard({
   accommodation,
   timezone,
   canEdit,
@@ -158,7 +158,7 @@ export function AccommodationCard({
                 variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEdit();
+                  onEdit(accommodation);
                 }}
                 className="h-9 sm:h-7 text-xs gap-1"
                 title="Edit accommodation"
@@ -172,4 +172,4 @@ export function AccommodationCard({
       )}
     </div>
   );
-}
+});
