@@ -182,7 +182,7 @@
 
 ## Phase 9: Final Verification
 
-- [ ] Task 9.1: Full regression check
+- [x] Task 9.1: Full regression check
   - Verify: `pnpm lint` passes
   - Verify: `pnpm typecheck` passes
   - Verify: `pnpm test` passes (all unit + integration tests)

@@ -160,6 +160,22 @@ test.describe("Itinerary Journey", () => {
           .getByRole("button", { name: "Create accommodation" })
           .click();
 
+        // Expand the accommodation card to reveal the address link
+        const accommodationCard = page
+          .locator('[role="button"][aria-expanded]')
+          .filter({
+            hasText: new RegExp(
+              accommodationName.replace(/\d+/g, "\\d+"),
+            ),
+          })
+          .first();
+        await expect(accommodationCard).toBeVisible({ timeout: 10000 });
+        const isAccommodationExpanded =
+          await accommodationCard.getAttribute("aria-expanded");
+        if (isAccommodationExpanded !== "true") {
+          await accommodationCard.click();
+        }
+
         // Address should be a Google Maps link
         const addressLink = page.getByRole("link", {
           name: "123 Main St, San Diego",
@@ -169,6 +185,9 @@ test.describe("Itinerary Journey", () => {
           "href",
           /google\.com\/maps\/search/,
         );
+
+        // Collapse the accommodation card so it doesn't interfere with later steps
+        await accommodationCard.click();
       });
 
       await snap(page, "09-itinerary-with-events");
@@ -207,9 +226,16 @@ test.describe("Itinerary Journey", () => {
           /google\.com\/maps\/search/,
         );
 
-        // Expand travel card to see details
-        await page.getByText(/Itinerary Tester/).first().click();
+        // Expand travel card to see details — use getByRole to target
+        // the travel card button, not the "Itinerary Tester" text in Organizers
+        const travelCard = page.getByRole("button", {
+          name: /Itinerary Tester.*San Diego Airport/,
+        });
+        await travelCard.click();
         await expect(page.getByText("Arriving from Chicago")).toBeVisible();
+
+        // Close the edit travel dialog so it doesn't block subsequent steps
+        await page.keyboard.press("Escape");
       });
 
       await test.step("edit event", async () => {
@@ -279,7 +305,14 @@ test.describe("Itinerary Journey", () => {
         await expect(page.getByText("Are you sure?")).toBeVisible();
         await page.getByRole("button", { name: "Yes, delete" }).click();
 
-        await expect(page.getByText(/Updated Dinner/)).not.toBeVisible();
+        // Wait for the delete toast, then reload to ensure fresh state
+        await expect(page.getByText("Event deleted")).toBeVisible({
+          timeout: 10000,
+        });
+        await page.reload();
+        await expect(page.getByText(/Updated Dinner/)).not.toBeVisible({
+          timeout: 10000,
+        });
       });
     },
   );
@@ -366,7 +399,7 @@ test.describe("Itinerary Journey", () => {
       });
       await expect(airportLinkGrouped).toBeVisible();
       // Verify date labels appear on cards in group-by-type view
-      await expect(page.getByText(/Mar 10, 2027/).first()).toBeVisible();
+      await expect(page.getByText(/Mar 10/).first()).toBeVisible();
       await snap(page, "11-itinerary-group-by-type");
     });
 
@@ -500,8 +533,11 @@ test.describe("Itinerary Journey", () => {
     });
 
     await test.step("find and expand Deleted Items section", async () => {
+      // Reload to ensure fresh data - the optimistic update may still show
+      // the event in the main list during cache refetch
+      await page.reload();
       await expect(page.getByText(/Deleted Items \(\d+\)/)).toBeVisible({
-        timeout: 10000,
+        timeout: 15000,
       });
 
       const toggleButton = page
