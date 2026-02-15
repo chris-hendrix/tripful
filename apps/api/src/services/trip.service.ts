@@ -722,18 +722,13 @@ export class TripService implements ITripService {
 
     // 3-6. Wrap count check + insert in transaction to prevent race conditions
     await this.db.transaction(async (tx) => {
-      // 3. Get current member count
-      const [countResult] = await tx
-        .select({ value: count() })
-        .from(members)
-        .where(eq(members.tripId, tripId));
-      const currentMemberCount = countResult?.value ?? 0;
-
-      // 4. Get existing member user IDs to filter out duplicates
+      // 3-4. Get existing members (derive count from result length)
       const existingMembers = await tx
         .select()
         .from(members)
         .where(eq(members.tripId, tripId));
+
+      const currentMemberCount = existingMembers.length;
 
       const existingMemberUserIds = new Set(
         existingMembers.map((m) => m.userId),
@@ -858,26 +853,25 @@ export class TripService implements ITripService {
    * @returns Promise that resolves to array of User objects
    */
   async getCoOrganizers(tripId: string): Promise<User[]> {
-    // Get all members with isOrganizer=true for this trip
-    const organizerMembers = await this.db
-      .select()
+    // Single JOIN query: get members with isOrganizer=true and their user info
+    const results = await this.db
+      .select({
+        id: users.id,
+        phoneNumber: users.phoneNumber,
+        displayName: users.displayName,
+        profilePhotoUrl: users.profilePhotoUrl,
+        handles: users.handles,
+        timezone: users.timezone,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
       .from(members)
-      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(
+        and(eq(members.tripId, tripId), eq(members.isOrganizer, true)),
+      );
 
-    // Return empty array if no organizers found
-    if (organizerMembers.length === 0) {
-      return [];
-    }
-
-    const organizerUserIds = organizerMembers.map((m) => m.userId);
-
-    // Load full user information for all organizers
-    const organizerUsers = await this.db
-      .select()
-      .from(users)
-      .where(inArray(users.id, organizerUserIds));
-
-    return organizerUsers;
+    return results;
   }
 
   /**

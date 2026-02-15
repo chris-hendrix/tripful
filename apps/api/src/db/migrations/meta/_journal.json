@@ -71,6 +71,13 @@
       "when": 1771113220107,
       "tag": "0009_illegal_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1771116652695,
+      "tag": "0010_overconfident_ironclad",
+      "breakpoints": true
     }
   ]
 }

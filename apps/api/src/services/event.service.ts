@@ -288,21 +288,22 @@ export class EventService implements IEventService {
     const [existingEvent] = await this.db
       .select()
       .from(events)
-      .where(eq(events.id, eventId))
+      .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
       .limit(1);
 
     if (!existingEvent) {
       throw new EventNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      existingEvent.tripId,
-    );
+    // Check if trip is locked and permissions in parallel (both need tripId which we already have)
+    const [isLocked, canEdit] = await Promise.all([
+      this.permissionsService.isTripLocked(existingEvent.tripId),
+      this.permissionsService.canEditEventWithData(userId, {
+        tripId: existingEvent.tripId,
+        createdBy: existingEvent.createdBy,
+      }),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions
-    const canEdit = await this.permissionsService.canEditEvent(userId, eventId);
     if (!canEdit) {
       throw new PermissionDeniedError(
         "Permission denied: only event creator or trip organizers can edit events",
@@ -362,28 +363,30 @@ export class EventService implements IEventService {
    * @throws PermissionDeniedError if user lacks permission
    */
   async deleteEvent(userId: string, eventId: string): Promise<void> {
-    // Load event to get tripId for lock check
+    // Load event to get tripId and createdBy for lock check and permission check
     const [eventRecord] = await this.db
-      .select({ id: events.id, tripId: events.tripId })
+      .select({
+        id: events.id,
+        tripId: events.tripId,
+        createdBy: events.createdBy,
+      })
       .from(events)
-      .where(eq(events.id, eventId))
+      .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
       .limit(1);
 
     if (!eventRecord) {
       throw new EventNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      eventRecord.tripId,
-    );
+    // Check if trip is locked and permissions in parallel
+    const [isLocked, canDelete] = await Promise.all([
+      this.permissionsService.isTripLocked(eventRecord.tripId),
+      this.permissionsService.canDeleteEventWithData(userId, {
+        tripId: eventRecord.tripId,
+        createdBy: eventRecord.createdBy,
+      }),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions
-    const canDelete = await this.permissionsService.canDeleteEvent(
-      userId,
-      eventId,
-    );
     if (!canDelete) {
       throw new PermissionDeniedError(
         "Permission denied: only event creator or trip organizers can delete events",

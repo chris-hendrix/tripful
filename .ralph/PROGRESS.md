@@ -421,3 +421,93 @@ Screenshots captured via Playwright at all three breakpoints (375px, 768px, 1024
 - `hidden sm:block` is the cleanest way to hide decorative-only elements on mobile that could cause layout issues
 - No new tests were written — CSS-only changes don't need new unit tests since responsive behavior is best verified visually or via E2E viewport tests
 - Test count: unchanged at 1,820 (shared: 197, api: 778, web: 845)
+
+## Iteration 11 — Task 6.1: Audit and optimize backend performance
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+
+**1. Added 5 composite database indexes** in `apps/api/src/db/schema/index.ts`:
+- `events_trip_id_deleted_at_idx` on `events(tripId, deletedAt)` — benefits `getEventsByTrip`, event count limit checks
+- `accommodations_trip_id_deleted_at_idx` on `accommodations(tripId, deletedAt)` — benefits `getAccommodationsByTrip`, accommodation count limit checks
+- `member_travel_member_id_deleted_at_idx` on `memberTravel(memberId, deletedAt)` — benefits member travel count limit checks
+- `member_travel_trip_id_deleted_at_idx` on `memberTravel(tripId, deletedAt)` — benefits `getMemberTravelByTrip`
+- `members_trip_id_is_organizer_idx` on `members(tripId, isOrganizer)` — benefits the heavily-used `isOrganizer()` permission check and `getCoOrganizers()`
+
+Migration `0010_overconfident_ironclad.sql` generated and applied. All `CREATE INDEX IF NOT EXISTS` statements — zero downtime risk.
+
+**2. Added optimized permission methods** in `apps/api/src/services/permissions.service.ts`:
+- `canEditEventWithData(userId, { tripId, createdBy })` — accepts pre-loaded event data, avoids re-querying
+- `canDeleteEventWithData(userId, { tripId, createdBy })` — same pattern
+- `canEditAccommodationWithData(userId, tripId)` — accepts tripId directly
+- `canDeleteAccommodationWithData(userId, tripId)` — same pattern
+- `canEditMemberTravelWithData(userId, { tripId, memberId })` — accepts pre-loaded data
+- `canDeleteMemberTravelWithData(userId, { tripId, memberId })` — same pattern
+- `getMembershipInfo(userId, tripId)` — returns `{ isMember, isOrganizer }` in a single query
+
+All new methods added to the `IPermissionsService` interface. Original methods preserved for backward compatibility.
+
+**3. Updated service files to eliminate redundant entity re-loads**:
+- `event.service.ts`: `updateEvent()` and `deleteEvent()` now use `canEditEventWithData`/`canDeleteEventWithData` with `Promise.all()` for parallel lock+permission checks; added `isNull(events.deletedAt)` to initial entity loads
+- `accommodation.service.ts`: `updateAccommodation()` and `deleteAccommodation()` now use `canEditAccommodationWithData`/`canDeleteAccommodationWithData` with `Promise.all()`; added `isNull(accommodations.deletedAt)` to initial entity loads
+- `member-travel.service.ts`: `updateMemberTravel()` and `deleteMemberTravel()` now use `canEditMemberTravelWithData`/`canDeleteMemberTravelWithData` with `Promise.all()`; added `isNull(memberTravel.deletedAt)` to initial entity loads
+
+**4. Optimized `TripService.getCoOrganizers()`**:
+- Replaced 2 sequential queries (get organizer members, then load user details) with single `INNER JOIN` query
+
+**5. Eliminated redundant count query in `TripService.addCoOrganizers()`**:
+- Removed separate `count()` query inside transaction — derives count from existing `select()` result's `.length`
+
+**6. Used `Promise.all()` for independent queries in `InvitationService`**:
+- `getTripMembers()`: Replaced sequential `isMember()` + `isOrganizer()` with single `getMembershipInfo()` call
+- `removeMember()`: Parallelized independent member + trip lookups
+- `updateMemberRole()`: Parallelized independent member + trip lookups
+
+### Query reduction summary
+
+| Endpoint | Before (queries) | After (queries) | Reduction |
+|----------|------------------|-----------------|-----------|
+| PUT /events/:id | 4-5 sequential | 1 + 2 parallel | ~50% |
+| DELETE /events/:id | 4-5 sequential | 1 + 2 parallel | ~50% |
+| PUT /accommodations/:id | 5-6 sequential | 1 + 2 parallel | ~60% |
+| DELETE /accommodations/:id | 5-6 sequential | 1 + 2 parallel | ~60% |
+| PUT /member-travel/:id | 5-6 sequential | 1 + 2 parallel | ~60% |
+| DELETE /member-travel/:id | 5-6 sequential | 1 + 2 parallel | ~60% |
+| GET /trips/:tripId/members | 3 sequential | 2 | ~33% |
+| DELETE /trips/:tripId/members/:id | 5-6 sequential | 1 + 2 parallel | ~40% |
+| PATCH /trips/:tripId/members/:id | 6-7 sequential | 1 + 2 parallel | ~50% |
+| GET co-organizers (internal) | 2 sequential | 1 JOIN | 50% |
+
+### Files changed (8 total)
+- `apps/api/src/db/schema/index.ts` — 5 composite indexes added
+- `apps/api/src/db/migrations/0010_overconfident_ironclad.sql` — auto-generated migration
+- `apps/api/src/services/permissions.service.ts` — 7 new methods + interface extensions
+- `apps/api/src/services/event.service.ts` — optimized updateEvent/deleteEvent
+- `apps/api/src/services/accommodation.service.ts` — optimized updateAccommodation/deleteAccommodation
+- `apps/api/src/services/member-travel.service.ts` — optimized updateMemberTravel/deleteMemberTravel
+- `apps/api/src/services/trip.service.ts` — getCoOrganizers JOIN, addCoOrganizers count removal
+- `apps/api/src/services/invitation.service.ts` — getMembershipInfo, Promise.all parallelization
+
+### Reviewer feedback addressed
+- **LOW fix**: Added `isNull(*.deletedAt)` filter to entity load queries in `updateEvent`, `deleteEvent`, `updateAccommodation`, `deleteAccommodation`, `updateMemberTravel`, `deleteMemberTravel` — preserves original behavior where soft-deleted entities cannot be updated/deleted through normal endpoints (only through restore)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,820 tests — shared: 197, api: 778, web: 845)
+- Reviewer: ✅ APPROVED (after one round of fixes)
+
+### Learnings for future iterations
+- The `*WithData` pattern (accepting pre-loaded entity data as parameters) is the cleanest way to eliminate redundant queries from permission checks — it avoids re-fetching entities that callers already have, without changing the permission logic
+- `Promise.all()` is safe for parallelizing read-only permission checks and lock checks — they query different tables/rows with no write-write conflicts
+- Composite indexes like `(tripId, deletedAt)` are superior to separate single-column indexes for common query patterns that always filter by both columns — PostgreSQL can use a single composite index efficiently for these queries
+- When refactoring permission methods to accept pre-loaded data, ensure the new methods preserve all filtering conditions (like `deletedAt IS NULL`) that the original methods had implicitly through their entity load queries — the reviewer caught this behavioral difference
+- The `IPermissionsService` interface must be updated whenever adding new methods to `PermissionsService` — TypeScript strict mode enforces this
+- Original permission methods should be preserved (not replaced) for backward compatibility — some callers may not have pre-loaded entity data available
+- The `getMembershipInfo` single-query approach (JOIN members + trips) is more efficient than sequential `isMember()` + `isOrganizer()` calls — it reduces 2 queries to 1 for any code path that needs both checks
+- `getCoOrganizers()` was a straightforward 2→1 query optimization using `INNER JOIN` — the existing codebase already has many JOIN examples to follow as templates
+- Index naming convention: `{table_name}_{col1}_{col2}_idx` — consistent with existing single-column indexes
+- No new tests were needed — all optimizations are internal implementation changes that preserve identical external behavior, validated by the existing 778 API tests
+- Test count: unchanged at 1,820 (shared: 197, api: 778, web: 845)

@@ -191,6 +191,90 @@ export interface IPermissionsService {
    * @returns Promise that resolves to true if trip is locked, false otherwise
    */
   isTripLocked(tripId: string): Promise<boolean>;
+
+  /**
+   * Checks if a user can edit an event using pre-loaded event data
+   * Avoids re-loading the event from the database
+   * @param userId - The UUID of the user to check
+   * @param eventData - Pre-loaded event data with tripId and createdBy
+   * @returns Promise that resolves to true if user can edit event, false otherwise
+   */
+  canEditEventWithData(
+    userId: string,
+    eventData: { tripId: string; createdBy: string },
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a user can delete an event using pre-loaded event data
+   * Delegates to canEditEventWithData
+   * @param userId - The UUID of the user to check
+   * @param eventData - Pre-loaded event data with tripId and createdBy
+   * @returns Promise that resolves to true if user can delete event, false otherwise
+   */
+  canDeleteEventWithData(
+    userId: string,
+    eventData: { tripId: string; createdBy: string },
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a user can edit an accommodation using pre-loaded tripId
+   * Avoids re-loading the accommodation from the database
+   * @param userId - The UUID of the user to check
+   * @param tripId - The trip ID from the pre-loaded accommodation
+   * @returns Promise that resolves to true if user can edit accommodation, false otherwise
+   */
+  canEditAccommodationWithData(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a user can delete an accommodation using pre-loaded tripId
+   * Delegates to canEditAccommodationWithData
+   * @param userId - The UUID of the user to check
+   * @param tripId - The trip ID from the pre-loaded accommodation
+   * @returns Promise that resolves to true if user can delete accommodation, false otherwise
+   */
+  canDeleteAccommodationWithData(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a user can edit member travel using pre-loaded data
+   * Avoids re-loading the member travel from the database
+   * @param userId - The UUID of the user to check
+   * @param memberTravelData - Pre-loaded member travel data with tripId and memberId
+   * @returns Promise that resolves to true if user can edit member travel, false otherwise
+   */
+  canEditMemberTravelWithData(
+    userId: string,
+    memberTravelData: { tripId: string; memberId: string },
+  ): Promise<boolean>;
+
+  /**
+   * Checks if a user can delete member travel using pre-loaded data
+   * Delegates to canEditMemberTravelWithData
+   * @param userId - The UUID of the user to check
+   * @param memberTravelData - Pre-loaded member travel data with tripId and memberId
+   * @returns Promise that resolves to true if user can delete member travel, false otherwise
+   */
+  canDeleteMemberTravelWithData(
+    userId: string,
+    memberTravelData: { tripId: string; memberId: string },
+  ): Promise<boolean>;
+
+  /**
+   * Gets membership info for a user in a trip in a single query
+   * Returns both isMember and isOrganizer status
+   * @param userId - The UUID of the user to check
+   * @param tripId - The UUID of the trip to check
+   * @returns Promise that resolves to { isMember, isOrganizer }
+   */
+  getMembershipInfo(
+    userId: string,
+    tripId: string,
+  ): Promise<{ isMember: boolean; isOrganizer: boolean }>;
 }
 
 /**
@@ -561,5 +645,147 @@ export class PermissionsService implements IPermissionsService {
     const endOfTripDay = new Date(trip.endDate);
     endOfTripDay.setUTCHours(23, 59, 59, 999);
     return new Date() > endOfTripDay;
+  }
+
+  /**
+   * Checks if a user can edit an event using pre-loaded event data
+   * Avoids re-loading the event from the database
+   * @param userId - The UUID of the user to check
+   * @param eventData - Pre-loaded event data with tripId and createdBy
+   * @returns true if user can edit event, false otherwise
+   */
+  async canEditEventWithData(
+    userId: string,
+    eventData: { tripId: string; createdBy: string },
+  ): Promise<boolean> {
+    // Organizers can always edit any event
+    const isOrganizerResult = await this.isOrganizer(userId, eventData.tripId);
+    if (isOrganizerResult) return true;
+
+    // Event creator can edit only if they are the creator AND their status is 'going'
+    if (eventData.createdBy === userId) {
+      const memberResult = await this.db
+        .select({ status: members.status })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, eventData.tripId),
+            eq(members.userId, userId),
+            eq(members.status, "going"),
+          ),
+        )
+        .limit(1);
+      return memberResult.length > 0;
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if a user can delete an event using pre-loaded event data
+   * Delegates to canEditEventWithData
+   */
+  async canDeleteEventWithData(
+    userId: string,
+    eventData: { tripId: string; createdBy: string },
+  ): Promise<boolean> {
+    return this.canEditEventWithData(userId, eventData);
+  }
+
+  /**
+   * Checks if a user can edit an accommodation using pre-loaded tripId
+   * Avoids re-loading the accommodation from the database
+   * @param userId - The UUID of the user to check
+   * @param tripId - The trip ID from the pre-loaded accommodation
+   * @returns true if user can edit accommodation, false otherwise
+   */
+  async canEditAccommodationWithData(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean> {
+    return this.isOrganizer(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can delete an accommodation using pre-loaded tripId
+   * Delegates to canEditAccommodationWithData
+   */
+  async canDeleteAccommodationWithData(
+    userId: string,
+    tripId: string,
+  ): Promise<boolean> {
+    return this.canEditAccommodationWithData(userId, tripId);
+  }
+
+  /**
+   * Checks if a user can edit member travel using pre-loaded data
+   * Avoids re-loading the member travel from the database
+   * @param userId - The UUID of the user to check
+   * @param memberTravelData - Pre-loaded member travel data with tripId and memberId
+   * @returns true if user can edit member travel, false otherwise
+   */
+  async canEditMemberTravelWithData(
+    userId: string,
+    memberTravelData: { tripId: string; memberId: string },
+  ): Promise<boolean> {
+    // Check if user is the owner by looking up the member record
+    const memberResult = await this.db
+      .select({ userId: members.userId })
+      .from(members)
+      .where(eq(members.id, memberTravelData.memberId))
+      .limit(1);
+
+    if (memberResult.length > 0 && memberResult[0]!.userId === userId) {
+      return true;
+    }
+
+    // Check if user is an organizer of the trip
+    return this.isOrganizer(userId, memberTravelData.tripId);
+  }
+
+  /**
+   * Checks if a user can delete member travel using pre-loaded data
+   * Delegates to canEditMemberTravelWithData
+   */
+  async canDeleteMemberTravelWithData(
+    userId: string,
+    memberTravelData: { tripId: string; memberId: string },
+  ): Promise<boolean> {
+    return this.canEditMemberTravelWithData(userId, memberTravelData);
+  }
+
+  /**
+   * Gets membership info for a user in a trip in a single query
+   * Returns both isMember and isOrganizer status
+   * Checks both the members table (for isOrganizer flag) and trips table (for creator)
+   * @param userId - The UUID of the user to check
+   * @param tripId - The UUID of the trip to check
+   * @returns { isMember, isOrganizer }
+   */
+  async getMembershipInfo(
+    userId: string,
+    tripId: string,
+  ): Promise<{ isMember: boolean; isOrganizer: boolean }> {
+    // Single query: get member record and trip creator info
+    const result = await this.db
+      .select({
+        memberId: members.id,
+        memberIsOrganizer: members.isOrganizer,
+        tripCreatedBy: trips.createdBy,
+      })
+      .from(members)
+      .innerJoin(trips, eq(trips.id, members.tripId))
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    if (result.length === 0) {
+      return { isMember: false, isOrganizer: false };
+    }
+
+    const row = result[0]!;
+    return {
+      isMember: true,
+      isOrganizer: row.memberIsOrganizer || row.tripCreatedBy === userId,
+    };
   }
 }

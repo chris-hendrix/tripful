@@ -295,28 +295,32 @@ export class MemberTravelService implements IMemberTravelService {
     memberTravelId: string,
     data: UpdateMemberTravelInput,
   ): Promise<MemberTravel> {
-    // Load member travel to get tripId for lock check
+    // Load member travel to get tripId and memberId for lock check and permission check
     const [travelRecord] = await this.db
-      .select({ id: memberTravel.id, tripId: memberTravel.tripId })
+      .select({
+        id: memberTravel.id,
+        tripId: memberTravel.tripId,
+        memberId: memberTravel.memberId,
+      })
       .from(memberTravel)
-      .where(eq(memberTravel.id, memberTravelId))
+      .where(
+        and(eq(memberTravel.id, memberTravelId), isNull(memberTravel.deletedAt)),
+      )
       .limit(1);
 
     if (!travelRecord) {
       throw new MemberTravelNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      travelRecord.tripId,
-    );
+    // Check if trip is locked and permissions in parallel
+    const [isLocked, canEdit] = await Promise.all([
+      this.permissionsService.isTripLocked(travelRecord.tripId),
+      this.permissionsService.canEditMemberTravelWithData(userId, {
+        tripId: travelRecord.tripId,
+        memberId: travelRecord.memberId,
+      }),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions (owner or organizer)
-    const canEdit = await this.permissionsService.canEditMemberTravel(
-      userId,
-      memberTravelId,
-    );
     if (!canEdit) {
       throw new PermissionDeniedError(
         "Permission denied: only the owner or trip organizers can edit member travel",
@@ -362,28 +366,32 @@ export class MemberTravelService implements IMemberTravelService {
     userId: string,
     memberTravelId: string,
   ): Promise<void> {
-    // Load member travel to get tripId for lock check
+    // Load member travel to get tripId and memberId for lock check and permission check
     const [travelRecord] = await this.db
-      .select({ id: memberTravel.id, tripId: memberTravel.tripId })
+      .select({
+        id: memberTravel.id,
+        tripId: memberTravel.tripId,
+        memberId: memberTravel.memberId,
+      })
       .from(memberTravel)
-      .where(eq(memberTravel.id, memberTravelId))
+      .where(
+        and(eq(memberTravel.id, memberTravelId), isNull(memberTravel.deletedAt)),
+      )
       .limit(1);
 
     if (!travelRecord) {
       throw new MemberTravelNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      travelRecord.tripId,
-    );
+    // Check if trip is locked and permissions in parallel
+    const [isLocked, canDelete] = await Promise.all([
+      this.permissionsService.isTripLocked(travelRecord.tripId),
+      this.permissionsService.canDeleteMemberTravelWithData(userId, {
+        tripId: travelRecord.tripId,
+        memberId: travelRecord.memberId,
+      }),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions (owner or organizer)
-    const canDelete = await this.permissionsService.canDeleteMemberTravel(
-      userId,
-      memberTravelId,
-    );
     if (!canDelete) {
       throw new PermissionDeniedError(
         "Permission denied: only the owner or trip organizers can delete member travel",

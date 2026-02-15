@@ -379,23 +379,26 @@ export class InvitationService implements IInvitationService {
       );
     }
 
-    // Look up the target member
-    const [member] = await this.db
-      .select()
-      .from(members)
-      .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
-      .limit(1);
+    // Load target member and trip creator in parallel
+    const [memberResult, tripResult] = await Promise.all([
+      this.db
+        .select()
+        .from(members)
+        .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
+        .limit(1),
+      this.db
+        .select({ createdBy: trips.createdBy })
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1),
+    ]);
+
+    const member = memberResult[0];
+    const trip = tripResult[0];
 
     if (!member) {
       throw new MemberNotFoundError();
     }
-
-    // Check if target is the trip creator
-    const [trip] = await this.db
-      .select({ createdBy: trips.createdBy })
-      .from(trips)
-      .where(eq(trips.id, tripId))
-      .limit(1);
 
     if (trip && member.userId === trip.createdBy) {
       throw new CannotRemoveCreatorError();
@@ -513,22 +516,18 @@ export class InvitationService implements IInvitationService {
     tripId: string,
     requestingUserId: string,
   ): Promise<MemberWithProfile[]> {
-    // Check if requesting user is a member
-    const isMemberResult = await this.permissionsService.isMember(
+    // Check membership and organizer status in a single query
+    const membershipInfo = await this.permissionsService.getMembershipInfo(
       requestingUserId,
       tripId,
     );
-    if (!isMemberResult) {
+    if (!membershipInfo.isMember) {
       throw new PermissionDeniedError(
         "Permission denied: only members can view trip members",
       );
     }
 
-    // Check if requesting user is an organizer
-    const isOrg = await this.permissionsService.isOrganizer(
-      requestingUserId,
-      tripId,
-    );
+    const isOrg = membershipInfo.isOrganizer;
 
     // Query members with user profiles
     const results = await this.db
@@ -589,12 +588,22 @@ export class InvitationService implements IInvitationService {
       );
     }
 
-    // Look up the target member
-    const [member] = await this.db
-      .select()
-      .from(members)
-      .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
-      .limit(1);
+    // Load target member and trip creator in parallel
+    const [memberResult, tripResult] = await Promise.all([
+      this.db
+        .select()
+        .from(members)
+        .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
+        .limit(1),
+      this.db
+        .select({ createdBy: trips.createdBy })
+        .from(trips)
+        .where(eq(trips.id, tripId))
+        .limit(1),
+    ]);
+
+    const member = memberResult[0];
+    const trip = tripResult[0];
 
     if (!member) {
       throw new MemberNotFoundError();
@@ -604,13 +613,6 @@ export class InvitationService implements IInvitationService {
     if (member.userId === userId) {
       throw new CannotModifyOwnRoleError();
     }
-
-    // Prevent demoting trip creator
-    const [trip] = await this.db
-      .select({ createdBy: trips.createdBy })
-      .from(trips)
-      .where(eq(trips.id, tripId))
-      .limit(1);
 
     if (trip && member.userId === trip.createdBy) {
       throw new CannotDemoteCreatorError();

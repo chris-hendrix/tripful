@@ -278,24 +278,27 @@ export class AccommodationService implements IAccommodationService {
     const [existingAccommodation] = await this.db
       .select()
       .from(accommodations)
-      .where(eq(accommodations.id, accommodationId))
+      .where(
+        and(
+          eq(accommodations.id, accommodationId),
+          isNull(accommodations.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!existingAccommodation) {
       throw new AccommodationNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      existingAccommodation.tripId,
-    );
+    // Check if trip is locked and permissions in parallel (both use tripId which we already have)
+    const [isLocked, canEdit] = await Promise.all([
+      this.permissionsService.isTripLocked(existingAccommodation.tripId),
+      this.permissionsService.canEditAccommodationWithData(
+        userId,
+        existingAccommodation.tripId,
+      ),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions (organizer only)
-    const canEdit = await this.permissionsService.canEditAccommodation(
-      userId,
-      accommodationId,
-    );
     if (!canEdit) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can edit accommodations",
@@ -356,24 +359,27 @@ export class AccommodationService implements IAccommodationService {
     const [accRecord] = await this.db
       .select({ id: accommodations.id, tripId: accommodations.tripId })
       .from(accommodations)
-      .where(eq(accommodations.id, accommodationId))
+      .where(
+        and(
+          eq(accommodations.id, accommodationId),
+          isNull(accommodations.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!accRecord) {
       throw new AccommodationNotFoundError();
     }
 
-    // Check if trip is locked before permission check
-    const isLocked = await this.permissionsService.isTripLocked(
-      accRecord.tripId,
-    );
+    // Check if trip is locked and permissions in parallel
+    const [isLocked, canDelete] = await Promise.all([
+      this.permissionsService.isTripLocked(accRecord.tripId),
+      this.permissionsService.canDeleteAccommodationWithData(
+        userId,
+        accRecord.tripId,
+      ),
+    ]);
     if (isLocked) throw new TripLockedError();
-
-    // Check permissions (organizer only)
-    const canDelete = await this.permissionsService.canDeleteAccommodation(
-      userId,
-      accommodationId,
-    );
     if (!canDelete) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can delete accommodations",
