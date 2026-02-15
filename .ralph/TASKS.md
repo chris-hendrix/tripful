@@ -11,7 +11,7 @@
   - Test: Verify schema compiles with `pnpm typecheck`
   - Verify: Run full test suite, all existing tests pass
 
-- [ ] Task 1.2: Create shared types and Zod schemas for messages and notifications
+- [x] Task 1.2: Create shared types and Zod schemas for messages and notifications
   - Implement: Create `shared/types/message.ts` (Message, MessageWithReplies, ReactionSummary, ALLOWED_REACTIONS, AllowedReaction, REACTION_EMOJI_MAP)
   - Implement: Create `shared/types/notification.ts` (NotificationType, Notification, NotificationPreferences)
   - Implement: Create `shared/schemas/message.ts` (createMessageSchema, updateMessageSchema, toggleReactionSchema, pinMessageSchema + response schemas)

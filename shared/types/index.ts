@@ -90,3 +90,30 @@ export type {
   UpdateRsvpResponse,
   GetMembersResponse,
 } from "./invitation";
+
+// Re-export message types
+export type {
+  Message,
+  MessageWithReplies,
+  ReactionSummary,
+  AllowedReaction,
+  GetMessagesResponse,
+  GetMessageCountResponse,
+  GetLatestMessageResponse,
+  CreateMessageResponse,
+  UpdateMessageResponse,
+  ToggleReactionResponse,
+} from "./message";
+
+export { ALLOWED_REACTIONS, REACTION_EMOJI_MAP } from "./message";
+
+// Re-export notification types
+export type {
+  NotificationType,
+  Notification,
+  NotificationPreferences,
+  GetNotificationsResponse,
+  GetUnreadCountResponse,
+  GetNotificationPreferencesResponse,
+  UpdateNotificationPreferencesResponse,
+} from "./notification";

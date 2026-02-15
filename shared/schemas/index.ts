@@ -107,3 +107,29 @@ export {
   updateProfileSchema,
   type UpdateProfileInput,
 } from "./user";
+
+// Re-export message schemas
+export {
+  createMessageSchema,
+  updateMessageSchema,
+  toggleReactionSchema,
+  pinMessageSchema,
+  messageListResponseSchema,
+  messageCountResponseSchema,
+  latestMessageResponseSchema,
+  messageResponseSchema,
+  toggleReactionResponseSchema,
+  type CreateMessageInput,
+  type UpdateMessageInput,
+  type ToggleReactionInput,
+  type PinMessageInput,
+} from "./message";
+
+// Re-export notification schemas
+export {
+  notificationPreferencesSchema,
+  notificationListResponseSchema,
+  unreadCountResponseSchema,
+  notificationPreferencesResponseSchema,
+  type NotificationPreferencesInput,
+} from "./notification";
