@@ -499,7 +499,8 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("click remove button for member", async () => {
-      await page.getByRole("button", { name: /Remove Test Member/ }).click();
+      await page.getByRole("button", { name: "Actions for Test Member" }).click();
+      await page.getByText("Remove from trip").click();
 
       await expect(
         page.getByRole("heading", { name: "Remove member" }),
@@ -633,11 +634,9 @@ test.describe("Trip Journey", () => {
 
       // Verify "Organizer" badge appears on that member in the dialog
       // The dialog should still be open and now show the badge
+      const promoteeNameEl = dialog.getByText("Test Promotee", { exact: true });
       await expect(
-        dialog
-          .locator("div")
-          .filter({ hasText: "Test Promotee" })
-          .getByText("Organizer"),
+        promoteeNameEl.locator("..").getByText("Organizer"),
       ).toBeVisible({ timeout: 10000 });
     });
 
@@ -661,11 +660,9 @@ test.describe("Trip Journey", () => {
 
       // Verify "Organizer" badge is removed from that member
       // Wait for the UI to update
+      const demoteeNameEl = dialog.getByText("Test Promotee", { exact: true });
       await expect(
-        dialog
-          .locator("div")
-          .filter({ hasText: "Test Promotee" })
-          .getByText("Organizer"),
+        demoteeNameEl.locator("..").getByText("Organizer"),
       ).not.toBeVisible({ timeout: 10000 });
     });
   });

@@ -153,7 +153,7 @@
 
 ## Phase 7: Test Coverage
 
-- [ ] Task 7.1: Fill test coverage gaps in unit and integration tests
+- [x] Task 7.1: Fill test coverage gaps in unit and integration tests
   - Implement: Run `pnpm test -- --coverage` and identify untested service methods and routes
   - Implement: Add missing unit tests for service edge cases and error paths
   - Implement: Add missing integration tests for API error responses and permission checks

@@ -141,15 +141,15 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
-        await pickDate(
+        await pickDateTime(
           page,
-          page.getByRole("button", { name: "Check-in date" }),
-          "2026-10-01",
+          page.getByRole("button", { name: "Check-in" }),
+          "2026-10-01T15:00",
         );
-        await pickDate(
+        await pickDateTime(
           page,
-          page.getByRole("button", { name: "Check-out date" }),
-          "2026-10-03",
+          page.getByRole("button", { name: "Check-out" }),
+          "2026-10-03T11:00",
         );
 
         const linkInput = page.locator('input[aria-label="Link URL"]');
@@ -192,9 +192,9 @@ test.describe("Itinerary Journey", () => {
           .fill("Arriving from Chicago");
         await page.getByRole("button", { name: "Add travel details" }).click();
 
-        // Travel card shows "Name · Arrival" title format
+        // Travel card shows member name
         await expect(
-          page.getByText(/Itinerary Tester · Arrival/),
+          page.getByText(/Itinerary Tester/).first(),
         ).toBeVisible();
 
         // Location should be a Google Maps link
@@ -208,7 +208,7 @@ test.describe("Itinerary Journey", () => {
         );
 
         // Expand travel card to see details
-        await page.getByText(/Itinerary Tester · Arrival/).click();
+        await page.getByText(/Itinerary Tester/).first().click();
         await expect(page.getByText("Arriving from Chicago")).toBeVisible();
       });
 
@@ -324,8 +324,8 @@ test.describe("Itinerary Journey", () => {
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
       await page.getByRole("button", { name: "Add travel details" }).click();
 
-      // Travel card title shows "Name · Arrival" format
-      await expect(page.getByText(/View Mode User · Arrival/)).toBeVisible();
+      // Travel card shows member name
+      await expect(page.getByText(/View Mode User/).first()).toBeVisible();
 
       // Location is a Google Maps link
       const airportLink = page.getByRole("link", { name: "Las Vegas Airport" });

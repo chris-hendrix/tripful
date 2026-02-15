@@ -602,3 +602,51 @@ All 5 E2E failures are pre-existing from prior iterations:
 - `next/dynamic` with `ssr: false` is the cleanest way to conditionally load client-only libraries like ReactQueryDevtools — combined with `process.env.NODE_ENV === 'development'`, it completely excludes the devtools from the production bundle
 - All 5 E2E test failures are pre-existing from iterations 2, 4, and 9 — they should be addressed in Task 7.1 (test coverage gaps)
 - Test count: unchanged at 1,820 (shared: 197, api: 778, web: 845) — no new tests added, 2 existing tests updated
+
+## Iteration 13 — Task 7.1: Fill test coverage gaps in unit and integration tests
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+
+**1. Fixed 5 pre-existing E2E test failures** across 2 test files:
+
+**`apps/web/tests/e2e/itinerary-journey.spec.ts`** (3 fixes):
+- **Fix 1** (accommodation creation label): Changed `pickDate` with `"Check-in date"`/`"Check-out date"` to `pickDateTime` with `"Check-in"`/`"Check-out"` to match the DateTimePicker aria-labels introduced in Task 4.4
+- **Fix 2** (member travel card text): Changed assertions from `/Itinerary Tester · Arrival/` to `/Itinerary Tester/` since the travel card component now shows travel type as icon only, not text
+- **Fix 3** (view modes test): Same member travel text fix for `/View Mode User · Arrival/` → `/View Mode User/`
+
+**`apps/web/tests/e2e/trip-journey.spec.ts`** (2 fixes):
+- **Fix 4** (remove member dropdown): Changed direct `Remove Test Member` button click to two-step dropdown interaction: `Actions for Test Member` button → `Remove from trip` menu item, matching the DropdownMenu introduced in Task 1.2
+- **Fix 5** (promote/demote locator): Replaced ambiguous `dialog.locator("div").filter({ hasText: "Test Promotee" }).getByText("Organizer")` with `dialog.getByText("Test Promotee", { exact: true }).locator("..").getByText("Organizer")` to scope the badge assertion to the parent flex wrapper, avoiding multi-div ambiguity
+
+**2. Added 25 new unit tests** for uncovered PermissionsService methods:
+
+**`apps/api/tests/unit/permissions.service.test.ts`** — 7 new describe blocks:
+- `getMembershipInfo` (3 tests): organizer → `{ isMember: true, isOrganizer: true }`, regular member → `{ isMember: true, isOrganizer: false }`, non-member → `{ isMember: false, isOrganizer: false }`
+- `canEditEventWithData` (4 tests): organizer can edit any, member can edit own, member cannot edit other's, non-member cannot edit
+- `canDeleteEventWithData` (4 tests): same matrix as edit
+- `canEditAccommodationWithData` (3 tests): organizer can edit, non-organizer member cannot, non-member cannot (accommodation edit requires organizer role)
+- `canDeleteAccommodationWithData` (3 tests): same matrix as edit
+- `canEditMemberTravelWithData` (4 tests): organizer can edit any, member can edit own, member cannot edit other's, non-member cannot edit
+- `canDeleteMemberTravelWithData` (4 tests): same matrix as edit
+
+### Files changed (3 total)
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — 3 E2E test fixes
+- `apps/web/tests/e2e/trip-journey.spec.ts` — 2 E2E test fixes
+- `apps/api/tests/unit/permissions.service.test.ts` — 25 new unit tests + 2 member ID variables for test setup
+
+### Verification results
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,845 tests — shared: 197, api: 803, web: 845)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- The `*WithData` permission methods accept pre-loaded entity data to skip redundant DB queries — they share the same permission logic as the original methods but need separate tests since they take different parameter shapes
+- Playwright `locator("..")` navigates to the parent DOM element — useful for scoping assertions when a child element (like a name span) has siblings (like a badge) that need verification
+- `pickDateTime` vs `pickDate` E2E helpers: `pickDateTime` (from `date-pickers.ts`) opens calendar, picks day, fills time input, and closes popover with Escape — `pickDate` does NOT close the popover, which blocks subsequent interactions when a DateTimePicker is used
+- The `canEditAccommodationWithData`/`canDeleteAccommodationWithData` methods delegate to `isOrganizer` (not just `isMember`) — only organizers can edit/delete accommodations, unlike events where creators can edit their own
+- ESLint `@typescript-eslint/no-unused-vars` requires prefix `_` for assigned-but-unread variables — captured member IDs needed in `beforeEach` setup but not directly referenced in tests must use this convention
+- Test count: shared unchanged at 197, api 778→803 (+25), web unchanged at 845; total 1,820→1,845 (+25)
