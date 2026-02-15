@@ -575,3 +575,65 @@ Tracking implementation progress for Messaging & Notifications feature.
 - For paginated endpoints, returning the full response object (including `meta`) from `queryOptions` is more flexible than extracting just the data array — consumers can access pagination info for load-more/infinite-scroll UI
 - Optimistic updates for deeply nested data (messages → replies) require traversing both levels of the data structure — all mutations that can target replies must include the nested `.replies.map()` logic
 - No new tests were needed for this task since the task spec only requires `pnpm typecheck` verification — hook tests will be added if specified in a future task
+
+---
+
+## Iteration 11 — Task 4.2: Build discussion section components (message feed, input, cards, reactions, replies) ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/src/components/messaging/message-input.tsx` — Auto-growing textarea with send button, avatar display, character count (>1800), disabled states for muted/past trip. Enter sends, Shift+Enter for newline. Compact mode for reply inputs (no avatar, smaller).
+- Created `apps/web/src/components/messaging/message-reactions.tsx` — 6 emoji buttons (heart, thumbs_up, laugh, surprised, party, plane) with counts, active state highlighting (`bg-primary/10 border-primary/30 text-primary`), toggle behavior via `useToggleReaction` hook. `aria-pressed` on each button.
+- Created `apps/web/src/components/messaging/message-replies.tsx` — Shows 2 most recent replies by default, "View X more replies" expand button, reply input toggle via "Reply" button. Flat threading (no nested reply buttons on reply cards). Indented with `ml-6 pl-4 border-l-2 border-border`.
+- Created `apps/web/src/components/messaging/message-card.tsx` — Full message card with avatar, author name, relative time, content, edited indicator `(edited)`, deleted placeholder `"This message was deleted"`, pin indicator, actions dropdown (Edit/Delete for author, Pin/Unpin + Delete for organizer), inline edit mode with textarea + Save/Cancel, character count on edit, AlertDialog delete confirmation, reactions bar, replies section.
+- Created `apps/web/src/components/messaging/pinned-messages.tsx` — Expandable pinned messages banner with pin icon, "Pinned" header in primary color, collapsed/expanded toggle with `aria-expanded`, author avatars and content preview.
+- Created `apps/web/src/components/messaging/message-count-indicator.tsx` — Clickable "X messages" link with MessageCircle icon, latest message preview truncated, click scrolls to `#discussion` with smooth behavior. Handles singular/plural and empty states.
+- Created `apps/web/src/components/messaging/trip-messages.tsx` — Main container with section header ("Discussion" in Playfair font), `id="discussion"` for scroll targeting, pinned messages, message input, message feed with `role="feed"`, loading skeleton (3-card pulse), empty state, load more button (not yet connected to pagination).
+- Created `apps/web/src/components/messaging/index.ts` — Barrel file exporting all 7 public components following existing codebase pattern.
+- Modified `apps/web/src/lib/format.ts` — Added `formatRelativeTime(isoString: string): string` utility for compact relative time formatting ("just now", "2m ago", "3h ago", "5d ago", "Feb 10" for 7+ days).
+
+### Key implementation details
+- **Auto-growing textarea**: Uses `ref` with `style.height = "auto"` then `style.height = scrollHeight + "px"` on input events, `resize-none` class, max 200px height
+- **Delete confirmation**: Uses `AlertDialog` with state-driven approach — dropdown "Delete" sets `showDeleteConfirm` state, AlertDialog rendered separately with controlled `open`/`onOpenChange`. "This action cannot be undone." description, destructive-variant confirm button
+- **Optimistic update handling**: Components handle temp IDs (`"temp-"` prefix) and `"current-user"` authorId from optimistic create — no action menus shown for optimistic messages
+- **Message ownership**: `message.authorId === user?.id` (from `useAuth()`) determines edit/delete permissions at component level
+- **Constants**: `MAX_LENGTH = 2000` and `CHAR_COUNT_THRESHOLD = 1800` extracted to module-level constants in both `message-input.tsx` and `message-card.tsx`
+- **Accessibility**: `role="feed"` on message list, `aria-pressed` on reaction buttons, `aria-expanded` on pinned messages toggle, descriptive `aria-label` on action dropdown triggers
+- **Design spec compliance**: All styles match DESIGN.md exactly — card background, pinned banner, active/inactive reactions, reply indent, empty state, skeleton loading
+
+### Test coverage (67 tests across 7 test files)
+- **format-relative-time.test.ts** (8 tests): just now, minutes, hours, days, 7+ days, boundaries
+- **message-input.test.tsx** (12 tests): placeholder, disabled states (muted/past trip), send button enable/disable, mutate calls with content/parentId, char count display, avatar visibility in compact mode
+- **message-reactions.test.tsx** (7 tests): all 6 buttons rendered, count display, active/inactive styling, toggle mutate calls, disabled behavior
+- **message-card.test.tsx** (16 tests): author/content rendering, relative time, edited indicator, pin indicator, deleted placeholder, actions menu visibility (owner, non-owner, organizer, disabled), avatar fallback, reaction buttons, delete confirmation dialog (shows dialog, cancel does not delete, confirm triggers delete)
+- **message-count-indicator.test.tsx** (7 tests): count display, singular/plural, latest preview, deleted preview hiding, zero/undefined rendering, scroll behavior
+- **pinned-messages.test.tsx** (7 tests): empty rendering, deleted pinned filtering, header count, collapse/expand, content visibility, mixed pin states
+- **trip-messages.test.tsx** (10 tests): section header, scroll target ID, total count, loading skeleton, empty state, message rendering, disabled/muted input messages, input presence
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 922 web tests pass (67 new), 981 API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+- **Messaging tests**: ✅ 67/67 pass across 7 test files
+
+### Reviewer verdict: APPROVED (second round)
+- First round: NEEDS_WORK — 7 issues identified (3 medium, 4 low)
+- All 7 issues fixed in second round:
+  1. Barrel file `index.ts` created with all 7 exports
+  2. `role="feed"` added to message feed container
+  3. Delete confirmation dialog using AlertDialog
+  4. `afterEach` imports added to test files
+  5. Unused `tripId`/`isOrganizer` props removed from PinnedMessages
+  6. Magic number replaced with `MAX_LENGTH` constant
+  7. Character count indicator added to edit textarea
+- Second round: APPROVED — all issues verified fixed, no new issues
+
+### Learnings for future iterations
+- **AlertDialog with DropdownMenu**: DropdownMenu items that trigger modals need a state-driven approach — set state in `onSelect`, render AlertDialog separately (not nested inside DropdownMenu). This avoids z-index and focus-trapping conflicts.
+- **Barrel files are a convention**: New component directories must include an `index.ts` barrel file exporting all public components, following the pattern in `trip/index.ts` and `itinerary/index.ts`.
+- **Accessibility attributes for dynamic content**: `role="feed"` is required for dynamically loaded lists (message feeds), `aria-pressed` for toggle buttons (reactions), and `aria-expanded` for collapsible sections (pinned messages).
+- **Auto-growing textarea**: The pattern `ref.current.style.height = "auto"; ref.current.style.height = ref.current.scrollHeight + "px"` with `resize-none` and a max-height constraint is the standard approach. This pattern did not exist in the codebase before this task.
+- **`formatRelativeTime`**: A new utility added to `apps/web/src/lib/format.ts` for compact relative time ("2m ago" style). Uses vanilla JS `Date.now()` math for simplicity rather than date-fns.
+- **Reviewer consistency checks**: Medium-severity items (barrel file, role="feed", delete confirmation) must be fixed before APPROVED. Low-severity items (import consistency, unused props, magic numbers, char count) should also be fixed to avoid accumulating tech debt.
+- The web package now has 922 passing tests (up from 855/856 in iteration 10, +67 new messaging component tests)

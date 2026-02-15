@@ -111,7 +111,7 @@
   - Test: Verify hooks compile with `pnpm typecheck`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 4.2: Build discussion section components (message feed, input, cards, reactions, replies)
+- [x] Task 4.2: Build discussion section components (message feed, input, cards, reactions, replies)
   - Implement: Create `apps/web/src/components/messaging/message-input.tsx` (auto-growing textarea, send button, char count at >1800, disabled states for muted/past trip)
   - Implement: Create `apps/web/src/components/messaging/message-reactions.tsx` (6 emoji buttons, counts, active state highlighting, toggle behavior)
   - Implement: Create `apps/web/src/components/messaging/message-replies.tsx` (2 latest replies, "View X more" expand, reply input, flat threading)
