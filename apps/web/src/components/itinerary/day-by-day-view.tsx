@@ -391,6 +391,7 @@ export function DayByDayView({
             if (!open) setEditingAccommodation(null);
           }}
           accommodation={editingAccommodation}
+          timezone={timezone}
         />
       )}
       {editingMemberTravel && (

@@ -215,6 +215,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
           open={isCreateAccommodationOpen}
           onOpenChange={setIsCreateAccommodationOpen}
           tripId={tripId}
+          timezone={timezone}
         />
       </>
     );

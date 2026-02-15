@@ -267,6 +267,7 @@ export function GroupByTypeView({
             if (!open) setEditingAccommodation(null);
           }}
           accommodation={editingAccommodation}
+          timezone={timezone}
         />
       )}
       {editingMemberTravel && (
@@ -299,7 +300,7 @@ function groupByDay(
   for (const item of items) {
     let day: string;
     if (type === "accommodation") {
-      day = (item as Accommodation).checkIn;
+      day = getDayInTimezone((item as Accommodation).checkIn, timezone);
     } else if (type === "memberTravel") {
       day = getDayInTimezone((item as MemberTravel).time, timezone);
     } else {

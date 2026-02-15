@@ -84,6 +84,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -96,6 +97,7 @@ describe("EditAccommodationDialog", () => {
           open={false}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -110,6 +112,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -135,20 +138,24 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
-      // DatePicker buttons should be present (DatePicker does not yet parse datetime strings;
-      // full datetime support for the DatePicker will be added in Task 4.2-4.4)
+      // DateTimePicker buttons should be present and display formatted datetime
       const checkInButton = screen.getByRole("button", {
-        name: /check-in date/i,
+        name: /check-in/i,
       });
       expect(checkInButton).toBeDefined();
+      // Verify pre-populated date is displayed (Jul 15, 2026 in America/New_York)
+      expect(checkInButton.textContent).toMatch(/jul 15, 2026/i);
 
       const checkOutButton = screen.getByRole("button", {
-        name: /check-out date/i,
+        name: /check-out/i,
       });
       expect(checkOutButton).toBeDefined();
+      // Verify pre-populated date is displayed (Jul 20, 2026 in America/New_York)
+      expect(checkOutButton.textContent).toMatch(/jul 20, 2026/i);
     });
 
     it("pre-populates links", () => {
@@ -157,6 +164,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -180,6 +188,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
           onSuccess={mockOnSuccess}
         />,
       );
@@ -223,6 +232,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -241,6 +251,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -256,6 +267,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -279,6 +291,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
           onSuccess={mockOnSuccess}
         />,
       );
@@ -316,6 +329,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -341,6 +355,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 

@@ -69,6 +69,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -81,6 +82,7 @@ describe("CreateAccommodationDialog", () => {
           open={false}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -95,6 +97,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -109,6 +112,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -122,6 +126,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -138,6 +143,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -160,6 +166,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -175,6 +182,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -194,6 +202,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -219,6 +228,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -240,6 +250,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -291,6 +302,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 
@@ -315,6 +327,7 @@ describe("CreateAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           tripId={tripId}
+          timezone="America/New_York"
         />,
       );
 

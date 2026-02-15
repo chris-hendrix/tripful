@@ -312,3 +312,45 @@ Tracking implementation progress for this project.
 - After Task 4.1's date-to-timestamp migration, `formatInTimezone(accommodation.checkIn, timezone, "datetime")` now works correctly on the ISO timestamp strings without needing the old `+ "T00:00:00"` workaround
 - The existing `event-card.test.tsx` pattern (describe blocks for Rendering, Expandable behavior, Edit/Delete buttons, Accessibility) is a solid template for card component tests
 - Test count: shared unchanged at 197, api unchanged at 778, web 831→845 (+14); total 1,806→1,820 (+14)
+
+## Iteration 9 — Task 4.4: Add time inputs to create/edit accommodation dialogs
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Replaced `DatePicker` (date-only) with `DateTimePicker` (date+time with timezone) in both `create-accommodation-dialog.tsx` and `edit-accommodation-dialog.tsx`
+  - Changed import from `@/components/ui/date-picker` to `@/components/ui/datetime-picker`
+  - Added `timezone: string` to both `CreateAccommodationDialogProps` and `EditAccommodationDialogProps`
+  - Updated labels from "Check-in date" / "Check-out date" to "Check-in" / "Check-out" (since DateTimePicker handles both)
+  - Updated aria-labels similarly
+- Threaded `timezone` prop from all four parent usage sites:
+  - `itinerary-header.tsx`: passes `timezone={selectedTimezone}` to `CreateAccommodationDialog`
+  - `itinerary-view.tsx`: passes `timezone={timezone}` to `CreateAccommodationDialog`
+  - `group-by-type-view.tsx`: passes `timezone={timezone}` to `EditAccommodationDialog`
+  - `day-by-day-view.tsx`: passes `timezone={timezone}` to `EditAccommodationDialog`
+- Restyled delete button in `edit-accommodation-dialog.tsx` from big destructive `<Button variant="destructive" className="w-full h-12 rounded-xl">` to subtle link pattern matching `edit-trip-dialog.tsx`: native `<button>` with `text-xs text-muted-foreground hover:text-destructive transition-colors`, small `Trash2 w-3 h-3` icon
+- Fixed bug in `group-by-type-view.tsx` `groupByDay` function: changed `day = (item as Accommodation).checkIn` to `day = getDayInTimezone((item as Accommodation).checkIn, timezone)` to properly convert ISO datetime strings to YYYY-MM-DD day keys (caught by reviewer)
+
+### Tests updated
+- **`create-accommodation-dialog.test.tsx`**: Added `timezone="America/New_York"` prop to all 10 `<CreateAccommodationDialog>` render calls (13 tests pass)
+- **`edit-accommodation-dialog.test.tsx`**: Added `timezone="America/New_York"` prop to all 14 `<EditAccommodationDialog>` render calls; updated "pre-populates date fields" test to assert on rendered content (`expect(checkInButton.textContent).toMatch(/jul 15, 2026/i)` and same for checkOut); updated aria-label assertions from `check-in date` to `check-in` (12 tests pass)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,820 tests — shared: 197, api: 778, web: 845)
+- Reviewer: ✅ APPROVED (after one round of fixes)
+
+### Reviewer feedback addressed
+- **HIGH fix**: `group-by-type-view.tsx` line 303 — accommodation checkIn was used as raw day key (`"2026-07-15T14:00:00.000Z"`) instead of converting via `getDayInTimezone()`, which would produce broken day headers in group-by-type view. Fixed to use `getDayInTimezone((item as Accommodation).checkIn, timezone)`.
+- **LOW fix**: Edit dialog "pre-populates date fields" test only asserted button existence (`toBeDefined()`). Added content assertions to verify the DateTimePicker actually renders the formatted date.
+
+### Learnings for future iterations
+- The `DateTimePicker` component at `apps/web/src/components/ui/datetime-picker.tsx` is a drop-in replacement for `DatePicker` when full datetime support is needed — same button styling, same value/onChange pattern, just requires an additional `timezone` prop
+- When migrating from date-only to datetime columns, all code paths using the raw field value as a Map key or day label need updating to go through `getDayInTimezone()` — the `group-by-type-view.tsx` had a latent bug from the Task 4.1 migration that wasn't caught until this task
+- The `DateTimePicker` uses `utcToLocalParts()` / `localPartsToUTC()` internally, so it correctly handles timezone conversion without any manual conversion in the dialog code
+- The `DateTimePicker` defaults time to "12:00" when only a date is selected, which is reasonable for accommodation check-in/check-out defaults
+- When restyling buttons, switching from shadcn `<Button>` to native `<button>` preserves `getByRole("button")` test selectors, so most test assertions continue to work without changes
+- No schema or backend changes were needed — the Zod schemas already accept ISO datetime strings from Task 4.1, and the `DateTimePicker` produces proper ISO strings
+- Test count: shared unchanged at 197, api unchanged at 778, web unchanged at 845; total unchanged at 1,820 (no new tests added, existing tests updated)

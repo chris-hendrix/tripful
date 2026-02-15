@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +52,7 @@ interface EditAccommodationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accommodation: Accommodation;
+  timezone: string;
   onSuccess?: () => void;
 }
 
@@ -59,6 +60,7 @@ export function EditAccommodationDialog({
   open,
   onOpenChange,
   accommodation,
+  timezone,
   onSuccess,
 }: EditAccommodationDialogProps) {
   const { mutate: updateAccommodation, isPending } = useUpdateAccommodation();
@@ -242,15 +244,16 @@ export function EditAccommodationDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Check-in date
+                      Check-in
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <DatePicker
+                      <DateTimePicker
                         value={field.value ?? ""}
                         onChange={field.onChange}
+                        timezone={timezone}
                         placeholder="Check-in"
-                        aria-label="Check-in date"
+                        aria-label="Check-in"
                         disabled={isPending || isDeleting}
                       />
                     </FormControl>
@@ -265,15 +268,16 @@ export function EditAccommodationDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Check-out date
+                      Check-out
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <DatePicker
+                      <DateTimePicker
                         value={field.value ?? ""}
                         onChange={field.onChange}
+                        timezone={timezone}
                         placeholder="Check-out"
-                        aria-label="Check-out date"
+                        aria-label="Check-out"
                         disabled={isPending || isDeleting}
                       />
                     </FormControl>
@@ -424,18 +428,17 @@ export function EditAccommodationDialog({
             </div>
 
             {/* Delete Button with AlertDialog */}
-            <div className="pt-4 border-t border-border">
+            <div className="flex justify-center pt-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+                  <button
                     type="button"
                     disabled={isPending || isDeleting}
-                    variant="destructive"
-                    className="w-full h-12 rounded-xl"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3 h-3" />
                     Delete accommodation
-                  </Button>
+                  </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>

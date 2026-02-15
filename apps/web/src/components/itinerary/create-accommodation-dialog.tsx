@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   useCreateAccommodation,
   getCreateAccommodationErrorMessage,
@@ -38,6 +38,7 @@ interface CreateAccommodationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tripId: string;
+  timezone: string;
   onSuccess?: () => void;
 }
 
@@ -45,6 +46,7 @@ export function CreateAccommodationDialog({
   open,
   onOpenChange,
   tripId,
+  timezone,
   onSuccess,
 }: CreateAccommodationDialogProps) {
   const { mutate: createAccommodation, isPending } = useCreateAccommodation();
@@ -203,15 +205,16 @@ export function CreateAccommodationDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Check-in date
+                      Check-in
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <DatePicker
+                      <DateTimePicker
                         value={field.value}
                         onChange={field.onChange}
+                        timezone={timezone}
                         placeholder="Check-in"
-                        aria-label="Check-in date"
+                        aria-label="Check-in"
                         disabled={isPending}
                       />
                     </FormControl>
@@ -226,15 +229,16 @@ export function CreateAccommodationDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Check-out date
+                      Check-out
                       <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <DatePicker
+                      <DateTimePicker
                         value={field.value}
                         onChange={field.onChange}
+                        timezone={timezone}
                         placeholder="Check-out"
-                        aria-label="Check-out date"
+                        aria-label="Check-out"
                         disabled={isPending}
                       />
                     </FormControl>

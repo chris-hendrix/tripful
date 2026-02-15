@@ -102,7 +102,7 @@
     - Keep accessible: role="button", tabIndex, keyboard support
   - Verify: `pnpm typecheck` passes
 
-- [ ] Task 4.4: Add time inputs to create/edit accommodation dialogs
+- [x] Task 4.4: Add time inputs to create/edit accommodation dialogs
   - Implement: Update `apps/web/src/components/itinerary/create-accommodation-dialog.tsx`:
     - Add `<Input type="time" />` next to each existing DatePicker in a 2-column grid layout
     - Combine selected date + time into ISO datetime string before form submission
