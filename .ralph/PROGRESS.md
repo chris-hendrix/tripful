@@ -140,3 +140,68 @@ Tracking implementation progress for Messaging & Notifications feature.
 - Service methods should use granular permission checks when different error types are needed (e.g., PermissionDeniedError vs TripLockedError vs MemberMutedError)
 - Tests use real PostgreSQL database (not mocks) — cleanup must respect FK dependency order: messageReactions → messages → mutedMembers → members → trips → users
 - The API now has 850 total tests (up from 803 in iteration 2)
+
+---
+
+## Iteration 4 — Task 2.2: Create message API routes, controller, and integration tests ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/api/src/controllers/message.controller.ts` — Message controller with 8 handler methods following the existing const-object pattern:
+  - `listMessages` — GET /trips/:tripId/messages (paginated, maps service `data` to response `messages`)
+  - `getMessageCount` — GET /trips/:tripId/messages/count
+  - `getLatestMessage` — GET /trips/:tripId/messages/latest (nullable response)
+  - `createMessage` — POST /trips/:tripId/messages (201 response)
+  - `editMessage` — PUT /trips/:tripId/messages/:messageId
+  - `deleteMessage` — DELETE /trips/:tripId/messages/:messageId (success-only response)
+  - `togglePin` — PATCH /trips/:tripId/messages/:messageId/pin
+  - `toggleReaction` — POST /trips/:tripId/messages/:messageId/reactions
+- Created `apps/api/src/routes/message.routes.ts` — Route definitions with read/write split:
+  - 3 GET routes with `authenticate` + `defaultRateLimitConfig` preHandlers
+  - 5 write routes (POST/PUT/DELETE/PATCH) in scoped register with shared `authenticate`, `requireCompleteProfile`, and `writeRateLimitConfig` hooks
+  - All routes include Zod schema validation for params, body, querystring, and responses
+  - Local param schemas: `tripIdParamsSchema`, `messageParamsSchema` (tripId + messageId)
+  - Pagination query schema with `z.coerce.number()` defaults (page=1, limit=20)
+- Modified `apps/api/src/app.ts` — Added `messageRoutes` import and registration with `/api` prefix
+- Created `apps/api/tests/integration/message.routes.test.ts` — 23 integration tests covering all 8 endpoints
+
+### Key implementation details
+- Controller delegates ALL permission logic to MessageService — no permission checks at the controller level
+- The service returns `{ data, meta }` for getMessages; controller maps `data` to `messages` to match the response schema
+- Routes use PATCH for pin toggle (not PUT as originally in architecture spec) to better match REST semantics for partial updates
+- `messageParamsSchema` includes both `tripId` and `messageId` as UUID-validated params, keeping all message endpoints trip-scoped
+- Response schemas use `z.date()` for timestamp fields; Fastify's Zod serializer handles Date→string conversion automatically
+- The `members` table uses `isOrganizer: boolean` (not a `role` column) — integration tests set `isOrganizer: true` for organizer test users
+
+### Test coverage (23 tests)
+- **POST create** (6 tests): success, reply creation, 401 unauthenticated, 403 non-member, 400 invalid body, 403 muted member
+- **GET list** (3 tests): paginated results, empty list, 401 unauthenticated
+- **GET count** (1 test): correct count of top-level messages
+- **GET latest** (2 tests): returns latest message, returns null when empty
+- **PUT edit** (2 tests): edit own message, 403 for another user's message
+- **DELETE** (2 tests): delete own message, organizer can delete another's message
+- **PATCH pin** (2 tests): organizer can pin, 403 for non-organizer
+- **POST reaction** (2 tests): add reaction, remove on second toggle
+- **Trip lock** (3 tests): 403 for create/edit/delete on ended trips
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 873 API tests pass (23 new), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure)
+- **Message route tests**: ✅ 23/23 pass
+
+### Reviewer verdict: APPROVED
+- All 8 endpoints from architecture spec implemented with correct HTTP methods, paths, auth, and schema validation
+- Controller follows const-object pattern with standard error re-throw
+- Routes correctly split read (GET + authenticate) and write (POST/PUT/DELETE/PATCH + authenticate + requireCompleteProfile) scopes
+- Integration tests cover success paths, auth errors, permission errors, validation errors, and edge cases
+- app.ts properly imports and registers routes with /api prefix
+- 4 low-severity notes (non-blocking): minor param extraction placement inconsistency matching event controller, count endpoint doesn't verify membership at controller level (intentional for preview), no separate 401 tests for count/latest endpoints (covered by other endpoint tests), message ordering in test relies on DB round-trip latency
+
+### Learnings for future iterations
+- The `members` table uses `isOrganizer: boolean` field, not a `role: string` column — integration tests must use `isOrganizer: true` for organizer assertions
+- Fastify's Zod serializer automatically handles `z.date()` ↔ Date object serialization — no manual date formatting needed
+- Response schema mapping: when the service returns `{ data, meta }`, the controller must restructure to `{ success: true, messages: data, meta }` to match the response schema's field names
+- Route PATCH is more appropriate than PUT for partial-update operations like pin toggling
+- The API now has 873 total tests (up from 850 in iteration 3)

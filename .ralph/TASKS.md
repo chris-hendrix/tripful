@@ -37,7 +37,7 @@
   - Test: Write unit tests for new permission methods in `apps/api/tests/unit/permissions.service.test.ts`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 2.2: Create message API routes, controller, and integration tests
+- [x] Task 2.2: Create message API routes, controller, and integration tests
   - Implement: Create `apps/api/src/controllers/message.controller.ts` following existing controller pattern (object with named methods)
   - Implement: Create `apps/api/src/routes/message.routes.ts` with all messaging endpoints (GET list/count/latest, POST create, PUT edit, DELETE, PATCH pin, POST reactions)
   - Implement: Register message routes and plugin in `apps/api/src/app.ts`
