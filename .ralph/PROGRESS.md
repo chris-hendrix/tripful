@@ -278,3 +278,37 @@ Tracking implementation progress for this project.
 - The `group-by-type-view.tsx` has the same ISO-timestamp-as-day-key bug but was intentionally not fixed (out of scope) — should be addressed in a future task
 - Composite React keys (`acc-${acc.id}-${day.date}`) are essential when the same accommodation appears on multiple days to prevent key collisions
 - Test count: shared unchanged at 197, api unchanged at 778, web 830→831 (+1); total 1,805→1,806 (+1)
+
+## Iteration 8 — Task 4.3: Redesign accommodation card to minimal style with dropdown
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Rewrote `apps/web/src/components/itinerary/accommodation-card.tsx` from a big bordered card with full purple background to a compact, minimal card:
+  - **Compact state (collapsed)**: Single flex row with ChevronRight/ChevronDown expand indicator, Building2 icon in accommodation purple, bold name, and nights count pill. Uses `border-l-2` subtle left accent instead of `border-l-4`, `py-2 px-3` instead of `p-4`, no background fill (removed `bg-[var(--color-accommodation-light)]`), lighter border (`border-border/60`)
+  - **Expanded state (click to toggle)**: Below a separator line (`border-t border-border/40`), shows check-in/check-out datetimes in 2-column grid, address as Google Maps link, description, external links, created-by info, and a single "Edit" button with Pencil icon
+  - Visual weight intentionally between member-travel (invisible single-line) and event-card (big bordered card)
+- Simplified action buttons: removed separate Delete button (edit dialog handles deletion), kept single Edit button using `onEdit()` callback
+- Props interface unchanged — `canDelete` and `onDelete` are accepted but not rendered, maintaining backward compatibility with both consumer components
+
+### Tests written
+- **New test file** (`apps/web/src/components/itinerary/__tests__/accommodation-card.test.tsx`): 14 tests across 4 describe blocks:
+  - **Rendering (3 tests)**: name + nights label, address as clickable Google Maps link, null address handling
+  - **Expandable behavior (4 tests)**: description visibility on expand, links on expand, check-in/check-out labels on expand, created-by info on expand (including "Unknown" fallback)
+  - **Edit button (3 tests)**: shows when canEdit=true and expanded, calls onEdit on click, hidden when canEdit=false
+  - **Accessibility (4 tests)**: role="button" + tabIndex=0, aria-expanded attribute present, aria-expanded toggles on click
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,820 tests — shared: 197, api: 778, web: 845)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- When redesigning a component, keeping the props interface identical (even accepting unused props like `canDelete`/`onDelete`) avoids needing to modify consumer components — this is the safest approach for visual-only refactors
+- The `Building2` icon from lucide-react is already used in the itinerary header for accommodations, making it a natural choice for the card icon
+- The chevron expand indicator (ChevronRight → ChevronDown) provides a clear visual affordance that the member-travel card lacks, helping users understand the card is expandable
+- After Task 4.1's date-to-timestamp migration, `formatInTimezone(accommodation.checkIn, timezone, "datetime")` now works correctly on the ISO timestamp strings without needing the old `+ "T00:00:00"` workaround
+- The existing `event-card.test.tsx` pattern (describe blocks for Rendering, Expandable behavior, Edit/Delete buttons, Accessibility) is a solid template for card component tests
+- Test count: shared unchanged at 197, api unchanged at 778, web 831→845 (+14); total 1,806→1,820 (+14)

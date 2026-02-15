@@ -94,7 +94,7 @@
     - Update all references from `day.accommodation` to `day.accommodations`
   - Verify: `pnpm typecheck` passes
 
-- [ ] Task 4.3: Redesign accommodation card to minimal style with dropdown
+- [x] Task 4.3: Redesign accommodation card to minimal style with dropdown
   - Implement: Rewrite `apps/web/src/components/itinerary/accommodation-card.tsx`:
     - Compact state: Small card with subtle accommodation-colored left border, showing: name, nights count, check-in/check-out times if set
     - Expanded state (click to toggle): address (Google Maps link), description, links, created-by info, edit button (opens edit dialog)
