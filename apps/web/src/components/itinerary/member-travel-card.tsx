@@ -1,8 +1,17 @@
 "use client";
 
-import { memo } from "react";
-import { Clock, MapPin, PlaneLanding, PlaneTakeoff } from "lucide-react";
+import { memo, useState } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Pencil,
+  PlaneLanding,
+  PlaneTakeoff,
+} from "lucide-react";
 import type { MemberTravel } from "@tripful/shared/types";
+import { Button } from "@/components/ui/button";
 import { formatInTimezone } from "@/lib/utils/timezone";
 
 interface MemberTravelCardProps {
@@ -24,63 +33,115 @@ export const MemberTravelCard = memo(function MemberTravelCard({
   onEdit,
   showDate,
 }: MemberTravelCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const isArrival = memberTravel.travelType === "arrival";
   const PlaneIcon = isArrival ? PlaneLanding : PlaneTakeoff;
+  const travelLabel = isArrival ? "Arrival" : "Departure";
 
   const time = formatInTimezone(memberTravel.time, timezone, "time");
+  const dateTime = formatInTimezone(memberTravel.time, timezone, "datetime");
   const date = showDate
     ? formatInTimezone(memberTravel.time, timezone, "date")
     : null;
 
-  const isClickable = canEdit && onEdit;
-
   return (
     <div
-      role={isClickable ? "button" : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-      className={`rounded-lg py-1.5 px-2 transition-all ${isClickable ? "hover:bg-muted/50 cursor-pointer" : ""}`}
-      onClick={isClickable ? () => onEdit?.(memberTravel) : undefined}
-      onKeyDown={
-        isClickable
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onEdit?.(memberTravel);
-              }
-            }
-          : undefined
-      }
+      role="button"
+      tabIndex={0}
+      aria-expanded={isExpanded}
+      className="rounded-xl border border-border/60 border-l-2 border-l-[var(--color-member-travel)] py-2 px-3 transition-all hover:shadow-sm cursor-pointer"
+      onClick={() => setIsExpanded((prev) => !prev)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setIsExpanded((prev) => !prev);
+        }
+      }}
     >
-      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-        <PlaneIcon className="w-4 h-4 shrink-0" />
-        <span className="font-medium text-foreground">{memberName}</span>
-        <span className="text-muted-foreground/40">·</span>
-        {date && (
-          <>
-            <span>{date}</span>
-            <span className="text-muted-foreground/40">·</span>
-          </>
-        )}
-        <Clock className="w-3 h-3 shrink-0" />
-        <span>{time}</span>
-        {memberTravel.location && (
-          <>
-            <span className="text-muted-foreground/40">·</span>
+      {/* Compact view */}
+      <div className="flex items-center gap-2">
+        <div className="shrink-0 text-[var(--color-member-travel)]">
+          {isExpanded ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5" />
+          )}
+        </div>
+
+        <PlaneIcon className="w-3.5 h-3.5 shrink-0 text-[var(--color-member-travel)]" />
+
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+          <span className="font-semibold text-foreground text-sm truncate">
+            {memberName}
+          </span>
+          {date && (
+            <span className="text-xs text-muted-foreground shrink-0">
+              {date}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {time}
+          </span>
+          {memberTravel.location && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-primary active:text-primary min-w-0"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary active:text-primary shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3 h-3 shrink-0" />
-              <span className="underline underline-offset-2 truncate">
+              <span className="underline underline-offset-2">
                 {memberTravel.location}
               </span>
             </a>
-          </>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Expanded view */}
+      {isExpanded && (
+        <div
+          className="mt-2 pt-2 border-t border-border/40 space-y-2 ml-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Date & Time */}
+          <div className="text-sm">
+            <span className="text-xs text-muted-foreground">
+              {travelLabel} time
+            </span>
+            <p className="font-medium text-foreground text-xs">{dateTime}</p>
+          </div>
+
+          {/* Details (flight number, terminal, etc.) */}
+          {memberTravel.details && (
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+              {memberTravel.details}
+            </p>
+          )}
+
+          {/* Edit button */}
+          {canEdit && onEdit && (
+            <div className="pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(memberTravel);
+                }}
+                className="h-9 sm:h-7 text-xs gap-1"
+                title="Edit flight"
+              >
+                <Pencil className="w-3 h-3" />
+                Edit
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });
