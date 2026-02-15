@@ -142,6 +142,21 @@ export const InvalidReplyTargetError = createError(
   "Can only reply to top-level messages",
   400,
 );
+export const AlreadyMutedError = createError(
+  "ALREADY_MUTED",
+  "Member is already muted",
+  409,
+);
+export const NotMutedError = createError(
+  "NOT_MUTED",
+  "Member is not muted",
+  404,
+);
+export const CannotMuteOrganizerError = createError(
+  "CANNOT_MUTE_ORGANIZER",
+  "Cannot mute an organizer",
+  403,
+);
 
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);

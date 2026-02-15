@@ -38,6 +38,11 @@ const messageParamsSchema = z.object({
   messageId: z.string().uuid({ message: "Invalid message ID format" }),
 });
 
+const muteParamsSchema = z.object({
+  tripId: z.string().uuid({ message: "Invalid trip ID format" }),
+  memberId: z.string().uuid({ message: "Invalid member ID format" }),
+});
+
 // Pagination query schema
 const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -210,6 +215,36 @@ export async function messageRoutes(fastify: FastifyInstance) {
         },
       },
       messageController.toggleReaction,
+    );
+
+    /**
+     * POST /trips/:tripId/members/:memberId/mute
+     * Mute a member (organizers only)
+     */
+    scope.post<{ Params: { tripId: string; memberId: string } }>(
+      "/trips/:tripId/members/:memberId/mute",
+      {
+        schema: {
+          params: muteParamsSchema,
+          response: { 200: successResponseSchema },
+        },
+      },
+      messageController.muteMember,
+    );
+
+    /**
+     * DELETE /trips/:tripId/members/:memberId/mute
+     * Unmute a member (organizers only)
+     */
+    scope.delete<{ Params: { tripId: string; memberId: string } }>(
+      "/trips/:tripId/members/:memberId/mute",
+      {
+        schema: {
+          params: muteParamsSchema,
+          response: { 200: successResponseSchema },
+        },
+      },
+      messageController.unmuteMember,
     );
   });
 }

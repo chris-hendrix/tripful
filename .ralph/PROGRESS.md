@@ -205,3 +205,61 @@ Tracking implementation progress for Messaging & Notifications feature.
 - Response schema mapping: when the service returns `{ data, meta }`, the controller must restructure to `{ success: true, messages: data, meta }` to match the response schema's field names
 - Route PATCH is more appropriate than PUT for partial-update operations like pin toggling
 - The API now has 873 total tests (up from 850 in iteration 3)
+
+---
+
+## Iteration 5 — Task 2.3: Implement mute/unmute with API routes and tests ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `apps/api/src/errors.ts` — Added 3 new error types in the "Messaging errors" section:
+  - `AlreadyMutedError` (409 Conflict)
+  - `NotMutedError` (404 Not Found)
+  - `CannotMuteOrganizerError` (403 Forbidden)
+- Modified `apps/api/src/services/message.service.ts` — Added `mutedMembers` import from schema, 3 new error imports, 4 new methods to `IMessageService` interface and `MessageService` class:
+  - `muteMember(tripId, memberId, mutedBy)` — checks `canMuteMember`, distinguishes non-organizer (PermissionDeniedError) from organizer-targeting-organizer (CannotMuteOrganizerError), checks already-muted (AlreadyMutedError), inserts into `mutedMembers` table
+  - `unmuteMember(tripId, memberId, actorId)` — checks `isOrganizer` (PermissionDeniedError), checks currently muted (NotMutedError), deletes from `mutedMembers`
+  - `isMuted(tripId, userId)` — delegates to `permissionsService.isMemberMuted`
+  - `getMutedMembers(tripId)` — queries `mutedMembers` table, returns `{ userId, mutedBy, createdAt }[]`
+- Modified `apps/api/src/controllers/message.controller.ts` — Added 2 new controller methods:
+  - `muteMember` — POST handler, extracts `tripId` and `memberId` from params, returns `{ success: true }`
+  - `unmuteMember` — DELETE handler, same pattern
+- Modified `apps/api/src/routes/message.routes.ts` — Added `muteParamsSchema` (tripId + memberId UUID validation) and 2 new routes inside write scope (with authenticate + requireCompleteProfile + writeRateLimitConfig):
+  - `POST /trips/:tripId/members/:memberId/mute`
+  - `DELETE /trips/:tripId/members/:memberId/mute`
+- Modified `apps/api/tests/unit/message.service.test.ts` — Added 11 new unit tests across 4 describe blocks:
+  - `muteMember` (4 tests): success, AlreadyMutedError, CannotMuteOrganizerError, PermissionDeniedError
+  - `unmuteMember` (3 tests): success, NotMutedError, PermissionDeniedError
+  - `isMuted` (2 tests): true when muted, false when not
+  - `getMutedMembers` (2 tests): returns list, returns empty array
+- Modified `apps/api/tests/integration/message.routes.test.ts` — Added 9 new integration tests across 2 describe blocks:
+  - `POST /api/trips/:tripId/members/:memberId/mute` (5 tests): 200 success, 409 already muted, 403 muting organizer, 403 non-organizer, 401 unauthenticated
+  - `DELETE /api/trips/:tripId/members/:memberId/mute` (4 tests): 200 success, 404 not muted, 403 non-organizer, 401 unauthenticated
+
+### Key implementation details
+- The `muteMember` method uses a two-step permission check: first calls `canMuteMember(mutedBy, tripId, memberId)`, and if false, performs a follow-up `isOrganizer(mutedBy, tripId)` check to distinguish non-organizer (PermissionDeniedError) from organizer-targeting-organizer (CannotMuteOrganizerError)
+- The `memberId` in URL params refers to the user ID (not the members table row ID), consistent with existing invitation route patterns
+- Both routes are inside the write scope plugin, inheriting authenticate + requireCompleteProfile + writeRateLimitConfig hooks via scoped `addHook` calls
+- `unmuteMember` only checks `isOrganizer` (not `canMuteMember`) since any organizer should be able to unmute any member regardless of target's role
+- Neither `muteMember` nor `unmuteMember` check `isTripLocked` — these are moderation actions that should work regardless of trip lock status
+- The existing cleanup function in unit tests already handles `mutedMembers` deletion, so no cleanup changes were needed
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 893 API tests pass (20 new), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+
+### Reviewer verdict: APPROVED
+- All requirements from task spec met: 4 service methods, 3 error types, 2 controller methods, 2 routes, 11 unit tests, 9 integration tests
+- Correct permission logic with proper error type differentiation
+- Controller and route patterns match existing codebase exactly
+- Comprehensive test coverage across success paths, error paths, and auth scenarios
+- 3 low-severity non-blocking notes: no `isTripLocked` check for mute/unmute (acceptable for moderation actions), 200 vs 201 for mute creation (consistent with delete pattern), edge case documentation
+
+### Learnings for future iterations
+- When `canMuteMember` returns false, a follow-up `isOrganizer` check is needed to distinguish between "not an organizer" and "target is organizer" — this two-step pattern is useful whenever a composite permission check needs to produce different error types
+- Moderation actions (mute/unmute) are reasonably excluded from `isTripLocked` checks since they may need to work on past trips
+- The `successResponseSchema` from `@tripful/shared/schemas` is reusable for any endpoint that returns `{ success: true }` without entity data
+- Route params like `memberId` in `/trips/:tripId/members/:memberId/mute` refer to user IDs, not the members table PK — this is consistent across the codebase (invitation routes use the same pattern)
+- The API now has 893 total tests (up from 873 in iteration 4)

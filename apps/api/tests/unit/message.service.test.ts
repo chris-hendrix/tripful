@@ -20,6 +20,9 @@ import {
   PermissionDeniedError,
   TripLockedError,
   TripNotFoundError,
+  AlreadyMutedError,
+  NotMutedError,
+  CannotMuteOrganizerError,
 } from "@/errors.js";
 
 // Create service instances with db for testing
@@ -831,6 +834,118 @@ describe("message.service", () => {
         testOrganizerId,
       );
       expect(result).toBe(false);
+    });
+  });
+
+  describe("muteMember", () => {
+    it("should mute a member as organizer", async () => {
+      await messageService.muteMember(
+        testTripId,
+        testMemberId,
+        testOrganizerId,
+      );
+
+      const isMuted = await messageService.isMuted(testTripId, testMemberId);
+      expect(isMuted).toBe(true);
+    });
+
+    it("should throw AlreadyMutedError if member is already muted", async () => {
+      await messageService.muteMember(
+        testTripId,
+        testMemberId,
+        testOrganizerId,
+      );
+
+      await expect(
+        messageService.muteMember(testTripId, testMemberId, testOrganizerId),
+      ).rejects.toThrow(AlreadyMutedError);
+    });
+
+    it("should throw CannotMuteOrganizerError when targeting an organizer", async () => {
+      await expect(
+        messageService.muteMember(testTripId, testOrganizerId, testOrganizerId),
+      ).rejects.toThrow(CannotMuteOrganizerError);
+    });
+
+    it("should throw PermissionDeniedError for non-organizer", async () => {
+      await expect(
+        messageService.muteMember(testTripId, testOrganizerId, testMemberId),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
+  describe("unmuteMember", () => {
+    it("should unmute a muted member as organizer", async () => {
+      // Mute first
+      await db.insert(mutedMembers).values({
+        tripId: testTripId,
+        userId: testMemberId,
+        mutedBy: testOrganizerId,
+      });
+
+      await messageService.unmuteMember(
+        testTripId,
+        testMemberId,
+        testOrganizerId,
+      );
+
+      const isMuted = await messageService.isMuted(testTripId, testMemberId);
+      expect(isMuted).toBe(false);
+    });
+
+    it("should throw NotMutedError if member is not muted", async () => {
+      await expect(
+        messageService.unmuteMember(
+          testTripId,
+          testMemberId,
+          testOrganizerId,
+        ),
+      ).rejects.toThrow(NotMutedError);
+    });
+
+    it("should throw PermissionDeniedError for non-organizer", async () => {
+      await expect(
+        messageService.unmuteMember(testTripId, testOrganizerId, testMemberId),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
+  describe("isMuted", () => {
+    it("should return true when member is muted", async () => {
+      await db.insert(mutedMembers).values({
+        tripId: testTripId,
+        userId: testMemberId,
+        mutedBy: testOrganizerId,
+      });
+
+      const result = await messageService.isMuted(testTripId, testMemberId);
+      expect(result).toBe(true);
+    });
+
+    it("should return false when member is not muted", async () => {
+      const result = await messageService.isMuted(testTripId, testMemberId);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("getMutedMembers", () => {
+    it("should return list of muted members", async () => {
+      await db.insert(mutedMembers).values({
+        tripId: testTripId,
+        userId: testMemberId,
+        mutedBy: testOrganizerId,
+      });
+
+      const result = await messageService.getMutedMembers(testTripId);
+      expect(result).toHaveLength(1);
+      expect(result[0].userId).toBe(testMemberId);
+      expect(result[0].mutedBy).toBe(testOrganizerId);
+      expect(result[0].createdAt).toBeInstanceOf(Date);
+    });
+
+    it("should return empty array when no muted members", async () => {
+      const result = await messageService.getMutedMembers(testTripId);
+      expect(result).toEqual([]);
     });
   });
 });

@@ -1,4 +1,10 @@
-import { messages, messageReactions, users, trips } from "@/db/schema/index.js";
+import {
+  messages,
+  messageReactions,
+  users,
+  trips,
+  mutedMembers,
+} from "@/db/schema/index.js";
 import { eq, and, isNull, count, desc, sql } from "drizzle-orm";
 import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
@@ -11,6 +17,9 @@ import {
   PermissionDeniedError,
   TripNotFoundError,
   TripLockedError,
+  AlreadyMutedError,
+  NotMutedError,
+  CannotMuteOrganizerError,
 } from "../errors.js";
 
 /**
@@ -94,6 +103,16 @@ export interface IMessageService {
     userId: string,
     emoji: string,
   ): Promise<ReactionSummaryResult[]>;
+  muteMember(tripId: string, memberId: string, mutedBy: string): Promise<void>;
+  unmuteMember(
+    tripId: string,
+    memberId: string,
+    actorId: string,
+  ): Promise<void>;
+  isMuted(tripId: string, userId: string): Promise<boolean>;
+  getMutedMembers(
+    tripId: string,
+  ): Promise<{ userId: string; mutedBy: string; createdAt: Date }[]>;
 }
 
 /**
@@ -693,6 +712,105 @@ export class MessageService implements IMessageService {
       count: r.count,
       reacted: r.reacted ?? false,
     }));
+  }
+
+  /**
+   * Mutes a member in a trip (organizers only, cannot mute other organizers)
+   */
+  async muteMember(
+    tripId: string,
+    memberId: string,
+    mutedBy: string,
+  ): Promise<void> {
+    const canMute = await this.permissionsService.canMuteMember(
+      mutedBy,
+      tripId,
+      memberId,
+    );
+    if (!canMute) {
+      const isOrganizer = await this.permissionsService.isOrganizer(
+        mutedBy,
+        tripId,
+      );
+      if (!isOrganizer) {
+        throw new PermissionDeniedError(
+          "Permission denied: only organizers can mute members",
+        );
+      }
+      throw new CannotMuteOrganizerError();
+    }
+
+    const alreadyMuted = await this.permissionsService.isMemberMuted(
+      tripId,
+      memberId,
+    );
+    if (alreadyMuted) {
+      throw new AlreadyMutedError();
+    }
+
+    await this.db.insert(mutedMembers).values({
+      tripId,
+      userId: memberId,
+      mutedBy,
+    });
+  }
+
+  /**
+   * Unmutes a member in a trip (organizers only)
+   */
+  async unmuteMember(
+    tripId: string,
+    memberId: string,
+    actorId: string,
+  ): Promise<void> {
+    const isOrganizer = await this.permissionsService.isOrganizer(
+      actorId,
+      tripId,
+    );
+    if (!isOrganizer) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can unmute members",
+      );
+    }
+
+    const isMuted = await this.permissionsService.isMemberMuted(
+      tripId,
+      memberId,
+    );
+    if (!isMuted) {
+      throw new NotMutedError();
+    }
+
+    await this.db
+      .delete(mutedMembers)
+      .where(
+        and(eq(mutedMembers.tripId, tripId), eq(mutedMembers.userId, memberId)),
+      );
+  }
+
+  /**
+   * Checks if a member is muted in a trip
+   */
+  async isMuted(tripId: string, userId: string): Promise<boolean> {
+    return this.permissionsService.isMemberMuted(tripId, userId);
+  }
+
+  /**
+   * Gets all muted members for a trip
+   */
+  async getMutedMembers(
+    tripId: string,
+  ): Promise<{ userId: string; mutedBy: string; createdAt: Date }[]> {
+    const rows = await this.db
+      .select({
+        userId: mutedMembers.userId,
+        mutedBy: mutedMembers.mutedBy,
+        createdAt: mutedMembers.createdAt,
+      })
+      .from(mutedMembers)
+      .where(eq(mutedMembers.tripId, tripId));
+
+    return rows;
   }
 
   /**

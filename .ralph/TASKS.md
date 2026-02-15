@@ -45,7 +45,7 @@
   - Test: Write integration tests in `apps/api/tests/integration/message.routes.test.ts` covering all endpoints with auth, permission errors, validation, edge cases
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 2.3: Implement mute/unmute with API routes and tests
+- [x] Task 2.3: Implement mute/unmute with API routes and tests
   - Implement: Add muteMember, unmuteMember, isMuted, getMutedMembers methods to MessageService
   - Implement: Add error types to `apps/api/src/errors.ts` (AlreadyMutedError, NotMutedError, CannotMuteOrganizerError)
   - Implement: Add mute/unmute endpoints to message routes (POST/DELETE `/trips/:tripId/members/:memberId/mute`)

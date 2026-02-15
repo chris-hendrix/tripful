@@ -1190,6 +1190,473 @@ describe("Message Routes", () => {
     });
   });
 
+  describe("POST /api/trips/:tripId/members/:memberId/mute", () => {
+    it("should mute a member and return 200", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/members/${member.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+    });
+
+    it("should return 409 if already muted", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      // Mute the member first
+      await db.insert(mutedMembers).values({
+        tripId: trip.id,
+        userId: member.id,
+        mutedBy: organizer.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/members/${member.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
+
+    it("should return 403 when trying to mute an organizer", async () => {
+      app = await buildApp();
+
+      const [organizer1] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer 1",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [organizer2] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer 2",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer1.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer1.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer2.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer1.id,
+        phone: organizer1.phoneNumber,
+        name: organizer1.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/members/${organizer2.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("should return 403 when non-organizer tries to mute", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: member.id,
+        phone: member.phoneNumber,
+        name: member.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/members/${organizer.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("should return 401 when not authenticated", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/trips/550e8400-e29b-41d4-a716-446655440000/members/550e8400-e29b-41d4-a716-446655440001/mute",
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
+  describe("DELETE /api/trips/:tripId/members/:memberId/mute", () => {
+    it("should unmute a member and return 200", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      // Mute the member first
+      await db.insert(mutedMembers).values({
+        tripId: trip.id,
+        userId: member.id,
+        mutedBy: organizer.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${member.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+    });
+
+    it("should return 404 when member is not muted", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${member.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("should return 403 when non-organizer tries to unmute", async () => {
+      app = await buildApp();
+
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member.id,
+        status: "going",
+      });
+
+      // Mute the member
+      await db.insert(mutedMembers).values({
+        tripId: trip.id,
+        userId: member.id,
+        mutedBy: organizer.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: member.id,
+        phone: member.phoneNumber,
+        name: member.displayName,
+      });
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: `/api/trips/${trip.id}/members/${member.id}/mute`,
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it("should return 401 when not authenticated", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/trips/550e8400-e29b-41d4-a716-446655440000/members/550e8400-e29b-41d4-a716-446655440001/mute",
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
   describe("Trip Lock", () => {
     it("should return 403 when posting to a locked (ended) trip", async () => {
       app = await buildApp();

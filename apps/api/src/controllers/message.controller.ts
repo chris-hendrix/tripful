@@ -410,4 +410,96 @@ export const messageController = {
       });
     }
   },
+
+  /**
+   * Mute member endpoint
+   * Mutes a member in a trip (organizers only)
+   *
+   * @route POST /api/trips/:tripId/members/:memberId/mute
+   * @middleware authenticate, requireCompleteProfile
+   */
+  async muteMember(
+    request: FastifyRequest<{
+      Params: { tripId: string; memberId: string };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { messageService } = request.server;
+      const { tripId, memberId } = request.params;
+      const userId = request.user.sub;
+
+      await messageService.muteMember(tripId, memberId, userId);
+
+      return reply.status(200).send({ success: true });
+    } catch (error) {
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
+      request.log.error(
+        {
+          err: error,
+          userId: request.user.sub,
+          tripId: request.params.tripId,
+          memberId: request.params.memberId,
+        },
+        "Failed to mute member",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to mute member",
+        },
+      });
+    }
+  },
+
+  /**
+   * Unmute member endpoint
+   * Unmutes a member in a trip (organizers only)
+   *
+   * @route DELETE /api/trips/:tripId/members/:memberId/mute
+   * @middleware authenticate, requireCompleteProfile
+   */
+  async unmuteMember(
+    request: FastifyRequest<{
+      Params: { tripId: string; memberId: string };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { messageService } = request.server;
+      const { tripId, memberId } = request.params;
+      const userId = request.user.sub;
+
+      await messageService.unmuteMember(tripId, memberId, userId);
+
+      return reply.status(200).send({ success: true });
+    } catch (error) {
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+
+      request.log.error(
+        {
+          err: error,
+          userId: request.user.sub,
+          tripId: request.params.tripId,
+          memberId: request.params.memberId,
+        },
+        "Failed to unmute member",
+      );
+
+      return reply.status(500).send({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to unmute member",
+        },
+      });
+    }
+  },
 };
