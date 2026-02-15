@@ -32,7 +32,7 @@ export function AccommodationCard({
   const nights = calculateNights(accommodation.checkIn, accommodation.checkOut);
   const nightsLabel = nights === 1 ? "1 night" : `${nights} nights`;
   const datePrefix = showDate
-    ? formatInTimezone(accommodation.checkIn + "T00:00:00", timezone, "date")
+    ? formatInTimezone(accommodation.checkIn, timezone, "date")
     : null;
 
   return (
@@ -90,13 +90,13 @@ export function AccommodationCard({
             <div>
               <span className="text-xs text-muted-foreground">Check-in</span>
               <p className="font-medium text-foreground">
-                {accommodation.checkIn}
+                {formatInTimezone(accommodation.checkIn, timezone, "datetime")}
               </p>
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Check-out</span>
               <p className="font-medium text-foreground">
-                {accommodation.checkOut}
+                {formatInTimezone(accommodation.checkOut, timezone, "datetime")}
               </p>
             </div>
           </div>

@@ -84,7 +84,7 @@
   - Test: All existing accommodation tests pass with datetime values
   - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [ ] Task 4.2: Show accommodations on all spanned days in day-by-day view
+- [x] Task 4.2: Show accommodations on all spanned days in day-by-day view
   - Implement: In `apps/web/src/components/itinerary/day-by-day-view.tsx`:
     - Change `DayData.accommodation: Accommodation | null` to `DayData.accommodations: Accommodation[]`
     - Initialize as `accommodations: []` in `ensureDay`

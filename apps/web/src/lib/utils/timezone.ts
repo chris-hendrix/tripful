@@ -306,13 +306,16 @@ export function getWeekdayAbbrev(dateString: string, timezone: string): string {
 
 /**
  * Calculate number of nights between two dates
- * @param checkIn - Check-in date string (YYYY-MM-DD)
- * @param checkOut - Check-out date string (YYYY-MM-DD)
+ * @param checkIn - Check-in date string (ISO datetime or YYYY-MM-DD)
+ * @param checkOut - Check-out date string (ISO datetime or YYYY-MM-DD)
  * @returns Number of nights
  */
 export function calculateNights(checkIn: string, checkOut: string): number {
-  const checkInDate = new Date(checkIn + "T00:00:00");
-  const checkOutDate = new Date(checkOut + "T00:00:00");
+  // Extract YYYY-MM-DD portion whether input is ISO datetime or plain date
+  const checkInDay = checkIn.slice(0, 10);
+  const checkOutDay = checkOut.slice(0, 10);
+  const checkInDate = new Date(checkInDay + "T00:00:00");
+  const checkOutDate = new Date(checkOutDay + "T00:00:00");
   const diffTime = checkOutDate.getTime() - checkInDate.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return Math.max(0, diffDays);

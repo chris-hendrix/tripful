@@ -243,3 +243,38 @@ Tracking implementation progress for this project.
 - The edit-accommodation-dialog test had to relax a date pre-population assertion since the DatePicker can't parse ISO datetime strings — noted for Task 4.4
 - No frontend component or hook files were changed — only test mock data
 - Test count: shared 196→197 (+1), api unchanged at 778, web unchanged at 830; total 1,804→1,805 (+1)
+
+## Iteration 7 — Task 4.2: Show accommodations on all spanned days in day-by-day view
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Changed `DayData.accommodation: Accommodation | null` to `DayData.accommodations: Accommodation[]` in `apps/web/src/components/itinerary/day-by-day-view.tsx`
+- Updated `ensureDay` to initialize `accommodations: []` instead of `accommodation: null`
+- Replaced accommodation grouping logic: now iterates from check-in day to day before check-out using `getDayInTimezone()` to convert ISO timestamps to `YYYY-MM-DD` day keys, pushing each accommodation to every spanned day's array
+- Updated `hasContent` check from `day.accommodation` to `day.accommodations.length > 0`
+- Updated rendering from single `if (day.accommodation)` to `day.accommodations.forEach(...)` with composite React keys `acc-${acc.id}-${day.date}`
+- Fixed `calculateNights` in `apps/web/src/lib/utils/timezone.ts` to handle ISO datetime strings using `.slice(0, 10)` extraction instead of broken `+ "T00:00:00"` concatenation
+- Fixed `AccommodationCard` in `apps/web/src/components/itinerary/accommodation-card.tsx`:
+  - Removed `+ "T00:00:00"` from `formatInTimezone` call for `datePrefix`
+  - Formatted expanded view check-in/check-out with `formatInTimezone(..., timezone, "datetime")` instead of raw ISO strings
+
+### Tests written
+- Updated existing test "displays accommodations when present" in `itinerary-view.test.tsx` to use `getAllByText` since accommodation now appears on multiple days
+- Added new test "shows accommodation on all spanned days (check-in through day before check-out)" verifying the mock accommodation (Jul 15 check-in, Jul 20 check-out in `America/Los_Angeles`) appears exactly 5 times (days 15-19)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,806 tests — shared: 197, api: 778, web: 831)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- After Task 4.1's date-to-timestamp migration, `acc.checkIn` is an ISO datetime string like `"2026-07-15T14:00:00.000Z"` — any code using these as Map keys must first convert via `getDayInTimezone()` to get `YYYY-MM-DD` format
+- The `calculateNights` utility and `accommodation-card.tsx` had latent bugs from the timestamp migration — they appended `"T00:00:00"` to values that were already full ISO timestamps, producing invalid date strings; `.slice(0, 10)` extracts `YYYY-MM-DD` from either format
+- The existing vanilla JS Date loop pattern (`new Date(start + "T00:00:00")` + `current.setDate(current.getDate() + 1)`) is used consistently across the codebase — follow it rather than introducing `date-fns` for iteration
+- Pre-existing timezone concern: `new Date(dateString + "T00:00:00")` (no `Z` suffix) is parsed as local time, and `toISOString().split("T")[0]` converts to UTC which could shift dates in timezones ahead of UTC — this is NOT a regression from this task but a pre-existing pattern that may need a future fix
+- The `group-by-type-view.tsx` has the same ISO-timestamp-as-day-key bug but was intentionally not fixed (out of scope) — should be addressed in a future task
+- Composite React keys (`acc-${acc.id}-${day.date}`) are essential when the same accommodation appears on multiple days to prevent key collisions
+- Test count: shared unchanged at 197, api unchanged at 778, web 830→831 (+1); total 1,805→1,806 (+1)

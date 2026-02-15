@@ -39,7 +39,7 @@ interface DayData {
   date: string;
   label: string;
   events: Event[];
-  accommodation: Accommodation | null;
+  accommodations: Accommodation[];
   arrivals: MemberTravel[];
   departures: MemberTravel[];
 }
@@ -88,7 +88,7 @@ export function DayByDayView({
           date: dateString,
           label: getDayLabel(dateString, timezone),
           events: [],
-          accommodation: null,
+          accommodations: [],
           arrivals: [],
           departures: [],
         });
@@ -102,10 +102,20 @@ export function DayByDayView({
       days.get(day)!.events.push(event);
     });
 
-    // Add accommodations to days (show on check-in day)
+    // Add accommodations to all spanned days (check-in through day before check-out)
     accommodations.forEach((acc) => {
-      ensureDay(acc.checkIn);
-      days.get(acc.checkIn)!.accommodation = acc;
+      const startDay = getDayInTimezone(acc.checkIn, timezone);
+      const endDay = getDayInTimezone(acc.checkOut, timezone);
+      const current = new Date(startDay + "T00:00:00");
+      const end = new Date(endDay + "T00:00:00");
+      while (current < end) {
+        const dateString = current.toISOString().split("T")[0] || "";
+        if (dateString) {
+          ensureDay(dateString);
+          days.get(dateString)!.accommodations.push(acc);
+        }
+        current.setDate(current.getDate() + 1);
+      }
     });
 
     // Add member travels to days
@@ -185,7 +195,7 @@ export function DayByDayView({
         const isToday = day.date === todayString;
         const hasContent =
           day.events.length > 0 ||
-          day.accommodation ||
+          day.accommodations.length > 0 ||
           day.arrivals.length > 0 ||
           day.departures.length > 0;
 
@@ -206,21 +216,21 @@ export function DayByDayView({
           }
         };
 
-        // Accommodation (no specific time, show first)
-        if (day.accommodation) {
+        // Accommodations (no specific time, show first)
+        day.accommodations.forEach((acc) => {
           cardElements.push(
             <AccommodationCard
-              key={`acc-${day.accommodation.id}`}
-              accommodation={day.accommodation}
+              key={`acc-${acc.id}-${day.date}`}
+              accommodation={acc}
               timezone={timezone}
-              canEdit={canModifyAccommodation(day.accommodation, userId, isOrganizer, isLocked)}
-              canDelete={canModifyAccommodation(day.accommodation, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingAccommodation(day.accommodation)}
-              onDelete={() => setEditingAccommodation(day.accommodation)}
-              createdByName={userNameMap.get(day.accommodation.createdBy)}
+              canEdit={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
+              canDelete={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
+              onEdit={() => setEditingAccommodation(acc)}
+              onDelete={() => setEditingAccommodation(acc)}
+              createdByName={userNameMap.get(acc.createdBy)}
             />,
           );
-        }
+        });
 
         // All-day events first
         day.events
