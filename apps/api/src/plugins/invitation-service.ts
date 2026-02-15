@@ -12,11 +12,12 @@ export default fp(
       fastify.db,
       fastify.permissionsService,
       fastify.smsService,
+      fastify.notificationService,
     );
     fastify.decorate("invitationService", invitationService);
   },
   {
     name: "invitation-service",
-    dependencies: ["database", "permissions-service", "sms-service"],
+    dependencies: ["database", "permissions-service", "sms-service", "notification-service"],
   },
 );

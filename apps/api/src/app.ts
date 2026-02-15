@@ -174,9 +174,9 @@ export async function buildApp(
   await app.register(accommodationServicePlugin);
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
+  await app.register(notificationServicePlugin);
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
-  await app.register(notificationServicePlugin);
   await app.register(schedulerServicePlugin);
 
   // Register error handler

@@ -6,11 +6,13 @@ import {
   members,
   invitations,
   events,
+  notificationPreferences,
 } from "@/db/schema/index.js";
 import { eq, or, and } from "drizzle-orm";
 import { InvitationService } from "@/services/invitation.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
 import { MockSMSService } from "@/services/sms.service.js";
+import { NotificationService } from "@/services/notification.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import {
   PermissionDeniedError,
@@ -25,10 +27,12 @@ import {
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
 const smsService = new MockSMSService();
+const notificationService = new NotificationService(db, smsService);
 const invitationService = new InvitationService(
   db,
   permissionsService,
   smsService,
+  notificationService,
 );
 
 describe("invitation.service", () => {
@@ -47,6 +51,7 @@ describe("invitation.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
+      await db.delete(notificationPreferences).where(eq(notificationPreferences.tripId, testTripId));
       await db.delete(invitations).where(eq(invitations.tripId, testTripId));
       await db.delete(events).where(eq(events.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));

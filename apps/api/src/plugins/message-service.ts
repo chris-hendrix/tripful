@@ -11,11 +11,12 @@ export default fp(
     const messageService = new MessageService(
       fastify.db,
       fastify.permissionsService,
+      fastify.notificationService,
     );
     fastify.decorate("messageService", messageService);
   },
   {
     name: "message-service",
-    dependencies: ["database", "permissions-service"],
+    dependencies: ["database", "permissions-service", "notification-service"],
   },
 );

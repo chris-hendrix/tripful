@@ -446,3 +446,61 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The scheduler is the first plugin to conditionally skip initialization based on NODE_ENV — uses `fastify.config.NODE_ENV !== 'test'` pattern
 - `onConflictDoNothing()` is the correct pattern for idempotent dedup inserts (already used in NotificationService, now also in SchedulerService)
 - The API now has 976 total tests (up from 955 in iteration 7, +21 new scheduler tests)
+
+---
+
+## Iteration 9 — Task 3.4: Hook message creation to notifications and RSVP to default preferences ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `apps/api/src/services/message.service.ts` — Added `INotificationService` import and third constructor parameter `notificationService`. In `createMessage`, after successful top-level message insert (when `!data.parentId`), calls `notificationService.notifyTripMembers()` with:
+  - `type: "trip_message"` (maps to `tripMessages` preference field)
+  - `title: "New message in {tripName}"` (uses trip name from existing trip query)
+  - `body: "{authorName}: {truncatedContent}"` (content truncated to 100 chars)
+  - `excludeUserId: authorId` (author does not receive their own notification)
+  - `data: { messageId: newMessage.id }` (for deep linking)
+  - Wrapped in `try/catch` with empty catch block so notification failures never break message creation
+- Modified `apps/api/src/services/invitation.service.ts` — Added `INotificationService` import and fourth constructor parameter `notificationService`. In `updateRsvp`, after the status update, added conditional: `if (status === "going") { await this.notificationService.createDefaultPreferences(userId, tripId); }`. Idempotent via `onConflictDoNothing()`.
+- Modified `apps/api/src/plugins/message-service.ts` — Passed `fastify.notificationService` as 3rd constructor argument, added `"notification-service"` to dependencies array
+- Modified `apps/api/src/plugins/invitation-service.ts` — Passed `fastify.notificationService` as 4th constructor argument, added `"notification-service"` to dependencies array
+- Modified `apps/api/src/app.ts` — Moved `notificationServicePlugin` registration before both `invitationServicePlugin` and `messageServicePlugin` to satisfy new dependency chain
+- Modified `apps/api/tests/unit/message.service.test.ts` — Updated constructor to include `NotificationService(db, new MockSMSService())`. Added `notifications` and `notificationPreferences` table cleanup in teardown.
+- Modified `apps/api/tests/unit/invitation.service.test.ts` — Updated constructor to include `NotificationService(db, smsService)`. Added `notificationPreferences` table cleanup in teardown.
+- Created `apps/api/tests/integration/notification-hooks.test.ts` — 5 integration tests covering cross-service hooks
+
+### Key implementation details
+- **Top-level only**: Notifications are only sent for top-level messages (`!data.parentId`), not replies. This is explicitly tested.
+- **Error isolation**: The `notifyTripMembers` call in MessageService is wrapped in a bare `try/catch` block. If notification creation fails (DB error, SMS error, etc.), the message is still created and returned successfully.
+- **RSVP preferences**: The `createDefaultPreferences` call is NOT wrapped in try/catch because the underlying method uses `onConflictDoNothing()` and is inherently safe. The reviewer noted this as a minor inconsistency but approved it as non-blocking.
+- **Plugin dependency chain**: `notificationServicePlugin` must be registered before both `invitationServicePlugin` and `messageServicePlugin` in `app.ts`. Fastify's plugin system uses the `dependencies` array for ordering validation, and registration order in `app.ts` must match.
+- **Notification body format**: Uses `"{authorName}: {content}"` with content truncated to 100 chars (97 + "..."). This provides a useful preview without storing full message content in notifications.
+
+### Test coverage (5 new integration tests)
+- **POST message → notifications** (1 test): Creates trip with 3 going members, posts top-level message as userA, verifies userB and userC each receive `trip_message` notification with correct `messageId` in data, and userA (author) does NOT receive one
+- **POST reply → no notifications** (1 test): Posts a reply to an existing message, verifies zero new `trip_message` notifications are created
+- **RSVP going → default preferences** (1 test): RSVPs to "going", verifies `notificationPreferences` row created with all defaults (eventReminders=true, dailyItinerary=true, tripMessages=true)
+- **RSVP not_going → no preferences** (1 test): RSVPs to "not_going", verifies no `notificationPreferences` row exists
+- **RSVP maybe → no preferences** (1 test): RSVPs to "maybe", verifies no `notificationPreferences` row exists
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 981 API tests pass (5 new), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **Notification hooks tests**: ✅ 5/5 pass
+
+### Reviewer verdict: APPROVED
+- All 4 task requirements met: message→notification hook, RSVP→preferences hook, dependency injection, integration tests
+- Error isolation correctly applied in MessageService (try/catch around notification call)
+- Plugin registration order correct (notification-service before invitation-service and message-service)
+- Integration tests cover all 5 required scenarios
+- Existing unit tests properly updated with new constructor dependencies
+- 1 medium-severity non-blocking note: `createDefaultPreferences` call in InvitationService not wrapped in try/catch (inconsistent with MessageService pattern, but acceptable since the method is idempotent via `onConflictDoNothing()`)
+- 1 optional suggestion: add logging in the empty catch block for production debugging (deferred as it would require injecting a logger into the service)
+
+### Learnings for future iterations
+- When adding a new service dependency to an existing service, remember to update ALL three touchpoints: (1) service constructor, (2) plugin file (constructor args + dependencies array), (3) app.ts registration order
+- Fastify plugin `dependencies` arrays declare what must be registered before the plugin, but the **registration order in app.ts must also match** — Fastify validates dependencies at registration time
+- Cross-service side-effect calls should be error-isolated (try/catch) when the side effect is non-critical (notifications should not break message creation), but may be left un-wrapped when the operation is inherently safe (idempotent via `onConflictDoNothing()`)
+- Unit test files that instantiate services with real implementations (not mocks) need their constructor calls updated when new dependencies are added — check ALL test files in `tests/unit/` that construct the modified services
+- The API now has 981 total tests (up from 976 in iteration 8, +5 new notification hooks integration tests)

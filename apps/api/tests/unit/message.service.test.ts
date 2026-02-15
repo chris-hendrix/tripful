@@ -7,10 +7,14 @@ import {
   messages,
   messageReactions,
   mutedMembers,
+  notifications,
+  notificationPreferences,
 } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { MessageService } from "@/services/message.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
+import { NotificationService } from "@/services/notification.service.js";
+import { MockSMSService } from "@/services/sms.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import {
   MessageNotFoundError,
@@ -27,7 +31,9 @@ import {
 
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
-const messageService = new MessageService(db, permissionsService);
+const smsService = new MockSMSService();
+const notificationService = new NotificationService(db, smsService);
+const messageService = new MessageService(db, permissionsService, notificationService);
 
 describe("message.service", () => {
   let testOrganizerPhone: string;
@@ -56,6 +62,8 @@ describe("message.service", () => {
           .where(eq(messageReactions.messageId, msg.id));
       }
 
+      await db.delete(notifications).where(eq(notifications.tripId, testTripId));
+      await db.delete(notificationPreferences).where(eq(notificationPreferences.tripId, testTripId));
       await db.delete(messages).where(eq(messages.tripId, testTripId));
       await db.delete(mutedMembers).where(eq(mutedMembers.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));

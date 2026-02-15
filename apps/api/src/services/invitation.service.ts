@@ -9,6 +9,7 @@ import { eq, and, inArray, count } from "drizzle-orm";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import type { ISMSService } from "./sms.service.js";
+import type { INotificationService } from "./notification.service.js";
 import type { MemberWithProfile } from "@tripful/shared/types";
 import {
   PermissionDeniedError,
@@ -120,6 +121,7 @@ export class InvitationService implements IInvitationService {
     private db: AppDatabase,
     private permissionsService: IPermissionsService,
     private smsService: ISMSService,
+    private notificationService: INotificationService,
   ) {}
 
   /**
@@ -476,6 +478,11 @@ export class InvitationService implements IInvitationService {
       .update(members)
       .set({ status, updatedAt: new Date() })
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
+
+    // Create default notification preferences when RSVP changes to "going"
+    if (status === "going") {
+      await this.notificationService.createDefaultPreferences(userId, tripId);
+    }
 
     // Query updated member with profile info
     const queryResult = await this.db

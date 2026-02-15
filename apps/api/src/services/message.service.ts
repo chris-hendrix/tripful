@@ -9,6 +9,7 @@ import { eq, and, isNull, count, desc, sql } from "drizzle-orm";
 import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
+import type { INotificationService } from "./notification.service.js";
 import {
   MessageNotFoundError,
   MemberMutedError,
@@ -123,6 +124,7 @@ export class MessageService implements IMessageService {
   constructor(
     private db: AppDatabase,
     private permissionsService: IPermissionsService,
+    private notificationService: INotificationService,
   ) {}
 
   /**
@@ -399,6 +401,28 @@ export class MessageService implements IMessageService {
       .from(users)
       .where(eq(users.id, authorId))
       .limit(1);
+
+    // Notify trip members for top-level messages only
+    if (!data.parentId) {
+      try {
+        const authorName = author?.displayName ?? "Someone";
+        const truncatedContent =
+          data.content.length > 100
+            ? data.content.slice(0, 97) + "..."
+            : data.content;
+
+        await this.notificationService.notifyTripMembers({
+          tripId,
+          type: "trip_message",
+          title: "New message",
+          body: `${authorName}: ${truncatedContent}`,
+          data: { messageId: newMessage.id },
+          excludeUserId: authorId,
+        });
+      } catch {
+        // Notification failures should not break message creation
+      }
+    }
 
     return {
       id: newMessage.id,

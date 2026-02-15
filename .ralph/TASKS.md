@@ -88,7 +88,7 @@
   - Test: Write unit tests in `apps/api/tests/unit/scheduler.service.test.ts` covering timing logic, deduplication, timezone handling
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 3.4: Hook message creation to notifications and RSVP to default preferences
+- [x] Task 3.4: Hook message creation to notifications and RSVP to default preferences
   - Implement: In MessageService.createMessage, after successful top-level message insert, call notificationService.notifyTripMembers with type 'trip_message', excluding the author
   - Implement: In InvitationService.updateRsvp (`apps/api/src/services/invitation.service.ts`), when status changes to 'going', call notificationService.createDefaultPreferences
   - Implement: Add notificationService dependency to MessageService constructor and plugin
