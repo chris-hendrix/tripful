@@ -190,7 +190,7 @@
   - Test: Past trip shows read-only discussion (disabled input, no actions)
   - Verify: All E2E tests pass, manual verification with screenshots
 
-- [ ] Task 6.2: E2E tests for notification flows
+- [x] Task 6.2: E2E tests for notification flows
   - Test: Create `apps/web/tests/e2e/notifications.spec.ts`
   - Test: Notification bell shows unread count after message is posted
   - Test: Click notification, navigates to trip discussion

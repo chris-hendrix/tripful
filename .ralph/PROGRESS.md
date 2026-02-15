@@ -977,3 +977,75 @@ Tracking implementation progress for Messaging & Notifications feature.
 - **Toast assertions need scoping**: Use `page.locator("[data-sonner-toast]").getByText(...)` when the toast text might also appear elsewhere on the page (e.g., in typed message content).
 - **E2E debugging with screenshots**: The verifier captured failure screenshots at each round, which were essential for diagnosing strict mode violations and ordering issues. Always check the test-results directory for failure screenshots.
 - **Iterative E2E fix cycle**: E2E tests often require 3-4 rounds of fixes due to real-browser DOM complexity that's not visible in unit tests. Each round revealed new issues (locator ambiguity, ordering, textarea scope, text duplication) that were invisible until running against the real app.
+
+---
+
+## Iteration 18 — Task 6.2: E2E tests for notification flows ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/tests/e2e/notifications.spec.ts` — 3 Playwright E2E journey tests covering all 6 required notification scenarios (~430 lines)
+
+**Journey 1: "notification bell and dropdown journey"** (tagged `@smoke`, `test.slow()`)
+- Setup: Creates organizer + member via API, creates trip with future dates, invites and RSVPs member, organizer posts a message via API (triggers `trip_message` notification for member)
+- Authenticates as member, reloads page to ensure fresh unread count fetch
+- Verifies global bell shows "Notifications, 1 unread" via aria-label
+- Clicks bell, verifies dropdown opens with "Notifications" heading, "New message" title, and "Alice:" body text
+- Clicks notification item, verifies navigation to `/trips/${tripId}#discussion` (mark-as-read on click)
+- Verifies bell updates to "Notifications" (no unread count) after optimistic mark-as-read
+- Screenshots: 50-notification-bell-dropdown, 51-notification-after-click
+
+**Journey 2: "mark all as read and trip notification bell journey"** (`test.slow()`)
+- Setup: Creates organizer + member, organizer posts 2 messages via API (2 notifications for member)
+- Authenticates as member, navigates to trip page
+- Verifies per-trip bell shows "Trip notifications, 2 unread" via aria-label
+- Opens trip notification dialog, verifies 2 notification items in dialog
+- Clicks "Mark all as read" button
+- Verifies trip bell changes to "Trip notifications" (no count) and global bell also shows zero unread
+- Screenshots: 52-trip-notification-dialog-2-unread, 53-trip-notification-all-read
+
+**Journey 3: "notification preferences journey"** (`test.slow()`)
+- Setup: Creates organizer + member, member RSVPs (creates default preferences with all 3 toggles on)
+- Opens trip notification dialog, clicks "Preferences" tab
+- Verifies all 3 switches visible: "Event Reminders", "Daily Itinerary", "Trip Messages" — all `data-state="checked"`
+- Toggles "Trip Messages" off, verifies toast "Preferences updated" and `data-state="unchecked"`
+- Toggles "Trip Messages" back on, verifies toast and `data-state="checked"` again
+- Screenshots: 54-notification-preferences-all-on, 55-notification-preferences-messages-off
+
+**Helper functions:**
+- `dismissToast(page)` — Waits for Sonner toast to disappear to prevent click interception
+- `scrollToDiscussion(page)` — Scrolls to `#discussion` anchor (used for navigation verification)
+
+### Key implementation details
+- **Global vs trip bell disambiguation**: The global bell uses `exact: true` on `name: "Notifications"` to avoid matching "Trip notifications". The trip bell uses `name: /Trip notifications/` prefix. This correctly maps to the actual aria-labels in `notification-bell.tsx` and `trip-notification-bell.tsx`.
+- **Notification seeding via messages**: Since there's no direct "create notification" API, notifications are seeded by having one user post a message, which triggers `notifyTripMembers` for all other going members. This matches the real-world notification flow.
+- **Page reload for fresh data**: After switching to the notification-receiving user, `page.reload()` + `waitForLoadState("networkidle")` ensures the unread-count query fires fresh (the TanStack Query cache is cleared by cookie change, but the initial page load may have cached stale data).
+- **Dialog scoping for trip notifications**: Test 2 scopes notification items within `page.getByRole("dialog")` to avoid ambiguity with any global dropdown elements.
+- **Switch state assertions**: Uses `toHaveAttribute("data-state", "checked"/"unchecked")` which correctly targets the shadcn/ui Switch component's Radix primitive state.
+- **Phone number offsets**: Uses +5000, +6000, +7000 to avoid collision with messaging tests (+1000-4000).
+- **Screenshot numbering**: 50-55 series (12 screenshots total: desktop + mobile pairs via `snap()`).
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Unit tests**: ✅ 981 API tests pass, 216 shared tests pass, 1005/1006 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **E2E tests**: ✅ 3/3 notification E2E tests pass
+- **All E2E tests (regression)**: ✅ 31/31 E2E tests pass across all spec files
+- **Screenshots**: ✅ 12 screenshots captured (50-55 series, desktop + mobile), all visual checks verified
+
+### Reviewer verdict: APPROVED
+- All 6 required test scenarios covered across 3 journey tests
+- Follows all established E2E patterns (helpers, beforeEach, test.slow(), snap(), dismissToast)
+- Locators robust and correctly scoped to avoid strict mode violations
+- No blocking issues found
+- 3 low-severity non-blocking notes: (1) `networkidle` wait could be flaky in some CI environments; (2) notification item click locator could be more tightly scoped to popover; (3) preference toggle round-trip doesn't verify notification suppression (better suited for integration tests)
+
+### Learnings for future iterations
+- **Notification seeding pattern**: No direct "create notification" API exists. Seed by posting messages as one user to create `trip_message` notifications for other going members. This is the only reliable E2E-testable notification trigger (scheduler-based notifications require time manipulation).
+- **Global vs trip bell locators**: Use `exact: true` on the global bell `name: "Notifications"` to prevent matching "Trip notifications" when both are on the same page. The trip bell uses prefix `"Trip notifications"` which is naturally distinct.
+- **Page reload after user switch**: When switching authenticated users via cookie injection, a `page.reload()` ensures TanStack Query fetches fresh data rather than serving stale cache. This is more reliable than waiting for the 30-second polling interval.
+- **Dialog vs Popover scoping**: The global NotificationBell uses a Popover (no `role="dialog"`), while TripNotificationBell uses a Dialog (`role="dialog"`). For the popover, use text-based locators; for the dialog, use `page.getByRole("dialog")` for scoping.
+- **Switch state via `data-state`**: shadcn/ui Switch (Radix primitive) exposes `data-state="checked"/"unchecked"` which is more reliable than checking `aria-checked` for E2E assertions.
+- **E2E tests passed on first attempt**: Unlike the sibling messaging E2E tests (which required 4 rounds of fixes), the notification E2E tests passed on the first coder run. This is likely because the patterns and lessons from iteration 17 (messaging E2E) were directly applied — scoped locators, toast handling, phone offsets, etc.
+- The total E2E test count is now 31 (up from 28 in iteration 17, +3 new notification E2E tests).
