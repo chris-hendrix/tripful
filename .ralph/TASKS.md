@@ -214,7 +214,7 @@
 
 ## Phase 7: Final Verification
 
-- [ ] Task 7.1: Full regression check
+- [x] Task 7.1: Full regression check
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All integration tests pass
   - Verify: All E2E tests pass (`pnpm test:e2e`)

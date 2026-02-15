@@ -1122,3 +1122,74 @@ Tracking implementation progress for Messaging & Notifications feature.
 - **Semantic HTML in feeds**: WAI-ARIA spec requires `<article>` elements inside `role="feed"` containers. This is an easy upgrade from `<div>` that significantly improves screen reader navigation.
 - **Dynamic `aria-label` for context-sensitive inputs**: When the same input component is used in different contexts (message vs reply), the `aria-label` should reflect the current context, not be hardcoded.
 - The web package now has 1020 passing tests (up from 1005 in iteration 18, +14 new polish tests + 1 updated).
+
+---
+
+## Iteration 20 — Task 7.1: Full regression check ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**Pre-existing test fix:**
+- Modified `apps/web/src/components/itinerary/__tests__/accommodation-card.test.tsx`:
+  - Renamed test from "renders accommodation name and nights label" to "renders accommodation name" (line 25)
+  - Removed assertion `expect(screen.getByText("3 nights")).toBeDefined()` (line 36)
+  - Root cause: AccommodationCard component was redesigned to compact card style in a previous phase and no longer displays a "nights" label. The test expectation was stale.
+
+**Full regression verification:**
+
+1. **TypeScript type checking** (`pnpm typecheck`): ✅ All 3 packages pass with 0 errors
+2. **ESLint linting** (`pnpm lint`): ✅ All 3 packages pass with 0 errors
+3. **Unit + integration tests** (`pnpm test`): ✅ 2218 tests pass across 110 test files
+   - Shared: 216 tests (12 files)
+   - API: 981 tests (43 files)
+   - Web: 1021 tests (55 files) — up from 1020+1 failing to 1021 all passing
+4. **E2E tests** (`pnpm test:e2e`): ✅ 31/31 tests pass across 9 spec files (2.9 minutes)
+5. **Manual browser testing**: ✅ No console errors found across 8 tested pages:
+   - Landing page, Login page, Auth flow, Dashboard, Trip detail page, Discussion section, Notification bell/dropdown, Trip notification bell/dialog
+
+### Screenshots captured
+- `task-7.1-landing-page.png` — Landing page, no console errors
+- `task-7.1-login-page.png` — Login page, no console errors
+- `task-7.1-dashboard.png` — Authenticated dashboard with trips list
+- `task-7.1-trip-detail.png` — Trip detail page with itinerary
+- `task-7.1-discussion-section.png` — Discussion section with message input
+- `task-7.1-notification-dropdown.png` — Global notification bell dropdown
+- `task-7.1-trip-notification-dialog.png` — Per-trip notification dialog
+
+### Verification results summary
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests (shared) | ✅ PASS | 216/216 tests |
+| Unit tests (API) | ✅ PASS | 981/981 tests |
+| Unit tests (web) | ✅ PASS | 1021/1021 tests |
+| E2E tests | ✅ PASS | 31/31 tests |
+| Console errors | ✅ PASS | 0 errors across 8 pages |
+| **Total** | ✅ **ALL PASS** | **2249 automated tests + manual verification** |
+
+### Reviewer verdict: APPROVED
+- Test fix is correct, minimal, and aligns with the redesigned component
+- Comprehensive verification completed across all quality gates
+- No regressions introduced
+- Pre-existing accommodation-card.test.tsx failure is now resolved
+
+### Feature completion summary
+This marks the completion of the entire Messaging & Notifications feature (20 iterations):
+- **Phase 1** (Tasks 1.1-1.2): Database schemas + shared types/schemas
+- **Phase 2** (Tasks 2.1-2.3): Backend messaging service, routes, mute/unmute
+- **Phase 3** (Tasks 3.1-3.4): Backend notifications, scheduler, cross-service hooks
+- **Phase 4** (Tasks 4.1-4.4): Frontend messaging hooks, components, integration, mute controls
+- **Phase 5** (Tasks 5.1-5.3): Frontend notification hooks, global bell, per-trip bell/dialog/preferences
+- **Phase 6** (Tasks 6.1-6.3): E2E tests for messaging + notifications, polish (animations, a11y, mobile)
+- **Phase 7** (Task 7.1): Full regression check — ALL PASS
+
+### Learnings for future iterations
+- **Pre-existing test failures should be fixed early**: The accommodation-card test failure persisted across 19 iterations as "pre-existing". Fixing it in a regression check task is correct but ideally it should have been caught and fixed earlier.
+- **CI=true environment variable**: The `CI=true` env var affects Playwright's `reuseExistingServer` setting. When CI is set, Playwright refuses to reuse existing servers and fails if ports are in use. Unset CI or stop servers before running E2E tests locally.
+- **Auth is cookie-based, not token-based**: The API uses `set-cookie` headers with httpOnly cookies, not Bearer tokens. For manual browser testing with Playwright, inject cookies via `context.add_cookies()` after extracting from API responses.
+- **Notification bell locators**: The global "Notifications" bell and "Trip notifications" bell can collide in Playwright strict mode. Use `exact=True` for the global bell to avoid matching "Trip notifications".
+- **Trip creation schema**: The trip creation API requires `destination` and `timezone` fields (not `preferredTimezone`). Always check shared schemas before making API calls.
+- The web package now has 1021 passing tests (up from 1020 passing + 1 failing, with the pre-existing failure fixed).
