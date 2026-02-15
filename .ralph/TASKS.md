@@ -123,7 +123,7 @@
   - Test: Verify components compile with `pnpm typecheck`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 4.3: Integrate discussion section into trip page with state handling
+- [x] Task 4.3: Integrate discussion section into trip page with state handling
   - Implement: Add `<MessageCountIndicator tripId={trip.id} />` to trip meta section in `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
   - Implement: Add `<TripMessages tripId={trip.id} />` section below itinerary in trip-detail-content.tsx
   - Implement: Conditionally render discussion only for going members (check member status)

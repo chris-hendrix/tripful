@@ -47,6 +47,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { TripMessages, MessageCountIndicator } from "@/components/messaging";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
@@ -124,6 +125,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Determine if user is an organizer (from API response metadata)
   const isOrganizer = trip?.isOrganizer ?? false;
+
+  // Check if trip is locked (past end date)
+  const isLocked = trip?.endDate
+    ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
+    : false;
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 
@@ -316,6 +322,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
               </span>
             </button>
+            <MessageCountIndicator tripId={tripId} />
           </div>
 
           {/* Description */}
@@ -334,6 +341,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         {/* Itinerary */}
         <div id="itinerary">
           <ItineraryView tripId={tripId} />
+        </div>
+
+        {/* Discussion */}
+        <div className="border-t border-border mt-8 pt-8">
+          <TripMessages
+            tripId={tripId}
+            isOrganizer={isOrganizer}
+            disabled={isLocked}
+          />
         </div>
       </div>
 

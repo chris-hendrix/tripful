@@ -161,6 +161,31 @@ vi.mock("@/components/trip/members-list", () => ({
   ),
 }));
 
+// Mock messaging components
+vi.mock("@/components/messaging", () => ({
+  TripMessages: ({
+    tripId,
+    isOrganizer,
+    disabled,
+    isMuted,
+  }: Record<string, unknown>) => (
+    <div
+      data-testid="trip-messages"
+      data-trip-id={tripId}
+      data-is-organizer={String(isOrganizer)}
+      data-disabled={String(disabled)}
+      data-is-muted={String(isMuted)}
+    >
+      Trip Messages
+    </div>
+  ),
+  MessageCountIndicator: ({ tripId }: Record<string, unknown>) => (
+    <div data-testid="message-count-indicator" data-trip-id={tripId}>
+      Message Count
+    </div>
+  ),
+}));
+
 // Mock TripPreview component
 vi.mock("@/components/trip/trip-preview", () => ({
   TripPreview: ({ trip, tripId }: any) => (
@@ -1522,6 +1547,208 @@ describe("TripDetailContent", () => {
       await waitFor(() => {
         expect(screen.getByTestId("members-list")).toBeDefined();
       });
+    });
+  });
+
+  describe("discussion section", () => {
+    it("renders TripMessages with correct tripId", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const tripMessages = screen.getByTestId("trip-messages");
+        expect(tripMessages).toBeDefined();
+        expect(tripMessages.getAttribute("data-trip-id")).toBe("trip-123");
+      });
+    });
+
+    it("passes isOrganizer=true to TripMessages for organizer", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const tripMessages = screen.getByTestId("trip-messages");
+        expect(tripMessages.getAttribute("data-is-organizer")).toBe("true");
+      });
+    });
+
+    it("passes isOrganizer=false to TripMessages for non-organizer", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: { ...mockTripDetail, isOrganizer: false },
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const tripMessages = screen.getByTestId("trip-messages");
+        expect(tripMessages.getAttribute("data-is-organizer")).toBe("false");
+      });
+    });
+
+    it("passes disabled=true to TripMessages when trip end date is in the past", async () => {
+      const pastTrip = { ...mockTripDetail, endDate: "2020-01-01" };
+      mockUseTripDetail.mockReturnValue({
+        data: pastTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const tripMessages = screen.getByTestId("trip-messages");
+        expect(tripMessages.getAttribute("data-disabled")).toBe("true");
+      });
+    });
+
+    it("passes disabled=false to TripMessages when trip end date is in the future", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const tripMessages = screen.getByTestId("trip-messages");
+        expect(tripMessages.getAttribute("data-disabled")).toBe("false");
+      });
+    });
+
+    it("renders MessageCountIndicator in stats section with correct tripId", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: mockTripDetail,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        const indicator = screen.getByTestId("message-count-indicator");
+        expect(indicator).toBeDefined();
+        expect(indicator.getAttribute("data-trip-id")).toBe("trip-123");
+      });
+    });
+
+    it("does not render TripMessages in preview mode", async () => {
+      const previewTrip = {
+        ...mockTripDetail,
+        isPreview: true,
+        userRsvpStatus: "no_response" as const,
+        isOrganizer: false,
+      };
+      mockUseTripDetail.mockReturnValue({
+        data: previewTrip,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trip-preview")).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("trip-messages")).toBeNull();
+      expect(screen.queryByTestId("message-count-indicator")).toBeNull();
+    });
+
+    it("does not render TripMessages in error state", async () => {
+      mockUseTripDetail.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isError: true,
+        error: new Error("NOT_FOUND"),
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Trip not found")).toBeDefined();
+      });
+
+      expect(screen.queryByTestId("trip-messages")).toBeNull();
+      expect(screen.queryByTestId("message-count-indicator")).toBeNull();
+    });
+
+    it("does not render TripMessages in loading state", () => {
+      mockUseTripDetail.mockReturnValue({
+        data: undefined,
+        isPending: true,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Suspense fallback={null}>
+          <TripDetailContent tripId="trip-123" />
+        </Suspense>,
+      );
+
+      expect(screen.queryByTestId("trip-messages")).toBeNull();
+      expect(screen.queryByTestId("message-count-indicator")).toBeNull();
     });
   });
 });

@@ -637,3 +637,54 @@ Tracking implementation progress for Messaging & Notifications feature.
 - **`formatRelativeTime`**: A new utility added to `apps/web/src/lib/format.ts` for compact relative time ("2m ago" style). Uses vanilla JS `Date.now()` math for simplicity rather than date-fns.
 - **Reviewer consistency checks**: Medium-severity items (barrel file, role="feed", delete confirmation) must be fixed before APPROVED. Low-severity items (import consistency, unused props, magic numbers, char count) should also be fixed to avoid accumulating tech debt.
 - The web package now has 922 passing tests (up from 855/856 in iteration 10, +67 new messaging component tests)
+
+---
+
+## Iteration 12 — Task 4.3: Integrate discussion section into trip page with state handling ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Integrated messaging components into the trip detail page:
+  - Added import: `import { TripMessages, MessageCountIndicator } from "@/components/messaging"`
+  - Added `isLocked` computation (line 130-132): `const isLocked = trip?.endDate ? new Date(\`${trip.endDate}T23:59:59.999Z\`) < new Date() : false` — same pattern as `itinerary-view.tsx`
+  - Added `<MessageCountIndicator tripId={tripId} />` in the stats section (line 325), inside the existing `flex items-center gap-6 mb-6` container alongside members count and events count buttons
+  - Added `<TripMessages tripId={tripId} isOrganizer={isOrganizer} disabled={isLocked} />` below the itinerary section (lines 347-353), wrapped in `<div className="border-t border-border mt-8 pt-8">` separator
+- Modified `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — Added 9 new tests:
+  - Added mock for `@/components/messaging` (lines 165-187) with `data-testid` stubs following existing mock pattern
+  - Added `describe("discussion section")` block (lines 1553-1753) with 9 test cases
+
+### Key implementation details
+- **Going members only**: The existing `trip.isPreview` check at line 162-164 early-returns to `<TripPreview>` for non-going members, so the discussion section is only reachable by going members. No additional conditional rendering needed.
+- **Past trip read-only**: `disabled={isLocked}` passes to `TripMessages`, which shows "Trip has ended" on the input when disabled. The `isLocked` computation uses `T23:59:59.999Z` suffix to match the itinerary-view pattern (end-of-day comparison).
+- **Muted state**: The `isMuted` prop is intentionally omitted. There is no frontend API endpoint to check the current user's mute status. The server enforces muting via `MEMBER_MUTED` error codes, which are handled by `getCreateMessageErrorMessage()` in `use-messages.ts` and surface as toast notifications in the messaging components.
+- **Loading/empty/error states**: All handled internally by `TripMessages` (3-card animated skeleton, "No messages yet. Start the conversation!" empty state) and `MessageCountIndicator` (returns null when count is 0).
+- **Error handling with toast**: Built into `message-input.tsx`, `message-card.tsx`, and `message-reactions.tsx` which each call `toast.error()` on mutation failures. No additional toast wiring needed in the integration layer.
+- **Scroll targeting**: `MessageCountIndicator` scrolls to `document.getElementById("discussion")` on click, and `TripMessages` renders `<section id="discussion">`. These coexist on the page for seamless scroll-to behavior.
+
+### Test coverage (9 new tests)
+- **TripMessages rendering** (5 tests): correct tripId, isOrganizer=true for organizer, isOrganizer=false for non-organizer, disabled=true for past trip (endDate in the past), disabled=false for future trip
+- **MessageCountIndicator rendering** (1 test): renders in stats section with correct tripId
+- **Exclusion from non-full states** (3 tests): TripMessages not rendered in preview mode, error state, or loading state
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 931 web tests pass (9 new), 981+ API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+- **Trip detail content tests**: ✅ 57/57 pass (49 existing + 8 new — the 9th test was inside the discussion section describe block and verifier counted 9 total new tests)
+
+### Reviewer verdict: APPROVED
+- All task requirements met
+- Clean integration with minimal, well-placed changes
+- `isLocked` computation matches established itinerary-view.tsx pattern exactly
+- Props match component interfaces; intentional omission of `isMuted` documented
+- Comprehensive test coverage with correct mock patterns matching existing test file conventions
+- 2 low-severity optional suggestions: (1) extract `isLocked` to shared utility if a third consumer appears; (2) pre-existing `act(...)` warning in message-input.test.tsx unrelated to this task
+
+### Learnings for future iterations
+- The preview gate (`trip.isPreview → <TripPreview>`) provides structural access control for going-only sections — no need for separate conditional rendering when a section should only be visible to going members
+- The `isMuted` prop gap is a known limitation: no API endpoint exposes current user mute status. Server-side enforcement + error handler toast is the fallback pattern. A future task could add a dedicated endpoint if proactive UI feedback is needed.
+- Integration tasks that wire pre-built components are straightforward — the key work is verifying prop types, placement in the layout, and ensuring all state derivations (isLocked, isOrganizer) are correctly computed
+- The `isLocked` computation pattern (`new Date(\`${endDate}T23:59:59.999Z\`) < new Date()`) is now used in two places (itinerary-view and trip-detail-content). If a third consumer appears, extract to a shared utility.
+- Test mocking for new child components follows the existing pattern: `vi.mock` with simplified stubs that expose props via `data-*` attributes for assertion
+- The web package now has 931 passing tests (up from 922 in iteration 11, +9 new discussion section integration tests)
