@@ -732,3 +732,65 @@ Tracking implementation progress for Messaging & Notifications feature.
 - AlertDialog for destructive actions (mute) vs. direct action for restorative actions (unmute) is a good UX pattern that matches the delete confirmation pattern established in message-card.tsx
 - The `showActions` broadening pattern (adding new capability flags to the visibility check) is the standard way to make the dropdown appear for new action types
 - The web package now has 940 passing tests (up from 931 in iteration 12, +9 new mute/unmute tests)
+
+---
+
+## Iteration 14 — Task 5.1: Create notification TanStack Query hooks ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/src/hooks/notification-queries.ts` — Server-safe module (no `"use client"`) with:
+  - `notificationKeys` query key factory with keys for: `all`, `lists`, `list(params?)`, `unreadCount`, `tripUnreadCount(tripId)`, `preferences(tripId)`, `markRead`, `markAllRead`, `updatePreferences`
+  - `notificationsQueryOptions(params?)` — fetches paginated notifications (global or trip-scoped via tripId param), constructs query string with page/limit/unreadOnly, returns full `GetNotificationsResponse`, `staleTime: 30s`
+  - `unreadCountQueryOptions()` — fetches global unread count, extracts `response.count`, `staleTime: 30s`
+  - `tripUnreadCountQueryOptions(tripId)` — fetches trip-specific unread count, extracts `response.count`, `staleTime: 30s`, `enabled: !!tripId`
+  - `notificationPreferencesQueryOptions(tripId)` — fetches trip preferences, extracts `response.preferences`, `staleTime: 60s`, `enabled: !!tripId`
+- Created `apps/web/src/hooks/use-notifications.ts` — Client-side `"use client"` module (~568 lines) with:
+  - **Re-exports**: All query keys, options, and types from `notification-queries.ts` for backward compatibility
+  - **Query hooks**:
+    - `useUnreadCount()` — global unread count with 30s `refetchInterval` polling
+    - `useTripUnreadCount(tripId)` — trip-scoped unread count with 30s `refetchInterval` polling
+    - `useNotifications(options?)` — paginated notification list (global or trip-scoped), no polling
+    - `useNotificationPreferences(tripId)` — trip notification preferences, no polling
+  - **Mutation hooks with optimistic updates**:
+    - `useMarkAsRead()` — PATCH `/notifications/:notificationId/read`, optimistic: decrements global unread count, sets `readAt` on matching notification across all list caches, full rollback on error, invalidates lists + unread counts on settle
+    - `useMarkAllAsRead()` — PATCH `/notifications/read-all` with optional `{ tripId }` body, optimistic: zeros out unread counts (global + trip-specific if tripId), sets `readAt` on all unread notifications in list caches, full rollback, invalidates all
+    - `useUpdateNotificationPreferences(tripId)` — PUT `/trips/:tripId/notification-preferences`, optimistic: sets preferences cache to new values, rollback, invalidates preferences on settle
+  - **Error message helpers** (one per mutation):
+    - `getMarkAsReadErrorMessage` — NOTIFICATION_NOT_FOUND, UNAUTHORIZED
+    - `getMarkAllAsReadErrorMessage` — UNAUTHORIZED
+    - `getUpdatePreferencesErrorMessage` — PERMISSION_DENIED, VALIDATION_ERROR, UNAUTHORIZED
+
+### Key implementation details
+- Follows the established two-file pattern (`notification-queries.ts` for server-safe + `use-notifications.ts` for client hooks) matching `message-queries.ts`/`use-messages.ts`
+- Query key factory uses flat inline arrays with `as const` matching actual codebase convention (not the spread syntax shown in architecture spec pseudo-code)
+- `notificationsQueryOptions` handles both global and trip-scoped endpoints: when `params.tripId` is set, calls `/trips/${tripId}/notifications`; otherwise calls `/notifications`
+- `useMarkAllAsRead` uses spread pattern `...(params?.tripId ? { body: JSON.stringify({ tripId: params.tripId }) } : {})` to avoid sending `Content-Type` header when no body is present (matching Fastify's PATCH body handling requirement from iteration 7)
+- All optimistic update mutations follow the full 3-step pattern: onMutate (cancel + snapshot + update + return context), onError (rollback from context), onSettled (invalidate queries)
+- The `useMarkAsRead` optimistic update iterates through ALL matching list query data via `queryClient.getQueriesData({ queryKey: notificationKeys.lists() })` to update the notification's `readAt` across all cached pages/filters
+- Unread count extraction: `unreadCountQueryOptions` returns `number` directly (not the wrapper `{ success: true, count: number }`) for consumer convenience
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 981 API tests pass, 216 shared tests pass, 940 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **File sizes**: notification-queries.ts (127 lines), use-notifications.ts (568 lines)
+
+### Reviewer verdict: APPROVED
+- All 7 required hooks from task spec implemented: useUnreadCount, useTripUnreadCount, useNotifications, useMarkAsRead, useMarkAllAsRead, useNotificationPreferences, useUpdateNotificationPreferences
+- Two-file split architecture correctly followed
+- Query key factory matches architecture spec
+- 30s polling configured on useUnreadCount and useTripUnreadCount
+- Optimistic updates with proper rollback for all three mutations
+- Error helpers with appropriate error codes provided
+- 1 medium-severity note (non-blocking): query key for notifications list only includes tripId, not page/limit/unreadOnly — consistent with architecture spec and acceptable since current UI uses simple list fetching; can be extended if client-side pagination is introduced
+- 3 low-severity notes (non-blocking): minor key factory style difference from spec (matches real codebase), useMarkAsRead doesn't invalidate trip-specific unread counts (30s poll provides eventual consistency), useMarkAllAsRead onSettled could also invalidate trip-specific unread count (30s poll covers gap)
+
+### Learnings for future iterations
+- Notification queries handle both global and trip-scoped endpoints from a single `queryOptions` function — the `tripId` parameter determines which API path to call
+- The `getQueriesData({ queryKey })` pattern from TanStack Query allows iterating through ALL cached queries matching a key prefix — useful for updating a specific entity across multiple list cache entries (different pages, filters)
+- For mutations where the variable is just an ID (like `notificationId`), optimistic updates for related caches (like trip-specific unread count) are limited since the mutation doesn't know which trip the notification belongs to — this is an acceptable trade-off when polling provides eventual consistency
+- The `...(condition ? { body: JSON.stringify(data) } : {})` spread pattern is the correct way to conditionally include a request body, especially for Fastify endpoints that reject Content-Type headers without a body
+- No new tests were needed for this task since the task spec only requires `pnpm typecheck` verification — hook unit tests can be added alongside the UI components that consume them (Tasks 5.2, 5.3)
+- The web package still has 940 passing tests (no new tests in this iteration, hooks are compile-time verified only per task spec)

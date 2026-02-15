@@ -144,7 +144,7 @@
 
 ## Phase 5: Frontend Notifications
 
-- [ ] Task 5.1: Create notification TanStack Query hooks
+- [x] Task 5.1: Create notification TanStack Query hooks
   - Implement: Create `apps/web/src/hooks/use-notifications.ts` with notificationKeys factory
   - Implement: Implement useUnreadCount() with 30s polling
   - Implement: Implement useTripUnreadCount(tripId) with 30s polling
