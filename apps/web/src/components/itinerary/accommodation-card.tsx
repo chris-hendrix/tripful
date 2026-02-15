@@ -160,7 +160,7 @@ export function AccommodationCard({
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="h-7 text-xs gap-1"
+                className="h-9 sm:h-7 text-xs gap-1"
                 title="Edit accommodation"
               >
                 <Pencil className="w-3 h-3" />

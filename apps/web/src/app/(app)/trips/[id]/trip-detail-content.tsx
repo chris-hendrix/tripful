@@ -203,12 +203,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Trip header */}
         <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <h1 className="text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
             {isOrganizer && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   onClick={() => setIsInviteOpen(true)}
                   onMouseEnter={preloadInviteMembersDialog}

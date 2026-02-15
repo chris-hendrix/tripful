@@ -50,7 +50,7 @@ export function MemberTravelCard({
           : undefined
       }
     >
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
         <PlaneIcon className="w-4 h-4 shrink-0" />
         <span className="font-medium text-foreground">{memberName}</span>
         <span className="text-muted-foreground/40">·</span>
@@ -69,7 +69,7 @@ export function MemberTravelCard({
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-primary active:text-primary truncate"
+              className="inline-flex items-center gap-1 hover:text-primary active:text-primary min-w-0"
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3 h-3 shrink-0" />

@@ -116,7 +116,7 @@ export function EventCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
           {isMultiDay && (
             <Badge variant="outline" className="text-xs">
               {formatInTimezone(event.startTime, timezone, "short-date")}
@@ -204,7 +204,7 @@ export function EventCard({
                     e.stopPropagation();
                     onEdit();
                   }}
-                  className="h-8 text-xs"
+                  className="h-9 sm:h-8 text-xs"
                   title="Edit event"
                 >
                   Edit
@@ -218,7 +218,7 @@ export function EventCard({
                     e.stopPropagation();
                     onDelete();
                   }}
-                  className="h-8 text-xs"
+                  className="h-9 sm:h-8 text-xs"
                   title="Delete event"
                 >
                   Delete
