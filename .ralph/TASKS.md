@@ -75,7 +75,7 @@
 
 ## Phase 4: Accommodation Redesign
 
-- [ ] Task 4.1: Convert checkIn/checkOut columns from date to timestamp with timezone
+- [x] Task 4.1: Convert checkIn/checkOut columns from date to timestamp with timezone
   - Implement: In `apps/api/src/db/schema/index.ts`, change `checkIn: date("check_in").notNull()` to `checkIn: timestamp("check_in", { withTimezone: true }).notNull()` and same for `checkOut`
   - Implement: Generate migration: `cd apps/api && pnpm db:generate` — verify it generates `ALTER COLUMN ... TYPE timestamp with time zone`
   - Implement: Run migration: `cd apps/api && pnpm db:migrate`

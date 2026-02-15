@@ -24,8 +24,8 @@ const baseAccommodationSchema = z.object({
       message: "Description must not exceed 2000 characters",
     })
     .optional(),
-  checkIn: z.string().date(),
-  checkOut: z.string().date(),
+  checkIn: z.string().datetime({ offset: true }).or(z.string().datetime()),
+  checkOut: z.string().datetime({ offset: true }).or(z.string().datetime()),
   links: z
     .array(
       z.string().url({
@@ -43,8 +43,8 @@ const baseAccommodationSchema = z.object({
  * - name: 1-255 characters (required)
  * - address: string (optional)
  * - description: max 2000 characters (optional)
- * - checkIn: ISO 8601 date string (YYYY-MM-DD) (required)
- * - checkOut: ISO 8601 date string (YYYY-MM-DD) (required), must be > checkIn
+ * - checkIn: ISO 8601 datetime string (required)
+ * - checkOut: ISO 8601 datetime string (required), must be > checkIn
  * - links: array of URLs, max 10 items (optional)
  */
 export const createAccommodationSchema = baseAccommodationSchema.refine(
@@ -89,8 +89,8 @@ const accommodationEntitySchema = z.object({
   name: z.string(),
   address: z.string().nullable(),
   description: z.string().nullable(),
-  checkIn: z.string(),
-  checkOut: z.string(),
+  checkIn: z.date(),
+  checkOut: z.date(),
   links: z.array(z.string()).nullable(),
   deletedAt: z.date().nullable(),
   deletedBy: z.string().nullable(),

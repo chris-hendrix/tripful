@@ -11,19 +11,19 @@ describe("createAccommodationSchema", () => {
     const validAccommodations = [
       {
         name: "Beachfront Hotel",
-        checkIn: "2026-07-15",
-        checkOut: "2026-07-20",
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-20T11:00:00.000Z",
       },
       {
         name: "Downtown Apartment",
-        checkIn: "2026-08-01",
-        checkOut: "2026-08-10",
+        checkIn: "2026-08-01T15:00:00.000Z",
+        checkOut: "2026-08-10T10:00:00.000Z",
         address: "123 Main St, City, State 12345",
       },
       {
         name: "Mountain Cabin",
-        checkIn: "2026-09-05",
-        checkOut: "2026-09-12",
+        checkIn: "2026-09-05T16:00:00.000Z",
+        checkOut: "2026-09-12T11:00:00.000Z",
         description: "Cozy cabin with lake view",
         address: "456 Forest Road",
       },
@@ -39,8 +39,8 @@ describe("createAccommodationSchema", () => {
   it("should accept accommodation with all optional fields", () => {
     const accommodation = {
       name: "Luxury Resort",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-22",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-22T11:00:00.000Z",
       address: "789 Beach Boulevard, Miami, FL 33139",
       description: "Five-star resort with ocean view and spa facilities",
       links: [
@@ -55,8 +55,8 @@ describe("createAccommodationSchema", () => {
 
   it("should accept accommodation name at boundary lengths", () => {
     const accommodations = [
-      { name: "A", checkIn: "2026-07-15", checkOut: "2026-07-16" }, // Minimum (1)
-      { name: "a".repeat(255), checkIn: "2026-07-15", checkOut: "2026-07-16" }, // Maximum (255)
+      { name: "A", checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Minimum (1)
+      { name: "a".repeat(255), checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Maximum (255)
     ];
 
     accommodations.forEach((accommodation) => {
@@ -69,8 +69,8 @@ describe("createAccommodationSchema", () => {
   it("should reject accommodation names that are too short", () => {
     const accommodation = {
       name: "",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
     };
 
     const result = createAccommodationSchema.safeParse(accommodation);
@@ -84,8 +84,8 @@ describe("createAccommodationSchema", () => {
     const longName = "a".repeat(256);
     const accommodation = {
       name: longName,
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
     };
 
     const result = createAccommodationSchema.safeParse(accommodation);
@@ -99,9 +99,9 @@ describe("createAccommodationSchema", () => {
 
   it("should reject missing required fields", () => {
     const invalidAccommodations = [
-      { checkIn: "2026-07-15", checkOut: "2026-07-16" }, // Missing name
-      { name: "Hotel", checkOut: "2026-07-16" }, // Missing checkIn
-      { name: "Hotel", checkIn: "2026-07-15" }, // Missing checkOut
+      { checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Missing name
+      { name: "Hotel", checkOut: "2026-07-16T11:00:00.000Z" }, // Missing checkIn
+      { name: "Hotel", checkIn: "2026-07-15T14:00:00.000Z" }, // Missing checkOut
       {}, // Missing all required fields
     ];
 
@@ -111,14 +111,13 @@ describe("createAccommodationSchema", () => {
     });
   });
 
-  it("should reject invalid date formats for checkIn", () => {
+  it("should reject invalid datetime formats for checkIn", () => {
     const invalidDates = [
-      "2026-13-01", // Invalid month
-      "2026-02-30", // Invalid day
-      "26-07-15", // Wrong format
-      "2026/07/15", // Wrong separator
+      "2026-07-15", // Date-only (no longer accepted)
+      "2026-13-01T14:00:00.000Z", // Invalid month
+      "26-07-15T14:00:00.000Z", // Wrong format
+      "2026/07/15T14:00:00.000Z", // Wrong separator
       "July 15, 2026", // Wrong format
-      "2026-07-15T12:00:00Z", // Datetime instead of date
       "not-a-date", // Invalid format
     ];
 
@@ -126,7 +125,7 @@ describe("createAccommodationSchema", () => {
       const accommodation = {
         name: "Hotel",
         checkIn,
-        checkOut: "2026-07-16",
+        checkOut: "2026-07-16T11:00:00.000Z",
       };
 
       const result = createAccommodationSchema.safeParse(accommodation);
@@ -134,17 +133,17 @@ describe("createAccommodationSchema", () => {
     });
   });
 
-  it("should reject invalid date formats for checkOut", () => {
+  it("should reject invalid datetime formats for checkOut", () => {
     const invalidDates = [
-      "2026-13-01", // Invalid month
-      "26-07-16", // Wrong format
+      "2026-07-16", // Date-only (no longer accepted)
+      "26-07-16T14:00:00.000Z", // Wrong format
       "not-a-date", // Invalid format
     ];
 
     invalidDates.forEach((checkOut) => {
       const accommodation = {
         name: "Hotel",
-        checkIn: "2026-07-15",
+        checkIn: "2026-07-15T14:00:00.000Z",
         checkOut,
       };
 
@@ -153,12 +152,32 @@ describe("createAccommodationSchema", () => {
     });
   });
 
-  it("should accept valid ISO date strings (YYYY-MM-DD)", () => {
+  it("should accept valid ISO datetime strings", () => {
     const validDates = [
-      { checkIn: "2026-01-15", checkOut: "2026-01-20" },
-      { checkIn: "2026-12-01", checkOut: "2026-12-31" },
-      { checkIn: "2026-02-28", checkOut: "2026-03-05" },
-      { checkIn: "2024-02-29", checkOut: "2024-03-05" }, // Leap year
+      { checkIn: "2026-01-15T14:00:00.000Z", checkOut: "2026-01-20T11:00:00.000Z" },
+      { checkIn: "2026-12-01T15:00:00.000Z", checkOut: "2026-12-31T10:00:00.000Z" },
+      { checkIn: "2026-02-28T14:00:00.000Z", checkOut: "2026-03-05T11:00:00.000Z" },
+      { checkIn: "2024-02-29T14:00:00.000Z", checkOut: "2024-03-05T11:00:00.000Z" }, // Leap year
+    ];
+
+    validDates.forEach(({ checkIn, checkOut }) => {
+      const accommodation = {
+        name: "Hotel",
+        checkIn,
+        checkOut,
+      };
+
+      expect(() =>
+        createAccommodationSchema.parse(accommodation),
+      ).not.toThrow();
+    });
+  });
+
+  it("should accept datetime strings with timezone offset", () => {
+    const validDates = [
+      { checkIn: "2026-07-15T14:00:00+05:00", checkOut: "2026-07-20T11:00:00+05:00" },
+      { checkIn: "2026-07-15T14:00:00-04:00", checkOut: "2026-07-20T11:00:00-04:00" },
+      { checkIn: "2026-07-15T14:00:00+00:00", checkOut: "2026-07-20T11:00:00+00:00" },
     ];
 
     validDates.forEach(({ checkIn, checkOut }) => {
@@ -177,8 +196,8 @@ describe("createAccommodationSchema", () => {
   it("should reject checkOut before checkIn", () => {
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-20",
-      checkOut: "2026-07-15",
+      checkIn: "2026-07-20T14:00:00.000Z",
+      checkOut: "2026-07-15T11:00:00.000Z",
     };
 
     const result = createAccommodationSchema.safeParse(accommodation);
@@ -194,8 +213,8 @@ describe("createAccommodationSchema", () => {
   it("should reject checkOut equal to checkIn", () => {
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-15",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-15T14:00:00.000Z",
     };
 
     const result = createAccommodationSchema.safeParse(accommodation);
@@ -210,8 +229,8 @@ describe("createAccommodationSchema", () => {
   it("should accept checkOut after checkIn", () => {
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-20",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-20T11:00:00.000Z",
     };
 
     expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
@@ -220,8 +239,8 @@ describe("createAccommodationSchema", () => {
   it("should accept single day difference", () => {
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
     };
 
     expect(() => createAccommodationSchema.parse(accommodation)).not.toThrow();
@@ -231,8 +250,8 @@ describe("createAccommodationSchema", () => {
     const longDescription = "a".repeat(2001);
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
       description: longDescription,
     };
 
@@ -249,8 +268,8 @@ describe("createAccommodationSchema", () => {
     const maxDescription = "a".repeat(2000);
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
       description: maxDescription,
     };
 
@@ -268,8 +287,8 @@ describe("createAccommodationSchema", () => {
     invalidUrls.forEach((links) => {
       const accommodation = {
         name: "Hotel",
-        checkIn: "2026-07-15",
-        checkOut: "2026-07-16",
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-16T11:00:00.000Z",
         links,
       };
 
@@ -289,8 +308,8 @@ describe("createAccommodationSchema", () => {
     validUrls.forEach((links) => {
       const accommodation = {
         name: "Hotel",
-        checkIn: "2026-07-15",
-        checkOut: "2026-07-16",
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-16T11:00:00.000Z",
         links,
       };
 
@@ -304,8 +323,8 @@ describe("createAccommodationSchema", () => {
     const tooManyLinks = Array(11).fill("https://example.com");
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
       links: tooManyLinks,
     };
 
@@ -320,8 +339,8 @@ describe("createAccommodationSchema", () => {
     const maxLinks = Array(10).fill("https://example.com");
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
       links: maxLinks,
     };
 
@@ -331,8 +350,8 @@ describe("createAccommodationSchema", () => {
   it("should accept empty links array", () => {
     const accommodation = {
       name: "Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-16",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-16T11:00:00.000Z",
       links: [],
     };
 
@@ -346,8 +365,8 @@ describe("updateAccommodationSchema", () => {
       { name: "Updated Hotel Name" },
       { address: "New Address" },
       { description: "Updated description" },
-      { checkIn: "2026-08-01" },
-      { checkOut: "2026-08-10" },
+      { checkIn: "2026-08-01T14:00:00.000Z" },
+      { checkOut: "2026-08-10T11:00:00.000Z" },
       { links: ["https://example.com"] },
     ];
 
@@ -360,8 +379,8 @@ describe("updateAccommodationSchema", () => {
     const update = {
       name: "Updated Hotel",
       address: "New Address",
-      checkIn: "2026-08-01",
-      checkOut: "2026-08-10",
+      checkIn: "2026-08-01T14:00:00.000Z",
+      checkOut: "2026-08-10T11:00:00.000Z",
     };
 
     expect(() => updateAccommodationSchema.parse(update)).not.toThrow();
@@ -375,8 +394,8 @@ describe("updateAccommodationSchema", () => {
     const invalidUpdates = [
       { name: "" }, // Too short
       { name: "a".repeat(256) }, // Too long
-      { checkIn: "not-a-date" }, // Invalid date format
-      { checkOut: "2026/07/16" }, // Invalid date format
+      { checkIn: "not-a-date" }, // Invalid datetime format
+      { checkOut: "2026/07/16" }, // Invalid datetime format
       { description: "a".repeat(2001) }, // Too long
       { links: ["not-a-url"] }, // Invalid URL
       { links: Array(11).fill("https://example.com") }, // Too many links
@@ -390,8 +409,8 @@ describe("updateAccommodationSchema", () => {
 
   it("should still validate date cross-validation when both dates provided", () => {
     const update = {
-      checkIn: "2026-07-20",
-      checkOut: "2026-07-15",
+      checkIn: "2026-07-20T14:00:00.000Z",
+      checkOut: "2026-07-15T11:00:00.000Z",
     };
 
     const result = updateAccommodationSchema.safeParse(update);
@@ -405,7 +424,7 @@ describe("updateAccommodationSchema", () => {
 
   it("should allow updating checkIn without checkOut", () => {
     const update = {
-      checkIn: "2026-08-01",
+      checkIn: "2026-08-01T14:00:00.000Z",
     };
 
     expect(() => updateAccommodationSchema.parse(update)).not.toThrow();
@@ -413,7 +432,7 @@ describe("updateAccommodationSchema", () => {
 
   it("should allow updating checkOut without checkIn", () => {
     const update = {
-      checkOut: "2026-08-10",
+      checkOut: "2026-08-10T11:00:00.000Z",
     };
 
     expect(() => updateAccommodationSchema.parse(update)).not.toThrow();
@@ -421,8 +440,8 @@ describe("updateAccommodationSchema", () => {
 
   it("should reject checkOut equal to checkIn when both provided", () => {
     const update = {
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-15",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-15T14:00:00.000Z",
     };
 
     const result = updateAccommodationSchema.safeParse(update);
@@ -431,8 +450,8 @@ describe("updateAccommodationSchema", () => {
 
   it("should accept valid partial update with cross-validation passing", () => {
     const update = {
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-20",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-20T11:00:00.000Z",
     };
 
     expect(() => updateAccommodationSchema.parse(update)).not.toThrow();

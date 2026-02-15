@@ -185,8 +185,8 @@ export class AccommodationService implements IAccommodationService {
         name: data.name,
         address: data.address || null,
         description: data.description || null,
-        checkIn: data.checkIn,
-        checkOut: data.checkOut,
+        checkIn: new Date(data.checkIn),
+        checkOut: new Date(data.checkOut),
         links: data.links || null,
       })
       .returning();
@@ -319,6 +319,8 @@ export class AccommodationService implements IAccommodationService {
     // Build update data (Record<string, unknown> needed due to exactOptionalPropertyTypes)
     const updateData: Record<string, unknown> = {
       ...data,
+      ...(data.checkIn && { checkIn: new Date(data.checkIn) }),
+      ...(data.checkOut && { checkOut: new Date(data.checkOut) }),
       updatedAt: new Date(),
     };
 

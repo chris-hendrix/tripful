@@ -65,8 +65,8 @@ describe("Accommodation Routes", () => {
         },
         payload: {
           name: "Hotel Luxury",
-          checkIn: "2026-06-15",
-          checkOut: "2026-06-20",
+          checkIn: "2026-06-15T14:00:00.000Z",
+          checkOut: "2026-06-20T11:00:00.000Z",
           address: "123 Main St, Paris",
         },
       });
@@ -92,8 +92,8 @@ describe("Accommodation Routes", () => {
         url: "/api/trips/550e8400-e29b-41d4-a716-446655440000/accommodations",
         payload: {
           name: "Test Hotel",
-          checkIn: "2026-06-15",
-          checkOut: "2026-06-20",
+          checkIn: "2026-06-15T14:00:00.000Z",
+          checkOut: "2026-06-20T11:00:00.000Z",
         },
       });
 
@@ -160,8 +160,8 @@ describe("Accommodation Routes", () => {
         },
         payload: {
           name: "Unauthorized Hotel",
-          checkIn: "2026-06-15",
-          checkOut: "2026-06-20",
+          checkIn: "2026-06-15T14:00:00.000Z",
+          checkOut: "2026-06-20T11:00:00.000Z",
         },
       });
 
@@ -697,8 +697,8 @@ describe("Accommodation Routes", () => {
         cookies: { auth_token: token },
         payload: {
           name: "One Too Many Hotel",
-          checkIn: "2026-07-01",
-          checkOut: "2026-07-05",
+          checkIn: "2026-07-01T14:00:00.000Z",
+          checkOut: "2026-07-05T11:00:00.000Z",
         },
       });
 
@@ -775,8 +775,8 @@ describe("Accommodation Routes", () => {
         cookies: { auth_token: token },
         payload: {
           name: "Should Succeed Hotel",
-          checkIn: "2026-07-10",
-          checkOut: "2026-07-15",
+          checkIn: "2026-07-10T14:00:00.000Z",
+          checkOut: "2026-07-15T11:00:00.000Z",
         },
       });
 
@@ -831,8 +831,8 @@ describe("Accommodation Routes", () => {
         cookies: { auth_token: token },
         payload: {
           name: "Hotel",
-          checkIn: "2025-01-02",
-          checkOut: "2025-01-04",
+          checkIn: "2025-01-02T14:00:00.000Z",
+          checkOut: "2025-01-04T11:00:00.000Z",
         },
       });
 
@@ -879,8 +879,8 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: user.id,
           name: "Hotel",
-          checkIn: "2025-01-02",
-          checkOut: "2025-01-04",
+          checkIn: new Date("2025-01-02T14:00:00.000Z"),
+          checkOut: new Date("2025-01-04T11:00:00.000Z"),
         })
         .returning();
 
@@ -940,8 +940,8 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: user.id,
           name: "Hotel",
-          checkIn: "2025-01-02",
-          checkOut: "2025-01-04",
+          checkIn: new Date("2025-01-02T14:00:00.000Z"),
+          checkOut: new Date("2025-01-04T11:00:00.000Z"),
         })
         .returning();
 
@@ -1000,8 +1000,8 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: user.id,
           name: "Deleted Hotel",
-          checkIn: "2025-01-02",
-          checkOut: "2025-01-04",
+          checkIn: new Date("2025-01-02T14:00:00.000Z"),
+          checkOut: new Date("2025-01-04T11:00:00.000Z"),
           deletedAt: new Date(),
           deletedBy: user.id,
         })

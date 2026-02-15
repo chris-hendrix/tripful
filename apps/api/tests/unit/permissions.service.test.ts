@@ -173,8 +173,8 @@ describe("permissions.service", () => {
         tripId: testTripId,
         createdBy: testCreatorId,
         name: "Test Hotel",
-        checkIn: "2026-06-10",
-        checkOut: "2026-06-20",
+        checkIn: new Date("2026-06-10T14:00:00.000Z"),
+        checkOut: new Date("2026-06-20T11:00:00.000Z"),
       })
       .returning();
     testAccommodationId = accommodationResult[0].id;

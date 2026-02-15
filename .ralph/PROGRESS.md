@@ -199,3 +199,47 @@ Tracking implementation progress for this project.
 - The new error classes use HTTP 400 (per TASKS.md spec), while the existing `MemberLimitExceededError` uses 409 — this inconsistency is noted but not blocking
 - Test count: shared unchanged at 196, api 772→778 (+6), web unchanged at 190; total 1,158→1,164 (+6)
 - A pre-existing flaky test in `trip.service.test.ts` was observed due to `generateUniquePhone()` using `Date.now() % 10000` which can collide during parallel execution — not caused by this task
+
+## Iteration 6 — Task 4.1: Convert checkIn/checkOut columns from date to timestamp with timezone
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+- Changed `checkIn` and `checkOut` columns from `date("check_in").notNull()` to `timestamp("check_in", { withTimezone: true }).notNull()` (and same for `check_out`) in `apps/api/src/db/schema/index.ts`
+- Generated migration `0009_illegal_leo.sql` — safe ALTER COLUMN TYPE using `SET DATA TYPE timestamp with time zone` (no destructive DROP+CREATE)
+- Applied migration via `pnpm db:migrate`
+- Updated Zod input validation in `shared/schemas/accommodation.ts`:
+  - `z.string().date()` → `z.string().datetime({ offset: true }).or(z.string().datetime())` for both `checkIn` and `checkOut`
+  - Entity schema: `z.string()` → `z.date()` for `checkIn`/`checkOut` (matching event entity schema pattern)
+- Updated accommodation service (`apps/api/src/services/accommodation.service.ts`):
+  - Convert string inputs to `new Date()` objects before DB insert/update (matching event service pattern)
+  - Lines 188-189 (create) and 322-323 (update) now use `new Date(data.checkIn)` / `new Date(data.checkOut)`
+- Cross-field validation (`checkOut > checkIn`) unchanged — `new Date()` comparison works for ISO datetime strings
+
+### Tests updated
+- **Shared schema tests** (`shared/__tests__/accommodation-schemas.test.ts`): All 30 tests updated from date-only to ISO datetime strings; added new tests for timezone offset acceptance (`+05:00`, `-04:00`, `+00:00`)
+- **Shared exports test** (`shared/__tests__/exports.test.ts`): Updated mock `CreateAccommodationInput` data
+- **Backend unit tests** (`apps/api/tests/unit/accommodation.service.test.ts`): All checkIn/checkOut values updated to ISO datetime format; assertions updated for `Date` return type (`.toBeInstanceOf(Date)`)
+- **Backend unit tests** (`apps/api/tests/unit/permissions.service.test.ts`): Updated accommodation DB inserts
+- **Backend integration tests** (`apps/api/tests/integration/accommodation.routes.test.ts`): Updated POST/PUT payloads and DB inserts in test setup
+- **Backend integration tests** (`apps/api/tests/integration/itinerary-schema.test.ts`): Updated accommodation DB inserts
+- **Frontend test files** (5 files — mock data only, no component changes):
+  - `create-accommodation-dialog.test.tsx`, `edit-accommodation-dialog.test.tsx`, `deleted-items-section.test.tsx`, `itinerary-view.test.tsx`, `use-accommodations.test.tsx`
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,805 tests — shared: 197, api: 778, web: 830)
+- Reviewer: ✅ APPROVED
+
+### Learnings for future iterations
+- Drizzle's `date()` column returns raw `string` (YYYY-MM-DD), while `timestamp()` returns `Date` objects — this is the key behavioral change driving test updates
+- Drizzle Kit generated a safe ALTER COLUMN TYPE migration automatically — no hand-written migration SQL was needed
+- The `z.string().datetime({ offset: true }).or(z.string().datetime())` pattern accepts both `"2026-07-15T14:00:00.000Z"` (UTC) and `"2026-07-15T14:00:00+05:00"` (with offset)
+- Event entity schema uses `z.date()` for timestamp fields — accommodation entity schema now follows the same pattern
+- The `shared/types/accommodation.ts` keeps `checkIn: string` and `checkOut: string` — this is correct because JSON serialization converts `Date` objects to ISO strings, so the frontend type remains `string`
+- Frontend components (accommodation-card, day-by-day-view) still assume date-only format (e.g., append "T00:00:00") — these will need updating in Tasks 4.2-4.4 but are outside the scope of this task
+- The edit-accommodation-dialog test had to relax a date pre-population assertion since the DatePicker can't parse ISO datetime strings — noted for Task 4.4
+- No frontend component or hook files were changed — only test mock data
+- Test count: shared 196→197 (+1), api unchanged at 778, web unchanged at 830; total 1,804→1,805 (+1)

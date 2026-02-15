@@ -216,8 +216,8 @@ describe("Itinerary Schema Integration", () => {
         name: "Beachside Hotel",
         address: "123 Ocean Drive, Beach City",
         description: "Luxury hotel with ocean view",
-        checkIn: "2026-03-15",
-        checkOut: "2026-03-20",
+        checkIn: new Date("2026-03-15T14:00:00.000Z"),
+        checkOut: new Date("2026-03-20T11:00:00.000Z"),
         links: ["https://hotel.example.com", "https://booking.example.com/123"],
       };
 
@@ -254,8 +254,8 @@ describe("Itinerary Schema Integration", () => {
         tripId: testTripId,
         createdBy: testUserId,
         name: "Budget Inn",
-        checkIn: "2026-03-15",
-        checkOut: "2026-03-16",
+        checkIn: new Date("2026-03-15T14:00:00.000Z"),
+        checkOut: new Date("2026-03-16T11:00:00.000Z"),
       };
 
       const result = await db
@@ -274,8 +274,8 @@ describe("Itinerary Schema Integration", () => {
         tripId: testTripId,
         createdBy: testUserId,
         name: "Downtown Apartment",
-        checkIn: "2026-03-15",
-        checkOut: "2026-03-18",
+        checkIn: new Date("2026-03-15T14:00:00.000Z"),
+        checkOut: new Date("2026-03-18T11:00:00.000Z"),
       };
 
       const result = await db
@@ -322,8 +322,8 @@ describe("Itinerary Schema Integration", () => {
         tripId: testTripId,
         createdBy: testUserId,
         name: "Mountain Cabin",
-        checkIn: "2026-03-15",
-        checkOut: "2026-03-20",
+        checkIn: new Date("2026-03-15T14:00:00.000Z"),
+        checkOut: new Date("2026-03-20T11:00:00.000Z"),
       };
 
       await db.insert(accommodations).values(accommodationData);
