@@ -160,7 +160,7 @@ test.describe("Itinerary Journey", () => {
           .getByRole("button", { name: "Create accommodation" })
           .click();
 
-        // Expand the accommodation card to reveal the address link
+        // Address link is visible in the compact card header (no expand needed)
         const accommodationCard = page
           .locator('[role="button"][aria-expanded]')
           .filter({
@@ -170,24 +170,17 @@ test.describe("Itinerary Journey", () => {
           })
           .first();
         await expect(accommodationCard).toBeVisible({ timeout: 10000 });
-        const isAccommodationExpanded =
-          await accommodationCard.getAttribute("aria-expanded");
-        if (isAccommodationExpanded !== "true") {
-          await accommodationCard.click();
-        }
 
-        // Address should be a Google Maps link
-        const addressLink = page.getByRole("link", {
-          name: "123 Main St, San Diego",
+        // Address should be a Google Maps link (scoped to first card instance)
+        // Compact view truncates addresses > 20 chars: "123 Main St, San Die…"
+        const addressLink = accommodationCard.getByRole("link", {
+          name: /123 Main St/,
         });
         await expect(addressLink).toBeVisible();
         await expect(addressLink).toHaveAttribute(
           "href",
           /google\.com\/maps\/search/,
         );
-
-        // Collapse the accommodation card so it doesn't interfere with later steps
-        await accommodationCard.click();
       });
 
       await snap(page, "09-itinerary-with-events");

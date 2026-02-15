@@ -809,9 +809,9 @@ test.describe("Trip Journey", () => {
         page.getByText("Delegated Member").first(),
       ).toBeVisible({ timeout: 10000 });
 
-      // Location should also be visible
+      // Location should also be visible (compact view truncates > 20 chars)
       const locationLink = page.getByRole("link", {
-        name: "Seattle-Tacoma Airport",
+        name: /Seattle-Tacoma/,
       });
       await expect(locationLink).toBeVisible();
 

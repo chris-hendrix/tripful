@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { Accommodation } from "@tripful/shared/types";
 import { Button } from "@/components/ui/button";
-import { calculateNights, formatInTimezone } from "@/lib/utils/timezone";
+import { formatInTimezone } from "@/lib/utils/timezone";
 
 interface AccommodationCardProps {
   accommodation: Accommodation;
@@ -34,8 +34,6 @@ export const AccommodationCard = memo(function AccommodationCard({
 }: AccommodationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const nights = calculateNights(accommodation.checkIn, accommodation.checkOut);
-  const nightsLabel = nights === 1 ? "1 night" : `${nights} nights`;
   const datePrefix = showDate
     ? formatInTimezone(accommodation.checkIn, timezone, "date")
     : null;
@@ -66,17 +64,30 @@ export const AccommodationCard = memo(function AccommodationCard({
 
         <Building2 className="w-3.5 h-3.5 shrink-0 text-[var(--color-accommodation)]" />
 
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
           <span className="font-semibold text-foreground text-sm truncate">
             {accommodation.name}
-          </span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {nightsLabel}
           </span>
           {datePrefix && (
             <span className="text-xs text-muted-foreground shrink-0">
               {datePrefix}
             </span>
+          )}
+          {accommodation.address && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary active:text-primary shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="underline underline-offset-2">
+                {accommodation.address.length > 20
+                  ? accommodation.address.slice(0, 20) + "…"
+                  : accommodation.address}
+              </span>
+            </a>
           )}
         </div>
       </div>
@@ -87,22 +98,6 @@ export const AccommodationCard = memo(function AccommodationCard({
           className="mt-2 pt-2 border-t border-border/40 space-y-2 ml-6"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Check-in / Check-out */}
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-xs text-muted-foreground">Check-in</span>
-              <p className="font-medium text-foreground text-xs">
-                {formatInTimezone(accommodation.checkIn, timezone, "datetime")}
-              </p>
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Check-out</span>
-              <p className="font-medium text-foreground text-xs">
-                {formatInTimezone(accommodation.checkOut, timezone, "datetime")}
-              </p>
-            </div>
-          </div>
-
           {/* Address */}
           {accommodation.address && (
             <a
@@ -118,6 +113,22 @@ export const AccommodationCard = memo(function AccommodationCard({
               </span>
             </a>
           )}
+
+          {/* Check-in / Check-out */}
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-xs text-muted-foreground">Check-in</span>
+              <p className="font-medium text-foreground text-xs">
+                {formatInTimezone(accommodation.checkIn, timezone, "datetime")}
+              </p>
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground">Check-out</span>
+              <p className="font-medium text-foreground text-xs">
+                {formatInTimezone(accommodation.checkOut, timezone, "datetime")}
+              </p>
+            </div>
+          </div>
 
           {/* Description */}
           {accommodation.description && (
