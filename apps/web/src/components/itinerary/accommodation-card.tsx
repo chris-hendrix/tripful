@@ -83,7 +83,9 @@ export const AccommodationCard = memo(function AccommodationCard({
             >
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="underline underline-offset-2">
-                {accommodation.address}
+                {accommodation.address.length > 20
+                  ? accommodation.address.slice(0, 20) + "…"
+                  : accommodation.address}
               </span>
             </a>
           )}
@@ -96,6 +98,22 @@ export const AccommodationCard = memo(function AccommodationCard({
           className="mt-2 pt-2 border-t border-border/40 space-y-2 ml-6"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Address */}
+          {accommodation.address && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary py-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span className="underline underline-offset-2">
+                {accommodation.address}
+              </span>
+            </a>
+          )}
+
           {/* Check-in / Check-out */}
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>

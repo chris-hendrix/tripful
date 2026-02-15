@@ -94,7 +94,9 @@ export const MemberTravelCard = memo(function MemberTravelCard({
             >
               <MapPin className="w-3 h-3 shrink-0" />
               <span className="underline underline-offset-2">
-                {memberTravel.location}
+                {memberTravel.location.length > 20
+                  ? memberTravel.location.slice(0, 20) + "…"
+                  : memberTravel.location}
               </span>
             </a>
           )}
@@ -107,6 +109,22 @@ export const MemberTravelCard = memo(function MemberTravelCard({
           className="mt-2 pt-2 border-t border-border/40 space-y-2 ml-6"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Location */}
+          {memberTravel.location && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary py-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span className="underline underline-offset-2">
+                {memberTravel.location}
+              </span>
+            </a>
+          )}
+
           {/* Date & Time */}
           <div className="text-sm">
             <span className="text-xs text-muted-foreground">
