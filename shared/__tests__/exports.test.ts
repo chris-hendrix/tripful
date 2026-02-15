@@ -161,8 +161,8 @@ describe("Package Exports", () => {
 
     const createAccommodationInput: CreateAccommodationInput = {
       name: "Beach Hotel",
-      checkIn: "2026-07-15",
-      checkOut: "2026-07-20",
+      checkIn: "2026-07-15T14:00:00.000Z",
+      checkOut: "2026-07-20T11:00:00.000Z",
     };
     expect(createAccommodationInput).toBeDefined();
 

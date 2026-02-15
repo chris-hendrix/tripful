@@ -331,19 +331,18 @@ export function EditMemberTravelDialog({
               </Button>
             </div>
 
-            {/* Delete Button with AlertDialog */}
-            <div className="pt-4 border-t border-border">
+            {/* Delete — low-prominence link at the bottom */}
+            <div className="flex justify-center pt-2">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+                  <button
                     type="button"
                     disabled={isPending || isDeleting}
-                    variant="destructive"
-                    className="w-full h-12 rounded-xl"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3 h-3" />
                     Delete travel details
-                  </Button>
+                  </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>

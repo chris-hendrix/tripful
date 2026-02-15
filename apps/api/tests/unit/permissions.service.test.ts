@@ -31,7 +31,9 @@ describe("permissions.service", () => {
   let testEventId: string;
   let testAccommodationId: string;
   let testMemberTravelId: string;
+  let _testCreatorMemberId: string;
   let testCoOrganizerMemberId: string;
+  let _testMemberMemberId: string;
 
   // Clean up test data (safe for parallel execution)
   const cleanup = async () => {
@@ -127,12 +129,16 @@ describe("permissions.service", () => {
     testTripId = tripResult[0].id;
 
     // Add creator as member with isOrganizer=true
-    await db.insert(members).values({
-      tripId: testTripId,
-      userId: testCreatorId,
-      status: "going",
-      isOrganizer: true,
-    });
+    const creatorMemberResult = await db
+      .insert(members)
+      .values({
+        tripId: testTripId,
+        userId: testCreatorId,
+        status: "going",
+        isOrganizer: true,
+      })
+      .returning();
+    _testCreatorMemberId = creatorMemberResult[0].id;
 
     // Add co-organizer as member with status='going' and isOrganizer=true
     const coOrganizerMemberResult = await db
@@ -147,11 +153,15 @@ describe("permissions.service", () => {
     testCoOrganizerMemberId = coOrganizerMemberResult[0].id;
 
     // Add regular member with status='maybe'
-    await db.insert(members).values({
-      tripId: testTripId,
-      userId: testMemberId,
-      status: "maybe",
-    });
+    const memberMemberResult = await db
+      .insert(members)
+      .values({
+        tripId: testTripId,
+        userId: testMemberId,
+        status: "maybe",
+      })
+      .returning();
+    _testMemberMemberId = memberMemberResult[0].id;
 
     // Create a test event (created by co-organizer)
     const eventResult = await db
@@ -173,8 +183,8 @@ describe("permissions.service", () => {
         tripId: testTripId,
         createdBy: testCreatorId,
         name: "Test Hotel",
-        checkIn: "2026-06-10",
-        checkOut: "2026-06-20",
+        checkIn: new Date("2026-06-10T14:00:00.000Z"),
+        checkOut: new Date("2026-06-20T11:00:00.000Z"),
       })
       .returning();
     testAccommodationId = accommodationResult[0].id;
@@ -1116,6 +1126,262 @@ describe("permissions.service", () => {
     it("should return false for non-existent trip", async () => {
       const result = await permissionsService.isTripLocked(
         "00000000-0000-0000-0000-000000000000",
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("getMembershipInfo", () => {
+    it("should return isMember=true and isOrganizer=true for organizer", async () => {
+      const result = await permissionsService.getMembershipInfo(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toEqual({ isMember: true, isOrganizer: true });
+    });
+
+    it("should return isMember=true and isOrganizer=false for regular member", async () => {
+      const result = await permissionsService.getMembershipInfo(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toEqual({ isMember: true, isOrganizer: false });
+    });
+
+    it("should return isMember=false and isOrganizer=false for non-member", async () => {
+      const result = await permissionsService.getMembershipInfo(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toEqual({ isMember: false, isOrganizer: false });
+    });
+  });
+
+  describe("canEditEventWithData", () => {
+    it("should return true for organizer editing any event", async () => {
+      const result = await permissionsService.canEditEventWithData(
+        testCreatorId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for member editing own event", async () => {
+      // Member needs status='going' to edit their own event
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canEditEventWithData(
+        testMemberId,
+        { tripId: testTripId, createdBy: testMemberId },
+      );
+      expect(result).toBe(true);
+
+      // Restore status
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return false for member editing another member's event", async () => {
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canEditEventWithData(
+        testMemberId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(false);
+
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditEventWithData(
+        testNonMemberId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteEventWithData", () => {
+    it("should return true for organizer deleting any event", async () => {
+      const result = await permissionsService.canDeleteEventWithData(
+        testCreatorId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for member deleting own event", async () => {
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canDeleteEventWithData(
+        testMemberId,
+        { tripId: testTripId, createdBy: testMemberId },
+      );
+      expect(result).toBe(true);
+
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return false for member deleting another member's event", async () => {
+      await db
+        .update(members)
+        .set({ status: "going" })
+        .where(eq(members.userId, testMemberId));
+
+      const result = await permissionsService.canDeleteEventWithData(
+        testMemberId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(false);
+
+      await db
+        .update(members)
+        .set({ status: "maybe" })
+        .where(eq(members.userId, testMemberId));
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteEventWithData(
+        testNonMemberId,
+        { tripId: testTripId, createdBy: testCoOrganizerId },
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canEditAccommodationWithData", () => {
+    it("should return true for organizer", async () => {
+      const result = await permissionsService.canEditAccommodationWithData(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-organizer member", async () => {
+      const result = await permissionsService.canEditAccommodationWithData(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditAccommodationWithData(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteAccommodationWithData", () => {
+    it("should return true for organizer", async () => {
+      const result = await permissionsService.canDeleteAccommodationWithData(
+        testCreatorId,
+        testTripId,
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for non-organizer member", async () => {
+      const result = await permissionsService.canDeleteAccommodationWithData(
+        testMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteAccommodationWithData(
+        testNonMemberId,
+        testTripId,
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canEditMemberTravelWithData", () => {
+    it("should return true for organizer editing any member's travel", async () => {
+      const result = await permissionsService.canEditMemberTravelWithData(
+        testCreatorId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for member editing own travel", async () => {
+      const result = await permissionsService.canEditMemberTravelWithData(
+        testCoOrganizerId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for member editing another member's travel", async () => {
+      const result = await permissionsService.canEditMemberTravelWithData(
+        testMemberId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canEditMemberTravelWithData(
+        testNonMemberId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("canDeleteMemberTravelWithData", () => {
+    it("should return true for organizer deleting any member's travel", async () => {
+      const result = await permissionsService.canDeleteMemberTravelWithData(
+        testCreatorId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return true for member deleting own travel", async () => {
+      const result = await permissionsService.canDeleteMemberTravelWithData(
+        testCoOrganizerId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(true);
+    });
+
+    it("should return false for member deleting another member's travel", async () => {
+      const result = await permissionsService.canDeleteMemberTravelWithData(
+        testMemberId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
+      );
+      expect(result).toBe(false);
+    });
+
+    it("should return false for non-member", async () => {
+      const result = await permissionsService.canDeleteMemberTravelWithData(
+        testNonMemberId,
+        { tripId: testTripId, memberId: testCoOrganizerMemberId },
       );
       expect(result).toBe(false);
     });

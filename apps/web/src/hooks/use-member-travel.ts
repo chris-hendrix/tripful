@@ -261,6 +261,7 @@ export function getCreateMemberTravelErrorMessage(
 interface UpdateMemberTravelContext {
   previousMemberTravels: MemberTravel[] | undefined;
   previousMemberTravel: MemberTravel | undefined;
+  tripId: string | undefined;
 }
 
 /**
@@ -364,7 +365,7 @@ export function useUpdateMemberTravel() {
       }
 
       // Return context with previous data for rollback
-      return { previousMemberTravels, previousMemberTravel };
+      return { previousMemberTravels, previousMemberTravel, tripId };
     },
 
     // On error: Rollback optimistic update
@@ -388,14 +389,24 @@ export function useUpdateMemberTravel() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: (_data, _error, { memberTravelId }) => {
+    onSettled: (data, _error, { memberTravelId }, context) => {
       // Invalidate detail query
       queryClient.invalidateQueries({
         queryKey: memberTravelKeys.detail(memberTravelId),
       });
 
-      // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: memberTravelKeys.lists() });
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      const tripId =
+        data?.tripId ??
+        queryClient.getQueryData<MemberTravel>(
+          memberTravelKeys.detail(memberTravelId),
+        )?.tripId ??
+        context?.tripId;
+      if (tripId) {
+        queryClient.invalidateQueries({
+          queryKey: memberTravelKeys.list(tripId),
+        });
+      }
     },
   });
 }
@@ -521,8 +532,13 @@ export function useDeleteMemberTravel() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: memberTravelKeys.lists() });
+    onSettled: (_data, _error, _memberTravelId, context) => {
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      if (context?.tripId) {
+        queryClient.invalidateQueries({
+          queryKey: memberTravelKeys.list(context.tripId),
+        });
+      }
     },
   });
 }
@@ -664,8 +680,14 @@ export function useRestoreMemberTravel() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: memberTravelKeys.lists() });
+    onSettled: (data, _error, _memberTravelId, context) => {
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      const tripId = data?.tripId ?? context?.tripId;
+      if (tripId) {
+        queryClient.invalidateQueries({
+          queryKey: memberTravelKeys.list(tripId),
+        });
+      }
     },
   });
 }

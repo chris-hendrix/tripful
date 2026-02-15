@@ -155,6 +155,10 @@ export const members = pgTable(
       table.tripId,
       table.userId,
     ),
+    tripIdIsOrganizerIdx: index("members_trip_id_is_organizer_idx").on(
+      table.tripId,
+      table.isOrganizer,
+    ),
   }),
 );
 
@@ -236,6 +240,10 @@ export const events = pgTable(
     createdByIdx: index("events_created_by_idx").on(table.createdBy),
     startTimeIdx: index("events_start_time_idx").on(table.startTime),
     deletedAtIdx: index("events_deleted_at_idx").on(table.deletedAt),
+    tripIdDeletedAtIdx: index("events_trip_id_deleted_at_idx").on(
+      table.tripId,
+      table.deletedAt,
+    ),
   }),
 );
 
@@ -257,8 +265,8 @@ export const accommodations = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     address: text("address"),
     description: text("description"),
-    checkIn: date("check_in").notNull(),
-    checkOut: date("check_out").notNull(),
+    checkIn: timestamp("check_in", { withTimezone: true }).notNull(),
+    checkOut: timestamp("check_out", { withTimezone: true }).notNull(),
     links: text("links").array(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: uuid("deleted_by").references(() => users.id),
@@ -274,6 +282,10 @@ export const accommodations = pgTable(
     createdByIdx: index("accommodations_created_by_idx").on(table.createdBy),
     checkInIdx: index("accommodations_check_in_idx").on(table.checkIn),
     deletedAtIdx: index("accommodations_deleted_at_idx").on(table.deletedAt),
+    tripIdDeletedAtIdx: index("accommodations_trip_id_deleted_at_idx").on(
+      table.tripId,
+      table.deletedAt,
+    ),
   }),
 );
 
@@ -310,6 +322,14 @@ export const memberTravel = pgTable(
     memberIdIdx: index("member_travel_member_id_idx").on(table.memberId),
     timeIdx: index("member_travel_time_idx").on(table.time),
     deletedAtIdx: index("member_travel_deleted_at_idx").on(table.deletedAt),
+    memberIdDeletedAtIdx: index("member_travel_member_id_deleted_at_idx").on(
+      table.memberId,
+      table.deletedAt,
+    ),
+    tripIdDeletedAtIdx: index("member_travel_trip_id_deleted_at_idx").on(
+      table.tripId,
+      table.deletedAt,
+    ),
   }),
 );
 

@@ -24,6 +24,7 @@ export const memberKeys = {
   lists: () => ["members", "list"] as const,
   list: (tripId: string) => ["members", "list", tripId] as const,
   remove: (tripId: string) => ["members", "remove", tripId] as const,
+  updateRole: (tripId: string) => ["members", "updateRole", tripId] as const,
 };
 
 /**
@@ -39,7 +40,7 @@ export const rsvpKeys = {
 export const invitationsQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: invitationKeys.list(tripId),
-    staleTime: 30 * 1000,
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetInvitationsResponse>(
         `/trips/${tripId}/invitations`,
@@ -56,7 +57,7 @@ export const invitationsQueryOptions = (tripId: string) =>
 export const membersQueryOptions = (tripId: string) =>
   queryOptions({
     queryKey: memberKeys.list(tripId),
-    staleTime: 30 * 1000,
+    staleTime: 2 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<GetMembersResponse>(
         `/trips/${tripId}/members`,

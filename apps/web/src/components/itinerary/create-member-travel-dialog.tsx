@@ -38,10 +38,15 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   useCreateMemberTravel,
   getCreateMemberTravelErrorMessage,
 } from "@/hooks/use-member-travel";
+import { useAuth } from "@/app/providers/auth-provider";
+import { useMembers } from "@/hooks/use-invitations";
+import { getInitials } from "@/lib/format";
+import { getUploadUrl } from "@/lib/api";
 import { TIMEZONES } from "@/lib/constants";
 
 interface CreateMemberTravelDialogProps {
@@ -49,6 +54,7 @@ interface CreateMemberTravelDialogProps {
   onOpenChange: (open: boolean) => void;
   tripId: string;
   timezone: string;
+  isOrganizer?: boolean;
   onSuccess?: () => void;
 }
 
@@ -57,10 +63,17 @@ export function CreateMemberTravelDialog({
   onOpenChange,
   tripId,
   timezone,
+  isOrganizer,
   onSuccess,
 }: CreateMemberTravelDialogProps) {
   const { mutate: createMemberTravel, isPending } = useCreateMemberTravel();
+  const { user } = useAuth();
+  const { data: members } = useMembers(tripId);
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
+  const [selectedMemberId, setSelectedMemberId] = useState("self");
+
+  // Find the current user's member record
+  const currentMember = members?.find((m) => m.userId === user?.id);
 
   const form = useForm<CreateMemberTravelInput>({
     resolver: zodResolver(createMemberTravelSchema),
@@ -80,10 +93,15 @@ export function CreateMemberTravelDialog({
     if (!open) {
       form.reset();
       setSelectedTimezone(timezone);
+      setSelectedMemberId("self");
     }
   }, [open, form, timezone]);
 
-  const handleSubmit = (data: CreateMemberTravelInput) => {
+  const handleSubmit = (formData: CreateMemberTravelInput) => {
+    const data = { ...formData };
+    if (selectedMemberId && selectedMemberId !== "self") {
+      data.memberId = selectedMemberId;
+    }
     createMemberTravel(
       { tripId, data },
       {
@@ -119,6 +137,77 @@ export function CreateMemberTravelDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
           >
+            {/* Member Selector */}
+            {isOrganizer && members && members.length > 0 ? (
+              <FormItem>
+                <FormLabel className="text-base font-semibold text-foreground">
+                  Member
+                </FormLabel>
+                <Select
+                  value={selectedMemberId}
+                  onValueChange={setSelectedMemberId}
+                  disabled={isPending}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-12 text-base rounded-xl" data-testid="member-selector">
+                      <SelectValue placeholder="Select a member" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem
+                        key={member.id}
+                        value={member.userId === user?.id ? "self" : member.id}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Avatar size="sm">
+                            {member.profilePhotoUrl && (
+                              <AvatarImage
+                                src={getUploadUrl(member.profilePhotoUrl)}
+                                alt={member.displayName}
+                              />
+                            )}
+                            <AvatarFallback>
+                              {getInitials(member.displayName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {member.displayName}
+                          {member.userId === user?.id ? " (You)" : ""}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription className="text-sm text-muted-foreground">
+                  As organizer, you can add travel for any member
+                </FormDescription>
+              </FormItem>
+            ) : (
+              currentMember && (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Member
+                  </FormLabel>
+                  <div className="flex items-center gap-2 h-12 px-3 rounded-xl border border-input bg-muted/50">
+                    <Avatar size="sm">
+                      {currentMember.profilePhotoUrl && (
+                        <AvatarImage
+                          src={getUploadUrl(currentMember.profilePhotoUrl)}
+                          alt={currentMember.displayName}
+                        />
+                      )}
+                      <AvatarFallback>
+                        {getInitials(currentMember.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-base text-muted-foreground">
+                      {currentMember.displayName}
+                    </span>
+                  </div>
+                </FormItem>
+              )
+            )}
+
             {/* Travel Type */}
             <FormField
               control={form.control}

@@ -137,7 +137,10 @@ export function useRemoveMember(tripId: string) {
       queryClient.invalidateQueries({ queryKey: invitationKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
       // Invalidate events since creatorAttending depends on the member's existence
       queryClient.invalidateQueries({ queryKey: eventKeys.list(tripId) });
     },
@@ -185,6 +188,84 @@ export function getRemoveMemberErrorMessage(
 }
 
 /**
+ * Hook for updating a member's organizer role
+ *
+ * @param tripId - The ID of the trip
+ * @returns Mutation object with mutate function and state
+ */
+export function useUpdateMemberRole(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { success: true },
+    Error,
+    { memberId: string; isOrganizer: boolean }
+  >({
+    mutationKey: memberKeys.updateRole(tripId),
+    mutationFn: async ({ memberId, isOrganizer }) => {
+      return await apiRequest<{ success: true }>(
+        `/trips/${tripId}/members/${memberId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isOrganizer }),
+        },
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: invitationKeys.list(tripId),
+      });
+      queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
+    },
+  });
+}
+
+/**
+ * Get user-friendly error message from update member role mutation error
+ *
+ * @param error - Error from mutation
+ * @returns User-friendly error message
+ */
+export function getUpdateMemberRoleErrorMessage(
+  error: Error | null,
+): string | null {
+  if (!error) return null;
+
+  if (error instanceof APIError) {
+    switch (error.code) {
+      case "PERMISSION_DENIED":
+        return "You don't have permission to change member roles.";
+      case "MEMBER_NOT_FOUND":
+        return "Member not found.";
+      case "CANNOT_MODIFY_OWN_ROLE":
+        return "You cannot change your own role.";
+      case "CANNOT_DEMOTE_CREATOR":
+        return "The trip creator's role cannot be changed.";
+      case "LAST_ORGANIZER":
+        return "Cannot remove the last organizer.";
+      default:
+        return error.message;
+    }
+  }
+
+  // Network errors or other generic errors
+  if (
+    error.message.includes("fetch") ||
+    error.message.includes("network") ||
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
+    return "Network error: Please check your connection and try again.";
+  }
+
+  return "An unexpected error occurred. Please try again.";
+}
+
+/**
  * Hook for updating RSVP status for the current user
  *
  * @param tripId - The ID of the trip to update RSVP for
@@ -207,7 +288,10 @@ export function useUpdateRsvp(tripId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
     },
   });

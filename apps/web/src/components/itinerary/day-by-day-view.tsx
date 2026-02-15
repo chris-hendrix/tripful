@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
@@ -39,7 +39,7 @@ interface DayData {
   date: string;
   label: string;
   events: Event[];
-  accommodation: Accommodation | null;
+  accommodations: Accommodation[];
   arrivals: MemberTravel[];
   departures: MemberTravel[];
 }
@@ -88,7 +88,7 @@ export function DayByDayView({
           date: dateString,
           label: getDayLabel(dateString, timezone),
           events: [],
-          accommodation: null,
+          accommodations: [],
           arrivals: [],
           departures: [],
         });
@@ -102,10 +102,20 @@ export function DayByDayView({
       days.get(day)!.events.push(event);
     });
 
-    // Add accommodations to days (show on check-in day)
+    // Add accommodations to all spanned days (check-in through day before check-out)
     accommodations.forEach((acc) => {
-      ensureDay(acc.checkIn);
-      days.get(acc.checkIn)!.accommodation = acc;
+      const startDay = getDayInTimezone(acc.checkIn, timezone);
+      const endDay = getDayInTimezone(acc.checkOut, timezone);
+      const current = new Date(startDay + "T00:00:00");
+      const end = new Date(endDay + "T00:00:00");
+      while (current < end) {
+        const dateString = current.toISOString().split("T")[0] || "";
+        if (dateString) {
+          ensureDay(dateString);
+          days.get(dateString)!.accommodations.push(acc);
+        }
+        current.setDate(current.getDate() + 1);
+      }
     });
 
     // Add member travels to days
@@ -179,13 +189,27 @@ export function DayByDayView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
+  // Stable callbacks for card props
+  const handleEditEvent = useCallback(
+    (event: Event) => setEditingEvent(event),
+    [],
+  );
+  const handleEditAccommodation = useCallback(
+    (acc: Accommodation) => setEditingAccommodation(acc),
+    [],
+  );
+  const handleEditMemberTravel = useCallback(
+    (travel: MemberTravel) => setEditingMemberTravel(travel),
+    [],
+  );
+
   return (
     <div className="divide-y divide-border">
       {dayData.map((day, index) => {
         const isToday = day.date === todayString;
         const hasContent =
           day.events.length > 0 ||
-          day.accommodation ||
+          day.accommodations.length > 0 ||
           day.arrivals.length > 0 ||
           day.departures.length > 0;
 
@@ -206,74 +230,89 @@ export function DayByDayView({
           }
         };
 
-        // Accommodation
-        if (day.accommodation) {
-          // Accommodation doesn't have a start time, show it first
+        // Accommodations (no specific time, show first)
+        day.accommodations.forEach((acc) => {
           cardElements.push(
             <AccommodationCard
-              key={`acc-${day.accommodation.id}`}
-              accommodation={day.accommodation}
+              key={`acc-${acc.id}-${day.date}`}
+              accommodation={acc}
               timezone={timezone}
-              canEdit={canModifyAccommodation(day.accommodation, userId, isOrganizer, isLocked)}
-              canDelete={canModifyAccommodation(day.accommodation, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingAccommodation(day.accommodation)}
-              onDelete={() => setEditingAccommodation(day.accommodation)}
-              createdByName={userNameMap.get(day.accommodation.createdBy)}
-            />,
-          );
-        }
-
-        // Arrivals
-        day.arrivals.forEach((travel) => {
-          maybeInsertNow(travel.time);
-          cardElements.push(
-            <MemberTravelCard
-              key={travel.id}
-              memberTravel={travel}
-              memberName={travel.memberName || "Unknown member"}
-              timezone={timezone}
-              canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-              canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingMemberTravel(travel)}
-              onDelete={() => setEditingMemberTravel(travel)}
+              canEdit={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
+              canDelete={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
+              onEdit={handleEditAccommodation}
+              onDelete={handleEditAccommodation}
+              createdByName={userNameMap.get(acc.createdBy)}
             />,
           );
         });
 
-        // Events
-        day.events.forEach((event) => {
-          if (!event.allDay) {
-            maybeInsertNow(event.startTime);
+        // All-day events first
+        day.events
+          .filter((e) => e.allDay)
+          .forEach((event) => {
+            cardElements.push(
+              <EventCard
+                key={event.id}
+                event={event}
+                timezone={timezone}
+                canEdit={canModifyEvent(event, userId, isOrganizer, isLocked)}
+                canDelete={canModifyEvent(event, userId, isOrganizer, isLocked)}
+                onEdit={handleEditEvent}
+                onDelete={handleEditEvent}
+                createdByName={userNameMap.get(event.createdBy)}
+              />,
+            );
+          });
+
+        // Merge timed events, arrivals, and departures into one chronological list
+        type TimedItem =
+          | { kind: "event"; time: number; event: Event }
+          | { kind: "travel"; time: number; travel: MemberTravel };
+
+        const timedItems: TimedItem[] = [];
+
+        day.events
+          .filter((e) => !e.allDay)
+          .forEach((event) => {
+            timedItems.push({ kind: "event", time: new Date(event.startTime).getTime(), event });
+          });
+
+        [...day.arrivals, ...day.departures].forEach((travel) => {
+          timedItems.push({ kind: "travel", time: new Date(travel.time).getTime(), travel });
+        });
+
+        timedItems.sort((a, b) => a.time - b.time);
+
+        timedItems.forEach((item) => {
+          if (item.kind === "event") {
+            maybeInsertNow(item.event.startTime);
+            cardElements.push(
+              <EventCard
+                key={item.event.id}
+                event={item.event}
+                timezone={timezone}
+                canEdit={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
+                canDelete={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
+                onEdit={handleEditEvent}
+                onDelete={handleEditEvent}
+                createdByName={userNameMap.get(item.event.createdBy)}
+              />,
+            );
+          } else {
+            maybeInsertNow(item.travel.time);
+            cardElements.push(
+              <MemberTravelCard
+                key={item.travel.id}
+                memberTravel={item.travel}
+                memberName={item.travel.memberName || "Unknown member"}
+                timezone={timezone}
+                canEdit={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
+                canDelete={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
+                onEdit={handleEditMemberTravel}
+                onDelete={handleEditMemberTravel}
+              />,
+            );
           }
-          cardElements.push(
-            <EventCard
-              key={event.id}
-              event={event}
-              timezone={timezone}
-              canEdit={canModifyEvent(event, userId, isOrganizer, isLocked)}
-              canDelete={canModifyEvent(event, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingEvent(event)}
-              onDelete={() => setEditingEvent(event)}
-              createdByName={userNameMap.get(event.createdBy)}
-            />,
-          );
-        });
-
-        // Departures
-        day.departures.forEach((travel) => {
-          maybeInsertNow(travel.time);
-          cardElements.push(
-            <MemberTravelCard
-              key={travel.id}
-              memberTravel={travel}
-              memberName={travel.memberName || "Unknown member"}
-              timezone={timezone}
-              canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-              canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-              onEdit={() => setEditingMemberTravel(travel)}
-              onDelete={() => setEditingMemberTravel(travel)}
-            />,
-          );
         });
 
         // If today and "now" hasn't been inserted yet (all events are in the past
@@ -366,6 +405,7 @@ export function DayByDayView({
             if (!open) setEditingAccommodation(null);
           }}
           accommodation={editingAccommodation}
+          timezone={timezone}
         />
       )}
       {editingMemberTravel && (

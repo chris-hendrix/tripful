@@ -347,7 +347,7 @@ describe("MembersList", () => {
       expect(onInvite).toHaveBeenCalledOnce();
     });
 
-    it("shows remove button for non-creator members when organizer and onRemove provided", () => {
+    it("shows actions dropdown for non-creator members when organizer and onRemove provided", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
@@ -360,17 +360,17 @@ describe("MembersList", () => {
 
       // Jane Smith, Bob Wilson, and Alice Brown are non-creators
       expect(
-        screen.getByRole("button", { name: "Remove Jane Smith" }),
+        screen.getByRole("button", { name: "Actions for Jane Smith" }),
       ).toBeDefined();
       expect(
-        screen.getByRole("button", { name: "Remove Bob Wilson" }),
+        screen.getByRole("button", { name: "Actions for Bob Wilson" }),
       ).toBeDefined();
       expect(
-        screen.getByRole("button", { name: "Remove Alice Brown" }),
+        screen.getByRole("button", { name: "Actions for Alice Brown" }),
       ).toBeDefined();
     });
 
-    it("does NOT show remove button when onRemove is not provided", () => {
+    it("does NOT show actions dropdown when onRemove is not provided and onUpdateRole is not provided", () => {
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
@@ -380,11 +380,11 @@ describe("MembersList", () => {
       );
 
       expect(
-        screen.queryByRole("button", { name: "Remove Jane Smith" }),
+        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
       ).toBeNull();
     });
 
-    it("does NOT show remove button for trip creator", () => {
+    it("does NOT show actions dropdown for trip creator", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
@@ -397,11 +397,11 @@ describe("MembersList", () => {
 
       // John Doe (user-1) is the creator
       expect(
-        screen.queryByRole("button", { name: "Remove John Doe" }),
+        screen.queryByRole("button", { name: "Actions for John Doe" }),
       ).toBeNull();
     });
 
-    it("does NOT show remove buttons for non-organizers", () => {
+    it("does NOT show actions dropdown for non-organizers", () => {
       const onRemove = vi.fn();
       renderWithQueryClient(
         <MembersList
@@ -413,16 +413,16 @@ describe("MembersList", () => {
       );
 
       expect(
-        screen.queryByRole("button", { name: "Remove Jane Smith" }),
+        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
       ).toBeNull();
       expect(
-        screen.queryByRole("button", { name: "Remove Bob Wilson" }),
+        screen.queryByRole("button", { name: "Actions for Bob Wilson" }),
       ).toBeNull();
     });
   });
 
   describe("remove member flow", () => {
-    it("calls onRemove with member when remove button is clicked", async () => {
+    it("calls onRemove with member when remove from trip is clicked in dropdown", async () => {
       const user = userEvent.setup();
       const onRemove = vi.fn();
       renderWithQueryClient(
@@ -434,10 +434,13 @@ describe("MembersList", () => {
         />,
       );
 
-      const removeButton = screen.getByRole("button", {
-        name: "Remove Jane Smith",
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
       });
-      await user.click(removeButton);
+      await user.click(actionsButton);
+
+      const removeItem = await screen.findByText("Remove from trip");
+      await user.click(removeItem);
 
       expect(onRemove).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -459,10 +462,13 @@ describe("MembersList", () => {
         />,
       );
 
-      const removeButton = screen.getByRole("button", {
-        name: "Remove Bob Wilson",
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Bob Wilson",
       });
-      await user.click(removeButton);
+      await user.click(actionsButton);
+
+      const removeItem = await screen.findByText("Remove from trip");
+      await user.click(removeItem);
 
       expect(onRemove).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -526,6 +532,272 @@ describe("MembersList", () => {
       );
 
       expect(mockUseMembers).toHaveBeenCalledWith("trip-123");
+    });
+  });
+
+  describe("co-organizer role management", () => {
+    it("shows dropdown menu with promote option for regular member when organizer views", async () => {
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      // Jane Smith (user-2) is a regular member, not creator, not current user
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      expect(await screen.findByText("Make co-organizer")).toBeDefined();
+    });
+
+    it("shows dropdown menu with demote option for co-organizer member when organizer views", async () => {
+      // Set up a co-organizer member (not creator, not current user)
+      const membersWithCoOrg: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithCoOrg,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      // Jane Smith (user-2) is a co-organizer, not creator
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      expect(await screen.findByText("Remove co-organizer")).toBeDefined();
+    });
+
+    it("does not show dropdown for trip creator", () => {
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      // John Doe (user-1) is the creator - no actions dropdown
+      expect(
+        screen.queryByRole("button", { name: "Actions for John Doe" }),
+      ).toBeNull();
+    });
+
+    it("does not show dropdown for current user", () => {
+      const onUpdateRole = vi.fn();
+
+      // Only provide onUpdateRole (not onRemove), so the only reason to show
+      // actions is role management. Since current user cannot change own role,
+      // no dropdown should show for them.
+      const membersWithCurrentUser: MemberWithProfile[] = [
+        {
+          id: "member-5",
+          userId: "user-5",
+          displayName: "Current User",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: false,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithCurrentUser,
+        isPending: false,
+      });
+
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-99"
+          currentUserId="user-5"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      // Current user (user-5) should not have actions for role update
+      // (canUpdateRole is false because member.userId === currentUserId)
+      // And no onRemove provided, so canRemove is also false
+      expect(
+        screen.queryByRole("button", { name: "Actions for Current User" }),
+      ).toBeNull();
+    });
+
+    it("calls onUpdateRole with correct args when promote clicked", async () => {
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const promoteItem = await screen.findByText("Make co-organizer");
+      await user.click(promoteItem);
+
+      expect(onUpdateRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+        }),
+        true,
+      );
+    });
+
+    it("calls onUpdateRole with correct args when demote clicked", async () => {
+      const membersWithCoOrg: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithCoOrg,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const demoteItem = await screen.findByText("Remove co-organizer");
+      await user.click(demoteItem);
+
+      expect(onUpdateRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+        }),
+        false,
+      );
+    });
+
+    it("shows both role and remove actions in dropdown", async () => {
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+          onRemove={onRemove}
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      // Both role action and remove action should be present
+      expect(await screen.findByText("Make co-organizer")).toBeDefined();
+      expect(screen.getByText("Remove from trip")).toBeDefined();
+
+      // Separator should exist between role and remove actions
+      const separator = document.querySelector(
+        "[data-slot='dropdown-menu-separator']",
+      );
+      expect(separator).not.toBeNull();
     });
   });
 });

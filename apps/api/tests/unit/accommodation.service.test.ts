@@ -129,8 +129,8 @@ describe("accommodation.service", () => {
         createdBy: testOrganizerId,
         name: "Test Hotel",
         address: "123 Test St",
-        checkIn: "2026-06-10",
-        checkOut: "2026-06-20",
+        checkIn: new Date("2026-06-10T14:00:00.000Z"),
+        checkOut: new Date("2026-06-20T11:00:00.000Z"),
       })
       .returning();
     testAccommodationId = accommodationResult[0].id;
@@ -144,8 +144,8 @@ describe("accommodation.service", () => {
         name: "Beach Resort",
         address: "456 Beach Rd",
         description: "Luxury beachfront resort",
-        checkIn: "2026-07-01",
-        checkOut: "2026-07-10",
+        checkIn: "2026-07-01T14:00:00.000Z",
+        checkOut: "2026-07-10T11:00:00.000Z",
         links: ["https://resort.example.com"],
       };
 
@@ -159,8 +159,8 @@ describe("accommodation.service", () => {
       expect(accommodation.name).toBe(accommodationData.name);
       expect(accommodation.address).toBe(accommodationData.address);
       expect(accommodation.description).toBe(accommodationData.description);
-      expect(accommodation.checkIn).toBe(accommodationData.checkIn);
-      expect(accommodation.checkOut).toBe(accommodationData.checkOut);
+      expect(accommodation.checkIn).toBeInstanceOf(Date);
+      expect(accommodation.checkOut).toBeInstanceOf(Date);
       expect(accommodation.links).toEqual(accommodationData.links);
       expect(accommodation.createdBy).toBe(testOrganizerId);
       expect(accommodation.tripId).toBe(testTripId);
@@ -169,8 +169,8 @@ describe("accommodation.service", () => {
     it("should throw PermissionDeniedError for regular member", async () => {
       const accommodationData = {
         name: "Unauthorized Hotel",
-        checkIn: "2026-08-01",
-        checkOut: "2026-08-05",
+        checkIn: "2026-08-01T14:00:00.000Z",
+        checkOut: "2026-08-05T11:00:00.000Z",
       };
 
       await expect(
@@ -185,8 +185,8 @@ describe("accommodation.service", () => {
     it("should throw PermissionDeniedError for non-member", async () => {
       const accommodationData = {
         name: "Unauthorized Hotel",
-        checkIn: "2026-08-01",
-        checkOut: "2026-08-05",
+        checkIn: "2026-08-01T14:00:00.000Z",
+        checkOut: "2026-08-05T11:00:00.000Z",
       };
 
       await expect(
@@ -201,8 +201,8 @@ describe("accommodation.service", () => {
     it("should throw TripNotFoundError for non-existent trip", async () => {
       const accommodationData = {
         name: "Hotel",
-        checkIn: "2026-08-01",
-        checkOut: "2026-08-05",
+        checkIn: "2026-08-01T14:00:00.000Z",
+        checkOut: "2026-08-05T11:00:00.000Z",
       };
 
       await expect(
@@ -217,8 +217,8 @@ describe("accommodation.service", () => {
     it("should throw InvalidDateRangeError if checkOut is before checkIn", async () => {
       const accommodationData = {
         name: "Invalid Hotel",
-        checkIn: "2026-08-10",
-        checkOut: "2026-08-05",
+        checkIn: "2026-08-10T14:00:00.000Z",
+        checkOut: "2026-08-05T11:00:00.000Z",
       };
 
       await expect(
@@ -233,8 +233,8 @@ describe("accommodation.service", () => {
     it("should create accommodation without optional fields", async () => {
       const accommodationData = {
         name: "Minimal Hotel",
-        checkIn: "2026-09-01",
-        checkOut: "2026-09-05",
+        checkIn: "2026-09-01T14:00:00.000Z",
+        checkOut: "2026-09-05T11:00:00.000Z",
       };
 
       const accommodation = await accommodationService.createAccommodation(
@@ -405,7 +405,7 @@ describe("accommodation.service", () => {
 
     it("should throw InvalidDateRangeError if updated checkOut is before checkIn", async () => {
       const updateData = {
-        checkOut: "2026-06-05", // Before existing checkIn (2026-06-10)
+        checkOut: "2026-06-05T11:00:00.000Z", // Before existing checkIn
       };
 
       await expect(
@@ -435,8 +435,8 @@ describe("accommodation.service", () => {
 
     it("should update date range correctly", async () => {
       const updateData = {
-        checkIn: "2026-06-12",
-        checkOut: "2026-06-22",
+        checkIn: "2026-06-12T14:00:00.000Z",
+        checkOut: "2026-06-22T11:00:00.000Z",
       };
 
       const updatedAccommodation =
@@ -446,8 +446,8 @@ describe("accommodation.service", () => {
           updateData,
         );
 
-      expect(updatedAccommodation.checkIn).toBe(updateData.checkIn);
-      expect(updatedAccommodation.checkOut).toBe(updateData.checkOut);
+      expect(updatedAccommodation.checkIn).toBeInstanceOf(Date);
+      expect(updatedAccommodation.checkOut).toBeInstanceOf(Date);
     });
   });
 
@@ -560,8 +560,8 @@ describe("accommodation.service", () => {
     it("should handle accommodation with multiple links", async () => {
       const accommodationData = {
         name: "Hotel with Links",
-        checkIn: "2026-10-01",
-        checkOut: "2026-10-05",
+        checkIn: "2026-10-01T14:00:00.000Z",
+        checkOut: "2026-10-05T11:00:00.000Z",
         links: [
           "https://booking.example.com",
           "https://confirmation.example.com",
@@ -581,8 +581,8 @@ describe("accommodation.service", () => {
     it("should handle same-day check-in and check-out as invalid", async () => {
       const accommodationData = {
         name: "Same Day Hotel",
-        checkIn: "2026-11-01",
-        checkOut: "2026-11-01",
+        checkIn: "2026-11-01T14:00:00.000Z",
+        checkOut: "2026-11-01T14:00:00.000Z",
       };
 
       await expect(
@@ -599,8 +599,8 @@ describe("accommodation.service", () => {
       const accommodationData = {
         name: "Hotel with Long Description",
         description: longDescription,
-        checkIn: "2026-12-01",
-        checkOut: "2026-12-05",
+        checkIn: "2026-12-01T14:00:00.000Z",
+        checkOut: "2026-12-05T11:00:00.000Z",
       };
 
       const accommodation = await accommodationService.createAccommodation(

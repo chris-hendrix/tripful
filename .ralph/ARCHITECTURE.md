@@ -1,280 +1,313 @@
-# Phase 6: Advanced Itinerary & Trip Management
+# Phase 7: Polish & Testing - Architecture
 
-Phase 6 adds five features: meetup location/time on events, auto-lock past trips (full read-only), direct member removal, deleted items section with restore UI, and multi-day event badges.
+Phase 7 adds three concrete features (co-organizer promote/demote, member travel delegation, entity count limits), then audits and improves responsive design, performance, test coverage, and documentation.
 
-## DB Schema Changes
+## 1. Co-organizer Promote/Demote
 
-Add two nullable columns to the `events` table in `apps/api/src/db/schema/index.ts`:
+Allow organizers to promote existing trip members to co-organizer or demote co-organizers back to regular members, directly from the members dialog.
 
-```typescript
-// Add after `location` column (line ~214):
-meetupLocation: text("meetup_location"),
-meetupTime: timestamp("meetup_time", { withTimezone: true }),
-```
+### Backend
 
-Generate migration: `cd apps/api && pnpm db:generate`
-
-No other table changes. Member removal uses hard delete on existing `members` table (same pattern as `revokeInvitation`).
-
-## Shared Schema Updates
-
-**File**: `shared/schemas/event.ts`
-
-Add to `baseEventSchema`:
+**New endpoint**: `PATCH /api/trips/:tripId/members/:memberId`
 
 ```typescript
-meetupLocation: z.string().max(200).optional(),
-meetupTime: z.string().datetime().optional(),
+// Request body
+{ isOrganizer: boolean }
+
+// Response
+{ success: true, member: { id, userId, status, isOrganizer, ... } }
 ```
 
-Add to `eventResponseSchema`:
+**Service method**: Add `updateMemberRole(userId, tripId, memberId, isOrganizer)` to `InvitationService` (`apps/api/src/services/invitation.service.ts`).
 
+**Permission rules**:
+- Only organizers can call this endpoint
+- Cannot demote the trip creator (the user whose `userId === trip.createdBy`)
+- Cannot promote/demote yourself
+- Target must be an existing member of the trip
+
+**Shared schema** (`shared/schemas/member.ts` - new file):
 ```typescript
-meetupLocation: z.string().nullable(),
-meetupTime: z.string().nullable(),
+export const updateMemberRoleSchema = z.object({
+  isOrganizer: z.boolean(),
+});
 ```
 
-## API Changes
+**Route registration**: Add to `apps/api/src/routes/trip.routes.ts` in the authenticated scope, alongside existing member routes.
 
-### New Endpoint: Remove Member
+**Controller**: Add `updateMemberRole` method to `apps/api/src/controllers/trip.controller.ts`.
 
-```
-DELETE /api/trips/:tripId/members/:memberId
-```
+### Frontend
 
-- **Auth**: Required (organizer only)
-- **Behavior**: Hard-deletes member record from `members` table. Also deletes associated invitation record if one exists.
-- **Constraints**: Cannot remove the last organizer. Cannot remove the trip creator (`trips.createdBy`).
-- **Events**: Events created by removed member REMAIN in the itinerary. The `creatorAttending` boolean in event responses will reflect their removal.
-- **Response**: `204 No Content`
+**MembersList component** (`apps/web/src/components/trip/members-list.tsx`):
+- Add a dropdown menu (or icon button) on each member row for organizers
+- Menu items: "Make Co-organizer" / "Remove Co-organizer" (conditional on current `isOrganizer` state)
+- Cannot show demote option on trip creator
+- Use existing DropdownMenu component from shadcn/ui
 
-**Implementation**: Add `removeMember` method to `InvitationService` (it already handles member deletion in `revokeInvitation`). Register route in `apps/api/src/routes/invitation.routes.ts`.
+**New hook**: `useUpdateMemberRole` mutation in `apps/web/src/lib/hooks/` using TanStack Query.
 
-### Modified Endpoints: Auto-Lock Past Trips
+### Existing Co-organizer API
 
-All mutation endpoints must check if the trip's end date has passed. When locked:
+The existing `POST /api/trips/:id/co-organizers` (add by phone number) is **kept unchanged**. The new promote/demote operates on existing members only.
 
-- **Blocked**: Create, update, delete for events, accommodations, and member travel
-- **Allowed**: Restore deleted items (organizer only), read operations
+---
 
-**Implementation**: Add `isTripLocked(tripId)` method to `PermissionsService`:
+## 2. Member Travel Delegation
 
+Allow organizers to add member travel on behalf of any trip member, not just themselves.
+
+### Backend
+
+**Schema change** (`shared/schemas/member-travel.ts`):
+- Add optional `memberId` field to `createMemberTravelSchema`:
 ```typescript
-async isTripLocked(tripId: string): Promise<boolean> {
-  const [trip] = await this.db
-    .select({ endDate: trips.endDate })
-    .from(trips)
-    .where(eq(trips.id, tripId))
-    .limit(1);
-  if (!trip || !trip.endDate) return false;
-  // Compare trip end date (end of day) with current time
-  const endOfTripDay = new Date(trip.endDate);
-  endOfTripDay.setHours(23, 59, 59, 999);
-  return new Date() > endOfTripDay;
-}
+export const createMemberTravelSchema = baseMemberTravelSchema.extend({
+  memberId: z.string().uuid().optional(),
+});
 ```
 
-Add lock checks at the start of:
-- `POST /api/trips/:tripId/events` (create event)
-- `PUT /api/events/:id` (update event)
-- `DELETE /api/events/:id` (delete event)
-- `POST /api/trips/:tripId/accommodations` (create accommodation)
-- `PUT /api/accommodations/:id` (update accommodation)
-- `DELETE /api/accommodations/:id` (delete accommodation)
-- `POST /api/trips/:tripId/member-travel` (create member travel)
-- `PUT /api/member-travel/:id` (update member travel)
-- `DELETE /api/member-travel/:id` (delete member travel)
+**Service change** (`apps/api/src/services/member-travel.service.ts`):
+- Modify `createMemberTravel(userId, tripId, data)`:
+  - If `data.memberId` is provided:
+    - Check that requesting user is an organizer (via `permissionsService.isOrganizer()`)
+    - Validate that `memberId` belongs to an existing member of the trip
+    - Use provided `memberId` instead of resolving from `userId`
+  - If `data.memberId` is NOT provided:
+    - Keep existing behavior (resolve memberId from userId)
 
-**NOT blocked**: `POST /api/events/:id/restore`, `POST /api/accommodations/:id/restore`, `POST /api/member-travel/:id/restore`
+**Permission change** (`apps/api/src/services/permissions.service.ts`):
+- `canAddMemberTravel` remains unchanged (checks membership)
+- New check inside `createMemberTravel` for delegation: `isOrganizer(userId, tripId)`
 
-Return `403` with message: `"This trip has ended and is now read-only"` when locked.
+### Frontend
 
-### Modified Endpoints: Meetup Fields
+**CreateMemberTravelDialog** (`apps/web/src/components/itinerary/create-member-travel-dialog.tsx`):
+- Add member selector at the top of the form (before travel type)
+- Fetch trip members using existing TanStack Query hook
+- **For regular members**: Show own avatar, name (disabled/read-only)
+- **For organizers**: Show dropdown with all trip members, defaults to self
+- Helper text for organizers: "As organizer, you can add member travel for any member"
+- Pass selected `memberId` in API request body
 
-Existing event create/update endpoints already accept any fields matching the Zod schema. Updating the shared schema propagates support. The `EventService.createEvent` and `EventService.updateEvent` methods pass through all validated fields to the DB insert/update, so no service changes needed beyond the schema.
+**Member selector component**: Use existing Avatar + Select components from shadcn/ui.
 
-### Existing Endpoints Used for Deleted Items
+---
 
-No new endpoints needed. Use existing:
-- `GET /api/trips/:tripId/events?includeDeleted=true` — already supported
-- `GET /api/trips/:tripId/accommodations?includeDeleted=true` — already supported
-- `GET /api/trips/:tripId/member-travel?includeDeleted=true` — already supported
-- Restore endpoints already exist: `POST /api/events/:id/restore`, etc.
+## 3. Entity Count Limits
 
-## Frontend Components
+Enforce maximum entity counts per the PRD Data Validation requirements. Only count active (non-soft-deleted) items.
 
-### Meetup Fields in Event Dialogs
+### Limits
 
-**Files**: `apps/web/src/components/itinerary/create-event-dialog.tsx`, `apps/web/src/components/itinerary/edit-event-dialog.tsx`
+| Entity | Limit | Scope |
+|--------|-------|-------|
+| Events | 50 | Per trip |
+| Accommodations | 10 | Per trip |
+| Member Travel | 20 | Per member (within a trip) |
 
-Add two form fields after the end time / all-day section:
+### Backend
 
-```tsx
-{/* Meetup Location */}
-<FormField
-  control={form.control}
-  name="meetupLocation"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Meetup location</FormLabel>
-      <FormControl>
-        <Input placeholder="Hotel lobby, parking lot, etc." {...field} value={field.value ?? ""} />
-      </FormControl>
-      <FormDescription>Where to meet before the event</FormDescription>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+**EventService** (`apps/api/src/services/event.service.ts`):
+- In `createEvent()`, before inserting, count active events for the trip:
+  ```sql
+  SELECT COUNT(*) FROM events WHERE trip_id = ? AND deleted_at IS NULL
+  ```
+- Throw `EventLimitExceededError` if count >= 50
 
-{/* Meetup Time */}
-<FormField
-  control={form.control}
-  name="meetupTime"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Meetup time</FormLabel>
-      <FormControl>
-        <DateTimePicker
-          mode="time"
-          timezone={selectedTimezone}
-          value={field.value}
-          onChange={field.onChange}
-        />
-      </FormControl>
-      <FormDescription>When to meet (can be before event start)</FormDescription>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
-```
+**AccommodationService** (`apps/api/src/services/accommodation.service.ts`):
+- In `createAccommodation()`, count active accommodations for the trip
+- Throw `AccommodationLimitExceededError` if count >= 10
 
-### Meetup Fields on Event Card
+**MemberTravelService** (`apps/api/src/services/member-travel.service.ts`):
+- In `createMemberTravel()`, count active member travel for the specific member
+- Throw `MemberTravelLimitExceededError` if count >= 20
 
-**File**: `apps/web/src/components/itinerary/event-card.tsx`
+**Error definitions** (`apps/api/src/errors.ts`):
+- Add three new error classes following existing `MemberLimitExceededError` pattern
+- HTTP status: 400
+- Error codes: `EVENT_LIMIT_EXCEEDED`, `ACCOMMODATION_LIMIT_EXCEEDED`, `MEMBER_TRAVEL_LIMIT_EXCEEDED`
 
-Add in the expanded view section, after location display:
+### Frontend
 
-```tsx
-{(event.meetupLocation || event.meetupTime) && (
-  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-    <Users className="h-3.5 w-3.5 shrink-0" />
-    <span>
-      Meet{event.meetupLocation ? ` at ${event.meetupLocation}` : ""}
-      {event.meetupTime ? ` at ${formatInTimezone(event.meetupTime, timezone, "time")}` : ""}
-    </span>
-  </div>
-)}
-```
+No frontend changes needed beyond existing error handling. The API returns error messages that are already displayed via toast notifications.
 
-### Multi-Day Event Badge
+---
 
-**File**: `apps/web/src/components/itinerary/event-card.tsx`
+## 4. Accommodation Redesign
 
-Add a badge when `event.endTime` exists and is on a different day than `event.startTime`:
+Redesign accommodations to be more minimal, show on all spanned days, and replace date-only check-in/check-out with full datetime columns.
 
-```tsx
-{isMultiDay && (
-  <Badge variant="outline" className="text-xs">
-    {formatInTimezone(event.startTime, timezone, "short-date")}–{formatInTimezone(event.endTime, timezone, "short-date")}
-  </Badge>
-)}
-```
+### Data Model Changes
 
-The `isMultiDay` check:
+Convert the existing `checkIn` and `checkOut` columns from DATE to TIMESTAMP WITH TIMEZONE. Column names stay the same — only the type changes.
+
+**DB schema** (`apps/api/src/db/schema/index.ts`):
 ```typescript
-const isMultiDay = event.endTime &&
-  getDayInTimezone(event.startTime, timezone) !== getDayInTimezone(event.endTime, timezone);
+// BEFORE:
+// checkIn: date("check_in").notNull(),
+// checkOut: date("check_out").notNull(),
+// AFTER:
+checkIn: timestamp("check_in", { withTimezone: true }).notNull(),
+checkOut: timestamp("check_out", { withTimezone: true }).notNull(),
 ```
 
-Events still only appear on their start day in day-by-day view (no duplication).
+Index stays the same (`checkInIdx` on `table.checkIn`).
 
-### Deleted Items Section
+**Migration**: Drizzle generates `ALTER COLUMN check_in TYPE timestamp with time zone`. Existing date values auto-cast to midnight UTC.
 
-**File**: `apps/web/src/components/itinerary/itinerary-view.tsx`
+**Shared types** (`shared/types/accommodation.ts`): No changes needed — `checkIn: string` and `checkOut: string` already work for ISO datetime strings.
 
-Add a collapsible section at the bottom of the itinerary, visible only to organizers.
+**Shared schemas** (`shared/schemas/accommodation.ts`):
+- Replace `checkIn: z.string().date()` with `checkIn: z.string().datetime({ offset: true }).or(z.string().datetime())` (accepts ISO datetime with or without timezone)
+- Same for `checkOut`
+- Cross-field validation unchanged (date comparison still works with ISO datetime strings)
+- Update `accommodationEntitySchema` if it has `.date()` validation
 
-**Data**: Pass `includeDeleted: true` when fetching events/accommodations/member-travel for organizers. Filter client-side to separate active and deleted items (`deletedAt !== null`).
+**Service** (`apps/api/src/services/accommodation.service.ts`): No field name changes needed.
 
-**UI**: Collapsible section using Collapsible from shadcn or a simple `details`/`summary` element:
+**Frontend impact**: Components derive dates from `new Date(checkIn)` for day-by-day grouping. Display formatting may need updating to show time alongside date.
 
-```
-── Deleted Items (3) ─────────────────────
-  [Collapsed by default, click to expand]
+### Frontend: Day-by-Day View
 
-  Events:
-    Dinner at Joe's (deleted Feb 8)  [Restore]
+**`apps/web/src/components/itinerary/day-by-day-view.tsx`**:
 
-  Accommodations:
-    Beach House (deleted Feb 9)       [Restore]
+Currently accommodations only appear on check-in day. Change to show on every day the stay spans (check-in through check-out minus 1 day, since check-out day you're leaving).
 
-  Member Travel:
-    John's arrival (deleted Feb 10)   [Restore]
-```
+- Change `DayData.accommodation: Accommodation | null` → `DayData.accommodations: Accommodation[]`
+- In the data grouping logic, iterate each date from `checkIn` to the day before `checkOut` and push the accommodation to each day's array
+- Render `day.accommodations` array at the top of each day
 
-Use existing hooks: `useRestoreEvent()`, `useRestoreAccommodation()`, `useRestoreMemberTravel()`.
+### Frontend: Accommodation Card Redesign
 
-### Auto-Lock UI
+**`apps/web/src/components/itinerary/accommodation-card.tsx`**:
 
-**Files**: `apps/web/src/components/itinerary/itinerary-view.tsx`, card components
+Redesign from big bordered card to a compact card with dropdown. Keep it visually distinct from the plain-text member travel lines (it's a card, not invisible) but much smaller:
 
-When trip is locked (end date has passed):
-- Hide the floating action button (FAB) for adding items
-- Show a subtle banner: "This trip has ended. The itinerary is read-only."
-- Hide edit/delete buttons on all cards (events, accommodations, member travel)
-- Restore buttons remain visible for organizers in the Deleted Items section
+- Compact state: Small pill/card with accommodation name, nights count, and check-in/check-out times. Uses subtle accommodation-colored border.
+- Expanded state: Click to expand showing address (maps link), description, links, created-by, and edit button (opens edit dialog).
+- Click opens expand/collapse (not the edit dialog directly — unlike member travel, accommodations have enough details to warrant an expand view).
 
-Compute lock status client-side:
-```typescript
-const isTripLocked = trip.endDate
-  ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
-  : false;
-```
+### Frontend: Create/Edit Dialogs
 
-Pass `isLocked` prop to all card components and the FAB.
+**`apps/web/src/components/itinerary/create-accommodation-dialog.tsx`**:
+- Add time input (`<Input type="time" />`) next to each existing DatePicker in a 2-column grid
+- Combine selected date + time into ISO datetime string before form submission
+- Labels: "Check-in date" + "Check-in time", "Check-out date" + "Check-out time"
 
-### Remove Member UI
+**`apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`**:
+- Same time input additions as create dialog
+- Pre-populate date and time fields by parsing `checkIn`/`checkOut` ISO datetime strings
+- Fix delete button: change from big red `Button variant="destructive"` to subtle link style matching edit-trip-dialog pattern (small `Trash2` icon + text, `text-muted-foreground hover:text-destructive`)
 
-**File**: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
+---
 
-Current flow: `onRemove(member, invitationId)` -> `revokeInvitation.mutate(invitationId)`
+## 5. Responsive Design Audit
 
-New flow: `onRemove(member)` -> `removeMember.mutate({ tripId, memberId })` using a new `useRemoveMember` hook.
+Audit all pages at three breakpoints and fix issues.
 
-The confirmation dialog already exists. Change the mutation to call the new endpoint. Update `MembersList` component (`apps/web/src/components/trip/members-list.tsx`) to pass `member.userId` instead of requiring `invitationId`.
+### Breakpoints
+- Mobile: 375px (iPhone SE)
+- Tablet: 768px (iPad)
+- Desktop: 1024px+
 
-**New hook** in `apps/web/src/hooks/use-invitations.ts`:
+### Pages to Audit
+- Landing page (`/`)
+- Auth pages (`/login`, `/verify`, `/complete-profile`)
+- Trips dashboard (`/trips`)
+- Trip detail + itinerary (`/trips/[id]`)
+- Settings (`/settings`)
 
-```typescript
-export function useRemoveMember() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ tripId, memberId }: { tripId: string; memberId: string }) =>
-      apiClient.delete(`/trips/${tripId}/members/${memberId}`),
-    onSuccess: (_, { tripId }) => {
-      queryClient.invalidateQueries({ queryKey: ["members", tripId] });
-      queryClient.invalidateQueries({ queryKey: ["invitations", tripId] });
-    },
-  });
-}
-```
+### Approach
+- Use Playwright to navigate each page at each breakpoint
+- Screenshot and identify layout issues (overflow, truncation, touch targets, spacing)
+- Fix CSS/layout issues found
+- Focus on content overflow, dialog sizing, and form usability on mobile
+
+---
+
+## 6. Performance Audit
+
+### Backend
+- **Query analysis**: Review all service methods for N+1 queries
+- **Index review**: Check that all frequently-queried columns have indexes
+- **Query optimization**: Use JOINs instead of sequential queries where possible
+- Profile slow endpoints with Fastify logging
+
+### Frontend
+- **TanStack Query tuning**: Review staleTime, gcTime settings across all hooks
+- **Bundle analysis**: Check for unnecessary imports or large dependencies
+- **Re-render reduction**: Identify components that re-render unnecessarily
+- Lighthouse performance audit
+
+---
+
+## 7. Test Coverage Gaps
+
+### Approach
+- Run `pnpm test -- --coverage` to identify untested areas
+- Focus on service methods and API routes that lack tests
+- Add edge case tests for existing features (error paths, boundary conditions)
+
+### Priority Areas
+- Entity count limit enforcement (new)
+- Co-organizer promote/demote (new)
+- Member travel delegation (new)
+- Permission edge cases
+- Error handling paths
+
+---
+
+## 8. Documentation
+
+### ARCHITECTURE.md
+- Update `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` to reflect Phase 7 changes
+- Mark Phase 7 as complete
+- Document new endpoints and features
+
+### API Documentation
+- Document all API endpoints in a structured format
+- Include request/response schemas, error codes, and permission requirements
+
+---
 
 ## Testing Strategy
 
-### Unit Tests
-- `PermissionsService.isTripLocked()` — past/future/null end dates
-- `InvitationService.removeMember()` — removal, last-organizer guard, permission check
-- Event service meetup field pass-through
+| Feature | Unit Tests | Integration Tests | E2E Tests |
+|---------|-----------|-------------------|-----------|
+| Co-org promote/demote | Service method tests | Route tests (permissions, edge cases) | Promote member in members dialog |
+| Member travel delegation | Service method tests | Route tests (organizer vs member) | Organizer adds travel for another member |
+| Entity count limits | Service method tests | Route tests (hitting each limit) | - |
+| Accommodation redesign | - | Existing tests pass with new columns | Accommodation shows on spanned days |
+| Responsive design | - | - | Screenshots at breakpoints |
+| Performance | - | - | Lighthouse checks |
+| Test coverage gaps | New unit tests | New integration tests | - |
 
-### Integration Tests
-- `DELETE /trips/:tripId/members/:memberId` — happy path, unauthorized, last organizer
-- Auto-lock: mutation endpoints return 403 for past trip
-- Auto-lock: restore endpoints succeed for past trip (not locked)
-- Meetup fields: create event with meetup fields, read back, verify values
+## File Changes Summary
 
-### E2E Tests (Playwright)
-- Organizer views and restores a deleted event from the Deleted Items section
-- Past trip shows read-only banner, FAB hidden, edit/delete buttons hidden
-- Organizer removes a member; member's events show "no longer attending"
-- Create event with meetup location/time, verify display on event card
-- Multi-day event shows date range badge
+### New Files
+- `shared/schemas/member.ts` - updateMemberRole schema
+- API docs file (format TBD)
+
+### Modified Files
+- `apps/api/src/db/schema/index.ts` - convert checkIn/checkOut from date to timestamp with timezone
+- `shared/schemas/accommodation.ts` - update Zod validation from `.date()` to `.datetime()`
+- `apps/api/src/services/accommodation.service.ts` - accommodation count limit
+- `apps/web/src/components/itinerary/accommodation-card.tsx` - minimal card redesign with dropdown
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` - show accommodations on all spanned days
+- `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` - add time inputs
+- `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` - add time inputs, fix delete button
+- `shared/schemas/member-travel.ts` - add optional memberId
+- `shared/schemas/index.ts` - export new schemas
+- `apps/api/src/errors.ts` - add limit error classes
+- `apps/api/src/services/invitation.service.ts` - add updateMemberRole
+- `apps/api/src/services/member-travel.service.ts` - member travel delegation
+- `apps/api/src/services/event.service.ts` - event count limit
+- `apps/api/src/services/accommodation.service.ts` - accommodation count limit
+- `apps/api/src/services/permissions.service.ts` - delegation permission check
+- `apps/api/src/controllers/trip.controller.ts` - updateMemberRole handler
+- `apps/api/src/routes/trip.routes.ts` - new PATCH route
+- `apps/web/src/components/trip/members-list.tsx` - promote/demote UI
+- `apps/web/src/components/itinerary/create-member-travel-dialog.tsx` - member selector
+- `apps/web/src/lib/hooks/` - new mutation hooks
+- `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` - Phase 7 updates

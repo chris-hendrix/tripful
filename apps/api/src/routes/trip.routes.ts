@@ -14,16 +14,19 @@ import {
   updateTripSchema,
   addCoOrganizerSchema,
   paginationSchema,
+  updateMemberRoleSchema,
   tripListResponseSchema,
   tripDetailResponseSchema,
   tripResponseSchema,
   successResponseSchema,
+  updateRsvpResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
   PaginationInput,
   CreateTripInput,
   UpdateTripInput,
   AddCoOrganizerInput,
+  UpdateMemberRoleInput,
 } from "@tripful/shared/schemas";
 
 // Reusable param schemas
@@ -34,6 +37,11 @@ const tripIdParamsSchema = z.object({
 const removeCoOrganizerParamsSchema = z.object({
   id: z.string().uuid({ message: "Invalid ID format" }),
   userId: z.string().uuid({ message: "Invalid ID format" }),
+});
+
+const memberRoleParamsSchema = z.object({
+  tripId: z.string().uuid({ message: "Invalid trip ID format" }),
+  memberId: z.string().uuid({ message: "Invalid member ID format" }),
 });
 
 /**
@@ -204,6 +212,26 @@ export async function tripRoutes(fastify: FastifyInstance) {
         },
       },
       tripController.deleteCoverImage,
+    );
+
+    /**
+     * PATCH /:tripId/members/:memberId
+     * Update member role (promote/demote co-organizer)
+     * Only organizers can update member roles
+     */
+    scope.patch<{
+      Params: { tripId: string; memberId: string };
+      Body: UpdateMemberRoleInput;
+    }>(
+      "/:tripId/members/:memberId",
+      {
+        schema: {
+          params: memberRoleParamsSchema,
+          body: updateMemberRoleSchema,
+          response: { 200: updateRsvpResponseSchema },
+        },
+      },
+      tripController.updateMemberRole,
     );
   });
 }

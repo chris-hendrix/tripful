@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Decorative compass rose pattern */}
       <div className="absolute inset-0 opacity-[0.04]">
         <svg
-          className="absolute top-12 right-12 w-64 h-64 text-primary"
+          className="absolute top-12 right-12 w-64 h-64 text-primary hidden sm:block"
           viewBox="0 0 200 200"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -39,7 +39,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           />
         </svg>
         <svg
-          className="absolute bottom-16 left-16 w-48 h-48 text-accent"
+          className="absolute bottom-16 left-16 w-48 h-48 text-accent hidden sm:block"
           viewBox="0 0 200 200"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"

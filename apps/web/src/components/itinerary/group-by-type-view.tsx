@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Home, Car, Utensils, Calendar, Plane } from "lucide-react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
@@ -14,6 +14,7 @@ import {
   canModifyAccommodation,
   canModifyMemberTravel,
 } from "./utils/permissions";
+import { getDayInTimezone, getDayLabel } from "@/lib/utils/timezone";
 
 interface GroupByTypeViewProps {
   events: Event[];
@@ -76,6 +77,20 @@ export function GroupByTypeView({
     useState<Accommodation | null>(null);
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
+
+  // Stable callbacks for card props
+  const handleEditEvent = useCallback(
+    (event: Event) => setEditingEvent(event),
+    [],
+  );
+  const handleEditAccommodation = useCallback(
+    (acc: Accommodation) => setEditingAccommodation(acc),
+    [],
+  );
+  const handleEditMemberTravel = useCallback(
+    (travel: MemberTravel) => setEditingMemberTravel(travel),
+    [],
+  );
 
   const sections = useMemo(
     () => [
@@ -162,69 +177,75 @@ export function GroupByTypeView({
             {/* Content column */}
             <div className="min-w-0">
               {section.items.length > 0 ? (
-                <div className="space-y-2">
-                  {section.type === "accommodation"
-                    ? section.items.map((item) => (
-                        <AccommodationCard
-                          key={item.id}
-                          accommodation={item as Accommodation}
-                          timezone={timezone}
-                          canEdit={canModifyAccommodation(
-                            item as Accommodation,
-                            userId,
-                            isOrganizer,
-                            isLocked,
-                          )}
-                          canDelete={canModifyAccommodation(
-                            item as Accommodation,
-                            userId,
-                            isOrganizer,
-                            isLocked,
-                          )}
-                          onEdit={() =>
-                            setEditingAccommodation(item as Accommodation)
-                          }
-                          onDelete={() =>
-                            setEditingAccommodation(item as Accommodation)
-                          }
-                          createdByName={userNameMap.get(
-                            (item as Accommodation).createdBy,
-                          )}
-                          showDate
-                        />
-                      ))
-                    : section.type === "memberTravel"
-                      ? section.items.map((item) => {
-                          const travel = item as MemberTravel;
-                          return (
-                            <MemberTravelCard
-                              key={travel.id}
-                              memberTravel={travel}
-                              memberName={travel.memberName || "Unknown"}
-                              timezone={timezone}
-                              canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-                              canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-                              onEdit={() => setEditingMemberTravel(travel)}
-                              onDelete={() => setEditingMemberTravel(travel)}
-                              showDate
-                            />
-                          );
-                        })
-                      : section.items.map((item) => (
-                          <EventCard
-                            key={item.id}
-                            event={item as Event}
-                            timezone={timezone}
-                            canEdit={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
-                            canDelete={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
-                            onEdit={() => setEditingEvent(item as Event)}
-                            onDelete={() => setEditingEvent(item as Event)}
-                            createdByName={userNameMap.get(
-                              (item as Event).createdBy,
-                            )}
-                            showDate
-                          />
-                        ))}
+                <div className="space-y-1">
+                  {groupByDay(section.items, section.type, timezone).map(
+                    ({ day, items: dayItems }) => (
+                      <div key={day}>
+                        <div className="px-2 pt-2 pb-1">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {getDayLabel(day, timezone)}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {section.type === "accommodation"
+                            ? dayItems.map((item) => (
+                                <AccommodationCard
+                                  key={item.id}
+                                  accommodation={item as Accommodation}
+                                  timezone={timezone}
+                                  canEdit={canModifyAccommodation(
+                                    item as Accommodation,
+                                    userId,
+                                    isOrganizer,
+                                    isLocked,
+                                  )}
+                                  canDelete={canModifyAccommodation(
+                                    item as Accommodation,
+                                    userId,
+                                    isOrganizer,
+                                    isLocked,
+                                  )}
+                                  onEdit={handleEditAccommodation}
+                                  onDelete={handleEditAccommodation}
+                                  createdByName={userNameMap.get(
+                                    (item as Accommodation).createdBy,
+                                  )}
+                                />
+                              ))
+                            : section.type === "memberTravel"
+                              ? dayItems.map((item) => {
+                                  const travel = item as MemberTravel;
+                                  return (
+                                    <MemberTravelCard
+                                      key={travel.id}
+                                      memberTravel={travel}
+                                      memberName={travel.memberName || "Unknown"}
+                                      timezone={timezone}
+                                      canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
+                                      canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
+                                      onEdit={handleEditMemberTravel}
+                                      onDelete={handleEditMemberTravel}
+                                    />
+                                  );
+                                })
+                              : dayItems.map((item) => (
+                                  <EventCard
+                                    key={item.id}
+                                    event={item as Event}
+                                    timezone={timezone}
+                                    canEdit={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
+                                    canDelete={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
+                                    onEdit={handleEditEvent}
+                                    onDelete={handleEditEvent}
+                                    createdByName={userNameMap.get(
+                                      (item as Event).createdBy,
+                                    )}
+                                  />
+                                ))}
+                        </div>
+                      </div>
+                    ),
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center min-h-10 pl-5">
@@ -256,6 +277,7 @@ export function GroupByTypeView({
             if (!open) setEditingAccommodation(null);
           }}
           accommodation={editingAccommodation}
+          timezone={timezone}
         />
       )}
       {editingMemberTravel && (
@@ -275,4 +297,30 @@ export function GroupByTypeView({
 /** Pick the right background for the icon circle */
 function bgFor(section: { bgColor: string }) {
   return section.bgColor;
+}
+
+/** Group items by day, returning sorted day groups */
+function groupByDay(
+  items: (Event | Accommodation | MemberTravel)[],
+  type: "event" | "accommodation" | "memberTravel",
+  timezone: string,
+): { day: string; items: (Event | Accommodation | MemberTravel)[] }[] {
+  const groups = new Map<string, (Event | Accommodation | MemberTravel)[]>();
+
+  for (const item of items) {
+    let day: string;
+    if (type === "accommodation") {
+      day = getDayInTimezone((item as Accommodation).checkIn, timezone);
+    } else if (type === "memberTravel") {
+      day = getDayInTimezone((item as MemberTravel).time, timezone);
+    } else {
+      day = getDayInTimezone((item as Event).startTime, timezone);
+    }
+    if (!groups.has(day)) groups.set(day, []);
+    groups.get(day)!.push(item);
+  }
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, dayItems]) => ({ day, items: dayItems }));
 }

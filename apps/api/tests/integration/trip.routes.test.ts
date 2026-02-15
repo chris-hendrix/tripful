@@ -692,7 +692,7 @@ describe("POST /api/trips", () => {
       });
     });
 
-    it("should return 409 when member limit exceeded", async () => {
+    it("should return 400 when member limit exceeded", async () => {
       app = await buildApp();
 
       // Create test user
@@ -744,7 +744,7 @@ describe("POST /api/trips", () => {
         },
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(400);
 
       const body = JSON.parse(response.body);
       expect(body).toMatchObject({
@@ -3605,7 +3605,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
   });
 
   describe("Business Logic Errors", () => {
-    it("should return 409 when member limit exceeded", async () => {
+    it("should return 400 when member limit exceeded", async () => {
       app = await buildApp();
 
       // Create creator
@@ -3685,7 +3685,7 @@ describe("POST /api/trips/:id/co-organizers", () => {
         payload: { phoneNumber: extraPhone },
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("MEMBER_LIMIT_EXCEEDED");

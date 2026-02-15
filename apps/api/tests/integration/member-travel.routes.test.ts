@@ -680,6 +680,162 @@ describe("Member Travel Routes", () => {
     });
   });
 
+  describe("Entity count limits", () => {
+    it("should return 400 when member travel limit exceeded", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Limit Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Limit Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
+
+      // Bulk insert 20 travel entries (at the limit)
+      await db.insert(memberTravel).values(
+        Array.from({ length: 20 }, (_, i) => ({
+          tripId: trip.id,
+          memberId: member.id,
+          createdBy: testUser.id,
+          travelType: (i % 2 === 0 ? "arrival" : "departure") as
+            | "arrival"
+            | "departure",
+          time: new Date(
+            `2026-06-${String(15 + (i % 15)).padStart(2, "0")}T${String(i % 24).padStart(2, "0")}:00:00Z`,
+          ),
+        })),
+      );
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-07-01T14:00:00Z",
+          location: "Airport",
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body).toMatchObject({
+        success: false,
+        error: {
+          code: "MEMBER_TRAVEL_LIMIT_EXCEEDED",
+          message: "Maximum 20 travel entries per member reached.",
+        },
+      });
+    });
+
+    it("should allow creating member travel when soft-deleted entries bring count below limit", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Soft Delete Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Soft Delete Test Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      const [member] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: testUser.id,
+          status: "going",
+        })
+        .returning();
+
+      // Insert 19 active travel entries + 1 soft-deleted
+      await db.insert(memberTravel).values(
+        Array.from({ length: 19 }, (_, i) => ({
+          tripId: trip.id,
+          memberId: member.id,
+          createdBy: testUser.id,
+          travelType: (i % 2 === 0 ? "arrival" : "departure") as
+            | "arrival"
+            | "departure",
+          time: new Date(
+            `2026-06-${String(15 + (i % 15)).padStart(2, "0")}T${String(i % 24).padStart(2, "0")}:00:00Z`,
+          ),
+        })),
+      );
+
+      // Insert 1 soft-deleted entry (should not count)
+      await db.insert(memberTravel).values({
+        tripId: trip.id,
+        memberId: member.id,
+        createdBy: testUser.id,
+        travelType: "arrival" as const,
+        time: new Date("2026-07-01T12:00:00Z"),
+        deletedAt: new Date(),
+        deletedBy: testUser.id,
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-07-01T14:00:00Z",
+          location: "Airport",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.memberTravel.travelType).toBe("arrival");
+    });
+  });
+
   describe("Trip Lock", () => {
     it("should return 403 when creating member travel on a locked trip", async () => {
       app = await buildApp();
@@ -925,6 +1081,301 @@ describe("Member Travel Routes", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.memberTravel.deletedAt).toBeNull();
+    });
+  });
+
+  describe("Member travel delegation", () => {
+    it("should create member travel for another member as organizer (201)", async () => {
+      app = await buildApp();
+
+      // Create organizer user
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create regular user
+      const [regularUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Delegation Trip",
+          destination: "Tokyo",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member (isOrganizer)
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Add regular user as member
+      const [regularMember] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: regularUser.id,
+          status: "going",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-06-10T14:00:00Z",
+          location: "Airport",
+          details: "Flight AA123",
+          memberId: regularMember.id,
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.memberTravel.memberId).toBe(regularMember.id);
+      expect(body.memberTravel.travelType).toBe("arrival");
+      expect(body.memberTravel.location).toBe("Airport");
+    });
+
+    it("should return 403 when non-organizer creates travel with memberId", async () => {
+      app = await buildApp();
+
+      // Create organizer (trip creator)
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create two regular users
+      const [user1] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "User 1",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [user2] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "User 2",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Delegation Trip",
+          destination: "Tokyo",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Add user1 and user2 as regular members
+      await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: user1.id,
+          status: "going",
+        });
+
+      const [member2] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: user2.id,
+          status: "going",
+        })
+        .returning();
+
+      // user1 tries to create travel for user2 (not organizer)
+      const token = app.jwt.sign({
+        sub: user1.id,
+        phone: user1.phoneNumber,
+        name: user1.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-06-10T14:00:00Z",
+          location: "Airport",
+          details: "Flight AA123",
+          memberId: member2.id,
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("PERMISSION_DENIED");
+    });
+
+    it("should return 404 when memberId does not belong to trip", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const [organizer] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Delegation Trip",
+          destination: "Tokyo",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        phone: organizer.phoneNumber,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-06-10T14:00:00Z",
+          location: "Airport",
+          details: "Flight AA123",
+          memberId: "00000000-0000-0000-0000-000000000000",
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("MEMBER_NOT_FOUND");
+    });
+
+    it("should create member travel for self without memberId (backward compatibility)", async () => {
+      app = await buildApp();
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Create trip
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Self Trip",
+          destination: "Berlin",
+          preferredTimezone: "Europe/Berlin",
+          createdBy: user.id,
+        })
+        .returning();
+
+      // Add as member
+      const [member] = await db
+        .insert(members)
+        .values({
+          tripId: trip.id,
+          userId: user.id,
+          status: "going",
+        })
+        .returning();
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        phone: user.phoneNumber,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/member-travel`,
+        cookies: { auth_token: token },
+        payload: {
+          travelType: "arrival",
+          time: "2026-06-10T14:00:00Z",
+          location: "Airport",
+          details: "Flight AA123",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(true);
+      expect(body.memberTravel.memberId).toBe(member.id);
     });
   });
 });

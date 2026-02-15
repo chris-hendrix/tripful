@@ -8,9 +8,11 @@ import {
   useInviteMembers,
   useRevokeInvitation,
   useUpdateRsvp,
+  useUpdateMemberRole,
   getInviteMembersErrorMessage,
   getRevokeInvitationErrorMessage,
   getUpdateRsvpErrorMessage,
+  getUpdateMemberRoleErrorMessage,
   type Invitation,
   type MemberWithProfile,
 } from "../use-invitations";
@@ -511,6 +513,7 @@ describe("useUpdateRsvp", () => {
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ["trips"],
+        exact: true,
       });
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ["members", "list", "trip-123"],
@@ -683,6 +686,151 @@ describe("error message helpers", () => {
       expect(getUpdateRsvpErrorMessage(error)).toBe(
         "An unexpected error occurred. Please try again.",
       );
+    });
+  });
+
+  describe("getUpdateMemberRoleErrorMessage", () => {
+    it("returns null for null error", () => {
+      expect(getUpdateMemberRoleErrorMessage(null)).toBe(null);
+    });
+
+    it("returns correct message for PERMISSION_DENIED", () => {
+      const error = new APIError("PERMISSION_DENIED", "No permission");
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "You don't have permission to change member roles.",
+      );
+    });
+
+    it("returns correct message for CANNOT_DEMOTE_CREATOR", () => {
+      const error = new APIError(
+        "CANNOT_DEMOTE_CREATOR",
+        "Cannot demote creator",
+      );
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "The trip creator's role cannot be changed.",
+      );
+    });
+
+    it("returns correct message for CANNOT_MODIFY_OWN_ROLE", () => {
+      const error = new APIError(
+        "CANNOT_MODIFY_OWN_ROLE",
+        "Cannot modify own role",
+      );
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "You cannot change your own role.",
+      );
+    });
+
+    it("returns correct message for LAST_ORGANIZER", () => {
+      const error = new APIError("LAST_ORGANIZER", "Last organizer");
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "Cannot remove the last organizer.",
+      );
+    });
+
+    it("returns correct message for MEMBER_NOT_FOUND", () => {
+      const error = new APIError("MEMBER_NOT_FOUND", "Member not found");
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe("Member not found.");
+    });
+
+    it("handles network errors", () => {
+      const error = new Error("fetch failed");
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "Network error: Please check your connection and try again.",
+      );
+    });
+
+    it("returns fallback for unknown error", () => {
+      const error = new Error("Something unexpected happened");
+      expect(getUpdateMemberRoleErrorMessage(error)).toBe(
+        "An unexpected error occurred. Please try again.",
+      );
+    });
+  });
+});
+
+describe("useUpdateMemberRole", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  it("calls PATCH endpoint with correct body", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    vi.mocked(apiRequest).mockResolvedValueOnce({ success: true });
+
+    const { result } = renderHook(() => useUpdateMemberRole("trip-123"), {
+      wrapper,
+    });
+
+    result.current.mutate({ memberId: "member-456", isOrganizer: true });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/trips/trip-123/members/member-456",
+      {
+        method: "PATCH",
+        body: JSON.stringify({ isOrganizer: true }),
+      },
+    );
+  });
+
+  it("invalidates correct queries on settled", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    vi.mocked(apiRequest).mockResolvedValueOnce({ success: true });
+
+    queryClient.setQueryData(
+      ["invitations", "list", "trip-123"],
+      [],
+    );
+    queryClient.setQueryData(["members", "list", "trip-123"], mockMembers);
+    queryClient.setQueryData(["trips", "trip-123"], {});
+    queryClient.setQueryData(["trips"], []);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useUpdateMemberRole("trip-123"), {
+      wrapper,
+    });
+
+    result.current.mutate({ memberId: "member-456", isOrganizer: false });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["invitations", "list", "trip-123"],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["members", "list", "trip-123"],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["trips", "trip-123"],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["trips"],
+      exact: true,
     });
   });
 });

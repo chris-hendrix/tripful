@@ -136,8 +136,8 @@ describe("ItineraryView", () => {
     name: "Beach House",
     address: "123 Beach St",
     description: "Nice house",
-    checkIn: "2026-07-15",
-    checkOut: "2026-07-20",
+    checkIn: "2026-07-15T14:00:00.000Z",
+    checkOut: "2026-07-20T11:00:00.000Z",
     links: null,
     deletedAt: null,
     deletedBy: null,
@@ -371,7 +371,30 @@ describe("ItineraryView", () => {
         </Wrapper>,
       );
 
-      expect(screen.getByText("Beach House")).toBeDefined();
+      // Accommodation spans multiple days, so it appears more than once
+      const beachHouseElements = screen.getAllByText("Beach House");
+      expect(beachHouseElements.length).toBeGreaterThan(0);
+    });
+
+    it("shows accommodation on all spanned days (check-in through day before check-out)", () => {
+      mockUseAccommodations.mockReturnValue({
+        data: [mockAccommodation],
+        isPending: false,
+        isError: false,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <Wrapper>
+          <ItineraryView tripId="trip-123" />
+        </Wrapper>,
+      );
+
+      // mockAccommodation spans Jul 15 (check-in at 14:00 UTC) to Jul 20 (check-out at 11:00 UTC)
+      // In America/Los_Angeles timezone (UTC-7), check-in is Jul 15, check-out is Jul 20
+      // Accommodation should appear on days 15, 16, 17, 18, 19 (5 days, excluding check-out day)
+      const beachHouseElements = screen.getAllByText("Beach House");
+      expect(beachHouseElements).toHaveLength(5);
     });
   });
 });

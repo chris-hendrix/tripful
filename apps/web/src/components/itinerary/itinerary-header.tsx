@@ -83,9 +83,9 @@ export function ItineraryHeader({
 
   return (
     <>
-      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border p-4">
+      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             {/* Left side: Timezone selector */}
             <div className="flex items-center gap-2 min-w-0">
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -216,12 +216,14 @@ export function ItineraryHeader({
         open={isCreateAccommodationOpen}
         onOpenChange={setIsCreateAccommodationOpen}
         tripId={tripId}
+        timezone={selectedTimezone}
       />
       <CreateMemberTravelDialog
         open={isCreateMemberTravelOpen}
         onOpenChange={setIsCreateMemberTravelOpen}
         tripId={tripId}
         timezone={selectedTimezone}
+        isOrganizer={isOrganizer}
       />
     </>
   );

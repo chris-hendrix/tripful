@@ -27,7 +27,7 @@ export const TripLockedError = createError(
 export const MemberLimitExceededError = createError(
   "MEMBER_LIMIT_EXCEEDED",
   "%s",
-  409,
+  400,
 );
 export const CoOrganizerNotFoundError = createError(
   "CO_ORGANIZER_NOT_FOUND",
@@ -89,6 +89,35 @@ export const MemberNotFoundError = createError(
 export const LastOrganizerError = createError(
   "LAST_ORGANIZER",
   "Cannot remove the last organizer of a trip",
+  400,
+);
+
+// Member role errors
+export const CannotDemoteCreatorError = createError(
+  "CANNOT_DEMOTE_CREATOR",
+  "Cannot change the role of the trip creator",
+  400,
+);
+export const CannotModifyOwnRoleError = createError(
+  "CANNOT_MODIFY_OWN_ROLE",
+  "Cannot modify your own organizer role",
+  400,
+);
+
+// Entity count limit errors
+export const EventLimitExceededError = createError(
+  "EVENT_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
+export const AccommodationLimitExceededError = createError(
+  "ACCOMMODATION_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
+export const MemberTravelLimitExceededError = createError(
+  "MEMBER_TRAVEL_LIMIT_EXCEEDED",
+  "%s",
   400,
 );
 

@@ -1,11 +1,26 @@
 "use client";
 
-import { UserPlus, Phone, X, Users } from "lucide-react";
+import {
+  UserPlus,
+  Phone,
+  Users,
+  EllipsisVertical,
+  ShieldCheck,
+  ShieldOff,
+  UserMinus,
+} from "lucide-react";
 import { useMembers } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { getInitials, formatPhoneNumber } from "@/lib/format";
@@ -15,8 +30,10 @@ interface MembersListProps {
   tripId: string;
   isOrganizer: boolean;
   createdBy?: string;
+  currentUserId?: string | undefined;
   onInvite?: () => void;
   onRemove?: (member: MemberWithProfile) => void;
+  onUpdateRole?: (member: MemberWithProfile, isOrganizer: boolean) => void;
 }
 
 function MembersListSkeleton() {
@@ -39,8 +56,10 @@ export function MembersList({
   tripId,
   isOrganizer,
   createdBy,
+  currentUserId,
   onInvite,
   onRemove,
+  onUpdateRole,
 }: MembersListProps) {
   const { data: members, isPending } = useMembers(tripId);
 
@@ -80,6 +99,14 @@ export function MembersList({
             isOrganizer &&
             !!onRemove &&
             member.userId !== createdBy;
+
+          const canUpdateRole =
+            !!onUpdateRole &&
+            member.userId !== createdBy &&
+            member.userId !== currentUserId;
+
+          const showActions =
+            isOrganizer && (canRemove || canUpdateRole);
 
           return (
             <div
@@ -144,16 +171,49 @@ export function MembersList({
                 )}
               </div>
 
-              {canRemove && (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={() => onRemove(member)}
-                  aria-label={`Remove ${member.displayName}`}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+              {showActions && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-muted-foreground"
+                      aria-label={`Actions for ${member.displayName}`}
+                    >
+                      <EllipsisVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canUpdateRole && !member.isOrganizer && (
+                      <DropdownMenuItem
+                        onSelect={() => onUpdateRole(member, true)}
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        Make co-organizer
+                      </DropdownMenuItem>
+                    )}
+                    {canUpdateRole && member.isOrganizer && (
+                      <DropdownMenuItem
+                        onSelect={() => onUpdateRole(member, false)}
+                      >
+                        <ShieldOff className="w-4 h-4" />
+                        Remove co-organizer
+                      </DropdownMenuItem>
+                    )}
+                    {canUpdateRole && canRemove && (
+                      <DropdownMenuSeparator />
+                    )}
+                    {canRemove && (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => onRemove!(member)}
+                      >
+                        <UserMinus className="w-4 h-4" />
+                        Remove from trip
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           );

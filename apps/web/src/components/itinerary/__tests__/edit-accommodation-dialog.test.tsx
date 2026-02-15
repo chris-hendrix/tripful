@@ -35,8 +35,8 @@ describe("EditAccommodationDialog", () => {
     name: "Test Hotel",
     address: "123 Main St",
     description: "Test description",
-    checkIn: "2026-07-15",
-    checkOut: "2026-07-20",
+    checkIn: "2026-07-15T14:00:00.000Z",
+    checkOut: "2026-07-20T11:00:00.000Z",
     links: ["https://example.com"],
     deletedAt: null,
     deletedBy: null,
@@ -84,6 +84,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -96,6 +97,7 @@ describe("EditAccommodationDialog", () => {
           open={false}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -110,6 +112,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -135,18 +138,23 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
-      // DatePicker buttons should show formatted dates
+      // DateTimePicker buttons should be present and display formatted datetime
       const checkInButton = screen.getByRole("button", {
-        name: /check-in date/i,
+        name: /check-in/i,
       });
+      expect(checkInButton).toBeDefined();
+      // Verify pre-populated date is displayed (Jul 15, 2026 in America/New_York)
       expect(checkInButton.textContent).toMatch(/jul 15, 2026/i);
 
       const checkOutButton = screen.getByRole("button", {
-        name: /check-out date/i,
+        name: /check-out/i,
       });
+      expect(checkOutButton).toBeDefined();
+      // Verify pre-populated date is displayed (Jul 20, 2026 in America/New_York)
       expect(checkOutButton.textContent).toMatch(/jul 20, 2026/i);
     });
 
@@ -156,6 +164,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -179,6 +188,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
           onSuccess={mockOnSuccess}
         />,
       );
@@ -222,6 +232,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -240,6 +251,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -255,6 +267,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -278,6 +291,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
           onSuccess={mockOnSuccess}
         />,
       );
@@ -315,6 +329,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 
@@ -340,6 +355,7 @@ describe("EditAccommodationDialog", () => {
           open={true}
           onOpenChange={mockOnOpenChange}
           accommodation={mockAccommodation}
+          timezone="America/New_York"
         />,
       );
 

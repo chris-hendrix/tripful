@@ -20,8 +20,11 @@ import { useEvents } from "@/hooks/use-events";
 import {
   useRemoveMember,
   getRemoveMemberErrorMessage,
+  useUpdateMemberRole,
+  getUpdateMemberRoleErrorMessage,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
+import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
@@ -91,6 +94,30 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   } | null>(null);
 
   const removeMember = useRemoveMember(tripId);
+  const updateRole = useUpdateMemberRole(tripId);
+  const { user } = useAuth();
+
+  const handleUpdateRole = (
+    member: MemberWithProfile,
+    isOrganizer: boolean,
+  ) => {
+    updateRole.mutate(
+      { memberId: member.id, isOrganizer },
+      {
+        onSuccess: () => {
+          toast.success(
+            isOrganizer
+              ? `${member.displayName} is now a co-organizer`
+              : `${member.displayName} is no longer a co-organizer`,
+          );
+        },
+        onError: (error) => {
+          const message = getUpdateMemberRoleErrorMessage(error);
+          toast.error(message ?? "Failed to update member role");
+        },
+      },
+    );
+  };
 
   // Compute active event count (filter out soft-deleted events for safety)
   const activeEventCount = events?.filter((e) => !e.deletedAt).length ?? 0;
@@ -176,12 +203,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Trip header */}
         <div className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <h1 className="text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
             {isOrganizer && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   onClick={() => setIsInviteOpen(true)}
                   onMouseEnter={preloadInviteMembersDialog}
@@ -399,11 +426,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               tripId={tripId}
               isOrganizer={isOrganizer}
               createdBy={trip.createdBy}
+              currentUserId={user?.id}
               onInvite={() => {
                 setIsMembersOpen(false);
                 setIsInviteOpen(true);
               }}
               onRemove={(member) => setRemovingMember({ member })}
+              onUpdateRole={handleUpdateRole}
             />
           )}
         </DialogContent>

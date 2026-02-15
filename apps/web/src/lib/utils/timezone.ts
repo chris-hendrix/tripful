@@ -115,7 +115,6 @@ export function getDayInTimezone(
  * @returns Human-readable day label
  */
 export function getDayLabel(dateString: string, timezone: string): string {
-  const date = new Date(dateString + "T00:00:00");
   const today = new Date();
   const todayString = getDayInTimezone(today, timezone);
   const tomorrow = new Date(today);
@@ -128,6 +127,10 @@ export function getDayLabel(dateString: string, timezone: string): string {
   if (dateString === tomorrowString) {
     return "Tomorrow";
   }
+
+  // Convert to a UTC timestamp that represents noon in the target timezone
+  // This ensures Intl.DateTimeFormat displays the correct day
+  const date = new Date(localPartsToUTC(dateString, "12:00", timezone));
 
   // Format as "Mon, Jan 15"
   try {
@@ -278,7 +281,7 @@ export function getDayNumber(dateString: string): string {
  * Get 3-letter month abbreviation (e.g., "Feb") for a date string in a timezone
  */
 export function getMonthAbbrev(dateString: string, timezone: string): string {
-  const date = new Date(dateString + "T12:00:00");
+  const date = new Date(localPartsToUTC(dateString, "12:00", timezone));
   try {
     return new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
@@ -293,7 +296,7 @@ export function getMonthAbbrev(dateString: string, timezone: string): string {
  * Get 3-letter weekday abbreviation (e.g., "Mon") for a date string in a timezone
  */
 export function getWeekdayAbbrev(dateString: string, timezone: string): string {
-  const date = new Date(dateString + "T12:00:00");
+  const date = new Date(localPartsToUTC(dateString, "12:00", timezone));
   try {
     return new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
@@ -306,13 +309,16 @@ export function getWeekdayAbbrev(dateString: string, timezone: string): string {
 
 /**
  * Calculate number of nights between two dates
- * @param checkIn - Check-in date string (YYYY-MM-DD)
- * @param checkOut - Check-out date string (YYYY-MM-DD)
+ * @param checkIn - Check-in date string (ISO datetime or YYYY-MM-DD)
+ * @param checkOut - Check-out date string (ISO datetime or YYYY-MM-DD)
  * @returns Number of nights
  */
 export function calculateNights(checkIn: string, checkOut: string): number {
-  const checkInDate = new Date(checkIn + "T00:00:00");
-  const checkOutDate = new Date(checkOut + "T00:00:00");
+  // Extract YYYY-MM-DD portion whether input is ISO datetime or plain date
+  const checkInDay = checkIn.slice(0, 10);
+  const checkOutDay = checkOut.slice(0, 10);
+  const checkInDate = new Date(checkInDay + "T12:00:00Z");
+  const checkOutDate = new Date(checkOutDay + "T12:00:00Z");
   const diffTime = checkOutDate.getTime() - checkInDate.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return Math.max(0, diffDays);

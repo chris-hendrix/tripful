@@ -104,14 +104,20 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
-// Mock useRemoveMember hook
+// Mock useRemoveMember and useUpdateMemberRole hooks
 const mockRemoveMember = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+const mockUpdateRole = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
 }));
 vi.mock("@/hooks/use-invitations", () => ({
   useRemoveMember: () => mockRemoveMember,
   getRemoveMemberErrorMessage: () => null,
+  useUpdateMemberRole: () => mockUpdateRole,
+  getUpdateMemberRoleErrorMessage: () => null,
 }));
 
 // Mock MembersList component

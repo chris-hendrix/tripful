@@ -215,6 +215,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
           open={isCreateAccommodationOpen}
           onOpenChange={setIsCreateAccommodationOpen}
           tripId={tripId}
+          timezone={timezone}
         />
       </>
     );
@@ -238,7 +239,7 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
       />
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8 pb-24">
         {isLocked && (
           <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground mb-6">
             <Lock className="w-4 h-4 inline mr-2" />

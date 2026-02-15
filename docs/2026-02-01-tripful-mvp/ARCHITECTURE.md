@@ -1,7 +1,7 @@
 ---
 date: 2026-02-01
 topic: Tripful - High-Level Architecture Document (v1)
-status: Phase 1-6 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete | Phase 7 Pending
+status: Phase 1-7 Implemented | Frontend Design Overhaul Complete | Mobile UX Fixes Complete
 last_updated: 2026-02-14
 ---
 
@@ -17,9 +17,9 @@ last_updated: 2026-02-14
 > - ✅ **Mobile UX Fixes Complete**: Touch targets, phone input, compact itinerary header, display names, event counts, FAB
 > - ✅ **Phase 5 Complete**: Invitations & RSVP with batch invite, trip preview, members dialog
 > - ✅ **Phase 6 Complete**: Advanced itinerary with meetup fields, auto-lock past trips, member removal, deleted items restore, multi-day badges
-> - 🚧 **Phase 7**: Pending (Polish & Testing)
+> - ✅ **Phase 7 Complete**: Polish & Testing — co-organizer promote/demote, member travel delegation, entity count limits, accommodation redesign (datetime + multi-day), responsive design audit, performance optimization, test coverage
 >
-> **Important**: This document describes both implemented features (Phases 1-6) and planned features (Phase 7). Features, tables, routes, and components marked as 🚧 or described in Phase 7 sections do not yet exist in the codebase.
+> **Important**: This document describes the fully implemented system (Phases 1-7). All features, endpoints, and components described below are live in the codebase.
 
 ## Implementation Progress
 
@@ -450,13 +450,40 @@ Complete implementation of advanced itinerary features including meetup coordina
 
 **Note:** All existing itinerary endpoints (events, accommodations, member travel) now enforce `isTripLocked()` checks to prevent modifications to past trips.
 
-### 🚧 Phase 7: Polish & Testing (Planned)
+### ✅ Phase 7: Polish & Testing (Complete)
 
-- [ ] Entity count limits (max 50 events/trip, max 10 accommodations/trip, max 20 member travel/member)
-- [ ] Responsive design refinements
-- [ ] Performance optimization (query optimization, caching strategy)
-- [ ] Comprehensive test coverage
-- [ ] Documentation
+**Features Implemented:**
+
+- [x] Co-organizer promote/demote: `PATCH /api/trips/:tripId/members/:memberId` with `{ isOrganizer: boolean }`
+- [x] Member travel delegation: Organizers can add member travel on behalf of any trip member via optional `memberId` field
+- [x] Entity count limits: Max 50 events/trip, max 10 accommodations/trip, max 20 travel entries/member
+- [x] Accommodation redesign: Converted checkIn/checkOut from DATE to TIMESTAMP WITH TIMEZONE, accommodations now span all days between check-in and check-out
+- [x] Responsive design audit: Fixed 11 issues across 13 files at 375px/768px/1024px breakpoints
+- [x] Backend performance optimization: 5 composite database indexes, `*WithData` permission methods, `Promise.all()` parallelization, JOIN queries (40-60% query reduction on update/delete endpoints)
+- [x] Frontend performance optimization: Scoped TanStack Query invalidations, increased staleTime for stable data, `React.memo` + `useCallback` for list-rendered cards, conditional ReactQueryDevtools, `date-fns` tree-shaking
+- [x] Test coverage: 25 new unit tests for PermissionsService `*WithData` methods, 5 E2E test fixes
+
+**Error Codes Added:**
+
+- `CANNOT_DEMOTE_CREATOR` (400) — Cannot change the role of the trip creator
+- `CANNOT_MODIFY_OWN_ROLE` (400) — Cannot modify your own organizer role
+- `EVENT_LIMIT_EXCEEDED` (400) — Maximum 50 events per trip reached
+- `ACCOMMODATION_LIMIT_EXCEEDED` (400) — Maximum 10 accommodations per trip reached
+- `MEMBER_TRAVEL_LIMIT_EXCEEDED` (400) — Maximum 20 travel entries per member reached
+
+**Database Changes:**
+
+- Migration `0009_*`: Converted `check_in`/`check_out` columns from DATE to TIMESTAMP WITH TIMEZONE
+- Migration `0010_*`: Added 5 composite indexes for query performance
+  - `events_trip_id_deleted_at_idx` on `events(tripId, deletedAt)`
+  - `accommodations_trip_id_deleted_at_idx` on `accommodations(tripId, deletedAt)`
+  - `member_travel_member_id_deleted_at_idx` on `memberTravel(memberId, deletedAt)`
+  - `member_travel_trip_id_deleted_at_idx` on `memberTravel(tripId, deletedAt)`
+  - `members_trip_id_is_organizer_idx` on `members(tripId, isOrganizer)`
+
+**API Endpoints Added:**
+
+- `PATCH /api/trips/:tripId/members/:memberId` — Promote/demote co-organizer (organizer only)
 
 ---
 
@@ -891,9 +918,14 @@ export async function buildApp(
 
   // 4. Error handler + routes
   fastify.setErrorHandler(errorHandler);
+  await fastify.register(healthRoutes, { prefix: "/api/health" });
   await fastify.register(authRoutes, { prefix: "/api/auth" });
   await fastify.register(tripRoutes, { prefix: "/api/trips" });
-  await fastify.register(healthRoutes, { prefix: "/api/health" });
+  await fastify.register(eventRoutes, { prefix: "/api" });
+  await fastify.register(accommodationRoutes, { prefix: "/api" });
+  await fastify.register(memberTravelRoutes, { prefix: "/api" });
+  await fastify.register(invitationRoutes, { prefix: "/api" });
+  await fastify.register(userRoutes, { prefix: "/api/users" });
 
   return fastify;
 }
@@ -1736,7 +1768,7 @@ Response (200):
 
 #### Trips (✅ Implemented)
 
-**File:** `apps/api/src/routes/trips.routes.ts`
+**File:** `apps/api/src/routes/trip.routes.ts`
 
 **1. List User's Trips**
 
@@ -1747,35 +1779,39 @@ Authentication: Required
 Response (200):
   {
     "success": true,
-    "data": {
-      "trips": [
-        {
-          "id": "uuid",
-          "name": "Summer Vacation",
-          "destination": "Hawaii",
-          "startDate": "2026-07-01",
-          "endDate": "2026-07-10",
-          "preferredTimezone": "Pacific/Honolulu",
-          "description": "Beach vacation with friends",
-          "coverImageUrl": "https://example.com/image.jpg",
-          "allowMembersToAddEvents": true,
-          "cancelled": false,
-          "createdBy": "uuid",
-          "createdAt": "2026-02-01T...",
-          "updatedAt": "2026-02-01T...",
-          "isOrganizer": true,
-          "rsvpStatus": "going",
-          "organizerInfo": [
-            {
-              "id": "uuid",
-              "displayName": "John Doe",
-              "profilePhotoUrl": null
-            }
-          ],
-          "memberCount": 5,
-          "eventCount": 12
-        }
-      ]
+    "data": [
+      {
+        "id": "uuid",
+        "name": "Summer Vacation",
+        "destination": "Hawaii",
+        "startDate": "2026-07-01",
+        "endDate": "2026-07-10",
+        "preferredTimezone": "Pacific/Honolulu",
+        "description": "Beach vacation with friends",
+        "coverImageUrl": "https://example.com/image.jpg",
+        "allowMembersToAddEvents": true,
+        "cancelled": false,
+        "createdBy": "uuid",
+        "createdAt": "2026-02-01T...",
+        "updatedAt": "2026-02-01T...",
+        "isOrganizer": true,
+        "rsvpStatus": "going",
+        "organizerInfo": [
+          {
+            "id": "uuid",
+            "displayName": "John Doe",
+            "profilePhotoUrl": null
+          }
+        ],
+        "memberCount": 5,
+        "eventCount": 12
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 50,
+      "total": 1,
+      "totalPages": 1
     }
   }
 
@@ -2122,75 +2158,230 @@ Additional Information:
   - No error if file doesn't exist on filesystem
 ```
 
-#### RSVPs
+#### Invitations & Members (✅ Implemented)
 
-**Note:** RSVP endpoints operate on the `members` table, updating the member's `status` field.
+**File:** `apps/api/src/routes/invitation.routes.ts`
 
 ```
+GET    /api/trips/:tripId/invitations
+  Authentication: Required
+  Response: { success: true, invitations: Invitation[] }
+  Permissions: Organizer only
+
+POST   /api/trips/:tripId/invitations
+  Authentication: Required + Complete Profile
+  Body: { phoneNumbers: string[] }  // 1-25 E.164 phone numbers
+  Response: { success: true, invitations: Invitation[], skipped: string[] }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
+
+DELETE /api/invitations/:id
+  Authentication: Required + Complete Profile
+  Response: { success: true }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
+
+GET    /api/trips/:tripId/members
+  Authentication: Required
+  Response: { success: true, members: MemberWithProfile[] }
+  Permissions: Trip member
+
+DELETE /api/trips/:tripId/members/:memberId
+  Authentication: Required + Complete Profile
+  Response: 204 No Content
+  Permissions: Organizer only (cannot remove trip creator)
+  Rate Limit: 30/min per user
+
 POST   /api/trips/:tripId/rsvp
+  Authentication: Required + Complete Profile
   Body: { status: 'going' | 'not_going' | 'maybe' }
-  Response: { member: Member }
+  Response: { success: true, member: MemberWithProfile }
+  Permissions: Any trip member
+  Rate Limit: 30/min per user
 
-GET    /api/trips/:tripId/rsvp
-  Response: { member: Member }
+PATCH  /api/trips/:tripId/members/:memberId
+  Authentication: Required + Complete Profile
+  Body: { isOrganizer: boolean }
+  Response: { success: true, member: MemberWithProfile }
+  Permissions: Organizer only (cannot change trip creator or own role)
+  Rate Limit: 30/min per user
 ```
 
-#### Events
+#### Events (✅ Implemented)
+
+**File:** `apps/api/src/routes/event.routes.ts`
 
 ```
 GET    /api/trips/:tripId/events
+  Authentication: Required
   Query: { type?: 'travel' | 'meal' | 'activity', includeDeleted?: boolean }
-  Response: { events: Event[] }
+  Response: { success: true, events: Event[] }
+  Permissions: Trip member (Going members get full data; others get PREVIEW_ACCESS_ONLY error)
+  Limit: Max 50 events per trip
 
 POST   /api/trips/:tripId/events
-  Body: { type, title, startDate, startTime?, location?, description?, links?, isOptional? }
-  Response: { event: Event }
+  Authentication: Required + Complete Profile
+  Body: { name, eventType, startTime, endTime?, description?, location?, meetupLocation?, meetupTime?, allDay?, isOptional?, links? }
+  Response: { success: true, event: Event }
+  Permissions: Organizer, or member if allowMembersToAddEvents is true
+  Rate Limit: 30/min per user
 
-PATCH  /api/events/:id
-  Body: Partial<Event>
-  Response: { event: Event }
+GET    /api/events/:id
+  Authentication: Required
+  Response: { success: true, event: Event }
+
+PUT    /api/events/:id
+  Authentication: Required + Complete Profile
+  Body: Partial<CreateEventInput>
+  Response: { success: true, event: Event }
+  Permissions: Organizer or event creator
+  Rate Limit: 30/min per user
 
 DELETE /api/events/:id
-  Response: { success: boolean }
+  Authentication: Required + Complete Profile
+  Response: { success: true }
+  Permissions: Organizer or event creator (soft delete)
+  Rate Limit: 30/min per user
 
 POST   /api/events/:id/restore
-  Response: { event: Event }
+  Authentication: Required + Complete Profile
+  Response: { success: true, event: Event }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
 ```
 
-#### Accommodations
+#### Accommodations (✅ Implemented)
+
+**File:** `apps/api/src/routes/accommodation.routes.ts`
 
 ```
 GET    /api/trips/:tripId/accommodations
-  Response: { accommodations: Accommodation[] }
+  Authentication: Required
+  Query: { includeDeleted?: boolean }
+  Response: { success: true, accommodations: Accommodation[] }
+  Permissions: Trip member
+  Limit: Max 10 accommodations per trip
 
 POST   /api/trips/:tripId/accommodations
-  Body: { name, address?, checkInDate, checkOutDate?, description?, links? }
-  Response: { accommodation: Accommodation }
+  Authentication: Required + Complete Profile
+  Body: { name, address?, checkIn (ISO datetime), checkOut (ISO datetime), description?, links? }
+  Response: { success: true, accommodation: Accommodation }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
 
-PATCH  /api/accommodations/:id
-  Body: Partial<Accommodation>
-  Response: { accommodation: Accommodation }
+GET    /api/accommodations/:id
+  Authentication: Required
+  Response: { success: true, accommodation: Accommodation }
+
+PUT    /api/accommodations/:id
+  Authentication: Required + Complete Profile
+  Body: Partial<CreateAccommodationInput>
+  Response: { success: true, accommodation: Accommodation }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
 
 DELETE /api/accommodations/:id
-  Response: { success: boolean }
+  Authentication: Required + Complete Profile
+  Response: { success: true }
+  Permissions: Organizer only (soft delete)
+  Rate Limit: 30/min per user
+
+POST   /api/accommodations/:id/restore
+  Authentication: Required + Complete Profile
+  Response: { success: true, accommodation: Accommodation }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
 ```
 
-#### Member Travel (Arrivals/Departures)
+Note: checkIn/checkOut use TIMESTAMP WITH TIMEZONE (ISO 8601 datetime strings).
+Accommodations appear on all spanned days in the day-by-day itinerary view.
+
+#### Member Travel (✅ Implemented)
+
+**File:** `apps/api/src/routes/member-travel.routes.ts`
 
 ```
-GET    /api/trips/:tripId/travel
-  Response: { travel: Travel[] }
+GET    /api/trips/:tripId/member-travel
+  Authentication: Required
+  Query: { includeDeleted?: boolean }
+  Response: { success: true, memberTravels: MemberTravel[] }
+  Permissions: Trip member
+  Limit: Max 20 travel entries per member
 
-POST   /api/trips/:tripId/travel
-  Body: { memberId, travelType, date, departingFrom?, departureTime?, arrivingAt?, arrivalTime?, travelMethod?, details?, links? }
-  Response: { travel: Travel }
+POST   /api/trips/:tripId/member-travel
+  Authentication: Required + Complete Profile
+  Body: { travelType: 'arrival' | 'departure', time (ISO datetime), location?, details?, memberId? }
+  Response: { success: true, memberTravel: MemberTravel }
+  Permissions: Any trip member (memberId field requires organizer for delegation)
+  Rate Limit: 30/min per user
 
-PATCH  /api/travel/:id
-  Body: Partial<Travel>
-  Response: { travel: Travel }
+GET    /api/member-travel/:id
+  Authentication: Required
+  Response: { success: true, memberTravel: MemberTravel }
 
-DELETE /api/travel/:id
-  Response: { success: boolean }
+PUT    /api/member-travel/:id
+  Authentication: Required + Complete Profile
+  Body: { travelType?, time?, location?, details? }
+  Response: { success: true, memberTravel: MemberTravel }
+  Permissions: Organizer or travel entry creator
+  Rate Limit: 30/min per user
+
+DELETE /api/member-travel/:id
+  Authentication: Required + Complete Profile
+  Response: { success: true }
+  Permissions: Organizer or travel entry creator (soft delete)
+  Rate Limit: 30/min per user
+
+POST   /api/member-travel/:id/restore
+  Authentication: Required + Complete Profile
+  Response: { success: true, memberTravel: MemberTravel }
+  Permissions: Organizer only
+  Rate Limit: 30/min per user
+```
+
+Note: The optional `memberId` field in the create request allows organizers to add
+travel entries on behalf of other trip members (member travel delegation).
+
+#### User Profile (✅ Implemented)
+
+**File:** `apps/api/src/routes/user.routes.ts`
+
+```
+PUT    /api/users/me
+  Authentication: Required
+  Body: { displayName? (3-50 chars), timezone? (IANA string or null), handles? { venmo?, instagram? } }
+  Response: { success: true, user: User }
+  Rate Limit: 30/min per user
+
+POST   /api/users/me/photo
+  Authentication: Required
+  Body: multipart/form-data with image file (JPEG/PNG/WebP, max 5MB)
+  Response: { success: true, user: User }
+  Rate Limit: 30/min per user
+
+DELETE /api/users/me/photo
+  Authentication: Required
+  Response: { success: true, user: User }
+  Rate Limit: 30/min per user
+```
+
+#### Health (✅ Implemented)
+
+**File:** `apps/api/src/routes/health.routes.ts`
+
+```
+GET    /api/health
+  Authentication: None
+  Response: { status: 'ok' | 'degraded', timestamp: string, database: 'connected' | 'disconnected' }
+
+GET    /api/health/live
+  Authentication: None
+  Response: { status: 'ok' }
+
+GET    /api/health/ready
+  Authentication: None
+  Response: { status: 'ok' | 'degraded', timestamp: string, database: 'connected' | 'disconnected' }
+  Returns 503 if database is disconnected
 ```
 
 ### API Conventions
@@ -2216,29 +2407,57 @@ DELETE /api/travel/:id
 }
 ```
 
-**Pagination** (future)
+**Pagination** (trips list endpoint)
 
 ```typescript
+// GET /api/trips?page=1&limit=20
 {
-  data: [...],
-  pagination: {
-    page: number,
-    limit: number,
-    total: number,
-    hasMore: boolean
+  success: true,
+  data: TripSummary[],
+  meta: {
+    total: number,     // Total matching trips
+    page: number,      // Current page (1-indexed)
+    limit: number,     // Items per page (max 100)
+    totalPages: number // Computed ceil(total/limit)
   }
 }
 ```
 
 **Error Codes**
 
-- `VALIDATION_ERROR` - Invalid input data
-- `UNAUTHORIZED` - Missing or invalid token
-- `FORBIDDEN` - Insufficient permissions
-- `NOT_FOUND` - Resource not found
-- `CONFLICT` - Duplicate or conflicting data
-- `RATE_LIMIT_EXCEEDED` - Too many requests
-- `INTERNAL_ERROR` - Server error
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `VALIDATION_ERROR` | 400 | Invalid input data (Zod schema validation failure) |
+| `INVALID_CODE` | 400 | Invalid or expired verification code |
+| `INVALID_DATE_RANGE` | 400 | End date/time is before start date/time |
+| `FILE_TOO_LARGE` | 400 | Upload exceeds maximum file size (5MB) |
+| `INVALID_FILE_TYPE` | 400 | Unsupported file type (only JPEG/PNG/WebP) |
+| `CO_ORGANIZER_NOT_FOUND` | 400 | Phone number not registered in system |
+| `CANNOT_REMOVE_CREATOR` | 400 | Cannot remove trip creator as co-organizer |
+| `CANNOT_DEMOTE_CREATOR` | 400 | Cannot change the role of the trip creator |
+| `CANNOT_MODIFY_OWN_ROLE` | 400 | Cannot modify your own organizer role |
+| `LAST_ORGANIZER` | 400 | Cannot remove/demote the last organizer |
+| `EVENT_LIMIT_EXCEEDED` | 400 | Maximum 50 events per trip reached |
+| `ACCOMMODATION_LIMIT_EXCEEDED` | 400 | Maximum 10 accommodations per trip reached |
+| `MEMBER_TRAVEL_LIMIT_EXCEEDED` | 400 | Maximum 20 travel entries per member reached |
+| `UNAUTHORIZED` | 401 | Missing or invalid authentication token |
+| `PROFILE_INCOMPLETE` | 403 | Profile setup required before this action |
+| `PERMISSION_DENIED` | 403 | Insufficient permissions for this action |
+| `TRIP_LOCKED` | 403 | Trip has ended and is now read-only |
+| `PREVIEW_ACCESS_ONLY` | 403 | Non-Going member cannot access full trip data |
+| `NOT_FOUND` | 404 | Trip not found |
+| `EVENT_NOT_FOUND` | 404 | Event not found |
+| `ACCOMMODATION_NOT_FOUND` | 404 | Accommodation not found |
+| `MEMBER_TRAVEL_NOT_FOUND` | 404 | Member travel entry not found |
+| `INVITATION_NOT_FOUND` | 404 | Invitation not found |
+| `MEMBER_NOT_FOUND` | 404 | Member not found |
+| `CO_ORGANIZER_NOT_IN_TRIP` | 404 | Co-organizer not found in trip |
+| `DUPLICATE_MEMBER` | 409 | User is already a member of the trip |
+| `MEMBER_LIMIT_EXCEEDED` | 400 | Maximum 25 members per trip reached |
+| `EVENT_CONFLICT` | 409 | Event time conflicts with existing event |
+| `ACCOUNT_LOCKED` | 429 | Too many failed verification attempts |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| `INTERNAL_SERVER_ERROR` | 500 | Unexpected server error |
 
 ---
 
@@ -3716,20 +3935,23 @@ fastify.register(compress, {
 - ✅ Database: `invitations` table, `isOrganizer` column on members
 - ✅ Testing: 15 E2E tests all passing, unit + integration tests
 
-**Phase 6: Advanced Itinerary Features**
+**Phase 6: Advanced Itinerary Features** ✅ COMPLETE
 
-- Backend: Soft delete restore UI, multi-day events, deleted items section
-- Frontend: Deleted items (organizers), multi-day badges, member status indicators
-- E2E test: Organizer can restore deleted events
+- ✅ Backend: Meetup fields, auto-lock past trips, member removal, deleted items restore
+- ✅ Frontend: Deleted items (organizers), multi-day badges, meetup info on event cards
+- ✅ E2E test: Restore flow, meetup display, multi-day badges, auto-lock, member removal
 
-**Phase 7: Polish & Testing**
+**Phase 7: Polish & Testing** ✅ COMPLETE
 
-- Error handling and validation
-- Loading states and optimistic updates
-- Responsive design refinements
-- Performance optimization (query optimization, caching strategy)
-- Comprehensive test coverage
-- Documentation
+- ✅ Co-organizer promote/demote (PATCH endpoint + dropdown UI)
+- ✅ Member travel delegation (organizers can add travel for any member)
+- ✅ Entity count limits (50 events, 10 accommodations, 20 travel/member)
+- ✅ Accommodation redesign (datetime columns, multi-day display, compact cards)
+- ✅ Responsive design audit (11 fixes across 13 files)
+- ✅ Backend performance (5 indexes, parallelized queries, 40-60% reduction)
+- ✅ Frontend performance (scoped invalidations, memo, conditional devtools)
+- ✅ Test coverage (25 new unit tests, 5 E2E fixes, 1,845 total tests)
+- ✅ Documentation (API reference, updated architecture)
 
 ### Future Enhancements (Post-MVP)
 
@@ -3766,6 +3988,26 @@ fastify.register(compress, {
 ---
 
 ## Document Revision History
+
+**Document Version**: 6.0
+**Last Updated**: 2026-02-14
+**Status**: Phase 1-7 Complete — Full MVP with Polish & Testing
+
+**Version 6.0 Updates (2026-02-14)**:
+
+- ✅ Documented Phase 7 completion: Co-organizer promote/demote, member travel delegation, entity count limits, accommodation redesign, responsive design, performance optimization, test coverage
+- ✅ Updated all API endpoint documentation to match actual implementation (correct HTTP methods, paths, request/response schemas)
+- ✅ Added Invitations & Members section with 7 endpoints (was partially documented under RSVPs)
+- ✅ Added User Profile section with 3 endpoints (was undocumented)
+- ✅ Added Health Check section with 3 endpoints (was undocumented)
+- ✅ Expanded error codes from 7 generic entries to 30 specific error codes with HTTP status and descriptions
+- ✅ Updated pagination documentation from "future" to actual implementation on trips list endpoint
+- ✅ Fixed stale endpoint paths: member travel routes corrected from `/api/travel` to `/api/member-travel`
+- ✅ Fixed stale HTTP methods: events and accommodations update corrected from PATCH to PUT
+- ✅ Added rate limiting details to all endpoint sections
+- ✅ Added permission requirements to all endpoint sections
+- ✅ Added entity count limits to relevant endpoint sections
+- ✅ 1,845 total tests (shared: 197, api: 803, web: 845)
 
 **Document Version**: 5.0
 **Last Updated**: 2026-02-10

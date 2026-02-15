@@ -1,94 +1,191 @@
-# Phase 6: Advanced Itinerary & Trip Management - Tasks
+# Phase 7: Polish & Testing - Tasks
 
-## Phase 1: Schema & Migration
+## Phase 1: Co-organizer Promote/Demote
 
-- [x] Task 1.1: Add meetup fields to events schema, shared types, and generate migration
-  - Implement: Add `meetupLocation` (text, nullable) and `meetupTime` (timestamp with timezone, nullable) to events table in `apps/api/src/db/schema/index.ts`
-  - Implement: Update `baseEventSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().max(200).optional()` and `meetupTime: z.string().datetime().optional()`
-  - Implement: Update `eventResponseSchema` in `shared/schemas/event.ts` — add `meetupLocation: z.string().nullable()` and `meetupTime: z.string().nullable()`
-  - Implement: Update Event TypeScript types in `shared/types/` if separate from schema inference
-  - Implement: Generate migration with `cd apps/api && pnpm db:generate`
-  - Implement: Apply migration with `cd apps/api && pnpm db:migrate`
-  - Test: Run `pnpm typecheck` to verify schema compiles across all packages
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+- [x] Task 1.1: Implement backend co-organizer promote/demote
+  - Implement: Create `shared/schemas/member.ts` with `updateMemberRoleSchema` (`{ isOrganizer: boolean }`)
+  - Implement: Export from `shared/schemas/index.ts`
+  - Implement: Add `updateMemberRole(userId, tripId, memberId, isOrganizer)` method to `apps/api/src/services/invitation.service.ts`
+    - Verify requesting user is organizer via `permissionsService.isOrganizer()`
+    - Verify target member exists in trip
+    - Prevent demoting trip creator (`trip.createdBy`)
+    - Prevent self-promote/demote
+    - Update `isOrganizer` column on members table
+    - Return updated member
+  - Implement: Add `updateMemberRole` handler to `apps/api/src/controllers/trip.controller.ts`
+  - Implement: Add `PATCH /api/trips/:tripId/members/:memberId` route to `apps/api/src/routes/trip.routes.ts`
+  - Test: Unit tests for `updateMemberRole` service method (happy path, trip creator check, self-check, non-member, non-organizer)
+  - Test: Integration tests for PATCH route (permissions, edge cases, error responses)
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-## Phase 2: Meetup Location/Time Feature
+- [x] Task 1.2: Implement frontend co-organizer promote/demote UI
+  - Implement: Add `useUpdateMemberRole` TanStack Query mutation hook in `apps/web/src/lib/hooks/`
+  - Implement: Update `apps/web/src/components/trip/members-list.tsx`:
+    - Add dropdown menu (DropdownMenu from shadcn/ui) on each member row for organizers
+    - Menu items: "Make Co-organizer" (if not organizer) / "Remove Co-organizer" (if organizer, not trip creator)
+    - Also keep existing "Remove from trip" action in dropdown
+    - Show toast notification on success/error
+  - Implement: Update TanStack Query cache invalidation to refresh members list after role change
+  - Test: E2E test in `apps/web/tests/e2e/` - organizer promotes member to co-organizer, then demotes back
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes, `pnpm test:e2e` passes
 
-- [x] Task 2.1: Backend and frontend support for meetup fields on events
-  - Implement: Verify EventService passes meetup fields through to DB on create/update (may need no changes if pass-through is generic)
-  - Implement: Add meetup fields to event route response schemas in `apps/api/src/routes/event.routes.ts` if needed
-  - Implement: Add meetup location and meetup time form fields to `apps/web/src/components/itinerary/create-event-dialog.tsx` after the end time section
-  - Implement: Add meetup location and meetup time form fields to `apps/web/src/components/itinerary/edit-event-dialog.tsx` with pre-populated values
-  - Implement: Display meetup info on `apps/web/src/components/itinerary/event-card.tsx` in expanded view — "Meet at {location} at {time}" with Users icon
-  - Test: Write integration test for creating event with meetup fields and reading them back
-  - Test: Write integration test for updating event meetup fields
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+## Phase 2: Member Travel Delegation
 
-## Phase 3: Auto-Lock Past Trips
+- [x] Task 2.1: Implement backend member travel delegation
+  - Implement: Add optional `memberId: z.string().uuid().optional()` to `createMemberTravelSchema` in `shared/schemas/member-travel.ts`
+  - Implement: Update `MemberTravelService.createMemberTravel()` in `apps/api/src/services/member-travel.service.ts`:
+    - If `data.memberId` provided: validate organizer permission, validate memberId is a trip member, use provided memberId
+    - If `data.memberId` not provided: keep existing behavior (resolve from userId)
+  - Implement: Update entity count limit check (Task 3.1) to use resolved memberId
+  - Test: Unit tests for delegation logic (organizer can set memberId, non-organizer cannot, invalid memberId)
+  - Test: Integration tests for POST /trips/:tripId/member-travel with memberId parameter
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [x] Task 3.1: Backend auto-lock and frontend read-only UI for past trips
-  - Implement: Add `isTripLocked(tripId)` method to `apps/api/src/services/permissions.service.ts` — returns true when trip end date has passed
-  - Implement: Add lock check to event create/update/delete routes in `apps/api/src/routes/event.routes.ts` — return 403 "This trip has ended and is now read-only"
-  - Implement: Add lock check to accommodation create/update/delete routes in `apps/api/src/routes/accommodation.routes.ts`
-  - Implement: Add lock check to member travel create/update/delete routes in `apps/api/src/routes/member-travel.routes.ts`
-  - Implement: Ensure restore endpoints are NOT locked (events, accommodations, member travel restore remain available)
-  - Implement: Add `isLocked` prop computation in `apps/web/src/components/itinerary/itinerary-view.tsx` based on trip end date
-  - Implement: Hide FAB when trip is locked
-  - Implement: Show read-only banner "This trip has ended. The itinerary is read-only." when locked
-  - Implement: Pass `isLocked` to event, accommodation, and member travel card components to hide edit/delete buttons
-  - Test: Write unit test for `isTripLocked` with past date, future date, null date
-  - Test: Write integration tests for locked trip — verify create/update/delete return 403, verify restore still works
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+- [x] Task 2.2: Implement frontend member travel delegation UI
+  - Implement: Update `apps/web/src/components/itinerary/create-member-travel-dialog.tsx`:
+    - Add member selector (Select from shadcn/ui) at top of form
+    - Fetch trip members using existing hooks
+    - For regular members: show own avatar + name, disabled
+    - For organizers: dropdown of all trip members, defaults to self
+    - Helper text for organizers: "As organizer, you can add member travel for any member"
+    - Pass `memberId` in API request body when organizer selects a different member
+  - Implement: Add necessary imports (Avatar, Select components)
+  - Test: E2E test - organizer adds member travel for another member, verify it appears with correct member name
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes, `pnpm test:e2e` passes
 
-## Phase 4: Remove Member
+## Phase 3: Entity Count Limits
 
-- [x] Task 4.1: Backend endpoint and frontend UI for direct member removal
-  - Implement: Add `removeMember(userId, tripId, memberId)` method to `InvitationService` in `apps/api/src/services/invitation.service.ts`
-  - Implement: Add guard — cannot remove trip creator, cannot remove last organizer
-  - Implement: Delete member record from members table and associated invitation record if exists
-  - Implement: Register `DELETE /api/trips/:tripId/members/:memberId` route in `apps/api/src/routes/invitation.routes.ts`
-  - Implement: Add `useRemoveMember` hook in `apps/web/src/hooks/use-invitations.ts`
-  - Implement: Update `apps/web/src/components/trip/members-list.tsx` to pass `member.userId` to `onRemove` instead of requiring `invitationId`
-  - Implement: Update `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` to use `useRemoveMember` mutation instead of `revokeInvitation`
-  - Test: Write unit test for `removeMember` — happy path, permission denied, last organizer error
-  - Test: Write integration test for `DELETE /trips/:tripId/members/:memberId` endpoint
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+- [x] Task 3.1: Implement entity count limits for events, accommodations, and member travel
+  - Implement: Add error classes to `apps/api/src/errors.ts`:
+    - `EventLimitExceededError` (code: `EVENT_LIMIT_EXCEEDED`, status 400, message: "Maximum 50 events per trip reached.")
+    - `AccommodationLimitExceededError` (code: `ACCOMMODATION_LIMIT_EXCEEDED`, status 400, message: "Maximum 10 accommodations per trip reached.")
+    - `MemberTravelLimitExceededError` (code: `MEMBER_TRAVEL_LIMIT_EXCEEDED`, status 400, message: "Maximum 20 travel entries per member reached.")
+  - Implement: In `EventService.createEvent()` (`apps/api/src/services/event.service.ts`):
+    - Count active events for trip (WHERE deleted_at IS NULL)
+    - Throw `EventLimitExceededError` if count >= 50
+  - Implement: In `AccommodationService.createAccommodation()` (`apps/api/src/services/accommodation.service.ts`):
+    - Count active accommodations for trip (WHERE deleted_at IS NULL)
+    - Throw `AccommodationLimitExceededError` if count >= 10
+  - Implement: In `MemberTravelService.createMemberTravel()` (`apps/api/src/services/member-travel.service.ts`):
+    - Count active member travel for the specific member (WHERE deleted_at IS NULL AND member_id = ?)
+    - Throw `MemberTravelLimitExceededError` if count >= 20
+  - Test: Integration test for each limit - create items up to limit, verify next creation fails with correct error
+  - Test: Verify soft-deleted items don't count toward limit (delete one, create succeeds)
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-## Phase 5: Deleted Items & Restore UI
+## Phase 4: Accommodation Redesign
 
-- [x] Task 5.1: Deleted items section at bottom of itinerary with restore functionality
-  - Implement: Update event/accommodation/member-travel hooks to pass `includeDeleted: true` query param when user is organizer
-  - Implement: Create `DeletedItemsSection` component in `apps/web/src/components/itinerary/deleted-items-section.tsx`
-  - Implement: Filter fetched items client-side to separate active vs deleted items (by `deletedAt !== null`)
-  - Implement: Render collapsible section at bottom of itinerary in `apps/web/src/components/itinerary/itinerary-view.tsx`, visible only to organizers
-  - Implement: Group deleted items by type (Events, Accommodations, Member Travel) with item name, deletion date, and Restore button
-  - Implement: Wire restore buttons to existing `useRestoreEvent()`, `useRestoreAccommodation()`, `useRestoreMemberTravel()` hooks
-  - Implement: Show success toast on restore, auto-collapse section if no more deleted items
-  - Test: Manual test — create items, delete them, verify they appear in Deleted Items section, restore and verify they return to itinerary
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+- [x] Task 4.1: Convert checkIn/checkOut columns from date to timestamp with timezone
+  - Implement: In `apps/api/src/db/schema/index.ts`, change `checkIn: date("check_in").notNull()` to `checkIn: timestamp("check_in", { withTimezone: true }).notNull()` and same for `checkOut`
+  - Implement: Generate migration: `cd apps/api && pnpm db:generate` — verify it generates `ALTER COLUMN ... TYPE timestamp with time zone`
+  - Implement: Run migration: `cd apps/api && pnpm db:migrate`
+  - Implement: In `shared/schemas/accommodation.ts`, change `checkIn: z.string().date()` to `checkIn: z.string().datetime({ offset: true }).or(z.string().datetime())` and same for `checkOut`
+  - Implement: Update existing tests to use ISO datetime strings (e.g. `"2026-03-01T14:00:00.000Z"`) instead of date strings (e.g. `"2026-03-01"`)
+  - Test: All existing accommodation tests pass with datetime values
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-## Phase 6: Multi-Day Event Badges
+- [x] Task 4.2: Show accommodations on all spanned days in day-by-day view
+  - Implement: In `apps/web/src/components/itinerary/day-by-day-view.tsx`:
+    - Change `DayData.accommodation: Accommodation | null` to `DayData.accommodations: Accommodation[]`
+    - Initialize as `accommodations: []` in `ensureDay`
+    - Change accommodation grouping: iterate each date from `checkIn` to day before `checkOut`, push accommodation to each day's array
+    - Update `hasContent` check: `day.accommodations.length > 0` instead of `day.accommodation`
+    - Render `day.accommodations.map(...)` at top of each day's card list
+    - Update all references from `day.accommodation` to `day.accommodations`
+  - Verify: `pnpm typecheck` passes
 
-- [x] Task 6.1: Multi-day event badges in day-by-day and group-by-type views
-  - Implement: Add `isMultiDay` computation to `apps/web/src/components/itinerary/event-card.tsx` — check if endTime exists and is on a different day than startTime using `getDayInTimezone`
-  - Implement: Render date range Badge (e.g., "Feb 10–12") on multi-day events in both compact and expanded views
-  - Implement: Ensure badge shows in both day-by-day and group-by-type view modes
-  - Test: Manual test — create multi-day event, verify badge appears with correct date range
-  - Verify: Run full test suite (`pnpm test`), all tests pass
+- [x] Task 4.3: Redesign accommodation card to minimal style with dropdown
+  - Implement: Rewrite `apps/web/src/components/itinerary/accommodation-card.tsx`:
+    - Compact state: Small card with subtle accommodation-colored left border, showing: name, nights count, check-in/check-out times if set
+    - Expanded state (click to toggle): address (Google Maps link), description, links, created-by info, edit button (opens edit dialog)
+    - Remove big bordered card style, use compact pill-like design
+    - Keep accessible: role="button", tabIndex, keyboard support
+  - Verify: `pnpm typecheck` passes
 
-## Phase 7: E2E Tests & Final Verification
+- [x] Task 4.4: Add time inputs to create/edit accommodation dialogs
+  - Implement: Update `apps/web/src/components/itinerary/create-accommodation-dialog.tsx`:
+    - Add `<Input type="time" />` next to each existing DatePicker in a 2-column grid layout
+    - Combine selected date + time into ISO datetime string before form submission
+    - Labels: "Check-in date" + "Check-in time", "Check-out date" + "Check-out time"
+  - Implement: Update `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`:
+    - Same time input additions as create dialog
+    - Pre-populate date and time fields by parsing `checkIn`/`checkOut` ISO datetime strings
+    - Fix delete button: change from `Button variant="destructive" className="w-full h-12 rounded-xl"` to subtle link: `<button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors ...">`
+    - Match the edit-trip-dialog delete button pattern (small Trash2 icon + text, centered, `pt-2`)
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
 
-- [x] Task 7.1: E2E tests for all Phase 6 features
-  - Test: Write E2E test — organizer views Deleted Items section and restores a deleted event
-  - Test: Write E2E test — past trip shows read-only banner, FAB hidden, edit/delete buttons hidden
-  - Test: Write E2E test — organizer removes a member, member's events show "no longer attending"
-  - Test: Write E2E test — create event with meetup location/time, verify display on event card
-  - Test: Write E2E test — multi-day event shows date range badge in day-by-day view
-  - Verify: Run full E2E suite (`pnpm test:e2e`), all tests pass
-  - Verify: Run full unit/integration suite (`pnpm test`), all tests pass
+## Phase 5: Responsive Design
 
-- [x] Task 7.2: Final regression check
-  - Verify: All unit tests pass (`pnpm test`)
-  - Verify: All E2E tests pass (`pnpm test:e2e`)
-  - Verify: Linting passes (`pnpm lint`)
-  - Verify: Type checking passes (`pnpm typecheck`)
+- [x] Task 4.1: Audit and fix responsive design across all pages
+  - Implement: Use Playwright to navigate each page at mobile (375px), tablet (768px), and desktop (1024px) viewports
+  - Implement: Capture screenshots of each page at each breakpoint
+  - Implement: Identify and fix layout issues:
+    - Content overflow / horizontal scrolling
+    - Dialog sizing and usability on mobile
+    - Form elements and touch targets
+    - Typography scaling
+    - Navigation and header layout
+    - Trip cards and grid layouts
+    - Itinerary cards and expandable sections
+  - Implement: Fix all identified CSS/layout issues
+  - Test: Re-screenshot all pages to verify fixes
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes, screenshots show correct layouts at all breakpoints
+
+## Phase 6: Performance Optimization
+
+- [x] Task 6.1: Audit and optimize backend performance
+  - Implement: Review all service methods for N+1 query patterns
+  - Implement: Review database indexes - check that all frequently-queried foreign keys and filter columns have indexes
+  - Implement: Optimize slow queries (use JOINs, reduce round-trips)
+  - Implement: Review Fastify route handlers for unnecessary async operations
+  - Implement: Add any missing database indexes via migration if needed
+  - Test: Run integration tests to ensure optimizations don't break functionality
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes
+
+- [x] Task 6.2: Audit and optimize frontend performance
+  - Implement: Review TanStack Query hook configurations (staleTime, gcTime, refetchOnWindowFocus)
+  - Implement: Ensure appropriate caching for stable data (members list, trip details)
+  - Implement: Check for unnecessary re-renders in key components (itinerary views, member lists)
+  - Implement: Run Lighthouse audit and address key findings
+  - Implement: Review bundle size and tree-shaking
+  - Test: Verify no regressions in E2E tests
+  - Verify: `pnpm typecheck` passes, `pnpm test` passes, `pnpm test:e2e` passes
+
+## Phase 7: Test Coverage
+
+- [x] Task 7.1: Fill test coverage gaps in unit and integration tests
+  - Implement: Run `pnpm test -- --coverage` and identify untested service methods and routes
+  - Implement: Add missing unit tests for service edge cases and error paths
+  - Implement: Add missing integration tests for API error responses and permission checks
+  - Implement: Focus on:
+    - Permission boundary tests (what non-organizers cannot do)
+    - Error response format consistency
+    - Edge cases in date/timezone handling
+    - Validation error messages
+  - Verify: `pnpm test` passes, coverage improved in key areas
+
+## Phase 8: Documentation
+
+- [x] Task 8.1: Update architecture documentation and create API docs
+  - Implement: Update `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md`:
+    - Mark Phase 7 as complete
+    - Document co-organizer promote/demote endpoint
+    - Document member travel delegation changes
+    - Document entity count limits
+    - Update implementation progress section
+  - Implement: Create API documentation (in `docs/` or within ARCHITECTURE.md):
+    - List all API endpoints with method, path, description
+    - Document request/response schemas for each endpoint
+    - Document error codes and permission requirements
+    - Document rate limiting configuration
+  - Verify: Documentation is accurate and consistent with implementation
+
+## Phase 9: Final Verification
+
+- [x] Task 9.1: Full regression check
+  - Verify: `pnpm lint` passes
+  - Verify: `pnpm typecheck` passes
+  - Verify: `pnpm test` passes (all unit + integration tests)
+  - Verify: `pnpm test:e2e` passes (all E2E tests)
+  - Verify: No console errors or warnings in dev mode
+  - Verify: Manual smoke test of key flows (create trip, invite, RSVP, add events, promote co-organizer, delegate travel)

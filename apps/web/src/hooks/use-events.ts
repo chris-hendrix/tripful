@@ -265,6 +265,7 @@ export function getCreateEventErrorMessage(error: Error | null): string | null {
 interface UpdateEventContext {
   previousEvents: Event[] | undefined;
   previousEvent: Event | undefined;
+  tripId: string | undefined;
 }
 
 /**
@@ -389,7 +390,7 @@ export function useUpdateEvent() {
       }
 
       // Return context with previous data for rollback
-      return { previousEvents, previousEvent };
+      return { previousEvents, previousEvent, tripId };
     },
 
     // On error: Rollback optimistic update
@@ -413,12 +414,20 @@ export function useUpdateEvent() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: (_data, _error, { eventId }) => {
+    onSettled: (data, _error, { eventId }, context) => {
       // Invalidate detail query
       queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) });
 
-      // Invalidate all list queries
-      queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      const tripId =
+        data?.tripId ??
+        queryClient.getQueryData<Event>(eventKeys.detail(eventId))?.tripId ??
+        context?.tripId;
+      if (tripId) {
+        queryClient.invalidateQueries({
+          queryKey: eventKeys.list(tripId),
+        });
+      }
     },
   });
 }
@@ -540,8 +549,13 @@ export function useDeleteEvent() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    onSettled: (_data, _error, _eventId, context) => {
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      if (context?.tripId) {
+        queryClient.invalidateQueries({
+          queryKey: eventKeys.list(context.tripId),
+        });
+      }
     },
   });
 }
@@ -679,8 +693,14 @@ export function useRestoreEvent() {
 
     // Always invalidate queries after mutation settles (success or error)
     // This ensures the cache stays in sync with the server
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    onSettled: (data, _error, _eventId, context) => {
+      // Invalidate the specific trip's list (and withDeleted variant via prefix match)
+      const tripId = data?.tripId ?? context?.tripId;
+      if (tripId) {
+        queryClient.invalidateQueries({
+          queryKey: eventKeys.list(tripId),
+        });
+      }
     },
   });
 }
