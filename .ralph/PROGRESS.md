@@ -794,3 +794,56 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The `...(condition ? { body: JSON.stringify(data) } : {})` spread pattern is the correct way to conditionally include a request body, especially for Fastify endpoints that reject Content-Type headers without a body
 - No new tests were needed for this task since the task spec only requires `pnpm typecheck` verification — hook unit tests can be added alongside the UI components that consume them (Tasks 5.2, 5.3)
 - The web package still has 940 passing tests (no new tests in this iteration, hooks are compile-time verified only per task spec)
+
+---
+
+## Iteration 15 — Task 5.2: Build global notification bell and dropdown for app header ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Created `apps/web/src/components/notifications/notification-item.tsx` — Single notification row component with type-specific icon (Bell for event_reminder/trip_update, Calendar for daily_itinerary, MessageCircle for trip_message), blue dot unread indicator with `aria-hidden="true"`, notification title, body preview with `line-clamp-2`, and relative timestamp via `formatRelativeTime`. Uses button element for full-row click interaction.
+- Created `apps/web/src/components/notifications/notification-bell.tsx` — Self-contained bell icon button with controlled Popover state. Ghost variant Button with Bell icon. When unread count > 0, shows absolute-positioned destructive badge capped at "9+". Dynamic `aria-label` includes unread count (e.g., "Notifications, 3 unread"). Badge includes `badgePulse` animation (600ms, plays once). Renders NotificationDropdown inside PopoverContent.
+- Created `apps/web/src/components/notifications/notification-dropdown.tsx` — Popover content panel (380px wide, 480px max height with overflow scroll). Header with "Notifications" title and conditional "Mark all as read" button (shown only when unread notifications exist). Fetches 10 most recent notifications via `useNotifications({ limit: 10 })`. Each item rendered as NotificationItem with click handler that: marks unread notifications as read, navigates to trip page (with `#discussion` hash for trip_message type), and closes popover. Includes loading skeleton and empty state with Bell icon.
+- Created `apps/web/src/components/notifications/index.ts` — Barrel file exporting NotificationBell, NotificationDropdown, and NotificationItem.
+- Modified `apps/web/src/components/app-header.tsx` — Added `NotificationBell` import from `@/components/notifications`. Wrapped right-side controls in `<div className="flex items-center gap-2">` containing NotificationBell before the existing user DropdownMenu.
+- Modified `apps/web/src/app/globals.css` — Added `@keyframes badgePulse` animation (scale 1 → 1.15 → 1, 600ms) referenced by the notification badge.
+- Modified `apps/web/src/components/__tests__/app-header.test.tsx` — Added `vi.mock("@/hooks/use-notifications")` with safe defaults to prevent existing tests from breaking due to NotificationBell's hook dependencies.
+- Created `apps/web/src/components/notifications/__tests__/notification-bell.test.tsx` — 15 comprehensive tests.
+
+### Key implementation details
+- **Popover pattern**: Uses controlled `open` state with `Popover/PopoverTrigger/PopoverContent` from shadcn/ui, matching the established DatePicker pattern. `align="end"` positions dropdown flush-right with the bell button.
+- **Badge display logic**: `displayCount` is computed as null (hidden), the count string, or "9+" — using `null` instead of conditionally rendering avoids layout shift.
+- **Navigation logic**: Notification click checks `notification.type === "trip_message" && notification.data?.messageId` for `#discussion` hash navigation; all other trip notifications go to `/trips/{tripId}`. Notifications without tripId just close the popover.
+- **Mark-as-read guard**: Only calls `markAsRead.mutate()` when `notification.readAt === null`, avoiding unnecessary mutations for already-read notifications.
+- **Accessibility**: Bell button has dynamic `aria-label` with unread count, unread dots have `aria-hidden="true"`, all interactive elements are keyboard-navigable.
+- **Badge pulse animation**: CSS `@keyframes badgePulse` in globals.css, applied via `animate-[badgePulse_600ms_ease-in-out]` Tailwind arbitrary value on the badge span. Plays once on mount/re-render.
+- **"View all notifications" link**: Intentionally omitted from dropdown — the design spec says it links to "per-trip notification dialog" which is Task 5.3's scope. No dead links.
+
+### Test coverage (15 tests)
+- **Bell rendering** (5 tests): aria-label "Notifications", badge visible when count > 0, badge hidden when count is 0 or undefined, "9+" display when count > 9
+- **Popover interaction** (3 tests): popover opens on bell click showing "Notifications" heading, notification items displayed in popover, "Mark all as read" button visible when unread notifications exist
+- **Actions** (4 tests): markAllAsRead called on button click, markAsRead + router.push called on notification click, trip_message navigates with #discussion hash, already-read notifications skip markAsRead call
+- **States** (3 tests): empty state with "No notifications yet", "Mark all as read" hidden when all are read, correct aria-label with count (e.g., "Notifications, 3 unread")
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 955 web tests pass (15 new), 981 API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+- **Notification bell tests**: ✅ 15/15 pass
+
+### Reviewer verdict: APPROVED (after fixes)
+- First round: NEEDS_WORK — 2 issues requiring fixes (aria-hidden on unread dots, badge pulse animation missing)
+- Fixes applied: Added `aria-hidden="true"` to unread dot spans, added `badgePulse` keyframe to globals.css and animation class to badge
+- "View all notifications" link omitted intentionally (destination is Task 5.3 scope)
+- Files not committed concern dismissed (orchestrator handles git operations per workflow instructions)
+- All task requirements met after fixes
+
+### Learnings for future iterations
+- The controlled Popover pattern (`open`/`onOpenChange` state) is the standard approach in this codebase for click-triggered dropdowns — matches DatePicker and DateTimePicker
+- Badge animation via arbitrary Tailwind value `animate-[keyframeName_duration_easing]` requires the `@keyframes` to be defined in globals.css — Tailwind v4 doesn't auto-generate keyframes from arbitrary values
+- When a design spec references a link to a feature in a later task (e.g., "View all notifications → per-trip dialog"), it's better to omit the link entirely than add a dead link — track it in the later task
+- `aria-hidden="true"` is important for decorative/visual-only elements like the unread dot — screen readers should not announce empty spans
+- The `useNotifications({ limit: 10 })` hook handles pagination server-side; the dropdown only shows the first page of results
+- The pre-existing accommodation-card.test.tsx failure continues across all iterations — it tests "3 nights" text that was removed in a component redesign (commit 162b7ed)
+- The web package now has 955 passing tests (up from 940 in iteration 14, +15 new notification bell tests)

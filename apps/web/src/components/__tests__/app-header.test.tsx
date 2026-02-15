@@ -15,6 +15,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+// Mock notification hooks
+vi.mock("@/hooks/use-notifications", () => ({
+  useUnreadCount: () => ({ data: 0, isLoading: false }),
+  useNotifications: () => ({ data: undefined, isLoading: false }),
+  useMarkAsRead: () => ({ mutate: vi.fn(), isPending: false }),
+  useMarkAllAsRead: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 // Mock next/link
 vi.mock("next/link", () => ({
   default: ({

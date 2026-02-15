@@ -155,7 +155,7 @@
   - Test: Verify hooks compile with `pnpm typecheck`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 5.2: Build global notification bell and dropdown for app header
+- [x] Task 5.2: Build global notification bell and dropdown for app header
   - Implement: Create `apps/web/src/components/notifications/notification-item.tsx` (type icon, trip name, body preview, timestamp, unread dot, click handler)
   - Implement: Create `apps/web/src/components/notifications/notification-bell.tsx` (bell icon + badge with count, 9+ max display)
   - Implement: Create `apps/web/src/components/notifications/notification-dropdown.tsx` (Popover with recent 10 notifications, "Mark all as read", empty state)
