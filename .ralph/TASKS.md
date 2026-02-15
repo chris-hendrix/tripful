@@ -78,7 +78,7 @@
   - Test: Write integration tests in `apps/api/tests/integration/notification.routes.test.ts` covering all endpoints
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 3.3: Create SchedulerService for event reminders and daily itinerary
+- [x] Task 3.3: Create SchedulerService for event reminders and daily itinerary
   - Implement: Install `date-fns-tz` in apps/api (`cd apps/api && pnpm add date-fns-tz`)
   - Implement: Create `apps/api/src/services/scheduler.service.ts` with ISchedulerService, start/stop lifecycle
   - Implement: Implement processEventReminders (5-min interval, 55-65min lookahead window, dedup via sent_reminders, create notifications + SMS)

@@ -15,6 +15,7 @@ import type { ISMSService } from "@/services/sms.service.js";
 import type { IInvitationService } from "@/services/invitation.service.js";
 import type { IMessageService } from "@/services/message.service.js";
 import type { INotificationService } from "@/services/notification.service.js";
+import type { ISchedulerService } from "@/services/scheduler.service.js";
 
 export type FullSchema = typeof schema & typeof relations;
 export type AppDatabase = NodePgDatabase<FullSchema>;
@@ -59,6 +60,7 @@ declare module "fastify" {
     invitationService: IInvitationService;
     messageService: IMessageService;
     notificationService: INotificationService;
+    schedulerService: ISchedulerService;
     healthService: { getStatus(): Promise<HealthCheckResponse> };
   }
 }

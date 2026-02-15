@@ -389,3 +389,60 @@ Tracking implementation progress for Messaging & Notifications feature.
 - Using descriptive param names (`:notificationId` vs `:id`) improves code readability and is consistent with the codebase convention
 - The three-tier auth pattern (read-only, write-without-profile, write-with-profile) provides flexibility for endpoints that need mutation but shouldn't require profile completion (like marking notifications as read)
 - The API now has 955 total tests (up from 925 in iteration 6, +30 new notification route tests)
+
+---
+
+## Iteration 8 — Task 3.3: Create SchedulerService for event reminders and daily itinerary ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Installed `date-fns-tz` (v3.2.0) and `date-fns` (v4.1.0) in `apps/api` via `pnpm add`
+- Created `apps/api/src/services/scheduler.service.ts` — Full SchedulerService with ISchedulerService interface (~330 lines):
+  - **Lifecycle**: `start()` creates two `setInterval` timers (5-min for event reminders, 15-min for daily itineraries) and runs both processors immediately on startup; `stop()` clears both timers
+  - **processEventReminders()**: Queries events with `startTime` in 55-65 minute window from now, skips deleted and all-day events, joins with trips for trip name. For each event, gets going members, checks per-user `eventReminders` preference (defaults to true if no row), checks `sentReminders` for dedup (type='event_reminder', referenceId=eventId), creates notification via `notificationService.createNotification()`, inserts dedup record with `onConflictDoNothing()`
+  - **processDailyItineraries()**: Queries active trips (not cancelled, with dates, current date in trip date range), uses `toZonedTime` from `date-fns-tz` to check if current time is 7:45-8:15 AM in trip's `preferredTimezone`. For matching trips, gets today's events, going members with `dailyItinerary=true`, dedup via sentReminders (referenceId=`{tripId}:{YYYY-MM-DD}`), creates notification with numbered event list body
+- Created `apps/api/src/plugins/scheduler-service.ts` — Fastify plugin with dependencies `['database', 'notification-service', 'sms-service']`, skips `start()` when `NODE_ENV === 'test'`, registers `onClose` hook for cleanup
+- Modified `apps/api/src/types/index.ts` — Added `ISchedulerService` import and `schedulerService: ISchedulerService` to FastifyInstance module augmentation
+- Modified `apps/api/src/app.ts` — Added `schedulerServicePlugin` import and registration after `notificationServicePlugin`
+- Created `apps/api/tests/unit/scheduler.service.test.ts` — 21 tests across 4 categories
+
+### Key implementation details
+- SchedulerService delegates SMS delivery entirely to `NotificationService.createNotification()` which handles SMS internally based on user preferences — the `_smsService` constructor parameter satisfies the plugin dependency chain without duplicating responsibility
+- Event reminders: 55-65 minute lookahead window (10-min range covering the 5-min interval), using Drizzle `gte()` and `lte()` operators (first usage in the codebase)
+- Daily itinerary morning window: 7:45-8:15 AM in trip timezone (30-min range covering the 15-min interval), using `toZonedTime()` from `date-fns-tz` v3
+- Both process methods are fully stateless and idempotent — safe for manual invocation in tests and future migration to external schedulers (Lambda, EventBridge)
+- Error handling: each member/trip iteration is wrapped in try/catch with logger.error() to prevent one failure from blocking remaining items; `start()` wraps immediate calls and interval callbacks in `.catch()`
+- Daily itinerary fetches all non-deleted events per trip and filters to "today" in JavaScript (timezone-aware date filtering can't be done in SQL when timezone varies per trip) — acceptable for trip-planning app event counts
+- Notification body formats: event reminders use `"{eventName} starts in 1 hour[ at {location}]"`, daily itinerary uses `"1. 9:00 AM - Event Name\n2. 12:00 PM - Another Event"`
+- The scheduler is the first service with `start()`/`stop()` lifecycle methods and the first plugin that conditionally skips initialization based on `NODE_ENV`
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 976 API tests pass (21 new), 216 shared tests pass, 855/856 web tests pass (1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes)
+- **Scheduler tests**: ✅ 21/21 pass covering:
+  - processEventReminders (8 tests): window matching, dedup, preference respect, going-only members, deleted events, all-day events, location in body
+  - processDailyItineraries (8 tests): morning window detection, dedup, preference respect, going-only members, cancelled trips, event list body, referenceId format
+  - start/stop lifecycle (3 tests): interval creation, cleanup, safe stop without start
+  - timezone handling (2 tests): morning window for different timezones, event filtering by today in trip timezone
+
+### Reviewer verdict: APPROVED
+- All requirements from task spec met
+- Clean architecture with stateless/idempotent process methods
+- Correct delegation of SMS through NotificationService
+- Robust deduplication via sentReminders with onConflictDoNothing()
+- Comprehensive error handling at both iteration and method levels
+- Plugin follows all codebase conventions (fp, dependencies, onClose hook)
+- Tests cover all specified areas (timing, deduplication, timezone)
+- 2 low-severity non-blocking notes: unused _smsService parameter (exists for dependency chain), in-memory event date filtering (acceptable for trip-scale data)
+
+### Learnings for future iterations
+- `date-fns-tz` v3 API uses `toZonedTime()` (not `utcToZonedTime()` from v2) for converting UTC to a timezone
+- `gte()` and `lte()` from `drizzle-orm` work for date range queries — this is their first usage in the codebase (existing code used only `eq`, `and`, `isNull`, `desc`, etc.)
+- For timezone-dependent tests, use `vi.useFakeTimers()` with a fixed UTC time and a calculated timezone (e.g., `Etc/GMT+4` for UTC-4) to deterministically place local time in the morning window
+- The `Etc/GMT±N` timezone convention has inverted signs: `Etc/GMT+4` = UTC-4, `Etc/GMT-2` = UTC+2
+- Services that run on timers (not in request context) need their own error handling — wrap each iteration in try/catch and log errors rather than letting them propagate
+- The scheduler is the first plugin to conditionally skip initialization based on NODE_ENV — uses `fastify.config.NODE_ENV !== 'test'` pattern
+- `onConflictDoNothing()` is the correct pattern for idempotent dedup inserts (already used in NotificationService, now also in SchedulerService)
+- The API now has 976 total tests (up from 955 in iteration 7, +21 new scheduler tests)
