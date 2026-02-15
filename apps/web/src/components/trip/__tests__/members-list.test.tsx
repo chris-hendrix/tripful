@@ -24,6 +24,22 @@ vi.mock("@/hooks/use-invitations", () => ({
   useMembers: (tripId: string) => mockUseMembers(tripId),
 }));
 
+const mockMuteMember = {
+  mutateAsync: vi.fn().mockResolvedValue({ success: true }),
+  isPending: false,
+};
+const mockUnmuteMember = {
+  mutateAsync: vi.fn().mockResolvedValue({ success: true }),
+  isPending: false,
+};
+
+vi.mock("@/hooks/use-messages", () => ({
+  useMuteMember: () => mockMuteMember,
+  useUnmuteMember: () => mockUnmuteMember,
+  getMuteMemberErrorMessage: () => "Failed to mute member",
+  getUnmuteMemberErrorMessage: () => "Failed to unmute member",
+}));
+
 let queryClient: QueryClient;
 
 const mockMembers: MemberWithProfile[] = [
@@ -370,7 +386,7 @@ describe("MembersList", () => {
       ).toBeDefined();
     });
 
-    it("does NOT show actions dropdown when onRemove is not provided and onUpdateRole is not provided", () => {
+    it("shows actions dropdown for non-organizer non-creator members even without onRemove/onUpdateRole (mute is available)", () => {
       renderWithQueryClient(
         <MembersList
           tripId="trip-123"
@@ -379,9 +395,10 @@ describe("MembersList", () => {
         />,
       );
 
+      // Jane Smith (non-organizer, non-creator) shows actions because canMute is true
       expect(
-        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
-      ).toBeNull();
+        screen.getByRole("button", { name: "Actions for Jane Smith" }),
+      ).toBeDefined();
     });
 
     it("does NOT show actions dropdown for trip creator", () => {
@@ -798,6 +815,299 @@ describe("MembersList", () => {
         "[data-slot='dropdown-menu-separator']",
       );
       expect(separator).not.toBeNull();
+    });
+  });
+
+  describe("mute/unmute controls", () => {
+    it("shows Muted badge for muted members", () => {
+      const membersWithMuted: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "maybe",
+          isOrganizer: false,
+          isMuted: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithMuted,
+        isPending: false,
+      });
+
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(screen.getByText("Muted")).toBeDefined();
+    });
+
+    it("does not show Muted badge for non-muted members", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(screen.queryByText("Muted")).toBeNull();
+    });
+
+    it("shows Mute option for non-organizer member when organizer views", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+        />,
+      );
+
+      // Jane Smith (user-2) is a regular member, not creator
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      expect(await screen.findByText("Mute")).toBeDefined();
+    });
+
+    it("shows Unmute option for muted member when organizer views", async () => {
+      const membersWithMuted: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "maybe",
+          isOrganizer: false,
+          isMuted: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithMuted,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      expect(await screen.findByText("Unmute")).toBeDefined();
+    });
+
+    it("does not show Mute/Unmute for organizer member", async () => {
+      const membersWithCoOrg: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithCoOrg,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      const onUpdateRole = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+          onUpdateRole={onUpdateRole}
+        />,
+      );
+
+      // Jane Smith is a co-organizer - should have actions for role but not mute
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      await screen.findByText("Remove co-organizer");
+      expect(screen.queryByText("Mute")).toBeNull();
+      expect(screen.queryByText("Unmute")).toBeNull();
+    });
+
+    it("does not show Mute/Unmute when viewer is not organizer", () => {
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={false}
+          createdBy="user-1"
+          currentUserId="user-5"
+        />,
+      );
+
+      // No actions dropdown at all for non-organizers
+      expect(
+        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
+      ).toBeNull();
+    });
+
+    it("shows confirmation dialog when Mute is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const muteItem = await screen.findByText("Mute");
+      await user.click(muteItem);
+
+      // Confirmation dialog should appear
+      expect(
+        await screen.findByText("Mute Jane Smith?"),
+      ).toBeDefined();
+      expect(
+        screen.getByText(
+          "This member will not be able to post messages in the trip discussion. You can unmute them at any time.",
+        ),
+      ).toBeDefined();
+    });
+
+    it("calls muteMember with correct userId when mute is confirmed", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const muteItem = await screen.findByText("Mute");
+      await user.click(muteItem);
+
+      // Click the Mute button in the confirmation dialog
+      const confirmButtons = await screen.findAllByText("Mute");
+      // The dialog action button should be the last one (inside AlertDialogAction)
+      const confirmButton = confirmButtons[confirmButtons.length - 1]!;
+      await user.click(confirmButton);
+
+      expect(mockMuteMember.mutateAsync).toHaveBeenCalledWith("user-2");
+    });
+
+    it("calls unmuteMember directly without confirmation dialog", async () => {
+      const membersWithMuted: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "maybe",
+          isOrganizer: false,
+          isMuted: true,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithMuted,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          currentUserId="user-1"
+        />,
+      );
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const unmuteItem = await screen.findByText("Unmute");
+      await user.click(unmuteItem);
+
+      // Unmute should be called directly without dialog
+      expect(mockUnmuteMember.mutateAsync).toHaveBeenCalledWith("user-2");
     });
   });
 });

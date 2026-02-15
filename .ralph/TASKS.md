@@ -134,7 +134,7 @@
   - Test: Verify integration compiles and renders with `pnpm typecheck`
   - Verify: Run full test suite, all tests pass
 
-- [ ] Task 4.4: Add mute/unmute controls to Members list
+- [x] Task 4.4: Add mute/unmute controls to Members list
   - Implement: Add "Mute"/"Unmute" option in member action dropdown in `apps/web/src/components/trip/members-list.tsx` (organizer only, not for other organizers or creator)
   - Implement: Add muted badge (`Muted`) next to RSVP status for muted members
   - Implement: Use useMuteMember/useUnmuteMember hooks from use-messages.ts

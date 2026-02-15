@@ -688,3 +688,47 @@ Tracking implementation progress for Messaging & Notifications feature.
 - The `isLocked` computation pattern (`new Date(\`${endDate}T23:59:59.999Z\`) < new Date()`) is now used in two places (itinerary-view and trip-detail-content). If a third consumer appears, extract to a shared utility.
 - Test mocking for new child components follows the existing pattern: `vi.mock` with simplified stubs that expose props via `data-*` attributes for assertion
 - The web package now has 931 passing tests (up from 922 in iteration 11, +9 new discussion section integration tests)
+
+---
+
+## Iteration 13 — Task 4.4: Add mute/unmute controls to Members list ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `shared/types/invitation.ts` — Added optional `isMuted?: boolean` field to `MemberWithProfile` interface with JSDoc comment "Only included when requesting user is an organizer"
+- Modified `shared/schemas/invitation.ts` — Added `isMuted: z.boolean().optional()` to `memberWithProfileSchema`
+- Modified `apps/api/src/services/invitation.service.ts` — In `getMembers()`, added query for `mutedMembers` table when requesting user is organizer (`isOrg`). Collects muted user IDs into a `Set<string>`, then spreads `isMuted: mutedUserIds.has(r.userId)` into each member result (organizer-only field, omitted for non-organizers)
+- Modified `apps/web/src/components/trip/members-list.tsx` — Added mute/unmute controls:
+  - Imported `useMuteMember`, `useUnmuteMember`, `getMuteMemberErrorMessage`, `getUnmuteMemberErrorMessage` from `@/hooks/use-messages`
+  - Added `VolumeX`, `Volume2`, `Loader2` icons from lucide-react
+  - Added `AlertDialog` components from shadcn/ui for mute confirmation
+  - Added `mutingMember` state for confirmation dialog flow
+  - Added `handleMute` (with toast success/error) and `handleUnmute` (direct, with toast) handlers
+  - Added `canMute` permission check: `isOrganizer && !member.isOrganizer && member.userId !== createdBy`
+  - Updated `showActions` to include `canMute` — actions dropdown now shows for any member where mute is available even without onRemove/onUpdateRole
+  - Added orange "Muted" badge (`bg-orange-500/15 text-orange-600 border-orange-500/30`) with VolumeX icon next to RSVP status for muted members
+  - Added "Mute"/"Unmute" dropdown menu items with separator logic
+  - Added AlertDialog for mute confirmation with destructive action button and loading spinner
+- Modified `apps/web/src/components/trip/__tests__/members-list.test.tsx` — Added 9 new tests plus updated 1 existing test:
+  - Added mocks for `useMuteMember`, `useUnmuteMember`, and error message helpers from `@/hooks/use-messages`
+  - Updated existing test: "does NOT show actions dropdown when onRemove/onUpdateRole not provided" → now expects actions dropdown IS shown (because canMute is true for non-organizer members)
+  - New tests in `describe("mute/unmute controls")`: Muted badge shown/hidden, Mute option for non-organizer, Unmute option for muted member, no Mute/Unmute for organizer member, no Mute/Unmute when viewer is not organizer, mute confirmation dialog, cancel confirmation, unmute direct action
+
+### Key implementation details
+- **Organizer-only mute data**: The `isMuted` field is conditionally included in the API response only when the requesting user is an organizer (via the existing `isOrg` check in `getMembers()`). Non-organizers never see mute status.
+- **Confirmation for mute, direct for unmute**: Muting uses an AlertDialog confirmation ("This member will not be able to post messages..."), while unmuting is immediate — mirrors the destructive vs. restorative nature of the actions.
+- **canMute permission**: Organizers can mute non-organizer, non-creator members. Cannot mute other organizers (consistent with backend `canMuteMember` permission check). Cannot mute the trip creator.
+- **showActions broadened**: The dropdown now appears whenever `canMute` is true, even if `onRemove` and `onUpdateRole` are not provided. This fixes the gap where organizers couldn't access mute controls without role management being enabled.
+- **Toast feedback**: Success/error toasts via sonner for both mute and unmute operations.
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 940 web tests pass (9 new), 981 API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+
+### Learnings for future iterations
+- The `isMuted` field solved the earlier "isMuted prop gap" noted in Iteration 12 — the API now returns mute status as part of the member list response, scoped to organizer viewers only
+- AlertDialog for destructive actions (mute) vs. direct action for restorative actions (unmute) is a good UX pattern that matches the delete confirmation pattern established in message-card.tsx
+- The `showActions` broadening pattern (adding new capability flags to the visibility check) is the standard way to make the dropdown appear for new action types
+- The web package now has 940 passing tests (up from 931 in iteration 12, +9 new mute/unmute tests)

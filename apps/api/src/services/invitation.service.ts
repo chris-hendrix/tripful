@@ -3,6 +3,7 @@ import {
   members,
   users,
   trips,
+  mutedMembers,
   type Invitation as DBInvitation,
 } from "@/db/schema/index.js";
 import { eq, and, inArray, count } from "drizzle-orm";
@@ -553,6 +554,16 @@ export class InvitationService implements IInvitationService {
       .innerJoin(users, eq(members.userId, users.id))
       .where(eq(members.tripId, tripId));
 
+    // Get muted members for this trip (only when requesting user is organizer)
+    let mutedUserIds: Set<string> = new Set();
+    if (isOrg) {
+      const mutedRows = await this.db
+        .select({ userId: mutedMembers.userId })
+        .from(mutedMembers)
+        .where(eq(mutedMembers.tripId, tripId));
+      mutedUserIds = new Set(mutedRows.map((r) => r.userId));
+    }
+
     return results.map((r) => ({
       id: r.id,
       userId: r.userId,
@@ -562,6 +573,7 @@ export class InvitationService implements IInvitationService {
       ...(isOrg ? { phoneNumber: r.phoneNumber } : {}),
       status: r.status,
       isOrganizer: r.isOrganizer,
+      ...(isOrg ? { isMuted: mutedUserIds.has(r.userId) } : {}),
       createdAt: r.createdAt.toISOString(),
     }));
   }
