@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMessages } from "@/hooks/use-messages";
@@ -39,7 +40,28 @@ export function TripMessages({
   disabled,
   isMuted,
 }: TripMessagesProps) {
-  const { data, isPending } = useMessages(tripId);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isInView, setIsInView] = useState(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry) {
+          setIsInView(entry.isIntersecting);
+        }
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { data, isPending } = useMessages(tripId, isInView);
 
   const messages = data?.messages ?? [];
   const total = data?.meta?.total ?? 0;
@@ -52,7 +74,7 @@ export function TripMessages({
       : undefined;
 
   return (
-    <section id="discussion" className="space-y-6">
+    <section ref={sectionRef} id="discussion" className="space-y-6" aria-label="Trip discussion">
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-semibold font-[family-name:var(--font-playfair)]">
           Discussion
@@ -80,7 +102,7 @@ export function TripMessages({
           </p>
         </div>
       ) : (
-        <div role="feed" className="space-y-4">
+        <div role="feed" aria-busy={isPending} className="space-y-4">
           {messages.map((message) => (
             <MessageCard
               key={message.id}

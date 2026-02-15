@@ -93,6 +93,50 @@ describe("MessageCard", () => {
   };
 
   describe("Rendering", () => {
+    it("renders as an article element with aria-label", () => {
+      render(
+        <MessageCard
+          message={baseMessage}
+          tripId="trip-1"
+          isOrganizer={false}
+        />,
+      );
+
+      const article = screen.getByRole("article", {
+        name: "Message from John Doe",
+      });
+      expect(article).toBeDefined();
+    });
+
+    it("applies message entry animation class", () => {
+      render(
+        <MessageCard
+          message={baseMessage}
+          tripId="trip-1"
+          isOrganizer={false}
+        />,
+      );
+
+      const article = screen.getByRole("article");
+      expect(article.className).toContain(
+        "motion-safe:animate-[messageIn_300ms_ease-out]",
+      );
+    });
+
+    it("applies responsive padding", () => {
+      render(
+        <MessageCard
+          message={baseMessage}
+          tripId="trip-1"
+          isOrganizer={false}
+        />,
+      );
+
+      const article = screen.getByRole("article");
+      expect(article.className).toContain("p-3");
+      expect(article.className).toContain("sm:p-4");
+    });
+
     it("renders author name and content", () => {
       render(
         <MessageCard
@@ -179,6 +223,26 @@ describe("MessageCard", () => {
 
       expect(screen.getByText("This message was deleted")).toBeDefined();
       expect(screen.queryByText("Hello everyone!")).toBeNull();
+    });
+
+    it("renders deleted message as article with aria-label 'Deleted message'", () => {
+      const deletedMessage = {
+        ...baseMessage,
+        content: "",
+        deletedAt: "2026-02-15T12:04:00Z",
+      };
+      render(
+        <MessageCard
+          message={deletedMessage}
+          tripId="trip-1"
+          isOrganizer={false}
+        />,
+      );
+
+      const article = screen.getByRole("article", {
+        name: "Deleted message",
+      });
+      expect(article).toBeDefined();
     });
 
     it("does not show actions menu for deleted messages", () => {

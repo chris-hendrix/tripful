@@ -46,7 +46,7 @@ export function MessageReactions({
   );
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Reactions">
       {ALLOWED_REACTIONS.map((emoji) => {
         const reaction = reactions.find((r) => r.emoji === emoji);
         const isActive = reaction?.reacted ?? false;
@@ -61,7 +61,7 @@ export function MessageReactions({
             className={cn(
               "rounded-full px-2.5 py-1 text-sm border transition-colors inline-flex items-center gap-1",
               isActive
-                ? "bg-primary/10 border-primary/30 text-primary"
+                ? "bg-primary/10 border-primary/30 text-primary motion-safe:animate-[reactionPop_200ms_ease-in-out]"
                 : "bg-muted/50 border-transparent hover:bg-muted text-muted-foreground",
               disabled && "opacity-50 cursor-not-allowed",
             )}

@@ -42,6 +42,47 @@ describe("MessageReactions", () => {
     expect(buttons.length).toBe(6);
   });
 
+  it("renders wrapper with role='group' and aria-label='Reactions'", () => {
+    render(
+      <MessageReactions
+        messageId="msg-1"
+        tripId="trip-1"
+        reactions={[]}
+      />,
+    );
+
+    const group = screen.getByRole("group", { name: "Reactions" });
+    expect(group).toBeDefined();
+  });
+
+  it("applies reaction pop animation to active reactions", () => {
+    render(
+      <MessageReactions
+        messageId="msg-1"
+        tripId="trip-1"
+        reactions={baseReactions}
+      />,
+    );
+
+    const heartButton = screen.getByLabelText("React with heart");
+    expect(heartButton.className).toContain(
+      "motion-safe:animate-[reactionPop_200ms_ease-in-out]",
+    );
+  });
+
+  it("does not apply reaction pop animation to inactive reactions", () => {
+    render(
+      <MessageReactions
+        messageId="msg-1"
+        tripId="trip-1"
+        reactions={baseReactions}
+      />,
+    );
+
+    const thumbsUpButton = screen.getByLabelText("React with thumbs_up");
+    expect(thumbsUpButton.className).not.toContain("reactionPop");
+  });
+
   it("shows count for reactions with count > 0", () => {
     render(
       <MessageReactions

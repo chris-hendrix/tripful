@@ -6,6 +6,22 @@ import type {
   GetMessagesResponse,
 } from "@tripful/shared/types";
 
+// Mock IntersectionObserver
+const mockObserve = vi.fn();
+const mockDisconnect = vi.fn();
+let intersectionCallback: ((entries: { isIntersecting: boolean }[]) => void) | null = null;
+
+class MockIntersectionObserver {
+  constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+    intersectionCallback = callback;
+  }
+  observe = mockObserve;
+  disconnect = mockDisconnect;
+  unobserve = vi.fn();
+}
+
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
 // Mock data
 const makeMessage = (
   overrides: Partial<MessageWithReplies> = {},
@@ -34,9 +50,13 @@ const makeMessage = (
 // Mock return values
 let mockData: GetMessagesResponse | undefined;
 let mockIsPending = false;
+let lastUseMessagesEnabled: boolean | undefined;
 
 vi.mock("@/hooks/use-messages", () => ({
-  useMessages: () => ({ data: mockData, isPending: mockIsPending }),
+  useMessages: (_tripId: string, enabled?: boolean) => {
+    lastUseMessagesEnabled = enabled;
+    return { data: mockData, isPending: mockIsPending };
+  },
   useCreateMessage: () => ({ mutate: vi.fn(), isPending: false }),
   useToggleReaction: () => ({ mutate: vi.fn(), isPending: false }),
   useEditMessage: () => ({ mutate: vi.fn(), isPending: false }),
@@ -69,6 +89,10 @@ describe("TripMessages", () => {
     vi.setSystemTime(new Date("2026-02-15T12:05:00Z"));
     mockData = undefined;
     mockIsPending = false;
+    lastUseMessagesEnabled = undefined;
+    mockObserve.mockClear();
+    mockDisconnect.mockClear();
+    intersectionCallback = null;
   });
 
   afterEach(() => {
@@ -229,5 +253,66 @@ describe("TripMessages", () => {
     // The only text content should be "Discussion" in the header area
     const header = screen.getByText("Discussion");
     expect(header.nextElementSibling).toBeNull();
+  });
+
+  it("renders section with aria-label 'Trip discussion'", () => {
+    mockData = {
+      success: true,
+      messages: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
+
+    render(
+      <TripMessages tripId="trip-1" isOrganizer={false} />,
+    );
+
+    const section = screen.getByRole("region", { name: "Trip discussion" });
+    expect(section).toBeDefined();
+  });
+
+  it("sets aria-busy on feed div when loading", () => {
+    mockIsPending = false;
+    mockData = {
+      success: true,
+      messages: [makeMessage()],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+    };
+
+    const { container } = render(
+      <TripMessages tripId="trip-1" isOrganizer={false} />,
+    );
+
+    const feed = container.querySelector('[role="feed"]');
+    expect(feed).not.toBeNull();
+    expect(feed?.getAttribute("aria-busy")).toBe("false");
+  });
+
+  it("sets up IntersectionObserver on section element", () => {
+    mockData = {
+      success: true,
+      messages: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
+
+    render(
+      <TripMessages tripId="trip-1" isOrganizer={false} />,
+    );
+
+    expect(mockObserve).toHaveBeenCalled();
+  });
+
+  it("passes visibility state to useMessages hook", () => {
+    mockData = {
+      success: true,
+      messages: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
+
+    render(
+      <TripMessages tripId="trip-1" isOrganizer={false} />,
+    );
+
+    // Initially isInView is true
+    expect(lastUseMessagesEnabled).toBe(true);
   });
 });

@@ -38,13 +38,16 @@ export function NotificationBell() {
         >
           <Bell className="size-5" />
           {displayCount && (
-            <span className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] animate-[badgePulse_600ms_ease-in-out]">
+            <span
+              key={displayCount}
+              className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] motion-safe:animate-[badgePulse_600ms_ease-in-out]"
+            >
               {displayCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[380px] p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[380px] p-0" align="end">
         <NotificationDropdown onClose={() => setOpen(false)} />
       </PopoverContent>
     </Popover>

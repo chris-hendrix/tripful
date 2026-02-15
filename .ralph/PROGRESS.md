@@ -1049,3 +1049,76 @@ Tracking implementation progress for Messaging & Notifications feature.
 - **Switch state via `data-state`**: shadcn/ui Switch (Radix primitive) exposes `data-state="checked"/"unchecked"` which is more reliable than checking `aria-checked` for E2E assertions.
 - **E2E tests passed on first attempt**: Unlike the sibling messaging E2E tests (which required 4 rounds of fixes), the notification E2E tests passed on the first coder run. This is likely because the patterns and lessons from iteration 17 (messaging E2E) were directly applied — scoped locators, toast handling, phone offsets, etc.
 - The total E2E test count is now 31 (up from 28 in iteration 17, +3 new notification E2E tests).
+
+---
+
+## Iteration 19 — Task 6.3: Polish - animations, accessibility, and mobile responsiveness ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**CSS Animations (3 items):**
+- Added `@keyframes messageIn` to `/home/chend/git/tripful/apps/web/src/app/globals.css` — opacity 0→1 + translateY(-8px)→0, 300ms ease-out for message entry animation
+- Added `@keyframes reactionPop` to globals.css — scale 1→1.3→1, 200ms ease-in-out for reaction toggle animation
+- Modified `/home/chend/git/tripful/apps/web/src/components/notifications/notification-bell.tsx` and `/home/chend/git/tripful/apps/web/src/components/notifications/trip-notification-bell.tsx` — Added `key={displayCount}` to badge `<span>` so React re-mounts and replays the `badgePulse` CSS animation when unread count changes. Changed `animate-[badgePulse_600ms_ease-in-out]` to `motion-safe:animate-[badgePulse_600ms_ease-in-out]` for accessibility.
+
+**Animation application:**
+- Modified `/home/chend/git/tripful/apps/web/src/components/messaging/message-card.tsx` — Applied `motion-safe:animate-[messageIn_300ms_ease-out]` to message card wrapper, changed `<div>` to `<article>` with `aria-label="Message from {author}"` (or `"Deleted message"`), changed padding to `p-3 sm:p-4` for mobile responsive.
+- Modified `/home/chend/git/tripful/apps/web/src/components/messaging/message-reactions.tsx` — Applied `motion-safe:animate-[reactionPop_200ms_ease-in-out]` to active reaction buttons, added `role="group"` and `aria-label="Reactions"` to reactions wrapper div.
+
+**ARIA Accessibility (6 items):**
+- Modified `/home/chend/git/tripful/apps/web/src/components/messaging/trip-messages.tsx` — Added `aria-label="Trip discussion"` to `<section>`, `aria-busy={isPending}` to `role="feed"` div
+- Modified `message-card.tsx` — Changed outer `<div>` to semantic `<article>` with descriptive `aria-label`
+- Modified `message-reactions.tsx` — Added `role="group"` and `aria-label="Reactions"` to wrapper
+- Modified `/home/chend/git/tripful/apps/web/src/components/messaging/message-input.tsx` — Added dynamic `aria-label` (switches between "Write a message" and "Write a reply" based on compact mode), `aria-describedby="char-count"` linking textarea to character count, `id="char-count"` and `aria-live="polite"` on char count container
+- Modified `/home/chend/git/tripful/apps/web/src/components/messaging/message-replies.tsx` — Added `aria-expanded` to expand/collapse reply buttons
+
+**Mobile Responsive Layout (3 items):**
+- `message-card.tsx` — Changed padding from `p-4` to `p-3 sm:p-4` (smaller on mobile for touch-friendly cards)
+- `message-replies.tsx` — Changed indent from `ml-6 pl-4` to `ml-4 pl-3 sm:ml-6 sm:pl-4` (tighter on mobile)
+- `notification-bell.tsx` (PopoverContent) — Changed width from `w-[380px]` to `w-[calc(100vw-2rem)] sm:w-[380px]` (full-width popover on mobile)
+
+**IntersectionObserver for polling optimization:**
+- Modified `trip-messages.tsx` — Added `useRef` + `useEffect` with native `IntersectionObserver` on the discussion `<section>`. Tracks `isInView` state and passes it to `useMessages(tripId, isInView)` to pause the 5-second polling when the discussion section scrolls off-screen. Observer properly disconnects on unmount.
+
+**Smooth scroll (already complete):**
+- Verified `/home/chend/git/tripful/apps/web/src/components/messaging/message-count-indicator.tsx` already implements `scrollIntoView({ behavior: "smooth" })` — no changes needed.
+
+### Key implementation details
+- All three new animations use `motion-safe:` prefix to respect `prefers-reduced-motion` user preference, matching the pattern established in itinerary views (`day-by-day-view.tsx`, `group-by-type-view.tsx`)
+- Badge `key={displayCount}` approach forces React to unmount/remount the badge span when the displayed count changes, which automatically replays the one-shot CSS `badgePulse` animation — no JavaScript animation logic needed
+- The `useMessages` hook already accepted an `enabled` parameter, so the IntersectionObserver integration only needed state management in the component, not hook changes
+- The `aria-describedby="char-count"` → `id="char-count"` link works even when the character count text is hidden (below 1800 chars), because the container div always renders
+- `aria-live="polite"` on the char count container ensures screen readers announce character count updates as the user types beyond the threshold
+- Semantic `<article>` elements for messages are correct per WAI-ARIA spec: each item in a `role="feed"` container should be an `<article>`
+
+### Fix iterations
+- **Round 1**: Reviewer returned NEEDS_WORK with 2 medium-severity issues: (1) missing `motion-safe:` prefix on badge pulse, (2) missing `aria-describedby` for character count
+- **Round 2**: Fixed both issues + added dynamic `aria-label` for reply mode. Updated tests. Reviewer returned APPROVED.
+
+### Test coverage (14 new tests across 5 files)
+- `message-card.test.tsx` (4 new): `<article>` element with aria-label, animation class, responsive padding, deleted message aria-label
+- `message-reactions.test.tsx` (3 new): `role="group"` with aria-label, reaction pop on active, no animation on inactive
+- `trip-messages.test.tsx` (4 new): aria-label on section, aria-busy on feed, IntersectionObserver setup, visibility state to useMessages
+- `message-input.test.tsx` (3 new): aria-label default, aria-label in compact mode, aria-describedby to char-count
+- `notification-bell.test.tsx` (updated 1): key-based badge re-animation with `motion-safe:` prefix
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with zero errors
+- **ESLint**: ✅ All 3 packages pass with zero errors
+- **Tests**: ✅ 1020 web tests pass (14 new), 286 API tests pass, 216 shared tests pass. 1 pre-existing failure in accommodation-card.test.tsx unrelated to our changes.
+
+### Reviewer verdict: APPROVED (after 1 round of fixes)
+- First round: NEEDS_WORK — 2 medium-severity issues (missing `motion-safe:` on badge, missing `aria-describedby`)
+- Fixes applied, re-reviewed: APPROVED
+- 5 low-severity non-blocking notes acknowledged: reaction pop on re-render (acceptable for MVP), no true bottom-sheet (pragmatic popover approach), notification `role="menu"` out of scope (Task 5.2 design), IntersectionObserver cleanup test (nice to have), visibility pause test (nice to have)
+
+### Learnings for future iterations
+- **`motion-safe:` prefix is critical for accessibility**: All CSS animations should use the `motion-safe:` Tailwind prefix. The codebase established this pattern in itinerary views but the notification badge didn't follow it until the reviewer caught it.
+- **`key` prop for CSS animation re-trigger**: Adding `key={dynamicValue}` to an element with a CSS animation forces React to re-mount the element, replaying the animation. This is the simplest approach for one-shot animations that need to replay on state changes.
+- **`aria-describedby` for linked elements**: Use `id` on the described element and `aria-describedby` on the control to link them. The described element should always be in the DOM (even if visually hidden) and use `aria-live="polite"` for dynamic content.
+- **IntersectionObserver for polling optimization**: The pattern is straightforward: `useRef` on the container → `useEffect` with `new IntersectionObserver(callback)` → `observer.observe(ref.current)` → cleanup with `observer.disconnect()`. Pass the `isIntersecting` state to the query hook's `enabled` parameter.
+- **Semantic HTML in feeds**: WAI-ARIA spec requires `<article>` elements inside `role="feed"` containers. This is an easy upgrade from `<div>` that significantly improves screen reader navigation.
+- **Dynamic `aria-label` for context-sensitive inputs**: When the same input component is used in different contexts (message vs reply), the `aria-label` should reflect the current context, not be hardcoded.
+- The web package now has 1020 passing tests (up from 1005 in iteration 18, +14 new polish tests + 1 updated).

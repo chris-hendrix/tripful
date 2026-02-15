@@ -95,12 +95,13 @@ export function MessageReplies({
   }
 
   return (
-    <div className="ml-6 pl-4 border-l-2 border-border">
+    <div className="ml-4 pl-3 sm:ml-6 sm:pl-4 border-l-2 border-border">
       {hiddenCount > 0 && !isExpanded && (
         <button
           type="button"
           onClick={() => setIsExpanded(true)}
           className="text-sm text-primary hover:underline mb-2 inline-flex items-center gap-1"
+          aria-expanded={false}
         >
           <ChevronDown className="w-3.5 h-3.5" />
           View {hiddenCount} more {hiddenCount === 1 ? "reply" : "replies"}
@@ -112,6 +113,7 @@ export function MessageReplies({
           type="button"
           onClick={() => setIsExpanded(false)}
           className="text-sm text-primary hover:underline mb-2 inline-flex items-center gap-1"
+          aria-expanded={true}
         >
           <ChevronUp className="w-3.5 h-3.5" />
           Hide replies

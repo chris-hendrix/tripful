@@ -200,7 +200,7 @@
   - Test: Per-trip notification bell shows trip-scoped unread count
   - Verify: All E2E tests pass, manual verification with screenshots
 
-- [ ] Task 6.3: Polish - animations, accessibility, and mobile responsiveness
+- [x] Task 6.3: Polish - animations, accessibility, and mobile responsiveness
   - Implement: Add message entry animation (fade in from top, 300ms)
   - Implement: Add reaction pop animation (scale 1.3, 200ms)
   - Implement: Add notification badge pulse on count change (600ms)

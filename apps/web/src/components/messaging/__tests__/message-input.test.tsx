@@ -44,6 +44,32 @@ describe("MessageInput", () => {
     ).toBeDefined();
   });
 
+  it("renders textarea with aria-label 'Write a message'", () => {
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByLabelText("Write a message");
+    expect(textarea).toBeDefined();
+    expect(textarea.tagName.toLowerCase()).toBe("textarea");
+  });
+
+  it("renders textarea with aria-label 'Write a reply' in compact mode", () => {
+    render(<MessageInput tripId="trip-1" compact />);
+
+    const textarea = screen.getByLabelText("Write a reply");
+    expect(textarea).toBeDefined();
+    expect(textarea.tagName.toLowerCase()).toBe("textarea");
+  });
+
+  it("has aria-describedby linking to char-count element", () => {
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByLabelText("Write a message");
+    expect(textarea.getAttribute("aria-describedby")).toBe("char-count");
+
+    const charCount = document.getElementById("char-count");
+    expect(charCount).toBeDefined();
+  });
+
   it("renders compact placeholder for reply inputs", () => {
     render(<MessageInput tripId="trip-1" compact />);
 

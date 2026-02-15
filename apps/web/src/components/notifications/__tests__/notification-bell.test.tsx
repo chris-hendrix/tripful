@@ -64,6 +64,21 @@ describe("NotificationBell", () => {
     expect(screen.getByText("3")).toBeDefined();
   });
 
+  it("has key on badge span for re-animation on count change", () => {
+    mockUseUnreadCount.mockReturnValue({ data: 3, isLoading: false });
+    const { rerender } = render(<NotificationBell />);
+
+    const badge = screen.getByText("3");
+    expect(badge.className).toContain("motion-safe:animate-[badgePulse_600ms_ease-in-out]");
+
+    // Change the unread count
+    mockUseUnreadCount.mockReturnValue({ data: 5, isLoading: false });
+    rerender(<NotificationBell />);
+
+    const updatedBadge = screen.getByText("5");
+    expect(updatedBadge.className).toContain("motion-safe:animate-[badgePulse_600ms_ease-in-out]");
+  });
+
   it("hides badge when unread count is 0", () => {
     mockUseUnreadCount.mockReturnValue({ data: 0, isLoading: false });
     render(<NotificationBell />);

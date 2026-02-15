@@ -132,7 +132,10 @@ export function MessageCard({
 
   if (isDeleted) {
     return (
-      <div className="bg-card rounded-xl border border-border p-4">
+      <article
+        className="bg-card rounded-xl border border-border p-3 sm:p-4 motion-safe:animate-[messageIn_300ms_ease-out]"
+        aria-label="Deleted message"
+      >
         <div className="flex items-start gap-3">
           <Avatar size="default">
             <AvatarFallback>
@@ -163,12 +166,15 @@ export function MessageCard({
             />
           </div>
         )}
-      </div>
+      </article>
     );
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 hover:shadow-sm transition-shadow">
+    <article
+      className="bg-card rounded-xl border border-border p-3 sm:p-4 hover:shadow-sm transition-shadow motion-safe:animate-[messageIn_300ms_ease-out]"
+      aria-label={`Message from ${message.author.displayName}`}
+    >
       <div className="flex items-start gap-3">
         <Avatar size="default">
           <AvatarImage
@@ -353,6 +359,6 @@ export function MessageCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </article>
   );
 }

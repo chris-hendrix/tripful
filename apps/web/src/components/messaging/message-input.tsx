@@ -121,6 +121,8 @@ export function MessageInput({
             }}
             onKeyDown={handleKeyDown}
             placeholder={compact ? "Write a reply..." : "Write a message..."}
+            aria-label={compact ? "Write a reply" : "Write a message"}
+            aria-describedby="char-count"
             className={cn(
               "w-full resize-none bg-transparent text-sm placeholder:text-muted-foreground outline-none",
               compact ? "min-h-[36px]" : "min-h-[44px]",
@@ -129,7 +131,7 @@ export function MessageInput({
             disabled={createMessage.isPending}
           />
           <div className="flex items-center justify-between mt-2">
-            <div className="text-xs text-muted-foreground">
+            <div id="char-count" className="text-xs text-muted-foreground" aria-live="polite">
               {content.length > CHAR_COUNT_THRESHOLD && (
                 <span
                   className={cn(
