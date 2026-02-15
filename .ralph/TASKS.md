@@ -166,7 +166,7 @@
 
 ## Phase 8: Documentation
 
-- [ ] Task 8.1: Update architecture documentation and create API docs
+- [x] Task 8.1: Update architecture documentation and create API docs
   - Implement: Update `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md`:
     - Mark Phase 7 as complete
     - Document co-organizer promote/demote endpoint

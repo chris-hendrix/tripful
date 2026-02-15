@@ -650,3 +650,58 @@ All 5 E2E failures are pre-existing from prior iterations:
 - The `canEditAccommodationWithData`/`canDeleteAccommodationWithData` methods delegate to `isOrganizer` (not just `isMember`) — only organizers can edit/delete accommodations, unlike events where creators can edit their own
 - ESLint `@typescript-eslint/no-unused-vars` requires prefix `_` for assigned-but-unread variables — captured member IDs needed in `beforeEach` setup but not directly referenced in tests must use this convention
 - Test count: shared unchanged at 197, api 778→803 (+25), web unchanged at 845; total 1,820→1,845 (+25)
+
+## Iteration 14 — Task 8.1: Update architecture documentation and create API docs
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-14
+
+### What was done
+
+**1. Updated `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md`** (13 edits):
+
+- **Frontmatter**: Updated status to "Phase 1-7 Implemented"
+- **Implementation Status blockquote**: Phase 7 marked ✅ Complete with feature summary; removed "planned features" disclaimer
+- **Phase 7 section**: Replaced placeholder checklist with detailed completion notes covering features, error codes, database changes, and API endpoints
+- **Events API section**: Replaced stale docs (wrong HTTP method PATCH→PUT, missing auth/permissions/rate-limits) with accurate endpoint documentation
+- **Accommodations API section**: Replaced stale docs (wrong HTTP method PATCH→PUT, missing fields) with accurate documentation including TIMESTAMP WITH TIMEZONE note
+- **Member Travel API section**: Replaced stale docs (wrong paths `/api/travel`→`/api/member-travel`, wrong field names) with accurate documentation including delegation note
+- **RSVPs section**: Replaced with comprehensive "Invitations & Members" section covering 7 endpoints (was only 2)
+- **Added User Profile section**: 3 new endpoints (PUT profile, POST photo, DELETE photo) — previously undocumented
+- **Added Health Check section**: 3 new endpoints (health, live, ready) — previously undocumented
+- **Error Codes**: Expanded from 7 generic entries to 31 specific error codes in table with HTTP status codes
+- **Pagination**: Updated from "future" to actual implementation on trips list endpoint
+- **Roadmap summaries**: Phase 6 and Phase 7 marked complete with detailed items
+- **Revision history**: Added Version 6.0 entry documenting all changes
+
+**2. Created `docs/2026-02-01-tripful-mvp/API.md`** — standalone API reference:
+
+- 611 lines covering all 45 endpoints organized by resource type
+- Sections: Auth, Trips, Member Management, Invitations, Events, Accommodations, Member Travel, User Profile, Health Checks
+- Rate Limits table, Error Codes table (31 entries), Entity Limits table, Permission Matrix
+- All endpoints include authentication requirements, request/response schemas, permissions, and rate limits
+
+### Files changed (2 total)
+- `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` — 13 targeted edits
+- `docs/2026-02-01-tripful-mvp/API.md` — new file (611 lines)
+
+### Verification results
+- `pnpm typecheck`: ✅ PASS (all 3 packages)
+- `pnpm lint`: ✅ PASS (all 3 packages)
+- `pnpm test`: ✅ PASS (1,845 tests — shared: 197, api: 803, web: 845)
+- Documentation accuracy checks: ✅ PASS (frontmatter, Phase 7 status, error codes count, revision history)
+- Reviewer: ✅ APPROVED (all LOW severity issues are pre-existing and outside scope)
+
+### Reviewer notes (all LOW, pre-existing, non-blocking)
+- ARCHITECTURE.md Trips section still references `trips.routes.ts` (should be `trip.routes.ts`) — pre-existing
+- ARCHITECTURE.md Trips section response examples use stale wrapper format — pre-existing, API.md is correct
+- ARCHITECTURE.md `buildApp()` example only shows 3 route registrations (should be 8) — pre-existing
+- Event route filter enum in code (`flight, lodging, activity, meal, transit, other`) doesn't match DB enum (`travel, meal, activity`) — pre-existing code bug, not docs bug
+
+### Learnings for future iterations
+- Documentation tasks only modify markdown files, so all automated checks (typecheck, lint, test) should always pass — the verification value is in manually checking the markdown content for accuracy
+- The ARCHITECTURE.md grew to ~4000 lines over 7 phases — splitting the API reference into a standalone API.md makes both files easier to maintain and navigate
+- When updating stale API documentation, always cross-reference with: route files (HTTP methods, paths), shared schemas (field names, types, validation), controllers (response shapes), and errors.ts (error codes)
+- The existing ARCHITECTURE.md had several sections not updated since Phase 3/4 (Events used PATCH instead of PUT, Member Travel used `/api/travel` paths, accommodations used `checkInDate` field name) — documentation drift is a real problem with long-lived architecture docs
+- Entity limits, rate limiting, and permission requirements are the most commonly missing details in endpoint documentation — including them in a table format (like the Permission Matrix) makes them easy to scan
+- Test count: unchanged at 1,845 (shared: 197, api: 803, web: 845) — no code changes in this task
