@@ -172,8 +172,9 @@ test.describe("Itinerary Journey", () => {
         await expect(accommodationCard).toBeVisible({ timeout: 10000 });
 
         // Address should be a Google Maps link (scoped to first card instance)
+        // Compact view truncates addresses > 20 chars: "123 Main St, San Die…"
         const addressLink = accommodationCard.getByRole("link", {
-          name: "123 Main St, San Diego",
+          name: /123 Main St/,
         });
         await expect(addressLink).toBeVisible();
         await expect(addressLink).toHaveAttribute(
