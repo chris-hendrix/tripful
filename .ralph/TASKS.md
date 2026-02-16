@@ -221,3 +221,117 @@
   - Verify: Linting passes (`pnpm lint`)
   - Verify: Type checking passes (`pnpm typecheck`)
   - Verify: No console errors in browser during manual testing
+
+## Phase 8: Cleanup — Performance
+
+- [ ] Task 8.1: Refactor `getMessages` to use batch queries (N+1 fix)
+  - Implement: In `apps/api/src/services/message.service.ts:133-241`, after fetching top-level messages (line 168-180), collect all message IDs into an array
+  - Implement: Replace per-message reaction queries (line 185-186) with a single batch query using `inArray(messageReactions.messageId, allMessageIds)` + `groupBy(messageId, emoji)`
+  - Implement: Replace per-message reply count queries (line 189-198) with a single `groupBy` query on `messages.parentId`
+  - Implement: Replace per-message reply fetch (line 201-217) with a batch query using `inArray` + `ROW_NUMBER()` window function or fetch all replies and slice in-memory (limit 2 per parent)
+  - Implement: Replace per-reply reaction queries (line 220-224) by including reply IDs in the batch reaction query from step 2
+  - Implement: Assemble results using `Map` lookups matching `trip.service.ts:465-521` batch pattern
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all 47+ tests pass
+  - Verify: `cd apps/api && pnpm vitest run tests/integration/message.routes.test.ts` — all 23+ tests pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 8.2: Fix `totalPages` in `getNotifications` for `unreadOnly` filter
+  - Implement: In `apps/api/src/services/notification.service.ts` `getNotifications()`, when `unreadOnly` is true, apply the `isNull(readAt)` filter to the count query as well as the data query
+  - Implement: Ensure `totalPages` reflects filtered count
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/notification.service.test.ts` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 8.3: Improve notification query key granularity
+  - Implement: In `apps/web/src/hooks/use-notifications.ts` (or `notification-queries.ts`), update notification list query key factory to include `{ tripId, page, limit, unreadOnly }` params
+  - Implement: Update all `invalidateQueries` calls that reference the list key
+  - Verify: `pnpm typecheck` — no errors
+  - Verify: Existing notification component tests pass
+
+- [ ] Task 8.4: Invalidate trip-specific unread counts on mark-as-read
+  - Implement: In `apps/web/src/hooks/use-notifications.ts` `useMarkAsRead` `onSettled`, also invalidate `notificationKeys.tripUnreadCount(tripId)` (currently only invalidates global unread count)
+  - Implement: In `useMarkAllAsRead` `onSettled`, also invalidate `notificationKeys.tripUnreadCount(tripId)` when `tripId` is provided
+  - Verify: `pnpm typecheck` — no errors
+
+## Phase 9: Cleanup — UX Gaps
+
+- [ ] Task 9.1: Wire `isMuted` prop to `TripMessages` in trip detail page
+  - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx:352-356`, extract the current user's membership from the members list (already fetched)
+  - Implement: Pass `isMuted={currentMember?.isMuted}` to `<TripMessages>` (component already handles it at line 69-74)
+  - Note: `isMuted` is only in API response for organizer viewers; non-organizer muted users get server-side enforcement + error toast as fallback
+  - Verify: `cd apps/web && pnpm vitest run src/app/\\(app\\)/trips/\\[id\\]/trip-detail-content.test.tsx` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 9.2: Connect message feed load-more to pagination
+  - Implement: In `apps/web/src/hooks/use-messages.ts`, update `useMessages` hook to support increasing `limit` parameter (matching the notification dialog's "load more by increasing limit" pattern)
+  - Implement: In `apps/web/src/components/messaging/trip-messages.tsx`, add a "Load earlier messages" button at the top of the message feed when `messages.length < total`
+  - Implement: On click, increase the limit (e.g., by 20) and refetch
+  - Verify: `cd apps/web && pnpm vitest run src/components/messaging/__tests__/trip-messages.test.tsx` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 9.3: Add "View all" link to global notification dropdown
+  - Implement: In `apps/web/src/components/notifications/notification-dropdown.tsx`, add a "View all notifications" link at the bottom of the dropdown when there are more than 10 notifications
+  - Implement: Link should navigate to the trip page's notification section (or open the per-trip dialog if on a trip page)
+  - Verify: `pnpm typecheck` — no errors
+
+## Phase 10: Cleanup — Code Quality
+
+- [ ] Task 10.1: Add logging to empty catch block in MessageService
+  - Implement: In `apps/api/src/services/message.service.ts:422-424`, accept a `logger` parameter in the MessageService constructor (or access via Fastify instance pattern)
+  - Implement: Replace empty catch with `this.logger?.error({ err, tripId, messageId }, "Failed to send message notifications")`
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 10.2: Wrap `createDefaultPreferences` in try/catch in InvitationService
+  - Implement: In `apps/api/src/services/invitation.service.ts` `updateRsvp` method, wrap the `createDefaultPreferences` call in try/catch with logging
+  - Note: Method is already idempotent via `onConflictDoNothing()`, this is purely for consistency and logging
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/invitation.service.test.ts` — all pass
+
+- [ ] Task 10.3: Remove unused `_smsService` from SchedulerService constructor
+  - Implement: Remove `_smsService: ISMSService` parameter from `apps/api/src/services/scheduler.service.ts:38` constructor
+  - Implement: Update `apps/api/src/plugins/scheduler-service.ts` to not pass `smsService`
+  - Implement: Remove `"sms-service"` from plugin dependencies array if no longer needed
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/scheduler.service.test.ts` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 10.4: Add dedicated `PinOnReplyError` for `togglePin` reply case
+  - Implement: Add `PinOnReplyError` (400) to `apps/api/src/errors.ts`
+  - Implement: In `apps/api/src/services/message.service.ts` `togglePin` method, replace `InvalidReplyTargetError` usage with `PinOnReplyError` when the target is a reply
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+- [ ] Task 10.5: Use `z.enum` for notification type in response schema
+  - Implement: In `shared/schemas/notification.ts`, replace `z.string()` for the notification `type` field with `z.enum(["event_reminder", "daily_itinerary", "trip_message", "trip_update"])` in the response entity schema
+  - Implement: Import the `NotificationType` union from `shared/types/notification.ts` if needed
+  - Verify: `cd shared && pnpm vitest run` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+## Phase 11: Cleanup — E2E Test Robustness
+
+- [ ] Task 11.1: Replace fragile CSS selector for pinned section
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts:324`, replace `.bg-primary\\/5` locator with a `data-testid="pinned-messages"` attribute
+  - Implement: Add the `data-testid` to `apps/web/src/components/messaging/pinned-messages.tsx`
+  - Verify: `pnpm test:e2e -- --grep "messaging"` — all pass
+
+- [ ] Task 11.2: Add logging to `dismissToast` catch block
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts:22-27` and `apps/web/tests/e2e/notifications.spec.ts:22-27`, replace `.catch(() => false)` with `.catch((e) => { console.warn("dismissToast: isVisible check failed", e.message); return false; })`
+  - Verify: `pnpm test:e2e` — all pass
+
+- [ ] Task 11.3: Replace `networkidle` with more reliable wait conditions
+  - Implement: In `apps/web/tests/e2e/helpers/auth.ts:121,152`, replace `page.waitForLoadState("networkidle")` with `page.waitForLoadState("domcontentloaded")` or a specific element wait
+  - Implement: Add a `data-testid="app-ready"` marker to the app shell if needed
+  - Verify: `pnpm test:e2e` — all pass
+
+- [ ] Task 11.4: Document feed ordering assumption in E2E tests
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts:131,155`, add clear comments documenting that tests assume newest-first ordering
+  - Implement: Add a setup assertion at the top of ordering-dependent tests that verifies the expected order
+  - Verify: `pnpm test:e2e -- --grep "messaging"` — all pass
+
+## Phase 12: Cleanup — Final Verification
+
+- [ ] Task 12.1: Full regression check after cleanup
+  - Verify: All unit tests pass (`pnpm test`)
+  - Verify: All integration tests pass
+  - Verify: All E2E tests pass (`pnpm test:e2e`)
+  - Verify: Linting passes (`pnpm lint`)
+  - Verify: Type checking passes (`pnpm typecheck`)
+  - Verify: No console errors in browser during manual testing
