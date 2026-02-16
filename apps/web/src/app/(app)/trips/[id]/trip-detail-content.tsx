@@ -22,6 +22,7 @@ import {
   getRemoveMemberErrorMessage,
   useUpdateMemberRole,
   getUpdateMemberRoleErrorMessage,
+  useMembers,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
@@ -98,6 +99,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
   const { user } = useAuth();
+  const { data: members } = useMembers(tripId);
+  const currentMember = members?.find((m) => m.userId === user?.id);
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -353,6 +356,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             tripId={tripId}
             isOrganizer={isOrganizer}
             disabled={isLocked}
+            isMuted={currentMember?.isMuted}
           />
         </div>
       </div>

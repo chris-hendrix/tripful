@@ -254,7 +254,7 @@
 
 ## Phase 9: Cleanup — UX Gaps
 
-- [ ] Task 9.1: Wire `isMuted` prop to `TripMessages` in trip detail page
+- [x] Task 9.1: Wire `isMuted` prop to `TripMessages` in trip detail page
   - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx:352-356`, extract the current user's membership from the members list (already fetched)
   - Implement: Pass `isMuted={currentMember?.isMuted}` to `<TripMessages>` (component already handles it at line 69-74)
   - Note: `isMuted` is only in API response for organizer viewers; non-organizer muted users get server-side enforcement + error toast as fallback

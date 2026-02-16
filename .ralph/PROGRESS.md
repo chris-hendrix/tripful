@@ -1389,3 +1389,44 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Explicit vs implicit invalidation**: TanStack Query's prefix matching means `invalidateQueries({ queryKey: ["a", "b"] })` will also invalidate `["a", "b", "c"]`. While implicit prefix matching works, explicit invalidation is better for maintainability and consistency with optimistic updates.
 - **`onSettled` signature**: The full signature is `(data, error, variables, context)` — the 3rd argument is the mutation variable, the 4th is the context returned from `onMutate`. Both are available for invalidation logic.
 - The total test count is 2219 (up from 2218 in iteration 21 — the +1 comes from the notification service test added in iteration 22).
+
+---
+
+## Iteration 25 — Task 9.1: Wire `isMuted` prop to `TripMessages` in trip detail page ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — 3 small additions:
+  1. Added `useMembers` to the existing import from `@/hooks/use-invitations` (line 25)
+  2. Called `useMembers(tripId)` and derived `currentMember` via `.find()` matching `userId` against `user?.id` (lines 102-103)
+  3. Passed `isMuted={currentMember?.isMuted}` to `<TripMessages>` (line 359)
+
+- Modified `/home/chend/git/tripful/apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — test updates:
+  1. Added `mockUseMembers` mock function to the `use-invitations` mock
+  2. Added default member data setup in `beforeEach` with current user's membership
+  3. Added 4 new test cases covering: muted member (`isMuted: true`), non-muted member (no `isMuted` field), explicitly not muted (`isMuted: false`), and members data not yet loaded (`undefined`)
+
+### Key implementation details
+- **Hook placement**: `useMembers(tripId)` is called unconditionally before any early returns (loading/error/preview), respecting React's Rules of Hooks
+- **No duplicate network requests**: TanStack Query deduplicates the `useMembers` call since `MembersList` (rendered in the members dialog) already uses the same query key
+- **Optional chaining safety**: `currentMember?.isMuted` gracefully handles all edge cases — undefined members data, user not found in list, or missing `isMuted` field
+- **API behavior note**: `isMuted` is only included in the members API response when the requesting user is an organizer. For non-organizer muted users, `isMuted` will be `undefined`, and server-side enforcement + error toast serves as the fallback. This is by design per the task specification.
+
+### Verification results
+- **Task-specific tests**: ✅ 66 tests pass (62 existing + 4 new)
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Full web test suite**: ✅ 1025 tests pass across 55 test files, 0 failures
+
+### Reviewer verdict: APPROVED
+- Minimal, focused change — 4 lines of production code
+- Correct hook placement (unconditional, before early returns)
+- Correct member identification pattern matching existing codebase conventions
+- Comprehensive test coverage for all meaningful states
+- No issues found
+
+### Learnings for future iterations
+- **TanStack Query deduplication**: Calling `useMembers(tripId)` at the parent level when a child already calls it incurs no extra network cost — TanStack Query serves from cache. This makes it safe to "lift" data access to parent components when needed for prop passing.
+- **Pattern for finding current member**: `members?.find((m) => m.userId === user?.id)` is the established codebase pattern (used in `create-member-travel-dialog.tsx`) for extracting the current user's membership from the members list.
+- **Test mock already prepared**: The existing TripMessages mock already captured `isMuted` as a `data-is-muted` attribute, making it trivial to assert on. Previous iterations set up forward-looking mocks that paid off here.
