@@ -247,7 +247,7 @@
   - Verify: `pnpm typecheck` — no errors
   - Verify: Existing notification component tests pass
 
-- [ ] Task 8.4: Invalidate trip-specific unread counts on mark-as-read
+- [x] Task 8.4: Invalidate trip-specific unread counts on mark-as-read
   - Implement: In `apps/web/src/hooks/use-notifications.ts` `useMarkAsRead` `onSettled`, also invalidate `notificationKeys.tripUnreadCount(tripId)` (currently only invalidates global unread count)
   - Implement: In `useMarkAllAsRead` `onSettled`, also invalidate `notificationKeys.tripUnreadCount(tripId)` when `tripId` is provided
   - Verify: `pnpm typecheck` — no errors

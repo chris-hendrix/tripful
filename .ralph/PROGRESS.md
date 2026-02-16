@@ -1340,3 +1340,52 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Deep equality for objects in TanStack Query keys**: TanStack Query uses deep equality to compare key segments. This means `{ limit: 10 }` and `{ limit: 20 }` produce different cache entries, which is the desired behavior. However, `undefined` and `{}` are NOT equal, so it's important to pass `undefined` (not `{}`) when no params are provided.
 - **Minimal changes are best for cleanup tasks**: This task only required 2 lines changed in 1 file. No test changes, no consumer changes. The existing architecture was well-designed with the prefix matching pattern, so expanding the key granularity was a surgical change.
 - The web package still has 1021 passing tests (no new tests in this iteration — pure cache key improvement).
+
+---
+
+## Iteration 24 — Task 8.4: Invalidate trip-specific unread counts on mark-as-read ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/web/src/hooks/use-notifications.ts` — Four targeted changes to explicitly invalidate trip-specific unread counts when notifications are marked as read:
+
+**Change 1: `MarkAsReadContext` interface** (line 117):
+- Added `tripId: string | null` field to carry the notification's trip ID through the mutation lifecycle.
+
+**Change 2: `useMarkAsRead.onMutate`** (lines 175-187):
+- Added logic to search cached notification lists for the notification being marked as read, extracting its `tripId`.
+- The `tripId` is included in the returned context object for use in `onSettled`.
+
+**Change 3: `useMarkAsRead.onSettled`** (lines 233-245):
+- Changed from `() =>` to `(_data, _error, _notificationId, context) =>`.
+- Added explicit `invalidateQueries` call for `notificationKeys.tripUnreadCount(context.tripId)` when `context?.tripId` is available.
+
+**Change 4: `useMarkAllAsRead.onSettled`** (lines 421-433):
+- Changed from `() =>` to `(_data, _error, params) =>`.
+- Added explicit `invalidateQueries` call for `notificationKeys.tripUnreadCount(params.tripId)` when `params?.tripId` is present.
+
+### Key implementation details
+- **`useMarkAsRead` tripId extraction**: The mutation variable is just a `string` (notificationId), so `tripId` is not directly available. The implementation searches all cached notification list queries in `onMutate` to find the notification by ID and extract its `tripId`. This is safe because `onMutate` runs before the mutation fires, and the notification data is already in the query cache from the list query that rendered it.
+- **`useMarkAllAsRead` tripId access**: The mutation variable is `{ tripId?: string } | undefined`, so `tripId` is directly available as the 3rd argument of `onSettled`.
+- **Prefix matching note**: `notificationKeys.unreadCount()` (`["notifications", "unread-count"]`) is already a prefix of `notificationKeys.tripUnreadCount(tripId)` (`["notifications", "unread-count", tripId]`). TanStack Query's default `exact: false` behavior means the existing global `unreadCount()` invalidation already catches trip-specific counts. The explicit invalidation is redundant but serves as documentation of intent, consistency with `onMutate` optimistic updates, and future-proofing.
+- **Notification type**: `Notification.tripId` is `string | null`, so `if (context?.tripId)` correctly guards against both `null` and `undefined`.
+- **Edge case**: If the notification is not found in any cached list (e.g., list page garbage-collected), `tripId` remains `null` and the explicit invalidation is skipped. The prefix matching on `unreadCount()` still covers this case.
+
+### Verification results
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Tests**: ✅ 2219 tests pass across 110 test files (shared: 216, API: 982, web: 1021), 0 failures
+
+### Reviewer verdict: APPROVED
+- All task requirements met exactly as described
+- Clean, minimal diff — 4 changes in 1 file
+- Smart approach for `useMarkAsRead` using cache lookup for `tripId`
+- Correct TypeScript types and null guards
+- 3 low-severity non-blocking observations: (1) optimistic update gap — `onMutate` does not optimistically decrement trip-specific count, but `onSettled` invalidation handles it; (2) prefix matching makes the explicit invalidation technically redundant but harmless; (3) notification-not-in-cache edge case is covered by prefix matching fallback
+
+### Learnings for future iterations
+- **Cache lookup for mutation context**: When a mutation variable doesn't include all the data needed for invalidation, the `onMutate` callback can search cached query data to extract additional context (like `tripId` from a notification's cached list entry). This is a useful pattern for adding invalidation specificity without changing the mutation's public API.
+- **Explicit vs implicit invalidation**: TanStack Query's prefix matching means `invalidateQueries({ queryKey: ["a", "b"] })` will also invalidate `["a", "b", "c"]`. While implicit prefix matching works, explicit invalidation is better for maintainability and consistency with optimistic updates.
+- **`onSettled` signature**: The full signature is `(data, error, variables, context)` — the 3rd argument is the mutation variable, the 4th is the context returned from `onMutate`. Both are available for invalidation logic.
+- The total test count is 2219 (up from 2218 in iteration 21 — the +1 comes from the notification service test added in iteration 22).

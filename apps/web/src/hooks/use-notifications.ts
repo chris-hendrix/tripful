@@ -114,6 +114,7 @@ export function useNotificationPreferences(tripId: string) {
 interface MarkAsReadContext {
   previousUnreadCount: number | undefined;
   previousLists: Map<string, GetNotificationsResponse>;
+  tripId: string | null;
 }
 
 /**
@@ -171,6 +172,20 @@ export function useMarkAsRead() {
         }
       }
 
+      // Find the tripId of the notification being marked as read
+      let tripId: string | null = null;
+      for (const [, data] of listQueries) {
+        if (data) {
+          const notification = data.notifications.find(
+            (n: Notification) => n.id === notificationId,
+          );
+          if (notification) {
+            tripId = notification.tripId;
+            break;
+          }
+        }
+      }
+
       // Optimistically decrement unread count
       if (previousUnreadCount !== undefined && previousUnreadCount > 0) {
         queryClient.setQueryData<number>(
@@ -196,7 +211,7 @@ export function useMarkAsRead() {
         }
       }
 
-      return { previousUnreadCount, previousLists };
+      return { previousUnreadCount, previousLists, tripId };
     },
 
     // On error: Rollback optimistic update
@@ -215,13 +230,18 @@ export function useMarkAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: () => {
+    onSettled: (_data, _error, _notificationId, context) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
       queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(),
       });
+      if (context?.tripId) {
+        queryClient.invalidateQueries({
+          queryKey: notificationKeys.tripUnreadCount(context.tripId),
+        });
+      }
     },
   });
 }
@@ -398,13 +418,18 @@ export function useMarkAllAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: () => {
+    onSettled: (_data, _error, params) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
       queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(),
       });
+      if (params?.tripId) {
+        queryClient.invalidateQueries({
+          queryKey: notificationKeys.tripUnreadCount(params.tripId),
+        });
+      }
     },
   });
 }
