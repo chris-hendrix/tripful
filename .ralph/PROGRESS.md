@@ -1193,3 +1193,56 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Notification bell locators**: The global "Notifications" bell and "Trip notifications" bell can collide in Playwright strict mode. Use `exact=True` for the global bell to avoid matching "Trip notifications".
 - **Trip creation schema**: The trip creation API requires `destination` and `timezone` fields (not `preferredTimezone`). Always check shared schemas before making API calls.
 - The web package now has 1021 passing tests (up from 1020 passing + 1 failing, with the pre-existing failure fixed).
+
+---
+
+## Iteration 21 — Task 8.1: Refactor `getMessages` to use batch queries (N+1 fix) ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Refactored the `getMessages` method in `/home/chend/git/tripful/apps/api/src/services/message.service.ts` (lines 133-293) to eliminate the N+1 query problem by replacing per-message loop queries with batch queries using `inArray` and Map-based lookups.
+
+**Changes to `message.service.ts`:**
+1. **Import**: Added `inArray` to the `drizzle-orm` import (line 8)
+2. **Early return** (lines 182-188): If `topLevelRows` is empty, return immediately without running any batch queries
+3. **Batch reply fetch** (lines 190-224): Single query fetches ALL non-deleted replies for all top-level messages using `inArray(messages.parentId, messageIds)`, ordered by `desc(messages.createdAt)`. Results grouped into `Map<parentId, replyRows[]>` with reply counts computed during the grouping pass.
+4. **Batch reaction fetch** (lines 226-260): Single query fetches ALL reactions for all messages (top-level + replies) using `inArray(messageReactions.messageId, allMessageIds)`, grouped by `(messageId, emoji)` with `bool_or` for `reacted` flag. Results grouped into `Map<messageId, ReactionSummaryResult[]>`.
+5. **Assembly** (lines 262-287): Results assembled using synchronous `Map.get()` lookups with `?? []` / `?? 0` fallbacks. Replies sliced to 2 per parent in-memory via `.slice(0, 2)`.
+
+**Query count reduction**: From `2 + 5N` queries (where N = number of top-level messages on the page, up to 102 queries for 20 messages) down to a fixed **4 queries** (count + top-level + replies + reactions), regardless of page size.
+
+### Key implementation details
+- Follows the established batch query pattern from `trip.service.ts` lines 462-521: collect IDs → batch fetch with `inArray` → build Map lookups → assemble results
+- All original semantic behaviors preserved:
+  - Top-level messages include soft-deleted (no `isNull(deletedAt)` filter) — appear as placeholders
+  - Replies exclude soft-deleted (`isNull(messages.deletedAt)` applied)
+  - Reply count counts only non-deleted replies
+  - `bool_or` for `reacted` flag correctly reflects current user
+  - Up to 2 most recent replies per message (ordered by `createdAt DESC`, sliced in-memory)
+  - Author profiles attached via LEFT JOIN in both top-level and reply queries
+- Guard against empty `inArray` arrays via `allMessageIds.length > 0` ternary (prevents PG error on empty `IN ()`)
+- `getReactionSummaries` private method left unchanged — still used by `getLatestMessage`, `editMessage`, `togglePin`, `toggleReaction`
+- `buildMessageResult` private method left unchanged — handles deleted message placeholders (empty content, no reactions)
+- No window functions used (codebase prefers in-memory slicing over `ROW_NUMBER()`)
+
+### Verification results
+- **Message service unit tests**: ✅ 58/58 tests pass (includes all 4 `getMessages` tests)
+- **Message routes integration tests**: ✅ 32/32 tests pass (includes all 3 `GET /api/trips/:tripId/messages` tests)
+- **TypeScript type checking**: ✅ All 3 packages pass with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Full test suite**: ✅ 2218/2218 tests pass across 110 test files (shared: 216, API: 981, web: 1021)
+
+### Reviewer verdict: APPROVED
+- Correct batch query pattern matching established `trip.service.ts` convention
+- All original semantic behaviors preserved (verified by 90 passing message-related tests)
+- Edge cases handled (empty results, no reactions, no replies, empty `inArray` guard)
+- Clean implementation with no modifications to `buildMessageResult` or `getReactionSummaries`
+- 2 low-severity non-blocking suggestions: (1) potential over-fetching of replies for messages with very large reply counts (acceptable trade-off per task spec and 100-message-per-trip limit); (2) `allMessageIds.length > 0` guard technically redundant after early return but good defensive programming
+
+### Learnings for future iterations
+- **Batch query pattern is well-established**: The `collect IDs → inArray → Map → assemble` pattern from `trip.service.ts` is the standard approach for N+1 fixes in this codebase. Future optimizations should follow the same structure.
+- **In-memory slicing preferred over window functions**: The codebase has zero usage of `ROW_NUMBER()`, `RANK()`, or `PARTITION BY`. For "top N per group" queries, the pattern is to fetch all related rows and slice in JavaScript. This is acceptable for the current scale (100 messages per trip, ~200 replies max).
+- **Guard empty `inArray` arrays**: Drizzle/PostgreSQL may error on `IN ()` with zero elements. Always use a `length > 0` ternary guard before `inArray` queries, or return an empty array as the fallback.
+- **Refactoring internal query patterns doesn't require test changes**: When the refactor preserves identical input/output behavior, existing unit and integration tests serve as comprehensive regression tests. All 90 message-related tests passed unchanged.
+- **The total test count remains 2218** (no new tests in this iteration — purely a performance optimization with identical output).

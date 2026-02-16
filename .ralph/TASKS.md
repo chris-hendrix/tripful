@@ -224,7 +224,7 @@
 
 ## Phase 8: Cleanup — Performance
 
-- [ ] Task 8.1: Refactor `getMessages` to use batch queries (N+1 fix)
+- [x] Task 8.1: Refactor `getMessages` to use batch queries (N+1 fix)
   - Implement: In `apps/api/src/services/message.service.ts:133-241`, after fetching top-level messages (line 168-180), collect all message IDs into an array
   - Implement: Replace per-message reaction queries (line 185-186) with a single batch query using `inArray(messageReactions.messageId, allMessageIds)` + `groupBy(messageId, emoji)`
   - Implement: Replace per-message reply count queries (line 189-198) with a single `groupBy` query on `messages.parentId`

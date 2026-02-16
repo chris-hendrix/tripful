@@ -5,7 +5,7 @@ import {
   trips,
   mutedMembers,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, count, desc, sql } from "drizzle-orm";
+import { eq, and, isNull, count, desc, sql, inArray } from "drizzle-orm";
 import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -179,60 +179,112 @@ export class MessageService implements IMessageService {
       .limit(limit)
       .offset(offset);
 
-    // Build results with reactions and replies
-    const data: MessageWithRepliesResult[] = [];
+    // Early return for empty results
+    if (topLevelRows.length === 0) {
+      return {
+        data: [],
+        meta: { total, page, limit, totalPages },
+      };
+    }
 
-    for (const row of topLevelRows) {
-      const reactions = await this.getReactionSummaries(row.message.id, userId);
+    // Collect all top-level message IDs
+    const messageIds = topLevelRows.map((r) => r.message.id);
 
-      // Get reply count (non-deleted)
-      const [replyCountResult] = await this.db
-        .select({ value: count() })
-        .from(messages)
-        .where(
-          and(
-            eq(messages.parentId, row.message.id),
-            isNull(messages.deletedAt),
-          ),
-        );
-      const replyCount = replyCountResult?.value ?? 0;
+    // Batch fetch ALL non-deleted replies for all top-level messages
+    const allReplyRows = await this.db
+      .select({
+        message: messages,
+        authorId: users.id,
+        authorDisplayName: users.displayName,
+        authorProfilePhotoUrl: users.profilePhotoUrl,
+      })
+      .from(messages)
+      .leftJoin(users, eq(messages.authorId, users.id))
+      .where(
+        and(inArray(messages.parentId, messageIds), isNull(messages.deletedAt)),
+      )
+      .orderBy(desc(messages.createdAt));
 
-      // Get 2 most recent replies with author info
-      const replyRows = await this.db
-        .select({
-          message: messages,
-          authorId: users.id,
-          authorDisplayName: users.displayName,
-          authorProfilePhotoUrl: users.profilePhotoUrl,
-        })
-        .from(messages)
-        .leftJoin(users, eq(messages.authorId, users.id))
-        .where(
-          and(
-            eq(messages.parentId, row.message.id),
-            isNull(messages.deletedAt),
-          ),
-        )
-        .orderBy(desc(messages.createdAt))
-        .limit(2);
+    // Group replies by parentId and compute counts
+    const repliesByParent = new Map<string, typeof allReplyRows>();
+    const replyCountByParent = new Map<string, number>();
 
-      const replies: MessageResult[] = [];
-      for (const replyRow of replyRows) {
-        const replyReactions = await this.getReactionSummaries(
-          replyRow.message.id,
-          userId,
-        );
-        replies.push(
-          this.buildMessageResult(replyRow.message, replyRow, replyReactions),
-        );
+    for (const reply of allReplyRows) {
+      const parentId = reply.message.parentId!;
+      const existing = repliesByParent.get(parentId);
+      if (!existing) {
+        repliesByParent.set(parentId, [reply]);
+      } else {
+        existing.push(reply);
       }
+      replyCountByParent.set(
+        parentId,
+        (replyCountByParent.get(parentId) ?? 0) + 1,
+      );
+    }
 
-      data.push({
+    // Collect ALL message IDs (top-level + replies) for batch reaction fetch
+    const replyIds = allReplyRows.map((r) => r.message.id);
+    const allMessageIds = [...messageIds, ...replyIds];
+
+    // Batch fetch ALL reactions for all messages
+    const allReactions =
+      allMessageIds.length > 0
+        ? await this.db
+            .select({
+              messageId: messageReactions.messageId,
+              emoji: messageReactions.emoji,
+              count: count(),
+              reacted:
+                sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
+            })
+            .from(messageReactions)
+            .where(inArray(messageReactions.messageId, allMessageIds))
+            .groupBy(messageReactions.messageId, messageReactions.emoji)
+        : [];
+
+    // Build reactions Map
+    const reactionsByMessage = new Map<string, ReactionSummaryResult[]>();
+    for (const r of allReactions) {
+      const existing = reactionsByMessage.get(r.messageId);
+      const summary: ReactionSummaryResult = {
+        emoji: r.emoji,
+        count: r.count,
+        reacted: r.reacted ?? false,
+      };
+      if (!existing) {
+        reactionsByMessage.set(r.messageId, [summary]);
+      } else {
+        existing.push(summary);
+      }
+    }
+
+    // Assemble results using Map lookups
+    const data: MessageWithRepliesResult[] = topLevelRows.map((row) => {
+      const reactions = reactionsByMessage.get(row.message.id) ?? [];
+      const replyCount = replyCountByParent.get(row.message.id) ?? 0;
+
+      // Get up to 2 most recent replies (already sorted by createdAt DESC)
+      const replyRowsForMessage = (
+        repliesByParent.get(row.message.id) ?? []
+      ).slice(0, 2);
+
+      const replies: MessageResult[] = replyRowsForMessage.map((replyRow) => {
+        const replyReactions =
+          reactionsByMessage.get(replyRow.message.id) ?? [];
+        return this.buildMessageResult(
+          replyRow.message,
+          replyRow,
+          replyReactions,
+        );
+      });
+
+      return {
         ...this.buildMessageResult(row.message, row, reactions),
         replies,
         replyCount,
-      });
-    }
+      };
+    });
 
     return {
       data,
