@@ -2017,3 +2017,78 @@ This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-
 - **`CI=true` must be overridden for local E2E**: The `CI` environment variable is set in the Claude Code execution environment. When running E2E tests locally (where dev servers are already running), use `CI=` prefix to allow Playwright to reuse existing servers.
 - **Hydration mismatches from Radix UI are expected**: React 19 SSR with Radix UI popover/dropdown components produces `aria-controls`/`id` hydration mismatches due to `useId()` generating different IDs on server vs client. This is a known framework behavior, not an application bug, and does not affect functionality.
 - **16 new unit tests were added during cleanup phases**: The cleanup iterations (8.1-11.4) added 16 unit tests (3 API + 13 web) while keeping the E2E and shared test counts stable. These tests cover pagination fixes, logging behavior, load-more UX, and View All link visibility.
+
+---
+
+## Iteration 38 — Task 13.1: Fix authorization enforcement, XSS sanitization, transaction wrapping, and rate limiting ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**1. Authorization enforcement** (`apps/api/src/services/message.service.ts`):
+- `togglePin`: Replaced `this.permissionsService.isOrganizer()` with `this.permissionsService.canModerateMessages()` for proper abstraction layer
+- `deleteMessage`: Replaced `this.permissionsService.isOrganizer()` with `this.permissionsService.canModerateMessages()` — keeps `isAuthor || canModerate` logic
+- `unmuteMember`: Replaced `this.permissionsService.isOrganizer()` with `this.permissionsService.canModerateMessages()`
+- `muteMember`: Added `canModerateMessages` as a first-pass guard before the existing `canMuteMember` check, providing clearer error flow (general permission check first, then specific "cannot mute organizer" check)
+- All permission failures consistently throw `PermissionDeniedError` (403)
+
+**2. XSS sanitization** (`apps/api/src/services/message.service.ts`):
+- Added `content.replace(/<[^>]*>/g, "")` HTML tag stripping in both `createMessage` (before DB insert) and `editMessage` (before DB update)
+- Defense-in-depth measure — React auto-escapes JSX, but server-side stripping prevents stored XSS
+
+**3. Transaction wrapping** (`apps/api/src/services/message.service.ts`):
+- Wrapped `createMessage` core flow in `this.db.transaction(async (tx) => { ... })`
+- Permission checks (canViewMessages, isTripLocked, isMemberMuted) remain OUTSIDE the transaction since they use permissionsService's own DB connection
+- Data integrity checks (trip existence, reply validation, 100-message limit, daily rate limit) and insert are INSIDE the transaction using `tx`
+- Notification sending remains OUTSIDE the transaction (fire-and-forget with try/catch)
+
+**4. Per-user daily rate limiting** (`apps/api/src/services/message.service.ts`):
+- Added 200 messages/day per-user per-trip limit inside the transaction, after the 100-message count check and before the insert
+- Queries `count(*)` where `authorId + tripId + createdAt >= startOfToday(UTC)`
+- Throws `DailyMessageLimitError` (429) when limit exceeded
+- Counts all messages (top-level + replies, including soft-deleted) to prevent create-delete abuse
+
+**5. New error type** (`apps/api/src/errors.ts`):
+- Added `DailyMessageLimitError` with code `DAILY_MESSAGE_LIMIT`, status 429 (Too Many Requests)
+
+**6. Unit tests** (`apps/api/tests/unit/message.service.test.ts`):
+- XSS sanitization: Tests HTML tag stripping on create (`<script>alert('xss')</script>Hello` → `alert('xss')Hello`) and edit (`<b>bold</b> text` → `bold text`)
+- Daily rate limit: Bulk inserts 200 reply messages, verifies 201st throws `DailyMessageLimitError`
+- Updated TripNotFoundError test to expect PermissionDeniedError (permission checks now run before trip existence check in transaction)
+
+**7. Integration tests** (`apps/api/tests/integration/message.routes.test.ts`):
+- XSS integration test: POST with HTML content, verifies response has tags stripped (201 status)
+- Rate limit integration test: Bulk inserts 200 reply messages, verifies 201st returns 429 with `DAILY_MESSAGE_LIMIT` code
+
+### Key implementation details
+- `canModerateMessages` is functionally identical to `isOrganizer` (delegates directly), so all existing authorization tests continue to pass unchanged
+- Rate limit tests use reply messages (with parentId) to avoid hitting the 100 top-level message limit before reaching 200 daily
+- Notification content uses `newMessage.content` (sanitized value from DB return), not `data.content` (raw input)
+- Removed unused `TripNotFoundError` import from test file (caught by ESLint)
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests (message.service) | ✅ PASS | 62/62 tests |
+| Integration tests (message.routes) | ✅ PASS | 34/34 tests |
+| All API unit tests | ✅ PASS | 565/565 tests |
+| All API integration tests | ✅ PASS | 424/424 tests |
+| Shared package tests | ✅ PASS | 216/216 tests |
+| Frontend tests | ✅ PASS | 1034/1034 tests |
+| **Total** | ✅ **ALL PASS** | **2239 automated tests** |
+
+### Reviewer verdict: APPROVED
+- Clean transaction architecture — permission checks outside, data integrity inside, notifications outside
+- Consistent authorization migration — all four methods use `canModerateMessages`
+- Thorough test coverage for XSS and rate limiting
+- Good error definition — 429 for rate limiting
+- Notification content correctly uses sanitized data
+
+### Learnings for future iterations
+- **Permission service methods use their own DB connection**: When wrapping service methods in transactions, permission service calls cannot participate in the transaction since they instantiate their own DB queries internally. Keep them outside the transaction.
+- **Rate limit tests should use replies, not top-level messages**: To avoid hitting the 100 top-level message limit before the 200 daily limit, bulk-insert reply messages (with parentId) for rate limit tests.
+- **`canModerateMessages` is a thin wrapper over `isOrganizer`**: The behavior is identical, but using the semantic method name improves code readability and future-proofs against permission model changes.
+- **Deleted messages should count toward rate limits**: Counting all messages (including soft-deleted) prevents abuse via create-delete cycles.

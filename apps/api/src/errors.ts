@@ -162,6 +162,11 @@ export const CannotMuteOrganizerError = createError(
   "Cannot mute an organizer",
   403,
 );
+export const DailyMessageLimitError = createError(
+  "DAILY_MESSAGE_LIMIT",
+  "Maximum 200 messages per day per trip reached",
+  429,
+);
 
 // Notification errors
 export const NotificationNotFoundError = createError(

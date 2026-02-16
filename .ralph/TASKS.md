@@ -338,7 +338,7 @@
 
 ## Phase 13: Audit — Security Hardening
 
-- [ ] Task 13.1: Fix authorization enforcement, XSS sanitization, transaction wrapping, and rate limiting
+- [x] Task 13.1: Fix authorization enforcement, XSS sanitization, transaction wrapping, and rate limiting
   - Implement: In `apps/api/src/services/message.service.ts`, add `permissionsService.canModerateMessages(userId, tripId)` check at the top of `togglePin`, `muteMember`, and `unmuteMember` methods; throw `UnauthorizedError` (403) on failure
   - Implement: In `apps/api/src/services/message.service.ts` `deleteMessage`, verify caller is message author OR organizer (via `canModerateMessages`) before proceeding; currently relies on implicit logic
   - Implement: In `apps/api/src/services/message.service.ts`, add HTML tag stripping to message `content` in both `createMessage` and `editMessage` (e.g., `content.replace(/<[^>]*>/g, '')` or install `sanitize-html`)

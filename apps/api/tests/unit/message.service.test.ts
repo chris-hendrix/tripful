@@ -24,10 +24,10 @@ import {
   PinOnReplyError,
   PermissionDeniedError,
   TripLockedError,
-  TripNotFoundError,
   AlreadyMutedError,
   NotMutedError,
   CannotMuteOrganizerError,
+  DailyMessageLimitError,
 } from "@/errors.js";
 
 // Create service instances with db for testing
@@ -211,14 +211,16 @@ describe("message.service", () => {
       ).rejects.toThrow(PermissionDeniedError);
     });
 
-    it("should throw TripNotFoundError for non-existent trip", async () => {
+    it("should throw PermissionDeniedError for non-existent trip", async () => {
+      // Permission check runs before trip existence check, so non-existent
+      // trip results in PermissionDeniedError (user is not a member)
       await expect(
         messageService.createMessage(
           "00000000-0000-0000-0000-000000000000",
           testOrganizerId,
           { content: "Should fail" },
         ),
-      ).rejects.toThrow(TripNotFoundError);
+      ).rejects.toThrow(PermissionDeniedError);
     });
 
     it("should throw MemberMutedError for muted member", async () => {
@@ -989,6 +991,54 @@ describe("message.service", () => {
     it("should return empty array when no muted members", async () => {
       const result = await messageService.getMutedMembers(testTripId);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("XSS sanitization", () => {
+    it("should strip HTML tags from message content on create", async () => {
+      const result = await messageService.createMessage(
+        testTripId,
+        testMemberId,
+        { content: "<script>alert('xss')</script>Hello" },
+      );
+
+      expect(result.content).toBe("alert('xss')Hello");
+    });
+
+    it("should strip HTML tags from message content on edit", async () => {
+      // Create a message as organizer (who owns testMessageId)
+      const result = await messageService.editMessage(
+        testMessageId,
+        testOrganizerId,
+        "<b>bold</b> text",
+      );
+
+      expect(result.content).toBe("bold text");
+    });
+  });
+
+  describe("daily rate limit", () => {
+    it("should reject when daily message limit (200) is reached", async () => {
+      // Bulk insert 200 reply messages for the test member today
+      // Use replies to avoid the 100 top-level message limit
+      const insertValues = [];
+      for (let i = 0; i < 200; i++) {
+        insertValues.push({
+          tripId: testTripId,
+          authorId: testMemberId,
+          parentId: testMessageId,
+          content: `Rate limit message ${i + 1}`,
+        });
+      }
+      await db.insert(messages).values(insertValues);
+
+      // Attempt to create one more message (reply) should fail with DailyMessageLimitError
+      await expect(
+        messageService.createMessage(testTripId, testMemberId, {
+          content: "One too many today",
+          parentId: testMessageId,
+        }),
+      ).rejects.toThrow(DailyMessageLimitError);
     });
   });
 });

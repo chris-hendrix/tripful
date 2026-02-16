@@ -1657,6 +1657,132 @@ describe("Message Routes", () => {
     });
   });
 
+  describe("XSS sanitization", () => {
+    it("should strip HTML tags from message content", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/messages`,
+        cookies: { auth_token: token },
+        payload: {
+          content: "<script>alert('xss')</script>Hello world",
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body.message.content).toBe("alert('xss')Hello world");
+    });
+  });
+
+  describe("Daily rate limit", () => {
+    it("should return 429 when daily message limit reached", async () => {
+      app = await buildApp();
+
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Test User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const [trip] = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Paris",
+          preferredTimezone: "UTC",
+          createdBy: testUser.id,
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: testUser.id,
+        status: "going",
+      });
+
+      // Create a parent message for replies
+      const [parentMsg] = await db
+        .insert(messages)
+        .values({
+          tripId: trip.id,
+          authorId: testUser.id,
+          content: "Parent message",
+        })
+        .returning();
+
+      // Bulk insert 200 reply messages for today to avoid the 100 top-level limit
+      const insertValues = [];
+      for (let i = 0; i < 200; i++) {
+        insertValues.push({
+          tripId: trip.id,
+          authorId: testUser.id,
+          parentId: parentMsg.id,
+          content: `Rate limit message ${i + 1}`,
+        });
+      }
+      await db.insert(messages).values(insertValues);
+
+      const token = app.jwt.sign({
+        sub: testUser.id,
+        phone: testUser.phoneNumber,
+        name: testUser.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/messages`,
+        cookies: { auth_token: token },
+        payload: {
+          content: "One too many",
+          parentId: parentMsg.id,
+        },
+      });
+
+      expect(response.statusCode).toBe(429);
+
+      const body = JSON.parse(response.body);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe("DAILY_MESSAGE_LIMIT");
+    });
+  });
+
   describe("Trip Lock", () => {
     it("should return 403 when posting to a locked (ended) trip", async () => {
       app = await buildApp();

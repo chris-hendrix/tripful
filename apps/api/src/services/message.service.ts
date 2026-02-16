@@ -5,7 +5,7 @@ import {
   trips,
   mutedMembers,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, count, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, isNull, count, desc, sql, inArray, gte } from "drizzle-orm";
 import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -23,6 +23,7 @@ import {
   AlreadyMutedError,
   NotMutedError,
   CannotMuteOrganizerError,
+  DailyMessageLimitError,
 } from "../errors.js";
 
 /**
@@ -353,17 +354,7 @@ export class MessageService implements IMessageService {
     authorId: string,
     data: CreateMessageInput,
   ): Promise<MessageResult> {
-    // Verify trip exists
-    const tripExists = await this.db
-      .select({ id: trips.id })
-      .from(trips)
-      .where(eq(trips.id, tripId))
-      .limit(1);
-    if (tripExists.length === 0) {
-      throw new TripNotFoundError();
-    }
-
-    // Check canViewFullTrip (going member)
+    // Permission checks (outside transaction - they use permissionsService's own db)
     const canView = await this.permissionsService.canViewMessages(
       authorId,
       tripId,
@@ -374,13 +365,11 @@ export class MessageService implements IMessageService {
       );
     }
 
-    // Check trip not locked
     const isLocked = await this.permissionsService.isTripLocked(tripId);
     if (isLocked) {
       throw new TripLockedError();
     }
 
-    // Check not muted
     const isMuted = await this.permissionsService.isMemberMuted(
       tripId,
       authorId,
@@ -389,64 +378,101 @@ export class MessageService implements IMessageService {
       throw new MemberMutedError();
     }
 
-    // Handle reply validation
-    if (data.parentId) {
-      const [parentMessage] = await this.db
-        .select({
-          id: messages.id,
-          tripId: messages.tripId,
-          parentId: messages.parentId,
-          deletedAt: messages.deletedAt,
-        })
-        .from(messages)
-        .where(eq(messages.id, data.parentId))
+    // Transaction (data checks + insert)
+    const newMessage = await this.db.transaction(async (tx) => {
+      // Verify trip exists
+      const tripExists = await tx
+        .select({ id: trips.id })
+        .from(trips)
+        .where(eq(trips.id, tripId))
         .limit(1);
-
-      if (!parentMessage || parentMessage.deletedAt !== null) {
-        throw new InvalidReplyTargetError();
+      if (tripExists.length === 0) {
+        throw new TripNotFoundError();
       }
 
-      if (parentMessage.tripId !== tripId) {
-        throw new InvalidReplyTargetError();
+      // Handle reply validation
+      if (data.parentId) {
+        const [parentMessage] = await tx
+          .select({
+            id: messages.id,
+            tripId: messages.tripId,
+            parentId: messages.parentId,
+            deletedAt: messages.deletedAt,
+          })
+          .from(messages)
+          .where(eq(messages.id, data.parentId))
+          .limit(1);
+
+        if (!parentMessage || parentMessage.deletedAt !== null) {
+          throw new InvalidReplyTargetError();
+        }
+
+        if (parentMessage.tripId !== tripId) {
+          throw new InvalidReplyTargetError();
+        }
+
+        // Only allow replies to top-level messages (no nested replies)
+        if (parentMessage.parentId !== null) {
+          throw new InvalidReplyTargetError();
+        }
+      } else {
+        // Top-level message: check count limit
+        const [messageCount] = await tx
+          .select({ value: count() })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.tripId, tripId),
+              isNull(messages.parentId),
+              isNull(messages.deletedAt),
+            ),
+          );
+        if ((messageCount?.value ?? 0) >= 100) {
+          throw new MessageLimitExceededError();
+        }
       }
 
-      // Only allow replies to top-level messages (no nested replies)
-      if (parentMessage.parentId !== null) {
-        throw new InvalidReplyTargetError();
-      }
-    } else {
-      // Top-level message: check count limit
-      const [messageCount] = await this.db
+      // Daily rate limit: 200 messages per user per trip per day
+      const startOfToday = new Date();
+      startOfToday.setUTCHours(0, 0, 0, 0);
+
+      const [dailyCount] = await tx
         .select({ value: count() })
         .from(messages)
         .where(
           and(
+            eq(messages.authorId, authorId),
             eq(messages.tripId, tripId),
-            isNull(messages.parentId),
-            isNull(messages.deletedAt),
+            gte(messages.createdAt, startOfToday),
           ),
         );
-      if ((messageCount?.value ?? 0) >= 100) {
-        throw new MessageLimitExceededError();
+
+      if ((dailyCount?.value ?? 0) >= 200) {
+        throw new DailyMessageLimitError();
       }
-    }
 
-    // Insert the message
-    const [newMessage] = await this.db
-      .insert(messages)
-      .values({
-        tripId,
-        authorId,
-        parentId: data.parentId ?? null,
-        content: data.content,
-      })
-      .returning();
+      // Strip HTML tags from content (XSS sanitization)
+      const sanitizedContent = data.content.replace(/<[^>]*>/g, "");
 
-    if (!newMessage) {
-      throw new Error("Failed to create message");
-    }
+      // Insert the message
+      const [inserted] = await tx
+        .insert(messages)
+        .values({
+          tripId,
+          authorId,
+          parentId: data.parentId ?? null,
+          content: sanitizedContent,
+        })
+        .returning();
 
-    // Get author info
+      if (!inserted) {
+        throw new Error("Failed to create message");
+      }
+
+      return inserted;
+    });
+
+    // Get author info (outside transaction)
     const [author] = await this.db
       .select({
         id: users.id,
@@ -457,14 +483,14 @@ export class MessageService implements IMessageService {
       .where(eq(users.id, authorId))
       .limit(1);
 
-    // Notify trip members for top-level messages only
+    // Notify trip members for top-level messages only (outside transaction, fire-and-forget)
     if (!data.parentId) {
       try {
         const authorName = author?.displayName ?? "Someone";
         const truncatedContent =
-          data.content.length > 100
-            ? data.content.slice(0, 97) + "..."
-            : data.content;
+          newMessage.content.length > 100
+            ? newMessage.content.slice(0, 97) + "..."
+            : newMessage.content;
 
         await this.notificationService.notifyTripMembers({
           tripId,
@@ -538,12 +564,15 @@ export class MessageService implements IMessageService {
       throw new MemberMutedError();
     }
 
+    // Strip HTML tags from content (XSS sanitization)
+    const sanitizedContent = content.replace(/<[^>]*>/g, "");
+
     // Update content and set editedAt
     const now = new Date();
     const [updatedMessage] = await this.db
       .update(messages)
       .set({
-        content,
+        content: sanitizedContent,
         editedAt: now,
         updatedAt: now,
       })
@@ -592,13 +621,13 @@ export class MessageService implements IMessageService {
       throw new TripLockedError();
     }
 
-    // Check author OR organizer
+    // Check author OR organizer (via canModerateMessages)
     const isAuthor = messageRow.authorId === userId;
-    const isOrganizer = await this.permissionsService.isOrganizer(
+    const canModerate = await this.permissionsService.canModerateMessages(
       userId,
       messageRow.tripId,
     );
-    if (!isAuthor && !isOrganizer) {
+    if (!isAuthor && !canModerate) {
       throw new PermissionDeniedError(
         "Permission denied: only the message author or trip organizers can delete messages",
       );
@@ -645,12 +674,12 @@ export class MessageService implements IMessageService {
       throw new TripLockedError();
     }
 
-    // Check isOrganizer
-    const isOrganizer = await this.permissionsService.isOrganizer(
+    // Check canModerateMessages (organizer only)
+    const canModerate = await this.permissionsService.canModerateMessages(
       userId,
       messageRow.message.tripId,
     );
-    if (!isOrganizer) {
+    if (!canModerate) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can pin messages",
       );
@@ -801,21 +830,24 @@ export class MessageService implements IMessageService {
     memberId: string,
     mutedBy: string,
   ): Promise<void> {
+    // First check if actor is an organizer at all
+    const canModerate = await this.permissionsService.canModerateMessages(
+      mutedBy,
+      tripId,
+    );
+    if (!canModerate) {
+      throw new PermissionDeniedError(
+        "Permission denied: only organizers can mute members",
+      );
+    }
+
+    // Then check the more specific mute permission (target cannot be organizer)
     const canMute = await this.permissionsService.canMuteMember(
       mutedBy,
       tripId,
       memberId,
     );
     if (!canMute) {
-      const isOrganizer = await this.permissionsService.isOrganizer(
-        mutedBy,
-        tripId,
-      );
-      if (!isOrganizer) {
-        throw new PermissionDeniedError(
-          "Permission denied: only organizers can mute members",
-        );
-      }
       throw new CannotMuteOrganizerError();
     }
 
@@ -842,11 +874,11 @@ export class MessageService implements IMessageService {
     memberId: string,
     actorId: string,
   ): Promise<void> {
-    const isOrganizer = await this.permissionsService.isOrganizer(
+    const canModerate = await this.permissionsService.canModerateMessages(
       actorId,
       tripId,
     );
-    if (!isOrganizer) {
+    if (!canModerate) {
       throw new PermissionDeniedError(
         "Permission denied: only organizers can unmute members",
       );
