@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DeletedItemsSection } from "../deleted-items-section";
+import { DeletedItemsDialog } from "../deleted-items-dialog";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 
 // Mock data
@@ -116,7 +116,9 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-describe("DeletedItemsSection", () => {
+describe("DeletedItemsDialog", () => {
+  const mockOnOpenChange = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseEventsWithDeleted.mockReturnValue({
@@ -136,17 +138,23 @@ describe("DeletedItemsSection", () => {
     });
   });
 
-  it("renders nothing when there are no deleted items", () => {
-    const { container } = render(
+  it("shows empty state when there are no deleted items", () => {
+    render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    expect(container.innerHTML).toBe("");
+    expect(screen.getByText("Deleted Items")).toBeDefined();
+    expect(screen.getByText("No deleted items.")).toBeDefined();
   });
 
-  it("renders the section when there are deleted events", () => {
+  it("shows deleted events when dialog is open", () => {
     mockUseEventsWithDeleted.mockReturnValue({
       data: [mockDeletedEvent],
       isPending: false,
@@ -155,14 +163,19 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    expect(screen.getByText("Deleted Items (1)")).toBeDefined();
+    expect(screen.getByText("Deleted Beach Party")).toBeDefined();
   });
 
-  it("shows correct count for multiple deleted item types", () => {
+  it("shows items grouped by type", () => {
     mockUseEventsWithDeleted.mockReturnValue({
       data: [mockDeletedEvent],
       isPending: false,
@@ -181,14 +194,24 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    expect(screen.getByText("Deleted Items (3)")).toBeDefined();
+    expect(screen.getByText("Events")).toBeDefined();
+    expect(screen.getByText("Accommodations")).toBeDefined();
+    expect(screen.getByText("Member Travel")).toBeDefined();
+    expect(screen.getByText("Deleted Beach Party")).toBeDefined();
+    expect(screen.getByText("Deleted Hotel Stay")).toBeDefined();
+    expect(screen.getByText("Alice - arrival")).toBeDefined();
   });
 
-  it("filters out non-deleted items from the count", () => {
+  it("filters out non-deleted items", () => {
     const activeEvent: Event = {
       ...mockDeletedEvent,
       id: "event-active",
@@ -205,113 +228,40 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    // Only the deleted event should be counted
-    expect(screen.getByText("Deleted Items (1)")).toBeDefined();
-  });
-
-  it("is collapsed by default", () => {
-    mockUseEventsWithDeleted.mockReturnValue({
-      data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-
-    render(
-      <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
-      </Wrapper>,
-    );
-
-    // The item name should not be visible when collapsed
-    expect(screen.queryByText("Deleted Beach Party")).toBeNull();
-  });
-
-  it("expands to show deleted items when toggle is clicked", async () => {
-    const user = userEvent.setup();
-
-    mockUseEventsWithDeleted.mockReturnValue({
-      data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-
-    render(
-      <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
-      </Wrapper>,
-    );
-
-    // Click the toggle button
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
-
-    // The deleted event name should now be visible
     expect(screen.getByText("Deleted Beach Party")).toBeDefined();
+    expect(screen.queryByText("Active Event")).toBeNull();
   });
 
-  it("shows deleted items grouped by type", async () => {
-    const user = userEvent.setup();
-
+  it("does not show group headers for types with no deleted items", () => {
     mockUseEventsWithDeleted.mockReturnValue({
       data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-    mockUseAccommodationsWithDeleted.mockReturnValue({
-      data: [mockDeletedAccommodation],
-      isPending: false,
-      isError: false,
-    });
-    mockUseMemberTravelsWithDeleted.mockReturnValue({
-      data: [mockDeletedMemberTravel],
       isPending: false,
       isError: false,
     });
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    const toggleButton = screen.getByText("Deleted Items (3)").closest("button")!;
-    await user.click(toggleButton);
-
-    // Check group headers
     expect(screen.getByText("Events")).toBeDefined();
-    expect(screen.getByText("Accommodations")).toBeDefined();
-    expect(screen.getByText("Member Travel")).toBeDefined();
-
-    // Check item names
-    expect(screen.getByText("Deleted Beach Party")).toBeDefined();
-    expect(screen.getByText("Deleted Hotel Stay")).toBeDefined();
-    expect(screen.getByText("Alice - arrival")).toBeDefined();
-  });
-
-  it("shows restore button for each deleted item", async () => {
-    const user = userEvent.setup();
-
-    mockUseEventsWithDeleted.mockReturnValue({
-      data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-
-    render(
-      <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
-      </Wrapper>,
-    );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
-
-    const restoreButton = screen.getByRole("button", { name: /Restore/i });
-    expect(restoreButton).toBeDefined();
+    expect(screen.queryByText("Accommodations")).toBeNull();
+    expect(screen.queryByText("Member Travel")).toBeNull();
   });
 
   it("calls restore event hook when restore button is clicked", async () => {
@@ -325,12 +275,14 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
 
     const restoreButton = screen.getByRole("button", { name: /Restore/i });
     await user.click(restoreButton);
@@ -355,12 +307,14 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
 
     const restoreButton = screen.getByRole("button", { name: /Restore/i });
     await user.click(restoreButton);
@@ -385,12 +339,14 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
 
     const restoreButton = screen.getByRole("button", { name: /Restore/i });
     await user.click(restoreButton);
@@ -404,33 +360,7 @@ describe("DeletedItemsSection", () => {
     );
   });
 
-  it("does not show group headers for types with no deleted items", async () => {
-    const user = userEvent.setup();
-
-    mockUseEventsWithDeleted.mockReturnValue({
-      data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-    // accommodations and member travels have no deleted items (default empty)
-
-    render(
-      <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
-      </Wrapper>,
-    );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
-
-    expect(screen.getByText("Events")).toBeDefined();
-    expect(screen.queryByText("Accommodations")).toBeNull();
-    expect(screen.queryByText("Member Travel")).toBeNull();
-  });
-
-  it("displays member travel label with member name and travel type", async () => {
-    const user = userEvent.setup();
-
+  it("displays member travel label with member name and travel type", () => {
     mockUseMemberTravelsWithDeleted.mockReturnValue({
       data: [mockDeletedMemberTravel],
       isPending: false,
@@ -439,18 +369,19 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
 
     expect(screen.getByText("Alice - arrival")).toBeDefined();
   });
 
-  it("displays travel type as label when member name is missing", async () => {
-    const user = userEvent.setup();
+  it("displays travel type as label when member name is missing", () => {
     const travelWithoutName: MemberTravel = {
       ...mockDeletedMemberTravel,
       memberName: undefined,
@@ -464,22 +395,20 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    await user.click(toggleButton);
-
-    // Should show just the travel type when no member name
-    // The text appears in both the item label and the badge, so use getAllByText
     const arrivalTexts = screen.getAllByText("arrival");
     expect(arrivalTexts.length).toBeGreaterThan(0);
   });
 
-  it("collapses back when toggle is clicked again", async () => {
-    const user = userEvent.setup();
-
+  it("does not render content when closed", () => {
     mockUseEventsWithDeleted.mockReturnValue({
       data: [mockDeletedEvent],
       isPending: false,
@@ -488,42 +417,15 @@ describe("DeletedItemsSection", () => {
 
     render(
       <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
+        <DeletedItemsDialog
+          open={false}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-123"
+          timezone="UTC"
+        />
       </Wrapper>,
     );
 
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-
-    // Expand
-    await user.click(toggleButton);
-    expect(screen.getByText("Deleted Beach Party")).toBeDefined();
-
-    // Collapse
-    await user.click(toggleButton);
-    await waitFor(() => {
-      expect(screen.queryByText("Deleted Beach Party")).toBeNull();
-    });
-  });
-
-  it("sets aria-expanded correctly on the toggle button", async () => {
-    const user = userEvent.setup();
-
-    mockUseEventsWithDeleted.mockReturnValue({
-      data: [mockDeletedEvent],
-      isPending: false,
-      isError: false,
-    });
-
-    render(
-      <Wrapper>
-        <DeletedItemsSection tripId="trip-123" timezone="UTC" />
-      </Wrapper>,
-    );
-
-    const toggleButton = screen.getByText("Deleted Items (1)").closest("button")!;
-    expect(toggleButton.getAttribute("aria-expanded")).toBe("false");
-
-    await user.click(toggleButton);
-    expect(toggleButton.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.queryByText("Deleted Beach Party")).toBeNull();
   });
 });

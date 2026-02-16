@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, CalendarX, Lock } from "lucide-react";
+import { AlertCircle, CalendarX, Lock, Trash2 } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents } from "@/hooks/use-events";
 import { useAccommodations } from "@/hooks/use-accommodations";
@@ -15,7 +15,7 @@ import { DayByDayView } from "./day-by-day-view";
 import { GroupByTypeView } from "./group-by-type-view";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
-import { DeletedItemsSection } from "./deleted-items-section";
+import { DeletedItemsDialog } from "./deleted-items-dialog";
 
 interface ItineraryViewProps {
   tripId: string;
@@ -60,10 +60,11 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
     user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [selectedTimezone, setSelectedTimezone] = useState(tripTimezone);
 
-  // Dialog state for empty state
+  // Dialog state
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
     useState(false);
+  const [isDeletedItemsOpen, setIsDeletedItemsOpen] = useState(false);
 
   // Determine timezone
   const timezone = selectedTimezone;
@@ -200,7 +201,14 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             )}
           </div>
           {isOrganizer && (
-            <DeletedItemsSection tripId={tripId} timezone={timezone} />
+            <button
+              type="button"
+              className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+              onClick={() => setIsDeletedItemsOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+              View deleted items
+            </button>
           )}
         </div>
 
@@ -214,6 +222,12 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
         <CreateAccommodationDialog
           open={isCreateAccommodationOpen}
           onOpenChange={setIsCreateAccommodationOpen}
+          tripId={tripId}
+          timezone={timezone}
+        />
+        <DeletedItemsDialog
+          open={isDeletedItemsOpen}
+          onOpenChange={setIsDeletedItemsOpen}
           tripId={tripId}
           timezone={timezone}
         />
@@ -236,6 +250,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
         isMember={!!isMember}
         allowMembersToAddEvents={trip?.allowMembersToAddEvents || false}
         isLocked={isLocked}
+        onOpenDeletedItems={
+          isOrganizer ? () => setIsDeletedItemsOpen(true) : undefined
+        }
       />
 
       {/* Content */}
@@ -271,10 +288,14 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
             isLocked={isLocked}
           />
         )}
-        {isOrganizer && (
-          <DeletedItemsSection tripId={tripId} timezone={timezone} />
-        )}
       </div>
+
+      <DeletedItemsDialog
+        open={isDeletedItemsOpen}
+        onOpenChange={setIsDeletedItemsOpen}
+        tripId={tripId}
+        timezone={timezone}
+      />
     </div>
   );
 }
