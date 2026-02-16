@@ -1939,3 +1939,81 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Setup assertions as early-fail guards**: Adding a `test.step` that verifies preconditions (like ordering) before the main test logic runs provides much clearer error messages when assumptions break. Instead of a confusing "Edit menu didn't appear" error, you get "Expected first article to contain 'X' but got 'Y'".
 - **Prefer content-based over position-based locators when possible**: The reaction step (line 150) uses `.filter({ hasText: ... })` which is ordering-independent and doesn't need an ordering comment. When feasible, prefer this pattern over `.first()` to reduce ordering dependencies.
 - **`getByRole("article")` works well for MessageCard ordering**: Since each `MessageCard` renders as an `<article>` with `aria-label`, `getByRole("article")` is a semantic and reliable way to assert DOM order in the message feed.
+
+---
+
+## Iteration 37 — Task 12.1: Full regression check after cleanup ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**Pre-existing flaky test fix:**
+- Modified `apps/web/tests/e2e/messaging.spec.ts` line 245:
+  - Before: `page.getByRole("feed").getByText("This is a reply to the first message")`
+  - After: `page.getByRole("feed").locator("p").getByText("This is a reply to the first message")`
+  - Updated comment on line 243: "Verify the reply text appears in a rendered paragraph (not the textarea)"
+  - Root cause: After typing a reply and clicking send, the text existed in both the rendered `<p>` element and the `<textarea>` (which hadn't yet cleared via React's `setContent("")`). Playwright's strict mode rejected the ambiguous match. Scoping to `locator("p")` targets only the rendered paragraph.
+
+**Full regression verification:**
+
+1. **TypeScript type checking** (`pnpm typecheck`): ✅ All 3 packages pass with 0 errors
+2. **ESLint linting** (`pnpm lint`): ✅ All 3 packages pass with 0 errors
+3. **Unit + integration tests** (`pnpm test`): ✅ 2234 tests pass across 110 test files
+   - Shared: 216 tests (12 files)
+   - API: 984 tests (43 files)
+   - Web: 1034 tests (55 files)
+4. **E2E tests** (`CI= pnpm test:e2e`): ✅ 31/31 tests pass across 9 spec files (2.8 minutes)
+5. **Manual browser testing**: ✅ 7 pages tested with no application-level console errors:
+   - Landing page, Login page, Dashboard, Trip detail page, Discussion section, Notification dropdown, Trip notification dialog
+   - Note: React hydration mismatch warning on Radix UI `aria-controls`/`id` attributes is a known framework-level SSR behavior (not an application bug)
+
+### Screenshots captured
+- `task-12.1-landing-page.png` — Landing page, no console errors
+- `task-12.1-login-page.png` — Login page, no console errors
+- `task-12.1-dashboard.png` — Authenticated dashboard
+- `task-12.1-trip-detail.png` — Trip detail page with itinerary
+- `task-12.1-discussion-section.png` — Discussion section with message input
+- `task-12.1-notification-dropdown.png` — Global notification bell dropdown
+- `task-12.1-trip-notification-dialog.png` — Per-trip notification dialog
+
+### Verification results summary
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests (shared) | ✅ PASS | 216/216 tests |
+| Unit tests (API) | ✅ PASS | 984/984 tests |
+| Unit tests (web) | ✅ PASS | 1034/1034 tests |
+| E2E tests | ✅ PASS | 31/31 tests |
+| Console errors | ✅ PASS | 0 application errors across 7 pages |
+| **Total** | ✅ **ALL PASS** | **2265 automated tests + manual verification** |
+
+### Reviewer verdict: APPROVED
+- Fix is surgically minimal (1 locator + 1 comment changed in 1 file)
+- Root cause correctly identified: reply textarea inside `role="feed"` contains typed text simultaneously with rendered `<p>`
+- `locator("p")` is a reliable structural discriminator (textarea vs paragraph are different element types)
+- All other 9 `getByRole("feed").getByText(...)` instances in the file verified to NOT be susceptible (either text is from API, or textarea is outside the feed)
+- No issues found
+
+### Cleanup completion summary
+This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-12.1):
+- **Phase 8** (Tasks 8.1-8.4): Performance — N+1 query fix, pagination fix, query key granularity, trip-specific cache invalidation
+- **Phase 9** (Tasks 9.1-9.3): UX Gaps — isMuted wiring, load-more pagination, View All link
+- **Phase 10** (Tasks 10.1-10.5): Code Quality — logging, try/catch, unused param removal, semantic error types, z.enum
+- **Phase 11** (Tasks 11.1-11.4): E2E Test Robustness — data-testid, catch logging, networkidle replacement, ordering docs
+- **Phase 12** (Task 12.1): Final Verification — full regression check, flaky test fix
+
+### Test count evolution across all iterations
+| Phase | Shared | API | Web | E2E | Total |
+|-------|--------|-----|-----|-----|-------|
+| Task 7.1 (Phase 7) | 216 | 981 | 1021 | 31 | 2249 |
+| Task 12.1 (Phase 12) | 216 | 984 | 1034 | 31 | 2265 |
+| **Delta** | **+0** | **+3** | **+13** | **+0** | **+16** |
+
+### Learnings for future iterations
+- **`locator("p")` for element-type scoping**: When a `getByText()` locator matches both rendered text and an input containing the same text, scoping by HTML element type (`locator("p")`, `locator("span")`, etc.) is the cleanest discriminator — more stable than positional selectors and clearer than complex chained locators.
+- **Reply textarea is inside the feed container**: The `MessageInput` component for replies is rendered inside `MessageReplies` → `MessageCard` → `role="feed"` div. The main compose input is OUTSIDE the feed. This structural difference means only reply-related text assertions within the feed can collide with textarea content.
+- **`CI=true` must be overridden for local E2E**: The `CI` environment variable is set in the Claude Code execution environment. When running E2E tests locally (where dev servers are already running), use `CI=` prefix to allow Playwright to reuse existing servers.
+- **Hydration mismatches from Radix UI are expected**: React 19 SSR with Radix UI popover/dropdown components produces `aria-controls`/`id` hydration mismatches due to `useId()` generating different IDs on server vs client. This is a known framework behavior, not an application bug, and does not affect functionality.
+- **16 new unit tests were added during cleanup phases**: The cleanup iterations (8.1-11.4) added 16 unit tests (3 API + 13 web) while keeping the E2E and shared test counts stable. These tests cover pagination fixes, logging behavior, load-more UX, and View All link visibility.

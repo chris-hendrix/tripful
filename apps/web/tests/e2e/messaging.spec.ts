@@ -240,9 +240,9 @@ test.describe("Messaging Journey", () => {
         const sendButtons = page.getByRole("button", { name: "Send message" });
         await sendButtons.last().click();
 
-        // Verify the reply text appears
+        // Verify the reply text appears in a rendered paragraph (not the textarea)
         await expect(
-          page.getByRole("feed").getByText("This is a reply to the first message"),
+          page.getByRole("feed").locator("p").getByText("This is a reply to the first message"),
         ).toBeVisible({ timeout: 10000 });
       });
 

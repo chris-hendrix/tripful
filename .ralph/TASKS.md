@@ -328,7 +328,7 @@
 
 ## Phase 12: Cleanup — Final Verification
 
-- [ ] Task 12.1: Full regression check after cleanup
+- [x] Task 12.1: Full regression check after cleanup
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All integration tests pass
   - Verify: All E2E tests pass (`pnpm test:e2e`)
