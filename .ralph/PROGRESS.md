@@ -1722,3 +1722,42 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Error handler is fully automatic**: Once an error is defined with `createError(code, message, statusCode)`, the Fastify error handler (`error.middleware.ts`) picks it up automatically. No controller or route changes are needed — errors just need to be thrown from the service layer.
 - **Check all usages before replacing**: Before replacing an error type, grep for all usages. `InvalidReplyTargetError` was used in 4 places — only 1 needed replacing. The other 3 in `createMessage` are semantically correct.
 - The API package still has 984 tests passing (59 message service tests, unchanged count — test was updated, not added).
+
+---
+
+## Iteration 32 — Task 10.5: Use `z.enum` for notification type in response schema ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified 1 file with a single-line change to tighten validation on the notification type field in the response schema.
+
+**Changes to `/home/chend/git/tripful/shared/schemas/notification.ts`:**
+- Changed line 24 from `type: z.string(),` to `type: z.enum(["event_reminder", "daily_itinerary", "trip_message", "trip_update"]),`
+- This is in the private `notificationEntitySchema` (not exported), used internally by the exported `notificationListResponseSchema`
+
+### Key implementation details
+- **Convention followed**: Response entity schemas use bare `z.enum([...])` without custom error messages. Input schemas use `z.enum([...], { message: "..." })`. This is a response schema, so no message.
+- **Enum values match type definition**: The four values exactly match the `NotificationType` union in `shared/types/notification.ts`: `"event_reminder" | "daily_itinerary" | "trip_message" | "trip_update"`
+- **No import of NotificationType needed**: Codebase convention is to inline enum values in Zod schemas rather than importing TypeScript types.
+- **Encapsulation preserved**: `notificationEntitySchema` remains a private `const`, consistent with `eventEntitySchema`, `memberTravelEntitySchema`, and other entity schemas.
+- **Type inference narrowed safely**: The inferred type of `type` changes from `string` to the union literal, which is a subtype of `string` — backward-compatible.
+- **All four types confirmed in use**: `"event_reminder"` (scheduler), `"daily_itinerary"` (scheduler), `"trip_message"` (message service), `"trip_update"` (integration tests).
+
+### Verification results
+- **Shared package tests**: ✅ 12 test files, 216 tests pass (includes notification-schemas.test.ts)
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- Exact match with `NotificationType` union (4 values)
+- Follows response schema convention (no custom error message)
+- Consistent with patterns in event.ts, member-travel.ts, invitation.ts
+- `notificationEntitySchema` remains private (not exported)
+- No other notification schemas need updating
+- 0 issues found
+
+### Learnings for future iterations
+- **Response vs input schema conventions**: Response entity schemas use `z.enum([...])` bare, while input schemas add `{ message: "..." }`. Always check which context you're in.
+- **Surgical schema changes are safe when schemas are private**: Since `notificationEntitySchema` is not exported, the change only affects consumers through the exported wrapper (`notificationListResponseSchema`). The type narrowing is backward-compatible.
+- **z.enum infers literal union types**: Changing from `z.string()` to `z.enum(...)` narrows the inferred TypeScript type from `string` to a union literal. This is always safe for downstream consumers since the literal union is a subtype of `string`.

@@ -21,7 +21,7 @@ const notificationEntitySchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   tripId: z.string().uuid().nullable(),
-  type: z.string(),
+  type: z.enum(["event_reminder", "daily_itinerary", "trip_message", "trip_update"]),
   title: z.string(),
   body: z.string(),
   data: z.record(z.string(), z.unknown()).nullable(),

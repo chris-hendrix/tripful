@@ -299,7 +299,7 @@
   - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 10.5: Use `z.enum` for notification type in response schema
+- [x] Task 10.5: Use `z.enum` for notification type in response schema
   - Implement: In `shared/schemas/notification.ts`, replace `z.string()` for the notification `type` field with `z.enum(["event_reminder", "daily_itinerary", "trip_message", "trip_update"])` in the response entity schema
   - Implement: Import the `NotificationType` union from `shared/types/notification.ts` if needed
   - Verify: `cd shared && pnpm vitest run` — all pass
