@@ -40,6 +40,7 @@ interface ReactionSummaryResult {
   emoji: string;
   count: number;
   reacted: boolean;
+  reactorNames: string[];
 }
 
 interface MessageResult {
@@ -241,8 +242,11 @@ export class MessageService implements IMessageService {
               count: count(),
               reacted:
                 sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
+              reactorNames:
+                sql<string[]>`array_agg(${users.displayName})`,
             })
             .from(messageReactions)
+            .leftJoin(users, eq(messageReactions.userId, users.id))
             .where(inArray(messageReactions.messageId, allMessageIds))
             .groupBy(messageReactions.messageId, messageReactions.emoji)
         : [];
@@ -255,6 +259,9 @@ export class MessageService implements IMessageService {
         emoji: r.emoji,
         count: r.count,
         reacted: r.reacted ?? false,
+        reactorNames: (r.reactorNames ?? []).filter(
+          (n): n is string => n != null,
+        ),
       };
       if (!existing) {
         reactionsByMessage.set(r.messageId, [summary]);
@@ -810,8 +817,11 @@ export class MessageService implements IMessageService {
         emoji: messageReactions.emoji,
         count: count(),
         reacted: sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
+        reactorNames:
+          sql<string[]>`array_agg(${users.displayName})`,
       })
       .from(messageReactions)
+      .leftJoin(users, eq(messageReactions.userId, users.id))
       .where(eq(messageReactions.messageId, messageId))
       .groupBy(messageReactions.emoji);
 
@@ -819,6 +829,9 @@ export class MessageService implements IMessageService {
       emoji: r.emoji,
       count: r.count,
       reacted: r.reacted ?? false,
+      reactorNames: (r.reactorNames ?? []).filter(
+        (n): n is string => n != null,
+      ),
     }));
   }
 

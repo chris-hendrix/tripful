@@ -711,18 +711,32 @@ function toggleReactionInList(
         return reactions.filter((r) => r.emoji !== emoji);
       }
       return reactions.map((r) =>
-        r.emoji === emoji ? { ...r, count: newCount, reacted: false } : r,
+        r.emoji === emoji
+          ? {
+              ...r,
+              count: newCount,
+              reacted: false,
+              reactorNames: r.reactorNames.filter((n) => n !== "You"),
+            }
+          : r,
       );
     } else {
       // User has not reacted: add their reaction
       return reactions.map((r) =>
-        r.emoji === emoji ? { ...r, count: r.count + 1, reacted: true } : r,
+        r.emoji === emoji
+          ? {
+              ...r,
+              count: r.count + 1,
+              reacted: true,
+              reactorNames: [...r.reactorNames, "You"],
+            }
+          : r,
       );
     }
   }
 
   // New reaction not in list
-  return [...reactions, { emoji, count: 1, reacted: true }];
+  return [...reactions, { emoji, count: 1, reacted: true, reactorNames: ["You"] }];
 }
 
 /**

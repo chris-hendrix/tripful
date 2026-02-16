@@ -59,6 +59,7 @@ const reactionSummarySchema = z.object({
   emoji: z.string(),
   count: z.number(),
   reacted: z.boolean(),
+  reactorNames: z.array(z.string()),
 });
 
 /** Message author as returned by the API */

@@ -25,11 +25,11 @@ describe("MessageReactions", () => {
   });
 
   const baseReactions: ReactionSummary[] = [
-    { emoji: "heart", count: 3, reacted: true },
-    { emoji: "thumbs_up", count: 1, reacted: false },
+    { emoji: "heart", count: 3, reacted: true, reactorNames: ["You", "Alice", "Bob"] },
+    { emoji: "thumbs_up", count: 1, reacted: false, reactorNames: ["Alice"] },
   ];
 
-  it("renders all 6 reaction buttons", () => {
+  it("renders only the add-reaction button when no reactions exist", () => {
     render(
       <MessageReactions
         messageId="msg-1"
@@ -39,7 +39,23 @@ describe("MessageReactions", () => {
     );
 
     const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBe(6);
+    // Only the add-reaction picker button
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].getAttribute("aria-label")).toBe("Add reaction");
+  });
+
+  it("renders pills for reactions with count > 0 plus the add-reaction button", () => {
+    render(
+      <MessageReactions
+        messageId="msg-1"
+        tripId="trip-1"
+        reactions={baseReactions}
+      />,
+    );
+
+    const buttons = screen.getAllByRole("button");
+    // 2 reaction pills + 1 add-reaction button
+    expect(buttons.length).toBe(3);
   });
 
   it("renders wrapper with role='group' and aria-label='Reactions'", () => {
@@ -124,13 +140,13 @@ describe("MessageReactions", () => {
     expect(thumbsUpButton.className).toContain("bg-muted/50");
   });
 
-  it("calls toggleReaction.mutate when a reaction button is clicked", async () => {
+  it("calls toggleReaction.mutate when a reaction pill is clicked", async () => {
     const user = userEvent.setup();
     render(
       <MessageReactions
         messageId="msg-1"
         tripId="trip-1"
-        reactions={[]}
+        reactions={baseReactions}
       />,
     );
 
@@ -143,13 +159,13 @@ describe("MessageReactions", () => {
     );
   });
 
-  it("does not call mutate when disabled", async () => {
+  it("does not call mutate when disabled and pill is clicked", async () => {
     const user = userEvent.setup();
     render(
       <MessageReactions
         messageId="msg-1"
         tripId="trip-1"
-        reactions={[]}
+        reactions={baseReactions}
         disabled
       />,
     );
@@ -160,12 +176,12 @@ describe("MessageReactions", () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  it("applies disabled styling when disabled", () => {
+  it("applies disabled styling to reaction pills when disabled", () => {
     render(
       <MessageReactions
         messageId="msg-1"
         tripId="trip-1"
-        reactions={[]}
+        reactions={baseReactions}
         disabled
       />,
     );
@@ -173,5 +189,22 @@ describe("MessageReactions", () => {
     const heartButton = screen.getByLabelText("React with heart");
     expect(heartButton.className).toContain("opacity-50");
     expect(heartButton.className).toContain("cursor-not-allowed");
+  });
+
+  it("hides reactions with count of 0", () => {
+    const withZero: ReactionSummary[] = [
+      { emoji: "heart", count: 0, reacted: false, reactorNames: [] },
+      { emoji: "thumbs_up", count: 2, reacted: false, reactorNames: ["Alice", "Bob"] },
+    ];
+    render(
+      <MessageReactions
+        messageId="msg-1"
+        tripId="trip-1"
+        reactions={withZero}
+      />,
+    );
+
+    expect(screen.queryByLabelText("React with heart")).toBeNull();
+    expect(screen.getByLabelText("React with thumbs_up")).toBeDefined();
   });
 });

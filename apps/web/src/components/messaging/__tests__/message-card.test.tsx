@@ -438,7 +438,7 @@ describe("MessageCard", () => {
   });
 
   describe("Reactions", () => {
-    it("renders reaction buttons", () => {
+    it("renders add-reaction button when no reactions exist", () => {
       render(
         <MessageCard
           message={baseMessage}
@@ -447,11 +447,31 @@ describe("MessageCard", () => {
         />,
       );
 
-      // Should render all 6 reaction buttons
+      // With no reactions, only the add-reaction picker button should show
+      const addReactionButton = screen.getByLabelText("Add reaction");
+      expect(addReactionButton).toBeDefined();
+    });
+
+    it("renders reaction pills for messages with reactions", () => {
+      const messageWithReactions = {
+        ...baseMessage,
+        reactions: [
+          { emoji: "heart", count: 2, reacted: true, reactorNames: ["You", "Alice"] },
+          { emoji: "thumbs_up", count: 1, reacted: false, reactorNames: ["Bob"] },
+        ],
+      };
+      render(
+        <MessageCard
+          message={messageWithReactions}
+          tripId="trip-1"
+          isOrganizer={false}
+        />,
+      );
+
       const reactionButtons = screen.getAllByRole("button").filter(
         (btn) => btn.getAttribute("aria-label")?.startsWith("React with"),
       );
-      expect(reactionButtons.length).toBe(6);
+      expect(reactionButtons.length).toBe(2);
     });
   });
 });

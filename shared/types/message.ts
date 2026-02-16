@@ -33,6 +33,8 @@ export interface ReactionSummary {
   count: number;
   /** Whether the current user has reacted with this emoji */
   reacted: boolean;
+  /** Display names of users who reacted with this emoji */
+  reactorNames: string[];
 }
 
 /**
