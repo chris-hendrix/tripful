@@ -9,6 +9,7 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
+        networkMode: 'online',
         staleTime: 60 * 1000,
         gcTime: 1000 * 60 * 60,
         refetchOnWindowFocus: false,
@@ -35,6 +36,9 @@ function makeQueryClient() {
           }
           return failureCount < 1;
         },
+      },
+      mutations: {
+        networkMode: 'online',
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>

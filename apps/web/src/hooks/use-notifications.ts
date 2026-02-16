@@ -215,7 +215,7 @@ export function useMarkAsRead() {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _notificationId, context) => {
+    onError: (_error, _notificationId, context, _mutationContext) => {
       if (context?.previousUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.unreadCount(),
@@ -230,16 +230,22 @@ export function useMarkAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: (_data, _error, _notificationId, context) => {
+    onSettled: (
+      _data,
+      _error,
+      _notificationId,
+      onMutateResult,
+      _mutationContext,
+    ) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
       queryClient.invalidateQueries({
         queryKey: notificationKeys.unreadCount(),
       });
-      if (context?.tripId) {
+      if (onMutateResult?.tripId) {
         queryClient.invalidateQueries({
-          queryKey: notificationKeys.tripUnreadCount(context.tripId),
+          queryKey: notificationKeys.tripUnreadCount(onMutateResult.tripId),
         });
       }
     },
@@ -394,7 +400,7 @@ export function useMarkAllAsRead() {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, params, context) => {
+    onError: (_error, params, context, _mutationContext) => {
       if (context?.previousUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.unreadCount(),
@@ -418,7 +424,7 @@ export function useMarkAllAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: (_data, _error, params) => {
+    onSettled: (_data, _error, params, _onMutateResult, _mutationContext) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
@@ -538,7 +544,7 @@ export function useUpdateNotificationPreferences(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _data, context) => {
+    onError: (_error, _data, context, _mutationContext) => {
       if (context?.previousPreferences) {
         queryClient.setQueryData(
           notificationKeys.preferences(tripId),

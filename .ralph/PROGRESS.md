@@ -2365,3 +2365,63 @@ Note: 8 E2E failures exist in unmodified files (app-shell, auth-journey, itinera
 - **Always verify phone format against API constraints**: The initial implementation looked correct in isolation but broke at the integration level. The verifier caught this by actually running the E2E tests.
 - **Content-scoped selectors > positional selectors**: Using `.filter({ hasText })` on `getByRole("article")` is far more robust than `.first()` which relies on feed ordering assumptions.
 - **Timeout constants are simple but high-value**: Replacing 42 magic numbers with 4 named constants with JSDoc makes the test intent much clearer and centralizes configuration.
+
+---
+
+## Iteration 43 — Task 18.1: Update mutation callback signatures and configure networkMode ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Updated mutation callback signatures in `apps/web/src/hooks/use-messages.ts` and `apps/web/src/hooks/use-notifications.ts` to include the new `MutationFunctionContext` parameter introduced in TanStack Query v5.89.0+
+- Added `networkMode: 'online'` to QueryClient default options for both queries and mutations in `apps/web/src/lib/get-query-client.ts`
+
+### Changes by file
+
+**1. `apps/web/src/hooks/use-messages.ts`** — 5 `onError` callbacks updated:
+- `useCreateMessage.onError`: `(_error, _data, context)` → `(_error, _data, context, _mutationContext)`
+- `useEditMessage.onError`: `(_error, _vars, context)` → `(_error, _vars, context, _mutationContext)`
+- `useDeleteMessage.onError`: `(_error, _messageId, context)` → `(_error, _messageId, context, _mutationContext)`
+- `useToggleReaction.onError`: `(_error, _vars, context)` → `(_error, _vars, context, _mutationContext)`
+- `usePinMessage.onError`: `(_error, _vars, context)` → `(_error, _vars, context, _mutationContext)`
+- `onSettled` callbacks with no params (`() => {}`) left unchanged — TypeScript allows fewer params
+
+**2. `apps/web/src/hooks/use-notifications.ts`** — 3 `onError` + 2 `onSettled` callbacks updated:
+- `useMarkAsRead.onError`: added `_mutationContext` as 4th param
+- `useMarkAsRead.onSettled`: `(_data, _error, _notificationId, context)` → `(_data, _error, _notificationId, onMutateResult, _mutationContext)` — renamed `context` to `onMutateResult` for clarity, matching TanStack type definition
+- `useMarkAllAsRead.onError`: added `_mutationContext` as 4th param
+- `useMarkAllAsRead.onSettled`: `(_data, _error, params)` → `(_data, _error, params, _onMutateResult, _mutationContext)` — added new 4th and 5th params
+- `useUpdateNotificationPreferences.onError`: added `_mutationContext` as 4th param
+- `useUpdateNotificationPreferences.onSettled` left as `()` — no params used
+
+**3. `apps/web/src/lib/get-query-client.ts`**:
+- Added `networkMode: 'online'` to `defaultOptions.queries`
+- Added new `defaultOptions.mutations` section with `networkMode: 'online'`
+
+### Key implementation details
+- Installed TanStack Query version is **5.90.20** (well past the 5.89.0 threshold for the new signatures)
+- The TanStack v5.89.0+ callback type changes are **additive** — existing code with fewer params works due to TypeScript's structural subtyping. The updates are for explicit documentation and future-proofing.
+- New signature positions: `onError(error, variables, onMutateResult, mutationContext)`, `onSettled(data, error, variables, onMutateResult, mutationContext)`
+- The 3rd param in `onError` (previously called `context` in the codebase) is now called `onMutateResult` in TanStack's types. We kept `context` for `onError` callbacks to maintain consistency with all other hook files (use-trips.ts, use-events.ts, etc.) which are out of scope. Only `onSettled` in `useMarkAsRead` was renamed to `onMutateResult` because it appeared alongside the new `_mutationContext` param and the naming was ambiguous.
+- `networkMode: 'online'` is the TanStack default but making it explicit guards against future default changes and documents the app's online-first assumption.
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests | ✅ PASS | 2,251 tests (111 files) |
+| **Total** | ✅ **ALL PASS** | |
+
+### Reviewer verdict: APPROVED
+- All callback signatures correctly match TanStack Query v5.90.20 type definitions
+- Naming inconsistency between `context` and `_onMutateResult` resolved in the critical `onSettled` callback
+- `networkMode: 'online'` correctly added to both queries and mutations
+- No functional logic changes — only parameter lists were extended
+- Only scoped files modified; no out-of-scope files touched
+
+### Learnings for future iterations
+- **TanStack Query v5.89.0+ callback changes are additive**: New `MutationFunctionContext` param is appended as the last argument. Existing code with fewer params continues to work due to TypeScript's structural subtyping — no breaking changes.
+- **`onSettled` has 5 params, not 4**: The new signature is `(data, error, variables, onMutateResult, mutationContext)`. When the task description says "4-parameter signature", it refers to `onSuccess`/`onError`; `onSettled` is actually 5.
+- **Parameter naming vs type naming tradeoff**: TanStack renamed the old `context` (onMutate result) to `onMutateResult` in their type definitions. The codebase uses `context` across 12+ hook files. Renaming only in-scope files would create cross-file inconsistency. Best to keep consistent within the codebase and only rename where ambiguity exists (like when both `onMutateResult` and `mutationContext` appear in the same callback).
+- **`use-trips.test.tsx` can be flaky**: The "handles API errors correctly" test occasionally fails due to timing (race between onSuccess/onError). This is a pre-existing issue unrelated to callback signature changes.

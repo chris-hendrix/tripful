@@ -404,7 +404,7 @@
 
 ## Phase 18: Audit — Future-Proofing
 
-- [ ] Task 18.1: Update mutation callback signatures and configure networkMode
+- [x] Task 18.1: Update mutation callback signatures and configure networkMode
   - Implement: In `apps/web/src/hooks/use-messages.ts`, update all mutation `onSuccess`, `onError`, `onSettled` callbacks to use the 4-parameter signature `(data, variables, context, mutation)` for TanStack Query v5.89.0+ compatibility
   - Implement: In `apps/web/src/hooks/use-notifications.ts`, update all mutation callbacks to 4-parameter signature
   - Implement: In QueryClient setup (provider or config file), add `defaultOptions.queries.networkMode: 'online'` and `defaultOptions.mutations.networkMode: 'online'` for explicit documentation

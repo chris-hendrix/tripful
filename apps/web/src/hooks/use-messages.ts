@@ -217,7 +217,7 @@ export function useCreateMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _data, context) => {
+    onError: (_error, _data, context, _mutationContext) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -370,7 +370,7 @@ export function useEditMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context) => {
+    onError: (_error, _vars, context, _mutationContext) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -522,7 +522,7 @@ export function useDeleteMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _messageId, context) => {
+    onError: (_error, _messageId, context, _mutationContext) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -677,7 +677,7 @@ export function useToggleReaction(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context) => {
+    onError: (_error, _vars, context, _mutationContext) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -834,7 +834,7 @@ export function usePinMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context) => {
+    onError: (_error, _vars, context, _mutationContext) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
