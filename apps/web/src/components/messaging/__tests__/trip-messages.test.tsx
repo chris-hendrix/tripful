@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { TripMessages } from "../trip-messages";
 import type {
   MessageWithReplies,
@@ -51,10 +51,12 @@ const makeMessage = (
 let mockData: GetMessagesResponse | undefined;
 let mockIsPending = false;
 let lastUseMessagesEnabled: boolean | undefined;
+let lastUseMessagesLimit: number | undefined;
 
 vi.mock("@/hooks/use-messages", () => ({
-  useMessages: (_tripId: string, enabled?: boolean) => {
+  useMessages: (_tripId: string, enabled?: boolean, limit?: number) => {
     lastUseMessagesEnabled = enabled;
+    lastUseMessagesLimit = limit;
     return { data: mockData, isPending: mockIsPending };
   },
   useCreateMessage: () => ({ mutate: vi.fn(), isPending: false }),
@@ -90,6 +92,7 @@ describe("TripMessages", () => {
     mockData = undefined;
     mockIsPending = false;
     lastUseMessagesEnabled = undefined;
+    lastUseMessagesLimit = undefined;
     mockObserve.mockClear();
     mockDisconnect.mockClear();
     intersectionCallback = null;
@@ -314,5 +317,60 @@ describe("TripMessages", () => {
 
     // Initially isInView is true
     expect(lastUseMessagesEnabled).toBe(true);
+  });
+
+  it("shows 'Load earlier messages' button when more messages available", () => {
+    mockData = {
+      success: true,
+      messages: [makeMessage({ id: "msg-1" })],
+      meta: { total: 25, page: 1, limit: 20, totalPages: 2 },
+    };
+
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
+
+    expect(screen.getByRole("button", { name: "Load earlier messages" })).toBeDefined();
+  });
+
+  it("does not show 'Load earlier messages' when all messages loaded", () => {
+    mockData = {
+      success: true,
+      messages: [makeMessage({ id: "msg-1" })],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+    };
+
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
+
+    expect(screen.queryByRole("button", { name: "Load earlier messages" })).toBeNull();
+  });
+
+  it("increases limit when 'Load earlier messages' is clicked", () => {
+    mockData = {
+      success: true,
+      messages: [makeMessage({ id: "msg-1" })],
+      meta: { total: 25, page: 1, limit: 20, totalPages: 2 },
+    };
+
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
+
+    // Initially limit should be PAGE_SIZE (20)
+    expect(lastUseMessagesLimit).toBe(20);
+
+    const button = screen.getByRole("button", { name: "Load earlier messages" });
+    fireEvent.click(button);
+
+    // After click, limit should increase to 40 (PAGE_SIZE * 2)
+    expect(lastUseMessagesLimit).toBe(40);
+  });
+
+  it("does not show 'Load earlier messages' in empty state", () => {
+    mockData = {
+      success: true,
+      messages: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
+
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
+
+    expect(screen.queryByRole("button", { name: "Load earlier messages" })).toBeNull();
   });
 });

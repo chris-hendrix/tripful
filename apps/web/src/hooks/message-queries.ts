@@ -27,15 +27,15 @@ export const messageKeys = {
 /**
  * Query options for fetching paginated messages for a trip
  */
-export const messagesQueryOptions = (tripId: string) =>
+export const messagesQueryOptions = (tripId: string, limit?: number) =>
   queryOptions({
     queryKey: messageKeys.list(tripId),
     staleTime: 30 * 1000,
     queryFn: async ({ signal }) => {
-      const response = await apiRequest<GetMessagesResponse>(
-        `/trips/${tripId}/messages`,
-        { signal },
-      );
+      const url = limit
+        ? `/trips/${tripId}/messages?limit=${limit}`
+        : `/trips/${tripId}/messages`;
+      const response = await apiRequest<GetMessagesResponse>(url, { signal });
       return response;
     },
     enabled: !!tripId,

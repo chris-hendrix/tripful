@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMessages } from "@/hooks/use-messages";
 import { MessageInput } from "./message-input";
 import { MessageCard } from "./message-card";
 import { PinnedMessages } from "./pinned-messages";
+
+const PAGE_SIZE = 20;
 
 interface TripMessagesProps {
   tripId: string;
@@ -42,6 +45,7 @@ export function TripMessages({
 }: TripMessagesProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const [isInView, setIsInView] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -61,10 +65,15 @@ export function TripMessages({
     return () => observer.disconnect();
   }, []);
 
-  const { data, isPending } = useMessages(tripId, isInView);
+  const { data, isPending } = useMessages(tripId, isInView, PAGE_SIZE * page);
 
   const messages = data?.messages ?? [];
   const total = data?.meta?.total ?? 0;
+  const hasMore = messages.length < total;
+
+  const handleLoadMore = useCallback(() => {
+    setPage((prev) => prev + 1);
+  }, []);
 
   const inputDisabled = disabled === true || isMuted === true;
   const inputDisabledMessage = isMuted
@@ -113,6 +122,18 @@ export function TripMessages({
               disabledMessage={inputDisabledMessage}
             />
           ))}
+          {hasMore && (
+            <div className="flex justify-center py-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sm text-muted-foreground"
+                onClick={handleLoadMore}
+              >
+                Load earlier messages
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </section>

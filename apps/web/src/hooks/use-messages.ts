@@ -52,9 +52,9 @@ export type { Message, MessageWithReplies, ReactionSummary };
  * @param enabled - Whether polling and fetching are active (default: true)
  * @returns Query object with data, loading, and error state
  */
-export function useMessages(tripId: string, enabled?: boolean) {
+export function useMessages(tripId: string, enabled?: boolean, limit?: number) {
   return useQuery({
-    ...messagesQueryOptions(tripId),
+    ...messagesQueryOptions(tripId, limit),
     refetchInterval: 5000,
     enabled: (enabled ?? true) && !!tripId,
   });

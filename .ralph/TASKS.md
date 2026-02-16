@@ -261,7 +261,7 @@
   - Verify: `cd apps/web && pnpm vitest run src/app/\\(app\\)/trips/\\[id\\]/trip-detail-content.test.tsx` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 9.2: Connect message feed load-more to pagination
+- [x] Task 9.2: Connect message feed load-more to pagination
   - Implement: In `apps/web/src/hooks/use-messages.ts`, update `useMessages` hook to support increasing `limit` parameter (matching the notification dialog's "load more by increasing limit" pattern)
   - Implement: In `apps/web/src/components/messaging/trip-messages.tsx`, add a "Load earlier messages" button at the top of the message feed when `messages.length < total`
   - Implement: On click, increase the limit (e.g., by 20) and refetch

@@ -1430,3 +1430,69 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **TanStack Query deduplication**: Calling `useMembers(tripId)` at the parent level when a child already calls it incurs no extra network cost — TanStack Query serves from cache. This makes it safe to "lift" data access to parent components when needed for prop passing.
 - **Pattern for finding current member**: `members?.find((m) => m.userId === user?.id)` is the established codebase pattern (used in `create-member-travel-dialog.tsx`) for extracting the current user's membership from the members list.
 - **Test mock already prepared**: The existing TripMessages mock already captured `isMuted` as a `data-is-muted` attribute, making it trivial to assert on. Previous iterations set up forward-looking mocks that paid off here.
+
+---
+
+## Iteration 26 — Task 9.2: Connect message feed load-more to pagination ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified 4 files to add "Load earlier messages" pagination to the message feed, following the notification dialog's "increasing limit" pattern.
+
+**Changes to `apps/web/src/hooks/message-queries.ts`:**
+- Added optional `limit` parameter to `messagesQueryOptions(tripId, limit?)` function
+- When `limit` is provided, appends `?limit=N` to the API URL
+- Query key remains unchanged as `messageKeys.list(tripId)` — critical for preserving optimistic update compatibility across all 5 mutation hooks (create, edit, delete, pin, reaction)
+
+**Changes to `apps/web/src/hooks/use-messages.ts`:**
+- Added optional `limit` parameter to `useMessages(tripId, enabled?, limit?)` hook
+- Passes `limit` through to `messagesQueryOptions`
+
+**Changes to `apps/web/src/components/messaging/trip-messages.tsx`:**
+- Added `useCallback` to imports, imported `Button` from shadcn/ui
+- Added `PAGE_SIZE = 20` constant
+- Added `page` state via `useState(1)`, incremented by `handleLoadMore` callback
+- Passes `PAGE_SIZE * page` as limit to `useMessages`
+- Computes `hasMore = messages.length < total`
+- Added "Load earlier messages" ghost button at the bottom of the feed div (inside `role="feed"`), shown only when `hasMore` is true
+- Button styling matches notification dialog: `variant="ghost" size="sm" className="text-sm text-muted-foreground"`
+
+**Changes to `apps/web/src/components/messaging/__tests__/trip-messages.test.tsx`:**
+- Added `lastUseMessagesLimit` capture variable to `useMessages` mock and `beforeEach` reset
+- Added `fireEvent` to testing-library imports
+- 4 new test cases covering load-more behavior
+
+### Key implementation details
+- **Query key stability**: The most critical design decision was keeping `messageKeys.list(tripId)` unchanged (not including `limit` in the key). All 5 mutation hooks use this exact key for `getQueryData`/`setQueryData` optimistic updates. Including `limit` in the key would break all optimistic updates. The notification dialog also keeps `limit` out of cache-affecting operations.
+- **Growing limit pattern**: Each "Load earlier messages" click increments `page` state, causing `useMessages` to be called with `PAGE_SIZE * page` (20, 40, 60...). The API returns all messages in one response, avoiding the need for client-side result merging.
+- **Button placement**: Since messages display newest-first, "Load earlier messages" is placed at the BOTTOM of the feed (where older messages would appear).
+- **No backend changes**: The API already supports `?limit=N` with max 50 and default 20.
+- **Backward compatible**: The `limit` parameter is optional in both `messagesQueryOptions` and `useMessages`, so no existing callers need changes.
+
+### Test coverage (4 new tests)
+- `shows 'Load earlier messages' button when more messages available` — total=25, messages=1
+- `does not show 'Load earlier messages' when all messages loaded` — total=1, messages=1
+- `increases limit when 'Load earlier messages' is clicked` — verifies limit goes from 20 to 40
+- `does not show 'Load earlier messages' in empty state` — total=0, messages=0
+
+### Verification results
+- **Task-specific tests**: ✅ 18/18 tests pass (14 existing + 4 new)
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Full web test suite**: ✅ 1029 tests pass across 55 test files
+- **Full test suite**: ✅ All packages pass (shared: 216, API: all, web: 1029)
+
+### Reviewer verdict: APPROVED
+- Implementation faithfully mirrors the notification dialog pattern
+- Query key stability correctly preserved for optimistic update compatibility
+- Minimal, focused changes with no scope creep
+- Good test coverage for button visibility and click behavior
+- 1 low-severity non-blocking note: API max limit of 50 means 3rd "Load earlier messages" click would send `limit=60`, which Zod `.max(50)` would reject. This is consistent with the notification dialog's same limitation. Could be addressed in a follow-up by capping client-side or increasing the API max.
+
+### Learnings for future iterations
+- **Query key stability vs queryFn params**: When mutation hooks use exact-key `getQueryData`/`setQueryData` for optimistic updates, new query parameters (like `limit`) should NOT be added to the query key. Instead, pass them only to the `queryFn` URL. The key should only include the cache identity (e.g., `tripId`), not fetch parameters.
+- **Increasing limit pattern**: The "growing limit" approach (`PAGE_SIZE * page`) is simpler than page-based pagination because it avoids client-side result merging. Each response replaces the previous cache entry with a larger dataset. The trade-off is re-fetching all data on each "load more", but this is acceptable for the current scale (max 100 messages per trip).
+- **API max limit consideration**: When using the "growing limit" pattern, the API's max limit validation (`max(50)`) creates a ceiling. The frontend should either cap the limit or the backend should increase the max. For messages with a 100-message trip cap, increasing the API max to 100 would be the simplest fix.
+- **`fireEvent` vs `userEvent` with fake timers**: When the test suite uses `vi.useFakeTimers()`, `userEvent.click` can hang due to timer interaction. `fireEvent.click` is more reliable in this context and was used for the load-more button click test.
+- The web package now has 1029 passing tests (up from 1025 in iteration 25, +4 new load-more tests).
