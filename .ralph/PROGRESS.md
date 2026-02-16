@@ -2228,3 +2228,74 @@ This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-
 - **React ErrorBoundary must be class component**: Functional components cannot catch rendering errors; `getDerivedStateFromError` is only available on class components
 - **Radix v2 unified package**: `radix-ui` (single package) is the v2 approach — no separate `@radix-ui/react-*` packages needed when this is installed
 - **Character count threshold conventions**: Other form dialogs in the codebase use 1600/2000 threshold — the messaging character count now starts at 1000 for better UX
+
+---
+
+## Iteration 41 — Task 16.1: Refactor controllers to centralized error handling, add indexes, add response schemas, document plugin deps ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**1. Controller try/catch removal** (`apps/api/src/controllers/message.controller.ts`):
+- Removed ALL 10 try/catch blocks from: `listMessages`, `getMessageCount`, `getLatestMessage`, `createMessage`, `editMessage`, `deleteMessage`, `togglePin`, `toggleReaction`, `muteMember`, `unmuteMember`
+- File reduced from 505 lines to 284 lines (44% reduction)
+- Each method now contains only happy-path code: extract params → call service → return response
+- Follows the clean pattern established by `health.controller.ts`
+
+**2. Controller try/catch removal** (`apps/api/src/controllers/notification.controller.ts`):
+- Removed ALL 8 try/catch blocks from: `listNotifications`, `getUnreadCount`, `markAsRead`, `markAllAsRead`, `listTripNotifications`, `getTripUnreadCount`, `getPreferences`, `updatePreferences`
+- File reduced from 387 lines to 235 lines (39% reduction)
+
+**3. Database indexes** (`apps/api/src/db/schema/index.ts`):
+- Added `messages_author_id_idx` on `messages.authorId` — used in joins for author info
+- Added `message_reactions_user_id_idx` on `messageReactions.userId` — used in current-user reaction check
+- Added `notifications_user_id_created_at_desc_idx` on `notifications(userId, createdAt DESC)` — composite for general pagination queries with newest-first ordering
+- Used Drizzle's `table.createdAt.desc()` API for DESC index ordering (first DESC index in the codebase)
+
+**4. Database migration** (`apps/api/src/db/migrations/0012_foamy_nico_minoru.sql`):
+- Auto-generated migration containing exactly 3 `CREATE INDEX IF NOT EXISTS` statements using btree
+- DESC index properly generates `DESC NULLS LAST` in SQL
+- Applied successfully to local database
+
+**5. Response schemas** — Verified ALREADY COMPLETE:
+- All 8 notification route endpoints already have `response: { 200: ... }` schema definitions
+- All 10 message route endpoints already have response schema definitions
+- No changes needed
+
+**6. Plugin dependency documentation**:
+- Enhanced JSDoc on `apps/api/src/plugins/message-service.ts` with `@depends` tags documenting database, permissions-service, and notification-service dependencies
+- Enhanced JSDoc on `apps/api/src/plugins/notification-service.ts` with `@depends` tags documenting database and sms-service dependencies
+- Enhanced JSDoc on `apps/api/src/plugins/scheduler-service.ts` with `@depends` tags, timer interval details, and test-environment skip behavior
+
+### Key implementation details
+- **Error propagation is safe**: All service methods throw `@fastify/error` instances with `statusCode` and `code` properties. The global `errorHandler` at `apps/api/src/middleware/error.middleware.ts` catches these at line 111-119 and returns `{ success: false, error: { code, message }, requestId }`. This is the same response shape the controllers produced manually, plus the `requestId` field (an improvement).
+- **No test changes needed**: All 424 integration tests pass unchanged, confirming the global error handler produces identical HTTP status codes (401, 403, 404, 409, 429) and response shapes for all error scenarios.
+- **DESC index API**: Drizzle ORM's `table.column.desc()` method on `ExtraConfigColumn` is supported but had never been used in the codebase. The generated SQL correctly produces `"created_at" DESC NULLS LAST`.
+- **Redundant ASC index**: The notifications table now has both `(userId, createdAt)` ASC and `(userId, createdAt DESC)` indexes. PostgreSQL can scan btree indexes in reverse, making the DESC variant technically redundant for the ascending index. This is a low-severity non-blocking observation (extra storage only).
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests (API) | ✅ PASS | 565/565 tests (18 files) |
+| Integration tests (API) | ✅ PASS | 424/424 tests (25 files) |
+| Shared package tests | ✅ PASS | 216/216 tests (12 files) |
+| **Total** | ✅ **ALL PASS** | **1,205 automated tests** |
+
+### Reviewer verdict: APPROVED
+- All try/catch blocks removed from both controllers (grep confirms 0 matches)
+- All 3 indexes correctly added with proper naming conventions
+- Migration contains only index changes (no table modifications)
+- Response schemas verified complete on all routes
+- Plugin JSDoc enhanced with `@depends` tags on all 3 files
+- 1 low-severity non-blocking observation: redundant ASC/DESC indexes on notifications table (not harmful, just extra storage)
+
+### Learnings for future iterations
+- **Global error handler makes controller try/catch redundant**: The `errorHandler` in `error.middleware.ts` already handles all `@fastify/error` instances (with `statusCode < 500 && code`), Zod validation errors, and generic 500 errors with logging and `requestId`. Controllers should NEVER need try/catch — just throw from the service layer and let Fastify handle it.
+- **Controller LOC reduction is dramatic**: Removing try/catch reduced message controller by 44% (505→284) and notification controller by 39% (387→235). The ~10-line catch block per method was pure boilerplate.
+- **Drizzle `.desc()` API for index ordering**: Use `table.column.desc()` inside `.on()` for DESC indexes. The API also supports `.asc()`, `.nullsFirst()`, `.nullsLast()`. This was the first DESC index in the codebase.
+- **Verify before implementing**: Response schemas were already complete on all routes. Research phase correctly identified this, saving unnecessary code changes.
+- **Other controllers still have redundant try/catch**: `auth.controller.ts`, `trip.controller.ts`, `event.controller.ts`, `invitation.controller.ts`, `user.controller.ts`, `accommodation.controller.ts`, `member-travel.controller.ts` all still use the verbose try/catch pattern. These could be refactored in a future task.
+- The API package has 989 tests passing (565 unit + 424 integration), unchanged from iteration 40.

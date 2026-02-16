@@ -4,7 +4,11 @@ import { MessageService } from "@/services/message.service.js";
 
 /**
  * Message service plugin
- * Creates a MessageService instance and decorates it on the Fastify instance
+ * Creates a MessageService instance and decorates it on the Fastify instance.
+ *
+ * @depends database - Drizzle ORM instance for message/reaction queries
+ * @depends permissions-service - Authorization checks (canViewMessages, canModerateMessages, canMuteMember)
+ * @depends notification-service - Sends notifications when new messages are posted
  */
 export default fp(
   async function messageServicePlugin(fastify: FastifyInstance) {

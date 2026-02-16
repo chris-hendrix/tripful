@@ -371,6 +371,7 @@ export const messages = pgTable(
       table.createdAt,
     ),
     parentIdIdx: index("messages_parent_id_idx").on(table.parentId),
+    authorIdIdx: index("messages_author_id_idx").on(table.authorId),
     tripTopLevelIdx: index("messages_trip_toplevel_idx")
       .on(table.tripId, table.createdAt)
       .where(
@@ -402,6 +403,7 @@ export const messageReactions = pgTable(
     messageIdIdx: index("message_reactions_message_id_idx").on(
       table.messageId,
     ),
+    userIdIdx: index("message_reactions_user_id_idx").on(table.userId),
     messageUserEmojiUnique: unique(
       "message_reactions_message_user_emoji_unique",
     ).on(table.messageId, table.userId, table.emoji),
@@ -435,6 +437,10 @@ export const notifications = pgTable(
     userIdCreatedAtIdx: index("notifications_user_id_created_at_idx").on(
       table.userId,
       table.createdAt,
+    ),
+    userIdCreatedAtDescIdx: index("notifications_user_id_created_at_desc_idx").on(
+      table.userId,
+      table.createdAt.desc(),
     ),
     userUnreadIdx: index("notifications_user_unread_idx")
       .on(table.userId, table.createdAt)

@@ -4,8 +4,12 @@ import { SchedulerService } from "@/services/scheduler.service.js";
 
 /**
  * Scheduler service plugin
- * Creates a SchedulerService instance, starts it in non-test environments,
- * and decorates it on the Fastify instance
+ * Creates a SchedulerService instance and decorates it on the Fastify instance.
+ * Starts background timers for event reminders (5-min interval) and daily itineraries (15-min interval).
+ * Skipped in test environment to avoid timer interference.
+ *
+ * @depends database - Drizzle ORM instance for event/trip/reminder queries
+ * @depends notification-service - Creates and delivers scheduled notifications
  */
 export default fp(
   async function schedulerServicePlugin(fastify: FastifyInstance) {

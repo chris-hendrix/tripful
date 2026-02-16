@@ -25,42 +25,23 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { tripId } = request.params;
-      const userId = request.user.sub;
-      const { page, limit } = request.query;
+    const { messageService } = request.server;
+    const { tripId } = request.params;
+    const userId = request.user.sub;
+    const { page, limit } = request.query;
 
-      const { data, meta } = await messageService.getMessages(
-        tripId,
-        userId,
-        page,
-        limit,
-      );
+    const { data, meta } = await messageService.getMessages(
+      tripId,
+      userId,
+      page,
+      limit,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        messages: data,
-        meta,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to list messages",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to list messages",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      messages: data,
+      meta,
+    });
   },
 
   /**
@@ -76,34 +57,15 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { tripId } = request.params;
+    const { messageService } = request.server;
+    const { tripId } = request.params;
 
-      const count = await messageService.getMessageCount(tripId);
+    const count = await messageService.getMessageCount(tripId);
 
-      return reply.status(200).send({
-        success: true,
-        count,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to get message count",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get message count",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      count,
+    });
   },
 
   /**
@@ -119,35 +81,16 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { tripId } = request.params;
-      const userId = request.user.sub;
+    const { messageService } = request.server;
+    const { tripId } = request.params;
+    const userId = request.user.sub;
 
-      const message = await messageService.getLatestMessage(tripId, userId);
+    const message = await messageService.getLatestMessage(tripId, userId);
 
-      return reply.status(200).send({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to get latest message",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get latest message",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      message,
+    });
   },
 
   /**
@@ -164,37 +107,17 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
+    const { messageService } = request.server;
     const { tripId } = request.params;
+    const userId = request.user.sub;
     const data = request.body;
 
-    try {
-      const { messageService } = request.server;
-      const userId = request.user.sub;
+    const message = await messageService.createMessage(tripId, userId, data);
 
-      const message = await messageService.createMessage(tripId, userId, data);
-
-      return reply.status(201).send({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to create message",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create message",
-        },
-      });
-    }
+    return reply.status(201).send({
+      success: true,
+      message,
+    });
   },
 
   /**
@@ -211,45 +134,21 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { messageId } = request.params;
-      const userId = request.user.sub;
-      const { content } = request.body;
+    const { messageService } = request.server;
+    const { messageId } = request.params;
+    const userId = request.user.sub;
+    const { content } = request.body;
 
-      const message = await messageService.editMessage(
-        messageId,
-        userId,
-        content,
-      );
+    const message = await messageService.editMessage(
+      messageId,
+      userId,
+      content,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          messageId: request.params.messageId,
-        },
-        "Failed to edit message",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to edit message",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      message,
+    });
   },
 
   /**
@@ -265,39 +164,15 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { messageId, tripId } = request.params;
-      const userId = request.user.sub;
+    const { messageService } = request.server;
+    const { messageId, tripId } = request.params;
+    const userId = request.user.sub;
 
-      await messageService.deleteMessage(messageId, userId, tripId);
+    await messageService.deleteMessage(messageId, userId, tripId);
 
-      return reply.status(200).send({
-        success: true,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          messageId: request.params.messageId,
-        },
-        "Failed to delete message",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete message",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+    });
   },
 
   /**
@@ -314,46 +189,22 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { messageId, tripId } = request.params;
-      const userId = request.user.sub;
-      const { pinned } = request.body;
+    const { messageService } = request.server;
+    const { messageId, tripId } = request.params;
+    const userId = request.user.sub;
+    const { pinned } = request.body;
 
-      const message = await messageService.togglePin(
-        messageId,
-        userId,
-        tripId,
-        pinned,
-      );
+    const message = await messageService.togglePin(
+      messageId,
+      userId,
+      tripId,
+      pinned,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          messageId: request.params.messageId,
-        },
-        "Failed to toggle pin",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to toggle pin",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      message,
+    });
   },
 
   /**
@@ -370,45 +221,21 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { messageId } = request.params;
-      const userId = request.user.sub;
-      const { emoji } = request.body;
+    const { messageService } = request.server;
+    const { messageId } = request.params;
+    const userId = request.user.sub;
+    const { emoji } = request.body;
 
-      const reactions = await messageService.toggleReaction(
-        messageId,
-        userId,
-        emoji,
-      );
+    const reactions = await messageService.toggleReaction(
+      messageId,
+      userId,
+      emoji,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        reactions,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          messageId: request.params.messageId,
-        },
-        "Failed to toggle reaction",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to toggle reaction",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      reactions,
+    });
   },
 
   /**
@@ -424,37 +251,13 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { tripId, memberId } = request.params;
-      const userId = request.user.sub;
+    const { messageService } = request.server;
+    const { tripId, memberId } = request.params;
+    const userId = request.user.sub;
 
-      await messageService.muteMember(tripId, memberId, userId);
+    await messageService.muteMember(tripId, memberId, userId);
 
-      return reply.status(200).send({ success: true });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          memberId: request.params.memberId,
-        },
-        "Failed to mute member",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to mute member",
-        },
-      });
-    }
+    return reply.status(200).send({ success: true });
   },
 
   /**
@@ -470,36 +273,12 @@ export const messageController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { messageService } = request.server;
-      const { tripId, memberId } = request.params;
-      const userId = request.user.sub;
+    const { messageService } = request.server;
+    const { tripId, memberId } = request.params;
+    const userId = request.user.sub;
 
-      await messageService.unmuteMember(tripId, memberId, userId);
+    await messageService.unmuteMember(tripId, memberId, userId);
 
-      return reply.status(200).send({ success: true });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        {
-          err: error,
-          userId: request.user.sub,
-          tripId: request.params.tripId,
-          memberId: request.params.memberId,
-        },
-        "Failed to unmute member",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to unmute member",
-        },
-      });
-    }
+    return reply.status(200).send({ success: true });
   },
 };

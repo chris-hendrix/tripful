@@ -24,43 +24,24 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const { page, limit, unreadOnly, tripId } = request.query;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const { page, limit, unreadOnly, tripId } = request.query;
 
-      const { data, meta, unreadCount } =
-        await notificationService.getNotifications(userId, {
-          page,
-          limit,
-          unreadOnly,
-          ...(tripId != null ? { tripId } : {}),
-        });
-
-      return reply.status(200).send({
-        success: true,
-        notifications: data,
-        meta,
-        unreadCount,
+    const { data, meta, unreadCount } =
+      await notificationService.getNotifications(userId, {
+        page,
+        limit,
+        unreadOnly,
+        ...(tripId != null ? { tripId } : {}),
       });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
 
-      request.log.error(
-        { err: error, userId: request.user.sub },
-        "Failed to list notifications",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to list notifications",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      notifications: data,
+      meta,
+      unreadCount,
+    });
   },
 
   /**
@@ -74,34 +55,15 @@ export const notificationController = {
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
 
-      const count = await notificationService.getUnreadCount(userId);
+    const count = await notificationService.getUnreadCount(userId);
 
-      return reply.status(200).send({
-        success: true,
-        count,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub },
-        "Failed to get unread count",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get unread count",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      count,
+    });
   },
 
   /**
@@ -117,34 +79,15 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const { notificationId } = request.params;
-      const userId = request.user.sub;
+    const { notificationService } = request.server;
+    const { notificationId } = request.params;
+    const userId = request.user.sub;
 
-      await notificationService.markAsRead(notificationId, userId);
+    await notificationService.markAsRead(notificationId, userId);
 
-      return reply.status(200).send({
-        success: true,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, notificationId: request.params.notificationId },
-        "Failed to mark notification as read",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to mark notification as read",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+    });
   },
 
   /**
@@ -160,34 +103,15 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const tripId = request.body?.tripId;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const tripId = request.body?.tripId;
 
-      await notificationService.markAllAsRead(userId, tripId);
+    await notificationService.markAllAsRead(userId, tripId);
 
-      return reply.status(200).send({
-        success: true,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub },
-        "Failed to mark all notifications as read",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to mark all notifications as read",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+    });
   },
 
   /**
@@ -204,44 +128,25 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const { tripId } = request.params;
-      const { page, limit, unreadOnly } = request.query;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const { tripId } = request.params;
+    const { page, limit, unreadOnly } = request.query;
 
-      const { data, meta, unreadCount } =
-        await notificationService.getNotifications(userId, {
-          page,
-          limit,
-          unreadOnly,
-          tripId,
-        });
-
-      return reply.status(200).send({
-        success: true,
-        notifications: data,
-        meta,
-        unreadCount,
+    const { data, meta, unreadCount } =
+      await notificationService.getNotifications(userId, {
+        page,
+        limit,
+        unreadOnly,
+        tripId,
       });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
 
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to list trip notifications",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to list trip notifications",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      notifications: data,
+      meta,
+      unreadCount,
+    });
   },
 
   /**
@@ -257,35 +162,16 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const { tripId } = request.params;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const { tripId } = request.params;
 
-      const count = await notificationService.getTripUnreadCount(userId, tripId);
+    const count = await notificationService.getTripUnreadCount(userId, tripId);
 
-      return reply.status(200).send({
-        success: true,
-        count,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to get trip unread count",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get trip unread count",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      count,
+    });
   },
 
   /**
@@ -301,38 +187,19 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const { tripId } = request.params;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const { tripId } = request.params;
 
-      const preferences = await notificationService.getPreferences(
-        userId,
-        tripId,
-      );
+    const preferences = await notificationService.getPreferences(
+      userId,
+      tripId,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        preferences,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to get notification preferences",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to get notification preferences",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      preferences,
+    });
   },
 
   /**
@@ -349,39 +216,20 @@ export const notificationController = {
     }>,
     reply: FastifyReply,
   ) {
-    try {
-      const { notificationService } = request.server;
-      const userId = request.user.sub;
-      const { tripId } = request.params;
-      const body = request.body;
+    const { notificationService } = request.server;
+    const userId = request.user.sub;
+    const { tripId } = request.params;
+    const body = request.body;
 
-      const preferences = await notificationService.updatePreferences(
-        userId,
-        tripId,
-        body,
-      );
+    const preferences = await notificationService.updatePreferences(
+      userId,
+      tripId,
+      body,
+    );
 
-      return reply.status(200).send({
-        success: true,
-        preferences,
-      });
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error) {
-        throw error;
-      }
-
-      request.log.error(
-        { err: error, userId: request.user.sub, tripId: request.params.tripId },
-        "Failed to update notification preferences",
-      );
-
-      return reply.status(500).send({
-        success: false,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update notification preferences",
-        },
-      });
-    }
+    return reply.status(200).send({
+      success: true,
+      preferences,
+    });
   },
 };

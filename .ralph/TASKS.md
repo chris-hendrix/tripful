@@ -381,7 +381,7 @@
 
 ## Phase 16: Audit — Backend Code Quality
 
-- [ ] Task 16.1: Refactor controllers to centralized error handling, add indexes, add response schemas, document plugin deps
+- [x] Task 16.1: Refactor controllers to centralized error handling, add indexes, add response schemas, document plugin deps
   - Implement: In `apps/api/src/controllers/message.controller.ts`, remove all try/catch blocks from controller methods — let Fastify's async error handler propagate `@fastify/error` types automatically (they already have `statusCode`)
   - Implement: In `apps/api/src/controllers/notification.controller.ts`, remove all try/catch blocks from controller methods
   - Implement: In `apps/api/src/db/schema/index.ts`, add indexes: `messages.authorId`, `messageReactions.userId`, `notifications(userId, createdAt DESC)` composite
