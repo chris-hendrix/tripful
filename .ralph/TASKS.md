@@ -241,7 +241,7 @@
   - Verify: `cd apps/api && pnpm vitest run tests/unit/notification.service.test.ts` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 8.3: Improve notification query key granularity
+- [x] Task 8.3: Improve notification query key granularity
   - Implement: In `apps/web/src/hooks/use-notifications.ts` (or `notification-queries.ts`), update notification list query key factory to include `{ tripId, page, limit, unreadOnly }` params
   - Implement: Update all `invalidateQueries` calls that reference the list key
   - Verify: `pnpm typecheck` — no errors

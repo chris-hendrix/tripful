@@ -1292,3 +1292,51 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Test pagination metadata, not just data**: Unit tests for paginated queries should assert `meta.total` and `meta.totalPages` in addition to `data.length`. The existing tests only checked the data, which is why this bug was missed.
 - **When `unreadOnly=true` implies `isNull(readAt)` is already in conditions**, the separate `unreadCount` query becomes redundant (it counts the same rows). This is an acceptable tradeoff for code clarity — the redundant query is cheap and the code is easier to understand.
 - The total notification service test count is now 33 (up from 32 in iteration 7, +1 new pagination test).
+
+---
+
+## Iteration 23 — Task 8.3: Improve notification query key granularity ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/web/src/hooks/notification-queries.ts` — Two targeted changes:
+
+**Change 1: Expanded `notificationKeys.list` type signature** (line 16):
+- Before: `list: (params?: { tripId?: string }) => ["notifications", "list", params] as const`
+- After: `list: (params?: { tripId?: string; page?: number; limit?: number; unreadOnly?: boolean }) => ["notifications", "list", params] as const`
+- This allows the query key factory to accept all filter parameters, not just `tripId`.
+
+**Change 2: Updated `notificationsQueryOptions` queryKey** (line 44):
+- Before: `queryKey: notificationKeys.list(params?.tripId ? { tripId: params.tripId } : undefined)`
+- After: `queryKey: notificationKeys.list(params)`
+- This passes ALL provided params (tripId, page, limit, unreadOnly) into the query key, so TanStack Query correctly creates separate cache entries for different filter combinations.
+
+### Key implementation details
+- **No changes to `use-notifications.ts`**: All `invalidateQueries`, `cancelQueries`, `getQueriesData`, and `setQueryData` calls use `notificationKeys.lists()` which returns the prefix `["notifications", "list"]`. TanStack Query's prefix matching ensures this catches ALL parameterized list keys, regardless of their specific params. This is the correct pattern and requires no changes.
+- **Better cache granularity**: Previously, `useNotifications({ limit: 10 })` (dropdown) and `useNotifications({ tripId, limit: 20 })` (trip dialog) with the same `tripId` but different limits would share a cache entry (only `tripId` was in the key). Now each unique combination of `{ tripId, page, limit, unreadOnly }` gets its own cache entry via TanStack Query's deep equality comparison on the key object.
+- **Consumer compatibility**: Both existing consumers produce correct keys:
+  - `notification-dropdown.tsx`: `useNotifications({ limit: 10 })` → key `["notifications", "list", { limit: 10 }]`
+  - `trip-notification-dialog.tsx`: `useNotifications({ tripId, limit: PAGE_SIZE * page })` → key `["notifications", "list", { tripId: "...", limit: 20 }]`
+- **Optimistic updates still work**: `getQueriesData({ queryKey: notificationKeys.lists() })` continues to iterate over ALL cached list entries (including entries with different param combinations), so optimistic updates in `useMarkAsRead` and `useMarkAllAsRead` correctly update all relevant caches.
+
+### Verification results
+- **TypeScript**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint**: ✅ All 3 packages pass with 0 errors
+- **Tests**: ✅ 1021 web tests pass across 55 test files, 0 failures
+
+### Reviewer verdict: APPROVED
+- Changes are minimal, correct, and complete
+- Only the two lines that needed changing were modified
+- Key factory expansion is consistent with the existing `all > lists > list(params)` hierarchy
+- All `invalidateQueries` calls verified to work correctly via prefix matching (6 usages checked)
+- Consumer compatibility verified for both `notification-dropdown.tsx` and `trip-notification-dialog.tsx`
+- No breaking changes introduced
+- 0 blocking issues, 0 non-blocking observations of concern
+
+### Learnings for future iterations
+- **TanStack Query prefix matching is the key to safe key expansion**: When all mutation hooks use a prefix key (like `lists()` returning `["notifications", "list"]`) for invalidation and optimistic updates, expanding the specific query key (like `list(params)`) is safe and non-breaking. The prefix always matches all child keys.
+- **Pass all params to query keys for correct cache separation**: When a query accepts filter params (page, limit, unreadOnly), they should be included in the query key so TanStack Query creates separate cache entries. The previous approach of only including `tripId` meant different views with different limits could overwrite each other's cached data.
+- **Deep equality for objects in TanStack Query keys**: TanStack Query uses deep equality to compare key segments. This means `{ limit: 10 }` and `{ limit: 20 }` produce different cache entries, which is the desired behavior. However, `undefined` and `{}` are NOT equal, so it's important to pass `undefined` (not `{}`) when no params are provided.
+- **Minimal changes are best for cleanup tasks**: This task only required 2 lines changed in 1 file. No test changes, no consumer changes. The existing architecture was well-designed with the prefix matching pattern, so expanding the key granularity was a surgical change.
+- The web package still has 1021 passing tests (no new tests in this iteration — pure cache key improvement).

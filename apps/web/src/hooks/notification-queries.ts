@@ -13,7 +13,7 @@ import type {
 export const notificationKeys = {
   all: ["notifications"] as const,
   lists: () => ["notifications", "list"] as const,
-  list: (params?: { tripId?: string }) =>
+  list: (params?: { tripId?: string; page?: number; limit?: number; unreadOnly?: boolean }) =>
     ["notifications", "list", params] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
   tripUnreadCount: (tripId: string) =>
@@ -41,9 +41,7 @@ export const notificationsQueryOptions = (params?: {
   unreadOnly?: boolean;
 }) =>
   queryOptions({
-    queryKey: notificationKeys.list(
-      params?.tripId ? { tripId: params.tripId } : undefined,
-    ),
+    queryKey: notificationKeys.list(params),
     staleTime: 30 * 1000,
     queryFn: async ({ signal }) => {
       const searchParams = new URLSearchParams();
