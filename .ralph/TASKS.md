@@ -281,7 +281,7 @@
   - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 10.2: Wrap `createDefaultPreferences` in try/catch in InvitationService
+- [x] Task 10.2: Wrap `createDefaultPreferences` in try/catch in InvitationService
   - Implement: In `apps/api/src/services/invitation.service.ts` `updateRsvp` method, wrap the `createDefaultPreferences` call in try/catch with logging
   - Note: Method is already idempotent via `onConflictDoNothing()`, this is purely for consistency and logging
   - Verify: `cd apps/api && pnpm vitest run tests/unit/invitation.service.test.ts` — all pass

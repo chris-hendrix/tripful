@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { db } from "@/config/database.js";
 import {
   users,
@@ -512,6 +512,41 @@ describe("invitation.service", () => {
       await expect(
         invitationService.updateRsvp(testNonMemberId, testTripId, "going"),
       ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should log error when createDefaultPreferences fails but still return updated member", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const failingNotificationService = {
+        ...notificationService,
+        createDefaultPreferences: vi.fn().mockRejectedValue(new Error("DB connection failed")),
+      } as unknown as typeof notificationService;
+
+      const serviceWithLogger = new InvitationService(
+        db,
+        permissionsService,
+        smsService,
+        failingNotificationService,
+        mockLogger,
+      );
+
+      const result = await serviceWithLogger.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+      );
+
+      expect(result).toBeDefined();
+      expect(result.status).toBe("going");
+      expect(result.userId).toBe(testMemberId);
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        "Failed to create default notification preferences",
+      );
     });
   });
 

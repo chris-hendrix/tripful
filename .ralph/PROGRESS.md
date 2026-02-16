@@ -1591,3 +1591,44 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Codebase convention over task spec**: When the task description suggests `{ err, tripId, messageId }` object format but the codebase uses `(err, "message string")` Pino-style, follow the codebase convention. Consistency is more important than matching the spec exactly.
 - **Optional parameters need no test migration**: When adding optional constructor parameters, existing test instances that don't pass the new parameter continue to work. Only the new test uses the logger; existing tests are unmodified.
 - The API package now has 983 tests passing (59 message service tests, up from 58).
+
+---
+
+## Iteration 29 — Task 10.2: Wrap `createDefaultPreferences` in try/catch in InvitationService ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/api/src/services/invitation.service.ts` — 3 changes:
+  1. Added import: `import type { Logger } from "@/types/logger.js";`
+  2. Added optional 5th constructor parameter: `private logger?: Logger`
+  3. Wrapped the `createDefaultPreferences` call in `updateRsvp` with try/catch: `this.logger?.error(err, "Failed to create default notification preferences")`
+
+- Modified `/home/chend/git/tripful/apps/api/src/plugins/invitation-service.ts` — Added `fastify.log` as the 5th argument to `new InvitationService(...)`, matching the message-service and scheduler-service plugin patterns.
+
+- Modified `/home/chend/git/tripful/apps/api/tests/unit/invitation.service.test.ts` — Added `vi` to vitest imports and added 1 new test: "should log error when createDefaultPreferences fails but still return updated member". Creates a mock logger with `{ info: vi.fn(), error: vi.fn() }`, a failing notification service (`createDefaultPreferences` rejects), constructs a separate `InvitationService` with both mocks, verifies RSVP update to "going" succeeds despite failure, and asserts `mockLogger.error` was called once with `(Error, "Failed to create default notification preferences")`.
+
+### Key implementation details
+- **Follows MessageService pattern exactly**: Same `Logger` type import, same optional constructor position (last parameter), same try/catch pattern with `this.logger?.error(err, "message")` and optional chaining. This is the third service to use this pattern (SchedulerService, MessageService, now InvitationService).
+- **The `createDefaultPreferences` method is already idempotent** via `onConflictDoNothing()`. The try/catch is purely defensive against transient DB errors that could otherwise break the RSVP update response even though the RSVP status was already persisted.
+- **Error does NOT re-throw**: The catch block swallows the error after logging. The RSVP update succeeds regardless.
+- **Logger is optional**: All existing tests work unchanged without passing a logger.
+- **IInvitationService interface unchanged**: The logger is a constructor implementation detail.
+
+### Verification results
+- **Invitation service unit tests**: ✅ 34/34 tests pass (33 existing + 1 new)
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- Implementation follows established codebase pattern exactly (MessageService, SchedulerService)
+- Logger parameter is optional, preserving backward compatibility
+- Plugin correctly passes `fastify.log`
+- Try/catch correctly swallows error and logs it
+- Test quality is strong — verifies both non-throwing behavior and logging
+- No issues found, 0 blocking/non-blocking concerns
+
+### Learnings for future iterations
+- **Logger pattern is now used in 3 services**: SchedulerService, MessageService, and InvitationService all follow the identical pattern: `import type { Logger } from "@/types/logger.js"` + `private logger?: Logger` (last constructor param) + `this.logger?.error(err, "message")` with optional chaining. This is the established convention.
+- **Defensive try/catch for non-critical side effects**: When a service performs a non-critical side effect (like creating default preferences after an RSVP update), wrapping it in try/catch ensures the primary operation's response is not broken by secondary failures.
+- The API package now has 984 tests passing (34 invitation service tests, up from 33).

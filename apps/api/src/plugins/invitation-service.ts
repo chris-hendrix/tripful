@@ -13,6 +13,7 @@ export default fp(
       fastify.permissionsService,
       fastify.smsService,
       fastify.notificationService,
+      fastify.log,
     );
     fastify.decorate("invitationService", invitationService);
   },
