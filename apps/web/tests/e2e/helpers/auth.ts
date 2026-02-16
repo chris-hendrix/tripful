@@ -1,14 +1,24 @@
 import type { Page, APIRequestContext } from "@playwright/test";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+} from "./timeouts";
 
 const API_BASE = "http://localhost:8000/api";
 
 let phoneCounter = 0;
 
-/** Generate a unique E.164 phone number (max 15 digits). */
+/**
+ * Generate a unique E.164 phone number (max 15 digits).
+ * Incorporates process.pid to prevent collisions in parallel Playwright workers.
+ * The "555" substring is required by the API's test-number bypass (phone.includes("555")).
+ * Format: +1555{pid:2}{ts:5}{counter:2} = 13 digits total (within E.164's 15-digit max).
+ */
 export function generateUniquePhone(): string {
-  const ts = Date.now().toString().slice(-7);
-  const counter = (++phoneCounter % 1000).toString().padStart(3, "0");
-  return `+1555${ts}${counter}`;
+  const pid = (process.pid % 100).toString().padStart(2, "0");
+  const ts = Date.now().toString().slice(-5);
+  const counter = (++phoneCounter % 100).toString().padStart(2, "0");
+  return `+1555${pid}${ts}${counter}`;
 }
 
 /**
@@ -58,7 +68,7 @@ export async function loginViaBrowser(
   await codeInput.fill("123456");
   await page.locator('button:has-text("Verify")').click();
 
-  await page.waitForURL("**/trips", { timeout: 10000 });
+  await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
 }
 
 /**
@@ -113,12 +123,12 @@ export async function authenticateViaAPI(
     },
   ]);
   await page.goto("/trips");
-  await page.waitForURL("**/trips", { timeout: 10000 });
+  await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
   // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
-  await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
+  await page.getByText(/\d+ trips?/).waitFor({ timeout: ELEMENT_TIMEOUT });
   // Ensure page is fully interactive — wait for client-rendered user menu
   // which confirms React hydration and auth context are complete
-  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
   return phone;
 }
 
@@ -144,12 +154,12 @@ export async function authenticateViaAPIWithPhone(
     },
   ]);
   await page.goto("/trips");
-  await page.waitForURL("**/trips", { timeout: 10000 });
+  await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
   // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
-  await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
+  await page.getByText(/\d+ trips?/).waitFor({ timeout: ELEMENT_TIMEOUT });
   // Ensure page is fully interactive — wait for client-rendered user menu
   // which confirms React hydration and auth context are complete
-  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
 }
 
 /**

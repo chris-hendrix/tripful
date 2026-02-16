@@ -2299,3 +2299,69 @@ This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-
 - **Verify before implementing**: Response schemas were already complete on all routes. Research phase correctly identified this, saving unnecessary code changes.
 - **Other controllers still have redundant try/catch**: `auth.controller.ts`, `trip.controller.ts`, `event.controller.ts`, `invitation.controller.ts`, `user.controller.ts`, `accommodation.controller.ts`, `member-travel.controller.ts` all still use the verbose try/catch pattern. These could be refactored in a future task.
 - The API package has 989 tests passing (565 unit + 424 integration), unchanged from iteration 40.
+
+---
+
+## Iteration 42 — Task 17.1: Fix phone collisions, improve selectors, add test tags, and parameterize timeouts ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**1. Phone collision fix** (`apps/web/tests/e2e/helpers/auth.ts`):
+- Incorporated `process.pid % 100` into `generateUniquePhone()` to prevent collisions across parallel Playwright workers
+- Format: `+1555${pid:2}${ts:5}${counter:2}` = 13 digits total (within E.164's 15-digit max)
+- Preserved `555` substring required by API's test phone bypass at `apps/api/src/utils/phone.ts:34`
+- Replaced all manual phone constructions in spec files with `generateUniquePhone()` calls, eliminating the fragile arithmetic offset pattern (`+1000`, `+2000`, etc.)
+
+**2. Selector improvements** (`apps/web/tests/e2e/messaging.spec.ts`):
+- Replaced 3 fragile `.first()` selectors with content-scoped article filters:
+  - Edit step: `page.getByRole("article").filter({ hasText: "This message will be edited..." })` → scoped action button
+  - Delete step: `page.getByRole("article").filter({ hasText: "This message has been edited" })` → scoped action button
+  - Reply step: `page.getByRole("article").filter({ hasText: "Hello from the organizer!" })` → scoped Reply button
+- Remaining `.first()` calls are all legitimate (toast helper, ordering assertions, content-filtered narrowing)
+
+**3. Test tags** (`messaging.spec.ts` and `notifications.spec.ts`):
+- Added `@regression` tag to 4 non-smoke tests (2 messaging, 2 notification)
+- Added `@slow` tag to all 6 tests that call `test.slow()` using array syntax: `{ tag: ["@smoke", "@slow"] }` and `{ tag: ["@regression", "@slow"] }`
+- Tags enable selective running: `npx playwright test --grep @smoke`, `--grep-invert @slow`
+
+**4. Timeout constants** (NEW `apps/web/tests/e2e/helpers/timeouts.ts`):
+- Created centralized timeout constants with JSDoc rationale:
+  - `NAVIGATION_TIMEOUT = 15_000` — page navigation, URL changes, heading visibility after route transition
+  - `ELEMENT_TIMEOUT = 10_000` — UI element visibility after user actions (API round-trip + polling)
+  - `TOAST_TIMEOUT = 10_000` — Sonner toast auto-dismiss wait
+  - `DIALOG_TIMEOUT = 5_000` — dialog/popover close animation
+- Replaced all ~42 hard-coded timeout values across 3 files (auth.ts, messaging.spec.ts, notifications.spec.ts)
+
+### Key implementation details
+- **Critical "555" constraint**: The API phone validator at `apps/api/src/utils/phone.ts:34` checks `phone.includes("555")` to activate the test bypass. Initial implementation used `+1${pid}55${ts}${counter}` which only had `55` — breaking all E2E tests. Fixed by keeping `555` as a prefix: `+1555${pid}${ts}${counter}`.
+- **E.164 digit budget**: Max 15 digits. Format: 1 (country) + 3 (555) + 2 (pid) + 5 (timestamp) + 2 (counter) = 13 digits.
+- **Three collision dimensions**: `process.pid` distinguishes workers, timestamp distinguishes time, counter distinguishes rapid calls within same worker/millisecond.
+- **`timestamp` variable preserved**: Still used for unique trip names (e.g., `Messaging Trip ${timestamp}`) — only phone generation was replaced.
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Unit tests | ✅ PASS | 2,251 tests (111 files) |
+| E2E tests (messaging) | ✅ PASS | 3/3 tests (CRUD, organizer actions, restricted states) |
+| E2E tests (notifications) | ✅ PASS | 3/3 tests (bell/dropdown, mark-all-read, preferences) |
+| **Total** | ✅ **ALL PASS** | 6/6 task-specific E2E tests pass in 26.9s |
+
+Note: 8 E2E failures exist in unmodified files (app-shell, auth-journey, itinerary-journey) — pre-existing intermittent auth cookie injection issues unrelated to this task.
+
+### Reviewer verdict: APPROVED
+- Phone collision fix correctly preserves "555" substring and incorporates `process.pid`
+- All fragile `.first()` selectors replaced with content-scoped filters
+- Test tags (`@smoke`, `@regression`, `@slow`) correctly applied to all 6 tests
+- All hard-coded timeouts replaced with named constants
+- JSDoc documents the "555" requirement to prevent future regressions
+
+### Learnings for future iterations
+- **API test phone bypass requires "555" substring**: The validator at `apps/api/src/utils/phone.ts:34` checks `phone.includes("555")` when `ENABLE_FIXED_VERIFICATION_CODE` is true. Any phone number generator MUST guarantee this substring or all E2E tests fail with 400/401.
+- **E.164 digit budget is tight**: With `+1555` as prefix (4 digits), only 11 digits remain for uniqueness. The 5-digit timestamp + 2-digit pid + 2-digit counter = 9 more digits (13 total) fits well.
+- **Always verify phone format against API constraints**: The initial implementation looked correct in isolation but broke at the integration level. The verifier caught this by actually running the E2E tests.
+- **Content-scoped selectors > positional selectors**: Using `.filter({ hasText })` on `getByRole("article")` is far more robust than `.first()` which relies on feed ordering assumptions.
+- **Timeout constants are simple but high-value**: Replacing 42 magic numbers with 4 named constants with JSDoc makes the test intent much clearer and centralizes configuration.

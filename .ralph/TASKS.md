@@ -395,7 +395,7 @@
 
 ## Phase 17: Audit — E2E Test Robustness
 
-- [ ] Task 17.1: Fix phone collisions, improve selectors, add test tags, and parameterize timeouts
+- [x] Task 17.1: Fix phone collisions, improve selectors, add test tags, and parameterize timeouts
   - Implement: In `apps/web/tests/e2e/helpers/auth.ts`, append `process.pid` or random 4-digit suffix to generated phone numbers to prevent collisions in parallel runs
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts:142-146,179,207,233`, replace `.first()` on dynamic lists with content-based filtering (`.filter({ hasText })`) or `data-testid` attributes
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts` and `notifications.spec.ts`, add `@smoke` tag to core flow tests, `@regression` to full suite, `@slow` to long-running tests

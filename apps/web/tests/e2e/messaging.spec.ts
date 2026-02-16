@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { authenticateViaAPIWithPhone, createUserViaAPI } from "./helpers/auth";
+import {
+  authenticateViaAPIWithPhone,
+  createUserViaAPI,
+  generateUniquePhone,
+} from "./helpers/auth";
 import {
   createTripViaAPI,
   inviteViaAPI,
@@ -7,6 +11,11 @@ import {
 } from "./helpers/invitations";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { snap } from "./helpers/screenshots";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Messaging Flows
@@ -27,17 +36,17 @@ async function dismissToast(page: import("@playwright/test").Page) {
       return false;
     })
   ) {
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
+    await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
   }
 }
 
 /** Helper: scroll to the discussion section and wait for it to be visible. */
 async function scrollToDiscussion(page: import("@playwright/test").Page) {
   const discussion = page.locator("#discussion");
-  await discussion.waitFor({ state: "attached", timeout: 15000 });
+  await discussion.waitFor({ state: "attached", timeout: NAVIGATION_TIMEOUT });
   await discussion.scrollIntoViewIfNeeded();
   await expect(page.getByRole("heading", { name: "Discussion" })).toBeVisible({
-    timeout: 10000,
+    timeout: ELEMENT_TIMEOUT,
   });
 }
 
@@ -49,7 +58,7 @@ test.describe("Messaging Journey", () => {
 
   test(
     "messaging CRUD journey",
-    { tag: "@smoke" },
+    { tag: ["@smoke", "@slow"] },
     async ({ page, request }) => {
       test.slow(); // Multiple auth cycles and polling waits
 
@@ -58,9 +67,8 @@ test.describe("Messaging Journey", () => {
       // recently posted message appearing at the top of the feed.
 
       const timestamp = Date.now();
-      const shortTimestamp = timestamp.toString().slice(-10);
-      const organizerPhone = `+1555${shortTimestamp}`;
-      const memberPhone = `+1555${(parseInt(shortTimestamp) + 1000).toString()}`;
+      const organizerPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
 
       let tripId: string;
       let organizerCookie: string;
@@ -97,7 +105,7 @@ test.describe("Messaging Journey", () => {
         );
         await page.goto(`/trips/${tripId}`);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
         await scrollToDiscussion(page);
       });
@@ -116,7 +124,7 @@ test.describe("Messaging Journey", () => {
         await expect(
           page.getByRole("feed").getByText("Hello from the organizer!"),
         ).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         // Empty state should be gone
         await expect(
@@ -133,7 +141,7 @@ test.describe("Messaging Journey", () => {
 
         await expect(
           page.getByRole("feed").getByText("This message will be edited then deleted"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await test.step("verify feed ordering: newest message appears first", async () => {
@@ -163,7 +171,7 @@ test.describe("Messaging Journey", () => {
 
         // Verify the reaction is active
         await expect(heartButton).toHaveAttribute("aria-pressed", "true", {
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         // Verify count shows "1"
         await expect(heartButton.locator("span").last()).toContainText("1");
@@ -172,11 +180,15 @@ test.describe("Messaging Journey", () => {
       await test.step("edit the second message", async () => {
         await dismissToast(page);
 
-        // The feed renders newest-first, so the second-posted message appears FIRST
-        const actionsButton = page.getByRole("button", {
+        // Scope to the specific message that was edited
+        const editMessageCard = page
+          .getByRole("feed")
+          .getByRole("article")
+          .filter({ hasText: "This message will be edited then deleted" });
+        const actionsButton = editMessageCard.getByRole("button", {
           name: "Actions for message by Msg Organizer",
         });
-        await actionsButton.first().click();
+        await actionsButton.click();
 
         await page.getByRole("menuitem", { name: "Edit" }).click();
 
@@ -190,7 +202,7 @@ test.describe("Messaging Journey", () => {
 
         // Verify "(edited)" indicator appears
         await expect(page.getByText("(edited)")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         await expect(
           page.getByRole("feed").getByText("This message has been edited"),
@@ -200,11 +212,15 @@ test.describe("Messaging Journey", () => {
       await test.step("delete the second message", async () => {
         await dismissToast(page);
 
-        // The edited message is still first in the feed (newest-first)
-        const actionsButton = page.getByRole("button", {
+        // Scope to the edited message
+        const editedMessageCard = page
+          .getByRole("feed")
+          .getByRole("article")
+          .filter({ hasText: "This message has been edited" });
+        const actionsButton = editedMessageCard.getByRole("button", {
           name: "Actions for message by Msg Organizer",
         });
-        await actionsButton.first().click();
+        await actionsButton.click();
 
         await page.getByRole("menuitem", { name: "Delete" }).click();
 
@@ -219,7 +235,7 @@ test.describe("Messaging Journey", () => {
         await expect(
           page.getByRole("feed").getByText("This message was deleted"),
         ).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         await expect(
           page.getByRole("feed").getByText("This message has been edited"),
@@ -229,8 +245,12 @@ test.describe("Messaging Journey", () => {
       await test.step("reply to the first message", async () => {
         await dismissToast(page);
 
-        // Find the Reply button for the first message
-        const replyButton = page.getByRole("button", { name: "Reply" }).first();
+        // Scope the Reply button to the "Hello from the organizer!" message
+        const firstMessageCard = page
+          .getByRole("feed")
+          .getByRole("article")
+          .filter({ hasText: "Hello from the organizer!" });
+        const replyButton = firstMessageCard.getByRole("button", { name: "Reply" });
         await replyButton.click();
 
         // The reply input should appear
@@ -245,20 +265,19 @@ test.describe("Messaging Journey", () => {
         // Verify the reply text appears in a rendered paragraph (not the textarea)
         await expect(
           page.getByRole("feed").locator("p").getByText("This is a reply to the first message"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await snap(page, "41-messaging-after-crud");
     },
   );
 
-  test("organizer actions journey", async ({ page, request }) => {
+  test("organizer actions journey", { tag: ["@regression", "@slow"] }, async ({ page, request }) => {
     test.slow(); // Multiple auth cycles
 
     const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const memberPhone = `+1555${(parseInt(shortTimestamp) + 2000).toString()}`;
+    const organizerPhone = generateUniquePhone();
+    const memberPhone = generateUniquePhone();
 
     let tripId: string;
     let organizerCookie: string;
@@ -306,14 +325,14 @@ test.describe("Messaging Journey", () => {
       );
       await page.goto(`/trips/${tripId}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: 15000,
+        timeout: NAVIGATION_TIMEOUT,
       });
       await scrollToDiscussion(page);
 
       await expect(
         page.getByRole("feed").getByText("Hello from the member!"),
       ).toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
     });
 
@@ -329,7 +348,7 @@ test.describe("Messaging Journey", () => {
 
       // Verify pinned section appears
       await expect(page.getByText(/Pinned \(1\)/)).toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
     });
 
@@ -361,7 +380,7 @@ test.describe("Messaging Journey", () => {
 
       // Verify pinned section disappears
       await expect(page.getByText(/Pinned \(\d+\)/)).not.toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
     });
 
@@ -385,7 +404,7 @@ test.describe("Messaging Journey", () => {
       await expect(
         page.getByRole("feed").getByText("This message was deleted"),
       ).toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
       await expect(
         page.getByRole("feed").getByText("Hello from the member!"),
@@ -419,23 +438,22 @@ test.describe("Messaging Journey", () => {
 
       // Verify toast
       await expect(page.getByText(/Regular Member has been muted/)).toBeVisible(
-        { timeout: 10000 },
+        { timeout: ELEMENT_TIMEOUT },
       );
 
       // Verify "Muted" badge appears in the dialog
-      await expect(dialog.getByText("Muted")).toBeVisible({ timeout: 10000 });
+      await expect(dialog.getByText("Muted")).toBeVisible({ timeout: ELEMENT_TIMEOUT });
     });
 
     await snap(page, "43-messaging-member-muted");
   });
 
-  test("restricted states journey", async ({ page, request }) => {
+  test("restricted states journey", { tag: ["@regression", "@slow"] }, async ({ page, request }) => {
     test.slow(); // Multiple auth cycles
 
     const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const memberPhone = `+1555${(parseInt(shortTimestamp) + 3000).toString()}`;
+    const organizerPhone = generateUniquePhone();
+    const memberPhone = generateUniquePhone();
 
     let tripId: string;
     let organizerCookie: string;
@@ -491,7 +509,7 @@ test.describe("Messaging Journey", () => {
       );
       await page.goto(`/trips/${tripId}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: 15000,
+        timeout: NAVIGATION_TIMEOUT,
       });
       await scrollToDiscussion(page);
 
@@ -506,7 +524,7 @@ test.describe("Messaging Journey", () => {
       // Should see an error toast about being muted
       await expect(
         page.locator("[data-sonner-toast]").getByText(/muted/i),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
     });
 
     await snap(page, "44-messaging-muted-error");
@@ -514,7 +532,7 @@ test.describe("Messaging Journey", () => {
     // --- Past trip read-only test ---
 
     let pastTripId: string;
-    const pastOrgPhone = `+1555${(parseInt(shortTimestamp) + 4000).toString()}`;
+    const pastOrgPhone = generateUniquePhone();
 
     await test.step("setup: create a trip, post a message, then set it to past dates", async () => {
       const pastOrgCookie = await createUserViaAPI(
@@ -562,14 +580,14 @@ test.describe("Messaging Journey", () => {
       );
       await page.goto(`/trips/${pastTripId}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: 15000,
+        timeout: NAVIGATION_TIMEOUT,
       });
       await scrollToDiscussion(page);
 
       // Verify "Trip has ended" disabled message instead of input (scoped to discussion section)
       const discussion = page.locator("#discussion");
       await expect(discussion.getByText("Trip has ended")).toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
       // The text input should NOT be visible (disabled state renders message instead)
       await expect(
@@ -582,7 +600,7 @@ test.describe("Messaging Journey", () => {
       await expect(
         page.getByRole("feed").getByText("Old message from the past"),
       ).toBeVisible({
-        timeout: 10000,
+        timeout: ELEMENT_TIMEOUT,
       });
 
       // No action buttons should be present (disabled=true removes them)

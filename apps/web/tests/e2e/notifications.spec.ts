@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { authenticateViaAPIWithPhone, createUserViaAPI } from "./helpers/auth";
+import {
+  authenticateViaAPIWithPhone,
+  createUserViaAPI,
+  generateUniquePhone,
+} from "./helpers/auth";
 import {
   createTripViaAPI,
   inviteViaAPI,
@@ -7,6 +11,12 @@ import {
 } from "./helpers/invitations";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { snap } from "./helpers/screenshots";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+  DIALOG_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Notification Flows
@@ -27,7 +37,7 @@ async function dismissToast(page: import("@playwright/test").Page) {
       return false;
     })
   ) {
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
+    await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
   }
 }
 
@@ -39,14 +49,13 @@ test.describe("Notification Journey", () => {
 
   test(
     "notification bell and dropdown journey",
-    { tag: "@smoke" },
+    { tag: ["@smoke", "@slow"] },
     async ({ page, request }) => {
       test.slow(); // Multiple auth cycles and polling waits
 
       const timestamp = Date.now();
-      const shortTimestamp = timestamp.toString().slice(-10);
-      const organizerPhone = `+1555${shortTimestamp}`;
-      const memberPhone = `+1555${(parseInt(shortTimestamp) + 5000).toString()}`;
+      const organizerPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
 
       let tripId: string;
       let organizerCookie: string;
@@ -97,7 +106,7 @@ test.describe("Notification Journey", () => {
         const bell = page.getByRole("button", {
           name: /Notifications, 1 unread/,
         });
-        await expect(bell).toBeVisible({ timeout: 15000 });
+        await expect(bell).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("click bell and verify dropdown with notification", async () => {
@@ -109,7 +118,7 @@ test.describe("Notification Journey", () => {
         // Verify the dropdown heading
         await expect(
           page.getByRole("heading", { name: "Notifications" }),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
         // Verify the notification item shows "New message" title and "Alice:" in body
         await expect(page.getByText("New message")).toBeVisible();
@@ -127,9 +136,9 @@ test.describe("Notification Journey", () => {
         await notificationItem.click();
 
         // Wait for navigation to trip page with #discussion hash
-        await page.waitForURL(`**/trips/${tripId}**`, { timeout: 15000 });
+        await page.waitForURL(`**/trips/${tripId}**`, { timeout: NAVIGATION_TIMEOUT });
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
       });
 
@@ -140,30 +149,29 @@ test.describe("Notification Journey", () => {
         // Use exact: true to avoid matching "Trip notifications" bell on trip page.
         await expect(
           page.getByRole("button", { name: /^Notifications, \d+ unread$/ }),
-        ).not.toBeVisible({ timeout: 15000 });
+        ).not.toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         // Bell should now say "Notifications" without any unread count
         const bell = page.getByRole("button", {
           name: "Notifications",
           exact: true,
         });
-        await expect(bell).toBeVisible({ timeout: 10000 });
+        await expect(bell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await snap(page, "51-notification-after-click");
     },
   );
 
-  test("mark all as read and trip notification bell journey", async ({
+  test("mark all as read and trip notification bell journey", { tag: ["@regression", "@slow"] }, async ({
     page,
     request,
   }) => {
     test.slow(); // Multiple auth cycles and polling waits
 
     const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const memberPhone = `+1555${(parseInt(shortTimestamp) + 6000).toString()}`;
+    const organizerPhone = generateUniquePhone();
+    const memberPhone = generateUniquePhone();
 
     let tripId: string;
     let organizerCookie: string;
@@ -214,7 +222,7 @@ test.describe("Notification Journey", () => {
       await authenticateViaAPIWithPhone(page, request, memberPhone, "Bob");
       await page.goto(`/trips/${tripId}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: 15000,
+        timeout: NAVIGATION_TIMEOUT,
       });
     });
 
@@ -222,7 +230,7 @@ test.describe("Notification Journey", () => {
       const tripBell = page.getByRole("button", {
         name: /Trip notifications, 2 unread/,
       });
-      await expect(tripBell).toBeVisible({ timeout: 15000 });
+      await expect(tripBell).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
     });
 
     await test.step("click trip bell and verify dialog with 2 notifications", async () => {
@@ -234,13 +242,13 @@ test.describe("Notification Journey", () => {
       const dialog = page.getByRole("dialog");
       await expect(
         dialog.getByRole("heading", { name: "Trip notifications" }),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       // Verify "Notifications" tab is active and shows 2 items
       const notificationItems = dialog
         .locator("button")
         .filter({ hasText: "New message" });
-      await expect(notificationItems).toHaveCount(2, { timeout: 10000 });
+      await expect(notificationItems).toHaveCount(2, { timeout: ELEMENT_TIMEOUT });
     });
 
     await snap(page, "52-trip-notification-dialog-2-unread");
@@ -259,14 +267,14 @@ test.describe("Notification Journey", () => {
       const dialog = page.getByRole("dialog");
       // Press Escape to close the dialog
       await page.keyboard.press("Escape");
-      await expect(dialog).not.toBeVisible({ timeout: 5000 });
+      await expect(dialog).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
 
       // Trip bell should now say "Trip notifications" without count
       const tripBell = page.getByRole("button", {
         name: "Trip notifications",
         exact: true,
       });
-      await expect(tripBell).toBeVisible({ timeout: 10000 });
+      await expect(tripBell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       // Should NOT have unread count
       await expect(
@@ -283,7 +291,7 @@ test.describe("Notification Journey", () => {
         name: "Notifications",
         exact: true,
       });
-      await expect(globalBell).toBeVisible({ timeout: 10000 });
+      await expect(globalBell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       await expect(
         page.getByRole("button", {
@@ -293,13 +301,12 @@ test.describe("Notification Journey", () => {
     });
   });
 
-  test("notification preferences journey", async ({ page, request }) => {
+  test("notification preferences journey", { tag: ["@regression", "@slow"] }, async ({ page, request }) => {
     test.slow(); // Multiple auth cycles
 
     const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const memberPhone = `+1555${(parseInt(shortTimestamp) + 7000).toString()}`;
+    const organizerPhone = generateUniquePhone();
+    const memberPhone = generateUniquePhone();
 
     let tripId: string;
 
@@ -330,7 +337,7 @@ test.describe("Notification Journey", () => {
       await authenticateViaAPIWithPhone(page, request, memberPhone, "Bob");
       await page.goto(`/trips/${tripId}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: 15000,
+        timeout: NAVIGATION_TIMEOUT,
       });
     });
 
@@ -338,13 +345,13 @@ test.describe("Notification Journey", () => {
       const tripBell = page.getByRole("button", {
         name: /Trip notifications/,
       });
-      await expect(tripBell).toBeVisible({ timeout: 10000 });
+      await expect(tripBell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       await tripBell.click();
 
       const dialog = page.getByRole("dialog");
       await expect(
         dialog.getByRole("heading", { name: "Trip notifications" }),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       // Click the "Preferences" tab
       await dialog.getByRole("tab", { name: "Preferences" }).click();
@@ -361,7 +368,7 @@ test.describe("Notification Journey", () => {
         name: "Trip Messages",
       });
 
-      await expect(eventRemindersSwitch).toBeVisible({ timeout: 10000 });
+      await expect(eventRemindersSwitch).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       await expect(dailyItinerarySwitch).toBeVisible();
       await expect(tripMessagesSwitch).toBeVisible();
 
@@ -391,7 +398,7 @@ test.describe("Notification Journey", () => {
       // Verify toast "Preferences updated" appears
       await expect(
         page.locator("[data-sonner-toast]").getByText("Preferences updated"),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
     });
 
     await test.step("dismiss toast and verify switch is unchecked", async () => {
@@ -417,7 +424,7 @@ test.describe("Notification Journey", () => {
       // Verify toast "Preferences updated" appears again
       await expect(
         page.locator("[data-sonner-toast]").getByText("Preferences updated"),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
     });
 
     await test.step("verify Trip Messages switch is checked again", async () => {
