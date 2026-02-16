@@ -91,18 +91,15 @@ test.describe("Trip Journey", () => {
       await tripDetail.editButton.click();
       await expect(tripDetail.editDialogHeading).toBeVisible();
 
-      await expect(tripDetail.step1Indicator).toBeVisible();
+      // Edit dialog is a single form (no stepper)
       await expect(tripDetail.nameInput).toHaveValue(tripName);
       await expect(tripDetail.destinationInput).toHaveValue(tripDestination);
       await expect(tripDetail.startDateButton).toContainText("Oct 12, 2026");
       await expect(tripDetail.endDateButton).toContainText("Oct 14, 2026");
+      await expect(tripDetail.descriptionInput).toHaveValue(tripDescription);
 
       await tripDetail.nameInput.fill(updatedName);
       await tripDetail.destinationInput.fill(updatedDestination);
-      await tripDetail.continueButton.click();
-
-      await expect(tripDetail.step2Indicator).toBeVisible();
-      await expect(tripDetail.descriptionInput).toHaveValue(tripDescription);
       await tripDetail.descriptionInput.fill(updatedDescription);
       await tripDetail.updateTripButton.click();
     });
@@ -132,10 +129,8 @@ test.describe("Trip Journey", () => {
 
       await tripDetail.editButton.click();
       await expect(tripDetail.editDialogHeading).toBeVisible();
-      await tripDetail.continueButton.click();
-      await expect(tripDetail.step2Indicator).toBeVisible();
 
-      // Click delete, then cancel
+      // Delete button is at the bottom of the single form
       await tripDetail.deleteTripButton.click();
       await expect(
         page.getByText("Are you sure you want to delete this trip?"),
@@ -280,7 +275,6 @@ test.describe("Trip Journey", () => {
       await tripDetail.editButton.click();
       await expect(tripDetail.editDialogHeading).toBeVisible();
       await tripDetail.nameInput.fill(updatedTripName);
-      await tripDetail.continueButton.click();
       await tripDetail.updateTripButton.click();
 
       await expect(
@@ -921,14 +915,13 @@ test.describe("Trip Journey", () => {
 
       await tripDetail.nameInput.fill("AB"); // Too short
       await tripDetail.destinationInput.fill(""); // Required field
-      await tripDetail.continueButton.click();
+      await tripDetail.updateTripButton.click();
 
-      await expect(tripDetail.step1Indicator).toBeVisible();
+      // Edit dialog is a single form — validation errors show inline
       await expect(
         page.getByText(/trip name must be at least 3 characters/i),
       ).toBeVisible();
       await expect(page.getByText(/destination is required/i)).toBeVisible();
-      await expect(tripDetail.step2Indicator).not.toBeVisible();
     });
   });
 });

@@ -525,26 +525,25 @@ test.describe("Itinerary Journey", () => {
       });
     });
 
-    await test.step("find and expand Deleted Items section", async () => {
+    await test.step("open Deleted Items dialog and verify content", async () => {
       // Reload to ensure fresh data - the optimistic update may still show
       // the event in the main list during cache refetch
       await page.reload();
-      await expect(page.getByText(/Deleted Items \(\d+\)/)).toBeVisible({
-        timeout: 15000,
+
+      // Deleted items are now in a dialog. With the only event deleted,
+      // the empty state shows a "View deleted items" link for organizers.
+      const viewDeletedBtn = page.getByRole("button", {
+        name: "View deleted items",
       });
+      await expect(viewDeletedBtn).toBeVisible({ timeout: 15000 });
+      await viewDeletedBtn.click();
 
-      const toggleButton = page
-        .locator("button[aria-expanded]")
-        .filter({ hasText: /Deleted Items/ });
-      const isExpanded = await toggleButton.getAttribute("aria-expanded");
-      if (isExpanded !== "true") {
-        await toggleButton.click();
-      }
-
+      // Verify dialog opens with the deleted event
       await expect(
-        page.locator(".border-t").filter({ hasText: /Dinner at Joe's/ }),
+        page.getByRole("heading", { name: "Deleted items" }),
       ).toBeVisible();
-      await snap(page, "20-deleted-items-section");
+      await expect(page.getByText("Dinner at Joe's")).toBeVisible();
+      await snap(page, "20-deleted-items-dialog");
     });
 
     await test.step("restore the event", async () => {
@@ -559,11 +558,12 @@ test.describe("Itinerary Journey", () => {
     });
 
     await test.step("verify event reappears in the itinerary", async () => {
+      // Close dialog if still open
+      await page.keyboard.press("Escape");
+
       await expect(page.getByText("Dinner at Joe's")).toBeVisible({
         timeout: 10000,
       });
-
-      await expect(page.getByText(/Deleted Items/)).not.toBeVisible();
 
       await snap(page, "21-event-restored");
     });

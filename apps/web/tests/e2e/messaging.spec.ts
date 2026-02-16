@@ -42,12 +42,13 @@ async function dismissToast(page: import("@playwright/test").Page) {
 
 /** Helper: scroll to the discussion section and wait for it to be visible. */
 async function scrollToDiscussion(page: import("@playwright/test").Page) {
-  const discussion = page.locator("#discussion");
-  await discussion.waitFor({ state: "attached", timeout: NAVIGATION_TIMEOUT });
-  await discussion.scrollIntoViewIfNeeded();
-  await expect(page.getByRole("heading", { name: "Discussion" })).toBeVisible({
-    timeout: ELEMENT_TIMEOUT,
-  });
+  // Wait for the Discussion heading to be visible first — this ensures the
+  // TripMessages component has fully mounted and won't detach during a
+  // React re-render (which causes "Element is not attached to the DOM").
+  const heading = page.getByRole("heading", { name: "Discussion" });
+  await heading.waitFor({ state: "visible", timeout: NAVIGATION_TIMEOUT });
+  await heading.scrollIntoViewIfNeeded();
+  await expect(heading).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 }
 
 test.describe("Messaging Journey", () => {
