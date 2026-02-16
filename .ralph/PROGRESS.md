@@ -1632,3 +1632,43 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Logger pattern is now used in 3 services**: SchedulerService, MessageService, and InvitationService all follow the identical pattern: `import type { Logger } from "@/types/logger.js"` + `private logger?: Logger` (last constructor param) + `this.logger?.error(err, "message")` with optional chaining. This is the established convention.
 - **Defensive try/catch for non-critical side effects**: When a service performs a non-critical side effect (like creating default preferences after an RSVP update), wrapping it in try/catch ensures the primary operation's response is not broken by secondary failures.
 - The API package now has 984 tests passing (34 invitation service tests, up from 33).
+
+---
+
+## Iteration 30 — Task 10.3: Remove unused `_smsService` from SchedulerService constructor ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/api/src/services/scheduler.service.ts` — 2 changes:
+  1. Removed `import type { ISMSService } from "@/services/sms.service.js";` (dead import)
+  2. Removed `_smsService: ISMSService,` parameter from constructor — constructor now takes 3 params: `notificationService`, `db`, `logger?`
+
+- Modified `/home/chend/git/tripful/apps/api/src/plugins/scheduler-service.ts` — 2 changes:
+  1. Removed `fastify.smsService,` from SchedulerService constructor call
+  2. Removed `"sms-service"` from plugin `dependencies` array — now `["database", "notification-service"]`
+
+- Modified `/home/chend/git/tripful/apps/api/tests/unit/scheduler.service.test.ts` — Removed `smsService,` from all 4 `new SchedulerService(...)` constructor calls (lines ~23, ~673, ~699, ~713). Kept `MockSMSService` import and `smsService` variable — they are still needed by `NotificationService` constructor on line 20.
+
+### Key implementation details
+- **`_smsService` was the only underscore-prefixed unused constructor parameter in the entire codebase** — it was a dead artifact from the original architecture document. The SchedulerService delegates SMS delivery entirely through `NotificationService.createNotification()`, which has its own `smsService` dependency.
+- **Removing `"sms-service"` from plugin dependencies is safe** because `"notification-service"` already depends on `"sms-service"`, guaranteeing correct plugin load order.
+- **No behavioral changes** — this is a pure dead-code removal. The `_smsService` parameter was never stored as a class property (no `private` keyword) and never referenced in any method body.
+- **ISchedulerService interface unchanged** — it never referenced ISMSService.
+
+### Verification results
+- **Scheduler service unit tests**: ✅ 21/21 tests pass
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- Clean surgical removal from all 3 files
+- MockSMSService import and smsService variable correctly preserved in test file (still needed by NotificationService)
+- Dependencies array correctly updated
+- No orphaned references remain
+- 0 issues found
+
+### Learnings for future iterations
+- **Plugin dependency transitivity**: When plugin A depends on plugin B, and plugin B depends on plugin C, plugin A does NOT need to list plugin C in its own dependencies. The `"sms-service"` in the scheduler plugin's dependencies was doubly unnecessary — both because SchedulerService didn't use it directly AND because `"notification-service"` already ensures `"sms-service"` is loaded first.
+- **Underscore-prefix convention for unused params**: TypeScript's `_paramName` convention indicates an unused parameter. When you see this in existing code, it's a strong signal the parameter can be removed entirely if no other code relies on the constructor signature.
+- The API package still has 984 tests passing (21 scheduler service tests, unchanged count).

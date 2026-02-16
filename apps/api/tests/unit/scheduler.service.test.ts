@@ -20,7 +20,6 @@ const smsService = new MockSMSService();
 const notificationService = new NotificationService(db, smsService);
 const schedulerService = new SchedulerService(
   notificationService,
-  smsService,
   db,
 );
 
@@ -670,7 +669,6 @@ describe("scheduler.service", () => {
 
       const testScheduler = new SchedulerService(
         notificationService,
-        smsService,
         db,
       );
       testScheduler.start();
@@ -696,7 +694,6 @@ describe("scheduler.service", () => {
 
       const testScheduler = new SchedulerService(
         notificationService,
-        smsService,
         db,
       );
       testScheduler.start();
@@ -710,7 +707,6 @@ describe("scheduler.service", () => {
     it("should handle stop() called without start() safely", () => {
       const testScheduler = new SchedulerService(
         notificationService,
-        smsService,
         db,
       );
       // Should not throw

@@ -11,7 +11,6 @@ export default fp(
   async function schedulerServicePlugin(fastify: FastifyInstance) {
     const schedulerService = new SchedulerService(
       fastify.notificationService,
-      fastify.smsService,
       fastify.db,
       fastify.log,
     );
@@ -30,6 +29,6 @@ export default fp(
   },
   {
     name: "scheduler-service",
-    dependencies: ["database", "notification-service", "sms-service"],
+    dependencies: ["database", "notification-service"],
   },
 );

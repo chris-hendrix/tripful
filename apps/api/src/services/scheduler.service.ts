@@ -11,7 +11,6 @@ import {
 } from "@/db/schema/index.js";
 import type { AppDatabase } from "@/types/index.js";
 import type { INotificationService } from "@/services/notification.service.js";
-import type { ISMSService } from "@/services/sms.service.js";
 import type { Logger } from "@/types/logger.js";
 
 /**
@@ -35,7 +34,6 @@ export class SchedulerService implements ISchedulerService {
 
   constructor(
     private notificationService: INotificationService,
-    _smsService: ISMSService,
     private db: AppDatabase,
     private logger?: Logger,
   ) {}

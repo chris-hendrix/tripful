@@ -286,7 +286,7 @@
   - Note: Method is already idempotent via `onConflictDoNothing()`, this is purely for consistency and logging
   - Verify: `cd apps/api && pnpm vitest run tests/unit/invitation.service.test.ts` — all pass
 
-- [ ] Task 10.3: Remove unused `_smsService` from SchedulerService constructor
+- [x] Task 10.3: Remove unused `_smsService` from SchedulerService constructor
   - Implement: Remove `_smsService: ISMSService` parameter from `apps/api/src/services/scheduler.service.ts:38` constructor
   - Implement: Update `apps/api/src/plugins/scheduler-service.ts` to not pass `smsService`
   - Implement: Remove `"sms-service"` from plugin dependencies array if no longer needed
