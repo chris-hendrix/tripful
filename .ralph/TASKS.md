@@ -312,7 +312,7 @@
   - Implement: Add the `data-testid` to `apps/web/src/components/messaging/pinned-messages.tsx`
   - Verify: `pnpm test:e2e -- --grep "messaging"` — all pass
 
-- [ ] Task 11.2: Add logging to `dismissToast` catch block
+- [x] Task 11.2: Add logging to `dismissToast` catch block
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts:22-27` and `apps/web/tests/e2e/notifications.spec.ts:22-27`, replace `.catch(() => false)` with `.catch((e) => { console.warn("dismissToast: isVisible check failed", e.message); return false; })`
   - Verify: `pnpm test:e2e` — all pass
 

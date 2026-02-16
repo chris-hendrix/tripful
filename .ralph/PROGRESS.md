@@ -1805,3 +1805,50 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **First `data-testid` in messaging directory**: Prior to this change, zero messaging components had `data-testid` attributes. Future E2E test improvements (Tasks 11.2-11.4) should follow this same pattern if they need stable selectors.
 - **`getByTestId` vs `locator('[data-testid="..."]')`**: Both work in Playwright, but `getByTestId` is more concise and idiomatic. The codebase uses both, but `getByTestId` is preferred in newer code.
 - The web package still has 1034 passing tests (no new tests — this was purely a selector replacement).
+
+---
+
+## Iteration 34 — Task 11.2: Add logging to `dismissToast` catch block ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified 2 files with identical changes to replace silent `.catch(() => false)` with a diagnostic `.catch` that logs a `console.warn` before returning `false`.
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/messaging.spec.ts`:**
+- Replaced `.catch(() => false)` on line 24 with:
+  ```typescript
+  .catch((e) => {
+    console.warn("dismissToast: isVisible check failed", e.message);
+    return false;
+  })
+  ```
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/notifications.spec.ts`:**
+- Identical replacement on line 24.
+
+### Key implementation details
+- **Behavior preserved**: The catch block still returns `false`, so `dismissToast` continues to gracefully handle cases where the toast locator cannot be checked for visibility. The only addition is a `console.warn` diagnostic message.
+- **First `console.warn` in E2E test suite**: Prior to this change, there were zero `console.warn`/`console.log`/`console.error` calls anywhere in the E2E test directory. This establishes the pattern for diagnostic logging in E2E helpers.
+- **Scope limited to named `dismissToast` functions**: The same `.catch(() => false)` pattern exists inline in 3 other files (`helpers/trips.ts:19`, `trip-journey.spec.ts:745`, `itinerary-journey.spec.ts:23`), but those were intentionally left untouched per task scope.
+- **No tests added**: This is a diagnostic improvement to existing E2E test helpers, not a behavioral change.
+
+### Verification results
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **E2E tests**: ✅ 31/31 pass (one flaky failure in messaging CRUD journey on first run was pre-existing — reply locator strict mode violation due to `getByText` matching both rendered text and textarea. Passed on retry.)
+
+### Reviewer verdict: APPROVED
+- All 7 review criteria met without issues
+- Both files have identical, consistent implementations
+- Change is minimal and precisely scoped
+- `console.warn` level is appropriate for non-fatal diagnostic message
+- TypeScript compilation passes cleanly
+- Only specified files changed; inline patterns in other files correctly untouched
+- 0 issues found
+
+### Learnings for future iterations
+- **`console.warn` is appropriate for E2E diagnostic logging**: Non-fatal diagnostic messages in test helpers should use `console.warn`, not `console.log` or `console.error`. This makes them distinguishable from test output and actual errors.
+- **Pre-existing E2E flakiness in messaging CRUD journey**: The "reply to the first message" step in `messaging.spec.ts:233` has a strict mode violation where `getByText("This is a reply...")` matches both the rendered reply paragraph and the textarea still containing typed text. This is not caused by the `dismissToast` change and should be addressed in a future task.
+- **5 total locations with the toast `.catch(() => false)` pattern**: While only 2 were changed (the named `dismissToast` functions), 3 inline instances in other files remain. A future consolidation task could extract all of them into a shared helper.
+- The web package still has 1034 passing unit tests (no new tests — this was purely a diagnostic logging improvement).

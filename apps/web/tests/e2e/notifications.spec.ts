@@ -21,7 +21,12 @@ const API_BASE = "http://localhost:8000/api";
 /** Helper: dismiss any visible Sonner toast so it does not intercept clicks. */
 async function dismissToast(page: import("@playwright/test").Page) {
   const toast = page.locator("[data-sonner-toast]").first();
-  if (await toast.isVisible().catch(() => false)) {
+  if (
+    await toast.isVisible().catch((e) => {
+      console.warn("dismissToast: isVisible check failed", e.message);
+      return false;
+    })
+  ) {
     await toast.waitFor({ state: "hidden", timeout: 10000 });
   }
 }
