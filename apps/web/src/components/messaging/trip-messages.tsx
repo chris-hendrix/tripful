@@ -83,13 +83,13 @@ export function TripMessages({
       : undefined;
 
   return (
-    <section ref={sectionRef} id="discussion" className="space-y-6" aria-label="Trip discussion">
+    <section ref={sectionRef} id="discussion" className="space-y-4" aria-label="Trip discussion">
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-semibold font-[family-name:var(--font-playfair)]">
           Discussion
         </h2>
         {total > 0 && (
-          <span className="text-muted-foreground text-sm">{total}</span>
+          <span className="text-muted-foreground text-sm mt-1">{total}</span>
         )}
       </div>
 
@@ -111,7 +111,7 @@ export function TripMessages({
           </p>
         </div>
       ) : (
-        <div role="feed" aria-busy={isPending} className="space-y-4">
+        <div role="feed" aria-busy={isPending} className="space-y-3">
           {messages.map((message) => (
             <MessageCard
               key={message.id}

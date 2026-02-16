@@ -352,7 +352,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Discussion */}
-        <div className="border-t border-border mt-8 pt-8">
+        <div className="border-t border-border mt-6 pt-6">
           <ErrorBoundary>
             <TripMessages
               tripId={tripId}
