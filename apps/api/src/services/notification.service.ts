@@ -121,32 +121,31 @@ export class NotificationService implements INotificationService {
   }> {
     const { page, limit, unreadOnly, tripId } = opts;
 
-    // Build base conditions
+    // Build base conditions (including unreadOnly filter so count and data queries match)
     const conditions = [eq(notifications.userId, userId)];
     if (tripId) {
       conditions.push(eq(notifications.tripId, tripId));
     }
+    if (unreadOnly) {
+      conditions.push(isNull(notifications.readAt));
+    }
 
-    // Count total matching notifications (without unreadOnly filter)
+    // Count total matching notifications (respects unreadOnly filter)
     const [totalResult] = await this.db
       .select({ value: count() })
       .from(notifications)
       .where(and(...conditions));
     const total = totalResult?.value ?? 0;
 
-    // Count unread notifications (same filters minus unreadOnly)
-    const unreadConditions = [...conditions, isNull(notifications.readAt)];
+    // Count unread notifications (always counts unread regardless of unreadOnly)
+    const unreadConditions = unreadOnly
+      ? conditions
+      : [...conditions, isNull(notifications.readAt)];
     const [unreadResult] = await this.db
       .select({ value: count() })
       .from(notifications)
       .where(and(...unreadConditions));
     const unreadCount = unreadResult?.value ?? 0;
-
-    // Build data query conditions
-    const dataConditions = [...conditions];
-    if (unreadOnly) {
-      dataConditions.push(isNull(notifications.readAt));
-    }
 
     const totalPages = Math.ceil(total / limit) || 1;
     const offset = (page - 1) * limit;
@@ -165,7 +164,7 @@ export class NotificationService implements INotificationService {
         createdAt: notifications.createdAt,
       })
       .from(notifications)
-      .where(and(...dataConditions))
+      .where(and(...conditions))
       .orderBy(desc(notifications.createdAt))
       .limit(limit)
       .offset(offset);

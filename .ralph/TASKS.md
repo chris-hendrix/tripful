@@ -235,7 +235,7 @@
   - Verify: `cd apps/api && pnpm vitest run tests/integration/message.routes.test.ts` — all 23+ tests pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 8.2: Fix `totalPages` in `getNotifications` for `unreadOnly` filter
+- [x] Task 8.2: Fix `totalPages` in `getNotifications` for `unreadOnly` filter
   - Implement: In `apps/api/src/services/notification.service.ts` `getNotifications()`, when `unreadOnly` is true, apply the `isNull(readAt)` filter to the count query as well as the data query
   - Implement: Ensure `totalPages` reflects filtered count
   - Verify: `cd apps/api && pnpm vitest run tests/unit/notification.service.test.ts` — all pass

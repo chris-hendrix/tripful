@@ -1246,3 +1246,49 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Guard empty `inArray` arrays**: Drizzle/PostgreSQL may error on `IN ()` with zero elements. Always use a `length > 0` ternary guard before `inArray` queries, or return an empty array as the fallback.
 - **Refactoring internal query patterns doesn't require test changes**: When the refactor preserves identical input/output behavior, existing unit and integration tests serve as comprehensive regression tests. All 90 message-related tests passed unchanged.
 - **The total test count remains 2218** (no new tests in this iteration — purely a performance optimization with identical output).
+
+---
+
+## Iteration 22 — Task 8.2: Fix `totalPages` in `getNotifications` for `unreadOnly` filter ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Fixed the `getNotifications` method in `/home/chend/git/tripful/apps/api/src/services/notification.service.ts` (lines 121-177) to apply the `unreadOnly` filter (`isNull(readAt)`) to the count query, ensuring `total` and `totalPages` reflect the filtered dataset.
+
+**Changes to `notification.service.ts`:**
+1. **Moved `unreadOnly` condition into shared `conditions` array** (lines 129-131): When `unreadOnly=true`, `isNull(notifications.readAt)` is added to `conditions` BEFORE the count query, so both count and data queries operate on the same filtered set.
+2. **Eliminated `dataConditions` variable**: No longer needed since `conditions` already includes the `unreadOnly` filter. The data query now uses `and(...conditions)` directly.
+3. **Optimized `unreadCount` query**: When `unreadOnly=true`, `conditions` already contains `isNull(readAt)`, so `unreadConditions` reuses `conditions` directly instead of adding a duplicate filter. When `unreadOnly=false`, the old behavior is preserved (spread conditions + add `isNull(readAt)`).
+4. **Updated comment**: Changed "Count total matching notifications (without unreadOnly filter)" to reflect the new behavior.
+
+**Bug explanation**: Previously, the count query always counted ALL notifications (read + unread) regardless of the `unreadOnly` flag. When `unreadOnly=true`, the data query correctly filtered to only unread notifications, but `totalPages` was computed from the unfiltered total. Example: 10 total notifications, 3 unread, limit=2 → old `totalPages=5` (wrong), new `totalPages=2` (correct).
+
+### Tests written
+- **Extended existing test** "should filter by unreadOnly" in `notification.service.test.ts`: Added assertions for `meta.total` (equals unread count, not total count) and `meta.totalPages` (correct for filtered dataset).
+- **New test** "should return correct totalPages with unreadOnly and small limit": Creates 5 notifications, marks 3 as read, queries with `unreadOnly=true` and `limit=1`. Asserts `total=2`, `totalPages=2`, `unreadCount=2`, `data.length=1`.
+
+### Key implementation details
+- Follows the established pattern from `MessageService.getMessages` and `TripService.getUserTrips` where count and data queries share identical conditions.
+- The `unreadCount` field in the response continues to correctly reflect the count of unread notifications — when `unreadOnly=true`, it equals `total` (both count the same filtered set); when `unreadOnly=false`, it counts only unread while `total` counts all.
+- No changes to controllers, routes, integration tests, or shared types/schemas — the fix is entirely within the service method.
+- When `unreadOnly=false` (default), behavior is completely unchanged (no regression).
+
+### Verification results
+- **Notification service unit tests**: ✅ 33/33 tests pass (1 new test added)
+- **TypeScript type checking**: ✅ All 3 packages pass with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- Fix is minimal and surgical — only condition-building logic changes
+- Eliminating `dataConditions` simplifies code and prevents future divergence bugs
+- `unreadCount` optimization avoids redundant query when `unreadOnly=true`
+- Tests adequately cover the fix with both enhanced existing test and new pagination-specific test
+- 1 low-severity note (non-blocking): when `unreadOnly=true`, `total` and `unreadCount` are always identical (second count query technically redundant), but keeping it is clearer to read and the cost is negligible
+
+### Learnings for future iterations
+- **Pagination count queries must match data query filters**: When a paginated endpoint supports optional filters (like `unreadOnly`), the count query driving `totalPages` MUST apply the same filters as the data query. This is a common pagination bug.
+- **Build conditions once, use everywhere**: The cleanest pattern is to build all filter conditions into a single array before any query runs, then share that array across count and data queries. This eliminates the possibility of filter divergence.
+- **Test pagination metadata, not just data**: Unit tests for paginated queries should assert `meta.total` and `meta.totalPages` in addition to `data.length`. The existing tests only checked the data, which is why this bug was missed.
+- **When `unreadOnly=true` implies `isNull(readAt)` is already in conditions**, the separate `unreadCount` query becomes redundant (it counts the same rows). This is an acceptable tradeoff for code clarity — the redundant query is cheap and the code is easier to understand.
+- The total notification service test count is now 33 (up from 32 in iteration 7, +1 new pagination test).

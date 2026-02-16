@@ -307,6 +307,44 @@ describe("notification.service", () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].title).toBe("Unread One");
+      // meta.total and totalPages should reflect the unread-only count, not all notifications
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.totalPages).toBe(1);
+    });
+
+    it("should return correct totalPages with unreadOnly and small limit", async () => {
+      // Create 5 notifications
+      for (let i = 1; i <= 5; i++) {
+        await notificationService.createNotification({
+          userId: testMemberId,
+          tripId: testTripId,
+          type: "trip_update",
+          title: `Notification ${i}`,
+          body: "Body",
+        });
+      }
+
+      // Mark 3 as read (notifications 1, 2, 3)
+      const allResult = await notificationService.getNotifications(
+        testMemberId,
+        { page: 1, limit: 20 },
+      );
+      // Sorted DESC, so indices 2,3,4 correspond to notifications 1,2,3
+      await notificationService.markAsRead(allResult.data[2].id, testMemberId);
+      await notificationService.markAsRead(allResult.data[3].id, testMemberId);
+      await notificationService.markAsRead(allResult.data[4].id, testMemberId);
+
+      // Query unreadOnly with limit=1 -- should show 2 unread total, 2 pages
+      const result = await notificationService.getNotifications(testMemberId, {
+        page: 1,
+        limit: 1,
+        unreadOnly: true,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.totalPages).toBe(2);
+      expect(result.unreadCount).toBe(2);
     });
 
     it("should return unreadCount", async () => {
