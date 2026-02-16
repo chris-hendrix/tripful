@@ -275,7 +275,7 @@
 
 ## Phase 10: Cleanup — Code Quality
 
-- [ ] Task 10.1: Add logging to empty catch block in MessageService
+- [x] Task 10.1: Add logging to empty catch block in MessageService
   - Implement: In `apps/api/src/services/message.service.ts:422-424`, accept a `logger` parameter in the MessageService constructor (or access via Fastify instance pattern)
   - Implement: Replace empty catch with `this.logger?.error({ err, tripId, messageId }, "Failed to send message notifications")`
   - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass

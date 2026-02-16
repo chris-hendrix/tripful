@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { db } from "@/config/database.js";
 import {
   users,
@@ -279,6 +279,40 @@ describe("message.service", () => {
           content: "One too many",
         }),
       ).rejects.toThrow(MessageLimitExceededError);
+    });
+
+    it("should log error when notification fails but still return the message", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const failingNotificationService = {
+        ...notificationService,
+        notifyTripMembers: vi.fn().mockRejectedValue(new Error("Notification failed")),
+      } as unknown as typeof notificationService;
+
+      const serviceWithLogger = new MessageService(
+        db,
+        permissionsService,
+        failingNotificationService,
+        mockLogger,
+      );
+
+      const result = await serviceWithLogger.createMessage(
+        testTripId,
+        testMemberId,
+        { content: "Message with failing notification" },
+      );
+
+      expect(result).toBeDefined();
+      expect(result.content).toBe("Message with failing notification");
+      expect(result.authorId).toBe(testMemberId);
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        "Failed to send message notifications",
+      );
     });
   });
 

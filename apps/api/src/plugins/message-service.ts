@@ -12,6 +12,7 @@ export default fp(
       fastify.db,
       fastify.permissionsService,
       fastify.notificationService,
+      fastify.log,
     );
     fastify.decorate("messageService", messageService);
   },

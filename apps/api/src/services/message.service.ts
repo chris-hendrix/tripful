@@ -10,6 +10,7 @@ import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import type { INotificationService } from "./notification.service.js";
+import type { Logger } from "@/types/logger.js";
 import {
   MessageNotFoundError,
   MemberMutedError,
@@ -125,6 +126,7 @@ export class MessageService implements IMessageService {
     private db: AppDatabase,
     private permissionsService: IPermissionsService,
     private notificationService: INotificationService,
+    private logger?: Logger,
   ) {}
 
   /**
@@ -471,8 +473,8 @@ export class MessageService implements IMessageService {
           data: { messageId: newMessage.id },
           excludeUserId: authorId,
         });
-      } catch {
-        // Notification failures should not break message creation
+      } catch (err) {
+        this.logger?.error(err, "Failed to send message notifications");
       }
     }
 
