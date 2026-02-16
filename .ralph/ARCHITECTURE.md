@@ -679,3 +679,245 @@ All design details are in `docs/2026-02-14-messaging-notifications/DESIGN.md`. K
 - `sonner` (toast notifications, already in `apps/web`)
 - `@tanstack/react-query` (already in `apps/web`)
 - shadcn/ui components: Dialog, Tabs, Switch, Popover, DropdownMenu (all already available)
+
+---
+
+## Audit Remediation
+
+> Fixes for findings from the PR audit (`.thoughts/audits/2026-02-15-messaging-notifications-pr-audit.md`). Addresses 27 outstanding findings across security, performance, accessibility, code quality, and testing. 6 findings were already resolved.
+
+### Already Verified (No Fix Needed)
+
+| Finding | Status |
+|---------|--------|
+| #4 Barrel imports (`lucide-react`) | `optimizePackageImports: ['lucide-react']` already in `apps/web/next.config.ts:7` |
+| #8 Trip lock on delete/edit/reaction | All mutations already call `isTripLocked` |
+| #14 Toast dismissal try-catch | Fixed in Task 11.2 |
+| #16 N+1 author fetch | Fixed in Task 8.1 |
+| #24 Button CVA `gradient`/`icon-xs` | Already present in `apps/web/src/components/ui/button.tsx` |
+| #27 Three Map builds | Fixed in Task 8.1 |
+
+### Security Hardening
+
+#### Authorization Enforcement (Findings #1-3)
+
+`muteMember`, `unmuteMember`, `togglePin`, and `deleteMessage` lack explicit authorization checks — any authenticated trip member can call these endpoints. Service layer has permission helper methods (`canModerateMessages`, `canMuteMember`) but they are not called before executing operations.
+
+**Fix**: Add authorization guards in the service layer methods. Call `permissionsService.canModerateMessages()` in `togglePin`, `muteMember`, `unmuteMember`. For `deleteMessage`, verify caller is author OR organizer. Throw `UnauthorizedError` (403) on failure. Add integration tests for unauthorized access returning 403.
+
+**Files**:
+- `apps/api/src/services/message.service.ts` — Add permission checks
+- `apps/api/tests/unit/message.service.test.ts` — Test unauthorized attempts
+- `apps/api/tests/integration/message.routes.test.ts` — Test 403 responses
+
+#### XSS Sanitization (Finding #7)
+
+Message `content` goes to database without HTML sanitization. React auto-escapes JSX, but defense-in-depth requires server-side stripping.
+
+**Fix**: Strip all HTML tags from message content before storage. No HTML allowed in messages — use simple regex `content.replace(/<[^>]*>/g, '')` or install `sanitize-html` with empty allowedTags. Apply in `createMessage` and `editMessage`.
+
+**File**: `apps/api/src/services/message.service.ts`
+
+#### Transaction Wrapping (Finding #6)
+
+`createMessage()` performs 6 sequential operations (verify trip, check permissions, check mute, verify parent, check limit, insert) without `db.transaction()`. Under concurrent writes these could race.
+
+**Fix**: Wrap the full `createMessage` flow in `db.transaction()`.
+
+**File**: `apps/api/src/services/message.service.ts`
+
+#### Per-User Rate Limiting (Finding #19)
+
+Only per-request rate limiting exists. A single user could flood a trip's message feed.
+
+**Fix**: Add per-user per-trip daily message limit (200 messages/day) in `createMessage`. Count messages with `authorId = userId AND tripId = tripId AND createdAt > startOfDay(now)`.
+
+**File**: `apps/api/src/services/message.service.ts`
+
+### Frontend Performance
+
+#### Suspense Boundary (Finding #9)
+
+`usePathname()` at `notification-dropdown.tsx:22` on dynamic route `/trips/[id]` needs a Suspense boundary per Next.js docs.
+
+**Fix**: Wrap `<NotificationDropdown>` in `<Suspense>` in `notification-bell.tsx`.
+
+**File**: `apps/web/src/components/notifications/notification-bell.tsx`
+
+#### MessageCard Memoization (Finding #10)
+
+`MessageCard` in `.map()` without `React.memo()`. Parent state changes (e.g., `isInView`) re-render all cards.
+
+**Fix**: Wrap `MessageCard` export in `React.memo()`.
+
+**File**: `apps/web/src/components/messaging/message-card.tsx`
+
+#### Badge Key Re-mount (Finding #20)
+
+`<span key={displayCount}>` forces DOM re-mount on every count change instead of in-place update.
+
+**Fix**: Remove `key={displayCount}`. Use CSS animation class toggling for the pulse effect.
+
+**File**: `apps/web/src/components/notifications/notification-bell.tsx`
+
+#### Regex Hoisting (Finding #21)
+
+Regex `pathname.match(/^\/trips\/([^/]+)/)` at `notification-dropdown.tsx:33` recompiled every render.
+
+**Fix**: Hoist to module-level: `const TRIP_PAGE_REGEX = /^\/trips\/([^/]+)/;`
+
+**File**: `apps/web/src/components/notifications/notification-dropdown.tsx`
+
+#### Memoize Filter (Finding #30)
+
+`notifications.some()` iterates full array on every render.
+
+**Fix**: Wrap in `useMemo(() => notifications.some(...), [notifications])`.
+
+**File**: `apps/web/src/components/notifications/notification-dropdown.tsx`
+
+### Accessibility & UX
+
+#### Switch Import Verification (Finding #5)
+
+Audit flags `import from "radix-ui"` at `switch.tsx:4`. Radix UI v2 uses the unified `radix-ui` package — verify `radix-ui` is in `package.json` dependencies. If so, import is correct and no change needed. If not, change to `@radix-ui/react-switch`.
+
+**File**: `apps/web/src/components/ui/switch.tsx`
+
+#### Aria Labels (Finding #11)
+
+Missing `aria-label` on expand/collapse buttons.
+
+**Fix**: Add `aria-label="Expand pinned messages"` / `"Collapse pinned messages"` and `aria-label="Show more replies"` / `"Hide replies"`.
+
+**Files**:
+- `apps/web/src/components/messaging/pinned-messages.tsx:28-29`
+- `apps/web/src/components/messaging/message-replies.tsx:104,116`
+
+#### Prefers Reduced Motion (Finding #12)
+
+JS-based textarea height animation ignores `prefers-reduced-motion`.
+
+**Fix**: Check `window.matchMedia('(prefers-reduced-motion: reduce)').matches` before applying JS height transitions. If reduced motion preferred, set height instantly without transition.
+
+**Files**:
+- `apps/web/src/components/messaging/message-input.tsx:42-48`
+- `apps/web/src/components/messaging/message-card.tsx:125-131`
+
+#### Error Boundaries (Finding #13)
+
+No Error Boundary wrapping messaging or notification component trees.
+
+**Fix**: Create a reusable `ErrorBoundary` component (or use `react-error-boundary` if already available). Wrap `<TripMessages>` and notification dropdown in it with fallback UI showing "Something went wrong" + retry button.
+
+**Files**:
+- `apps/web/src/components/error-boundary.tsx` (new, if needed)
+- `apps/web/src/components/messaging/trip-messages.tsx`
+- `apps/web/src/components/notifications/notification-bell.tsx`
+
+#### Character Count Visibility (Finding #33)
+
+Character count only visible at 1800/2000, leaving users unaware of limit until near max.
+
+**Fix**: Show character count from 1000 characters onwards with muted styling, transitioning to warning color at 1800.
+
+**File**: `apps/web/src/components/messaging/message-input.tsx:134-143`
+
+### Backend Code Quality
+
+#### Centralized Error Handling (Finding #15)
+
+Controllers manually catch errors with ~500 lines of redundant try/catch. Fastify's async error handler propagates `@fastify/error` types automatically using `statusCode`.
+
+**Fix**: Remove try/catch from controller methods. Services already throw typed errors with `statusCode`. Fastify handles them automatically.
+
+**Files**:
+- `apps/api/src/controllers/message.controller.ts` — Remove all try/catch blocks
+- `apps/api/src/controllers/notification.controller.ts` — Remove all try/catch blocks
+
+#### Missing Database Indexes (Finding #18)
+
+Missing indexes on frequently queried columns.
+
+**Add**:
+- `messages.authorId` index — Used in joins for author info
+- `messageReactions.userId` index — Used in current-user reaction check
+- `notifications(userId, createdAt DESC)` composite — General pagination query
+
+Note: `notificationPreferences(userId, tripId)` already has a unique constraint which creates an implicit index.
+
+**File**: `apps/api/src/db/schema/index.ts`, then `cd apps/api && pnpm db:generate && pnpm db:migrate`
+
+#### OFFSET Pagination (Finding #17)
+
+OFFSET pagination in notifications is slow at high page numbers. Acceptable for MVP scale but should have proper indexing.
+
+**Fix**: The existing `notifications_user_unread_idx` covers unread queries. Add the `(userId, createdAt DESC)` composite index (above) to cover general pagination. No cursor migration needed at current scale.
+
+#### Response Schemas (Finding #25)
+
+`getUnreadCount` and some endpoints lack response schemas, missing `fast-json-stringify` optimization.
+
+**Fix**: Add `response` schema definitions to all notification endpoints in route config.
+
+**File**: `apps/api/src/routes/notification.routes.ts`
+
+#### Plugin Dependencies (Finding #26)
+
+Plugin dependency chain (message -> notification -> sms) not explicitly documented.
+
+**Fix**: Add explicit `dependencies` arrays and JSDoc comments to plugin files.
+
+**Files**: `apps/api/src/plugins/message-service.ts`, `notification-service.ts`, `scheduler-service.ts`
+
+### E2E Test Robustness
+
+#### Phone Number Collisions (Finding #23)
+
+Timestamp-based phone numbers could collide in tight parallel runs.
+
+**Fix**: Append `process.pid` or random 4-digit suffix to generated phone numbers.
+
+**File**: `apps/web/tests/e2e/helpers/auth.ts`
+
+#### Positional Selectors (Finding #22)
+
+`.first()` on dynamic lists assumes feed ordering — fragile if order changes.
+
+**Fix**: Use content-based filtering (`.filter({ hasText })`) instead of `.first()`. Where not possible, add `data-testid` attributes.
+
+**File**: `apps/web/tests/e2e/messaging.spec.ts`
+
+#### Test Tags (Finding #31)
+
+No test tags for selective running.
+
+**Fix**: Add `@smoke`, `@regression` tags to test titles. Mark slow tests with `@slow`.
+
+**Files**: `apps/web/tests/e2e/messaging.spec.ts`, `apps/web/tests/e2e/notifications.spec.ts`
+
+#### Parameterize Timeouts (Finding #32)
+
+Hard-coded timeouts (10000, 15000) without explanation.
+
+**Fix**: Extract to named constants with JSDoc comments explaining why each value was chosen.
+
+**Files**: `apps/web/tests/e2e/messaging.spec.ts`, `apps/web/tests/e2e/notifications.spec.ts`
+
+### Future-Proofing
+
+#### Mutation Callback Signatures (Finding #28)
+
+TanStack Query v5.89.0+ changed mutation `onSuccess`/`onError`/`onSettled` callbacks to 4 parameters.
+
+**Fix**: Update all mutation callbacks to accept the new 4-parameter signature: `(data, variables, context, mutation)`.
+
+**Files**: `apps/web/src/hooks/use-messages.ts`, `apps/web/src/hooks/use-notifications.ts`
+
+#### Network Mode (Finding #29)
+
+No `networkMode` configured (defaults to `online`). Fine for online-first app but should be explicit.
+
+**Fix**: Add `networkMode: 'online'` to QueryClient `defaultOptions`.
+
+**File**: `apps/web/src/providers/query-provider.tsx` or equivalent

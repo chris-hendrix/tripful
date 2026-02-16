@@ -335,3 +335,88 @@
   - Verify: Linting passes (`pnpm lint`)
   - Verify: Type checking passes (`pnpm typecheck`)
   - Verify: No console errors in browser during manual testing
+
+## Phase 13: Audit — Security Hardening
+
+- [ ] Task 13.1: Fix authorization enforcement, XSS sanitization, transaction wrapping, and rate limiting
+  - Implement: In `apps/api/src/services/message.service.ts`, add `permissionsService.canModerateMessages(userId, tripId)` check at the top of `togglePin`, `muteMember`, and `unmuteMember` methods; throw `UnauthorizedError` (403) on failure
+  - Implement: In `apps/api/src/services/message.service.ts` `deleteMessage`, verify caller is message author OR organizer (via `canModerateMessages`) before proceeding; currently relies on implicit logic
+  - Implement: In `apps/api/src/services/message.service.ts`, add HTML tag stripping to message `content` in both `createMessage` and `editMessage` (e.g., `content.replace(/<[^>]*>/g, '')` or install `sanitize-html`)
+  - Implement: In `apps/api/src/services/message.service.ts`, wrap `createMessage` flow in `db.transaction()` to prevent race conditions between verify/check/insert steps
+  - Implement: In `apps/api/src/services/message.service.ts` `createMessage`, add per-user per-trip daily message limit (200/day) by counting messages with `authorId + tripId + createdAt > startOfDay`; add `DailyMessageLimitError` to `apps/api/src/errors.ts`
+  - Test: Add unit tests for unauthorized mute/unmute/pin/delete attempts (expect 403)
+  - Test: Add unit test for XSS content stripping (HTML tags removed from stored content)
+  - Test: Add unit test for daily rate limit enforcement
+  - Test: Add integration tests verifying 403 responses for non-organizer calling mute/pin endpoints
+  - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass
+  - Verify: `cd apps/api && pnpm vitest run tests/integration/message.routes.test.ts` — all pass
+  - Verify: `pnpm typecheck` — no errors
+
+## Phase 14: Audit — Frontend Performance
+
+- [ ] Task 14.1: Fix Suspense boundary, memoization, badge re-mount, regex hoisting, and memoize filter
+  - Implement: In `apps/web/src/components/notifications/notification-bell.tsx`, wrap `<NotificationDropdown>` in `<Suspense fallback={...}>` to handle `usePathname()` on dynamic routes
+  - Implement: In `apps/web/src/components/messaging/message-card.tsx`, wrap the component export in `React.memo()` to prevent unnecessary re-renders in `.map()` lists
+  - Implement: In `apps/web/src/components/notifications/notification-bell.tsx`, remove `key={displayCount}` from badge span; use CSS class toggling or `useEffect` for pulse animation instead of re-mount
+  - Implement: In `apps/web/src/components/notifications/notification-dropdown.tsx:33`, hoist regex to module level: `const TRIP_PAGE_REGEX = /^\/trips\/([^/]+)/;`
+  - Implement: In `apps/web/src/components/notifications/notification-dropdown.tsx:30`, wrap `notifications.some()` in `useMemo(() => ..., [notifications])`
+  - Test: `pnpm typecheck` — no errors
+  - Verify: `pnpm test` — all tests pass
+  - Verify: `pnpm test:e2e` — all E2E tests pass (regression check for notification UI changes)
+
+## Phase 15: Audit — Accessibility & UX
+
+- [ ] Task 15.1: Fix Switch import, aria-labels, prefers-reduced-motion, Error Boundaries, and character count
+  - Implement: Verify `apps/web/src/components/ui/switch.tsx:4` import — if `radix-ui` is in package.json (Radix v2), no change; if not, change to `@radix-ui/react-switch`
+  - Implement: In `apps/web/src/components/messaging/pinned-messages.tsx:28-29`, add `aria-label="Expand pinned messages"` / `"Collapse pinned messages"` to expand/collapse buttons
+  - Implement: In `apps/web/src/components/messaging/message-replies.tsx:104,116`, add `aria-label="Show more replies"` / `"Hide replies"` to expand/collapse buttons
+  - Implement: In `apps/web/src/components/messaging/message-input.tsx:42-48` and `message-card.tsx:125-131`, check `window.matchMedia('(prefers-reduced-motion: reduce)').matches` before applying JS textarea height transitions; if reduced motion, set height instantly
+  - Implement: Create `apps/web/src/components/error-boundary.tsx` (or use `react-error-boundary` if available) with fallback UI ("Something went wrong" + retry button)
+  - Implement: Wrap `<TripMessages>` in `trip-detail-content.tsx` with `<ErrorBoundary>`
+  - Implement: Wrap notification dropdown in `notification-bell.tsx` with `<ErrorBoundary>`
+  - Implement: In `apps/web/src/components/messaging/message-input.tsx:134-143`, show character count from 1000 chars onwards (muted style), transition to warning color at 1800
+  - Test: `pnpm typecheck` — no errors
+  - Verify: `pnpm test` — all tests pass
+  - Verify: `pnpm test:e2e` — all E2E tests pass
+
+## Phase 16: Audit — Backend Code Quality
+
+- [ ] Task 16.1: Refactor controllers to centralized error handling, add indexes, add response schemas, document plugin deps
+  - Implement: In `apps/api/src/controllers/message.controller.ts`, remove all try/catch blocks from controller methods — let Fastify's async error handler propagate `@fastify/error` types automatically (they already have `statusCode`)
+  - Implement: In `apps/api/src/controllers/notification.controller.ts`, remove all try/catch blocks from controller methods
+  - Implement: In `apps/api/src/db/schema/index.ts`, add indexes: `messages.authorId`, `messageReactions.userId`, `notifications(userId, createdAt DESC)` composite
+  - Implement: Run `cd apps/api && pnpm db:generate && pnpm db:migrate` to apply new indexes
+  - Implement: In `apps/api/src/routes/notification.routes.ts`, add `response` schema definitions to `getUnreadCount` and other endpoints missing them for `fast-json-stringify`
+  - Implement: In `apps/api/src/plugins/message-service.ts`, `notification-service.ts`, `scheduler-service.ts` — add explicit `dependencies` arrays and JSDoc comments documenting the plugin dependency chain
+  - Test: `cd apps/api && pnpm vitest run tests/integration/` — all integration tests pass (verify error responses still correct after removing try/catch)
+  - Test: `cd apps/api && pnpm vitest run tests/unit/` — all unit tests pass
+  - Verify: `pnpm typecheck` — no errors
+  - Verify: `pnpm lint` — no errors
+
+## Phase 17: Audit — E2E Test Robustness
+
+- [ ] Task 17.1: Fix phone collisions, improve selectors, add test tags, and parameterize timeouts
+  - Implement: In `apps/web/tests/e2e/helpers/auth.ts`, append `process.pid` or random 4-digit suffix to generated phone numbers to prevent collisions in parallel runs
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts:142-146,179,207,233`, replace `.first()` on dynamic lists with content-based filtering (`.filter({ hasText })`) or `data-testid` attributes
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts` and `notifications.spec.ts`, add `@smoke` tag to core flow tests, `@regression` to full suite, `@slow` to long-running tests
+  - Implement: In `apps/web/tests/e2e/messaging.spec.ts` and `notifications.spec.ts`, extract hard-coded timeouts (10000, 15000) to named constants with JSDoc explaining rationale (e.g., `TOAST_DISMISS_TIMEOUT`, `NAVIGATION_TIMEOUT`)
+  - Verify: `pnpm test:e2e` — all E2E tests pass
+
+## Phase 18: Audit — Future-Proofing
+
+- [ ] Task 18.1: Update mutation callback signatures and configure networkMode
+  - Implement: In `apps/web/src/hooks/use-messages.ts`, update all mutation `onSuccess`, `onError`, `onSettled` callbacks to use the 4-parameter signature `(data, variables, context, mutation)` for TanStack Query v5.89.0+ compatibility
+  - Implement: In `apps/web/src/hooks/use-notifications.ts`, update all mutation callbacks to 4-parameter signature
+  - Implement: In QueryClient setup (provider or config file), add `defaultOptions.queries.networkMode: 'online'` and `defaultOptions.mutations.networkMode: 'online'` for explicit documentation
+  - Test: `pnpm typecheck` — no errors
+  - Verify: `pnpm test` — all tests pass
+
+## Phase 19: Audit — Final Verification
+
+- [ ] Task 19.1: Full regression check after audit fixes
+  - Verify: All unit tests pass (`pnpm test`)
+  - Verify: All integration tests pass
+  - Verify: All E2E tests pass (`pnpm test:e2e`)
+  - Verify: Linting passes (`pnpm lint`)
+  - Verify: Type checking passes (`pnpm typecheck`)
+  - Verify: No console errors in browser during manual testing
