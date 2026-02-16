@@ -321,7 +321,7 @@ test.describe("Messaging Journey", () => {
       await pinnedToggle.click();
 
       // Verify pinned message content is visible inside the section
-      const pinnedSection = page.locator(".bg-primary\\/5");
+      const pinnedSection = page.getByTestId("pinned-messages");
       await expect(
         pinnedSection.getByText("Hello from the member!"),
       ).toBeVisible();

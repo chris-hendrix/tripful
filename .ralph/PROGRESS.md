@@ -1761,3 +1761,47 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Response vs input schema conventions**: Response entity schemas use `z.enum([...])` bare, while input schemas add `{ message: "..." }`. Always check which context you're in.
 - **Surgical schema changes are safe when schemas are private**: Since `notificationEntitySchema` is not exported, the change only affects consumers through the exported wrapper (`notificationListResponseSchema`). The type narrowing is backward-compatible.
 - **z.enum infers literal union types**: Changing from `z.string()` to `z.enum(...)` narrows the inferred TypeScript type from `string` to a union literal. This is always safe for downstream consumers since the literal union is a subtype of `string`.
+
+---
+
+## Iteration 33 — Task 11.1: Replace fragile CSS selector for pinned section ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified 2 files with a surgical 2-line change to replace a fragile CSS class selector in the E2E test with a stable `data-testid` attribute.
+
+**Changes to `/home/chend/git/tripful/apps/web/src/components/messaging/pinned-messages.tsx`:**
+- Added `data-testid="pinned-messages"` attribute to the root `<div>` element (line 24)
+- The `bg-primary/5` CSS class remains — only the test selector changes
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/messaging.spec.ts`:**
+- Line 324: Replaced `const pinnedSection = page.locator(".bg-primary\\/5");` with `const pinnedSection = page.getByTestId("pinned-messages");`
+- This was the only use of `.bg-primary` as a CSS selector in all E2E tests
+
+### Key implementation details
+- **Naming convention**: `data-testid="pinned-messages"` follows the established kebab-case convention used across the codebase (e.g., `profile-avatar`, `members-list`, `itinerary-header`)
+- **Playwright API**: `page.getByTestId(...)` is the preferred Playwright pattern, matching usage in page objects and spec files throughout the test suite
+- **No unit test impact**: The existing `pinned-messages.test.tsx` unit tests use `screen.getByText(...)` and `screen.queryByText(...)` — they do not reference CSS classes or `data-testid`, so they are unaffected
+- **First `data-testid` in messaging components**: This is the first `data-testid` attribute added to the `apps/web/src/components/messaging/` directory
+
+### Verification results
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Unit tests**: ✅ 1034 web tests pass across 55 test files, 216 shared tests pass, all API tests pass
+- **E2E messaging tests**: ✅ 3/3 messaging E2E tests pass in 15.9s (including "organizer actions journey" which exercises the pinned section selector)
+
+### Reviewer verdict: APPROVED
+- Minimal, precisely scoped change (2 lines across 2 files)
+- Correct naming convention (kebab-case)
+- Correct element targeted (root `<div>` of PinnedMessages component)
+- Correct Playwright API pattern (`getByTestId`)
+- No remaining fragile CSS selectors found in E2E tests for this component
+- No regressions to existing unit tests
+- 0 issues found, 0 suggestions
+
+### Learnings for future iterations
+- **`data-testid` is preferred over CSS class selectors in E2E tests**: CSS class selectors like `.bg-primary\\/5` are fragile because they couple tests to styling implementation. `data-testid` attributes are stable, intention-revealing, and the standard Playwright testing pattern.
+- **First `data-testid` in messaging directory**: Prior to this change, zero messaging components had `data-testid` attributes. Future E2E test improvements (Tasks 11.2-11.4) should follow this same pattern if they need stable selectors.
+- **`getByTestId` vs `locator('[data-testid="..."]')`**: Both work in Playwright, but `getByTestId` is more concise and idiomatic. The codebase uses both, but `getByTestId` is preferred in newer code.
+- The web package still has 1034 passing tests (no new tests — this was purely a selector replacement).

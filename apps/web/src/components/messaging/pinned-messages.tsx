@@ -21,7 +21,7 @@ export function PinnedMessages({ messages }: PinnedMessagesProps) {
   if (pinnedMessages.length === 0) return null;
 
   return (
-    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+    <div data-testid="pinned-messages" className="bg-primary/5 border border-primary/20 rounded-xl p-4">
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}

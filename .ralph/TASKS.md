@@ -307,7 +307,7 @@
 
 ## Phase 11: Cleanup — E2E Test Robustness
 
-- [ ] Task 11.1: Replace fragile CSS selector for pinned section
+- [x] Task 11.1: Replace fragile CSS selector for pinned section
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts:324`, replace `.bg-primary\\/5` locator with a `data-testid="pinned-messages"` attribute
   - Implement: Add the `data-testid` to `apps/web/src/components/messaging/pinned-messages.tsx`
   - Verify: `pnpm test:e2e -- --grep "messaging"` — all pass
