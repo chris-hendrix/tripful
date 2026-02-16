@@ -21,6 +21,7 @@ import {
   MemberMutedError,
   MessageLimitExceededError,
   InvalidReplyTargetError,
+  PinOnReplyError,
   PermissionDeniedError,
   TripLockedError,
   TripNotFoundError,
@@ -509,7 +510,7 @@ describe("message.service", () => {
       ).rejects.toThrow(PermissionDeniedError);
     });
 
-    it("should throw InvalidReplyTargetError for reply message", async () => {
+    it("should throw PinOnReplyError for reply message", async () => {
       // Create a reply
       const reply = await messageService.createMessage(
         testTripId,
@@ -519,7 +520,7 @@ describe("message.service", () => {
 
       await expect(
         messageService.togglePin(reply.id, testOrganizerId, testTripId, true),
-      ).rejects.toThrow(InvalidReplyTargetError);
+      ).rejects.toThrow(PinOnReplyError);
     });
 
     it("should throw MessageNotFoundError for non-existent message", async () => {

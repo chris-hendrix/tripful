@@ -16,6 +16,7 @@ import {
   MemberMutedError,
   MessageLimitExceededError,
   InvalidReplyTargetError,
+  PinOnReplyError,
   PermissionDeniedError,
   TripNotFoundError,
   TripLockedError,
@@ -633,7 +634,7 @@ export class MessageService implements IMessageService {
 
     // Must be top-level
     if (messageRow.message.parentId !== null) {
-      throw new InvalidReplyTargetError();
+      throw new PinOnReplyError();
     }
 
     // Check trip not locked

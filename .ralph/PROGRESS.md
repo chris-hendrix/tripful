@@ -1672,3 +1672,53 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Plugin dependency transitivity**: When plugin A depends on plugin B, and plugin B depends on plugin C, plugin A does NOT need to list plugin C in its own dependencies. The `"sms-service"` in the scheduler plugin's dependencies was doubly unnecessary — both because SchedulerService didn't use it directly AND because `"notification-service"` already ensures `"sms-service"` is loaded first.
 - **Underscore-prefix convention for unused params**: TypeScript's `_paramName` convention indicates an unused parameter. When you see this in existing code, it's a strong signal the parameter can be removed entirely if no other code relies on the constructor signature.
 - The API package still has 984 tests passing (21 scheduler service tests, unchanged count).
+
+---
+
+## Iteration 31 — Task 10.4: Add dedicated `PinOnReplyError` for `togglePin` reply case ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified 3 files to replace the semantically incorrect `InvalidReplyTargetError` in `togglePin` with a dedicated `PinOnReplyError`.
+
+**Changes to `/home/chend/git/tripful/apps/api/src/errors.ts`:**
+- Added `PinOnReplyError` definition after `InvalidReplyTargetError` (line 145): `createError("PIN_ON_REPLY", "Can only pin top-level messages", 400)`
+- Follows the identical multi-line format as all other errors in the file
+
+**Changes to `/home/chend/git/tripful/apps/api/src/services/message.service.ts`:**
+- Added `PinOnReplyError` to the error import block (line 18)
+- Replaced `throw new InvalidReplyTargetError()` with `throw new PinOnReplyError()` in `togglePin` method (line 637)
+- `InvalidReplyTargetError` remains imported and used in `createMessage` (3 throw sites: lines 406, 410, 415)
+
+**Changes to `/home/chend/git/tripful/apps/api/tests/unit/message.service.test.ts`:**
+- Added `PinOnReplyError` to the error import block (line 24)
+- Updated test description from `"should throw InvalidReplyTargetError for reply message"` to `"should throw PinOnReplyError for reply message"` (line 513)
+- Updated assertion from `.rejects.toThrow(InvalidReplyTargetError)` to `.rejects.toThrow(PinOnReplyError)` (line 523)
+- `InvalidReplyTargetError` remains imported and used in `createMessage` tests (2 assertions: lines 253, 262)
+
+### Key implementation details
+- **Semantic correctness**: The old error message "Can only reply to top-level messages" made no sense in a pin context. The new "Can only pin top-level messages" clearly communicates the constraint.
+- **Error code convention**: `PIN_ON_REPLY` follows UPPER_SNAKE_CASE pattern. Parallel phrasing with `INVALID_REPLY_TARGET` makes the distinction clear.
+- **No controller/route changes needed**: The `@fastify/error` instances carry `.statusCode` and `.code` properties. The controller re-throws them, and the global error handler in `error.middleware.ts` automatically serializes them to `{ success: false, error: { code, message } }`.
+- **No integration test changes needed**: Integration tests do not test pinning a reply message — they test the happy path and permission errors.
+- **Surgical 3-file change**: No scope creep. Only the minimum changes needed.
+
+### Verification results
+- **Message service unit tests**: ✅ 59/59 tests pass
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- All 3 files correctly modified
+- Error definition follows exact `createError` pattern
+- `InvalidReplyTargetError` correctly preserved in all files (still used by `createMessage`)
+- Test correctly updated to reference new error type
+- No orphaned code or missed references
+- 0 issues found
+
+### Learnings for future iterations
+- **Semantic error types improve API clarity**: Reusing error types across different contexts (like `InvalidReplyTargetError` for both reply validation and pin validation) creates confusing error messages for API consumers. Dedicated error types with context-specific messages are worth the small overhead.
+- **Error handler is fully automatic**: Once an error is defined with `createError(code, message, statusCode)`, the Fastify error handler (`error.middleware.ts`) picks it up automatically. No controller or route changes are needed — errors just need to be thrown from the service layer.
+- **Check all usages before replacing**: Before replacing an error type, grep for all usages. `InvalidReplyTargetError` was used in 4 places — only 1 needed replacing. The other 3 in `createMessage` are semantically correct.
+- The API package still has 984 tests passing (59 message service tests, unchanged count — test was updated, not added).

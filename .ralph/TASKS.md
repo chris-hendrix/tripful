@@ -293,7 +293,7 @@
   - Verify: `cd apps/api && pnpm vitest run tests/unit/scheduler.service.test.ts` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 10.4: Add dedicated `PinOnReplyError` for `togglePin` reply case
+- [x] Task 10.4: Add dedicated `PinOnReplyError` for `togglePin` reply case
   - Implement: Add `PinOnReplyError` (400) to `apps/api/src/errors.ts`
   - Implement: In `apps/api/src/services/message.service.ts` `togglePin` method, replace `InvalidReplyTargetError` usage with `PinOnReplyError` when the target is a reply
   - Verify: `cd apps/api && pnpm vitest run tests/unit/message.service.test.ts` — all pass

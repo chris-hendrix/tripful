@@ -142,6 +142,11 @@ export const InvalidReplyTargetError = createError(
   "Can only reply to top-level messages",
   400,
 );
+export const PinOnReplyError = createError(
+  "PIN_ON_REPLY",
+  "Can only pin top-level messages",
+  400,
+);
 export const AlreadyMutedError = createError(
   "ALREADY_MUTED",
   "Member is already muted",
