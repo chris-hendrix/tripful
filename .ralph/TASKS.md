@@ -413,7 +413,7 @@
 
 ## Phase 19: Audit — Final Verification
 
-- [ ] Task 19.1: Full regression check after audit fixes
+- [x] Task 19.1: Full regression check after audit fixes
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All integration tests pass
   - Verify: All E2E tests pass (`pnpm test:e2e`)

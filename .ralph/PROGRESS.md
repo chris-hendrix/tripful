@@ -2425,3 +2425,54 @@ Note: 8 E2E failures exist in unmodified files (app-shell, auth-journey, itinera
 - **`onSettled` has 5 params, not 4**: The new signature is `(data, error, variables, onMutateResult, mutationContext)`. When the task description says "4-parameter signature", it refers to `onSuccess`/`onError`; `onSettled` is actually 5.
 - **Parameter naming vs type naming tradeoff**: TanStack renamed the old `context` (onMutate result) to `onMutateResult` in their type definitions. The codebase uses `context` across 12+ hook files. Renaming only in-scope files would create cross-file inconsistency. Best to keep consistent within the codebase and only rename where ambiguity exists (like when both `onMutateResult` and `mutationContext` appear in the same callback).
 - **`use-trips.test.tsx` can be flaky**: The "handles API errors correctly" test occasionally fails due to timing (race between onSuccess/onError). This is a pre-existing issue unrelated to callback signature changes.
+
+---
+
+## Iteration 44 — Task 19.1: Full regression check after audit fixes ✅
+
+**Status**: COMPLETED
+
+### What was done
+Full regression verification of the entire codebase after all audit remediation tasks (Phases 13-18, Tasks 13.1 through 18.1). No code changes were made — this was a verification-only task.
+
+### Verification results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| Unit tests (API) | ✅ PASS | 43 test files, 989 tests passed |
+| Unit tests (Web) | ✅ PASS | 56 test files, 1,046 tests passed |
+| Unit tests (Shared) | ✅ PASS | 12 test files, 216 tests passed |
+| **Total tests** | ✅ **2,251 tests** | 111 test files, all pass |
+| E2E tests (Playwright) | ✅ PASS | 31 tests, all passed (2.9 minutes) |
+| Linting (ESLint) | ✅ PASS | 3 packages, 0 errors |
+| Type checking (tsc) | ✅ PASS | 3 packages, 0 errors |
+| Manual browser testing | ✅ PASS | No unexpected console errors |
+
+### E2E test coverage
+All 31 E2E tests passed, covering:
+- Auth journey (login, guards, redirects)
+- App shell (structure, navigation)
+- Invitation flow (RSVP, status changes, member list)
+- Itinerary CRUD (events, accommodations, view modes, permissions, deleted items, travel delegation)
+- **Messaging** (CRUD, organizer actions, restricted states) — 3 tests
+- **Notifications** (bell/dropdown, mark all read, trip bell, preferences) — 3 tests
+- Trip CRUD (create, edit, permissions, auto-lock, member management)
+- Profile (navigation, editing, photo upload)
+
+### Manual browser testing
+- Login page: loaded successfully, no JS console errors
+- Home page (unauthenticated): redirects to /login correctly
+- API health endpoint: responding (200)
+- Console errors: only expected 401 network responses from unauthenticated API calls (not JS errors)
+- Screenshots saved to `.ralph/screenshots/task-19.1-*.png`
+
+### Verifier verdict: PASS
+All automated checks pass. All API endpoints respond correctly. Browser verification confirms UI renders correctly.
+
+### Reviewer verdict: APPROVED
+All 6 verification criteria from Task 19.1 independently confirmed. Full regression suite confirms audit fixes from Phases 13-18 introduced no regressions.
+
+### Learnings for future iterations
+- **Playwright `reuseExistingServer`**: When `CI` env var is not set, Playwright reuses existing dev servers. The `pnpm test:e2e` command may fail if it tries to start servers that are already running — use `CI= npx playwright test` directly from the apps/web directory for explicit control.
+- **Turbo cache**: When no code changes are made, turbo caches all test/lint/typecheck results. This makes regression checks very fast (~17s for tests, ~150ms for lint, ~67ms for typecheck).
+- **Test count growth**: The project now has 2,251 unit/integration tests + 31 E2E tests = 2,282 total tests across all packages.
