@@ -102,6 +102,7 @@ export function MessageReplies({
           onClick={() => setIsExpanded(true)}
           className="text-sm text-primary hover:underline mb-2 inline-flex items-center gap-1"
           aria-expanded={false}
+          aria-label="Show more replies"
         >
           <ChevronDown className="w-3.5 h-3.5" />
           View {hiddenCount} more {hiddenCount === 1 ? "reply" : "replies"}
@@ -114,6 +115,7 @@ export function MessageReplies({
           onClick={() => setIsExpanded(false)}
           className="text-sm text-primary hover:underline mb-2 inline-flex items-center gap-1"
           aria-expanded={true}
+          aria-label="Hide replies"
         >
           <ChevronUp className="w-3.5 h-3.5" />
           Hide replies

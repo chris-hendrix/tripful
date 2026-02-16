@@ -26,6 +26,7 @@ export function PinnedMessages({ messages }: PinnedMessagesProps) {
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
+        aria-label={isExpanded ? "Collapse pinned messages" : "Expand pinned messages"}
         className="flex items-center gap-2 w-full"
       >
         <Pin className="w-4 h-4 text-primary shrink-0" />

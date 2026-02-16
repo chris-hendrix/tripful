@@ -98,6 +98,37 @@ describe("PinnedMessages", () => {
     expect(screen.queryByText("Pinned message content")).toBeNull();
   });
 
+  it("has aria-label 'Expand pinned messages' when collapsed", () => {
+    const messages = [makeMessage()];
+    render(
+      <PinnedMessages messages={messages} />,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "Expand pinned messages",
+    });
+    expect(button).toBeDefined();
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("has aria-label 'Collapse pinned messages' when expanded", async () => {
+    const user = userEvent.setup();
+    const messages = [makeMessage()];
+    render(
+      <PinnedMessages messages={messages} />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Expand pinned messages" }),
+    );
+
+    const button = screen.getByRole("button", {
+      name: "Collapse pinned messages",
+    });
+    expect(button).toBeDefined();
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("only shows pinned non-deleted messages", () => {
     const messages = [
       makeMessage({ id: "msg-1", isPinned: true }),

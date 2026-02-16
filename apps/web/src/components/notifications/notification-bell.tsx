@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useUnreadCount } from "@/hooks/use-notifications";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { NotificationDropdown } from "./notification-dropdown";
 
 const ANIMATION_CLASS = "motion-safe:animate-[badgePulse_600ms_ease-in-out]";
@@ -60,7 +61,9 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[380px] p-0" align="end">
         <Suspense fallback={null}>
-          <NotificationDropdown onClose={() => setOpen(false)} />
+          <ErrorBoundary>
+            <NotificationDropdown onClose={() => setOpen(false)} />
+          </ErrorBoundary>
         </Suspense>
       </PopoverContent>
     </Popover>

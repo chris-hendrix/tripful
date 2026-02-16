@@ -125,6 +125,12 @@ export const MessageCard = memo(function MessageCard({
   const adjustEditHeight = useCallback(() => {
     const textarea = editTextareaRef.current;
     if (textarea) {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (prefersReducedMotion) {
+        textarea.style.transition = "none";
+      }
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }

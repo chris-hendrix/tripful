@@ -15,7 +15,8 @@ import { getInitials } from "@/lib/format";
 import { toast } from "sonner";
 
 const MAX_LENGTH = 2000;
-const CHAR_COUNT_THRESHOLD = 1800;
+const CHAR_COUNT_THRESHOLD = 1000;
+const CHAR_COUNT_WARNING = 1800;
 
 interface MessageInputProps {
   tripId: string;
@@ -42,6 +43,12 @@ export function MessageInput({
   const adjustHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (prefersReducedMotion) {
+        textarea.style.transition = "none";
+      }
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
@@ -135,6 +142,9 @@ export function MessageInput({
               {content.length > CHAR_COUNT_THRESHOLD && (
                 <span
                   className={cn(
+                    content.length >= CHAR_COUNT_WARNING &&
+                      content.length < MAX_LENGTH &&
+                      "text-amber-600",
                     content.length >= MAX_LENGTH && "text-destructive",
                   )}
                 >

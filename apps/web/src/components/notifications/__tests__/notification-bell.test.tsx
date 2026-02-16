@@ -455,6 +455,28 @@ describe("NotificationBell", () => {
     expect(mockPush).toHaveBeenCalledWith("/trips");
   });
 
+  it("shows error boundary fallback when NotificationDropdown throws", async () => {
+    const user = userEvent.setup();
+    // Make the notifications hook throw an error during render
+    mockUseNotifications.mockImplementation(() => {
+      throw new Error("Network failure");
+    });
+
+    // Suppress console.error from ErrorBoundary
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(<NotificationBell />);
+
+    const button = screen.getByRole("button", { name: "Notifications" });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByText("Something went wrong")).toBeDefined();
+    });
+
+    spy.mockRestore();
+  });
+
   it('"View all notifications" navigates to trip page and closes dropdown when on a trip page', async () => {
     const user = userEvent.setup();
     mockPathname.mockReturnValue("/trips/trip-abc");

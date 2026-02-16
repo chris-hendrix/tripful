@@ -2153,3 +2153,78 @@ This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-
 - **CSS animation restart without key re-mount**: Remove the animation class, trigger reflow with `void element.offsetWidth`, then re-add the class. This is more performant than `key={value}` which tears down and rebuilds the entire DOM subtree.
 - **Suspense fallback={null} is fine for hidden content**: When the component is inside a popover that's closed by default, there's no visual benefit to a loading skeleton in the Suspense fallback.
 - **memo() with hooks inside**: `memo()` works fine when the component uses hooks internally — the memoization only prevents re-renders from parent prop changes, hooks still trigger internal re-renders as needed.
+
+---
+
+## Iteration 40 — Task 15.1: Fix Switch import, aria-labels, prefers-reduced-motion, Error Boundaries, and character count ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**1. Switch import verification** (`apps/web/src/components/ui/switch.tsx`):
+- Verified line 4 imports from `"radix-ui"` — the unified Radix v2 package at v1.4.3 is present in `package.json:32`
+- **No change needed** — import is correct
+
+**2. aria-labels** (`apps/web/src/components/messaging/pinned-messages.tsx`):
+- Added `aria-label={isExpanded ? "Collapse pinned messages" : "Expand pinned messages"}` to the expand/collapse button
+
+**2b. aria-labels** (`apps/web/src/components/messaging/message-replies.tsx`):
+- Added `aria-label="Show more replies"` to the "View X more" button
+- Added `aria-label="Hide replies"` to the hide/collapse button
+
+**3. prefers-reduced-motion** (`apps/web/src/components/messaging/message-input.tsx`, `message-card.tsx`):
+- Both `adjustHeight` and `adjustEditHeight` callbacks now check `window.matchMedia('(prefers-reduced-motion: reduce)').matches`
+- When reduced motion is preferred, `textarea.style.transition = "none"` is set before height adjustment
+- Added `window.matchMedia` polyfill to `apps/web/vitest.setup.ts` for jsdom test environment
+
+**4. ErrorBoundary component** (`apps/web/src/components/error-boundary.tsx` — NEW):
+- React class component using `getDerivedStateFromError` and `componentDidCatch`
+- Default fallback UI: "Something went wrong" heading + description + "Try again" button
+- Supports optional `fallback` prop for custom fallback rendering
+- Retry resets error state via `setState({ hasError: false, error: null })`
+
+**5. ErrorBoundary wrapping**:
+- `<TripMessages>` wrapped with `<ErrorBoundary>` in `trip-detail-content.tsx`
+- `<NotificationDropdown>` wrapped with `<ErrorBoundary>` inside existing `<Suspense>` in `notification-bell.tsx`
+
+**6. Character count 3-tier system** (`apps/web/src/components/messaging/message-input.tsx`):
+- Changed `CHAR_COUNT_THRESHOLD` from 1800 to 1000
+- Added `CHAR_COUNT_WARNING = 1800` constant
+- Three visual tiers:
+  - 1000-1799: muted style (text-muted-foreground, inherited from parent div)
+  - 1800-1999: amber warning color (text-amber-600)
+  - 2000 (max): destructive red (text-destructive)
+
+### Key implementation details
+- `window.matchMedia` does not exist in jsdom — required global polyfill in `vitest.setup.ts`
+- ErrorBoundary must be a class component per React requirements — functional components cannot use `componentDidCatch`/`getDerivedStateFromError`
+- ErrorBoundary fallback UI follows existing `global-error.tsx` pattern
+- The `prefers-reduced-motion` check runs on every keystroke (via `adjustHeight` callback) — micro-optimization to cache in a ref was noted but not needed at this scale
+- Switch import `from "radix-ui"` is valid for Radix v2 unified package — no change was made
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| Shared package tests | ✅ PASS | 216 tests |
+| API unit/integration tests | ✅ PASS | 989 tests |
+| Frontend tests | ✅ PASS | 1046 tests |
+| **Total unit/integration** | ✅ **ALL PASS** | **2251 automated tests** |
+| E2E tests | ✅ PASS | 31 tests (3.0 minutes) |
+
+### Reviewer verdict: APPROVED
+- All 8 task requirements fully addressed
+- aria-labels are descriptive and action-oriented, following codebase convention
+- ErrorBoundary is well-implemented as a class component with clean fallback UI
+- prefers-reduced-motion check is correctly placed in both textarea height callbacks
+- Character count 3-tier system works correctly with proper color transitions
+- Tests are comprehensive: 5 ErrorBoundary tests, 2 pinned aria-label tests, 5 message-input tests, 1 notification-bell ErrorBoundary test
+- Low-priority notes: no test for `message-replies.tsx` aria-labels (no test file exists for that component) and no dedicated reduced-motion test for `message-card.tsx` (identical pattern to tested `message-input.tsx`)
+
+### Learnings for future iterations
+- **`window.matchMedia` polyfill**: jsdom doesn't provide `matchMedia` — must add a global mock in `vitest.setup.ts` for any code that checks media queries
+- **React ErrorBoundary must be class component**: Functional components cannot catch rendering errors; `getDerivedStateFromError` is only available on class components
+- **Radix v2 unified package**: `radix-ui` (single package) is the v2 approach — no separate `@radix-ui/react-*` packages needed when this is installed
+- **Character count threshold conventions**: Other form dialogs in the codebase use 1600/2000 threshold — the messaging character count now starts at 1000 for better UX

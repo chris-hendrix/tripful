@@ -50,6 +50,7 @@ import {
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
 import { TripNotificationBell } from "@/components/notifications";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
@@ -352,12 +353,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Discussion */}
         <div className="border-t border-border mt-8 pt-8">
-          <TripMessages
-            tripId={tripId}
-            isOrganizer={isOrganizer}
-            disabled={isLocked}
-            isMuted={currentMember?.isMuted}
-          />
+          <ErrorBoundary>
+            <TripMessages
+              tripId={tripId}
+              isOrganizer={isOrganizer}
+              disabled={isLocked}
+              isMuted={currentMember?.isMuted}
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

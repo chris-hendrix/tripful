@@ -366,7 +366,7 @@
 
 ## Phase 15: Audit — Accessibility & UX
 
-- [ ] Task 15.1: Fix Switch import, aria-labels, prefers-reduced-motion, Error Boundaries, and character count
+- [x] Task 15.1: Fix Switch import, aria-labels, prefers-reduced-motion, Error Boundaries, and character count
   - Implement: Verify `apps/web/src/components/ui/switch.tsx:4` import — if `radix-ui` is in package.json (Radix v2), no change; if not, change to `@radix-ui/react-switch`
   - Implement: In `apps/web/src/components/messaging/pinned-messages.tsx:28-29`, add `aria-label="Expand pinned messages"` / `"Collapse pinned messages"` to expand/collapse buttons
   - Implement: In `apps/web/src/components/messaging/message-replies.tsx:104,116`, add `aria-label="Show more replies"` / `"Hide replies"` to expand/collapse buttons

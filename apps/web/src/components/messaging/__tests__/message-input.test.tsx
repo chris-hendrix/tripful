@@ -158,26 +158,103 @@ describe("MessageInput", () => {
     );
   });
 
-  it("shows character count above threshold", async () => {
+  it("shows character count above 1000 threshold", async () => {
     const user = userEvent.setup();
     render(<MessageInput tripId="trip-1" />);
 
     const textarea = screen.getByPlaceholderText("Write a message...");
-    // Type a long message above 1800 characters
-    const longText = "a".repeat(1801);
+    const longText = "a".repeat(1001);
     await user.click(textarea);
-    // For performance, set value directly and trigger change
-    // Instead of typing 1801 chars, we use fireEvent
     Object.getOwnPropertyDescriptor(
       HTMLTextAreaElement.prototype,
       "value",
     )?.set?.call(textarea, longText);
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
 
-    // Trigger onChange via fireEvent approach
     await waitFor(() => {
-      expect(screen.getByText(/1801\/2000/)).toBeDefined();
+      expect(screen.getByText(/1001\/2000/)).toBeDefined();
     });
+  });
+
+  it("does not show character count at or below 1000", async () => {
+    const user = userEvent.setup();
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByPlaceholderText("Write a message...");
+    const text = "a".repeat(1000);
+    await user.click(textarea);
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(textarea, text);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/1000\/2000/)).toBeNull();
+    });
+  });
+
+  it("shows warning color at 1800+ characters", async () => {
+    const user = userEvent.setup();
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByPlaceholderText("Write a message...");
+    const longText = "a".repeat(1800);
+    await user.click(textarea);
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(textarea, longText);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await waitFor(() => {
+      const charCount = screen.getByText(/1800\/2000/);
+      expect(charCount).toBeDefined();
+      expect(charCount.className).toContain("text-amber-600");
+    });
+  });
+
+  it("shows destructive color at max length", async () => {
+    const user = userEvent.setup();
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByPlaceholderText("Write a message...");
+    const longText = "a".repeat(2000);
+    await user.click(textarea);
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(textarea, longText);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await waitFor(() => {
+      const charCount = screen.getByText(/2000\/2000/);
+      expect(charCount).toBeDefined();
+      expect(charCount.className).toContain("text-destructive");
+    });
+  });
+
+  it("sets transition to none when prefers-reduced-motion is enabled", async () => {
+    const user = userEvent.setup();
+
+    // Mock matchMedia to return reduced motion preference
+    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    render(<MessageInput tripId="trip-1" />);
+
+    const textarea = screen.getByPlaceholderText("Write a message...");
+    await user.type(textarea, "Hello");
+
+    expect(textarea.style.transition).toBe("none");
   });
 
   it("does not show avatar in compact mode", () => {
