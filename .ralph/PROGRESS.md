@@ -1898,3 +1898,44 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **`domcontentloaded` as a lightweight gate**: When the next line already has a specific element wait with a generous timeout, `domcontentloaded` is sufficient to ensure the DOM is parsed. Don't over-engineer the intermediate wait.
 - **Zero `networkidle` remaining in the codebase**: This was the last usage. Future E2E tests should never use `networkidle` — use element-based waits instead.
 - The web package still has 1034 passing unit tests (no new tests — this was purely a wait condition replacement).
+
+---
+
+## Iteration 36 — Task 11.4: Document feed ordering assumption in E2E tests ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Added clear documentation and a setup assertion to `apps/web/tests/e2e/messaging.spec.ts` to document that the message feed renders newest-first and that `.first()` calls on action buttons rely on this ordering.
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/messaging.spec.ts`:**
+1. **Lines 54-56**: Added a NOTE comment block after `test.slow()` documenting that the message feed renders newest-first (API returns messages ordered by `createdAt DESC`) and that `.first()` calls on action buttons rely on the most recently posted message appearing at the top of the feed.
+2. **Lines 137-145**: Added a new `test.step("verify feed ordering: newest message appears first", ...)` that asserts the expected ordering immediately after posting the second message. It verifies that the first `<article>` in the feed contains the second-posted message ("This message will be edited then deleted") and the last `<article>` contains the first-posted message ("Hello from the organizer!"). This serves as an early-fail guard — if the API ever changes its sort order, this assertion will fail immediately rather than causing confusing failures in the subsequent edit/delete steps.
+3. **Line 150**: Replaced the ambiguous comment `"The first message in the feed (newest first or oldest first depends on ordering)"` with a clear, accurate comment: `"Find 'Hello from the organizer!' by content (ordering-independent locator)"`. The old comment expressed uncertainty about the ordering; the new comment correctly notes that the locator strategy used (`.filter({ hasText: ... })`) is ordering-independent.
+
+### Key implementation details
+- **Ordering chain**: `message.service.ts:181` uses `.orderBy(desc(messages.createdAt))` → `trip-messages.tsx:115` renders `messages.map(...)` without re-sorting → DOM renders newest at top.
+- **Only the CRUD journey test is ordering-dependent**: The other two tests ("organizer actions journey" and "restricted states journey") each operate on single messages where ordering is irrelevant.
+- **Assertion uses `getByRole("article")`**: Each `MessageCard` renders an `<article>` element. Using `articles.first()` and `articles.last()` with `toContainText()` is content-based and won't break if author names change.
+- **Existing comments on lines 173 and 201** (`"The feed renders newest-first..."` and `"The edited message is still first in the feed (newest-first)"`) were already accurate and consistent with the new documentation, so they were left as-is.
+- **No component files modified** — changes are entirely within the test file.
+
+### Verification results
+- **E2E messaging tests**: ✅ 3/3 tests pass (messaging CRUD journey, organizer actions journey, restricted states journey) in 12.1s
+- **TypeScript type checking**: ✅ All 3 packages pass with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+
+### Reviewer verdict: APPROVED
+- Accurate documentation matching the actual API ordering behavior
+- Effective guard assertion that fails fast if ordering assumptions break
+- Correct locator choice (`getByRole("feed").getByRole("article")`)
+- Improved clarity on the previously ambiguous comment
+- No unintended behavioral changes — only comments and a new verification step added
+- 1 low-severity optional suggestion: consider adding `await expect(articles).toHaveCount(2)` before the first/last checks for an even clearer error message if a message fails to render (non-blocking since prior steps already assert message visibility)
+- 0 issues found
+
+### Learnings for future iterations
+- **Document ordering assumptions proactively**: When E2E tests use positional selectors like `.first()`, `.nth()`, or `.last()`, always add a comment explaining what ordering is assumed and why that element is at that position.
+- **Setup assertions as early-fail guards**: Adding a `test.step` that verifies preconditions (like ordering) before the main test logic runs provides much clearer error messages when assumptions break. Instead of a confusing "Edit menu didn't appear" error, you get "Expected first article to contain 'X' but got 'Y'".
+- **Prefer content-based over position-based locators when possible**: The reaction step (line 150) uses `.filter({ hasText: ... })` which is ordering-independent and doesn't need an ordering comment. When feasible, prefer this pattern over `.first()` to reduce ordering dependencies.
+- **`getByRole("article")` works well for MessageCard ordering**: Since each `MessageCard` renders as an `<article>` with `aria-label`, `getByRole("article")` is a semantic and reliable way to assert DOM order in the message feed.

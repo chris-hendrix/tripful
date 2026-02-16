@@ -321,7 +321,7 @@
   - Implement: Add a `data-testid="app-ready"` marker to the app shell if needed
   - Verify: `pnpm test:e2e` — all pass
 
-- [ ] Task 11.4: Document feed ordering assumption in E2E tests
+- [x] Task 11.4: Document feed ordering assumption in E2E tests
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts:131,155`, add clear comments documenting that tests assume newest-first ordering
   - Implement: Add a setup assertion at the top of ordering-dependent tests that verifies the expected order
   - Verify: `pnpm test:e2e -- --grep "messaging"` — all pass

@@ -51,6 +51,10 @@ test.describe("Messaging Journey", () => {
     async ({ page, request }) => {
       test.slow(); // Multiple auth cycles and polling waits
 
+      // NOTE: The message feed renders newest-first (API returns messages ordered by
+      // createdAt DESC). Tests that use .first() on action buttons rely on the most
+      // recently posted message appearing at the top of the feed.
+
       const timestamp = Date.now();
       const shortTimestamp = timestamp.toString().slice(-10);
       const organizerPhone = `+1555${shortTimestamp}`;
@@ -130,11 +134,20 @@ test.describe("Messaging Journey", () => {
         ).toBeVisible({ timeout: 10000 });
       });
 
+      await test.step("verify feed ordering: newest message appears first", async () => {
+        // The feed renders newest-first (API: ORDER BY created_at DESC).
+        // Verify the second-posted message appears before the first-posted message.
+        const articles = page.getByRole("feed").getByRole("article");
+        await expect(articles.first()).toContainText(
+          "This message will be edited then deleted",
+        );
+        await expect(articles.last()).toContainText("Hello from the organizer!");
+      });
+
       await snap(page, "40-messaging-two-messages");
 
       await test.step("react to the first message with heart", async () => {
-        // The first message in the feed (newest first or oldest first depends on ordering)
-        // Find the heart reaction button near the first message
+        // Find "Hello from the organizer!" by content (ordering-independent locator)
         const firstMessageCard = page
           .getByRole("feed")
           .locator("div")
