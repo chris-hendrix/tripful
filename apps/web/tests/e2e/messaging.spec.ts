@@ -33,7 +33,9 @@ async function dismissToast(page: import("@playwright/test").Page) {
 
 /** Helper: scroll to the discussion section and wait for it to be visible. */
 async function scrollToDiscussion(page: import("@playwright/test").Page) {
-  await page.locator("#discussion").scrollIntoViewIfNeeded();
+  const discussion = page.locator("#discussion");
+  await discussion.waitFor({ state: "attached", timeout: 15000 });
+  await discussion.scrollIntoViewIfNeeded();
   await expect(page.getByRole("heading", { name: "Discussion" })).toBeVisible({
     timeout: 10000,
   });
