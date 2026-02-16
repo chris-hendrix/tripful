@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import {
 } from "@/hooks/use-notifications";
 import type { Notification } from "@tripful/shared/types";
 import { NotificationItem } from "./notification-item";
+
+const TRIP_PAGE_REGEX = /^\/trips\/([^/]+)/;
 
 interface NotificationDropdownProps {
   onClose: () => void;
@@ -27,10 +30,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const notifications = data?.notifications ?? [];
   const totalCount = data?.meta?.total ?? 0;
   const hasMore = notifications.length < totalCount;
-  const hasUnread = notifications.some((n) => n.readAt === null);
+  const hasUnread = useMemo(() => notifications.some((n) => n.readAt === null), [notifications]);
 
   // Extract tripId from pathname when on a trip detail page
-  const tripPageMatch = pathname.match(/^\/trips\/([^/]+)/);
+  const tripPageMatch = pathname.match(TRIP_PAGE_REGEX);
   const currentTripId = tripPageMatch?.[1];
 
   function handleNotificationClick(notification: Notification) {

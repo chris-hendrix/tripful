@@ -2092,3 +2092,64 @@ This marks the completion of the entire Cleanup phase (16 iterations, Tasks 8.1-
 - **Rate limit tests should use replies, not top-level messages**: To avoid hitting the 100 top-level message limit before the 200 daily limit, bulk-insert reply messages (with parentId) for rate limit tests.
 - **`canModerateMessages` is a thin wrapper over `isOrganizer`**: The behavior is identical, but using the semantic method name improves code readability and future-proofs against permission model changes.
 - **Deleted messages should count toward rate limits**: Counting all messages (including soft-deleted) prevents abuse via create-delete cycles.
+
+---
+
+## Iteration 39 — Task 14.1: Fix Suspense boundary, memoization, badge re-mount, regex hoisting, and memoize filter ✅
+
+**Status**: COMPLETED
+
+### What was done
+
+**1. Suspense boundary** (`apps/web/src/components/notifications/notification-bell.tsx`):
+- Added `Suspense` import from React
+- Wrapped `<NotificationDropdown>` in `<Suspense fallback={null}>` to handle `usePathname()` on dynamic routes without hydration issues
+
+**2. Badge animation refactor** (`apps/web/src/components/notifications/notification-bell.tsx`):
+- Removed `key={displayCount}` from the badge `<span>` which was causing full DOM re-mount on every count change
+- Replaced with `useRef` + `useEffect` CSS class toggling pattern: removes animation class, forces reflow via `void el.offsetWidth`, re-adds class
+- Hoisted `ANIMATION_CLASS` constant to module level for consistency
+
+**3. MessageCard memoization** (`apps/web/src/components/messaging/message-card.tsx`):
+- Wrapped component export in `memo()` using the codebase's established pattern: `export const MessageCard = memo(function MessageCard(...) { ... });`
+- Prevents unnecessary re-renders of all message cards when parent `TripMessages` re-renders every 5s from polling
+
+**4. Regex hoisting** (`apps/web/src/components/notifications/notification-dropdown.tsx`):
+- Moved `/^\/trips\/([^/]+)/` regex to module-level `TRIP_PAGE_REGEX` constant to avoid recompilation on every render
+
+**5. useMemo for filter** (`apps/web/src/components/notifications/notification-dropdown.tsx`):
+- Added `useMemo` import from React
+- Wrapped `notifications.some((n) => n.readAt === null)` in `useMemo` with `[notifications]` dependency
+
+**6. Test update** (`apps/web/src/components/notifications/__tests__/notification-bell.test.tsx`):
+- Updated test title from `"has key on badge span for re-animation on count change"` to `"re-triggers badge pulse animation when count changes"` to reflect the new useEffect-based approach
+- Assertions remain valid — they check animation class presence on the badge element
+
+### Key implementation details
+- CSS animation restart technique: Remove class → force reflow with `void el.offsetWidth` → re-add class. This is the standard non-key-based approach for replaying CSS animations.
+- `Suspense fallback={null}` is appropriate because the popover content is hidden until opened, and the dropdown has its own `isLoading` skeleton state.
+- `memo()` uses the codebase convention of named function expressions: `memo(function ComponentName(...))`
+- No new dependencies added
+
+### Verification results
+| Check | Result | Details |
+|-------|--------|---------|
+| TypeScript | ✅ PASS | 0 errors across 3 packages |
+| ESLint | ✅ PASS | 0 errors across 3 packages |
+| All API unit tests | ✅ PASS | 989 tests |
+| Shared package tests | ✅ PASS | 216 tests |
+| Frontend tests | ✅ PASS | 1034 tests |
+| **Total unit/integration** | ✅ **ALL PASS** | **2239 automated tests** |
+| E2E notifications | ✅ PASS | 3/3 tests (bell/dropdown, mark-all-read, preferences) |
+
+### Reviewer verdict: APPROVED
+- Suspense boundary correctly placed for usePathname() handling
+- Badge animation refactor is well-executed with standard reflow technique
+- memo() wrapping follows established codebase convention exactly
+- Regex hoisting and useMemo are clean and correct
+- Test update is minimal and accurate
+
+### Learnings for future iterations
+- **CSS animation restart without key re-mount**: Remove the animation class, trigger reflow with `void element.offsetWidth`, then re-add the class. This is more performant than `key={value}` which tears down and rebuilds the entire DOM subtree.
+- **Suspense fallback={null} is fine for hidden content**: When the component is inside a popover that's closed by default, there's no visual benefit to a loading skeleton in the Suspense fallback.
+- **memo() with hooks inside**: `memo()` works fine when the component uses hooks internally — the memoization only prevents re-renders from parent prop changes, hooks still trigger internal re-renders as needed.

@@ -66,7 +66,7 @@ describe("NotificationBell", () => {
     expect(screen.getByText("3")).toBeDefined();
   });
 
-  it("has key on badge span for re-animation on count change", () => {
+  it("re-triggers badge pulse animation when count changes", () => {
     mockUseUnreadCount.mockReturnValue({ data: 3, isLoading: false });
     const { rerender } = render(<NotificationBell />);
 

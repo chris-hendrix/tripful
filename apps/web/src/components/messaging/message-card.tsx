@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import {
   EllipsisVertical,
   Pencil,
@@ -56,7 +56,7 @@ interface MessageCardProps {
   disabledMessage?: string | undefined;
 }
 
-export function MessageCard({
+export const MessageCard = memo(function MessageCard({
   message,
   tripId,
   isOrganizer,
@@ -361,4 +361,4 @@ export function MessageCard({
       </AlertDialog>
     </article>
   );
-}
+});

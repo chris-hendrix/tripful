@@ -354,7 +354,7 @@
 
 ## Phase 14: Audit — Frontend Performance
 
-- [ ] Task 14.1: Fix Suspense boundary, memoization, badge re-mount, regex hoisting, and memoize filter
+- [x] Task 14.1: Fix Suspense boundary, memoization, badge re-mount, regex hoisting, and memoize filter
   - Implement: In `apps/web/src/components/notifications/notification-bell.tsx`, wrap `<NotificationDropdown>` in `<Suspense fallback={...}>` to handle `usePathname()` on dynamic routes
   - Implement: In `apps/web/src/components/messaging/message-card.tsx`, wrap the component export in `React.memo()` to prevent unnecessary re-renders in `.map()` lists
   - Implement: In `apps/web/src/components/notifications/notification-bell.tsx`, remove `key={displayCount}` from badge span; use CSS class toggling or `useEffect` for pulse animation instead of re-mount
