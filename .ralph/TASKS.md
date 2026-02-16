@@ -268,7 +268,7 @@
   - Verify: `cd apps/web && pnpm vitest run src/components/messaging/__tests__/trip-messages.test.tsx` — all pass
   - Verify: `pnpm typecheck` — no errors
 
-- [ ] Task 9.3: Add "View all" link to global notification dropdown
+- [x] Task 9.3: Add "View all" link to global notification dropdown
   - Implement: In `apps/web/src/components/notifications/notification-dropdown.tsx`, add a "View all notifications" link at the bottom of the dropdown when there are more than 10 notifications
   - Implement: Link should navigate to the trip page's notification section (or open the per-trip dialog if on a trip page)
   - Verify: `pnpm typecheck` — no errors

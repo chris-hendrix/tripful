@@ -1496,3 +1496,56 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **API max limit consideration**: When using the "growing limit" pattern, the API's max limit validation (`max(50)`) creates a ceiling. The frontend should either cap the limit or the backend should increase the max. For messages with a 100-message trip cap, increasing the API max to 100 would be the simplest fix.
 - **`fireEvent` vs `userEvent` with fake timers**: When the test suite uses `vi.useFakeTimers()`, `userEvent.click` can hang due to timer interaction. `fireEvent.click` is more reliable in this context and was used for the load-more button click test.
 - The web package now has 1029 passing tests (up from 1025 in iteration 25, +4 new load-more tests).
+
+---
+
+## Iteration 27 — Task 9.3: Add "View all" link to global notification dropdown ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Modified `/home/chend/git/tripful/apps/web/src/components/notifications/notification-dropdown.tsx` — 4 additions:
+  1. Imported `usePathname` from `next/navigation` (line 3)
+  2. Added `pathname`, `totalCount`, `hasMore`, and `currentTripId` derived state (lines 22, 28-29, 32-34)
+  3. Added `handleViewAll()` function that navigates to `/trips/{currentTripId}` when on a trip page, or `/trips` otherwise, then calls `onClose()` (lines 59-66)
+  4. Added "View all notifications" footer with `Separator` + `Button variant="ghost"`, conditionally rendered when `hasMore` is true (lines 124-138)
+
+- Modified `/home/chend/git/tripful/apps/web/src/components/notifications/__tests__/notification-bell.test.tsx` — 5 new tests + mock addition:
+  1. Added `mockPathname` mock function (line 8) with default return `/trips`
+  2. Extended `next/navigation` mock to include `usePathname` (line 16)
+  3. Test: "View all notifications" appears when `total > displayed count` (meta.total=15, 1 notification displayed)
+  4. Test: "View all notifications" does NOT appear when `total <= displayed count` (meta.total=1)
+  5. Test: "View all notifications" does NOT appear in empty state (0 notifications)
+  6. Test: Navigates to `/trips` when not on a trip page (pathname="/trips")
+  7. Test: Navigates to `/trips/trip-abc` when on a trip page (pathname="/trips/trip-abc")
+
+### Key implementation details
+- **`hasMore` logic**: `notifications.length < totalCount` — mirrors the exact pattern from `trip-notification-dialog.tsx` (line 50). When the API returns `total: 15` but only 1 notification is displayed (limit=10), `hasMore` is true.
+- **Trip page detection**: `pathname.match(/^\/trips\/([^/]+)/)` extracts the trip ID from paths like `/trips/trip-abc`. When on the trip listing page (`/trips`), the match is null and `currentTripId` is undefined.
+- **Navigation target**: Since there is no dedicated `/notifications` page in the app, `handleViewAll` navigates contextually:
+  - On a trip page: `/trips/{currentTripId}` — the trip detail page hosts the `TripNotificationBell` where users can access the full trip notification dialog
+  - Not on a trip page: `/trips` — the trip listing page where all trip cards are accessible
+- **Pattern consistency**: The footer exactly mirrors the "Load more" pattern from `trip-notification-dialog.tsx`: `Separator` + centered `div className="flex justify-center py-3"` + `Button variant="ghost" size="sm" className="text-sm text-muted-foreground"`.
+- **Popover close**: `onClose()` is called after navigation in `handleViewAll`, consistent with `handleNotificationClick`.
+- **No new hooks, API changes, or page routes**: The `data?.meta?.total` field was already available from the existing `useNotifications` hook response; no backend changes needed.
+
+### Verification results
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **Notification bell tests**: ✅ 21/21 tests pass (16 existing + 5 new)
+- **Full web test suite**: ✅ 1034 tests pass across 55 test files, 0 failures
+
+### Reviewer verdict: APPROVED
+- Excellent pattern consistency with the "Load more" footer from trip-notification-dialog.tsx
+- Clean `hasMore` logic matching established convention
+- Correct trip page detection via regex
+- Comprehensive test coverage (5 new tests for all meaningful scenarios)
+- Non-breaking mock addition — existing tests unaffected
+- No blocking or non-blocking issues found
+
+### Learnings for future iterations
+- **`data?.meta?.total` is always available**: The `GetNotificationsResponse` API response includes `meta.total` which counts all matching notifications, not just the current page. This is available in any component using `useNotifications` without additional API calls.
+- **Trip page detection via `usePathname`**: The pattern `pathname.match(/^\/trips\/([^/]+)/)` reliably extracts trip IDs. This is useful for context-dependent behavior in global components (like the notification dropdown appearing on any page).
+- **No dedicated `/notifications` page exists**: All notifications are trip-scoped. The "View all" link navigates to the relevant trip page or the trips listing — a pragmatic approach that avoids creating a new page with limited utility.
+- **Mock function pattern for `usePathname`**: Adding `const mockPathname = vi.fn().mockReturnValue("/trips")` with a default return in the module mock allows per-test pathname customization via `mockPathname.mockReturnValue(...)` without affecting existing tests.
+- The web package now has 1034 passing tests (up from 1029 in iteration 26, +5 new "View all" tests).

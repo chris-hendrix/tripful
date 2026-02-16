@@ -5,6 +5,7 @@ import type { Notification } from "@tripful/shared/types";
 
 // Mocks
 const mockPush = vi.fn();
+const mockPathname = vi.fn().mockReturnValue("/trips");
 const mockMarkAsRead = vi.fn();
 const mockMarkAllAsRead = vi.fn();
 const mockUseUnreadCount = vi.fn();
@@ -12,6 +13,7 @@ const mockUseNotifications = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => mockPathname(),
 }));
 
 vi.mock("@/hooks/use-notifications", () => ({
@@ -358,5 +360,124 @@ describe("NotificationBell", () => {
     });
 
     expect(screen.queryByText("Mark all as read")).toBeNull();
+  });
+
+  it('shows "View all notifications" when total > displayed count', async () => {
+    const user = userEvent.setup();
+    mockUseNotifications.mockReturnValue({
+      data: {
+        notifications: [makeNotification()],
+        unreadCount: 1,
+        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+      },
+      isLoading: false,
+    });
+
+    render(<NotificationBell />);
+
+    const button = screen.getByRole("button", { name: "Notifications" });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByText("View all notifications")).toBeDefined();
+    });
+  });
+
+  it('does not show "View all notifications" when total <= displayed count', async () => {
+    const user = userEvent.setup();
+    mockUseNotifications.mockReturnValue({
+      data: {
+        notifications: [makeNotification()],
+        unreadCount: 1,
+        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      },
+      isLoading: false,
+    });
+
+    render(<NotificationBell />);
+
+    const button = screen.getByRole("button", { name: "Notifications" });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByText("Notifications")).toBeDefined();
+    });
+
+    expect(screen.queryByText("View all notifications")).toBeNull();
+  });
+
+  it('does not show "View all notifications" in empty state', async () => {
+    const user = userEvent.setup();
+    mockUseNotifications.mockReturnValue({
+      data: {
+        notifications: [],
+        unreadCount: 0,
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+      },
+      isLoading: false,
+    });
+
+    render(<NotificationBell />);
+
+    const button = screen.getByRole("button", { name: "Notifications" });
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByText("No notifications yet")).toBeDefined();
+    });
+
+    expect(screen.queryByText("View all notifications")).toBeNull();
+  });
+
+  it('"View all notifications" navigates to /trips and closes dropdown when not on trip page', async () => {
+    const user = userEvent.setup();
+    mockPathname.mockReturnValue("/trips");
+    mockUseNotifications.mockReturnValue({
+      data: {
+        notifications: [makeNotification()],
+        unreadCount: 1,
+        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+      },
+      isLoading: false,
+    });
+
+    render(<NotificationBell />);
+
+    const bellButton = screen.getByRole("button", { name: "Notifications" });
+    await user.click(bellButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("View all notifications")).toBeDefined();
+    });
+
+    await user.click(screen.getByText("View all notifications"));
+
+    expect(mockPush).toHaveBeenCalledWith("/trips");
+  });
+
+  it('"View all notifications" navigates to trip page and closes dropdown when on a trip page', async () => {
+    const user = userEvent.setup();
+    mockPathname.mockReturnValue("/trips/trip-abc");
+    mockUseNotifications.mockReturnValue({
+      data: {
+        notifications: [makeNotification()],
+        unreadCount: 1,
+        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+      },
+      isLoading: false,
+    });
+
+    render(<NotificationBell />);
+
+    const bellButton = screen.getByRole("button", { name: "Notifications" });
+    await user.click(bellButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("View all notifications")).toBeDefined();
+    });
+
+    await user.click(screen.getByText("View all notifications"));
+
+    expect(mockPush).toHaveBeenCalledWith("/trips/trip-abc");
   });
 });

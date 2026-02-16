@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,12 +19,19 @@ interface NotificationDropdownProps {
 
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data, isLoading } = useNotifications({ limit: 10 });
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
 
   const notifications = data?.notifications ?? [];
+  const totalCount = data?.meta?.total ?? 0;
+  const hasMore = notifications.length < totalCount;
   const hasUnread = notifications.some((n) => n.readAt === null);
+
+  // Extract tripId from pathname when on a trip detail page
+  const tripPageMatch = pathname.match(/^\/trips\/([^/]+)/);
+  const currentTripId = tripPageMatch?.[1];
 
   function handleNotificationClick(notification: Notification) {
     if (notification.readAt === null) {
@@ -47,6 +54,15 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
   function handleMarkAllAsRead() {
     markAllAsRead.mutate(undefined);
+  }
+
+  function handleViewAll() {
+    if (currentTripId) {
+      router.push(`/trips/${currentTripId}`);
+    } else {
+      router.push("/trips");
+    }
+    onClose();
   }
 
   if (isLoading) {
@@ -105,6 +121,21 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
           {index < notifications.length - 1 && <Separator />}
         </div>
       ))}
+      {hasMore && (
+        <>
+          <Separator />
+          <div className="flex justify-center py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm text-muted-foreground"
+              onClick={handleViewAll}
+            >
+              View all notifications
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
