@@ -158,19 +158,24 @@ test.describe("Messaging Journey", () => {
       await snap(page, "40-messaging-two-messages");
 
       await test.step("react to the first message with heart", async () => {
-        // Find "Hello from the organizer!" by content (ordering-independent locator)
+        // Find "Hello from the organizer!" article (ordering-independent locator)
         const firstMessageCard = page
           .getByRole("feed")
-          .locator("div")
-          .filter({ hasText: "Hello from the organizer!" })
-          .first();
+          .getByRole("article")
+          .filter({ hasText: "Hello from the organizer!" });
 
+        // Open the reaction picker popover, then select heart
+        await firstMessageCard
+          .getByRole("button", { name: "Add reaction" })
+          .click();
+        await page
+          .getByRole("button", { name: "React with heart" })
+          .click();
+
+        // Verify the reaction button appeared with active state
         const heartButton = firstMessageCard.getByRole("button", {
           name: "React with heart",
         });
-        await heartButton.click();
-
-        // Verify the reaction is active
         await expect(heartButton).toHaveAttribute("aria-pressed", "true", {
           timeout: ELEMENT_TIMEOUT,
         });

@@ -71,10 +71,10 @@ test.describe("Invitation Journey", () => {
         // Click "Invite" button in trip header
         await page.getByRole("button", { name: "Invite" }).first().click();
 
-        // Wait for dialog
+        // Wait for dialog (dynamically imported, may take time in CI)
         await expect(
           page.getByRole("heading", { name: "Invite members" }),
-        ).toBeVisible();
+        ).toBeVisible({ timeout: 15000 });
 
         await snap(page, "10-invite-dialog");
 
