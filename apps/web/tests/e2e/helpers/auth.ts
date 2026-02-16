@@ -116,9 +116,9 @@ export async function authenticateViaAPI(
   await page.waitForURL("**/trips", { timeout: 10000 });
   // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
   await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
-  // Ensure page is fully interactive — SSR prefetch via HydrationBoundary can
-  // render trip count in initial HTML before React attaches event handlers
-  await page.waitForLoadState("networkidle");
+  // Ensure page is fully interactive — wait for client-rendered user menu
+  // which confirms React hydration and auth context are complete
+  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: 10000 });
   return phone;
 }
 
@@ -147,9 +147,9 @@ export async function authenticateViaAPIWithPhone(
   await page.waitForURL("**/trips", { timeout: 10000 });
   // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
   await page.getByText(/\d+ trips?/).waitFor({ timeout: 10000 });
-  // Ensure page is fully interactive — SSR prefetch via HydrationBoundary can
-  // render trip count in initial HTML before React attaches event handlers
-  await page.waitForLoadState("networkidle");
+  // Ensure page is fully interactive — wait for client-rendered user menu
+  // which confirms React hydration and auth context are complete
+  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: 10000 });
 }
 
 /**

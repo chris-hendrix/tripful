@@ -1852,3 +1852,49 @@ This marks the completion of the entire Messaging & Notifications feature (20 it
 - **Pre-existing E2E flakiness in messaging CRUD journey**: The "reply to the first message" step in `messaging.spec.ts:233` has a strict mode violation where `getByText("This is a reply...")` matches both the rendered reply paragraph and the textarea still containing typed text. This is not caused by the `dismissToast` change and should be addressed in a future task.
 - **5 total locations with the toast `.catch(() => false)` pattern**: While only 2 were changed (the named `dismissToast` functions), 3 inline instances in other files remain. A future consolidation task could extract all of them into a shared helper.
 - The web package still has 1034 passing unit tests (no new tests — this was purely a diagnostic logging improvement).
+
+---
+
+## Iteration 35 — Task 11.3: Replace `networkidle` with more reliable wait conditions ✅
+
+**Status**: COMPLETED
+
+### What was done
+- Replaced all 3 `page.waitForLoadState("networkidle")` calls in E2E tests with more reliable wait conditions.
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/helpers/auth.ts`:**
+1. **Line 121** (in `authenticateViaAPI`): Replaced `page.waitForLoadState("networkidle")` with `page.getByRole("button", { name: "User menu" }).waitFor({ timeout: 10000 })`
+2. **Line 152** (in `authenticateViaAPIWithPhone`): Same replacement
+3. Updated comments from "Ensure page is fully interactive — SSR prefetch via HydrationBoundary can render trip count in initial HTML before React attaches event handlers" to "Ensure page is fully interactive — wait for client-rendered user menu which confirms React hydration and auth context are complete"
+
+**Changes to `/home/chend/git/tripful/apps/web/tests/e2e/notifications.spec.ts`:**
+1. **Line 95**: Replaced `page.waitForLoadState("networkidle")` with `page.waitForLoadState("domcontentloaded")`
+
+### Key implementation details
+- **Why "User menu" button is the ideal replacement for auth.ts**: The `AppHeader` component (`apps/web/src/components/app-header.tsx`) is a `"use client"` component that uses `useAuth()` to get the user. The "User menu" button (`aria-label="User menu"`, line 92) only renders when the auth context has resolved with a valid user. This means its presence confirms: (1) React hydration is complete, (2) auth context is loaded, (3) the page is fully interactive. This is a deterministic readiness signal vs `networkidle`'s heuristic 500ms silence.
+- **Why `domcontentloaded` for notifications.spec.ts**: The `networkidle` at line 95 follows `page.reload()` and precedes a 15-second wait for the notification bell button (`/Notifications, 1 unread/`). The bell wait itself is the actual readiness check. `domcontentloaded` just ensures the DOM is parsed before the element locator search begins — it's a lightweight gate, not the readiness signal.
+- **No `data-testid="app-ready"` added**: The task said "if needed." Analysis showed it's unnecessary because the "User menu" button is already a natural, reliable hydration indicator without adding synthetic test infrastructure.
+- **Pattern consistency**: `page.getByRole("button", { name: "User menu" })` is already used in `trips.page.ts:20` and `profile.page.ts:40`, confirming this is an established test pattern.
+- **Why `networkidle` was problematic**: It waits for no network requests for 500ms. The notification unread count polling (30s interval) and message polling (5s interval) could prevent the idle state from ever being reached, or cause inconsistent timing. This was a latent flakiness source.
+
+### Verification results
+- **TypeScript type checking**: ✅ All 3 packages pass `tsc --noEmit` with 0 errors
+- **ESLint linting**: ✅ All 3 packages pass with 0 errors
+- **E2E tests**: ✅ 31/31 tests pass across 9 spec files (2.7 minutes)
+
+### Reviewer verdict: APPROVED
+- Excellent replacement strategy — "User menu" button is a superior readiness signal to `networkidle`
+- `domcontentloaded` is appropriate for the notification spec where the next line already provides the real wait
+- Accurate, descriptive comments explaining WHY the wait is reliable
+- No `data-testid="app-ready"` correctly omitted (not needed)
+- Surgical 3-line diff with no unintended changes
+- No remaining `networkidle` references in any source or test files
+- 0 issues found
+
+### Learnings for future iterations
+- **Client-rendered interactive elements are the best hydration signals**: The "User menu" button pattern — a `"use client"` component that depends on auth context — is a reliable post-hydration indicator. Prefer waiting for semantic interactive elements over timing-based heuristics.
+- **`networkidle` is an anti-pattern with polling**: Any app that uses periodic API polling (TanStack Query refetchInterval, notification counts, etc.) will have unreliable `networkidle` behavior. Always prefer element-based waits.
+- **Layered wait strategy**: The pattern `waitForURL → waitForText → waitForElement` provides progressive readiness confirmation. Each layer confirms a deeper level of page state: URL routing → data rendering → interactive hydration.
+- **`domcontentloaded` as a lightweight gate**: When the next line already has a specific element wait with a generous timeout, `domcontentloaded` is sufficient to ensure the DOM is parsed. Don't over-engineer the intermediate wait.
+- **Zero `networkidle` remaining in the codebase**: This was the last usage. Future E2E tests should never use `networkidle` — use element-based waits instead.
+- The web package still has 1034 passing unit tests (no new tests — this was purely a wait condition replacement).

@@ -92,7 +92,7 @@ test.describe("Notification Journey", () => {
         // The unread count endpoint may have already loaded during page init.
         // Reload to ensure a fresh fetch of unread count data.
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("domcontentloaded");
 
         const bell = page.getByRole("button", {
           name: /Notifications, 1 unread/,

@@ -316,7 +316,7 @@
   - Implement: In `apps/web/tests/e2e/messaging.spec.ts:22-27` and `apps/web/tests/e2e/notifications.spec.ts:22-27`, replace `.catch(() => false)` with `.catch((e) => { console.warn("dismissToast: isVisible check failed", e.message); return false; })`
   - Verify: `pnpm test:e2e` — all pass
 
-- [ ] Task 11.3: Replace `networkidle` with more reliable wait conditions
+- [x] Task 11.3: Replace `networkidle` with more reliable wait conditions
   - Implement: In `apps/web/tests/e2e/helpers/auth.ts:121,152`, replace `page.waitForLoadState("networkidle")` with `page.waitForLoadState("domcontentloaded")` or a specific element wait
   - Implement: Add a `data-testid="app-ready"` marker to the app shell if needed
   - Verify: `pnpm test:e2e` — all pass
