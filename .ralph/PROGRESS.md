@@ -111,3 +111,54 @@ Tracking implementation progress for Post-RSVP Onboarding Wizard feature.
 - **When adding a component that uses TanStack Query hooks to an existing component, check if the existing tests mock it or provide QueryClientProvider**. The trip-detail-content tests mock all child components as simple divs — any new child component with hooks needs a mock too.
 - **localStorage + SSR**: Always use `useEffect` to read localStorage to avoid hydration mismatches. Initialize state as `false` and update after mount.
 - **Dynamic vs direct imports**: Use `dynamic()` for heavy components (wizard, dialogs) and direct imports for lightweight above-the-fold components (banner).
+
+---
+
+## Iteration 3 — Task 3.1: Update existing invitation E2E test and add onboarding wizard E2E test ✅
+
+**Status**: COMPLETED
+
+### Files Modified
+- `apps/web/tests/e2e/invitation-journey.spec.ts` — Updated existing smoke test and added new onboarding wizard E2E test
+
+### What Was Implemented
+
+#### 1. Updated existing test: "member RSVPs Going and sees full itinerary"
+- After RSVP "Going" toast appears, the test now waits for the wizard Sheet to appear (heading "When are you arriving?")
+- Dismisses the wizard by clicking the Close button (`getByRole("button", { name: "Close" })`)
+- Waits for dialog to disappear before asserting full trip view
+- Replaced hardcoded `timeout: 10000` values with named constants (`TOAST_TIMEOUT`, `NAVIGATION_TIMEOUT`, `DIALOG_TIMEOUT`, `ELEMENT_TIMEOUT`)
+
+#### 2. Added new test: "member completes onboarding wizard after RSVP"
+Comprehensive 7-step E2E test covering the full wizard flow:
+1. **Setup**: Creates organizer + trip (dates "2026-10-01" to "2026-10-05") and invites member via API (phone offset `+6000` for isolation)
+2. **Auth & Navigation**: Member authenticates, navigates to trip, verifies preview mode ("You've been invited!")
+3. **RSVP Going**: Clicks "Going", verifies toast, dismisses toast to prevent overlay issues, verifies wizard Step 1 appears
+4. **Arrival Step**: Uses `pickDateTime` helper for "2026-10-01T14:00", fills location "PDX Airport", clicks "Next"
+5. **Departure Step**: Asserts location pre-filled with "PDX Airport", picks departure date "2026-10-05T10:00", clicks "Next"
+6. **Events Step**: Fills event name "Hiking Mt. Hood", picks date "2026-10-02T09:00", clicks "Add", verifies chip appears, clicks "Next"
+7. **Done Step**: Asserts "You're all set!", "Arrival", "Departure", "1 activity added" summary, clicks "View Itinerary", verifies wizard closes and full trip view shown
+
+### Test Coverage (5 E2E tests total in file)
+1. "invitation and RSVP journey" — Updated to handle wizard dismissal (PASS)
+2. "RSVP status change and member indicator" — Unchanged (PASS)
+3. "uninvited user access" — Unchanged (PASS)
+4. "member list" — Unchanged (PASS)
+5. "member completes onboarding wizard after RSVP" — NEW (PASS)
+
+### Verification Results
+- `pnpm typecheck`: PASS (all 3 packages)
+- `pnpm lint`: PASS (all 3 packages)
+- E2E tests (`invitation-journey.spec.ts`): PASS (5/5 tests in 26.2s)
+
+### Reviewer Feedback
+- Review: APPROVED
+- Two low-severity optional notes (non-blocking):
+  1. ID-based selectors for inputs (`#arrival-location`, `#departure-location`, `#event-name`) are pragmatic since label-based selectors would be ambiguous across wizard steps
+  2. Done step summary assertions check labels but not specific entered values (e.g., "PDX Airport") — nice-to-have enhancement
+
+### Learnings for Future Iterations
+- **Toast dismissal before wizard interaction**: Sonner toasts can intercept clicks on wizard elements. Always dismiss toasts (mouseLeave + waitFor hidden) before interacting with Sheet/Dialog content.
+- **Dynamic imports need generous timeouts**: The wizard is loaded via `next/dynamic`, so use `NAVIGATION_TIMEOUT` (15s) for initial wizard appearance rather than `ELEMENT_TIMEOUT` (10s).
+- **Phone offset isolation**: Each test in a file needs a unique phone offset. Track used offsets: +1000 through +5000 for existing tests, +6000 for the new wizard test.
+- **`pickDateTime` helper works with aria-label triggers**: The wizard's DateTimePicker uses `aria-label` props, which `pickDateTime` accepts as a Locator via `page.getByLabel("Arrival date and time")`.

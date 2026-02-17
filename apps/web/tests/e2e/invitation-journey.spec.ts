@@ -8,6 +8,13 @@ import {
   rsvpViaAPI,
   inviteAndAcceptViaAPI,
 } from "./helpers/invitations";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+  DIALOG_TIMEOUT,
+} from "./helpers/timeouts";
+import { pickDateTime } from "./helpers/date-pickers";
 
 /**
  * E2E Journey: Invitations & RSVP
@@ -130,12 +137,24 @@ test.describe("Invitation Journey", () => {
 
         // Verify toast
         await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
+        });
+
+        // Wait for the onboarding wizard Sheet to appear (dynamically imported)
+        const wizardDialog = page.getByRole("dialog");
+        await expect(
+          wizardDialog.getByText("When are you arriving?"),
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
+
+        // Dismiss the wizard by clicking the Sheet close button
+        await wizardDialog.getByRole("button", { name: "Close" }).click();
+        await expect(wizardDialog).not.toBeVisible({
+          timeout: DIALOG_TIMEOUT,
         });
 
         // Preview should disappear
         await expect(page.getByText("You've been invited!")).not.toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         // Full trip view should show destination and member count
@@ -407,6 +426,189 @@ test.describe("Invitation Journey", () => {
       await expect(
         dialog.getByRole("button", { name: "Invite" }),
       ).toBeVisible();
+    });
+  });
+
+  test("member completes onboarding wizard after RSVP", async ({
+    page,
+    request,
+  }) => {
+    test.slow();
+
+    const timestamp = Date.now();
+    const shortTimestamp = timestamp.toString().slice(-10);
+    const organizerPhone = `+1555${shortTimestamp}`;
+    const inviteePhone = `+1555${(parseInt(shortTimestamp) + 6000).toString()}`;
+
+    // Setup: create organizer and trip with dates
+    const organizerCookie = await createUserViaAPI(
+      request,
+      organizerPhone,
+      "Organizer Epsilon",
+    );
+
+    const tripId = await createTripViaAPI(request, organizerCookie, {
+      name: `Wizard Trip ${timestamp}`,
+      destination: "Portland, OR",
+      startDate: "2026-10-01",
+      endDate: "2026-10-05",
+    });
+
+    // Invite member via API
+    await inviteViaAPI(request, tripId, organizerCookie, [inviteePhone]);
+
+    await test.step("member authenticates and navigates to trip", async () => {
+      await authenticateViaAPIWithPhone(
+        page,
+        request,
+        inviteePhone,
+        "Wizard Member",
+      );
+
+      await page.goto(`/trips/${tripId}`);
+
+      // Verify preview mode
+      await expect(page.getByText("You've been invited!")).toBeVisible({
+        timeout: NAVIGATION_TIMEOUT,
+      });
+    });
+
+    await test.step("member RSVPs Going and wizard opens", async () => {
+      // Click "Going" button
+      await page
+        .locator('[data-testid="rsvp-buttons"]')
+        .getByRole("button", { name: "Going", exact: true })
+        .click();
+
+      // Verify toast
+      await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
+        timeout: TOAST_TIMEOUT,
+      });
+
+      // Dismiss toast before interacting with wizard elements
+      const toast = page.locator("[data-sonner-toast]").first();
+      if (await toast.isVisible().catch(() => false)) {
+        await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
+        await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
+      }
+
+      // Wait for the onboarding wizard to appear (dynamically imported)
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByText("When are you arriving?")).toBeVisible({
+        timeout: NAVIGATION_TIMEOUT,
+      });
+      await expect(dialog.getByText("Step 1 of 4")).toBeVisible();
+      await snap(page, "20-wizard-arrival-step");
+    });
+
+    await test.step("fill arrival step and advance", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Pick arrival date and time
+      const arrivalTrigger = page.getByLabel("Arrival date and time");
+      await pickDateTime(page, arrivalTrigger, "2026-10-01T14:00");
+
+      // Enter arrival location
+      await page.locator("#arrival-location").fill("PDX Airport");
+
+      await snap(page, "21-wizard-arrival-filled");
+
+      // Click "Next" to advance to departure step
+      await dialog.getByRole("button", { name: "Next" }).click();
+
+      // Wait for departure step to appear
+      await expect(dialog.getByText("When are you leaving?")).toBeVisible({
+        timeout: ELEMENT_TIMEOUT,
+      });
+      await expect(dialog.getByText("Step 2 of 4")).toBeVisible();
+    });
+
+    await test.step("verify departure pre-fill and fill departure step", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Verify departure location is pre-filled from arrival
+      await expect(page.locator("#departure-location")).toHaveValue(
+        "PDX Airport",
+      );
+
+      // Pick departure date and time
+      const departureTrigger = page.getByLabel("Departure date and time");
+      await pickDateTime(page, departureTrigger, "2026-10-05T10:00");
+
+      await snap(page, "22-wizard-departure-filled");
+
+      // Click "Next" to advance to events step
+      await dialog.getByRole("button", { name: "Next" }).click();
+
+      // Wait for events step to appear
+      await expect(
+        dialog.getByText("Want to suggest any activities?"),
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      await expect(dialog.getByText("Step 3 of 4")).toBeVisible();
+    });
+
+    await test.step("add an event and advance", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Fill event name
+      await page.locator("#event-name").fill("Hiking Mt. Hood");
+
+      // Pick event date and time
+      const eventTrigger = page.getByLabel("Event date and time");
+      await pickDateTime(page, eventTrigger, "2026-10-02T09:00");
+
+      // Click "Add" to save the event
+      await dialog.getByRole("button", { name: "Add" }).click();
+
+      // Verify the event chip appears
+      await expect(dialog.getByText("Hiking Mt. Hood")).toBeVisible({
+        timeout: ELEMENT_TIMEOUT,
+      });
+
+      await snap(page, "23-wizard-event-added");
+
+      // Click "Next" to advance to done step
+      await dialog.getByRole("button", { name: "Next" }).click();
+
+      // Wait for done step to appear
+      await expect(dialog.getByText("You're all set!")).toBeVisible({
+        timeout: ELEMENT_TIMEOUT,
+      });
+      await expect(dialog.getByText("Step 4 of 4")).toBeVisible();
+    });
+
+    await test.step("verify done step summary and close wizard", async () => {
+      const dialog = page.getByRole("dialog");
+
+      // Verify summary shows arrival info
+      await expect(dialog.getByText("Arrival")).toBeVisible();
+
+      // Verify summary shows departure info
+      await expect(dialog.getByText("Departure")).toBeVisible();
+
+      // Verify summary shows activities count
+      await expect(dialog.getByText("1 activity added")).toBeVisible();
+
+      await snap(page, "24-wizard-done-summary");
+
+      // Click "View Itinerary" to close the wizard
+      await dialog.getByRole("button", { name: "View Itinerary" }).click();
+
+      // Wizard should close
+      await expect(dialog).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
+    });
+
+    await test.step("full trip view is shown after wizard", async () => {
+      // Verify full trip view is displayed
+      await expect(page.getByText("Portland, OR")).toBeVisible({
+        timeout: ELEMENT_TIMEOUT,
+      });
+      await expect(page.getByText(/\d+ members?/)).toBeVisible();
+
+      // Preview should not be visible
+      await expect(page.getByText("You've been invited!")).not.toBeVisible();
+
+      await snap(page, "25-wizard-complete-full-view");
     });
   });
 });

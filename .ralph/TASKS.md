@@ -34,7 +34,7 @@
 
 ## Phase 3: E2E Tests
 
-- [ ] Task 3.1: Update existing invitation E2E test and add onboarding wizard E2E test
+- [x] Task 3.1: Update existing invitation E2E test and add onboarding wizard E2E test
   - Implement: In `apps/web/tests/e2e/invitation-journey.spec.ts`, update "member RSVPs Going and sees full itinerary" step: after RSVP "Going" and toast, wait for wizard Sheet heading "When are you arriving?", dismiss wizard (click close or skip through), then assert full trip view
   - Implement: Add new test "member completes onboarding wizard after RSVP" in `invitation-journey.spec.ts`: create trip with start/end dates via API, invite member, auth as member, navigate to trip, RSVP "Going", verify wizard opens, fill arrival (pick date, enter location), click Next, verify departure step, fill departure, click Next, verify events step or done step, skip events if shown, verify "You're all set!" summary, click "View Itinerary", verify full trip view, verify travel entries appear in itinerary
   - Verify: `pnpm test:e2e` — all E2E tests pass including updated invitation journey and new onboarding test
