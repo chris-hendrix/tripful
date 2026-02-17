@@ -312,20 +312,21 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <Users className="w-5 h-5" />
-              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
+              <span className="text-sm">
                 {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
               </span>
             </button>
             <button
               onClick={() => {
-                document
-                  .getElementById("itinerary")
-                  ?.scrollIntoView({ behavior: "smooth" });
+                const target =
+                  document.getElementById("day-today") ??
+                  document.getElementById("itinerary");
+                target?.scrollIntoView({ behavior: "smooth" });
               }}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <ClipboardList className="w-5 h-5" />
-              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
+              <span className="text-sm">
                 {activeEventCount === 0
                   ? "No events yet"
                   : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
@@ -348,7 +349,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Itinerary */}
-        <div id="itinerary">
+        <div id="itinerary" className="scroll-mt-14">
           <ItineraryView tripId={tripId} />
         </div>
 

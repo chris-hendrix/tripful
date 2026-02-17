@@ -28,7 +28,7 @@ export function MessageCountIndicator({ tripId }: MessageCountIndicatorProps) {
       className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
     >
       <MessageCircle className="w-5 h-5" />
-      <span className="underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
+      <span>
         {count} {count === 1 ? "message" : "messages"}
       </span>
       {latest && latest.deletedAt === null && (

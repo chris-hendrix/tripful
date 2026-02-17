@@ -82,7 +82,7 @@ export const AccommodationCard = memo(function AccommodationCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3 h-3 shrink-0" />
-              <span className="underline underline-offset-2">
+              <span className="">
                 {accommodation.address.length > 20
                   ? accommodation.address.slice(0, 20) + "…"
                   : accommodation.address}
@@ -108,7 +108,7 @@ export const AccommodationCard = memo(function AccommodationCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="underline underline-offset-2">
+              <span className="">
                 {accommodation.address}
               </span>
             </a>
@@ -146,7 +146,7 @@ export const AccommodationCard = memo(function AccommodationCard({
                   href={link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ExternalLink className="w-3 h-3" />

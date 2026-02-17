@@ -93,7 +93,7 @@ export const MemberTravelCard = memo(function MemberTravelCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3 h-3 shrink-0" />
-              <span className="underline underline-offset-2">
+              <span className="">
                 {memberTravel.location.length > 20
                   ? memberTravel.location.slice(0, 20) + "…"
                   : memberTravel.location}
@@ -119,7 +119,7 @@ export const MemberTravelCard = memo(function MemberTravelCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="underline underline-offset-2">
+              <span className="">
                 {memberTravel.location}
               </span>
             </a>
