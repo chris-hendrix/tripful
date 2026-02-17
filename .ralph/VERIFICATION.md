@@ -1,4 +1,4 @@
-# Messaging & Notifications - Verification
+# Post-RSVP Onboarding Wizard - Verification
 
 ## Environment Setup
 
@@ -35,11 +35,11 @@ pnpm dev
 
 ### Environment Variables
 
-Files already configured:
-- `apps/api/.env` - DATABASE_URL, JWT_SECRET, etc.
-- `apps/web/.env.local` - NEXT_PUBLIC_API_URL
+Already configured:
+- `apps/api/.env` — DATABASE_URL, JWT_SECRET, etc.
+- `apps/web/.env.local` — NEXT_PUBLIC_API_URL
 
-No new environment variables required for this feature. SMS uses MockSMSProvider in dev (logs to console).
+No new environment variables required for this feature.
 
 ---
 
@@ -49,38 +49,17 @@ No new environment variables required for this feature. SMS uses MockSMSProvider
 ```bash
 # Run all tests (unit + integration)
 pnpm test
-
-# Run tests in watch mode
-pnpm test -- --watch
 ```
 
-### Backend Unit Tests
-```bash
-# All backend unit tests
-cd apps/api && pnpm test -- tests/unit/
-
-# Specific service tests
-cd apps/api && pnpm test -- tests/unit/message.service.test.ts
-cd apps/api && pnpm test -- tests/unit/notification.service.test.ts
-cd apps/api && pnpm test -- tests/unit/sms.service.test.ts
-cd apps/api && pnpm test -- tests/unit/scheduler.service.test.ts
-cd apps/api && pnpm test -- tests/unit/permissions.service.test.ts
-```
-
-### Backend Integration Tests
-```bash
-# All backend integration tests (requires PostgreSQL running)
-cd apps/api && pnpm test -- tests/integration/
-
-# Specific route tests
-cd apps/api && pnpm test -- tests/integration/message.routes.test.ts
-cd apps/api && pnpm test -- tests/integration/notification.routes.test.ts
-```
-
-### Frontend Tests
+### Frontend Unit Tests
 ```bash
 # All frontend tests
 cd apps/web && pnpm test
+
+# Specific test files
+cd apps/web && pnpm vitest run src/components/trip/__tests__/member-onboarding-wizard.test.tsx
+cd apps/web && pnpm vitest run src/components/trip/__tests__/travel-reminder-banner.test.tsx
+cd apps/web && pnpm vitest run src/components/trip/__tests__/trip-preview.test.tsx
 ```
 
 ### E2E Tests (Playwright)
@@ -92,11 +71,10 @@ pnpm test:e2e
 pnpm test:e2e:ui
 
 # Run specific test file
-cd apps/web && npx playwright test tests/e2e/messaging.spec.ts
-cd apps/web && npx playwright test tests/e2e/notifications.spec.ts
+cd apps/web && npx playwright test tests/e2e/invitation-journey.spec.ts
 
 # Run specific test by name
-cd apps/web && npx playwright test -g "post a message"
+cd apps/web && npx playwright test -g "onboarding wizard"
 ```
 
 ### Linting & Type Checking
@@ -113,90 +91,51 @@ pnpm format
 
 ---
 
-## Database
-
-### Generate Migration (after schema changes)
-```bash
-cd apps/api && pnpm db:generate
-```
-
-### Apply Migration
-```bash
-cd apps/api && pnpm db:migrate
-```
-
-### Visual Database Browser
-```bash
-cd apps/api && pnpm db:studio
-```
-
-### New Tables (expected after Task 1.1)
-- `messages`
-- `message_reactions`
-- `notifications`
-- `notification_preferences`
-- `muted_members`
-- `sent_reminders`
-
----
-
-## Test Credentials
-
-Use existing E2E test helpers in `apps/web/tests/e2e/helpers/auth.ts` for test user creation and authentication.
-
-The test setup creates users via the auth flow (phone verification). Test users:
-- User A: Trip organizer (creates trip)
-- User B: Going member (for messaging, receiving notifications)
-- User C: Going member (second member for testing cross-user flows)
-
----
-
 ## Feature Flags
 
-No feature flags required. The messaging and notification features are always enabled once deployed.
-
----
-
-## Manual Testing Checklist
-
-### Messaging
-- [ ] Post a message as going member, see it in feed instantly
-- [ ] Reply to a message, see thread expand
-- [ ] Click each of the 6 reaction emojis, verify toggle on/off
-- [ ] Edit own message, see "edited" indicator
-- [ ] Delete own message, see "This message was deleted" placeholder
-- [ ] As organizer: delete another member's message
-- [ ] As organizer: pin a message, see it in pinned section
-- [ ] As organizer: unpin a message
-- [ ] As organizer: mute a member from Members dialog
-- [ ] As muted member: see disabled input with muted notice
-- [ ] As organizer: unmute a member
-- [ ] View past trip: discussion is read-only (disabled input)
-- [ ] "X messages" indicator in trip meta scrolls to discussion
-- [ ] Load more messages (pagination)
-- [ ] Non-going member does NOT see discussion section
-
-### Notifications
-- [ ] Global bell shows unread count
-- [ ] Click bell, see notification dropdown with recent items
-- [ ] Click a notification, navigate to trip discussion
-- [ ] "Mark all as read" clears unread count
-- [ ] Per-trip bell shows trip-scoped unread count
-- [ ] Per-trip dialog: Notifications tab lists trip notifications
-- [ ] Per-trip dialog: Preferences tab shows 3 toggles
-- [ ] Toggle off "Trip messages", verify no new message notifications
-- [ ] Toggle on "Trip messages", verify notifications resume
-
-### Scheduler (verify via API logs)
-- [ ] Event reminder: check server logs for SMS mock output ~1 hour before event
-- [ ] Daily itinerary: check server logs for SMS mock output at ~8am trip timezone
+No feature flags required. The onboarding wizard is always enabled.
 
 ---
 
 ## New Dependencies
 
-### Backend (apps/api)
-- `date-fns-tz` - Timezone handling for scheduler (install with `pnpm add date-fns-tz`)
+None. Uses existing packages only:
+- `react-hook-form` (already in apps/web)
+- `@tanstack/react-query` (already in apps/web)
+- `date-fns` (already in apps/web)
+- shadcn/ui components: Sheet, Button, Input, DateTimePicker (all already available)
 
-### Frontend (apps/web)
-- No new dependencies (uses existing date-fns, shadcn/ui, TanStack Query)
+---
+
+## Manual Testing Checklist
+
+### Wizard Flow
+- [ ] RSVP "Going" on trip preview shows success toast then wizard opens
+- [ ] RSVP "Maybe" does NOT open wizard
+- [ ] RSVP "Not Going" does NOT open wizard
+- [ ] Progress dots show correct step (filled for current/completed, muted for future)
+- [ ] Step 1 (Arrival): date pre-populates with trip start date, location placeholder visible
+- [ ] Step 1: "Next" saves arrival and advances
+- [ ] Step 1: "Skip" advances without saving
+- [ ] Step 2 (Departure): date pre-populates with trip end date, location pre-fills from arrival
+- [ ] Step 2: "Back" returns to step 1
+- [ ] Step 2: "Next" saves departure and advances
+- [ ] Step 3 (Events): only shown when member has permission (allowMembersToAddEvents or organizer)
+- [ ] Step 3: Quick-add form creates events, shows chips for added events
+- [ ] Step 3: X button on chip removes from display (does NOT delete from API)
+- [ ] Done step: shows summary of saved items
+- [ ] Done step: "View Itinerary" closes wizard
+- [ ] Closing wizard via X or overlay click works at any step
+- [ ] Previously saved steps are preserved when wizard is closed mid-flow
+
+### Reminder Banner
+- [ ] Banner appears when member has no arrival travel and wizard was dismissed/closed
+- [ ] Banner does NOT appear if member already has arrival travel entry
+- [ ] "Add Travel Details" button reopens the wizard
+- [ ] "Dismiss" button hides banner and persists across page refreshes (localStorage)
+- [ ] Banner does NOT appear for locked (past) trips
+
+### Edge Cases
+- [ ] Wizard works correctly when trip has no start/end dates (date fields empty, no pre-population)
+- [ ] Events step hidden for non-organizer when allowMembersToAddEvents is false
+- [ ] Loading spinner shows on Next button while mutation is in progress
