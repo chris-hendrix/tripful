@@ -164,8 +164,14 @@ export function EditEventDialog({
       return;
     }
 
+    // Auto-prepend https:// if no protocol is provided
+    let normalizedLink = newLink.trim();
+    if (!/^https?:\/\//i.test(normalizedLink)) {
+      normalizedLink = `https://${normalizedLink}`;
+    }
+
     try {
-      new URL(newLink);
+      new URL(normalizedLink);
     } catch {
       setLinkError("Please enter a valid URL");
       return;
@@ -177,12 +183,12 @@ export function EditEventDialog({
       return;
     }
 
-    if (currentLinks.includes(newLink)) {
+    if (currentLinks.includes(normalizedLink)) {
       setLinkError("This URL is already added");
       return;
     }
 
-    form.setValue("links", [...currentLinks, newLink]);
+    form.setValue("links", [...currentLinks, normalizedLink]);
     setNewLink("");
   };
 
@@ -623,15 +629,14 @@ export function EditEventDialog({
             <div className="pt-4 border-t border-border">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+                  <button
                     type="button"
                     disabled={isPending || isDeleting}
-                    variant="destructive"
-                    className="w-full h-12 rounded-xl"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3 h-3" />
                     Delete event
-                  </Button>
+                  </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>

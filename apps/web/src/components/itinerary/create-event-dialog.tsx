@@ -115,8 +115,14 @@ export function CreateEventDialog({
       return;
     }
 
+    // Auto-prepend https:// if no protocol is provided
+    let normalizedLink = newLink.trim();
+    if (!/^https?:\/\//i.test(normalizedLink)) {
+      normalizedLink = `https://${normalizedLink}`;
+    }
+
     try {
-      new URL(newLink);
+      new URL(normalizedLink);
     } catch {
       setLinkError("Please enter a valid URL");
       return;
@@ -128,12 +134,12 @@ export function CreateEventDialog({
       return;
     }
 
-    if (currentLinks.includes(newLink)) {
+    if (currentLinks.includes(normalizedLink)) {
       setLinkError("This URL is already added");
       return;
     }
 
-    form.setValue("links", [...currentLinks, newLink]);
+    form.setValue("links", [...currentLinks, normalizedLink]);
     setNewLink("");
   };
 
