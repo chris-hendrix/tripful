@@ -2,7 +2,7 @@
 
 ## Phase 1: Wizard Component
 
-- [ ] Task 1.1: Create MemberOnboardingWizard with all steps (Arrival, Departure, Events, Done)
+- [x] Task 1.1: Create MemberOnboardingWizard with all steps (Arrival, Departure, Events, Done)
   - Implement: Create `apps/web/src/components/trip/member-onboarding-wizard.tsx` with Sheet wrapper
   - Implement: Props: `open`, `onOpenChange`, `tripId`, `trip` (TripDetailWithMeta)
   - Implement: Internal state: `step` (number), `arrivalLocation`, `arrivalTime`, `departureTime`, `addedEvents[]`
