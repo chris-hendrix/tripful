@@ -18,9 +18,12 @@ async function clickFabAction(
   page: import("@playwright/test").Page,
   actionName: string,
 ) {
-  // Wait for any Sonner toast to disappear so it doesn't intercept the click
+  // Dismiss any Sonner toast so it doesn't intercept the click.
+  // Sheet close animations can leave the toaster in "expanded" mode (pausing
+  // auto-dismiss), so we trigger a mouseleave to unpause the timer.
   const toast = page.locator("[data-sonner-toast]").first();
   if (await toast.isVisible().catch(() => false)) {
+    await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
     await toast.waitFor({ state: "hidden", timeout: 10000 });
   }
 

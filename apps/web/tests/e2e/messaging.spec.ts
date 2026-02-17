@@ -36,6 +36,9 @@ async function dismissToast(page: import("@playwright/test").Page) {
       return false;
     })
   ) {
+    // Sheet close animations can leave the toaster in "expanded" mode (pausing
+    // auto-dismiss), so we trigger a mouseleave to unpause the timer.
+    await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
     await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
   }
 }
@@ -47,7 +50,10 @@ async function scrollToDiscussion(page: import("@playwright/test").Page) {
   // React re-render (which causes "Element is not attached to the DOM").
   const heading = page.getByRole("heading", { name: "Discussion" });
   await heading.waitFor({ state: "visible", timeout: NAVIGATION_TIMEOUT });
-  await heading.scrollIntoViewIfNeeded();
+  // Retry scroll in case a React re-render momentarily detaches the element
+  await expect(async () => {
+    await heading.scrollIntoViewIfNeeded();
+  }).toPass({ timeout: ELEMENT_TIMEOUT });
   await expect(heading).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 }
 
