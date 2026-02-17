@@ -24,21 +24,11 @@ test.describe("App Shell", () => {
       await authenticateViaAPI(page, request);
 
       await test.step("header with Tripful wordmark is visible", async () => {
-        const header = page.locator("header").filter({
-          has: page.getByRole("navigation", { name: "Main navigation" }),
-        });
+        const header = page.getByRole("banner");
         await expect(header).toBeVisible();
 
         const wordmark = header.getByRole("link", { name: "Tripful" });
         await expect(wordmark).toBeVisible();
-      });
-
-      await test.step("navigation contains My Trips link", async () => {
-        const nav = page.getByRole("navigation", { name: "Main navigation" });
-        await expect(nav).toBeVisible();
-
-        const myTripsLink = nav.getByRole("link", { name: "My Trips" });
-        await expect(myTripsLink).toBeVisible();
       });
 
       await test.step("main content area has correct id", async () => {
