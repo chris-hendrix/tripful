@@ -30,13 +30,34 @@ describe("TravelReminderBanner", () => {
     expect(screen.getByText("Dismiss")).toBeDefined();
   });
 
-  it("does not render when member has arrival entry", () => {
+  it("renders when member has only arrival entry (no departure)", () => {
     mockUseMemberTravels.mockReturnValue({
       data: [
         {
           id: "t1",
           memberId: "member-1",
           travelType: "arrival",
+          deletedAt: null,
+        },
+      ],
+    });
+    render(<TravelReminderBanner {...defaultProps} />);
+    expect(screen.getByTestId("travel-reminder-banner")).toBeDefined();
+  });
+
+  it("does not render when member has both arrival and departure entries", () => {
+    mockUseMemberTravels.mockReturnValue({
+      data: [
+        {
+          id: "t1",
+          memberId: "member-1",
+          travelType: "arrival",
+          deletedAt: null,
+        },
+        {
+          id: "t2",
+          memberId: "member-1",
+          travelType: "departure",
           deletedAt: null,
         },
       ],

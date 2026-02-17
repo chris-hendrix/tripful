@@ -54,7 +54,6 @@ import { TripNotificationBell } from "@/components/notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
-import { TravelReminderBanner } from "@/components/trip/travel-reminder-banner";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -193,14 +192,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-
-      {trip.userRsvpStatus === "going" && !isLocked && currentMember && (
-        <TravelReminderBanner
-          tripId={tripId}
-          memberId={currentMember.id}
-          onAddTravel={() => setShowOnboarding(true)}
-        />
-      )}
 
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
@@ -366,7 +357,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Itinerary */}
         <div id="itinerary" className="scroll-mt-14">
-          <ItineraryView tripId={tripId} />
+          <ItineraryView tripId={tripId} onAddTravel={() => setShowOnboarding(true)} />
         </div>
 
         {/* Discussion */}

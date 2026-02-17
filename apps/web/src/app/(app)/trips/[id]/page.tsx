@@ -12,7 +12,12 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Trip ${id}` };
+  try {
+    const response = await serverApiRequest<GetTripResponse>(`/trips/${id}`);
+    return { title: response.trip.name };
+  } catch {
+    return { title: "Trip" };
+  }
 }
 
 export default async function TripDetailPage({ params }: Props) {

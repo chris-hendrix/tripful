@@ -13,7 +13,9 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCreateMemberTravel } from "@/hooks/use-member-travel";
+import { useCreateMemberTravel, useUpdateMemberTravel, useMemberTravels } from "@/hooks/use-member-travel";
+import { useMembers } from "@/hooks/use-invitations";
+import { useAuth } from "@/app/providers/auth-provider";
 import { useCreateEvent } from "@/hooks/use-events";
 import { localPartsToUTC, formatInTimezone } from "@/lib/utils/timezone";
 import { toast } from "sonner";
@@ -41,6 +43,19 @@ export function MemberOnboardingWizard({
     Array<{ name: string; startTime: string }>
   >([]);
 
+  const { user } = useAuth();
+  const { data: members = [] } = useMembers(tripId);
+  const { data: memberTravels = [] } = useMemberTravels(tripId);
+  const currentMember = members.find((m) => m.userId === user?.id);
+
+  // Find existing arrival/departure for current member
+  const existingArrival = memberTravels.find(
+    (t) => t.memberId === currentMember?.id && t.travelType === "arrival" && !t.deletedAt,
+  );
+  const existingDeparture = memberTravels.find(
+    (t) => t.memberId === currentMember?.id && t.travelType === "departure" && !t.deletedAt,
+  );
+
   const canAddEvents = trip.isOrganizer || trip.allowMembersToAddEvents;
   const totalSteps = canAddEvents ? 4 : 3;
   const timezone =
@@ -48,6 +63,7 @@ export function MemberOnboardingWizard({
     trip.preferredTimezone;
 
   const createTravel = useCreateMemberTravel();
+  const updateTravel = useUpdateMemberTravel();
   const createEvent = useCreateEvent();
 
   // Arrival step form state
@@ -71,21 +87,39 @@ export function MemberOnboardingWizard({
   const [eventName, setEventName] = useState("");
   const [eventStartTime, setEventStartTime] = useState("");
 
-  // Reset all wizard state when the sheet opens
+  // Reset all wizard state when the sheet opens, pre-filling from existing data
   useEffect(() => {
     if (open) {
       setStep(0);
-      setArrivalLocation("");
-      setArrivalTime("");
-      setDepartureTime("");
       setAddedEvents([]);
-      setArrivalDateValue(initialArrivalDate);
-      setArrivalLocationValue("");
-      setDepartureDateValue(initialDepartureDate);
-      setDepartureLocationValue("");
-      setDepartureLocationInitialized(false);
       setEventName("");
       setEventStartTime("");
+
+      if (existingArrival) {
+        const arrivalISO = new Date(existingArrival.time).toISOString();
+        setArrivalDateValue(arrivalISO);
+        setArrivalLocationValue(existingArrival.location || "");
+        setArrivalTime(arrivalISO);
+        setArrivalLocation(existingArrival.location || "");
+      } else {
+        setArrivalDateValue(initialArrivalDate);
+        setArrivalLocationValue("");
+        setArrivalTime("");
+        setArrivalLocation("");
+      }
+
+      if (existingDeparture) {
+        const departureISO = new Date(existingDeparture.time).toISOString();
+        setDepartureDateValue(departureISO);
+        setDepartureLocationValue(existingDeparture.location || "");
+        setDepartureTime(departureISO);
+        setDepartureLocationInitialized(true);
+      } else {
+        setDepartureDateValue(initialDepartureDate);
+        setDepartureLocationValue("");
+        setDepartureTime("");
+        setDepartureLocationInitialized(false);
+      }
     }
   }, [open]);
 
@@ -100,53 +134,81 @@ export function MemberOnboardingWizard({
         setStep((s) => s + 1);
         return;
       }
-      createTravel.mutate(
-        {
-          tripId,
-          data: {
-            travelType: "arrival",
-            time: arrivalDateValue,
-            location: arrivalLocationValue || undefined,
+
+      const onSuccess = () => {
+        setArrivalTime(arrivalDateValue);
+        setArrivalLocation(arrivalLocationValue);
+        setStep((s) => s + 1);
+      };
+      const onError = () => {
+        toast.error("Failed to save arrival details. Please try again.");
+      };
+
+      if (existingArrival) {
+        updateTravel.mutate(
+          {
+            memberTravelId: existingArrival.id,
+            data: {
+              travelType: "arrival",
+              time: arrivalDateValue,
+              location: arrivalLocationValue || undefined,
+            },
           },
-        },
-        {
-          onSuccess: () => {
-            setArrivalTime(arrivalDateValue);
-            setArrivalLocation(arrivalLocationValue);
-            setStep((s) => s + 1);
+          { onSuccess, onError },
+        );
+      } else {
+        createTravel.mutate(
+          {
+            tripId,
+            data: {
+              travelType: "arrival",
+              time: arrivalDateValue,
+              location: arrivalLocationValue || undefined,
+            },
           },
-          onError: () => {
-            toast.error("Failed to save arrival details. Please try again.");
-          },
-        },
-      );
+          { onSuccess, onError },
+        );
+      }
     } else if (step === 1) {
       // Departure step
       if (!departureDateValue) {
         setStep((s) => s + 1);
         return;
       }
-      createTravel.mutate(
-        {
-          tripId,
-          data: {
-            travelType: "departure",
-            time: departureDateValue,
-            location: departureLocationValue || undefined,
+
+      const onSuccess = () => {
+        setDepartureTime(departureDateValue);
+        setStep((s) => s + 1);
+      };
+      const onError = () => {
+        toast.error("Failed to save departure details. Please try again.");
+      };
+
+      if (existingDeparture) {
+        updateTravel.mutate(
+          {
+            memberTravelId: existingDeparture.id,
+            data: {
+              travelType: "departure",
+              time: departureDateValue,
+              location: departureLocationValue || undefined,
+            },
           },
-        },
-        {
-          onSuccess: () => {
-            setDepartureTime(departureDateValue);
-            setStep((s) => s + 1);
+          { onSuccess, onError },
+        );
+      } else {
+        createTravel.mutate(
+          {
+            tripId,
+            data: {
+              travelType: "departure",
+              time: departureDateValue,
+              location: departureLocationValue || undefined,
+            },
           },
-          onError: () => {
-            toast.error(
-              "Failed to save departure details. Please try again.",
-            );
-          },
-        },
-      );
+          { onSuccess, onError },
+        );
+      }
     } else if (step === eventsStepIndex) {
       // Events step - just advance
       setStep((s) => s + 1);
@@ -202,7 +264,7 @@ export function MemberOnboardingWizard({
     }
   }, [step, arrivalLocation, departureLocationInitialized]);
 
-  const isPending = createTravel.isPending || createEvent.isPending;
+  const isPending = createTravel.isPending || updateTravel.isPending || createEvent.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

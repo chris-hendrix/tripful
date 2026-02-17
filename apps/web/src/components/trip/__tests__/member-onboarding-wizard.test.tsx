@@ -59,6 +59,26 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+// Mock useAuth
+vi.mock("@/app/providers/auth-provider", () => ({
+  useAuth: () => ({ user: { id: "user-1" } }),
+}));
+
+// Mock useMembers
+vi.mock("@/hooks/use-invitations", () => ({
+  useMembers: () => ({ data: [] }),
+}));
+
+// Mock useMemberTravels while keeping mutation hooks real
+const mockUseMemberTravels = vi.fn().mockReturnValue({ data: [] });
+vi.mock("@/hooks/use-member-travel", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/hooks/use-member-travel")>();
+  return {
+    ...actual,
+    useMemberTravels: (...args: unknown[]) => mockUseMemberTravels(...args),
+  };
+});
+
 const mockTrip: TripDetailWithMeta = {
   id: "trip-1",
   name: "Test Trip",

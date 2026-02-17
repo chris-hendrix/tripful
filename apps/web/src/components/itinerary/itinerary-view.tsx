@@ -16,12 +16,14 @@ import { GroupByTypeView } from "./group-by-type-view";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { DeletedItemsDialog } from "./deleted-items-dialog";
+import { TravelReminderBanner } from "@/components/trip/travel-reminder-banner";
 
 interface ItineraryViewProps {
   tripId: string;
+  onAddTravel?: () => void;
 }
 
-export function ItineraryView({ tripId }: ItineraryViewProps) {
+export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
   const { user } = useAuth();
 
   // Fetch data
@@ -84,6 +86,9 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
   const isLocked = trip?.endDate
     ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
     : false;
+
+  // Find current member for travel reminder banner
+  const currentMember = members.find((m) => m.userId === user?.id);
 
   // Build userId→displayName lookup from organizers + members
   const userNameMap = useMemo(() => {
@@ -257,6 +262,15 @@ export function ItineraryView({ tripId }: ItineraryViewProps) {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-8 pb-4">
+        {onAddTravel && !isLocked && currentMember && trip?.userRsvpStatus === "going" && (
+          <div className="mb-6">
+            <TravelReminderBanner
+              tripId={tripId}
+              memberId={currentMember.id}
+              onAddTravel={onAddTravel}
+            />
+          </div>
+        )}
         {isLocked && (
           <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground mb-6">
             <Lock className="w-4 h-4 inline mr-2" />

@@ -35,14 +35,18 @@ export function TravelReminderBanner({
     }
   }, [tripId]);
 
-  // Check if current member already has an arrival entry
+  // Check if current member has both arrival and departure entries
   const hasArrival = memberTravels?.some(
     (t) =>
       t.memberId === memberId && t.travelType === "arrival" && !t.deletedAt,
   );
+  const hasDeparture = memberTravels?.some(
+    (t) =>
+      t.memberId === memberId && t.travelType === "departure" && !t.deletedAt,
+  );
 
-  // Don't render if member has arrival, banner dismissed, or memberId not available
-  if (hasArrival || dismissed || !memberId) {
+  // Don't render if member has both arrival and departure, banner dismissed, or memberId not available
+  if ((hasArrival && hasDeparture) || dismissed || !memberId) {
     return null;
   }
 
@@ -57,7 +61,6 @@ export function TravelReminderBanner({
 
   return (
     <div
-      className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8"
       data-testid="travel-reminder-banner"
     >
       <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-5">
