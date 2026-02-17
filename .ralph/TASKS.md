@@ -41,7 +41,7 @@
 
 ## Phase 4: Final Verification
 
-- [ ] Task 4.1: Full regression check
+- [x] Task 4.1: Full regression check
   - Verify: All unit tests pass (`pnpm test`)
   - Verify: All E2E tests pass (`pnpm test:e2e`)
   - Verify: Linting passes (`pnpm lint`)
