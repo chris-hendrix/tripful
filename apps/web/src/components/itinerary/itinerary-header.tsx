@@ -7,8 +7,6 @@ import {
   Plus,
   Building2,
   Plane,
-  EllipsisVertical,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +56,6 @@ interface ItineraryHeaderProps {
   isMember: boolean;
   allowMembersToAddEvents: boolean;
   isLocked?: boolean;
-  onOpenDeletedItems?: (() => void) | undefined;
 }
 
 export function ItineraryHeader({
@@ -73,7 +70,6 @@ export function ItineraryHeader({
   isMember,
   allowMembersToAddEvents,
   isLocked,
-  onOpenDeletedItems,
 }: ItineraryHeaderProps) {
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
@@ -169,27 +165,6 @@ export function ItineraryHeader({
               </Select>
             </div>
 
-            {/* Right: Overflow menu */}
-            {isOrganizer && onOpenDeletedItems && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="ml-auto h-8 w-8 rounded-lg"
-                    aria-label="More options"
-                  >
-                    <EllipsisVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={onOpenDeletedItems}>
-                    <Trash2 className="w-4 h-4" />
-                    Deleted Items
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
         </div>
       </div>

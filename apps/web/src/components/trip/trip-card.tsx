@@ -124,7 +124,7 @@ export const TripCard = memo(function TripCard({
                     alt={org.displayName}
                     width={24}
                     height={24}
-                    className="rounded-full ring-2 ring-white"
+                    className="w-6 h-6 rounded-full ring-2 ring-white object-cover"
                   />
                 ) : (
                   <div

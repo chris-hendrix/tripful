@@ -222,37 +222,21 @@ export const EventCard = memo(function EventCard({
             Created by {createdByName || "Unknown"}
           </div>
 
-          {(canEdit || canDelete) && (
+          {canEdit && onEdit && (
             <div className="flex items-center gap-2 pt-1">
-              {canEdit && onEdit && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(event);
-                  }}
-                  className="h-9 sm:h-7 text-xs gap-1"
-                  title="Edit event"
-                >
-                  <Pencil className="w-3 h-3" />
-                  Edit
-                </Button>
-              )}
-              {canDelete && onDelete && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(event);
-                  }}
-                  className="h-9 sm:h-7 text-xs gap-1"
-                  title="Delete event"
-                >
-                  Delete
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(event);
+                }}
+                className="h-9 sm:h-7 text-xs gap-1"
+                title="Edit event"
+              >
+                <Pencil className="w-3 h-3" />
+                Edit
+              </Button>
             </div>
           )}
         </div>

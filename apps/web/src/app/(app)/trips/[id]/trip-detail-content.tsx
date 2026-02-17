@@ -257,10 +257,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-lg text-muted-foreground mb-4">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-lg text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
+          >
             <MapPin className="w-5 h-5 shrink-0" />
             <span>{trip.destination}</span>
-          </div>
+          </a>
 
           <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <Calendar className="w-5 h-5 shrink-0" />
@@ -293,7 +298,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         alt={org.displayName}
                         width={32}
                         height={32}
-                        className="rounded-full ring-2 ring-white"
+                        className="w-8 h-8 rounded-full ring-2 ring-white object-cover"
                       />
                     ) : (
                       <div

@@ -113,7 +113,7 @@ export function TripPreview({ trip, tripId, onGoingSuccess }: TripPreviewProps) 
                     alt={org.displayName}
                     width={28}
                     height={28}
-                    className="rounded-full ring-2 ring-background"
+                    className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
                   />
                 ) : (
                   <div

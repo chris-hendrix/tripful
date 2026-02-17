@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { AlertCircle, CalendarX, Lock, Trash2 } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
-import { useEvents } from "@/hooks/use-events";
-import { useAccommodations } from "@/hooks/use-accommodations";
-import { useMemberTravels } from "@/hooks/use-member-travel";
+import { useEvents, useEventsWithDeleted } from "@/hooks/use-events";
+import { useAccommodations, useAccommodationsWithDeleted } from "@/hooks/use-accommodations";
+import { useMemberTravels, useMemberTravelsWithDeleted } from "@/hooks/use-member-travel";
 import { useMembers } from "@/hooks/use-invitations";
 import { useTripDetail } from "@/hooks/use-trips";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,15 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
     refetch: refetchMemberTravels,
   } = useMemberTravels(tripId);
   const { data: members = [] } = useMembers(tripId);
+
+  // Fetch all items (including deleted) to check if deleted items exist
+  const { data: allEvents = [] } = useEventsWithDeleted(tripId);
+  const { data: allAccommodations = [] } = useAccommodationsWithDeleted(tripId);
+  const { data: allMemberTravels = [] } = useMemberTravelsWithDeleted(tripId);
+  const hasDeletedItems =
+    allEvents.some((e) => e.deletedAt !== null) ||
+    allAccommodations.some((a) => a.deletedAt !== null) ||
+    allMemberTravels.some((t) => t.deletedAt !== null);
 
   // View state
   const [viewMode, setViewMode] = useState<"day-by-day" | "group-by-type">(
@@ -205,10 +214,10 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
               </div>
             )}
           </div>
-          {isOrganizer && (
+          {isOrganizer && hasDeletedItems && (
             <button
               type="button"
-              className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+              className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto cursor-pointer"
               onClick={() => setIsDeletedItemsOpen(true)}
             >
               <Trash2 className="w-4 h-4" />
@@ -255,21 +264,16 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
         isMember={!!isMember}
         allowMembersToAddEvents={trip?.allowMembersToAddEvents || false}
         isLocked={isLocked}
-        onOpenDeletedItems={
-          isOrganizer ? () => setIsDeletedItemsOpen(true) : undefined
-        }
       />
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-8 pb-4">
+      <div className="max-w-5xl mx-auto px-4 pt-4 pb-4">
         {onAddTravel && !isLocked && currentMember && trip?.userRsvpStatus === "going" && (
-          <div className="mb-6">
-            <TravelReminderBanner
-              tripId={tripId}
-              memberId={currentMember.id}
-              onAddTravel={onAddTravel}
-            />
-          </div>
+          <TravelReminderBanner
+            tripId={tripId}
+            memberId={currentMember.id}
+            onAddTravel={onAddTravel}
+          />
         )}
         {isLocked && (
           <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground mb-6">
@@ -301,6 +305,16 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
             userNameMap={userNameMap}
             isLocked={isLocked}
           />
+        )}
+        {isOrganizer && hasDeletedItems && (
+          <button
+            type="button"
+            className="mt-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto cursor-pointer"
+            onClick={() => setIsDeletedItemsOpen(true)}
+          >
+            <Trash2 className="w-4 h-4" />
+            View deleted items
+          </button>
         )}
       </div>
 
