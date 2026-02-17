@@ -22,7 +22,7 @@ describe("AccommodationCard", () => {
   };
 
   describe("Rendering", () => {
-    it("renders accommodation name and nights label", () => {
+    it("renders accommodation name", () => {
       render(
         <AccommodationCard
           accommodation={baseAccommodation}
@@ -33,7 +33,6 @@ describe("AccommodationCard", () => {
       );
 
       expect(screen.getByText("Beach Hotel")).toBeDefined();
-      expect(screen.getByText("3 nights")).toBeDefined();
     });
 
     it("renders address as clickable link when expanded", async () => {

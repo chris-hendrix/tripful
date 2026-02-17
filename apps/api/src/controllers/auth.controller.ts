@@ -54,7 +54,7 @@ export const authController = {
       await authService.storeCode(e164PhoneNumber, code);
 
       // Send SMS with verification code (logs to console)
-      await smsService.sendVerificationCode(e164PhoneNumber, code);
+      await smsService.sendMessage(e164PhoneNumber, `Your Tripful verification code is: ${code}`);
 
       // Return success response
       return reply.status(200).send({

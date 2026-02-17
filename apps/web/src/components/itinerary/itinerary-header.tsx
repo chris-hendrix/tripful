@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, List, Clock, Plus, Building2, Plane } from "lucide-react";
+import {
+  Calendar,
+  List,
+  Plus,
+  Building2,
+  Plane,
+  EllipsisVertical,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -50,6 +58,7 @@ interface ItineraryHeaderProps {
   isMember: boolean;
   allowMembersToAddEvents: boolean;
   isLocked?: boolean;
+  onOpenDeletedItems?: (() => void) | undefined;
 }
 
 export function ItineraryHeader({
@@ -64,6 +73,7 @@ export function ItineraryHeader({
   isMember,
   allowMembersToAddEvents,
   isLocked,
+  onOpenDeletedItems,
 }: ItineraryHeaderProps) {
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
@@ -85,10 +95,44 @@ export function ItineraryHeader({
     <>
       <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            {/* Left side: Timezone selector */}
-            <div className="flex items-center gap-2 min-w-0">
-              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Left: View mode toggle + timezone */}
+            <TooltipProvider>
+              <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-xl border border-border">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={viewMode === "day-by-day" ? "default" : "ghost"}
+                      onClick={() => onViewModeChange("day-by-day")}
+                      className="h-8 w-8 rounded-lg"
+                      aria-label="Day by Day"
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Day by Day</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={
+                        viewMode === "group-by-type" ? "default" : "ghost"
+                      }
+                      onClick={() => onViewModeChange("group-by-type")}
+                      className="h-8 w-8 rounded-lg"
+                      aria-label="Group by Type"
+                    >
+                      <List className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Group by Type</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+
+            <div className="min-w-0">
               <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
                 <SelectTrigger
                   size="sm"
@@ -125,41 +169,27 @@ export function ItineraryHeader({
               </Select>
             </div>
 
-            {/* Right side: View mode toggle */}
-            <TooltipProvider>
-              <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-xl border border-border shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant={viewMode === "day-by-day" ? "default" : "ghost"}
-                      onClick={() => onViewModeChange("day-by-day")}
-                      className="h-8 w-8 rounded-lg"
-                      aria-label="Day by Day"
-                    >
-                      <Calendar className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Day by Day</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant={
-                        viewMode === "group-by-type" ? "default" : "ghost"
-                      }
-                      onClick={() => onViewModeChange("group-by-type")}
-                      className="h-8 w-8 rounded-lg"
-                      aria-label="Group by Type"
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Group by Type</TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
+            {/* Right: Overflow menu */}
+            {isOrganizer && onOpenDeletedItems && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="ml-auto h-8 w-8 rounded-lg"
+                    aria-label="More options"
+                  >
+                    <EllipsisVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={onOpenDeletedItems}>
+                    <Trash2 className="w-4 h-4" />
+                    Deleted Items
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

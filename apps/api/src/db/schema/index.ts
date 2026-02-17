@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   pgTable,
   uuid,
   varchar,
@@ -336,3 +338,211 @@ export const memberTravel = pgTable(
 // Inferred types for member_travel table
 export type MemberTravel = typeof memberTravel.$inferSelect;
 export type NewMemberTravel = typeof memberTravel.$inferInsert;
+
+// Messages table
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => messages.id, {
+      onDelete: "cascade",
+    }),
+    content: text("content").notNull(),
+    isPinned: boolean("is_pinned").notNull().default(false),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: uuid("deleted_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripIdCreatedAtIdx: index("messages_trip_id_created_at_idx").on(
+      table.tripId,
+      table.createdAt,
+    ),
+    parentIdIdx: index("messages_parent_id_idx").on(table.parentId),
+    authorIdIdx: index("messages_author_id_idx").on(table.authorId),
+    tripTopLevelIdx: index("messages_trip_toplevel_idx")
+      .on(table.tripId, table.createdAt)
+      .where(
+        sql`${table.parentId} IS NULL AND ${table.deletedAt} IS NULL`,
+      ),
+  }),
+);
+
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+
+// Message reactions table
+export const messageReactions = pgTable(
+  "message_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: varchar("emoji", { length: 20 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    messageIdIdx: index("message_reactions_message_id_idx").on(
+      table.messageId,
+    ),
+    userIdIdx: index("message_reactions_user_id_idx").on(table.userId),
+    messageUserEmojiUnique: unique(
+      "message_reactions_message_user_emoji_unique",
+    ).on(table.messageId, table.userId, table.emoji),
+  }),
+);
+
+export type MessageReaction = typeof messageReactions.$inferSelect;
+export type NewMessageReaction = typeof messageReactions.$inferInsert;
+
+// Notifications table
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id").references(() => trips.id, {
+      onDelete: "cascade",
+    }),
+    type: varchar("type", { length: 50 }).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    data: jsonb("data"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdCreatedAtIdx: index("notifications_user_id_created_at_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+    userIdCreatedAtDescIdx: index("notifications_user_id_created_at_desc_idx").on(
+      table.userId,
+      table.createdAt.desc(),
+    ),
+    userUnreadIdx: index("notifications_user_unread_idx")
+      .on(table.userId, table.createdAt)
+      .where(sql`${table.readAt} IS NULL`),
+    tripUserCreatedAtIdx: index(
+      "notifications_trip_user_created_at_idx",
+    ).on(table.tripId, table.userId, table.createdAt),
+  }),
+);
+
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+
+// Notification preferences table
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    eventReminders: boolean("event_reminders").notNull().default(true),
+    dailyItinerary: boolean("daily_itinerary").notNull().default(true),
+    tripMessages: boolean("trip_messages").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userTripUnique: unique("notification_preferences_user_trip_unique").on(
+      table.userId,
+      table.tripId,
+    ),
+  }),
+);
+
+export type NotificationPreference =
+  typeof notificationPreferences.$inferSelect;
+export type NewNotificationPreference =
+  typeof notificationPreferences.$inferInsert;
+
+// Muted members table
+export const mutedMembers = pgTable(
+  "muted_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mutedBy: uuid("muted_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tripUserUnique: unique("muted_members_trip_user_unique").on(
+      table.tripId,
+      table.userId,
+    ),
+  }),
+);
+
+export type MutedMember = typeof mutedMembers.$inferSelect;
+export type NewMutedMember = typeof mutedMembers.$inferInsert;
+
+// Sent reminders table
+export const sentReminders = pgTable(
+  "sent_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: varchar("type", { length: 50 }).notNull(),
+    referenceId: text("reference_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sentAt: timestamp("sent_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    typeRefUserUnique: unique("sent_reminders_type_ref_user_unique").on(
+      table.type,
+      table.referenceId,
+      table.userId,
+    ),
+    typeRefIdx: index("sent_reminders_type_ref_idx").on(
+      table.type,
+      table.referenceId,
+    ),
+  }),
+);
+
+export type SentReminder = typeof sentReminders.$inferSelect;
+export type NewSentReminder = typeof sentReminders.$inferInsert;

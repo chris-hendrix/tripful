@@ -84,6 +84,32 @@ export function getInitials(name: string): string {
 }
 
 /**
+ * Format a timestamp as a relative time string
+ *
+ * @param isoString - ISO 8601 date string
+ * @returns Human-readable relative time (e.g. "just now", "5m ago", "2h ago", "3d ago", or "Feb 15")
+ */
+export function formatRelativeTime(isoString: string): string {
+  const now = Date.now();
+  const date = new Date(isoString).getTime();
+  const diff = now - date;
+  const seconds = Math.floor(diff / 1000);
+
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(isoString).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
  * Format a phone number for display using international format.
  * @param phone - Phone number string (E.164 format recommended, e.g. "+14155552671")
  * @returns Formatted phone number (e.g. "+1 415 555 2671") or the raw string if parsing fails

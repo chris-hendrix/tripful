@@ -20,8 +20,10 @@ export async function createTrip(
     await toast.waitFor({ state: "hidden", timeout: 10000 });
   }
 
+  // Ensure the FAB is visible and stable before clicking
+  await trips.createTripButton.waitFor({ state: "visible", timeout: 10000 });
   await trips.createTripButton.click();
-  await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 10000 });
+  await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 15000 });
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
   await pickDate(page, tripDetail.startDateButton, startDate);

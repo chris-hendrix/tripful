@@ -27,6 +27,9 @@ import uploadServicePlugin from "./plugins/upload-service.js";
 import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
+import messageServicePlugin from "./plugins/message-service.js";
+import notificationServicePlugin from "./plugins/notification-service.js";
+import schedulerServicePlugin from "./plugins/scheduler-service.js";
 
 // Middleware
 import { errorHandler } from "./middleware/error.middleware.js";
@@ -39,6 +42,8 @@ import { eventRoutes } from "./routes/event.routes.js";
 import { accommodationRoutes } from "./routes/accommodation.routes.js";
 import { memberTravelRoutes } from "./routes/member-travel.routes.js";
 import { invitationRoutes } from "./routes/invitation.routes.js";
+import { messageRoutes } from "./routes/message.routes.js";
+import { notificationRoutes } from "./routes/notification.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 
 // Config
@@ -169,7 +174,10 @@ export async function buildApp(
   await app.register(accommodationServicePlugin);
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
+  await app.register(notificationServicePlugin);
   await app.register(invitationServicePlugin);
+  await app.register(messageServicePlugin);
+  await app.register(schedulerServicePlugin);
 
   // Register error handler
   app.setErrorHandler(errorHandler);
@@ -182,6 +190,8 @@ export async function buildApp(
   await app.register(accommodationRoutes, { prefix: "/api" });
   await app.register(memberTravelRoutes, { prefix: "/api" });
   await app.register(invitationRoutes, { prefix: "/api" });
+  await app.register(messageRoutes, { prefix: "/api" });
+  await app.register(notificationRoutes, { prefix: "/api" });
   await app.register(userRoutes, { prefix: "/api/users" });
 
   // Not-found handler for unmatched routes

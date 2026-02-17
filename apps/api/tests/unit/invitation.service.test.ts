@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { db } from "@/config/database.js";
 import {
   users,
@@ -6,11 +6,13 @@ import {
   members,
   invitations,
   events,
+  notificationPreferences,
 } from "@/db/schema/index.js";
 import { eq, or, and } from "drizzle-orm";
 import { InvitationService } from "@/services/invitation.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
 import { MockSMSService } from "@/services/sms.service.js";
+import { NotificationService } from "@/services/notification.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import {
   PermissionDeniedError,
@@ -25,10 +27,12 @@ import {
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
 const smsService = new MockSMSService();
+const notificationService = new NotificationService(db, smsService);
 const invitationService = new InvitationService(
   db,
   permissionsService,
   smsService,
+  notificationService,
 );
 
 describe("invitation.service", () => {
@@ -47,6 +51,7 @@ describe("invitation.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
+      await db.delete(notificationPreferences).where(eq(notificationPreferences.tripId, testTripId));
       await db.delete(invitations).where(eq(invitations.tripId, testTripId));
       await db.delete(events).where(eq(events.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));
@@ -507,6 +512,41 @@ describe("invitation.service", () => {
       await expect(
         invitationService.updateRsvp(testNonMemberId, testTripId, "going"),
       ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should log error when createDefaultPreferences fails but still return updated member", async () => {
+      const mockLogger = {
+        info: vi.fn(),
+        error: vi.fn(),
+      };
+
+      const failingNotificationService = {
+        ...notificationService,
+        createDefaultPreferences: vi.fn().mockRejectedValue(new Error("DB connection failed")),
+      } as unknown as typeof notificationService;
+
+      const serviceWithLogger = new InvitationService(
+        db,
+        permissionsService,
+        smsService,
+        failingNotificationService,
+        mockLogger,
+      );
+
+      const result = await serviceWithLogger.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+      );
+
+      expect(result).toBeDefined();
+      expect(result.status).toBe("going");
+      expect(result.userId).toBe(testMemberId);
+      expect(mockLogger.error).toHaveBeenCalledOnce();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        "Failed to create default notification preferences",
+      );
     });
   });
 

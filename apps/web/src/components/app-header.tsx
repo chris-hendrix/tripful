@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -80,43 +81,46 @@ export function AppHeader() {
             </nav>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                aria-label="User menu"
-                onMouseEnter={preloadProfileDialog}
-                onFocus={preloadProfileDialog}
-              >
-                <UserAvatar user={user} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {user && (
-                <>
-                  <DropdownMenuItem
-                    onSelect={() => setProfileDialogOpen(true)}
-                    onMouseEnter={preloadProfileDialog}
-                    onFocus={preloadProfileDialog}
-                    className="flex flex-col items-start gap-0"
-                    data-testid="profile-menu-item"
-                  >
-                    <p className="text-sm font-medium">{user.displayName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.phoneNumber}
-                    </p>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem onClick={logout}>
-                <LogOut />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  aria-label="User menu"
+                  onMouseEnter={preloadProfileDialog}
+                  onFocus={preloadProfileDialog}
+                >
+                  <UserAvatar user={user} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {user && (
+                  <>
+                    <DropdownMenuItem
+                      onSelect={() => setProfileDialogOpen(true)}
+                      onMouseEnter={preloadProfileDialog}
+                      onFocus={preloadProfileDialog}
+                      className="flex flex-col items-start gap-0"
+                      data-testid="profile-menu-item"
+                    >
+                      <p className="text-sm font-medium">{user.displayName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.phoneNumber}
+                      </p>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 

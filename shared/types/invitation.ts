@@ -30,6 +30,8 @@ export interface MemberWithProfile {
   phoneNumber?: string;
   status: "going" | "not_going" | "maybe" | "no_response";
   isOrganizer: boolean;
+  /** Only included when requesting user is an organizer */
+  isMuted?: boolean;
   createdAt: string;
 }
 

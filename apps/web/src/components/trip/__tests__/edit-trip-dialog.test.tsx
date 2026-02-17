@@ -151,52 +151,19 @@ describe("EditTripDialog", () => {
 
       const endDateButton = screen.getByRole("button", { name: /end date/i });
       expect(endDateButton.textContent).toMatch(/jul 15, 2026/i);
-    });
 
-    it("pre-populates description on Step 2", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
+      const descriptionInput = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      expect(descriptionInput.value).toBe("A fun summer trip");
 
-      // Navigate to Step 2
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        const descriptionInput = screen.getByLabelText(
-          /description/i,
-        ) as HTMLTextAreaElement;
-        expect(descriptionInput.value).toBe("A fun summer trip");
+      const checkbox = screen.getByRole("checkbox", {
+        name: /allow members to add events/i,
       });
+      expect(checkbox.getAttribute("data-state")).toBe("checked");
     });
 
-    it("pre-populates checkbox state on Step 2", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      // Navigate to Step 2
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        const checkbox = screen.getByRole("checkbox", {
-          name: /allow members to add events/i,
-        });
-        expect(checkbox.getAttribute("data-state")).toBe("checked");
-      });
-    });
-
-    it("handles null description gracefully", async () => {
-      const user = userEvent.setup();
+    it("handles null description gracefully", () => {
       const tripWithoutDescription = {
         ...mockTrip,
         description: null,
@@ -210,14 +177,10 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        const descriptionInput = screen.getByLabelText(
-          /description/i,
-        ) as HTMLTextAreaElement;
-        expect(descriptionInput.value).toBe("");
-      });
+      const descriptionInput = screen.getByLabelText(
+        /description/i,
+      ) as HTMLTextAreaElement;
+      expect(descriptionInput.value).toBe("");
     });
 
     it("handles null dates gracefully", () => {
@@ -292,110 +255,6 @@ describe("EditTripDialog", () => {
     });
   });
 
-  describe("Step navigation", () => {
-    it("starts at Step 1", () => {
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      expect(screen.getByText("Step 1 of 2")).toBeDefined();
-      expect(screen.getByText("Basic information")).toBeDefined();
-    });
-
-    it("proceeds to Step 2 with valid Step 1 data", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-        expect(screen.getByText("Details & settings")).toBeDefined();
-      });
-    });
-
-    it("returns to Step 1 when Back button is clicked", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      // Navigate to Step 2
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
-      // Click Back
-      const backButton = screen.getByRole("button", { name: /back/i });
-      await user.click(backButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 1 of 2")).toBeDefined();
-      });
-    });
-
-    it("resets to Step 1 when dialog reopens", async () => {
-      const user = userEvent.setup();
-      const { rerender } = renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      // Navigate to Step 2
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
-      // Close dialog
-      rerender(
-        <QueryClientProvider client={queryClient}>
-          <EditTripDialog
-            open={false}
-            onOpenChange={mockOnOpenChange}
-            trip={mockTrip}
-          />
-        </QueryClientProvider>,
-      );
-
-      // Reopen dialog
-      rerender(
-        <QueryClientProvider client={queryClient}>
-          <EditTripDialog
-            open={true}
-            onOpenChange={mockOnOpenChange}
-            trip={mockTrip}
-          />
-        </QueryClientProvider>,
-      );
-
-      // Should be back at Step 1
-      await waitFor(() => {
-        expect(screen.getByText("Step 1 of 2")).toBeDefined();
-      });
-    });
-  });
-
   describe("Field validation", () => {
     it("shows error when trip name is too short", async () => {
       const user = userEvent.setup();
@@ -410,7 +269,7 @@ describe("EditTripDialog", () => {
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.clear(nameInput);
       await user.type(nameInput, "AB");
-      await user.click(screen.getByRole("button", { name: /continue/i }));
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
         expect(
@@ -431,7 +290,7 @@ describe("EditTripDialog", () => {
 
       const destinationInput = screen.getByLabelText(/destination/i);
       await user.clear(destinationInput);
-      await user.click(screen.getByRole("button", { name: /continue/i }));
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/destination is required/i)).toBeDefined();
@@ -456,27 +315,6 @@ describe("EditTripDialog", () => {
       const endDateButton = screen.getByRole("button", { name: /end date/i });
       expect(endDateButton.textContent).toMatch(/jul 15, 2026/i);
     });
-
-    it("accepts valid modifications", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      const nameInput = screen.getByLabelText(/trip name/i);
-      await user.clear(nameInput);
-      await user.type(nameInput, "Modified Trip Name");
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-    });
   });
 
   describe("Update mutation", () => {
@@ -500,18 +338,10 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      // Modify Step 1 fields
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.clear(nameInput);
       await user.type(nameInput, "Updated Trip Name");
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
-      // Modify Step 2 fields
       const descriptionInput = screen.getByLabelText(/description/i);
       await user.clear(descriptionInput);
       await user.type(descriptionInput, "Updated description");
@@ -545,12 +375,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
@@ -576,12 +400,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
@@ -606,12 +424,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
@@ -621,35 +433,6 @@ describe("EditTripDialog", () => {
       });
 
       expect(mockOnSuccess).not.toHaveBeenCalled();
-    });
-
-    it("works without onSuccess callback (backward compatibility)", async () => {
-      const { apiRequest } = await import("@/lib/api");
-      vi.mocked(apiRequest).mockResolvedValueOnce({
-        success: true,
-        trip: { ...mockTrip, name: "Updated Trip Name" },
-      });
-
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
-      await user.click(screen.getByRole("button", { name: /update trip/i }));
-
-      await waitFor(() => {
-        expect(mockOnOpenChange).toHaveBeenCalledWith(false);
-      });
     });
 
     it("shows loading state during update", async () => {
@@ -676,12 +459,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
 
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
@@ -715,13 +492,10 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
       await user.click(screen.getByRole("button", { name: /update trip/i }));
+
+      const nameInput = screen.getByLabelText(/trip name/i);
+      expect(nameInput).toHaveProperty("disabled", true);
 
       const descriptionInput = screen.getByLabelText(/description/i);
       expect(descriptionInput).toHaveProperty("disabled", true);
@@ -745,12 +519,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
       await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
@@ -762,16 +530,7 @@ describe("EditTripDialog", () => {
   });
 
   describe("Delete confirmation flow", () => {
-    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-    }
-
-    it("shows delete button on Step 2", async () => {
-      const user = userEvent.setup();
+    it("shows delete button", () => {
       renderWithQueryClient(
         <EditTripDialog
           open={true}
@@ -779,8 +538,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       expect(
         screen.getByRole("button", { name: /delete trip/i }),
@@ -796,8 +553,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       const deleteButton = screen.getByRole("button", { name: /delete trip/i });
       await user.click(deleteButton);
@@ -819,8 +574,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await navigateToStep2(user);
-
       await user.click(screen.getByRole("button", { name: /delete trip/i }));
 
       await waitFor(() => {
@@ -840,8 +593,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       await user.click(screen.getByRole("button", { name: /delete trip/i }));
 
@@ -876,8 +627,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       await user.click(screen.getByRole("button", { name: /delete trip/i }));
 
@@ -924,8 +673,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await navigateToStep2(user);
-
       await user.click(screen.getByRole("button", { name: /delete trip/i }));
 
       await waitFor(() => {
@@ -961,8 +708,6 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      await navigateToStep2(user);
-
       await user.click(screen.getByRole("button", { name: /delete trip/i }));
 
       await waitFor(() => {
@@ -980,60 +725,6 @@ describe("EditTripDialog", () => {
           ),
         );
       });
-    });
-
-    it("resets delete confirmation when navigating back", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await navigateToStep2(user);
-
-      await user.click(screen.getByRole("button", { name: /delete trip/i }));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/are you sure you want to delete this trip/i),
-        ).toBeDefined();
-      });
-
-      // Cancel the AlertDialog first (it's a modal overlay)
-      const cancelButton = screen.getByRole("button", { name: /cancel/i });
-      await user.click(cancelButton);
-
-      await waitFor(() => {
-        expect(
-          screen.queryByText(/are you sure you want to delete this trip/i),
-        ).toBeNull();
-      });
-
-      // Click Back button
-      const backButton = screen.getByRole("button", { name: /back/i });
-      await user.click(backButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 1 of 2")).toBeDefined();
-      });
-
-      // Navigate back to Step 2
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-
-      // AlertDialog confirmation should not be showing
-      expect(
-        screen.queryByText(/are you sure you want to delete this trip/i),
-      ).toBeNull();
-      expect(
-        screen.getByRole("button", { name: /delete trip/i }),
-      ).toBeDefined();
     });
   });
 
@@ -1053,7 +744,7 @@ describe("EditTripDialog", () => {
       );
     });
 
-    it("applies gradient styling to Continue button", () => {
+    it("applies gradient styling to Update button", () => {
       renderWithQueryClient(
         <EditTripDialog
           open={true}
@@ -1062,66 +753,16 @@ describe("EditTripDialog", () => {
         />,
       );
 
-      const continueButton = screen.getByRole("button", { name: /continue/i });
-      expect(continueButton.className).toContain("bg-gradient-to-r");
-      expect(continueButton.className).toContain("from-primary");
-      expect(continueButton.className).toContain("to-accent");
-    });
-
-    it("applies gradient styling to Update button", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        const updateButton = screen.getByRole("button", {
-          name: /update trip/i,
-        });
-        expect(updateButton.className).toContain("bg-gradient-to-r");
-        expect(updateButton.className).toContain("from-primary");
-        expect(updateButton.className).toContain("to-accent");
+      const updateButton = screen.getByRole("button", {
+        name: /update trip/i,
       });
-    });
-
-    it("applies destructive styling to Delete button", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        const deleteButton = screen.getByRole("button", {
-          name: /delete trip/i,
-        });
-        expect(deleteButton).toBeDefined();
-        // Check that the button has the variant prop applied
-        // Note: The actual styling classes are applied by the Button component
-      });
+      expect(updateButton.className).toContain("bg-gradient-to-r");
+      expect(updateButton.className).toContain("from-primary");
+      expect(updateButton.className).toContain("to-accent");
     });
   });
 
-  describe("Step 2 - Description field", () => {
-    async function navigateToStep2(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-      });
-    }
-
+  describe("Description field", () => {
     it("shows character counter at 1600+ characters", async () => {
       const user = userEvent.setup();
       renderWithQueryClient(
@@ -1131,8 +772,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       const descriptionInput = screen.getByLabelText(
         /description/i,
@@ -1148,8 +787,7 @@ describe("EditTripDialog", () => {
       });
     });
 
-    it("does not show character counter below 1600 characters", async () => {
-      const user = userEvent.setup();
+    it("does not show character counter below 1600 characters", () => {
       renderWithQueryClient(
         <EditTripDialog
           open={true}
@@ -1157,8 +795,6 @@ describe("EditTripDialog", () => {
           trip={mockTrip}
         />,
       );
-
-      await navigateToStep2(user);
 
       expect(screen.queryByText(/\/ 2000 characters/i)).toBeNull();
     });
@@ -1179,6 +815,10 @@ describe("EditTripDialog", () => {
       expect(screen.getByRole("button", { name: /start date/i })).toBeDefined();
       expect(screen.getByRole("button", { name: /end date/i })).toBeDefined();
       expect(screen.getByLabelText(/trip timezone/i)).toBeDefined();
+      expect(screen.getByLabelText(/description/i)).toBeDefined();
+      expect(
+        screen.getByLabelText(/allow members to add events/i),
+      ).toBeDefined();
     });
 
     it("has aria-invalid attribute on invalid fields", async () => {
@@ -1193,43 +833,10 @@ describe("EditTripDialog", () => {
 
       const nameInput = screen.getByLabelText(/trip name/i);
       await user.clear(nameInput);
-      await user.click(screen.getByRole("button", { name: /continue/i }));
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
 
       await waitFor(() => {
         expect(nameInput.getAttribute("aria-invalid")).toBe("true");
-      });
-    });
-  });
-
-  describe("Progress indicator", () => {
-    it("shows Step 1 active initially", () => {
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      expect(screen.getByText("Step 1 of 2")).toBeDefined();
-      expect(screen.getByText("Basic information")).toBeDefined();
-    });
-
-    it("shows Step 2 active after navigation", async () => {
-      const user = userEvent.setup();
-      renderWithQueryClient(
-        <EditTripDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          trip={mockTrip}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: /continue/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText("Step 2 of 2")).toBeDefined();
-        expect(screen.getByText("Details & settings")).toBeDefined();
       });
     });
   });

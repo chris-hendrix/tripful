@@ -689,7 +689,13 @@ class NotificationService {
 
 Location: `apps/api/src/services/sms.service.ts`
 
+The SMS service is a generic transport layer. It does not contain business logic or message formatting — callers (NotificationService, SchedulerService) compose the message content.
+
 ```typescript
+export interface ISMSService {
+  sendMessage(phoneNumber: string, message: string): Promise<void>;
+}
+
 interface SmsProvider {
   sendSms(to: string, body: string): Promise<{ success: boolean; messageId?: string }>;
 }
@@ -703,21 +709,29 @@ class MockSmsProvider implements SmsProvider {
 
 // Future: class TwilioSmsProvider implements SmsProvider { ... }
 
-class SmsService {
+class SmsService implements ISMSService {
   constructor(private provider: SmsProvider) {}
 
-  async sendEventReminder(phone: string, eventName: string, tripName: string, location?: string):
-    Promise<void>
-  // Format: "[Trip Name]: [Event Name] starts in 1 hour at [Location]"
-
-  async sendDailyItinerary(phone: string, tripName: string, events: EventSummary[]):
-    Promise<void>
-  // Format: "[Trip Name] - Today's Schedule:\n1. 10:00 AM - Breakfast at...\n2. ..."
-
-  async sendTripMessage(phone: string, tripName: string, authorName: string, preview: string):
-    Promise<void>
-  // Format: "[Trip Name] - [Author]: [Preview...]"
+  async sendMessage(phoneNumber: string, message: string): Promise<void> {
+    await this.provider.sendSms(phoneNumber, message);
+  }
 }
+```
+
+**Message formatting lives in callers**, e.g.:
+
+```typescript
+// In SchedulerService.processEventReminders():
+const message = `${tripName}: ${eventName} starts in 1 hour${location ? ` at ${location}` : ''}`;
+await smsService.sendMessage(phone, message);
+
+// In SchedulerService.processDailyItineraries():
+const message = `${tripName} - Today's Schedule:\n${events.map((e, i) => `${i + 1}. ${e.time} - ${e.name}`).join('\n')}`;
+await smsService.sendMessage(phone, message);
+
+// In NotificationService.notifyTripMembers() for trip_message:
+const message = `${tripName} - ${authorName}: ${preview}`;
+await smsService.sendMessage(phone, message);
 ```
 
 **Provider selection**:
@@ -775,6 +789,17 @@ class SchedulerService {
   //    e. Record in sent_reminders
 }
 ```
+
+**Design rationale & future migration path**:
+
+The scheduling mechanism (`setInterval` in `start()`/`stop()`) is deliberately separated from the job logic (`processEventReminders()`, `processDailyItineraries()`). The process methods are fully stateless and idempotent - they query the DB, check dedup via `sent_reminders`, create notifications, and return. They don't care what invokes them.
+
+This means migrating to AWS (or any external scheduler) is a deployment change, not a code rewrite:
+1. Create Lambda handlers that call `processEventReminders()` / `processDailyItineraries()`
+2. Set up EventBridge rules for the 5-min / 15-min schedules
+3. Remove the `setInterval` calls from `start()`
+
+No formal `ISchedulerProvider` abstraction is needed now (YAGNI) - the idempotency via `sent_reminders` is the real insurance that makes any trigger mechanism safe, whether it's setInterval, Lambda, a cron job, or manual invocation in tests.
 
 **Timezone handling for daily itinerary**:
 
@@ -1061,7 +1086,7 @@ User types message → useCreateMessage.mutate(data)
           → For each going member (except author):
             → Check notification_preferences.trip_messages
             → INSERT INTO notifications
-            → If SMS enabled: SmsService.sendTripMessage()
+            → If SMS enabled: SmsService.sendMessage(phone, formattedMessage)
   → onSettled: Invalidate message queries
   → onError: Rollback optimistic update, show toast
 ```
@@ -1078,7 +1103,7 @@ SchedulerService (every 5 min):
       → Check sent_reminders for dedup
       → NotificationService.createNotification('event_reminder', ...)
         → INSERT INTO notifications
-        → If SMS enabled: SmsService.sendEventReminder()
+        → If SMS enabled: SmsService.sendMessage(phone, formattedReminder)
       → INSERT INTO sent_reminders
 ```
 
@@ -1172,7 +1197,7 @@ User clicks notification → useMarkAsRead.mutate(notificationId)
 
 - `MessageService`: CRUD, permissions, reaction toggle, mute enforcement, message limits
 - `NotificationService`: CRUD, preference checking, bulk notification delivery
-- `SmsService`: Message formatting, provider interface
+- `SmsService`: Provider interface, sendMessage delegation
 - `SchedulerService`: Timing logic, deduplication, timezone handling
 
 ### Backend Integration Tests

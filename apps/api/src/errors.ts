@@ -121,6 +121,60 @@ export const MemberTravelLimitExceededError = createError(
   400,
 );
 
+// Messaging errors
+export const MessageNotFoundError = createError(
+  "MESSAGE_NOT_FOUND",
+  "Message not found",
+  404,
+);
+export const MemberMutedError = createError(
+  "MEMBER_MUTED",
+  "You have been muted and cannot post messages",
+  403,
+);
+export const MessageLimitExceededError = createError(
+  "MESSAGE_LIMIT_EXCEEDED",
+  "Maximum 100 messages per trip reached",
+  409,
+);
+export const InvalidReplyTargetError = createError(
+  "INVALID_REPLY_TARGET",
+  "Can only reply to top-level messages",
+  400,
+);
+export const PinOnReplyError = createError(
+  "PIN_ON_REPLY",
+  "Can only pin top-level messages",
+  400,
+);
+export const AlreadyMutedError = createError(
+  "ALREADY_MUTED",
+  "Member is already muted",
+  409,
+);
+export const NotMutedError = createError(
+  "NOT_MUTED",
+  "Member is not muted",
+  404,
+);
+export const CannotMuteOrganizerError = createError(
+  "CANNOT_MUTE_ORGANIZER",
+  "Cannot mute an organizer",
+  403,
+);
+export const DailyMessageLimitError = createError(
+  "DAILY_MESSAGE_LIMIT",
+  "Maximum 200 messages per day per trip reached",
+  429,
+);
+
+// Notification errors
+export const NotificationNotFoundError = createError(
+  "NOTIFICATION_NOT_FOUND",
+  "Notification not found",
+  404,
+);
+
 // Generic
 export const InvalidCodeError = createError("INVALID_CODE", "%s", 400);
 export const AccountLockedError = createError("ACCOUNT_LOCKED", "%s", 429);

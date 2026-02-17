@@ -32,6 +32,8 @@
     "@fastify/under-pressure": "^9.0.3",
     "@tripful/shared": "workspace:*",
     "close-with-grace": "^2.4.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.36.4",
     "fastify": "^5.2.0",

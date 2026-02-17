@@ -22,6 +22,7 @@ import {
   getRemoveMemberErrorMessage,
   useUpdateMemberRole,
   getUpdateMemberRoleErrorMessage,
+  useMembers,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
@@ -47,6 +48,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { TripMessages, MessageCountIndicator } from "@/components/messaging";
+import { TripNotificationBell } from "@/components/notifications";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 
@@ -96,6 +100,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
   const { user } = useAuth();
+  const { data: members } = useMembers(tripId);
+  const currentMember = members?.find((m) => m.userId === user?.id);
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -124,6 +130,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Determine if user is an organizer (from API response metadata)
   const isOrganizer = trip?.isOrganizer ?? false;
+
+  // Check if trip is locked (past end date)
+  const isLocked = trip?.endDate
+    ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
+    : false;
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 
@@ -207,32 +218,35 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
-            {isOrganizer && (
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  onClick={() => setIsInviteOpen(true)}
-                  onMouseEnter={preloadInviteMembersDialog}
-                  onFocus={preloadInviteMembersDialog}
-                  variant="outline"
-                  size="sm"
-                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite
-                </Button>
-                <Button
-                  onClick={() => setIsEditOpen(true)}
-                  onMouseEnter={preloadEditTripDialog}
-                  onFocus={preloadEditTripDialog}
-                  variant="outline"
-                  size="sm"
-                  className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Edit trip
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <TripNotificationBell tripId={tripId} />
+              {isOrganizer && (
+                <>
+                  <Button
+                    onClick={() => setIsInviteOpen(true)}
+                    onMouseEnter={preloadInviteMembersDialog}
+                    onFocus={preloadInviteMembersDialog}
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite
+                  </Button>
+                  <Button
+                    onClick={() => setIsEditOpen(true)}
+                    onMouseEnter={preloadEditTripDialog}
+                    onFocus={preloadEditTripDialog}
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Edit trip
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 text-lg text-muted-foreground mb-4">
@@ -316,6 +330,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
               </span>
             </button>
+            <MessageCountIndicator tripId={tripId} />
           </div>
 
           {/* Description */}
@@ -334,6 +349,18 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         {/* Itinerary */}
         <div id="itinerary">
           <ItineraryView tripId={tripId} />
+        </div>
+
+        {/* Discussion */}
+        <div className="border-t border-border mt-6 pt-6">
+          <ErrorBoundary>
+            <TripMessages
+              tripId={tripId}
+              isOrganizer={isOrganizer}
+              disabled={isLocked}
+              isMuted={currentMember?.isMuted}
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

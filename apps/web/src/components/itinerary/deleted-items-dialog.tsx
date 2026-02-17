@@ -1,10 +1,18 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, RotateCcw, Loader2, Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import { RotateCcw, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   useEventsWithDeleted,
   useRestoreEvent,
@@ -23,30 +31,29 @@ import {
 import { formatInTimezone } from "@/lib/utils/timezone";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 
-interface DeletedItemsSectionProps {
+interface DeletedItemsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   tripId: string;
   timezone: string;
 }
 
-export function DeletedItemsSection({
+export function DeletedItemsDialog({
+  open,
+  onOpenChange,
   tripId,
   timezone,
-}: DeletedItemsSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Fetch all items including deleted
+}: DeletedItemsDialogProps) {
   const { data: allEvents = [] } = useEventsWithDeleted(tripId);
   const { data: allAccommodations = [] } =
     useAccommodationsWithDeleted(tripId);
   const { data: allMemberTravels = [] } =
     useMemberTravelsWithDeleted(tripId);
 
-  // Restore mutations
   const restoreEvent = useRestoreEvent();
   const restoreAccommodation = useRestoreAccommodation();
   const restoreMemberTravel = useRestoreMemberTravel();
 
-  // Filter to only deleted items
   const deletedEvents = useMemo(
     () => allEvents.filter((e) => e.deletedAt !== null),
     [allEvents],
@@ -65,153 +72,130 @@ export function DeletedItemsSection({
     deletedAccommodations.length +
     deletedMemberTravels.length;
 
-  // Auto-collapse when no more deleted items
-  useEffect(() => {
-    if (totalDeleted === 0) {
-      setIsExpanded(false);
-    }
-  }, [totalDeleted]);
-
-  // Don't render if no deleted items
-  if (totalDeleted === 0) {
-    return null;
-  }
-
   const handleRestoreEvent = (eventId: string) => {
     restoreEvent.mutate(eventId, {
-      onSuccess: () => {
-        toast.success("Event restored");
-      },
-      onError: (error) => {
+      onSuccess: () => toast.success("Event restored"),
+      onError: (error) =>
         toast.error(
           getRestoreEventErrorMessage(error) ?? "Failed to restore event",
-        );
-      },
+        ),
     });
   };
 
   const handleRestoreAccommodation = (accommodationId: string) => {
     restoreAccommodation.mutate(accommodationId, {
-      onSuccess: () => {
-        toast.success("Accommodation restored");
-      },
-      onError: (error) => {
+      onSuccess: () => toast.success("Accommodation restored"),
+      onError: (error) =>
         toast.error(
           getRestoreAccommodationErrorMessage(error) ??
             "Failed to restore accommodation",
-        );
-      },
+        ),
     });
   };
 
   const handleRestoreMemberTravel = (memberTravelId: string) => {
     restoreMemberTravel.mutate(memberTravelId, {
-      onSuccess: () => {
-        toast.success("Travel details restored");
-      },
-      onError: (error) => {
+      onSuccess: () => toast.success("Travel details restored"),
+      onError: (error) =>
         toast.error(
           getRestoreMemberTravelErrorMessage(error) ??
             "Failed to restore travel details",
-        );
-      },
+        ),
     });
   };
 
   return (
-    <div className="mt-8 border border-border rounded-xl bg-card">
-      {/* Toggle header */}
-      <button
-        type="button"
-        className="flex w-full items-center gap-3 p-4 text-left text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-expanded={isExpanded}
-      >
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+            Deleted items
+          </DialogTitle>
+          <DialogDescription>
+            {totalDeleted === 0
+              ? "No deleted items."
+              : "Restore items to bring them back to your itinerary."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {totalDeleted === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            <Trash2 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+            No deleted items
+          </div>
         ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
+          <div className="space-y-4">
+            {deletedEvents.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Events
+                </h4>
+                <div className="space-y-2">
+                  {deletedEvents.map((event) => (
+                    <DeletedEventRow
+                      key={event.id}
+                      event={event}
+                      timezone={timezone}
+                      onRestore={handleRestoreEvent}
+                      isRestoring={
+                        restoreEvent.isPending &&
+                        restoreEvent.variables === event.id
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {deletedAccommodations.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Accommodations
+                </h4>
+                <div className="space-y-2">
+                  {deletedAccommodations.map((accommodation) => (
+                    <DeletedAccommodationRow
+                      key={accommodation.id}
+                      accommodation={accommodation}
+                      timezone={timezone}
+                      onRestore={handleRestoreAccommodation}
+                      isRestoring={
+                        restoreAccommodation.isPending &&
+                        restoreAccommodation.variables === accommodation.id
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {deletedMemberTravels.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Member Travel
+                </h4>
+                <div className="space-y-2">
+                  {deletedMemberTravels.map((memberTravel) => (
+                    <DeletedMemberTravelRow
+                      key={memberTravel.id}
+                      memberTravel={memberTravel}
+                      timezone={timezone}
+                      onRestore={handleRestoreMemberTravel}
+                      isRestoring={
+                        restoreMemberTravel.isPending &&
+                        restoreMemberTravel.variables === memberTravel.id
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
-        <Trash2 className="h-4 w-4 shrink-0" />
-        <span>
-          Deleted Items ({totalDeleted})
-        </span>
-      </button>
 
-      {/* Expanded content */}
-      {isExpanded && (
-        <div className="border-t border-border px-4 pb-4">
-          {/* Deleted Events */}
-          {deletedEvents.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Events
-              </h4>
-              <div className="space-y-2">
-                {deletedEvents.map((event) => (
-                  <DeletedEventRow
-                    key={event.id}
-                    event={event}
-                    timezone={timezone}
-                    onRestore={handleRestoreEvent}
-                    isRestoring={
-                      restoreEvent.isPending &&
-                      restoreEvent.variables === event.id
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Deleted Accommodations */}
-          {deletedAccommodations.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Accommodations
-              </h4>
-              <div className="space-y-2">
-                {deletedAccommodations.map((accommodation) => (
-                  <DeletedAccommodationRow
-                    key={accommodation.id}
-                    accommodation={accommodation}
-                    timezone={timezone}
-                    onRestore={handleRestoreAccommodation}
-                    isRestoring={
-                      restoreAccommodation.isPending &&
-                      restoreAccommodation.variables === accommodation.id
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Deleted Member Travels */}
-          {deletedMemberTravels.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Member Travel
-              </h4>
-              <div className="space-y-2">
-                {deletedMemberTravels.map((memberTravel) => (
-                  <DeletedMemberTravelRow
-                    key={memberTravel.id}
-                    memberTravel={memberTravel}
-                    timezone={timezone}
-                    onRestore={handleRestoreMemberTravel}
-                    isRestoring={
-                      restoreMemberTravel.isPending &&
-                      restoreMemberTravel.variables === memberTravel.id
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        <DialogFooter showCloseButton />
+      </DialogContent>
+    </Dialog>
   );
 }
 

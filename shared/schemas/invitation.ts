@@ -55,6 +55,7 @@ const memberWithProfileSchema = z.object({
   phoneNumber: z.string().optional(),
   status: z.enum(["going", "not_going", "maybe", "no_response"]),
   isOrganizer: z.boolean(),
+  isMuted: z.boolean().optional(),
   createdAt: z.string(),
 });
 

@@ -7,6 +7,12 @@ import {
   accommodations,
   memberTravel,
   invitations,
+  messages,
+  messageReactions,
+  notifications,
+  notificationPreferences,
+  mutedMembers,
+  sentReminders,
 } from "./index.js";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -15,6 +21,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   createdEvents: many(events),
   createdAccommodations: many(accommodations),
   invitations: many(invitations),
+  messages: many(messages),
+  messageReactions: many(messageReactions),
+  notifications: many(notifications),
+  notificationPreferences: many(notificationPreferences),
 }));
 
 export const tripsRelations = relations(trips, ({ one, many }) => ({
@@ -24,6 +34,10 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   accommodations: many(accommodations),
   memberTravel: many(memberTravel),
   invitations: many(invitations),
+  messages: many(messages),
+  notifications: many(notifications),
+  notificationPreferences: many(notificationPreferences),
+  mutedMembers: many(mutedMembers),
 }));
 
 export const membersRelations = relations(members, ({ one, many }) => ({
@@ -63,6 +77,84 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
   trip: one(trips, { fields: [invitations.tripId], references: [trips.id] }),
   inviter: one(users, {
     fields: [invitations.inviterId],
+    references: [users.id],
+  }),
+}));
+
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  trip: one(trips, { fields: [messages.tripId], references: [trips.id] }),
+  author: one(users, {
+    fields: [messages.authorId],
+    references: [users.id],
+  }),
+  parent: one(messages, {
+    fields: [messages.parentId],
+    references: [messages.id],
+    relationName: "messageReplies",
+  }),
+  replies: many(messages, { relationName: "messageReplies" }),
+  reactions: many(messageReactions),
+}));
+
+export const messageReactionsRelations = relations(
+  messageReactions,
+  ({ one }) => ({
+    message: one(messages, {
+      fields: [messageReactions.messageId],
+      references: [messages.id],
+    }),
+    user: one(users, {
+      fields: [messageReactions.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  trip: one(trips, {
+    fields: [notifications.tripId],
+    references: [trips.id],
+  }),
+}));
+
+export const notificationPreferencesRelations = relations(
+  notificationPreferences,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [notificationPreferences.userId],
+      references: [users.id],
+    }),
+    trip: one(trips, {
+      fields: [notificationPreferences.tripId],
+      references: [trips.id],
+    }),
+  }),
+);
+
+export const mutedMembersRelations = relations(mutedMembers, ({ one }) => ({
+  trip: one(trips, {
+    fields: [mutedMembers.tripId],
+    references: [trips.id],
+  }),
+  user: one(users, {
+    fields: [mutedMembers.userId],
+    references: [users.id],
+    relationName: "mutedUser",
+  }),
+  mutedByUser: one(users, {
+    fields: [mutedMembers.mutedBy],
+    references: [users.id],
+    relationName: "mutedByUser",
+  }),
+}));
+
+export const sentRemindersRelations = relations(sentReminders, ({ one }) => ({
+  user: one(users, {
+    fields: [sentReminders.userId],
     references: [users.id],
   }),
 }));
