@@ -25,9 +25,10 @@ import type { UpdateRsvpInput } from "@tripful/shared/schemas";
 interface TripPreviewProps {
   trip: TripDetailWithMeta;
   tripId: string;
+  onGoingSuccess?: () => void;
 }
 
-export function TripPreview({ trip, tripId }: TripPreviewProps) {
+export function TripPreview({ trip, tripId, onGoingSuccess }: TripPreviewProps) {
   const { mutate: updateRsvp, isPending } = useUpdateRsvp(tripId);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
@@ -43,6 +44,9 @@ export function TripPreview({ trip, tripId }: TripPreviewProps) {
             not_going: "Not Going",
           };
           toast.success(`RSVP updated to "${labels[status]}"`);
+          if (status === "going") {
+            onGoingSuccess?.();
+          }
         },
         onError: (error) => {
           const message = getUpdateRsvpErrorMessage(error);

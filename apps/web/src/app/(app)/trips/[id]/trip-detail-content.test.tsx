@@ -199,9 +199,66 @@ vi.mock("@/components/messaging", () => ({
 
 // Mock TripPreview component
 vi.mock("@/components/trip/trip-preview", () => ({
-  TripPreview: ({ trip, tripId }: any) => (
-    <div data-testid="trip-preview">TripPreview: {trip.name}</div>
+  TripPreview: ({ trip, tripId, onGoingSuccess }: any) => (
+    <div data-testid="trip-preview">
+      TripPreview: {trip.name}
+      {onGoingSuccess && (
+        <button data-testid="preview-going-success" onClick={onGoingSuccess}>
+          Trigger Going Success
+        </button>
+      )}
+    </div>
   ),
+}));
+
+// Mock TravelReminderBanner component
+vi.mock("@/components/trip/travel-reminder-banner", () => ({
+  TravelReminderBanner: ({
+    tripId,
+    memberId,
+    onAddTravel,
+  }: {
+    tripId: string;
+    memberId: string | undefined;
+    onAddTravel: () => void;
+  }) => (
+    <div
+      data-testid="travel-reminder-banner"
+      data-trip-id={tripId}
+      data-member-id={memberId}
+    >
+      Travel Reminder Banner
+      <button data-testid="banner-add-travel" onClick={onAddTravel}>
+        Add Travel Details
+      </button>
+    </div>
+  ),
+}));
+
+// Mock MemberOnboardingWizard component
+vi.mock("@/components/trip/member-onboarding-wizard", () => ({
+  MemberOnboardingWizard: ({
+    open,
+    onOpenChange,
+    tripId,
+    trip,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    tripId: string;
+    trip: any;
+  }) =>
+    open ? (
+      <div data-testid="member-onboarding-wizard" data-trip-id={tripId}>
+        Onboarding Wizard
+        <button
+          data-testid="wizard-close"
+          onClick={() => onOpenChange(false)}
+        >
+          Close Wizard
+        </button>
+      </div>
+    ) : null,
 }));
 
 // Mock InviteMembersDialog component

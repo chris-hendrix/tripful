@@ -20,7 +20,7 @@
 
 ## Phase 2: Integration & Reminder Banner
 
-- [ ] Task 2.1: Wire wizard into TripPreview and TripDetailContent, create TravelReminderBanner
+- [x] Task 2.1: Wire wizard into TripPreview and TripDetailContent, create TravelReminderBanner
   - Implement: In `apps/web/src/components/trip/trip-preview.tsx`, add `onGoingSuccess?: () => void` to TripPreviewProps, call `onGoingSuccess?.()` in handleRsvp onSuccess when `status === "going"`
   - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`, add `showOnboarding` state, `dynamic()` import for MemberOnboardingWizard, pass `onGoingSuccess` to TripPreview, render wizard after Members Sheet
   - Implement: Create `apps/web/src/components/trip/travel-reminder-banner.tsx` with props `tripId`, `memberId`, `onAddTravel`

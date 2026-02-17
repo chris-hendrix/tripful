@@ -54,6 +54,7 @@ import { TripNotificationBell } from "@/components/notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
+import { TravelReminderBanner } from "@/components/trip/travel-reminder-banner";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -72,6 +73,12 @@ const InviteMembersDialog = dynamic(() =>
 
 const preloadInviteMembersDialog = () =>
   void import("@/components/trip/invite-members-dialog");
+
+const MemberOnboardingWizard = dynamic(() =>
+  import("@/components/trip/member-onboarding-wizard").then((mod) => ({
+    default: mod.MemberOnboardingWizard,
+  })),
+);
 
 function SkeletonDetail() {
   return (
@@ -97,6 +104,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const [removingMember, setRemovingMember] = useState<{
     member: MemberWithProfile;
   } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
@@ -166,7 +174,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Preview mode: show limited trip info with RSVP buttons
   if (trip.isPreview) {
-    return <TripPreview trip={trip} tripId={tripId} />;
+    return <TripPreview trip={trip} tripId={tripId} onGoingSuccess={() => setShowOnboarding(true)} />;
   }
 
   return (
@@ -185,6 +193,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+
+      {trip.userRsvpStatus === "going" && !isLocked && currentMember && (
+        <TravelReminderBanner
+          tripId={tripId}
+          memberId={currentMember.id}
+          onAddTravel={() => setShowOnboarding(true)}
+        />
+      )}
 
       {/* Hero section with cover image */}
       {trip.coverImageUrl ? (
@@ -468,6 +484,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </SheetBody>
         </SheetContent>
       </Sheet>
+
+      {showOnboarding && (
+        <MemberOnboardingWizard
+          open={showOnboarding}
+          onOpenChange={setShowOnboarding}
+          tripId={tripId}
+          trip={trip}
+        />
+      )}
     </div>
   );
 }
