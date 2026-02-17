@@ -324,9 +324,11 @@ export function DayByDayView({
         return (
           <div
             key={day.date}
+            id={isToday ? "day-today" : undefined}
             className={cn(
               "grid grid-cols-[3.5rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-3 py-4",
               "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-500",
+              isToday && "scroll-mt-28",
             )}
             style={{ animationDelay: `${index * 50}ms` }}
           >

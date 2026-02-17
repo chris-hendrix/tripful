@@ -1,7 +1,14 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Calendar, Clock, MapPin, ExternalLink, Users } from "lucide-react";
+import {
+  MapPin,
+  ExternalLink,
+  Users,
+  ChevronRight,
+  ChevronDown,
+  Pencil,
+} from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,19 +27,19 @@ interface EventCardProps {
 
 const EVENT_TYPE_CONFIG = {
   travel: {
-    bgColor: "bg-[var(--color-event-travel-light)]",
-    borderColor: "border-[var(--color-event-travel-border)]",
-    accentColor: "border-l-[var(--color-event-travel)]",
+    color: "text-[var(--color-event-travel)]",
+    accent: "border-l-[var(--color-event-travel)]",
+    bg: "bg-[var(--color-event-travel-light)]",
   },
   meal: {
-    bgColor: "bg-[var(--color-event-meal-light)]",
-    borderColor: "border-[var(--color-event-meal-border)]",
-    accentColor: "border-l-[var(--color-event-meal)]",
+    color: "text-[var(--color-event-meal)]",
+    accent: "border-l-[var(--color-event-meal)]",
+    bg: "bg-[var(--color-event-meal-light)]",
   },
   activity: {
-    bgColor: "bg-[var(--color-event-activity-light)]",
-    borderColor: "border-[var(--color-event-activity-border)]",
-    accentColor: "border-l-[var(--color-event-activity)]",
+    color: "text-[var(--color-event-activity)]",
+    accent: "border-l-[var(--color-event-activity)]",
+    bg: "bg-[var(--color-event-activity-light)]",
   },
 } as const;
 
@@ -75,7 +82,7 @@ export const EventCard = memo(function EventCard({
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      className={`rounded-xl border border-l-4 ${config.borderColor} ${config.accentColor} ${config.bgColor} p-4 transition-all hover:shadow-md cursor-pointer`}
+      className={`rounded-xl border border-border/60 border-l-4 ${config.accent} ${config.bg} py-2 px-3 transition-all hover:shadow-md cursor-pointer`}
       onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -85,78 +92,102 @@ export const EventCard = memo(function EventCard({
       }}
     >
       {/* Compact view */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-foreground text-sm">
-            {event.name}
-          </h4>
-          {datePrefix && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-              <Calendar className="w-3 h-3 shrink-0" />
-              <span>{datePrefix}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-            <Clock className="w-3 h-3 shrink-0" />
-            <span>{timeDisplay}</span>
-          </div>
-          {event.location && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary mt-0.5 py-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="underline underline-offset-2">
-                {event.location}
-              </span>
-            </a>
+      <div className="flex items-center gap-2">
+        <div className={`shrink-0 ${config.color}`}>
+          {isExpanded ? (
+            <ChevronDown className="w-3.5 h-3.5" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5" />
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-          {isMultiDay && (
-            <Badge variant="outline" className="text-xs">
-              {formatInTimezone(event.startTime, timezone, "short-date")}
-              {"\u2013"}
-              {formatInTimezone(event.endTime!, timezone, "short-date")}
-            </Badge>
-          )}
-          {event.creatorAttending === false && (
-            <Badge
-              variant="outline"
-              className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
-            >
-              Member no longer attending
-            </Badge>
-          )}
-          {event.isOptional && (
-            <Badge
-              variant="outline"
-              className="text-xs bg-background/50 border-border"
-            >
-              Optional
-            </Badge>
-          )}
+        <div className="flex-1 min-w-0">
+          {/* Time row */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>
+              {datePrefix ? `${datePrefix} · ` : ""}
+              {timeDisplay}
+            </span>
+            {isMultiDay && (
+              <Badge variant="outline" className="text-xs">
+                {formatInTimezone(event.startTime, timezone, "short-date")}
+                {"\u2013"}
+                {formatInTimezone(event.endTime!, timezone, "short-date")}
+              </Badge>
+            )}
+          </div>
+
+          {/* Title + location row */}
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span className="font-semibold text-foreground text-sm truncate">
+              {event.name}
+            </span>
+            {event.location && !isExpanded && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary active:text-primary shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span>
+                  {event.location.length > 20
+                    ? event.location.slice(0, 20) + "…"
+                    : event.location}
+                </span>
+              </a>
+            )}
+            {event.creatorAttending === false && (
+              <Badge
+                variant="outline"
+                className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
+              >
+                Member no longer attending
+              </Badge>
+            )}
+            {event.isOptional && (
+              <Badge
+                variant="outline"
+                className="text-xs bg-background/50 border-border"
+              >
+                Optional
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Expanded view */}
       {isExpanded && (
         <div
-          className="mt-4 pt-4 border-t border-border space-y-3"
+          className="mt-2 pt-2 border-t border-border/40 space-y-2 ml-6"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Full location */}
+          {event.location && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground active:text-primary hover:text-primary py-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {event.location}
+              </span>
+            </a>
+          )}
+
           {event.description && (
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
               {event.description}
             </p>
           )}
 
           {(event.meetupLocation || event.meetupTime) && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Users className="h-3.5 w-3.5 shrink-0" />
               <span>
                 Meet{event.meetupLocation ? ` at ${event.meetupLocation}` : ""}
@@ -168,23 +199,20 @@ export const EventCard = memo(function EventCard({
           )}
 
           {event.links && event.links.length > 0 && (
-            <div className="space-y-1">
-              <h5 className="text-xs font-semibold text-foreground">Links</h5>
-              <div className="flex flex-wrap gap-2">
-                {event.links.map((link, index) => (
-                  <a
-                    key={index}
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Link {index + 1}
-                  </a>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {event.links.map((link, index) => (
+                <a
+                  key={index}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Link {index + 1}
+                </a>
+              ))}
             </div>
           )}
 
@@ -195,7 +223,7 @@ export const EventCard = memo(function EventCard({
           </div>
 
           {(canEdit || canDelete) && (
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-1">
               {canEdit && onEdit && (
                 <Button
                   size="sm"
@@ -204,9 +232,10 @@ export const EventCard = memo(function EventCard({
                     e.stopPropagation();
                     onEdit(event);
                   }}
-                  className="h-9 sm:h-8 text-xs"
+                  className="h-9 sm:h-7 text-xs gap-1"
                   title="Edit event"
                 >
+                  <Pencil className="w-3 h-3" />
                   Edit
                 </Button>
               )}
@@ -218,7 +247,7 @@ export const EventCard = memo(function EventCard({
                     e.stopPropagation();
                     onDelete(event);
                   }}
-                  className="h-9 sm:h-8 text-xs"
+                  className="h-9 sm:h-7 text-xs gap-1"
                   title="Delete event"
                 >
                   Delete

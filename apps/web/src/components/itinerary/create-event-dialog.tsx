@@ -10,12 +10,13 @@ import {
   type CreateEventInput,
 } from "@tripful/shared/schemas";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -114,8 +115,14 @@ export function CreateEventDialog({
       return;
     }
 
+    // Auto-prepend https:// if no protocol is provided
+    let normalizedLink = newLink.trim();
+    if (!/^https?:\/\//i.test(normalizedLink)) {
+      normalizedLink = `https://${normalizedLink}`;
+    }
+
     try {
-      new URL(newLink);
+      new URL(normalizedLink);
     } catch {
       setLinkError("Please enter a valid URL");
       return;
@@ -127,12 +134,12 @@ export function CreateEventDialog({
       return;
     }
 
-    if (currentLinks.includes(newLink)) {
+    if (currentLinks.includes(normalizedLink)) {
       setLinkError("This URL is already added");
       return;
     }
 
-    form.setValue("links", [...currentLinks, newLink]);
+    form.setValue("links", [...currentLinks, normalizedLink]);
     setNewLink("");
   };
 
@@ -147,17 +154,18 @@ export function CreateEventDialog({
   const links = form.watch("links") || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Create a new event
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             Add an event to your trip itinerary
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
+        <SheetBody>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -573,7 +581,8 @@ export function CreateEventDialog({
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }

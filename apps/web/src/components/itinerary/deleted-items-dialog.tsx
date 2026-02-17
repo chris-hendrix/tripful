@@ -6,13 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   useEventsWithDeleted,
   useRestoreEvent,
@@ -105,97 +106,99 @@ export function DeletedItemsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Deleted items
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             {totalDeleted === 0
               ? "No deleted items."
               : "Restore items to bring them back to your itinerary."}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        {totalDeleted === 0 ? (
-          <div className="py-6 text-center text-sm text-muted-foreground">
-            <Trash2 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-            No deleted items
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {deletedEvents.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Events
-                </h4>
-                <div className="space-y-2">
-                  {deletedEvents.map((event) => (
-                    <DeletedEventRow
-                      key={event.id}
-                      event={event}
-                      timezone={timezone}
-                      onRestore={handleRestoreEvent}
-                      isRestoring={
-                        restoreEvent.isPending &&
-                        restoreEvent.variables === event.id
-                      }
-                    />
-                  ))}
+        <SheetBody>
+          {totalDeleted === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              <Trash2 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+              No deleted items
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {deletedEvents.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Events
+                  </h4>
+                  <div className="space-y-2">
+                    {deletedEvents.map((event) => (
+                      <DeletedEventRow
+                        key={event.id}
+                        event={event}
+                        timezone={timezone}
+                        onRestore={handleRestoreEvent}
+                        isRestoring={
+                          restoreEvent.isPending &&
+                          restoreEvent.variables === event.id
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {deletedAccommodations.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Accommodations
-                </h4>
-                <div className="space-y-2">
-                  {deletedAccommodations.map((accommodation) => (
-                    <DeletedAccommodationRow
-                      key={accommodation.id}
-                      accommodation={accommodation}
-                      timezone={timezone}
-                      onRestore={handleRestoreAccommodation}
-                      isRestoring={
-                        restoreAccommodation.isPending &&
-                        restoreAccommodation.variables === accommodation.id
-                      }
-                    />
-                  ))}
+              {deletedAccommodations.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Accommodations
+                  </h4>
+                  <div className="space-y-2">
+                    {deletedAccommodations.map((accommodation) => (
+                      <DeletedAccommodationRow
+                        key={accommodation.id}
+                        accommodation={accommodation}
+                        timezone={timezone}
+                        onRestore={handleRestoreAccommodation}
+                        isRestoring={
+                          restoreAccommodation.isPending &&
+                          restoreAccommodation.variables === accommodation.id
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {deletedMemberTravels.length > 0 && (
-              <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Member Travel
-                </h4>
-                <div className="space-y-2">
-                  {deletedMemberTravels.map((memberTravel) => (
-                    <DeletedMemberTravelRow
-                      key={memberTravel.id}
-                      memberTravel={memberTravel}
-                      timezone={timezone}
-                      onRestore={handleRestoreMemberTravel}
-                      isRestoring={
-                        restoreMemberTravel.isPending &&
-                        restoreMemberTravel.variables === memberTravel.id
-                      }
-                    />
-                  ))}
+              {deletedMemberTravels.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Member Travel
+                  </h4>
+                  <div className="space-y-2">
+                    {deletedMemberTravels.map((memberTravel) => (
+                      <DeletedMemberTravelRow
+                        key={memberTravel.id}
+                        memberTravel={memberTravel}
+                        timezone={timezone}
+                        onRestore={handleRestoreMemberTravel}
+                        isRestoring={
+                          restoreMemberTravel.isPending &&
+                          restoreMemberTravel.variables === memberTravel.id
+                        }
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </SheetBody>
 
-        <DialogFooter showCloseButton />
-      </DialogContent>
-    </Dialog>
+        <SheetFooter showCloseButton />
+      </SheetContent>
+    </Sheet>
   );
 }
 

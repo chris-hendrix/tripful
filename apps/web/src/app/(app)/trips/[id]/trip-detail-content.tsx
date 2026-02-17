@@ -41,12 +41,13 @@ import {
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
 import { TripNotificationBell } from "@/components/notifications";
@@ -171,7 +172,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumb navigation */}
-      <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6">
+      <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
@@ -311,20 +312,21 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <Users className="w-5 h-5" />
-              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
+              <span className="text-sm">
                 {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
               </span>
             </button>
             <button
               onClick={() => {
-                document
-                  .getElementById("itinerary")
-                  ?.scrollIntoView({ behavior: "smooth" });
+                const target =
+                  document.getElementById("day-today") ??
+                  document.getElementById("itinerary");
+                target?.scrollIntoView({ behavior: "smooth" });
               }}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <ClipboardList className="w-5 h-5" />
-              <span className="text-sm underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/60">
+              <span className="text-sm">
                 {activeEventCount === 0
                   ? "No events yet"
                   : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
@@ -347,7 +349,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Itinerary */}
-        <div id="itinerary">
+        <div id="itinerary" className="scroll-mt-14">
           <ItineraryView tripId={tripId} />
         </div>
 
@@ -385,85 +387,87 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         />
       )}
 
-      {/* Members Dialog */}
-      <Dialog
+      {/* Members Sheet */}
+      <Sheet
         open={isMembersOpen}
         onOpenChange={(open) => {
           setIsMembersOpen(open);
           if (!open) setRemovingMember(null);
         }}
       >
-        <DialogContent className="min-h-[40vh] max-h-[80vh] flex flex-col overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
               {removingMember ? "Remove member" : "Members"}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
+            </SheetTitle>
+            <SheetDescription className="sr-only">
               {removingMember
                 ? "Confirm member removal"
                 : "Trip members and invitations"}
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
-          {removingMember ? (
-            <div className="flex flex-col flex-1">
-              <div className="flex-1">
-                <p className="text-muted-foreground">
-                  Are you sure you want to remove{" "}
-                  <span className="font-medium text-foreground">
-                    {removingMember.member.displayName}
-                  </span>{" "}
-                  from this trip? This will remove their membership and any
-                  associated invitation.
-                </p>
+          <SheetBody>
+            {removingMember ? (
+              <div className="flex flex-col flex-1">
+                <div className="flex-1">
+                  <p className="text-muted-foreground">
+                    Are you sure you want to remove{" "}
+                    <span className="font-medium text-foreground">
+                      {removingMember.member.displayName}
+                    </span>{" "}
+                    from this trip? This will remove their membership and any
+                    associated invitation.
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-end mt-auto pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    onClick={() => setRemovingMember(null)}
+                    disabled={removeMember.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={removeMember.isPending}
+                    onClick={() => {
+                      removeMember.mutate(removingMember.member.id, {
+                        onSuccess: () => {
+                          toast.success(
+                            `${removingMember.member.displayName} has been removed`,
+                          );
+                          setRemovingMember(null);
+                        },
+                        onError: (error) => {
+                          const message = getRemoveMemberErrorMessage(error);
+                          toast.error(message ?? "Failed to remove member");
+                          setRemovingMember(null);
+                        },
+                      });
+                    }}
+                  >
+                    {removeMember.isPending ? "Removing..." : "Remove"}
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-3 justify-end mt-auto pt-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  onClick={() => setRemovingMember(null)}
-                  disabled={removeMember.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={removeMember.isPending}
-                  onClick={() => {
-                    removeMember.mutate(removingMember.member.id, {
-                      onSuccess: () => {
-                        toast.success(
-                          `${removingMember.member.displayName} has been removed`,
-                        );
-                        setRemovingMember(null);
-                      },
-                      onError: (error) => {
-                        const message = getRemoveMemberErrorMessage(error);
-                        toast.error(message ?? "Failed to remove member");
-                        setRemovingMember(null);
-                      },
-                    });
-                  }}
-                >
-                  {removeMember.isPending ? "Removing..." : "Remove"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <MembersList
-              tripId={tripId}
-              isOrganizer={isOrganizer}
-              createdBy={trip.createdBy}
-              currentUserId={user?.id}
-              onInvite={() => {
-                setIsMembersOpen(false);
-                setIsInviteOpen(true);
-              }}
-              onRemove={(member) => setRemovingMember({ member })}
-              onUpdateRole={handleUpdateRole}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+            ) : (
+              <MembersList
+                tripId={tripId}
+                isOrganizer={isOrganizer}
+                createdBy={trip.createdBy}
+                currentUserId={user?.id}
+                onInvite={() => {
+                  setIsMembersOpen(false);
+                  setIsInviteOpen(true);
+                }}
+                onRemove={(member) => setRemovingMember({ member })}
+                onUpdateRole={handleUpdateRole}
+              />
+            )}
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

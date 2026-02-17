@@ -11,12 +11,13 @@ import {
 } from "@tripful/shared/schemas";
 import type { Event } from "@tripful/shared/types";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -163,8 +164,14 @@ export function EditEventDialog({
       return;
     }
 
+    // Auto-prepend https:// if no protocol is provided
+    let normalizedLink = newLink.trim();
+    if (!/^https?:\/\//i.test(normalizedLink)) {
+      normalizedLink = `https://${normalizedLink}`;
+    }
+
     try {
-      new URL(newLink);
+      new URL(normalizedLink);
     } catch {
       setLinkError("Please enter a valid URL");
       return;
@@ -176,12 +183,12 @@ export function EditEventDialog({
       return;
     }
 
-    if (currentLinks.includes(newLink)) {
+    if (currentLinks.includes(normalizedLink)) {
       setLinkError("This URL is already added");
       return;
     }
 
-    form.setValue("links", [...currentLinks, newLink]);
+    form.setValue("links", [...currentLinks, normalizedLink]);
     setNewLink("");
   };
 
@@ -196,15 +203,16 @@ export function EditEventDialog({
   const links = form.watch("links") || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit event
-          </DialogTitle>
-          <DialogDescription>Update your event details</DialogDescription>
-        </DialogHeader>
+          </SheetTitle>
+          <SheetDescription>Update your event details</SheetDescription>
+        </SheetHeader>
 
+        <SheetBody>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -621,15 +629,14 @@ export function EditEventDialog({
             <div className="pt-4 border-t border-border">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+                  <button
                     type="button"
                     disabled={isPending || isDeleting}
-                    variant="destructive"
-                    className="w-full h-12 rounded-xl"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-3 h-3" />
                     Delete event
-                  </Button>
+                  </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -659,7 +666,8 @@ export function EditEventDialog({
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }

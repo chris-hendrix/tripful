@@ -3,10 +3,8 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
-import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -51,34 +49,19 @@ function UserAvatar({
 
 export function AppHeader() {
   const { user, logout } = useAuth();
-  const pathname = usePathname();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center">
             <Link
               href="/trips"
               className="font-[family-name:var(--font-playfair)] text-xl font-bold tracking-tight"
             >
               Tripful
             </Link>
-
-            <nav aria-label="Main navigation">
-              <Link
-                href="/trips"
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-foreground/80",
-                  pathname.startsWith("/trips")
-                    ? "text-foreground"
-                    : "text-foreground/60",
-                )}
-              >
-                My Trips
-              </Link>
-            </nav>
           </div>
 
           <div className="flex items-center gap-2">

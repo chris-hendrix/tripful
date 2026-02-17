@@ -150,7 +150,7 @@ describe("DeletedItemsDialog", () => {
       </Wrapper>,
     );
 
-    expect(screen.getByText("Deleted Items")).toBeDefined();
+    expect(screen.getByText("Deleted items")).toBeDefined();
     expect(screen.getByText("No deleted items.")).toBeDefined();
   });
 
