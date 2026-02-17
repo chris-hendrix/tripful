@@ -73,7 +73,7 @@ export const AccommodationCard = memo(function AccommodationCard({
               {datePrefix}
             </span>
           )}
-          {accommodation.address && (
+          {accommodation.address && !isExpanded && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
               target="_blank"

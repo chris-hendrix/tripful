@@ -122,7 +122,7 @@ export const EventCard = memo(function EventCard({
             <span className="font-semibold text-foreground text-sm truncate">
               {event.name}
             </span>
-            {event.location && (
+            {event.location && !isExpanded && (
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
                 target="_blank"

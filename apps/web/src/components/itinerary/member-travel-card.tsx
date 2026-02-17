@@ -84,7 +84,7 @@ export const MemberTravelCard = memo(function MemberTravelCard({
             <Clock className="w-3 h-3" />
             {time}
           </span>
-          {memberTravel.location && (
+          {memberTravel.location && !isExpanded && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
               target="_blank"
