@@ -99,12 +99,14 @@ None. This is a dependency upgrade — no feature flags involved.
 
 ## Pre-existing Test Failures
 
-These 7 test failures pre-date this work and should remain unchanged:
-1. `apps/web/src/components/app-header.test.tsx` — 5 failures (navigation tests)
-2. `apps/web/src/components/itinerary/create-accommodation-dialog.test.tsx` — 1 failure
-3. `apps/web/src/components/itinerary/create-event-dialog.test.tsx` — 1 failure
+8 test failures pre-dated the dependency upgrade work. Phase 5 tasks fix all of them:
 
-If new failures appear after dependency upgrades, they must be fixed.
+1. `apps/web/src/components/__tests__/app-header.test.tsx` — 5 failures (obsolete navigation tests for removed feature → delete)
+2. `apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` — 1 failure (test input doesn't trigger URL validation error → fix input)
+3. `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` — 1 failure (same URL validation issue → fix input)
+4. `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — 1 failure (assertion doesn't match implementation → fix assertion + add mock)
+
+**After Phase 5**: All tests should pass with 0 failures.
 
 ---
 
@@ -125,7 +127,7 @@ If new failures appear after dependency upgrades, they must be fixed.
 
 ### Task 2.3 (Frontend)
 - `pnpm typecheck` passes for `apps/web/`
-- `pnpm test` in `apps/web/` — passes (7 pre-existing failures only)
+- `pnpm test` in `apps/web/` — passes (8 pre-existing failures only, fixed in Phase 5)
 
 ### Task 3.1 (ESLint & Dev Deps)
 - `pnpm lint` passes (0 errors)
@@ -134,3 +136,29 @@ If new failures appear after dependency upgrades, they must be fixed.
 ### Task 4.1 (Full Regression)
 - All 4 commands pass: lint, typecheck, test, test:e2e
 - Dependabot PRs #20, #22, #23 closed
+
+### Task 5.1 (App Header Tests)
+- `cd apps/web && pnpm vitest run src/components/__tests__/app-header.test.tsx` — all tests pass (8 remaining)
+- No test file references "My Trips" or `role="navigation"`
+
+### Task 5.2 (URL Validation Tests)
+- `cd apps/web && pnpm vitest run src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` — all pass
+- `cd apps/web && pnpm vitest run src/components/itinerary/__tests__/create-event-dialog.test.tsx` — all pass
+
+### Task 5.3 (Metadata Test)
+- `cd apps/web && pnpm vitest run src/app/\(app\)/trips/\[id\]/page.test.tsx` — all pass
+- Both success case (returns trip name) and error case (returns fallback "Trip") covered
+
+### Task 6.1 (API Retry)
+- `retry: 2` present in `apps/api/vitest.config.ts`
+- `cd apps/api && pnpm test` passes without manual retries
+
+### Task 6.2 (E2E Toast Stability)
+- `pnpm test:e2e` — 32/32 pass
+- Run twice to confirm no flakiness
+
+### Task 7.1 (Final Verification)
+- `pnpm lint` — 0 errors
+- `pnpm typecheck` — 0 errors
+- `pnpm test` — 0 failures across all packages
+- `pnpm test:e2e` — 32/32 pass

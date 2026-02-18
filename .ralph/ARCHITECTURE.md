@@ -141,3 +141,61 @@ pnpm test:e2e      # Playwright E2E
 1. All changes on Ralph branch (`ralph/20260217-2129-rebase-dependabot-prs`)
 2. Create PR from Ralph branch → main
 3. Close Dependabot PRs #20, #22, #23 with comment linking to our consolidated PR
+
+---
+
+## Phase 5-7: Fix Pre-existing Test Failures & Stabilize Flaky Tests
+
+After the dependency upgrade (Phases 1-4), 8 pre-existing test failures and 4 flaky tests remain. These pre-date the dependency work but should be fixed on this branch.
+
+### 8. Fix Pre-existing Test Failures (8 total)
+
+#### 8a. app-header.test.tsx — 5 failures (delete obsolete, add new)
+
+**File**: `apps/web/src/components/__tests__/app-header.test.tsx`
+
+The `AppHeader` component no longer renders a `<nav>` element or "My Trips" link (removed in commit `570b820`). Current component renders: wordmark link to `/trips`, `NotificationBell`, and user avatar dropdown.
+
+**5 failing tests** (lines 91-217): `renders a My Trips nav link`, `renders the main navigation landmark`, `applies active styling to My Trips link when on /trips`, `applies active styling to My Trips link on nested trips routes`, `applies inactive styling to My Trips link when on a different page`.
+
+**Approach**: Delete all 5 failing tests. The remaining 8 passing tests already cover wordmark, avatar, dropdown, and logout. No new tests needed since current behavior is fully covered.
+
+#### 8b. create-accommodation-dialog.test.tsx — 1 failure (fix test input)
+
+**File**: `apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` (line 246)
+
+**Root cause**: Test types `"invalid-url"` into the link input, but `handleAddLink()` auto-prepends `https://`, making it `"https://invalid-url"` — which `new URL()` considers valid. The error "Please enter a valid URL" is never set.
+
+**Fix**: Change test input from `"invalid-url"` to `"not a valid url"` (spaces cause `new URL("https://not a valid url")` to throw).
+
+#### 8c. create-event-dialog.test.tsx — 1 failure (same fix)
+
+**File**: `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` (line 404)
+
+Same root cause and fix as 8b.
+
+#### 8d. page.test.tsx — 1 failure (fix assertion)
+
+**File**: `apps/web/src/app/(app)/trips/[id]/page.test.tsx` (line 122)
+
+**Root cause**: Test asserts `{ title: "Trip trip-123" }` but the `generateMetadata` implementation calls the API and returns `{ title: response.trip.name }`. The mock `mockServerApiRequest` is not set up in this test, so it returns `undefined`, the try block throws, and the catch returns `{ title: "Trip" }`.
+
+**Fix**: Two approaches:
+1. Set up `mockServerApiRequest` to return `mockTripResponse` and assert `{ title: "Beach Trip" }`
+2. Also add a test for the fallback case (API fails → `{ title: "Trip" }`)
+
+### 9. Stabilize Flaky API Integration Tests
+
+**Files**: `auth.lockout.test.ts`, `notification.routes.test.ts`, `message.routes.test.ts`
+
+**Root cause**: `@fastify/under-pressure` middleware (configured in `apps/api/src/app.ts` with `maxEventLoopDelay: 1000`) returns 503 when the event loop is delayed by database connection pool exhaustion. The pool max is 20 (`apps/api/src/config/database.ts`), but parallel test files can exceed this.
+
+**Fix**: Add `retry: 2` to `apps/api/vitest.config.ts`. This is the simplest fix — matches the documented workaround ("always retry before investigating") without requiring architectural changes to test isolation.
+
+### 10. Stabilize Flaky E2E Test
+
+**File**: `apps/web/tests/e2e/itinerary-journey.spec.ts` (lines 21-28, `clickFabAction` helper)
+
+**Root cause**: After Sheet close, Sonner toaster stays in "expanded" mode, pausing auto-dismiss. The `mouseleave` dispatch doesn't reliably unpause the timer.
+
+**Fix**: Make the `clickFabAction` helper more robust — dismiss toast via close button click if available, or force-remove the toast element, with the existing `mouseleave` as primary approach but with better error handling.
