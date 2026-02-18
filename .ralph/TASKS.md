@@ -2,7 +2,7 @@
 
 ## Phase 1: Version Bumps & CI Config
 
-- [ ] Task 1.1: Bump all dependency versions and update CI config
+- [x] Task 1.1: Bump all dependency versions and update CI config
   - Implement: Update `.github/workflows/ci.yml` — replace `actions/cache@v4` with `actions/cache@v5` (2 occurrences)
   - Implement: Update `/package.json` — bump eslint, @eslint/js, @types/node, globals, lint-staged, turbo to target versions
   - Implement: Update `/apps/api/package.json` — bump zod, fastify-type-provider-zod, @fastify/cors, @fastify/jwt, drizzle-orm, dotenv, drizzle-kit, vitest
