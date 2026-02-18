@@ -36,7 +36,16 @@ export class TripsPage {
   }
 
   async openUserMenu() {
-    await this.userMenuButton.click();
+    // Radix DropdownMenu can sometimes fail to stay open on the first click
+    // due to pointer event timing in Playwright. Retry if menu doesn't appear.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.userMenuButton.click();
+      const opened = await this.logoutItem
+        .waitFor({ state: "visible", timeout: 3000 })
+        .then(() => true)
+        .catch(() => false);
+      if (opened) return;
+    }
   }
 
   async logout() {
