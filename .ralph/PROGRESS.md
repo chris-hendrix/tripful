@@ -186,3 +186,59 @@ APPROVED — Correct three-generic `useForm<z.input, unknown, z.infer>` pattern,
 - Pre-existing lint failure: 2 `preserve-caught-error` errors in `apps/api/src/services/auth.service.ts` — these are Task 3.1 scope
 
 ---
+
+## Iteration 5 — Task 3.1: Fix ESLint 10 errors and verify dev dependency upgrades
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-17
+
+### What was done
+Fixed 5 ESLint lint errors across 4 files and verified all dev dependency upgrades (vitest v4, drizzle-kit v0.31) work correctly.
+
+**5 lint errors fixed in 4 files:**
+
+1. **`apps/api/src/services/auth.service.ts`** — 2 `preserve-caught-error` errors fixed
+   - Line 358: Added `{ cause: error }` to `throw new Error(`Token verification failed: ${error.message}`)` in `verifyToken()` catch block
+   - Line 360: Added `{ cause: error }` to `throw new Error("Token verification failed")` in same catch block
+
+2. **`apps/web/src/lib/api.ts`** — 1 `preserve-caught-error` error fixed
+   - Line 75: Added `{ cause: error }` to `throw new Error("An unexpected error occurred")` in fallback catch branch
+
+3. **`apps/web/src/components/itinerary/create-event-dialog.tsx`** — 1 `consistent-type-imports` error fixed
+   - Line 8: Changed `import { z } from "zod"` to `import type { z } from "zod"` (z only used in type position `z.input<...>`)
+
+4. **`apps/web/src/components/trip/create-trip-dialog.tsx`** — 1 `consistent-type-imports` error fixed
+   - Line 6: Changed `import { z } from "zod"` to `import type { z } from "zod"` (z only used in type position `z.input<...>`)
+
+5. **`eslint.config.js`** — Updated JSDoc type annotation from deprecated `Linter.FlatConfig[]` to `Linter.Config[]` for ESLint 10
+
+**Dev dependency verifications:**
+- **Vitest v4.0.18**: All 3 workspace configs (`apps/api`, `apps/web`, `shared`) work without changes. `defineConfig`, `globals: true`, `pool: "threads"`, `isolate: false`, `@vitejs/plugin-react` all compatible.
+- **drizzle-kit v0.31.9**: `cd apps/api && pnpm db:generate` reports "No schema changes, nothing to migrate" — config format stable from v0.28 to v0.31.
+
+### Files modified
+- `apps/api/src/services/auth.service.ts` — 2 `{ cause: error }` additions
+- `apps/web/src/lib/api.ts` — 1 `{ cause: error }` addition
+- `apps/web/src/components/itinerary/create-event-dialog.tsx` — `import type` fix
+- `apps/web/src/components/trip/create-trip-dialog.tsx` — `import type` fix
+- `eslint.config.js` — deprecated type annotation update
+
+### Verification
+- `pnpm lint`: 0 errors across all 3 packages (@tripful/shared, @tripful/api, @tripful/web)
+- `pnpm typecheck`: all 3 packages pass with 0 errors
+- `pnpm test`: shared 216/216 pass, API 989/989 pass, web 1063/1071 pass (8 pre-existing failures only, no new failures)
+- `cd apps/api && pnpm db:generate`: "No schema changes, nothing to migrate" (drizzle-kit v0.31 compatible)
+
+### Reviewer verdict
+APPROVED — All fixes minimal and correct. `{ cause: error }` is idiomatic ES2022 error chaining. `import type` changes safe (z only used in type positions). ESLint config type annotation matches ESLint 10 deprecation. Full audit of all catch blocks confirmed no remaining violations.
+
+### Learnings for future iterations
+- ESLint 10 `@eslint/js` recommended config adds 3 new rules: `preserve-caught-error`, `no-unassigned-vars`, `no-useless-assignment` — only `preserve-caught-error` triggered in this codebase
+- The task spec mentioned 2 `preserve-caught-error` errors (API only), but `pnpm lint` revealed 5 total errors: 2 `preserve-caught-error` in API, 1 `preserve-caught-error` in web, 2 `consistent-type-imports` in web (from the `import { z }` added in Task 2.3)
+- `Linter.FlatConfig` → `Linter.Config` rename is cosmetic but good practice for ESLint 10
+- Vitest v4 is a drop-in upgrade — no config changes needed for `defineConfig`, `globals`, `pool`, `isolate`, or `@vitejs/plugin-react` options
+- drizzle-kit v0.28 → v0.31 is backward compatible with existing `defineConfig` schema
+- `eslint-plugin-import` technically doesn't declare ESLint 10 peer support (only up to ^9), but linting works functionally — cosmetic peer dep mismatch only
+- Pre-existing flaky test: `auth.lockout.test.ts` occasionally fails with 503 (database state issue), passes on retry
+
+---

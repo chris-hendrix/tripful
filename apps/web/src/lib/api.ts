@@ -72,7 +72,7 @@ export async function apiRequest<T>(
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error("An unexpected error occurred");
+    throw new Error("An unexpected error occurred", { cause: error });
   }
 }
 

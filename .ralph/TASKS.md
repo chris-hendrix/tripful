@@ -40,7 +40,7 @@
 
 ## Phase 3: ESLint & Remaining Dev Dependencies
 
-- [ ] Task 3.1: Fix ESLint 10 errors and verify dev dependency upgrades
+- [x] Task 3.1: Fix ESLint 10 errors and verify dev dependency upgrades
   - Implement: Fix 2 `preserve-caught-error` lint errors in API code — add `{ cause: error }` to re-thrown errors
   - Implement: Update `eslint.config.js` if needed for ESLint 10 compatibility
   - Implement: Verify vitest v4 config compatibility across all workspaces

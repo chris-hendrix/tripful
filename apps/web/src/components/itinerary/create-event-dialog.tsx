@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
+import type { z } from "zod";
 import {
   createEventSchema,
   type CreateEventInput,
