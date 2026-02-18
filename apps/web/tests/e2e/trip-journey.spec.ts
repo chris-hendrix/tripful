@@ -9,6 +9,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -734,11 +735,8 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("open My Travel dialog via FAB", async () => {
-      // Wait for any toast to disappear
-      const toast = page.locator("[data-sonner-toast]").first();
-      if (await toast.isVisible().catch(() => false)) {
-        await toast.waitFor({ state: "hidden", timeout: 10000 });
-      }
+      // Dismiss any toast before proceeding
+      await dismissToast(page);
 
       const fab = page.getByRole("button", { name: "Add to itinerary" });
       await expect(fab).toBeVisible({ timeout: 10000 });

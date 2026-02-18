@@ -29,4 +29,21 @@ describe("Toaster", () => {
     expect(toasterEl?.getAttribute("data-y-position")).toBe("bottom");
     expect(toasterEl?.className).toContain("z-[60]");
   });
+
+  it("renders close button on toasts when closeButton is enabled", async () => {
+    const { container } = render(<Toaster />);
+
+    act(() => {
+      toast("Test with close button");
+    });
+
+    await vi.waitFor(() => {
+      const toastEl = container.querySelector("[data-sonner-toast]");
+      expect(toastEl).toBeTruthy();
+    });
+
+    const closeButton = container.querySelector("[data-close-button]");
+    expect(closeButton).toBeTruthy();
+    expect(closeButton?.getAttribute("aria-label")).toBe("Close toast");
+  });
 });

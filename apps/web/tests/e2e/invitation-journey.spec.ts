@@ -15,6 +15,7 @@ import {
   DIALOG_TIMEOUT,
 } from "./helpers/timeouts";
 import { pickDateTime } from "./helpers/date-pickers";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Invitations & RSVP
@@ -486,11 +487,7 @@ test.describe("Invitation Journey", () => {
       });
 
       // Dismiss toast before interacting with wizard elements
-      const toast = page.locator("[data-sonner-toast]").first();
-      if (await toast.isVisible().catch(() => false)) {
-        await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-        await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
-      }
+      await dismissToast(page);
 
       // Wait for the onboarding wizard to appear (dynamically imported)
       const dialog = page.getByRole("dialog");

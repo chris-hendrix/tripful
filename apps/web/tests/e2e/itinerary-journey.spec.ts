@@ -5,6 +5,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTrip } from "./helpers/trips";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -19,13 +20,7 @@ async function clickFabAction(
   actionName: string,
 ) {
   // Dismiss any Sonner toast so it doesn't intercept the click.
-  // Sheet close animations can leave the toaster in "expanded" mode (pausing
-  // auto-dismiss), so we trigger a mouseleave to unpause the timer.
-  const toast = page.locator("[data-sonner-toast]").first();
-  if (await toast.isVisible().catch(() => false)) {
-    await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
-  }
+  await dismissToast(page);
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
   if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {

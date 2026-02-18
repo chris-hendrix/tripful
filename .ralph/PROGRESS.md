@@ -428,3 +428,64 @@ APPROVED — Minimal, targeted single-line change. Retry count of 2 is appropria
 - The Playwright config explicitly sets `retries: 0` with "Fail fast" philosophy — this is correct for E2E tests where retries could mask real issues
 
 ---
+
+## Iteration 11 — Task 6.2: Improve E2E toast dismissal in clickFabAction helper
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Made toast dismissal robust across all E2E tests by: (1) enabling Sonner close buttons, (2) creating a shared 3-tier `dismissToast` helper, and (3) consolidating 6 duplicate toast dismissal patterns into the shared helper.
+
+**Production change:**
+- `apps/web/src/components/ui/sonner.tsx` — Added `closeButton` prop to `<Sonner>` component, enabling a close button (`[data-close-button]`) on every toast
+
+**New shared helper:**
+- `apps/web/tests/e2e/helpers/toast.ts` — NEW file with `dismissToast(page)` function using 3-tier approach:
+  - **Tier 1**: Click the `[data-close-button]` rendered by Sonner (fastest, most deterministic). Uses `{ timeout: 2000 }` and try-catch to handle cases where a dialog/sheet overlay intercepts pointer events.
+  - **Tier 2**: Dispatch `mouseleave` on the toaster to unpause auto-dismiss timer, then wait up to `TOAST_TIMEOUT` (10s).
+  - **Tier 3**: Force-remove all `[data-sonner-toast]` DOM elements via `page.evaluate()` as last resort.
+
+**6 duplicate toast dismissal patterns consolidated:**
+1. `itinerary-journey.spec.ts` (in `clickFabAction`) — inline mouseleave pattern → `dismissToast(page)`
+2. `helpers/trips.ts` (in `createTrip`) — inline waitFor-only pattern → `dismissToast(page)`
+3. `messaging.spec.ts` — local `dismissToast` function deleted, import from shared helper
+4. `notifications.spec.ts` — local `dismissToast` function deleted, import from shared helper
+5. `trip-journey.spec.ts` — inline waitFor-only pattern → `dismissToast(page)`
+6. `invitation-journey.spec.ts` — inline mouseleave pattern → `dismissToast(page)`
+
+**Test added:**
+- `apps/web/src/components/ui/__tests__/sonner.test.tsx` — "renders close button on toasts when closeButton is enabled" verifies `[data-close-button]` with `aria-label="Close toast"`
+
+**Fix iteration:** Initial implementation had `closeBtn.click()` without a timeout. When a Radix Sheet overlay intercepted pointer events (e.g., RSVP toast behind onboarding wizard, or preferences toast behind notifications sheet), Playwright's `.click()` retried indefinitely until the 180s test timeout. Fixed by wrapping in try-catch with `{ timeout: 2000 }` so Tier 1 fails fast and falls through to Tier 2/3.
+
+### Files modified
+- `apps/web/src/components/ui/sonner.tsx` — added `closeButton` prop
+- `apps/web/tests/e2e/helpers/toast.ts` — **NEW** shared `dismissToast` helper
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — replaced inline toast dismissal with shared import
+- `apps/web/tests/e2e/helpers/trips.ts` — replaced inline toast dismissal with shared import
+- `apps/web/tests/e2e/messaging.spec.ts` — removed local function, added shared import, removed unused `TOAST_TIMEOUT` import
+- `apps/web/tests/e2e/notifications.spec.ts` — removed local function, added shared import, removed unused `TOAST_TIMEOUT` import
+- `apps/web/tests/e2e/trip-journey.spec.ts` — replaced inline toast dismissal with shared import
+- `apps/web/tests/e2e/invitation-journey.spec.ts` — replaced inline toast dismissal with shared import (kept `TOAST_TIMEOUT` import — still used for RSVP assertions)
+- `apps/web/src/components/ui/__tests__/sonner.test.tsx` — added closeButton unit test
+
+### Verification
+- `pnpm lint`: 0 errors across all 3 packages
+- `pnpm typecheck`: 0 errors across all 3 packages
+- `pnpm test`: shared 216/216 pass, API 989/989 pass, web 1068/1068 pass (including new sonner test)
+- `pnpm test:e2e` (run 1): 32/32 E2E tests pass (3.2m)
+- `pnpm test:e2e` (run 2): 32/32 E2E tests pass (3.2m) — confirmed stable
+
+### Reviewer verdict
+APPROVED — Clean 3-tier dismissal approach, thorough defensive coding with `.catch()` wrappers, correct import cleanup, well-documented JSDoc, complete consolidation of all 6 duplicates. The try-catch with `{ timeout: 2000 }` correctly handles the Radix overlay interception scenario.
+
+### Learnings for future iterations
+- Playwright's `.click()` retries actionability checks indefinitely by default — always pass `{ timeout }` when the click might be blocked by overlapping elements (e.g., dialog/sheet overlays)
+- Sonner toaster at `z-[60]` appears above Radix Dialog overlay at `z-50`, but the Radix overlay captures pointer events across the entire viewport via `fixed inset-0`, which blocks Playwright clicks regardless of visual z-index ordering
+- `page.dispatchEvent()` and `page.evaluate()` bypass Playwright's actionability checks — useful as fallbacks when click-based approaches fail due to overlay interception
+- When consolidating duplicate patterns, test all call sites — each may have unique context (e.g., toast appearing while a sheet is open vs. toast appearing on its own) that requires different handling in the shared helper
+- The `TOAST_TIMEOUT` constant from `helpers/timeouts.ts` should be preserved in files that still use it for non-dismissal purposes (e.g., visibility assertions)
+- Sonner's `closeButton` prop renders a `[data-close-button]` element with `aria-label="Close toast"` — this is a stable selector for E2E tests
+
+---

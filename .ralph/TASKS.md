@@ -80,7 +80,7 @@
   - Implement: Add `retry: 2` to `apps/api/vitest.config.ts` test config
   - Verify: `cd apps/api && pnpm test` — passes without transient failures (run twice to confirm)
 
-- [ ] Task 6.2: Improve E2E toast dismissal in clickFabAction helper
+- [x] Task 6.2: Improve E2E toast dismissal in clickFabAction helper
   - Implement: In `apps/web/tests/e2e/itinerary-journey.spec.ts` lines 21-28, make toast dismissal more robust (try close button, then mouseleave+wait, then force-remove as last resort)
   - Verify: `pnpm test:e2e` — 32/32 pass (run twice to confirm stability)
 
