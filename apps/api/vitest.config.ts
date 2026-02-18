@@ -12,6 +12,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     testTimeout: 10000,
     hookTimeout: 10000,
+    retry: 2, // Retry transient 503s from @fastify/under-pressure during parallel test runs
     // Execution settings
     // Tests use unique phone numbers via generateUniquePhone() from test-utils.ts
     // Files run in parallel, but tests within a file run sequentially to prevent

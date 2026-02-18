@@ -396,3 +396,35 @@ APPROVED — Correct mock setup, both code paths covered, minimal focused change
 - Full web test suite: 1067 tests passing (was 1063 passing + 8 failing before Phase 5)
 
 ---
+
+## Iteration 10 — Task 6.1: Add retry to API integration tests for transient 503s
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Added `retry: 2` to the vitest test configuration in `apps/api/vitest.config.ts` to handle transient 503 errors from `@fastify/under-pressure` during parallel test execution.
+
+**Root cause of flakiness**: The `@fastify/under-pressure` middleware (configured with `maxEventLoopDelay: 1000` in `apps/api/src/app.ts`) returns 503 when the event loop is delayed beyond 1 second. During parallel test runs, the database connection pool (max 20 connections) can become contended, causing event loop delays that trigger 503 responses in tests like `auth.lockout.test.ts`, `notification.routes.test.ts`, and `message.routes.test.ts`.
+
+**Fix**: A single line addition — `retry: 2, // Retry transient 503s from @fastify/under-pressure during parallel test runs` — placed after `hookTimeout: 10000,` in the test configuration. This tells vitest to retry each failed test up to 2 additional times before marking it as failed.
+
+### Files modified
+- `apps/api/vitest.config.ts` — added `retry: 2` with explanatory comment
+
+### Verification
+- `cd apps/api && pnpm test` (run 1): 43/43 test files, 989/989 tests pass, 0 failures (11.17s)
+- `cd apps/api && pnpm test` (run 2): 43/43 test files, 989/989 tests pass, 0 failures (11.21s)
+- No transient 503 failures observed across either run
+
+### Reviewer verdict
+APPROVED — Minimal, targeted single-line change. Retry count of 2 is appropriate for transient infrastructure issues. Comment accurately documents root cause. Placement alongside timeout settings is logical. No issues found.
+
+### Learnings for future iterations
+- Vitest `retry: N` retries each individual failed test N additional times, re-running `beforeEach`/`afterEach` hooks on each retry
+- `retry: 2` is global to all API tests — acceptable since any integration test hitting Fastify can be affected by under-pressure 503s
+- For more surgical retry scoping in future, Vitest supports per-file `describe.retry()` or per-test `it.retry()`
+- No other vitest configs in the project (web, shared) need retry since they don't spawn Fastify instances with under-pressure middleware
+- The Playwright config explicitly sets `retries: 0` with "Fail fast" philosophy — this is correct for E2E tests where retries could mask real issues
+
+---

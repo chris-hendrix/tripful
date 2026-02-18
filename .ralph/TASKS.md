@@ -76,7 +76,7 @@
 
 ## Phase 6: Stabilize Flaky Tests
 
-- [ ] Task 6.1: Add retry to API integration tests for transient 503s
+- [x] Task 6.1: Add retry to API integration tests for transient 503s
   - Implement: Add `retry: 2` to `apps/api/vitest.config.ts` test config
   - Verify: `cd apps/api && pnpm test` — passes without transient failures (run twice to confirm)
 
