@@ -319,3 +319,41 @@ APPROVED — Surgical deletion of exactly 5 obsolete tests, no other code change
 - Pre-existing test failure count is now 3 (down from 8): the 5 app-header failures are fixed, leaving 1 in create-accommodation-dialog, 1 in create-event-dialog, and 1 in page.test.tsx.
 
 ---
+
+## Iteration 8 — Task 5.2: Fix URL validation error tests — change test input to actually fail URL validation
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Changed the test input in 2 URL validation error tests from `"invalid-url"` to `"not a valid url"` so the tests actually trigger the validation error path.
+
+**Root cause**: Both `create-accommodation-dialog.tsx` and `create-event-dialog.tsx` have a `handleAddLink()` function that auto-prepends `https://` when no protocol is present. `new URL("https://invalid-url")` does NOT throw because the URL constructor treats "invalid-url" as a valid hostname. But `new URL("https://not a valid url")` DOES throw because spaces are invalid in URLs, correctly triggering the `setLinkError("Please enter a valid URL")` error path.
+
+**2 files changed (test-only, no production code modified):**
+
+1. **`apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx`** (line 258)
+   - Changed `await user.type(linkInput, "invalid-url")` to `await user.type(linkInput, "not a valid url")`
+
+2. **`apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx`** (line 416)
+   - Changed `await user.type(linkInput, "invalid-url")` to `await user.type(linkInput, "not a valid url")`
+
+**No changes needed for:**
+- Shared schema tests (`shared/__tests__/event-schemas.test.ts`, `shared/__tests__/accommodation-schemas.test.ts`) — these use `"invalid-url"` correctly because Zod's `z.string().url()` rejects it without auto-prepend
+- Production component code — the `handleAddLink()` validation logic is correct; only the test inputs were wrong
+
+### Verification
+- `cd apps/web && pnpm vitest run src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx src/components/itinerary/__tests__/create-event-dialog.test.tsx`: 38/38 tests pass (13 + 25)
+- Full web test suite: 1065/1066 pass — 1 pre-existing failure in `page.test.tsx` (Task 5.3 scope)
+- `pnpm typecheck`: all 3 packages pass with 0 errors
+
+### Reviewer verdict
+APPROVED — Minimal, surgical change (one line in each of 2 test files). Root cause correctly identified. Replacement value reliably triggers URL validation failure. No production files modified. Other `"invalid-url"` occurrences in shared schema tests confirmed correct and unaffected.
+
+### Learnings for future iterations
+- `new URL("https://invalid-url")` is valid per the WHATWG URL spec — the URL constructor treats any string without illegal characters as a valid hostname, even without dots or TLDs
+- Spaces are always invalid in URLs — `"not a valid url"` is a reliable way to trigger URL parsing failure
+- The `handleAddLink()` client-side validation and Zod's `z.string().url()` both use WHATWG URL parsing, but at different stages — client-side sees auto-prepended URLs, Zod sees final values
+- Pre-existing test failure count is now 1 (down from 3): the 2 URL validation tests are fixed, leaving only the `page.test.tsx` metadata assertion (Task 5.3 scope)
+
+---

@@ -413,7 +413,7 @@ describe("CreateEventDialog", () => {
       );
 
       const linkInput = screen.getByLabelText(/link url/i);
-      await user.type(linkInput, "invalid-url");
+      await user.type(linkInput, "not a valid url");
 
       const addButton = screen.getByRole("button", { name: "" });
       await user.click(addButton);

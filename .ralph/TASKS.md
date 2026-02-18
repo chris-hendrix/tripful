@@ -64,7 +64,7 @@
   - Implement: Delete tests at lines 91-97 (`renders a My Trips nav link`), 99-104 (`renders the main navigation landmark`), 193-200 (`applies active styling...on /trips`), 202-209 (`applies active styling...nested trips routes`), 211-217 (`applies inactive styling...different page`)
   - Verify: `cd apps/web && pnpm vitest run src/components/__tests__/app-header.test.tsx` — all remaining tests pass
 
-- [ ] Task 5.2: Fix URL validation error tests — change test input to actually fail URL validation
+- [x] Task 5.2: Fix URL validation error tests — change test input to actually fail URL validation
   - Implement: In `apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` line 258, change `"invalid-url"` to `"not a valid url"` (spaces cause `new URL()` to throw)
   - Implement: In `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` line 416, same change
   - Verify: `cd apps/web && pnpm vitest run src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx src/components/itinerary/__tests__/create-event-dialog.test.tsx` — all tests pass
