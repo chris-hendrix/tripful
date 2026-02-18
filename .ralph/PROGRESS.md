@@ -357,3 +357,42 @@ APPROVED — Minimal, surgical change (one line in each of 2 test files). Root c
 - Pre-existing test failure count is now 1 (down from 3): the 2 URL validation tests are fixed, leaving only the `page.test.tsx` metadata assertion (Task 5.3 scope)
 
 ---
+
+## Iteration 9 — Task 5.3: Fix metadata assertion test — update to match actual generateMetadata implementation
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Fixed the failing `generateMetadata` test in `apps/web/src/app/(app)/trips/[id]/page.test.tsx` by replacing one broken test with two properly mocked tests covering both code paths.
+
+**Root cause**: The existing test had two bugs:
+1. `mockServerApiRequest` was not configured with a return value, so calling `generateMetadata` caused `serverApiRequest` to return `undefined`, then `response.trip.name` threw a TypeError, hitting the catch block
+2. The assertion expected `{ title: "Trip trip-123" }` which matched neither the success path (`{ title: response.trip.name }` → `{ title: "Beach Trip" }`) nor the error path (`{ title: "Trip" }`)
+
+**Fix applied — replaced 1 broken test with 2 correct tests:**
+
+1. **"returns trip name as title"** (success path): Added `mockServerApiRequest.mockResolvedValue(mockTripResponse)` before calling `generateMetadata`, then asserted `{ title: "Beach Trip" }` (matching `mockTripResponse.trip.name`)
+
+2. **"returns fallback title when API fails"** (error path): Added `mockServerApiRequest.mockRejectedValue(new Error("Server error"))` before calling `generateMetadata`, then asserted `{ title: "Trip" }` (the catch block fallback)
+
+### Files modified
+- `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — replaced `generateMetadata` describe block (1 broken test → 2 correct tests)
+
+### Verification
+- `cd apps/web && pnpm vitest run src/app/\(app\)/trips/\[id\]/page.test.tsx`: 6/6 tests pass (4 TripDetailPage + 2 generateMetadata)
+- Full web test suite: 1067/1067 tests pass, 0 failures (pre-existing failure count now 0)
+- `pnpm typecheck`: 0 errors across all 3 packages
+- `pnpm lint`: 0 errors across all 3 packages
+
+### Reviewer verdict
+APPROVED — Correct mock setup, both code paths covered, minimal focused change, consistent patterns with other tests in the file. No issues found.
+
+### Learnings for future iterations
+- The `generateMetadata` describe block is a sibling (not nested) of the `TripDetailPage` describe block, so the `beforeEach` with `vi.clearAllMocks()` from the `TripDetailPage` block does NOT apply to `generateMetadata` tests — mocks must be set up per-test
+- `mockServerApiRequest` returns `undefined` by default (from `vi.fn()`) when no return value is configured — this causes a TypeError when accessing properties on the response, not a clean rejection
+- Always test both success and error paths of try/catch functions — the original test only had one test that didn't properly test either path
+- Pre-existing test failure count is now 0 — all 8 original failures have been fixed across Tasks 5.1, 5.2, and 5.3
+- Full web test suite: 1067 tests passing (was 1063 passing + 8 failing before Phase 5)
+
+---

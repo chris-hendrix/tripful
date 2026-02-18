@@ -69,7 +69,7 @@
   - Implement: In `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` line 416, same change
   - Verify: `cd apps/web && pnpm vitest run src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx src/components/itinerary/__tests__/create-event-dialog.test.tsx` — all tests pass
 
-- [ ] Task 5.3: Fix metadata assertion test — update to match actual generateMetadata implementation
+- [x] Task 5.3: Fix metadata assertion test — update to match actual generateMetadata implementation
   - Implement: In `apps/web/src/app/(app)/trips/[id]/page.test.tsx`, add `mockServerApiRequest.mockResolvedValue(mockTripResponse)` before the assertion and change expected value to `{ title: "Beach Trip" }`
   - Implement: Add a second test for fallback case (API error → `{ title: "Trip" }`)
   - Verify: `cd apps/web && pnpm vitest run src/app/\\(app\\)/trips/\\[id\\]/page.test.tsx` — all tests pass
