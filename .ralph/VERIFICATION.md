@@ -97,16 +97,16 @@ None. This is a dependency upgrade — no feature flags involved.
 
 ---
 
-## Pre-existing Test Failures
+## Pre-existing Test Failures (Resolved)
 
-8 test failures pre-dated the dependency upgrade work. Phase 5 tasks fix all of them:
+8 test failures pre-dated the dependency upgrade work. All have been fixed in Phase 5:
 
-1. `apps/web/src/components/__tests__/app-header.test.tsx` — 5 failures (obsolete navigation tests for removed feature → delete)
-2. `apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` — 1 failure (test input doesn't trigger URL validation error → fix input)
-3. `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` — 1 failure (same URL validation issue → fix input)
-4. `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — 1 failure (assertion doesn't match implementation → fix assertion + add mock)
+1. `apps/web/src/components/__tests__/app-header.test.tsx` — 5 failures → FIXED (Task 5.1: deleted obsolete tests)
+2. `apps/web/src/components/itinerary/__tests__/create-accommodation-dialog.test.tsx` — 1 failure → FIXED (Task 5.2: corrected test input)
+3. `apps/web/src/components/itinerary/__tests__/create-event-dialog.test.tsx` — 1 failure → FIXED (Task 5.2: corrected test input)
+4. `apps/web/src/app/(app)/trips/[id]/page.test.tsx` — 1 failure → FIXED (Task 5.3: updated assertion + added mock)
 
-**After Phase 5**: All tests should pass with 0 failures.
+**Status**: All pre-existing failures resolved. 0 known failures remain.
 
 ---
 
@@ -127,7 +127,7 @@ None. This is a dependency upgrade — no feature flags involved.
 
 ### Task 2.3 (Frontend)
 - `pnpm typecheck` passes for `apps/web/`
-- `pnpm test` in `apps/web/` — passes (8 pre-existing failures only, fixed in Phase 5)
+- `pnpm test` in `apps/web/` — all tests pass (0 failures)
 
 ### Task 3.1 (ESLint & Dev Deps)
 - `pnpm lint` passes (0 errors)

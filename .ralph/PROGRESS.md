@@ -489,3 +489,43 @@ APPROVED — Clean 3-tier dismissal approach, thorough defensive coding with `.c
 - Sonner's `closeButton` prop renders a `[data-close-button]` element with `aria-label="Close toast"` — this is a stable selector for E2E tests
 
 ---
+
+## Iteration 12 — Task 7.1: Update VERIFICATION.md and run full regression
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Updated `.ralph/VERIFICATION.md` to reflect that all 8 pre-existing test failures have been resolved, then ran the full regression suite confirming 0 failures across all checks.
+
+**2 documentation edits in VERIFICATION.md:**
+
+1. **Pre-existing Test Failures section (lines 100-109)**:
+   - Renamed header from "Pre-existing Test Failures" to "Pre-existing Test Failures (Resolved)"
+   - Changed intro from future-tense ("Phase 5 tasks fix all of them") to past-tense ("All have been fixed in Phase 5")
+   - Updated each of the 4 items from describing what to do to recording what was done with "FIXED" status and task attribution (5.1, 5.2, 5.3)
+   - Changed summary from aspirational ("After Phase 5: All tests should pass") to factual ("All pre-existing failures resolved. 0 known failures remain")
+
+2. **Task 2.3 verification point (line 130)**:
+   - Changed from "passes (8 pre-existing failures only, fixed in Phase 5)" to "all tests pass (0 failures)"
+
+### Files modified
+- `.ralph/VERIFICATION.md` — 2 section updates (documentation only, no code changes)
+
+### Verification
+Full regression suite — all 4 commands pass:
+- `pnpm lint`: 0 errors across all 3 packages (@tripful/shared, @tripful/api, @tripful/web)
+- `pnpm typecheck`: 0 errors across all 3 packages
+- `pnpm test`: shared 216/216 pass, API 989/989 pass, web 1068/1068 pass — **0 failures total (2273 tests)**
+- `pnpm test:e2e`: 32/32 E2E tests pass (chromium, 3.2m)
+
+### Reviewer verdict
+APPROVED — Documentation changes accurate, consistent, and complete. Task attributions verified correct against actual commits. No stale references to failure counts remain. One LOW-severity suggestion (change "Phases 5-6" to "Phase 5" for precision) was addressed.
+
+### Learnings for future iterations
+- The TASKS.md description for this task said "7 pre-existing failures" but the actual count was 8 (confirmed in Iteration 4 and 6 progress notes) — always verify counts from actual data, not task descriptions
+- The `CI=true` environment variable causes `pnpm test:e2e` to fail when dev servers are already running, because Playwright config sets `reuseExistingServer: !process.env.CI` — for local verification, ensure CI is unset or run Playwright directly
+- All dependency upgrade work is now complete: 12 iterations covering Phases 1-7, from version bumps through Zod 4 migration, ESLint 10 fixes, pre-existing test fixes, flaky test stabilization, and final verification
+- Final test counts for the project: shared 216, API 989, web 1068 (unit/integration), E2E 32 — total 2305 tests all passing
+
+---

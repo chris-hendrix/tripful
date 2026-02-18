@@ -86,7 +86,7 @@
 
 ## Phase 7: Documentation & Final Verification
 
-- [ ] Task 7.1: Update VERIFICATION.md and run full regression
+- [x] Task 7.1: Update VERIFICATION.md and run full regression
   - Implement: Update pre-existing failures section in `.ralph/VERIFICATION.md` to reflect 0 known failures
   - Implement: Update Task 2.3 expected count from "7 pre-existing failures" to "all pass"
   - Verify: `pnpm lint` — 0 errors
