@@ -1,196 +1,143 @@
-# Post-RSVP Onboarding Wizard - Architecture
+# Rebase and Fix All Dependabot PRs - Architecture
 
-A multi-step Sheet wizard that auto-opens after a member RSVPs "Going" to guide them through entering arrival details, departure details, and optionally suggesting events. Each step saves independently. A reminder banner appears if the wizard is dismissed before entering arrival details.
+Consolidate 3 open Dependabot PRs (#20, #22, #23) into a single branch. Apply all dependency upgrades, fix all breaking changes, run full local verification, then close the original PRs as superseded.
 
 ## Overview
 
-Frontend-only feature. No API or database changes needed. Uses existing mutation hooks (`useCreateMemberTravel`, `useCreateEvent`) and existing UI components (`Sheet`, `DateTimePicker`, `Input`, `Button`).
+Three Dependabot PRs cover CI config, dev dependencies, and production dependencies. Rather than fixing each branch separately, we apply all upgrades on one branch, fix breaking changes holistically, and create a single PR that supersedes all three.
 
-## State Management
+## Dependency Upgrades
 
-### Challenge
+### CI Config (from PR #20)
 
-After RSVP "Going", `TripPreview` unmounts and `TripDetailContent` renders the full trip view. Wizard state must survive this component transition.
+- `.github/workflows/ci.yml`: `actions/cache@v4` → `actions/cache@v5` (2 occurrences)
 
-### Solution
+### Dev Dependencies (from PR #23)
 
-Lift wizard open state to `TripDetailContent`. Pass an `onGoingSuccess` callback to `TripPreview`. When RSVP succeeds with "going", set a flag in `TripDetailContent`. After `isPreview` flips to `false`, the wizard Sheet opens.
+| Package | From | To | Workspace | Notes |
+|---------|------|----|-----------|-------|
+| `eslint` | ^9 | ^10 | root | New `preserve-caught-error` rule |
+| `@eslint/js` | ^9 | ^10 | root | Paired with ESLint |
+| `vitest` | ^2/^3/^4 | ^4 | web, shared, api | Major bump across all workspaces |
+| `jsdom` | ^25 | ^28 | web | Test environment |
+| `@vitejs/plugin-react` | ^4 | ^5 | web | Vite plugin |
+| `@types/node` | ^22 | ^25 | root | Type definitions |
+| `globals` | ^15 | ^17 | root | ESLint globals |
+| `lint-staged` | ^15 | ^16 | root | Pre-commit hooks |
+| `drizzle-kit` | ^0.28 | ^0.31 | api | Migration tooling |
+| `turbo` | ^2.3 | ^2.8 | root | Build system |
 
-```tsx
-// trip-detail-content.tsx
-const [showOnboarding, setShowOnboarding] = useState(false);
+### Production Dependencies (from PR #22)
 
-// In preview branch (line 168):
-if (trip.isPreview) {
-  return (
-    <TripPreview
-      trip={trip}
-      tripId={tripId}
-      onGoingSuccess={() => setShowOnboarding(true)}
-    />
-  );
-}
+| Package | From | To | Workspace | Risk | Files Affected |
+|---------|------|----|-----------|------|----------------|
+| `zod` | ^3.24 | ^4 | shared, api, web | **HIGH** | 30 files |
+| `fastify-type-provider-zod` | ^4 | ^6 | api | **HIGH** | 2 files |
+| `@fastify/cors` | ^10 | ^11 | api | Medium | 1 file |
+| `@fastify/jwt` | ^9 | ^10 | api | Medium | auth middleware |
+| `drizzle-orm` | ^0.36 | ^0.45 | api | Medium | schema + queries |
+| `@hookform/resolvers` | ^3 | ^5 | web | Medium | 13 form components |
+| `tailwind-merge` | ^2 | ^3 | web | Low | 1 file |
+| `dotenv` | ^16 | ^17 | api | Low | env loading |
 
-// After Members Sheet (line 470):
-{showOnboarding && (
-  <MemberOnboardingWizard
-    open={showOnboarding}
-    onOpenChange={setShowOnboarding}
-    tripId={tripId}
-    trip={trip}
-  />
-)}
-```
+## Technical Approach
 
-## FE Components
+### 1. Package Version Bumps
 
-### Component Tree
+Update version ranges in all `package.json` files, then run `pnpm install` to regenerate the lockfile.
 
-```
-TripDetailContent (apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx)
-├── TripPreview (modified: adds onGoingSuccess callback)
-├── TravelReminderBanner (NEW: apps/web/src/components/trip/travel-reminder-banner.tsx)
-└── MemberOnboardingWizard (NEW: apps/web/src/components/trip/member-onboarding-wizard.tsx)
-    ├── Step 0: Arrival (DateTimePicker + Input)
-    ├── Step 1: Departure (DateTimePicker + Input)
-    ├── Step 2: Events [conditional] (Input + DateTimePicker + "Add" button)
-    └── Step N-1: Done (Summary)
-```
+**Files to edit:**
+- `/package.json` — eslint, @eslint/js, @types/node, globals, lint-staged, turbo
+- `/apps/api/package.json` — zod, fastify-type-provider-zod, @fastify/cors, @fastify/jwt, drizzle-orm, dotenv, drizzle-kit, vitest
+- `/apps/web/package.json` — zod, @hookform/resolvers, tailwind-merge, vitest, jsdom, @vitejs/plugin-react
+- `/shared/package.json` — zod, vitest
 
-### MemberOnboardingWizard
+### 2. CI Config
 
-**File**: `apps/web/src/components/trip/member-onboarding-wizard.tsx`
+**File**: `.github/workflows/ci.yml`
+- Replace `actions/cache@v4` with `actions/cache@v5` (2 occurrences)
 
-**Props**:
-```tsx
-interface MemberOnboardingWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  tripId: string;
-  trip: TripDetailWithMeta;
-}
-```
+### 3. Zod 3 → 4 Migration (Highest Risk)
 
-**Internal State**:
-- `step: number` — current wizard step (0-indexed)
-- `arrivalLocation: string` — location from step 0, used to pre-fill departure in step 1
-- `arrivalTime: string` — ISO string saved on step 0, shown in done summary
-- `departureTime: string` — ISO string saved on step 1, shown in done summary
-- `addedEvents: Array<{ name: string; startTime: string }>` — events added in step 2, shown in done summary
+The researcher agent must fetch the Zod 4 migration guide to identify exact breaking changes before making modifications.
 
-**Computed Values**:
-- `canAddEvents = trip.isOrganizer || trip.allowMembersToAddEvents`
-- `totalSteps = canAddEvents ? 4 : 3`
-- `timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || trip.preferredTimezone`
+**Files by layer:**
+- **Shared schemas** (12 files in `shared/schemas/`): `accommodation.ts`, `auth.ts`, `event.ts`, `index.ts`, `invitation.ts`, `member-travel.ts`, `member.ts`, `message.ts`, `notification.ts`, `phone.ts`, `trip.ts`, `user.ts`
+- **API env** (`apps/api/src/config/env.ts`): Known TS2769 errors from `.transform()`, `.refine()`, `.default()` chaining changes
+- **API routes** (10 files in `apps/api/src/routes/`): `accommodation.routes.ts`, `event.routes.ts`, `health.routes.ts`, `invitation.routes.ts`, `member-travel.routes.ts`, `message.routes.ts`, `notification.routes.ts`, `trip.routes.ts`, `user.routes.ts`
+- **Web forms** (13 files): Login, verify, complete-profile pages + all itinerary/trip/profile dialog components
 
-**Step Flow**:
-```
-Step 0: Arrival     → useCreateMemberTravel({ travelType: "arrival", time, location })
-Step 1: Departure   → useCreateMemberTravel({ travelType: "departure", time, location })
-Step 2: Events      → useCreateEvent({ name, eventType: "activity", startTime }) [only if canAddEvents]
-Step N-1: Done      → Summary + "View Itinerary" button
-```
+**Common Zod 4 breaking changes to investigate:**
+- Schema API changes (`.object()`, `.enum()`, `.transform()`, `.refine()`, `.default()` chaining)
+- `z.infer` type inference behavior
+- `ZodError` structure changes
+- `z.coerce` behavior changes (used in env.ts)
 
-**Navigation Pattern**:
-- Each step footer: `[<- Back]` (not on step 0), `[Skip]` (variant="ghost"), `[Next ->]` (variant="gradient")
-- "Next" saves data via mutation, then advances on success
-- "Skip" advances without saving
-- "Back" goes to previous step (already-saved data is preserved, no re-save)
-- Done step: single "View Itinerary" button that calls `onOpenChange(false)`
+### 4. Fastify Ecosystem
 
-**Date Pre-population**:
-- Arrival: pre-populate with `trip.startDate` + "12:00" noon via `localPartsToUTC(trip.startDate, "12:00", timezone)` from `@/lib/utils/timezone`
-- Departure: pre-populate with `trip.endDate` + "12:00" noon
-- Only pre-populate the date portion if `trip.startDate`/`trip.endDate` exist
+**fastify-type-provider-zod v4 → v6:**
+- **File**: `apps/api/src/app.ts` — `validatorCompiler`, `serializerCompiler` exports
+- **File**: `apps/api/src/middleware/error.middleware.ts` — `hasZodFastifySchemaValidationErrors`
+- **Critical investigation**: Unit tests show routes returning 400 (validation error) instead of expected 401/403/404. Must investigate whether this is from Zod 4 schema changes, fastify-type-provider-zod v6 behavior, or both.
 
-**Events Step Quick-Add**:
-- Input for event name + DateTimePicker for startTime
-- "Add" button calls `useCreateEvent` immediately per event
-- On success: adds to local `addedEvents` array and clears the form inputs
-- Shows added events as dismissible chips below form (name + formatted time + X button)
-- X button only removes from the display list, does NOT delete the event via API (already saved)
+**@fastify/cors v10 → v11:**
+- Check for config option changes in `apps/api/src/app.ts`
 
-**UI Patterns** (match existing Sheet dialogs):
-- SheetTitle: `text-3xl font-[family-name:var(--font-playfair)] tracking-tight`
-- Progress dots: horizontal row in SheetHeader, filled primary for current/completed, muted for future
-- DateTimePicker: pass `timezone` prop, `value` as ISO UTC string
-- Input: `h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl`
-- Buttons: `h-12 rounded-xl`, gradient variant for primary action, ghost for skip
-- Loading spinner on Next button while mutation is pending (`Loader2` icon)
+**@fastify/jwt v9 → v10:**
+- Check for API changes in auth middleware and plugin registration
 
-### TravelReminderBanner
+### 5. ESLint 9 → 10
 
-**File**: `apps/web/src/components/trip/travel-reminder-banner.tsx`
+**File**: `eslint.config.js` (flat config, already ESLint 9 format)
+- New `preserve-caught-error` rule causes 2 errors in API code
+- Fix: Add `{ cause: error }` to re-thrown errors
+- Locate errors with `pnpm lint` after version bump
 
-**Props**:
-```tsx
-interface TravelReminderBannerProps {
-  tripId: string;
-  memberId: string | undefined;
-  onAddTravel: () => void;
-}
-```
+### 6. Frontend Package Updates
 
-**Logic**:
-- Uses `useMemberTravels(tripId)` to check if current member has an arrival entry
-- Tracks dismissed state in `localStorage` key: `tripful:onboarding-dismissed:${tripId}`
-- Only renders if: member has no arrival travel entry AND banner not dismissed
-- "Add Travel Details" button calls `onAddTravel` (reopens wizard)
-- "Dismiss" button sets localStorage flag, re-renders to hidden
+**@hookform/resolvers v3 → v5:**
+- All 13 files use: `import { zodResolver } from "@hookform/resolvers/zod"`
+- Check if import path or resolver function signature changed
+- Must be compatible with Zod 4
 
-**Styling** (matches existing invitation CTA card):
-```
-rounded-2xl border border-primary/20 bg-primary/[0.03] p-5
-```
+**tailwind-merge v2 → v3:**
+- Single usage in `apps/web/src/lib/utils.ts` — `twMerge()` function
+- Check if API changed
 
-### TripPreview Modification
+### 7. Other Updates
 
-**File**: `apps/web/src/components/trip/trip-preview.tsx`
+**drizzle-orm v0.36 → v0.45 + drizzle-kit v0.28 → v0.31:**
+- Schema in `apps/api/src/db/schema/index.ts` (549 lines) and `relations.ts` (161 lines)
+- Verify schema API compatibility, migration generation still works
 
-- Add `onGoingSuccess?: () => void` to `TripPreviewProps` interface (line 25-28)
-- In `handleRsvp` `onSuccess` (line 39-45): if `status === "going"`, call `onGoingSuccess?.()` after the toast
+**vitest v2/v3 → v4:**
+- Config files in each workspace
+- Check for breaking config changes
 
-### TripDetailContent Modification
-
-**File**: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
-
-- Add `const [showOnboarding, setShowOnboarding] = useState(false)` near existing state (line 94-99)
-- Add `dynamic()` import for `MemberOnboardingWizard` following existing pattern (line 58-74)
-- Pass `onGoingSuccess={() => setShowOnboarding(true)}` to `<TripPreview>` at line 169
-- Render `<TravelReminderBanner>` between breadcrumb (line 187) and hero (line 190) when `trip.userRsvpStatus === "going" && !isLocked`
-- Banner's `onAddTravel` callback sets `showOnboarding` to true
-- Render `<MemberOnboardingWizard>` after Members Sheet (line 470) when `showOnboarding` is true
-
-## Existing Hooks Used
-
-| Hook | Import From | Signature |
-|------|-------------|-----------|
-| `useCreateMemberTravel()` | `@/hooks/use-member-travel` | `.mutate({ tripId, data: { travelType, time, location } })` |
-| `useCreateEvent()` | `@/hooks/use-events` | `.mutate({ tripId, data: { name, eventType, startTime } })` |
-| `useMemberTravels(tripId)` | `@/hooks/use-member-travel` | Returns `MemberTravel[]` for the trip |
-| `useMembers(tripId)` | `@/hooks/use-invitations` | Gets `currentMember` for banner's `memberId` |
-
-## Existing UI Components Used
-
-| Component | Import From |
-|-----------|-------------|
-| `Sheet`, `SheetContent`, `SheetHeader`, `SheetBody`, `SheetTitle`, `SheetDescription`, `SheetFooter` | `@/components/ui/sheet` |
-| `DateTimePicker` | `@/components/ui/datetime-picker` |
-| `Button` | `@/components/ui/button` |
-| `Input` | `@/components/ui/input` |
-| `localPartsToUTC` | `@/lib/utils/timezone` |
+**dotenv v16 → v17:**
+- Used in `apps/api/src/config/env.ts` — `config({ path: [...] })` call
 
 ## Testing Strategy
 
-### Unit Tests (Vitest + Testing Library)
-- `member-onboarding-wizard.test.tsx`: Step navigation, skip/back behavior, form submission calls correct hooks, conditional events step, done summary content
-- `travel-reminder-banner.test.tsx`: Render conditions based on member travel data, dismiss sets localStorage, button callbacks
+Full local verification after each phase:
 
-### E2E Tests (Playwright)
-- Update `invitation-journey.spec.ts`: After RSVP "Going", handle wizard (dismiss or skip through) before asserting full trip view
-- New E2E test: "member completes onboarding wizard after RSVP" — fill arrival, departure, verify done summary, verify travel entries in itinerary
+```bash
+pnpm lint          # ESLint
+pnpm typecheck     # TypeScript
+pnpm test          # Unit + integration (Vitest)
+pnpm test:e2e      # Playwright E2E
+```
 
-### What Doesn't Change
-- No API changes, no database changes, no new packages
-- Existing `inviteAndAcceptViaAPI` helper bypasses browser RSVP, so tests using it are unaffected
-- Organizer-created trips don't trigger the wizard (organizer doesn't RSVP via preview)
+**Requires**: Docker + PostgreSQL running (`pnpm docker:up`), dev servers running for E2E.
+
+**Key test focus areas:**
+- API route tests — the 400 vs 401/403/404 status code issue
+- Shared schema compilation — `z.infer` types still resolve
+- Form validation — zodResolver works with Zod 4 schemas
+- E2E — no regressions in user flows
+
+## PR Strategy
+
+1. All changes on Ralph branch (`ralph/20260217-2129-rebase-dependabot-prs`)
+2. Create PR from Ralph branch → main
+3. Close Dependabot PRs #20, #22, #23 with comment linking to our consolidated PR
