@@ -177,7 +177,7 @@ describe("Config Flags & Improvements", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/api/trips/00000000-0000-0000-0000-000000000001",
+        url: "/api/trips/00000000-0000-4000-8000-000000000001",
         cookies: { auth_token: token },
       });
 
@@ -243,7 +243,7 @@ describe("Config Flags & Improvements", () => {
 
       const response = await app.inject({
         method: "PUT",
-        url: "/api/trips/00000000-0000-0000-0000-000000000001",
+        url: "/api/trips/00000000-0000-4000-8000-000000000001",
         cookies: { auth_token: token },
         payload: {
           name: "Updated Trip",
@@ -277,7 +277,7 @@ describe("Config Flags & Improvements", () => {
 
       const response = await app.inject({
         method: "DELETE",
-        url: "/api/trips/00000000-0000-0000-0000-000000000001",
+        url: "/api/trips/00000000-0000-4000-8000-000000000001",
         cookies: { auth_token: token },
       });
 

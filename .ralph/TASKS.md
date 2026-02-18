@@ -21,7 +21,7 @@
   - Implement: Update `shared/schemas/index.ts` barrel exports if needed
   - Verify: `pnpm typecheck` passes for shared package
 
-- [ ] Task 2.2: Fix API layer — env.ts, routes, fastify-type-provider-zod, and Fastify plugins
+- [x] Task 2.2: Fix API layer — env.ts, routes, fastify-type-provider-zod, and Fastify plugins
   - Implement: Fix `apps/api/src/config/env.ts` Zod 4 TS2769 errors (`.transform()`, `.refine()`, `.default()`, `.coerce` changes)
   - Implement: Update `apps/api/src/app.ts` for fastify-type-provider-zod v6 (validatorCompiler, serializerCompiler)
   - Implement: Update `apps/api/src/middleware/error.middleware.ts` for v6 (hasZodFastifySchemaValidationErrors)

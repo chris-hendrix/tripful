@@ -77,3 +77,58 @@ APPROVED — All 12 schema files reviewed, correct "no changes needed" conclusio
 - Zod 4 new APIs available: `z.input<>`, `z.check()`, `z.toJSONSchema()`, `z.file()`, `z.stringbool()` — may be useful in future features
 
 ---
+
+## Iteration 3 — Task 2.2: Fix API layer — env.ts, routes, fastify-type-provider-zod, and Fastify plugins
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-17
+
+### What was done
+Fixed the API layer after upgrading to Zod 4.3.6, fastify-type-provider-zod v6, @fastify/cors v11, @fastify/jwt v10, and dotenv v17.
+
+**Two issues fixed:**
+
+1. **env.ts — 3 TypeScript TS2769 errors fixed using `.default().pipe()` pattern**
+   - `PORT`: `z.string().regex(...).transform(Number).default("8000")` → `z.string().default("8000").pipe(z.string().regex(...).transform(Number))`
+   - `MAX_FILE_SIZE`: Same pattern — moved `.default("5242880")` before `.pipe()` with regex/transform/refine chain
+   - `ALLOWED_MIME_TYPES`: Same pattern — moved `.default("image/jpeg,image/png,image/webp")` before `.pipe()` with transform/refine chain
+   - Note: Simple `.default().regex()` reordering doesn't work because Zod 4's `ZodDefault` type doesn't expose string methods. `.pipe()` was required to create a new schema chain after the default.
+
+2. **Test UUIDs — 4 test failures fixed by replacing invalid UUIDs**
+   - Root cause: Zod 4 validates UUIDs strictly per RFC 9562. The UUID `00000000-0000-0000-0000-000000000001` is invalid (version nibble `0` not in `[1-8]`, variant nibble `0` not in `[89abAB]`).
+   - Fix: Replaced all 7 occurrences across 3 test files with valid v4 UUID `00000000-0000-4000-8000-000000000001` (version=4, variant=8).
+   - Files: `config-and-improvements.test.ts` (3), `trip.routes.test.ts` (2), `security.test.ts` (2)
+
+**No changes needed for:**
+- `app.ts` — fastify-type-provider-zod v6 exports (`validatorCompiler`, `serializerCompiler`) are backward compatible
+- `error.middleware.ts` — `hasZodFastifySchemaValidationErrors` unchanged in v6
+- `@fastify/cors` v11 — No breaking API changes (added optional `logLevel` property only)
+- `@fastify/jwt` v10 — No breaking API changes for current usage
+- `dotenv` v17 — `config()` API unchanged
+- Route files — `z.coerce`, `.transform().optional()` patterns all Zod 4 compatible
+
+### Files modified
+- `apps/api/src/config/env.ts` — 3 schema definitions rewritten with `.default().pipe()` pattern
+- `apps/api/tests/integration/config-and-improvements.test.ts` — 3 UUID replacements
+- `apps/api/tests/integration/trip.routes.test.ts` — 2 UUID replacements
+- `apps/api/tests/integration/security.test.ts` — 2 UUID replacements
+
+### Verification
+- `pnpm --filter @tripful/api typecheck`: 0 errors (was 3 TS2769 errors before fix)
+- `cd apps/api && pnpm test`: 989/989 tests pass, 0 failures (was 4 failures before fix)
+- `pnpm --filter @tripful/shared typecheck`: 0 errors (no regression)
+- `pnpm --filter @tripful/shared test`: 216/216 tests pass (no regression)
+- Web package (`@tripful/web`) has 24 typecheck errors — these are Task 2.3 scope (zodResolver + Zod 4 `.default()` type inference)
+
+### Reviewer verdict
+APPROVED — All 6 task requirements met. `.pipe()` pattern is correct and idiomatic for Zod 4. UUID replacements precisely targeted. No remaining invalid UUIDs in API tests.
+
+### Learnings for future iterations
+- Zod 4's `ZodDefault` type doesn't expose inner type methods (e.g., `.regex()` on `ZodDefault<ZodString>`). Use `.default().pipe()` to create a new validation chain after the default.
+- Zod 4 validates UUIDs strictly per RFC 9562 — version nibble must be `[1-8]`, variant nibble must be `[89abAB]`. Only nil (`000...000`) and max (`fff...fff`) UUIDs are special-cased.
+- A valid test UUID pattern: `00000000-0000-4000-8000-000000000001` (version=4, variant=8)
+- `fastify-type-provider-zod` v6 internally uses `zod/v4/core` but the consumer API is unchanged — no migration needed for `validatorCompiler`, `serializerCompiler`, or `hasZodFastifySchemaValidationErrors`
+- `@fastify/cors` v11, `@fastify/jwt` v10, `dotenv` v17 are all backward compatible with no code changes
+- The web typecheck errors (24 errors in 2 form components) are caused by Zod 4's `z.input` treating `.default()` fields as optional — this needs `z.input<typeof schema>` as the form type parameter (Task 2.3)
+
+---

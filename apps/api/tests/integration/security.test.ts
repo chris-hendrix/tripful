@@ -18,7 +18,7 @@ describe("Security & Schema Validation", () => {
 
       // Create a valid JWT token for auth
       const token = app.jwt.sign({
-        sub: "00000000-0000-0000-0000-000000000001",
+        sub: "00000000-0000-4000-8000-000000000001",
         phone: "+11234567890",
         name: "Test User",
       });
@@ -72,7 +72,7 @@ describe("Security & Schema Validation", () => {
       app = await buildApp();
 
       const token = app.jwt.sign({
-        sub: "00000000-0000-0000-0000-000000000001",
+        sub: "00000000-0000-4000-8000-000000000001",
         phone: "+11234567890",
         name: "Test User",
       });
