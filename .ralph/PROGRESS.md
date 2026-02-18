@@ -283,3 +283,39 @@ APPROVED — Minimal, correct fix. No other files assert on the old "Invalid dat
 - All dependency upgrades are now complete: Zod 3→4, ESLint 9→10, fastify-type-provider-zod 4→6, @fastify/cors 10→11, @fastify/jwt 9→10, drizzle-orm 0.36→0.45, @hookform/resolvers 3→5, tailwind-merge 2→3, vitest 2→4, and all other dev dependency bumps
 
 ---
+
+## Iteration 7 — Task 5.1: Fix app-header tests — delete 5 obsolete "My Trips" navigation tests
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-18
+
+### What was done
+Deleted 5 obsolete test blocks from `apps/web/src/components/__tests__/app-header.test.tsx` that tested "My Trips" navigation features removed from the `AppHeader` component in an earlier commit.
+
+**5 tests deleted:**
+1. "renders a My Trips nav link" (lines 91-97) — queried for "My Trips" text/href
+2. "renders the main navigation landmark" (lines 99-104) — queried for `role="navigation"`
+3. "applies active styling to My Trips link when on /trips" (lines 193-200)
+4. "applies active styling to My Trips link on nested trips routes" (lines 202-209)
+5. "applies inactive styling to My Trips link when on a different page" (lines 211-217)
+
+**No other changes:** imports, mocks, `beforeEach`, and all 11 remaining tests were left untouched.
+
+### Files modified
+- `apps/web/src/components/__tests__/app-header.test.tsx` — deleted 5 test blocks (218 → 178 lines)
+
+### Verification
+- `cd apps/web && pnpm vitest run src/components/__tests__/app-header.test.tsx`: 11/11 tests pass
+- No "My Trips" references remain in the file (grep confirmed)
+- No `role="navigation"` references remain in the file (grep confirmed)
+- Full web test suite: 1063 passing, 3 pre-existing failures only (Tasks 5.2 and 5.3 scope) — no new regressions
+
+### Reviewer verdict
+APPROVED — Surgical deletion of exactly 5 obsolete tests, no other code changed, file structure clean. One LOW-severity note: `mockPathname` variable is now vestigial (set in `beforeEach` but never varied by remaining tests), but it's still referenced by the `usePathname` mock needed for `NotificationBell`. Non-blocking.
+
+### Learnings for future iterations
+- The task spec mentioned "8 remaining passing tests" but the actual count is 11 — the spec undercounted. Always verify counts by reading the file directly.
+- The `usePathname` mock in the test file is still needed even after removing the "My Trips" tests, because `NotificationBell` (rendered inside `AppHeader`) uses `usePathname` via `notification-dropdown.tsx`.
+- Pre-existing test failure count is now 3 (down from 8): the 5 app-header failures are fixed, leaving 1 in create-accommodation-dialog, 1 in create-event-dialog, and 1 in page.test.tsx.
+
+---

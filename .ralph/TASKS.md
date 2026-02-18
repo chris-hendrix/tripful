@@ -60,7 +60,7 @@
 
 ## Phase 5: Fix Pre-existing Test Failures
 
-- [ ] Task 5.1: Fix app-header tests — delete 5 obsolete "My Trips" navigation tests
+- [x] Task 5.1: Fix app-header tests — delete 5 obsolete "My Trips" navigation tests
   - Implement: Delete tests at lines 91-97 (`renders a My Trips nav link`), 99-104 (`renders the main navigation landmark`), 193-200 (`applies active styling...on /trips`), 202-209 (`applies active styling...nested trips routes`), 211-217 (`applies inactive styling...different page`)
   - Verify: `cd apps/web && pnpm vitest run src/components/__tests__/app-header.test.tsx` — all remaining tests pass
 
