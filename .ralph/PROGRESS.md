@@ -132,3 +132,57 @@ APPROVED — All 6 task requirements met. `.pipe()` pattern is correct and idiom
 - The web typecheck errors (24 errors in 2 form components) are caused by Zod 4's `z.input` treating `.default()` fields as optional — this needs `z.input<typeof schema>` as the form type parameter (Task 2.3)
 
 ---
+
+## Iteration 4 — Task 2.3: Fix frontend — @hookform/resolvers, tailwind-merge, and form components
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-17
+
+### What was done
+Fixed 24 TypeScript errors in the web package caused by Zod 4 + @hookform/resolvers v5 type mismatch. Verified tailwind-merge v3 requires no code changes.
+
+**Two files fixed:**
+
+1. **create-event-dialog.tsx — 13 TypeScript errors fixed**
+   - Added `import { z } from "zod"` and defined `type CreateEventFormValues = z.input<typeof createEventSchema>`
+   - Changed `useForm<CreateEventInput>` to `useForm<CreateEventFormValues, unknown, CreateEventInput>` (three-generic pattern: input type for form fields, output type for submit handler)
+   - Added `?? false` fallback on `field.value` for `allDay` and `isOptional` checkbox `checked` props (because `z.input` makes `.default()` boolean fields `boolean | undefined`)
+
+2. **create-trip-dialog.tsx — 11 TypeScript errors fixed**
+   - Same pattern: added `z` import, defined `type CreateTripFormValues = z.input<typeof createTripSchema>`
+   - Changed `useForm<CreateTripInput>` to `useForm<CreateTripFormValues, unknown, CreateTripInput>`
+   - Changed `step1Fields` type from `(keyof CreateTripInput)[]` to `(keyof CreateTripFormValues)[]`
+   - Added `?? false` fallback on `field.value` for `allowMembersToAddEvents` checkbox `checked` prop
+
+**No changes needed for:**
+- `apps/web/src/lib/utils.ts` — tailwind-merge v3 `twMerge()` API identical to v2
+- `@hookform/resolvers` import path — `@hookform/resolvers/zod` unchanged in v5
+- Other 11 form components — their schemas have no `.default()` fields (or use `.partial()`), so `z.input` and `z.infer` are identical
+- Shared schema type exports — `CreateEventInput` and `CreateTripInput` remain `z.infer` (output types) for API-layer compatibility
+
+### Files modified
+- `apps/web/src/components/itinerary/create-event-dialog.tsx` — z.input form type + ?? false fallbacks
+- `apps/web/src/components/trip/create-trip-dialog.tsx` — z.input form type + ?? false fallbacks
+
+### Verification
+- `pnpm --filter @tripful/web typecheck`: 0 errors (was 24 errors before fix)
+- `pnpm --filter @tripful/api typecheck`: 0 errors (no regression)
+- `pnpm --filter @tripful/shared typecheck`: 0 errors (no regression)
+- `pnpm typecheck`: all 3 packages pass
+- `cd apps/web && pnpm test`: 1063 passing, 8 pre-existing failures (no new failures)
+- `cd apps/api && pnpm test`: 989/989 pass (no regression)
+- `cd shared && pnpm test`: 216/216 pass (no regression)
+
+### Reviewer verdict
+APPROVED — Correct three-generic `useForm<z.input, unknown, z.infer>` pattern, minimal targeted changes, proper type safety, shared schema types preserved for API compatibility.
+
+### Learnings for future iterations
+- `@hookform/resolvers` v5 with Zod 4 uses `Resolver<z4.input<T>, Context, z4.output<T>>` — forms must use `z.input` for field values and `z.infer`/`z.output` for submit handler types
+- The three-generic `useForm<TFieldValues, TContext, TTransformedValues>` pattern separates input and output types cleanly
+- Only schemas with `.default()` fields cause `z.input` ≠ `z.infer` divergence; `.partial()` schemas are fine because all fields are already optional in both types
+- `?? false` is needed on checkbox `checked` props when `z.input` makes boolean fields optional (`boolean | undefined`)
+- `tailwind-merge` v2 → v3 is a drop-in upgrade with no API changes for the standard `twMerge(clsx(...))` pattern
+- Pre-existing test failures count is 8 (not 7 as documented in VERIFICATION.md) — the extra failure is in `apps/web/src/app/(app)/trips/[id]/page.test.tsx`
+- Pre-existing lint failure: 2 `preserve-caught-error` errors in `apps/api/src/services/auth.service.ts` — these are Task 3.1 scope
+
+---

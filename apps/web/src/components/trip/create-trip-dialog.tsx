@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   createTripSchema,
   PHONE_REGEX,
   type CreateTripInput,
 } from "@tripful/shared";
+
 import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import {
@@ -43,6 +45,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
 
+type CreateTripFormValues = z.input<typeof createTripSchema>;
+
 interface CreateTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -58,7 +62,7 @@ export function CreateTripDialog({
 
   const { mutate: createTrip, isPending } = useCreateTrip();
 
-  const form = useForm<CreateTripInput>({
+  const form = useForm<CreateTripFormValues, unknown, CreateTripInput>({
     resolver: zodResolver(createTripSchema),
     defaultValues: {
       name: "",
@@ -75,7 +79,7 @@ export function CreateTripDialog({
 
   const handleContinue = async () => {
     // Validate Step 1 fields before proceeding
-    const step1Fields: (keyof CreateTripInput)[] = [
+    const step1Fields: (keyof CreateTripFormValues)[] = [
       "name",
       "destination",
       "startDate",
@@ -425,7 +429,7 @@ export function CreateTripDialog({
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                           ref={field.ref}
                           onBlur={field.onBlur}

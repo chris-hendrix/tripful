@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
   createEventSchema,
   type CreateEventInput,
@@ -41,6 +42,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateEvent, getCreateEventErrorMessage } from "@/hooks/use-events";
 import { TIMEZONES } from "@/lib/constants";
 
+type CreateEventFormValues = z.input<typeof createEventSchema>;
+
 interface CreateEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -61,7 +64,7 @@ export function CreateEventDialog({
   const [linkError, setLinkError] = useState<string | null>(null);
   const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
-  const form = useForm<CreateEventInput>({
+  const form = useForm<CreateEventFormValues, unknown, CreateEventInput>({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       name: "",
@@ -391,7 +394,7 @@ export function CreateEventDialog({
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
                   <FormControl>
                     <Checkbox
-                      checked={field.value}
+                      checked={field.value ?? false}
                       onCheckedChange={field.onChange}
                       ref={field.ref}
                       onBlur={field.onBlur}
@@ -420,7 +423,7 @@ export function CreateEventDialog({
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
                   <FormControl>
                     <Checkbox
-                      checked={field.value}
+                      checked={field.value ?? false}
                       onCheckedChange={field.onChange}
                       ref={field.ref}
                       onBlur={field.onBlur}

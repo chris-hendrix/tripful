@@ -31,7 +31,7 @@
   - Verify: `pnpm typecheck` passes for API package
   - Verify: `pnpm test` — all API unit/integration tests pass
 
-- [ ] Task 2.3: Fix frontend — @hookform/resolvers, tailwind-merge, and form components
+- [x] Task 2.3: Fix frontend — @hookform/resolvers, tailwind-merge, and form components
   - Implement: Update `apps/web/src/lib/utils.ts` for tailwind-merge v3 if API changed
   - Implement: Update zodResolver usage in all 13 form components for @hookform/resolvers v5 + Zod 4 compatibility
   - Implement: Fix any Zod 4-related type errors in web form components (z.infer usage)
