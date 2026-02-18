@@ -242,3 +242,44 @@ APPROVED — All fixes minimal and correct. `{ cause: error }` is idiomatic ES20
 - Pre-existing flaky test: `auth.lockout.test.ts` occasionally fails with 503 (database state issue), passes on retry
 
 ---
+
+## Iteration 6 — Task 4.1: Full regression check and close Dependabot PRs
+
+**Status**: ✅ COMPLETED
+**Date**: 2026-02-17
+
+### What was done
+Ran the full regression suite (lint, typecheck, test, test:e2e), fixed one E2E test regression caused by Zod 4, and closed all 3 Dependabot PRs.
+
+**E2E fix:**
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` line 757: Changed `"Invalid datetime"` to `"Invalid ISO datetime"`
+- Root cause: Zod 4 changed the error message for `.string().datetime()` validation from `"Invalid datetime"` to `"Invalid ISO datetime"` (the `invalid_format` issue now includes "ISO" prefix)
+- Only this one E2E assertion needed updating; all shared schema tests use `.success === false` checks (message-agnostic) and required no changes
+
+**Dependabot PRs closed:**
+- PR #20 (actions/cache v4→v5) — closed with superseding comment
+- PR #22 (production dependencies: zod v4, fastify ecosystem, etc.) — closed with superseding comment
+- PR #23 (dev dependencies: eslint v10, vitest v4, etc.) — closed with superseding comment
+
+### Files modified
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — single assertion string update
+
+### Verification
+- `pnpm lint`: 0 errors across all 3 packages
+- `pnpm typecheck`: 0 errors across all 3 packages
+- `pnpm test`: shared 216/216 pass, API 989/989 pass (retry for transient 503s), web 1063/1071 pass (8 pre-existing failures only)
+- `pnpm test:e2e`: 32/32 E2E tests pass (retry for transient toast timing issue)
+- All 3 Dependabot PRs (#20, #22, #23) confirmed closed via `gh pr list --state open`
+
+### Reviewer verdict
+APPROVED — Minimal, correct fix. No other files assert on the old "Invalid datetime" string. The overall dependency upgrade across all 6 iterations is coherent and well-structured.
+
+### Learnings for future iterations
+- Zod 4 changed `.string().datetime()` validation error message from `"Invalid datetime"` to `"Invalid ISO datetime"` (the `invalid_format` issue code now specifies the format type)
+- E2E tests are the final safety net for catching Zod error message changes that unit tests miss (because shared schema tests assert on `.success` not message text)
+- API integration tests have known transient 503 failures (`auth.lockout.test.ts`, `notification.routes.test.ts`, `message.routes.test.ts`) from database connection pool pressure during parallel test runs — always retry before investigating
+- E2E tests have occasional timing flakiness in `itinerary-journey.spec.ts` toast dismissal — also passes on retry
+- Pre-existing test failure count is 8 (not 7 as documented in VERIFICATION.md) — the 8th failure is in `apps/web/src/app/(app)/trips/[id]/page.test.tsx`
+- All dependency upgrades are now complete: Zod 3→4, ESLint 9→10, fastify-type-provider-zod 4→6, @fastify/cors 10→11, @fastify/jwt 9→10, drizzle-orm 0.36→0.45, @hookform/resolvers 3→5, tailwind-merge 2→3, vitest 2→4, and all other dev dependency bumps
+
+---

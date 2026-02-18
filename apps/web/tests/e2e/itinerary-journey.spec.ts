@@ -754,7 +754,7 @@ test.describe("Itinerary Journey", () => {
       await expect(
         page.getByText("Event name must be at least 1 character"),
       ).toBeVisible();
-      await expect(page.getByText("Invalid datetime")).toBeVisible();
+      await expect(page.getByText("Invalid ISO datetime")).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "Create a new event" }),
       ).toBeVisible();

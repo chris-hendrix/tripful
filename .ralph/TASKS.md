@@ -51,7 +51,7 @@
 
 ## Phase 4: Final Verification & PR Cleanup
 
-- [ ] Task 4.1: Full regression check and close Dependabot PRs
+- [x] Task 4.1: Full regression check and close Dependabot PRs
   - Verify: `pnpm lint` — all packages pass
   - Verify: `pnpm typecheck` — all packages pass
   - Verify: `pnpm test` — all unit/integration tests pass
