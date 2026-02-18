@@ -19,12 +19,22 @@ async function clickFabAction(
   actionName: string,
 ) {
   // Dismiss any Sonner toast so it doesn't intercept the click.
-  // Sheet close animations can leave the toaster in "expanded" mode (pausing
-  // auto-dismiss), so we trigger a mouseleave to unpause the timer.
+  // The mouseleave approach to unpause auto-dismiss is unreliable in CI,
+  // so we forcibly remove toasts from the DOM as a fallback.
   const toast = page.locator("[data-sonner-toast]").first();
   if (await toast.isVisible().catch(() => false)) {
     await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
+    const hidden = await toast
+      .waitFor({ state: "hidden", timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!hidden) {
+      await page.evaluate(() =>
+        document
+          .querySelectorAll("[data-sonner-toast]")
+          .forEach((el) => el.remove()),
+      );
+    }
   }
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });

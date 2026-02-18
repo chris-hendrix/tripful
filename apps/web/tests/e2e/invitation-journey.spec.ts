@@ -396,14 +396,18 @@ test.describe("Invitation Journey", () => {
         }),
       ).toBeVisible({ timeout: 15000 });
 
-      // Click member count link to open members dialog
-      await page.getByText(/\d+ members?/).click();
+      // Click member count button to open members sheet
+      const memberCountBtn = page
+        .getByRole("button")
+        .filter({ hasText: /\d+ members?/ });
+      await memberCountBtn.waitFor({ state: "visible", timeout: 10000 });
+      await memberCountBtn.click();
 
-      // Wait for Members dialog to appear
+      // Wait for Members sheet to appear
       const dialog = page.getByRole("dialog");
       await expect(
         dialog.getByRole("heading", { name: "Members" }),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 10000 });
 
       // Verify organizer is listed with "Organizer" badge
       await expect(dialog.getByText("Organizer Delta")).toBeVisible();
@@ -489,7 +493,17 @@ test.describe("Invitation Journey", () => {
       const toast = page.locator("[data-sonner-toast]").first();
       if (await toast.isVisible().catch(() => false)) {
         await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-        await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
+        const hidden = await toast
+          .waitFor({ state: "hidden", timeout: 3000 })
+          .then(() => true)
+          .catch(() => false);
+        if (!hidden) {
+          await page.evaluate(() =>
+            document
+              .querySelectorAll("[data-sonner-toast]")
+              .forEach((el) => el.remove()),
+          );
+        }
       }
 
       // Wait for the onboarding wizard to appear (dynamically imported)

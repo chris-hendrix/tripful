@@ -17,7 +17,18 @@ export async function createTrip(
   // Dismiss any Sonner toast that could intercept the FAB click
   const toast = page.locator("[data-sonner-toast]").first();
   if (await toast.isVisible().catch(() => false)) {
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
+    const hidden = await toast
+      .waitFor({ state: "hidden", timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!hidden) {
+      await page.evaluate(() =>
+        // eslint-disable-next-line no-undef
+        document
+          .querySelectorAll("[data-sonner-toast]")
+          .forEach((el) => el.remove()),
+      );
+    }
   }
 
   // Ensure the FAB is visible and stable before clicking
