@@ -273,4 +273,77 @@ describe("TripPreview", () => {
 
     expect(screen.queryByText("A wonderful summer trip")).toBeNull();
   });
+
+  it("calls onGoingSuccess when RSVP going succeeds", async () => {
+    const onGoingSuccess = vi.fn();
+    mockUpdateRsvp.mockImplementation((_data: any, options: any) => {
+      options.onSuccess();
+    });
+
+    const user = userEvent.setup();
+    render(
+      <TripPreview
+        trip={mockTrip}
+        tripId="trip-1"
+        onGoingSuccess={onGoingSuccess}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Going" }));
+
+    expect(onGoingSuccess).toHaveBeenCalledOnce();
+  });
+
+  it("does NOT call onGoingSuccess when RSVP maybe succeeds", async () => {
+    const onGoingSuccess = vi.fn();
+    mockUpdateRsvp.mockImplementation((_data: any, options: any) => {
+      options.onSuccess();
+    });
+
+    const user = userEvent.setup();
+    render(
+      <TripPreview
+        trip={mockTrip}
+        tripId="trip-1"
+        onGoingSuccess={onGoingSuccess}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Maybe" }));
+
+    expect(onGoingSuccess).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call onGoingSuccess when RSVP not_going succeeds", async () => {
+    const onGoingSuccess = vi.fn();
+    mockUpdateRsvp.mockImplementation((_data: any, options: any) => {
+      options.onSuccess();
+    });
+
+    const user = userEvent.setup();
+    render(
+      <TripPreview
+        trip={mockTrip}
+        tripId="trip-1"
+        onGoingSuccess={onGoingSuccess}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Not Going" }));
+
+    expect(onGoingSuccess).not.toHaveBeenCalled();
+  });
+
+  it("does not crash when onGoingSuccess is not provided and RSVP going succeeds", async () => {
+    mockUpdateRsvp.mockImplementation((_data: any, options: any) => {
+      options.onSuccess();
+    });
+
+    const user = userEvent.setup();
+    render(<TripPreview trip={mockTrip} tripId="trip-1" />);
+
+    await user.click(screen.getByRole("button", { name: "Going" }));
+
+    expect(mockToast.success).toHaveBeenCalledWith('RSVP updated to "Going"');
+  });
 });

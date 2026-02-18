@@ -73,6 +73,12 @@ const InviteMembersDialog = dynamic(() =>
 const preloadInviteMembersDialog = () =>
   void import("@/components/trip/invite-members-dialog");
 
+const MemberOnboardingWizard = dynamic(() =>
+  import("@/components/trip/member-onboarding-wizard").then((mod) => ({
+    default: mod.MemberOnboardingWizard,
+  })),
+);
+
 function SkeletonDetail() {
   return (
     <div>
@@ -97,6 +103,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const [removingMember, setRemovingMember] = useState<{
     member: MemberWithProfile;
   } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
@@ -166,7 +173,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Preview mode: show limited trip info with RSVP buttons
   if (trip.isPreview) {
-    return <TripPreview trip={trip} tripId={tripId} />;
+    return <TripPreview trip={trip} tripId={tripId} onGoingSuccess={() => setShowOnboarding(true)} />;
   }
 
   return (
@@ -250,10 +257,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-lg text-muted-foreground mb-4">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-lg text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
+          >
             <MapPin className="w-5 h-5 shrink-0" />
             <span>{trip.destination}</span>
-          </div>
+          </a>
 
           <div className="flex items-center gap-2 text-muted-foreground mb-4">
             <Calendar className="w-5 h-5 shrink-0" />
@@ -286,7 +298,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                         alt={org.displayName}
                         width={32}
                         height={32}
-                        className="rounded-full ring-2 ring-white"
+                        className="w-8 h-8 rounded-full ring-2 ring-white object-cover"
                       />
                     ) : (
                       <div
@@ -350,7 +362,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Itinerary */}
         <div id="itinerary" className="scroll-mt-14">
-          <ItineraryView tripId={tripId} />
+          <ItineraryView tripId={tripId} onAddTravel={() => setShowOnboarding(true)} />
         </div>
 
         {/* Discussion */}
@@ -468,6 +480,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </SheetBody>
         </SheetContent>
       </Sheet>
+
+      {showOnboarding && (
+        <MemberOnboardingWizard
+          open={showOnboarding}
+          onOpenChange={setShowOnboarding}
+          tripId={tripId}
+          trip={trip}
+        />
+      )}
     </div>
   );
 }

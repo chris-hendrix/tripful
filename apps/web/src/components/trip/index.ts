@@ -5,3 +5,5 @@ export { CreateTripDialog } from "./create-trip-dialog";
 export { EditTripDialog } from "./edit-trip-dialog";
 export { InviteMembersDialog } from "./invite-members-dialog";
 export { MembersList } from "./members-list";
+export { MemberOnboardingWizard } from "./member-onboarding-wizard";
+export { TravelReminderBanner } from "./travel-reminder-banner";

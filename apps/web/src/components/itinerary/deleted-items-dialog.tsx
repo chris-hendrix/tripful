@@ -228,7 +228,7 @@ function DeletedEventRow({
             : ""}
         </p>
       </div>
-      <Badge variant="secondary" className="shrink-0 text-xs">
+      <Badge variant="secondary" className="shrink-0 text-xs capitalize">
         {event.eventType}
       </Badge>
       <Button
