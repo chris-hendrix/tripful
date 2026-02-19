@@ -83,7 +83,7 @@
   - Implement: Verify no other files import or reference scheduler service
   - Verify: `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass
 
-- [ ] Task 4.3: Phase 4 cleanup
+- [x] Task 4.3: Phase 4 cleanup
   - Review: Read PROGRESS.md entries for Phase 4 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

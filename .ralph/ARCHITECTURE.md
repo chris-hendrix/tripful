@@ -225,11 +225,11 @@ Helper functions extracted from NotificationService:
 
 ### NotificationService
 
-- Add optional 3rd constructor param: `private boss: PgBoss | null = null`
+- Add optional 2nd constructor param: `private boss: PgBoss | null = null` (smsService removed — SMS is handled by workers)
 - `notifyTripMembers()`: when boss exists, `boss.send('notification:batch', payload)` and return immediately. When boss is null, keep existing member loop as fallback (for tests).
 - `createNotification()`: remove `shouldSendSms()` call, phone lookup, and `smsService.sendMessage()` lines 281-295. Method becomes pure DB insert returning `NotificationResult`.
 - Remove private methods `shouldSendSms()` and `getPreferenceField()` (logic moved to batch worker helpers).
-- Update `plugins/notification-service.ts`: pass `fastify.boss ?? null` as 3rd arg.
+- Update `plugins/notification-service.ts`: pass `fastify.boss ?? null` as 2nd arg. Remove `sms-service` dependency.
 
 ### InvitationService
 

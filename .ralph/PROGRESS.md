@@ -470,3 +470,58 @@ No issues found. No NEEDS_WORK items.
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 10 iterations
 - **Phase 4 progress**: Task 4.1 (service refactoring) and Task 4.2 (scheduler removal) complete. Next: Task 4.3 (Phase 4 cleanup)
 - **Documentation references intentionally preserved**: Historical docs under `docs/2026-02-14-messaging-notifications/` still reference SchedulerService — this is expected as they document the pre-migration architecture
+
+## Iteration 11 — Task 4.3: Phase 4 cleanup
+
+**Status: COMPLETED**
+
+### Review Findings
+
+Reviewed all Phase 4 (Tasks 4.1 and 4.2) PROGRESS.md entries and identified:
+
+- **FAILURES**: None
+- **BLOCKED items**: None
+- **Deferred items**: None
+- **Reviewer caveats assessed** (3 total across Tasks 4.1 and 4.2):
+  1. `_smsService` parameter in NotificationService is dead code — **Fixed directly** (see changes below)
+  2. `as any` in test mock boss objects — Standard practice for partial mocks. No action needed.
+  3. All Task 4.2 criteria passed with no issues — No action needed.
+- **New FIX tasks needed**: None — all Phase 4 implementation is correct and complete
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/services/notification.service.ts` | Modified | Removed `_smsService: ISMSService` constructor parameter (dead code) and `ISMSService` import. Constructor now `(db: AppDatabase, boss: PgBoss \| null = null)` |
+| `apps/api/src/plugins/notification-service.ts` | Modified | Removed `fastify.smsService` from constructor call, removed `"sms-service"` from dependencies array, removed `@depends sms-service` JSDoc line |
+| `apps/api/tests/unit/notification.service.test.ts` | Modified | Removed `MockSMSService` import and `smsService` variable. Updated all `new NotificationService(db, smsService...)` calls. Removed 2 vacuous tests that spied on disconnected mock |
+| `apps/api/tests/unit/invitation.service.test.ts` | Modified | Updated `new NotificationService(db, smsService)` to `new NotificationService(db)`. `smsService` retained for InvitationService which still uses it |
+| `.ralph/ARCHITECTURE.md` | Modified | Updated NotificationService section: "3rd constructor param" → "2nd constructor param", "3rd arg" → "2nd arg", added note about sms-service dependency removal |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — pre-existing)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1028 tests across 47 files (down from 1030/47 — 2 vacuous tests removed)
+- **Grep verification**: Zero matches for `ISMSService`, `_smsService`, `MockSMSService`, or `smsService` in notification.service.ts and notification-service.ts
+
+### Reviewer: APPROVED
+
+All cleanup sub-tasks verified complete:
+1. PROGRESS.md entries reviewed thoroughly for Phase 4 (Iterations 9 and 10)
+2. No FAILURES, BLOCKED, or deferred items found
+3. Three reviewer caveats assessed: one fixed directly (`_smsService` dead code removal), two justified as no-action
+4. No new FIX tasks needed
+5. Full test suite passed with no regressions
+6. ARCHITECTURE.md updated to match current state
+
+One non-blocking LOW observation: ARCHITECTURE.md stale constructor param numbering — **Fixed directly** in this iteration.
+
+### Learnings for Future Iterations
+
+- **Dead code removal pattern**: When removing a constructor parameter, update: service file (param + import), plugin file (constructor call + dependencies + JSDoc), and all test files constructing the service
+- **Vacuous test identification**: After refactoring, check if spy-based tests are still connected to the code under test. Spying on a mock that is never wired into the service produces tautological "not called" assertions.
+- **Plugin dependency cleanup**: When a service no longer needs a dependency, remove it from the dependencies array — the Fastify plugin registration order is maintained by other plugins that still declare the dependency.
+- **Test count**: From 1030 (iteration 10) to 1028 (2 vacuous tests removed)
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 11 iterations
+- **Phase 4 complete**: All service refactoring, scheduler removal, and cleanup done. Ready for Phase 5 (Final Verification)

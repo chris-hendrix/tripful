@@ -6,7 +6,6 @@ import {
   users,
 } from "@/db/schema/index.js";
 import type { AppDatabase } from "@/types/index.js";
-import type { ISMSService } from "@/services/sms.service.js";
 import { NotificationNotFoundError } from "@/errors.js";
 import type { PgBoss } from "pg-boss";
 import { QUEUE } from "@/queues/types.js";
@@ -103,7 +102,6 @@ export interface INotificationService {
 export class NotificationService implements INotificationService {
   constructor(
     private db: AppDatabase,
-    _smsService: ISMSService,
     private boss: PgBoss | null = null,
   ) {}
 

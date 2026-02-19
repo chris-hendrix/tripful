@@ -28,7 +28,7 @@ import { QUEUE } from "@/queues/types.js";
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
 const smsService = new MockSMSService();
-const notificationService = new NotificationService(db, smsService);
+const notificationService = new NotificationService(db);
 const invitationService = new InvitationService(
   db,
   permissionsService,

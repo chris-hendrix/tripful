@@ -9,14 +9,12 @@ import {
 } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { NotificationService } from "@/services/notification.service.js";
-import { MockSMSService } from "@/services/sms.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import { NotificationNotFoundError } from "@/errors.js";
 import { QUEUE } from "@/queues/types.js";
 
 // Create service instances with db for testing (no boss = fallback path)
-const smsService = new MockSMSService();
-const notificationService = new NotificationService(db, smsService);
+const notificationService = new NotificationService(db);
 
 describe("notification.service", () => {
   let testOrganizerPhone: string;
@@ -195,21 +193,6 @@ describe("notification.service", () => {
       expect(result.title).toBe("Welcome");
     });
 
-    it("should be a pure DB insert without sending SMS", async () => {
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
-
-      await notificationService.createNotification({
-        userId: testMemberId,
-        tripId: testTripId,
-        type: "trip_update",
-        title: "Trip Updated",
-        body: "The trip has been updated",
-      });
-
-      expect(sendMessageSpy).not.toHaveBeenCalled();
-
-      sendMessageSpy.mockRestore();
-    });
   });
 
   describe("getNotifications", () => {
@@ -650,21 +633,6 @@ describe("notification.service", () => {
       expect(mem2Count).toBe(1);
     });
 
-    it("should not send SMS inline (SMS delivery is handled by workers)", async () => {
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
-
-      await notificationService.notifyTripMembers({
-        tripId: testTripId,
-        type: "trip_update",
-        title: "Trip Updated",
-        body: "Details changed",
-      });
-
-      // createNotification no longer sends SMS, so no SMS calls should occur
-      expect(sendMessageSpy).not.toHaveBeenCalled();
-
-      sendMessageSpy.mockRestore();
-    });
   });
 
   describe("notifyTripMembers (with boss queue)", () => {
@@ -673,11 +641,7 @@ describe("notification.service", () => {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
       } as any;
-      const serviceWithBoss = new NotificationService(
-        db,
-        smsService,
-        mockBoss,
-      );
+      const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
         tripId: testTripId,
@@ -704,11 +668,7 @@ describe("notification.service", () => {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
       } as any;
-      const serviceWithBoss = new NotificationService(
-        db,
-        smsService,
-        mockBoss,
-      );
+      const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
         tripId: testTripId,
@@ -733,11 +693,7 @@ describe("notification.service", () => {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
       } as any;
-      const serviceWithBoss = new NotificationService(
-        db,
-        smsService,
-        mockBoss,
-      );
+      const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
         tripId: testTripId,
