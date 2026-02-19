@@ -25,7 +25,7 @@ describe("invitation-send.worker", () => {
   it("should call smsService.sendMessage with correct phoneNumber and message", async () => {
     const mockJob = {
       id: "test-job-id",
-      name: "invitation:send",
+      name: "invitation/send",
       data: {
         phoneNumber: "+15559876543",
         message: "You've been invited to a trip on Tripful!",
@@ -47,7 +47,7 @@ describe("invitation-send.worker", () => {
   it("should propagate errors from smsService.sendMessage", async () => {
     const mockJob = {
       id: "test-job-id",
-      name: "invitation:send",
+      name: "invitation/send",
       data: {
         phoneNumber: "+15559876543",
         message: "You've been invited to a trip on Tripful!",

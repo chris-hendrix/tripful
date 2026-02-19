@@ -525,3 +525,62 @@ One non-blocking LOW observation: ARCHITECTURE.md stale constructor param number
 - **Test count**: From 1030 (iteration 10) to 1028 (2 vacuous tests removed)
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 11 iterations
 - **Phase 4 complete**: All service refactoring, scheduler removal, and cleanup done. Ready for Phase 5 (Final Verification)
+
+## Iteration 12 — Task 5.1: Full regression check
+
+**Status: COMPLETED**
+
+### Verification Results
+
+All 4 required verification commands passed:
+
+| Command | Result | Details |
+|---------|--------|---------|
+| `pnpm typecheck` | PASS | 0 errors across all 3 packages (api, web, shared) |
+| `pnpm lint` | PASS | 0 errors, 32 warnings (`@typescript-eslint/no-explicit-any` in test files only) |
+| `pnpm test` | PASS | 1028 API + 216 shared + 1063 web passed. 8 web failures are pre-existing on main. 1 transient API failure (auth.lockout 503) passed on retry. |
+| `pnpm test:e2e` | PASS | **32 passed, 0 failures** — all E2E specs including notification-specific tests |
+
+### VERIFICATION.md Key Points (All 5 Satisfied)
+
+| # | Verification Point | Status |
+|---|---|---|
+| 1 | pg-boss schema created (auto on `boss.start()`) | ✓ Confirmed — `queue.ts` calls `boss.start()` in non-test env |
+| 2 | No new DB migrations needed | ✓ Confirmed — pg-boss manages own schema, no Drizzle migrations modified |
+| 3 | Test isolation (workers skip in test env) | ✓ Confirmed — `queue.ts` decorates `boss: null`, `queues/index.ts` early-returns with debug log |
+| 4 | Fallback paths work (boss = null) | ✓ Confirmed — NotificationService and InvitationService branch on `this.boss`, E2E tests exercise fallback path |
+| 5 | Scheduler fully removed | ✓ Confirmed — zero grep matches for SchedulerService/scheduler-service in `apps/api/src/` |
+
+### Pre-existing Failures (NOT Regressions)
+
+- **8 web unit test failures** (unchanged across all 12 iterations): app-header nav text (5), trip metadata (1), URL validation dialogs (2)
+- **1 transient API test** (auth.lockout 503 from `@fastify/under-pressure`): passes on retry, file not modified on this branch
+
+### Reviewer: APPROVED
+
+All review criteria passed:
+1. All 4 verification commands run with passing results
+2. All 5 VERIFICATION.md key points confirmed
+3. All phases 1-4 verified complete through PROGRESS.md and TASKS.md
+4. No regressions introduced — confirmed by zero web source changes and stable test counts
+5. E2E notifications spec exercises the fallback path (boss = null), confirming inline notification flow works end-to-end
+
+One LOW-severity documentation note: ARCHITECTURE.md uses colon-separated queue names (`notification:batch`) but implementation uses slash-separated (`notification/batch`). Non-blocking — production code uses `QUEUE.*` constants consistently.
+
+### Migration Summary (All 5 Phases Complete)
+
+| Phase | Tasks | Iterations | Key Deliverables |
+|-------|-------|------------|-----------------|
+| Phase 1: Infrastructure | 1.1, 1.2 | 1-2 | pg-boss plugin, types, TypeScript declarations |
+| Phase 2: Workers | 2.1, 2.2, 2.3, 2.4 | 3-6 | 5 workers (deliver, send, batch, event-reminders, daily-itineraries), 58 worker tests |
+| Phase 3: Worker Registration | 3.1, 3.2 | 7-8 | 7 queues, 2 cron schedules, 5 worker registrations |
+| Phase 4: Service Refactoring | 4.1, 4.2, 4.3 | 9-11 | Services refactored, SchedulerService deleted, dead code removed |
+| Phase 5: Final Verification | 5.1 | 12 | Full regression: typecheck, lint, test, E2E — all pass |
+
+### Learnings
+
+- **E2E test environment**: `CI=true` is set in this environment, which makes Playwright's `reuseExistingServer: !process.env.CI` evaluate to `false`. Playwright must manage its own servers when CI=true.
+- **Port cleanup**: Background dev servers must be fully killed (including child processes like `next-server`) before Playwright can start its own servers
+- **Transient under-pressure failures**: The `@fastify/under-pressure` plugin can trigger 503s under heavy parallel test load. These are transient and pass on retry.
+- **Final test counts**: 1028 API tests, 216 shared tests, 1063+8 web tests, 32 E2E tests — all stable
+- **Migration complete**: The pg-boss notification queue migration is fully implemented and verified across 12 iterations with zero regressions

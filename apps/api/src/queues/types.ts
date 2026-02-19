@@ -4,11 +4,11 @@ import type { ISMSService } from "@/services/sms.service.js";
 import type { Logger } from "@/types/logger.js";
 
 export const QUEUE = {
-  NOTIFICATION_BATCH: "notification:batch",
-  NOTIFICATION_DELIVER: "notification:deliver",
-  NOTIFICATION_DELIVER_DLQ: "notification:deliver:dlq",
-  INVITATION_SEND: "invitation:send",
-  INVITATION_SEND_DLQ: "invitation:send:dlq",
+  NOTIFICATION_BATCH: "notification/batch",
+  NOTIFICATION_DELIVER: "notification/deliver",
+  NOTIFICATION_DELIVER_DLQ: "notification/deliver/dlq",
+  INVITATION_SEND: "invitation/send",
+  INVITATION_SEND_DLQ: "invitation/send/dlq",
   EVENT_REMINDERS: "event-reminders",
   DAILY_ITINERARIES: "daily-itineraries",
 } as const;

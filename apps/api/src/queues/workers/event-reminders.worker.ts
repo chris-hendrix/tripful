@@ -7,7 +7,7 @@ import { QUEUE } from "@/queues/types.js";
 /**
  * Handles event-reminders cron jobs.
  * Queries events starting in ~1 hour (55-65 min window),
- * then enqueues a notification:batch job per event.
+ * then enqueues a notification/batch job per event.
  */
 export async function handleEventReminders(
   _job: Job<object>,

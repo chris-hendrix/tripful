@@ -59,7 +59,7 @@ export function shouldSendSms(
 }
 
 /**
- * Handles notification:batch jobs.
+ * Handles notification/batch jobs.
  * Resolves going members for a trip, checks preferences and dedup,
  * bulk-inserts notifications and sentReminders, and enqueues SMS delivery jobs.
  */

@@ -28,7 +28,7 @@ describe("notification-deliver.worker", () => {
   it("should call smsService.sendMessage with correct phoneNumber and message", async () => {
     const mockJob = {
       id: "test-job-id",
-      name: "notification:deliver",
+      name: "notification/deliver",
       data: {
         phoneNumber: "+15551234567",
         message: "Test notification",
@@ -50,7 +50,7 @@ describe("notification-deliver.worker", () => {
   it("should propagate errors from smsService.sendMessage", async () => {
     const mockJob = {
       id: "test-job-id",
-      name: "notification:deliver",
+      name: "notification/deliver",
       data: {
         phoneNumber: "+15551234567",
         message: "Test notification",

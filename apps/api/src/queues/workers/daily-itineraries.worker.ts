@@ -9,7 +9,7 @@ import { QUEUE } from "@/queues/types.js";
 /**
  * Handles daily-itineraries cron jobs.
  * Queries active trips, checks if current time in trip's timezone is in the
- * morning window (7:45-8:15 AM), then enqueues a notification:batch job with
+ * morning window (7:45-8:15 AM), then enqueues a notification/batch job with
  * today's schedule for each qualifying trip.
  */
 export async function handleDailyItineraries(

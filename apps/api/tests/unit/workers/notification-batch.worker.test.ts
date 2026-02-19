@@ -185,7 +185,7 @@ describe("notification-batch.worker", () => {
   ): Job<NotificationBatchPayload> {
     return {
       id: "test-job-id",
-      name: "notification:batch",
+      name: "notification/batch",
       data: {
         tripId: testTripId,
         type: "trip_message",

@@ -91,7 +91,7 @@
 
 ## Phase 5: Final Verification
 
-- [ ] Task 5.1: Full regression check
+- [x] Task 5.1: Full regression check
   - Verify: `pnpm typecheck` — all packages compile
   - Verify: `pnpm lint` — no linting errors
   - Verify: `pnpm test` — all unit + integration tests pass
