@@ -427,3 +427,46 @@ Two non-blocking LOW observations:
 - **Test count**: From 1047 (iteration 8) to 1051 (4 new tests: 2 notification boss path + 2 invitation boss/fallback)
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 9 iterations
 - **Next task**: Task 4.2 — Remove SchedulerService and delete old scheduler tests
+
+## Iteration 10 — Task 4.2: Remove SchedulerService and delete old scheduler tests
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/services/scheduler.service.ts` | Deleted | 391-line SchedulerService class and ISchedulerService interface |
+| `apps/api/src/plugins/scheduler-service.ts` | Deleted | 38-line Fastify fp() plugin that instantiated and registered the scheduler |
+| `apps/api/tests/unit/scheduler.service.test.ts` | Deleted | 831-line test suite (21 tests) — replaced by cron worker tests |
+| `apps/api/src/app.ts` | Modified | Removed schedulerServicePlugin import (line 33) and registration (line 186) |
+| `apps/api/src/types/index.ts` | Modified | Removed ISchedulerService import (line 19) and `schedulerService` property from FastifyInstance (line 65) |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — pre-existing)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1030 tests across 47 files (down from 1051/48 — 21 scheduler tests removed)
+- **Scheduler reference grep**: PASS — zero matches for `SchedulerService`, `ISchedulerService`, `schedulerService`, `scheduler-service`, or `schedulerServicePlugin` in `apps/api/src/`
+- **Deleted files confirmed**: All 3 files no longer exist on disk
+
+### Reviewer: APPROVED
+
+All review criteria passed:
+1. **Completeness**: All scheduler references removed from source code (zero grep matches)
+2. **Clean edits**: app.ts and types/index.ts properly formatted after removal — no extra blank lines, no dangling commas
+3. **No side effects**: queueWorkersPlugin (already registered at line 184) fully replaces scheduler functionality
+4. **Plugin registration order**: Correct — queueWorkersPlugin registered after all its dependencies
+5. **Type declarations**: FastifyInstance augmentation properly formatted with `healthService` as last entry
+6. **Test coverage preserved**: Old 24 scheduler tests replaced by 33 cron worker tests (14 event-reminders + 19 daily-itineraries) with better boundary and timezone coverage
+
+No issues found. No NEEDS_WORK items.
+
+### Learnings for Future Iterations
+
+- **Clean removal pattern**: Deletion of a Fastify service requires changes in exactly 4 places: service file, plugin file, app.ts (import + register), types/index.ts (import + type declaration)
+- **Test count**: From 1051 (iteration 9) to 1030 (21 scheduler tests removed). Worker tests already existed from Phase 2, providing equivalent+ coverage.
+- **VERIFICATION.md Key Point #5 satisfied**: "Scheduler fully removed: No references to SchedulerService, scheduler-service plugin, or setInterval patterns remain after Phase 4"
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 10 iterations
+- **Phase 4 progress**: Task 4.1 (service refactoring) and Task 4.2 (scheduler removal) complete. Next: Task 4.3 (Phase 4 cleanup)
+- **Documentation references intentionally preserved**: Historical docs under `docs/2026-02-14-messaging-notifications/` still reference SchedulerService — this is expected as they document the pre-migration architecture

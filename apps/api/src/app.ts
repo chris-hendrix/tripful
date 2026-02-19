@@ -30,7 +30,6 @@ import smsServicePlugin from "./plugins/sms-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 import messageServicePlugin from "./plugins/message-service.js";
 import notificationServicePlugin from "./plugins/notification-service.js";
-import schedulerServicePlugin from "./plugins/scheduler-service.js";
 import queueWorkersPlugin from "./queues/index.js";
 
 // Middleware
@@ -183,7 +182,6 @@ export async function buildApp(
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
   await app.register(queueWorkersPlugin);
-  await app.register(schedulerServicePlugin);
 
   // Register error handler
   app.setErrorHandler(errorHandler);

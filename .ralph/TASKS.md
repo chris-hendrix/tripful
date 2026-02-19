@@ -74,7 +74,7 @@
   - Test: Update invitation.service.test.ts — update SMS dispatch assertions. Add tests for boss path (verify boss.insert called) and fallback path
   - Verify: `pnpm typecheck` and `pnpm test` pass
 
-- [ ] Task 4.2: Remove SchedulerService and delete old scheduler tests
+- [x] Task 4.2: Remove SchedulerService and delete old scheduler tests
   - Implement: Delete `apps/api/src/services/scheduler.service.ts`
   - Implement: Delete `apps/api/src/plugins/scheduler-service.ts`
   - Implement: In `apps/api/src/app.ts` — remove scheduler plugin import and registration
