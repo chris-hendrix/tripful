@@ -19,12 +19,22 @@ async function clickFabAction(
   actionName: string,
 ) {
   // Dismiss any Sonner toast so it doesn't intercept the click.
-  // Sheet close animations can leave the toaster in "expanded" mode (pausing
-  // auto-dismiss), so we trigger a mouseleave to unpause the timer.
+  // The mouseleave approach to unpause auto-dismiss is unreliable in CI,
+  // so we forcibly remove toasts from the DOM as a fallback.
   const toast = page.locator("[data-sonner-toast]").first();
   if (await toast.isVisible().catch(() => false)) {
     await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-    await toast.waitFor({ state: "hidden", timeout: 10000 });
+    const hidden = await toast
+      .waitFor({ state: "hidden", timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!hidden) {
+      await page.evaluate(() =>
+        document
+          .querySelectorAll("[data-sonner-toast]")
+          .forEach((el) => el.remove()),
+      );
+    }
   }
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
@@ -353,8 +363,16 @@ test.describe("Itinerary Journey", () => {
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
       await page.getByRole("button", { name: "Add travel details" }).click();
 
-      // Travel card shows member name
-      await expect(page.getByText(/View Mode User/).first()).toBeVisible();
+      // Wait for success toast confirming API call completed (refetch follows)
+      await expect(page.getByText(/travel details added/i)).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Travel card shows member name (appears after refetch with JOIN data;
+      // optimistic update lacks memberName so the real name loads on refetch)
+      await expect(page.getByText(/View Mode User/).first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Location is a Google Maps link
       const airportLink = page.getByRole("link", { name: "Las Vegas Airport" });
