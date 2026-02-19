@@ -39,7 +39,7 @@
   - Test: Create `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` — test timezone window, event body building, batch enqueue
   - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-- [ ] Task 2.4: Phase 2 cleanup
+- [x] Task 2.4: Phase 2 cleanup
   - Review: Read PROGRESS.md entries for Phase 2 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

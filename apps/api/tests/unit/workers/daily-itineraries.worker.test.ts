@@ -475,7 +475,8 @@ describe("daily-itineraries.worker", () => {
     await handleDailyItineraries(createMockJob(), mockDeps);
 
     expect(mockDeps.logger.info).toHaveBeenCalledWith(
-      "processed daily itinerary check",
+      { count: 1 },
+      "enqueued daily itinerary batches",
     );
   });
 

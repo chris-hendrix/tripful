@@ -27,6 +27,8 @@ export async function handleDailyItineraries(
     .from(trips)
     .where(eq(trips.cancelled, false));
 
+  let enqueuedCount = 0;
+
   for (const trip of activeTrips) {
     if (!trip.startDate || !trip.endDate) continue;
 
@@ -91,7 +93,8 @@ export async function handleDailyItineraries(
         expireInSeconds: 900,
       },
     );
+    enqueuedCount++;
   }
 
-  deps.logger.info("processed daily itinerary check");
+  deps.logger.info({ count: enqueuedCount }, "enqueued daily itinerary batches");
 }

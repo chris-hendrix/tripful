@@ -213,3 +213,61 @@ Three non-blocking LOW suggestions noted: shared `createMockDeps()` helper, stru
 - **API test count**: From 1015 (iteration 4) to 1047 (32 new cron worker tests added)
 - **Pre-existing web failures**: Same 8 tests unchanged from previous iterations
 - **Unused variable lint error**: When `createTrip()` return value is not needed, call without assignment to avoid `@typescript-eslint/no-unused-vars` error
+
+## Iteration 6 — Task 2.4: Phase 2 cleanup
+
+**Status: COMPLETED**
+
+### Review Findings
+
+Reviewed all Phase 2 (Tasks 2.1, 2.2, 2.3) PROGRESS.md entries and identified:
+
+- **FAILURES**: None
+- **BLOCKED items**: None
+- **Deferred items**: None
+- **Reviewer caveats assessed** (6 total across Tasks 2.2 and 2.3):
+  1. `as any` in test mocks — Standard DI mock pattern for WorkerDeps, not practical to eliminate without shared typed factory. No action needed.
+  2. Redundant cleanup in batch worker test — Defensive pattern preventing flaky tests. No action needed.
+  3. Type parameter narrowing for NotificationBatchPayload.type — Breaking change to shared types, future enhancement. No action needed.
+  4. Shared `createMockDeps()` helper — Low value since each test needs different mock shape. No action needed.
+  5. Structured logging parity for daily-itineraries — **Fixed directly** (see changes below).
+  6. In-memory event date filtering — Faithful to original scheduler, correct approach. No action needed.
+- **New FIX tasks needed**: None — all Phase 2 implementation is correct and complete
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `.ralph/ARCHITECTURE.md` | Modified | Fixed code sample: `PgBoss.Job<T>` → `Job<T>` with proper `import type { Job } from "pg-boss"` line |
+| `apps/api/src/queues/workers/daily-itineraries.worker.ts` | Modified | Added `enqueuedCount` counter, structured logging `{ count }` for parity with event-reminders worker |
+| `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` | Modified | Updated log assertion to match new structured format: `({ count: 1 }, "enqueued daily itinerary batches")` |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (27 `@typescript-eslint/no-explicit-any` warnings in worker test files — warnings only)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
+- **Full API test suite**: PASS — 1047 tests across 48 files (no regressions)
+- **Shared tests**: PASS — 216/216 tests across 12 files
+- **Web tests**: 8 pre-existing failures unrelated to queue work (1063 passing)
+
+### Reviewer: APPROVED
+
+All cleanup sub-tasks verified complete:
+1. PROGRESS.md entries reviewed thoroughly for all Phase 2 tasks
+2. No FAILURES, BLOCKED, or deferred items found
+3. Six reviewer caveats assessed: one fixed directly (structured logging), five justified as no-action
+4. Two documentation/code fixes correct and consistent with codebase patterns
+5. Full test suite passed with no regressions
+
+Two non-blocking observations noted:
+- [LOW] daily-itineraries logs `{ count: 0 }` when no trips qualify (always reaches log), while event-reminders early-returns and never logs when empty — acceptable behavioral difference for better operational observability
+- [LOW] Single-line vs multi-line format for structured log call — trivial formatting difference
+
+### Learnings for Future Iterations
+
+- **ARCHITECTURE.md now fully accurate**: All code samples match actual implementation (Job import, worker signatures)
+- **Structured logging convention**: Workers should use `deps.logger.info({ count }, "description")` pattern for observability
+- **Phase 2 complete**: All 5 workers (2 leaf, 1 batch, 2 cron) implemented with 58 total tests, ready for Phase 3 worker registration
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 6 iterations
+- **API test count stable**: 1047 tests (unchanged from iteration 5 — cleanup added no new tests)

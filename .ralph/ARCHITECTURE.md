@@ -174,8 +174,10 @@ await boss.schedule(QUEUE.DAILY_ITINERARIES, "*/15 * * * *");
 Simple: receive `{ phoneNumber, message }`, call `deps.smsService.sendMessage()`, let errors propagate for pg-boss retry.
 
 ```typescript
+import type { Job } from "pg-boss";
+
 export async function handleNotificationDeliver(
-  job: PgBoss.Job<NotificationDeliverPayload>,
+  job: Job<NotificationDeliverPayload>,
   deps: WorkerDeps,
 ): Promise<void> {
   const { phoneNumber, message } = job.data;
