@@ -47,7 +47,7 @@
 
 ## Phase 3: Worker Registration
 
-- [ ] Task 3.1: Create worker registration plugin with queue creation and cron schedules
+- [x] Task 3.1: Create worker registration plugin with queue creation and cron schedules
   - Implement: Create `apps/api/src/queues/index.ts` as fp() plugin depending on ["queue", "database", "sms-service"]
   - Implement: Guard with NODE_ENV !== "test" (skip worker registration in tests)
   - Implement: Create queues with options — notification:deliver and invitation:send with retryLimit:3, retryDelay:10, retryBackoff:true, expireInSeconds:300, dead letter queues. Also archiveCompletedAfterSeconds:3600 and deleteAfterSeconds:604800 as queue-level options

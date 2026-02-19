@@ -271,3 +271,52 @@ Two non-blocking observations noted:
 - **Phase 2 complete**: All 5 workers (2 leaf, 1 batch, 2 cron) implemented with 58 total tests, ready for Phase 3 worker registration
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 6 iterations
 - **API test count stable**: 1047 tests (unchanged from iteration 5 — cleanup added no new tests)
+
+## Iteration 7 — Task 3.1: Create worker registration plugin with queue creation and cron schedules
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/queues/index.ts` | Created | fp() plugin: creates 7 queues (DLQs first), registers 2 cron schedules, registers 5 workers with WorkerDeps, guarded by NODE_ENV !== "test" |
+| `apps/api/src/app.ts` | Modified | Imported and registered queueWorkersPlugin after messageServicePlugin, before schedulerServicePlugin |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (27 pre-existing `@typescript-eslint/no-explicit-any` warnings in test files)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files (no regressions)
+- **Web tests**: 8 pre-existing failures unrelated to this task
+
+### Reviewer: APPROVED
+
+All 10 review criteria passed:
+1. Architecture compliance — matches ARCHITECTURE.md spec exactly
+2. Type safety — zero `any` in production code, proper generics on all `boss.work<T>()` calls
+3. pg-boss v12 API correctness — uses `localConcurrency` (not `teamSize`), `pollingIntervalSeconds` (not `newJobCheckInterval`), `deleteAfterSeconds` (not `archiveCompletedAfterSeconds`)
+4. Queue creation order — DLQ queues created before parent queues that reference them
+5. Worker handler wrapping — `async (jobs) => { await handler(jobs[0]!, deps); }` adapts Job[] to single Job
+6. Cron schedule correctness — `*/5 * * * *` (event-reminders), `*/15 * * * *` (daily-itineraries)
+7. Test guard — early return when `NODE_ENV === "test"`
+8. Import conventions — relative `.js` imports within queues/, `./queues/index.js` from app.ts
+9. Plugin registration order — after messageServicePlugin (line 184), before schedulerServicePlugin (line 186)
+10. WorkerDeps construction — correctly maps `fastify.db`, `fastify.boss`, `fastify.smsService`, `fastify.log`
+
+Two non-blocking LOW suggestions noted:
+- Debug-level log on early return in test mode for troubleshooting aid
+- Parallel queue creation for DLQ-independent queues (micro-optimization, negligible benefit)
+
+### Learnings for Future Iterations
+
+- **pg-boss v12 `work()` receives Job[] array**: Handler signature is `(jobs: Job<T>[]) => Promise<void>`. Use `jobs[0]!` with non-null assertion (safe since `batchSize` defaults to 1) rather than array destructuring `([job])` which TypeScript strict mode treats as potentially undefined
+- **pg-boss v12 renamed options**: `teamSize` → `localConcurrency`, `newJobCheckInterval` → `pollingIntervalSeconds`, `archiveCompletedAfterSeconds` → `deleteAfterSeconds`
+- **DLQ creation order matters**: Dead letter queues must exist before `createQueue()` references them in the `deadLetter` option
+- **`boss.schedule()` is idempotent**: Safe to call on every startup — updates existing schedules
+- **`boss.createQueue()` is idempotent**: Internally uses CREATE TABLE IF NOT EXISTS pattern
+- **Plugin name**: `"queue-workers"` (distinct from `"queue"` which is the pg-boss lifecycle plugin)
+- **No new tests needed**: Plugin is fully guarded by NODE_ENV check; test suite count unchanged at 1047
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 7 iterations
+- **Phase 3 worker registration started**: Queue infrastructure now complete — queues created, cron scheduled, workers registered. Next task is Phase 3 cleanup.
