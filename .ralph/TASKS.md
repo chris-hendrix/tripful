@@ -18,7 +18,7 @@
 
 ## Phase 2: Workers
 
-- [ ] Task 2.1: Create leaf workers (notification-deliver, invitation-send) with unit tests
+- [x] Task 2.1: Create leaf workers (notification-deliver, invitation-send) with unit tests
   - Implement: Create `apps/api/src/queues/workers/notification-deliver.worker.ts` — handleNotificationDeliver(job, deps) calls smsService.sendMessage(phoneNumber, message), lets errors propagate for pg-boss retry
   - Implement: Create `apps/api/src/queues/workers/invitation-send.worker.ts` — handleInvitationSend(job, deps) calls smsService.sendMessage(phoneNumber, message), lets errors propagate
   - Test: Create `apps/api/tests/unit/workers/notification-deliver.worker.test.ts` — test SMS send success, error propagation

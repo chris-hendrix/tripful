@@ -80,3 +80,43 @@ All four cleanup sub-tasks verified complete:
 - **ARCHITECTURE.md now accurate**: Import paths in Types section match actual implementation
 - **Pre-existing web failures stable**: Same 8 tests (app-header nav 5, trip metadata 1, URL validation dialogs 2) — unchanged from iteration 1
 - **API test transient flakiness**: Integration tests (`notification.routes`, `auth.routes`) may show transient 503 failures from database connection timing — retrying resolves them
+
+## Iteration 3 — Task 2.1: Create leaf workers (notification-deliver, invitation-send) with unit tests
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/queues/workers/notification-deliver.worker.ts` | Created | Leaf worker: destructures `job.data`, calls `smsService.sendMessage()`, lets errors propagate |
+| `apps/api/src/queues/workers/invitation-send.worker.ts` | Created | Leaf worker: same pattern for invitation SMS delivery |
+| `apps/api/tests/unit/workers/notification-deliver.worker.test.ts` | Created | Unit tests: success case + error propagation |
+| `apps/api/tests/unit/workers/invitation-send.worker.test.ts` | Created | Unit tests: success case + error propagation |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (4 expected `@typescript-eslint/no-explicit-any` warnings in test mock patterns)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 4 tests across 2 files
+- **API tests (`pnpm test`)**: PASS — 993 tests passed across 45 files
+- **Shared tests**: PASS — 216/216 tests across 12 files
+- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
+
+### Reviewer: APPROVED
+
+No blocking issues. All review criteria passed:
+1. Architecture compliance — workers match ARCHITECTURE.md spec exactly
+2. Type safety — proper generics, no `any` escapes in production code
+3. Error handling — no try/catch, errors propagate for pg-boss retry
+4. Test quality — both success and error propagation cases covered
+5. Code conventions — import style, naming, exports match existing codebase
+6. Test isolation — pure unit tests with no database dependency
+
+### Learnings for Future Iterations
+
+- **`Job<T>` import**: Use `import type { Job } from "pg-boss"` directly rather than `PgBoss.Job<T>` — pg-boss exports `PgBoss` as a class (not namespace), so `PgBoss.Job<T>` causes TS2702. The `Job` type is directly exported.
+- **Worker pattern**: Workers are named async function exports taking `(job: Job<Payload>, deps: WorkerDeps)`. The registration plugin (Task 3.1) will handle the array-to-single-job adaptation since `boss.work()` passes `Job<T>[]`.
+- **Mock WorkerDeps pattern**: `{ db: {} as any, boss: {} as any, smsService: { sendMessage: vi.fn() }, logger: { info: vi.fn(), error: vi.fn() } }` — only mock what the worker uses, stub the rest.
+- **API test count grew**: From 989 (iteration 1) to 993 (4 new worker tests added)
+- **New directories created**: `apps/api/src/queues/workers/` and `apps/api/tests/unit/workers/` — future worker tasks can place files here directly
