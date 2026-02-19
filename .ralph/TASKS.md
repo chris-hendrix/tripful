@@ -1,48 +1,98 @@
-# Post-RSVP Onboarding Wizard - Tasks
+# Tasks: Notification Task Queue with pg-boss
 
-## Phase 1: Wizard Component
+## Phase 1: Infrastructure
 
-- [x] Task 1.1: Create MemberOnboardingWizard with all steps (Arrival, Departure, Events, Done)
-  - Implement: Create `apps/web/src/components/trip/member-onboarding-wizard.tsx` with Sheet wrapper
-  - Implement: Props: `open`, `onOpenChange`, `tripId`, `trip` (TripDetailWithMeta)
-  - Implement: Internal state: `step` (number), `arrivalLocation`, `arrivalTime`, `departureTime`, `addedEvents[]`
-  - Implement: Compute `canAddEvents` from `trip.isOrganizer || trip.allowMembersToAddEvents` and `totalSteps`
-  - Implement: Progress dots in SheetHeader (filled for current/completed, muted for future, "Step X of Y" text)
-  - Implement: Step 0 (Arrival): heading "When are you arriving?", DateTimePicker + Input (location), pre-populate date with `trip.startDate`, auto-detect timezone, "Next" calls `useCreateMemberTravel({ travelType: "arrival", time, location })`, stores location for departure pre-fill
-  - Implement: Step 1 (Departure): heading "When are you leaving?", DateTimePicker + Input (location), pre-populate date with `trip.endDate`, pre-fill location from arrival, "Next" calls `useCreateMemberTravel({ travelType: "departure", time, location })`
-  - Implement: Step 2 (Events, conditional): heading "Want to suggest any activities?", quick-add form (name Input + DateTimePicker), "Add" button calls `useCreateEvent()` per event, shows added events as chips, "Next" advances without additional save
-  - Implement: Done step: heading "You're all set!", summary of saved items (arrival time, departure time, event count), "View Itinerary" button closes wizard
-  - Implement: Navigation footer per step: Back (not on step 0), Skip (ghost variant), Next (gradient variant, loading state while mutation pending)
-  - Implement: SheetTitle uses Playfair font per existing pattern, match existing Sheet dialog styling
-  - Test: Write unit tests in `apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx` covering: step navigation forward/back, skip behavior, arrival form submission calls useCreateMemberTravel, departure pre-fills from arrival location, events step conditionally rendered, done summary reflects saved data
-  - Verify: `pnpm typecheck` — no errors
-  - Verify: `pnpm test` — all tests pass
+- [ ] Task 1.1: Install pg-boss, create queue plugin, types, and TypeScript declarations
+  - Implement: `pnpm add pg-boss --filter @tripful/api`
+  - Implement: Create `apps/api/src/queues/types.ts` with QUEUE constants (7 queue names), payload interfaces (NotificationBatchPayload, NotificationDeliverPayload, InvitationSendPayload), and WorkerDeps interface
+  - Implement: Create `apps/api/src/plugins/queue.ts` as fp() plugin depending on ["config"]. Init PgBoss with connectionString and max:3. Add error handler, boss.start(), onClose -> boss.stop({ graceful: true }). Decorate fastify.boss
+  - Implement: In `apps/api/src/types/index.ts` — add `import type { PgBoss } from "pg-boss"`, add `boss: PgBoss` to FastifyInstance
+  - Implement: In `apps/api/src/app.ts` — import queuePlugin, register after databasePlugin
+  - Verify: `pnpm typecheck` passes
 
-## Phase 2: Integration & Reminder Banner
+- [ ] Task 1.2: Phase 1 cleanup
+  - Review: Read PROGRESS.md entries for Phase 1 tasks
+  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
+  - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
 
-- [x] Task 2.1: Wire wizard into TripPreview and TripDetailContent, create TravelReminderBanner
-  - Implement: In `apps/web/src/components/trip/trip-preview.tsx`, add `onGoingSuccess?: () => void` to TripPreviewProps, call `onGoingSuccess?.()` in handleRsvp onSuccess when `status === "going"`
-  - Implement: In `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`, add `showOnboarding` state, `dynamic()` import for MemberOnboardingWizard, pass `onGoingSuccess` to TripPreview, render wizard after Members Sheet
-  - Implement: Create `apps/web/src/components/trip/travel-reminder-banner.tsx` with props `tripId`, `memberId`, `onAddTravel`
-  - Implement: Banner uses `useMemberTravels(tripId)` to check for arrival entry, `localStorage` for dismiss state
-  - Implement: Banner renders info card with "Add Travel Details" and "Dismiss" buttons, styled with `rounded-2xl border border-primary/20 bg-primary/[0.03] p-5`
-  - Implement: In trip-detail-content.tsx, render TravelReminderBanner between breadcrumb and hero when `trip.userRsvpStatus === "going" && !isLocked`, `onAddTravel` reopens wizard
-  - Test: Write unit tests in `apps/web/src/components/trip/__tests__/travel-reminder-banner.test.tsx` covering: renders when no arrival and not dismissed, hidden when arrival exists, hidden after dismiss, dismiss persists in localStorage, buttons fire correct callbacks
-  - Test: Update `apps/web/src/components/trip/__tests__/trip-preview.test.tsx` to verify `onGoingSuccess` is called when RSVP "going" succeeds
-  - Verify: `pnpm typecheck` — no errors
-  - Verify: `pnpm test` — all tests pass
+## Phase 2: Workers
 
-## Phase 3: E2E Tests
+- [ ] Task 2.1: Create leaf workers (notification-deliver, invitation-send) with unit tests
+  - Implement: Create `apps/api/src/queues/workers/notification-deliver.worker.ts` — handleNotificationDeliver(job, deps) calls smsService.sendMessage(phoneNumber, message), lets errors propagate for pg-boss retry
+  - Implement: Create `apps/api/src/queues/workers/invitation-send.worker.ts` — handleInvitationSend(job, deps) calls smsService.sendMessage(phoneNumber, message), lets errors propagate
+  - Test: Create `apps/api/tests/unit/workers/notification-deliver.worker.test.ts` — test SMS send success, error propagation
+  - Test: Create `apps/api/tests/unit/workers/invitation-send.worker.test.ts` — test SMS send success, error propagation
+  - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-- [x] Task 3.1: Update existing invitation E2E test and add onboarding wizard E2E test
-  - Implement: In `apps/web/tests/e2e/invitation-journey.spec.ts`, update "member RSVPs Going and sees full itinerary" step: after RSVP "Going" and toast, wait for wizard Sheet heading "When are you arriving?", dismiss wizard (click close or skip through), then assert full trip view
-  - Implement: Add new test "member completes onboarding wizard after RSVP" in `invitation-journey.spec.ts`: create trip with start/end dates via API, invite member, auth as member, navigate to trip, RSVP "Going", verify wizard opens, fill arrival (pick date, enter location), click Next, verify departure step, fill departure, click Next, verify events step or done step, skip events if shown, verify "You're all set!" summary, click "View Itinerary", verify full trip view, verify travel entries appear in itinerary
-  - Verify: `pnpm test:e2e` — all E2E tests pass including updated invitation journey and new onboarding test
+- [ ] Task 2.2: Create notification-batch worker with unit tests
+  - Implement: Create `apps/api/src/queues/workers/notification-batch.worker.ts`
+  - Implement: handleNotificationBatch(job, deps) — query going members with phoneNumber, filter excludeUserId, batch query prefs, batch query sentReminders for cron types, build notification+SMS+dedup arrays, bulk insert notifications, bulk insert sentReminders (onConflictDoNothing), batch enqueue SMS via boss.insert()
+  - Implement: Extract getPreferenceField() and shouldSendSms() as helper functions (reuse logic from notification.service.ts:454-496)
+  - Test: Create `apps/api/tests/unit/workers/notification-batch.worker.test.ts` — test member resolution, preference filtering, dedup for cron types, SMS enqueue, excludeUserId filtering. Use mock boss (spy insert/send), real DB, MockSMSService
+  - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-## Phase 4: Final Verification
+- [ ] Task 2.3: Create cron workers (event-reminders, daily-itineraries) with unit tests
+  - Implement: Create `apps/api/src/queues/workers/event-reminders.worker.ts` — extract event query logic from scheduler.service.ts:89-179 (55-65 min window, non-deleted, non-allDay). Batch query trip names. Enqueue notification:batch jobs with singletonKey "event-reminder:${eventId}" and expireInSeconds 300
+  - Implement: Create `apps/api/src/queues/workers/daily-itineraries.worker.ts` — extract trip query + timezone/morning window check from scheduler.service.ts:186-321. Build daily itinerary body. Enqueue notification:batch jobs with singletonKey "daily-itinerary:${tripId}:${todayStr}" and expireInSeconds 900
+  - Test: Create `apps/api/tests/unit/workers/event-reminders.worker.test.ts` — test event query window, batch enqueue with singletonKey, skipping allDay events
+  - Test: Create `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` — test timezone window, event body building, batch enqueue
+  - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-- [x] Task 4.1: Full regression check
-  - Verify: All unit tests pass (`pnpm test`)
-  - Verify: All E2E tests pass (`pnpm test:e2e`)
-  - Verify: Linting passes (`pnpm lint`)
-  - Verify: Type checking passes (`pnpm typecheck`)
+- [ ] Task 2.4: Phase 2 cleanup
+  - Review: Read PROGRESS.md entries for Phase 2 tasks
+  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
+  - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
+
+## Phase 3: Worker Registration
+
+- [ ] Task 3.1: Create worker registration plugin with queue creation and cron schedules
+  - Implement: Create `apps/api/src/queues/index.ts` as fp() plugin depending on ["queue", "database", "sms-service"]
+  - Implement: Guard with NODE_ENV !== "test" (skip worker registration in tests)
+  - Implement: Create queues with options — notification:deliver and invitation:send with retryLimit:3, retryDelay:10, retryBackoff:true, expireInSeconds:300, dead letter queues. Also archiveCompletedAfterSeconds:3600 and deleteAfterSeconds:604800 as queue-level options
+  - Implement: Register cron schedules — event-reminders (*/5 * * * *), daily-itineraries (*/15 * * * *)
+  - Implement: Register all workers via boss.work() — cron workers with longer poll intervals, delivery workers with teamSize:3
+  - Implement: Build WorkerDeps from fastify instance, pass to worker handlers
+  - Implement: In `apps/api/src/app.ts` — import queueWorkersPlugin, register after messageServicePlugin (replaces schedulerServicePlugin position but don't remove scheduler yet)
+  - Verify: `pnpm typecheck` passes
+
+- [ ] Task 3.2: Phase 3 cleanup
+  - Review: Read PROGRESS.md entries for Phase 3 tasks
+  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
+  - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
+
+## Phase 4: Service Refactoring
+
+- [ ] Task 4.1: Refactor NotificationService and InvitationService to use pg-boss with updated tests
+  - Implement: In notification.service.ts — add optional 3rd constructor param `boss: PgBoss | null = null`. Simplify notifyTripMembers(): when boss exists, boss.send('notification:batch', payload) and return; keep existing loop as fallback. Simplify createNotification(): remove shouldSendSms() call, phone lookup, smsService.sendMessage() (lines 281-295), making it a pure DB insert. Remove private shouldSendSms() and getPreferenceField() methods.
+  - Implement: Update plugins/notification-service.ts — pass `fastify.boss ?? null` as 3rd constructor arg
+  - Implement: In invitation.service.ts — add optional 6th constructor param `boss: PgBoss | null = null` (after logger). In createInvitations(): replace SMS for-loop (lines 288-291) with boss.insert() batch enqueue when boss exists; keep fallback loop when null.
+  - Implement: Update plugins/invitation-service.ts — pass `fastify.boss ?? null` as last constructor arg
+  - Test: Update notification.service.test.ts — remove/update assertions expecting smsService.sendMessage from createNotification(). Add tests for notifyTripMembers() with mock boss (verify boss.send called with correct payload) and without boss (fallback loop)
+  - Test: Update invitation.service.test.ts — update SMS dispatch assertions. Add tests for boss path (verify boss.insert called) and fallback path
+  - Verify: `pnpm typecheck` and `pnpm test` pass
+
+- [ ] Task 4.2: Remove SchedulerService and delete old scheduler tests
+  - Implement: Delete `apps/api/src/services/scheduler.service.ts`
+  - Implement: Delete `apps/api/src/plugins/scheduler-service.ts`
+  - Implement: In `apps/api/src/app.ts` — remove scheduler plugin import and registration
+  - Implement: In `apps/api/src/types/index.ts` — remove `schedulerService: ISchedulerService` and its import
+  - Implement: Delete `apps/api/tests/unit/scheduler.service.test.ts` (replaced by cron worker tests)
+  - Implement: Verify no other files import or reference scheduler service
+  - Verify: `pnpm typecheck`, `pnpm lint`, and `pnpm test` pass
+
+- [ ] Task 4.3: Phase 4 cleanup
+  - Review: Read PROGRESS.md entries for Phase 4 tasks
+  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
+  - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
+
+## Phase 5: Final Verification
+
+- [ ] Task 5.1: Full regression check
+  - Verify: `pnpm typecheck` — all packages compile
+  - Verify: `pnpm lint` — no linting errors
+  - Verify: `pnpm test` — all unit + integration tests pass
+  - Verify: `pnpm test:e2e` — E2E tests pass (services use fallback path in test env)
