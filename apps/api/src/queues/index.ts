@@ -25,6 +25,7 @@ import { handleDailyItineraries } from "./workers/daily-itineraries.worker.js";
 export default fp(
   async function queueWorkersPlugin(fastify: FastifyInstance) {
     if (fastify.config.NODE_ENV === "test") {
+      fastify.log.debug("queue workers skipped in test environment");
       return;
     }
 

@@ -320,3 +320,54 @@ Two non-blocking LOW suggestions noted:
 - **No new tests needed**: Plugin is fully guarded by NODE_ENV check; test suite count unchanged at 1047
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 7 iterations
 - **Phase 3 worker registration started**: Queue infrastructure now complete — queues created, cron scheduled, workers registered. Next task is Phase 3 cleanup.
+
+## Iteration 8 — Task 3.2: Phase 3 cleanup
+
+**Status: COMPLETED**
+
+### Review Findings
+
+Reviewed all Phase 3 (Task 3.1) PROGRESS.md entries and identified:
+
+- **FAILURES**: None
+- **BLOCKED items**: None
+- **Deferred items**: None
+- **Reviewer caveats assessed** (2 from Iteration 7, both LOW):
+  1. Silent early return in test mode — **Fixed directly** (debug log added for observability)
+  2. Parallel queue creation for DLQ-independent queues — No action needed. Micro-optimization with negligible startup-time benefit; sequential execution is more readable and clearly shows DLQ dependency ordering.
+- **Architecture doc gap**: ARCHITECTURE.md queue creation code sample was missing `deleteAfterSeconds: 604800` — **Fixed directly**
+- **New FIX tasks needed**: None — all Phase 3 implementation is correct and complete
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/queues/index.ts` | Modified | Added `fastify.log.debug("queue workers skipped in test environment")` before early return in test guard |
+| `.ralph/ARCHITECTURE.md` | Modified | Added `deleteAfterSeconds: 604800` to queue creation code sample to match actual implementation |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (27 `@typescript-eslint/no-explicit-any` warnings in worker test files — warnings only)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files (no regressions)
+- **Shared tests**: PASS — 216/216 tests across 12 files
+- **Web tests**: 8 pre-existing failures unrelated to queue work (1063 passing)
+
+### Reviewer: APPROVED
+
+All cleanup sub-tasks verified complete:
+1. PROGRESS.md entries reviewed thoroughly for Phase 3 (Iteration 7 only)
+2. No FAILURES, BLOCKED, or deferred items found
+3. Two reviewer caveats assessed: one fixed directly (debug log), one justified as no-action (parallel queue creation)
+4. Architecture doc gap fixed (deleteAfterSeconds added to code sample)
+5. Full test suite passed with no regressions
+6. No new FIX tasks needed
+
+### Learnings for Future Iterations
+
+- **ARCHITECTURE.md now fully accurate**: Queue creation code sample matches implementation including `deleteAfterSeconds`
+- **Debug logging convention for test guards**: `fastify.log.debug("... skipped in test environment")` provides visibility when troubleshooting without affecting production or test output
+- **Phase 3 complete**: Worker registration plugin fully implemented and cleaned up. Queue infrastructure is ready: 7 queues created, 2 cron schedules registered, 5 workers registered with proper concurrency/polling options
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 8 iterations
+- **API test count stable**: 1047 tests (unchanged — cleanup added no new tests)
+- **Next phase**: Phase 4 (Service Refactoring) — refactor NotificationService and InvitationService to use pg-boss, then remove SchedulerService

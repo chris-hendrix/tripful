@@ -158,6 +158,7 @@ await boss.createQueue(QUEUE.NOTIFICATION_DELIVER, {
   retryBackoff: true,
   expireInSeconds: 300,
   deadLetter: QUEUE.NOTIFICATION_DELIVER_DLQ,
+  deleteAfterSeconds: 604800,
 });
 ```
 
