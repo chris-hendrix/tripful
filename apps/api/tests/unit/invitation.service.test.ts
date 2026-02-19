@@ -24,6 +24,7 @@ import {
   LastOrganizerError,
 } from "@/errors.js";
 import { QUEUE } from "@/queues/types.js";
+import type { PgBoss } from "pg-boss";
 
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
@@ -1047,7 +1048,7 @@ describe("invitation.service", () => {
       const mockBoss = {
         send: vi.fn().mockResolvedValue(undefined),
         insert: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as PgBoss;
       const serviceWithBoss = new InvitationService(
         db,
         permissionsService,
@@ -1108,7 +1109,7 @@ describe("invitation.service", () => {
       const mockBoss = {
         send: vi.fn().mockResolvedValue(undefined),
         insert: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as PgBoss;
       const serviceWithBoss = new InvitationService(
         db,
         permissionsService,

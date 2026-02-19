@@ -4,8 +4,9 @@ import { db } from "@/config/database.js";
 import { events, members, trips, users } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { handleEventReminders } from "@/queues/workers/event-reminders.worker.js";
-import type { WorkerDeps } from "@/queues/types.js";
+import type { WorkerDeps, NotificationBatchPayload } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
+import type { SendOptions } from "pg-boss";
 import { generateUniquePhone } from "../../test-utils.js";
 
 describe("event-reminders.worker", () => {
@@ -76,14 +77,14 @@ describe("event-reminders.worker", () => {
       db,
       boss: {
         send: vi.fn().mockResolvedValue(undefined),
-      } as any,
-      smsService: { sendMessage: vi.fn() } as any,
+      } as unknown as WorkerDeps["boss"],
+      smsService: { sendMessage: vi.fn() } as unknown as WorkerDeps["smsService"],
       logger: {
         info: vi.fn(),
         error: vi.fn(),
         warn: vi.fn(),
         debug: vi.fn(),
-      } as any,
+      } as unknown as WorkerDeps["logger"],
     };
   });
 
@@ -155,7 +156,7 @@ describe("event-reminders.worker", () => {
     await handleEventReminders(createMockJob(), mockDeps);
 
     expect(mockDeps.boss.send).toHaveBeenCalledTimes(1);
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("Beach Party starts in 1 hour at Waikiki Beach");
   });
 
@@ -231,7 +232,7 @@ describe("event-reminders.worker", () => {
 
     await handleEventReminders(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.title).toBe("Reminder Test Trip");
   });
 
@@ -272,8 +273,8 @@ describe("event-reminders.worker", () => {
 
     // Each call should use the event's id as singletonKey
     const singletonKeys = [
-      (call1[2] as any).singletonKey,
-      (call2[2] as any).singletonKey,
+      (call1[2] as SendOptions).singletonKey,
+      (call2[2] as SendOptions).singletonKey,
     ];
     expect(singletonKeys).toContain(`event-reminder:${event1[0].id}`);
     expect(singletonKeys).toContain(`event-reminder:${event2[0].id}`);
@@ -295,7 +296,7 @@ describe("event-reminders.worker", () => {
 
     await handleEventReminders(createMockJob(), mockDeps);
 
-    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as any;
+    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as SendOptions;
     expect(options.singletonKey).toBe(
       `event-reminder:${eventResult[0].id}`,
     );
@@ -344,7 +345,7 @@ describe("event-reminders.worker", () => {
 
     await handleEventReminders(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.data.referenceId).toBe(eventResult[0].id);
     expect(payload.data.eventId).toBe(eventResult[0].id);
   });

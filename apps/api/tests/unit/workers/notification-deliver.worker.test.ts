@@ -13,8 +13,8 @@ describe("notification-deliver.worker", () => {
     vi.clearAllMocks();
 
     mockDeps = {
-      db: {} as any,
-      boss: {} as any,
+      db: {} as unknown as WorkerDeps["db"],
+      boss: {} as unknown as WorkerDeps["boss"],
       smsService: {
         sendMessage: vi.fn(),
       },

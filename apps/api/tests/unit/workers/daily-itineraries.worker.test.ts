@@ -4,8 +4,9 @@ import { db } from "@/config/database.js";
 import { events, members, trips, users } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { handleDailyItineraries } from "@/queues/workers/daily-itineraries.worker.js";
-import type { WorkerDeps } from "@/queues/types.js";
+import type { WorkerDeps, NotificationBatchPayload } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
+import type { SendOptions } from "pg-boss";
 import { generateUniquePhone } from "../../test-utils.js";
 
 describe("daily-itineraries.worker", () => {
@@ -55,14 +56,14 @@ describe("daily-itineraries.worker", () => {
       db,
       boss: {
         send: vi.fn().mockResolvedValue(undefined),
-      } as any,
-      smsService: { sendMessage: vi.fn() } as any,
+      } as unknown as WorkerDeps["boss"],
+      smsService: { sendMessage: vi.fn() } as unknown as WorkerDeps["smsService"],
       logger: {
         info: vi.fn(),
         error: vi.fn(),
         warn: vi.fn(),
         debug: vi.fn(),
-      } as any,
+      } as unknown as WorkerDeps["logger"],
     };
   });
 
@@ -189,8 +190,8 @@ describe("daily-itineraries.worker", () => {
         destination: "Test Destination",
         preferredTimezone: "UTC",
         createdBy: testOrganizerId,
-        startDate: null as any,
-        endDate: null as any,
+        startDate: null,
+        endDate: null,
       })
       .returning();
     testTripId = tripResult[0].id;
@@ -269,7 +270,7 @@ describe("daily-itineraries.worker", () => {
     await handleDailyItineraries(createMockJob(), mockDeps);
 
     expect(mockDeps.boss.send).toHaveBeenCalledTimes(1);
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe(
       "1. 9:00 AM - Morning Coffee\n2. 2:30 PM - City Tour",
     );
@@ -286,7 +287,7 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -312,7 +313,7 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -347,7 +348,7 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("1. 10:00 AM - Today Event");
     expect(payload.body).not.toContain("Tomorrow Event");
   });
@@ -363,13 +364,13 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as any;
+    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as SendOptions;
     expect(options.singletonKey).toBe(
       `daily-itinerary:${trip.id}:2026-03-15`,
     );
     expect(options.expireInSeconds).toBe(900);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.data.referenceId).toBe(`${trip.id}:2026-03-15`);
     expect(payload.data.tripId).toBe(trip.id);
   });
@@ -491,7 +492,7 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as any;
+    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
     expect(payload.title).toBe("Daily Itinerary Trip - Today's Schedule");
     expect(payload.type).toBe("daily_itinerary");
   });

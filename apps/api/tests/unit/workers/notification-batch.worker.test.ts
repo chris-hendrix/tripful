@@ -169,12 +169,12 @@ describe("notification-batch.worker", () => {
 
     mockDeps = {
       db,
-      boss: { insert: vi.fn().mockResolvedValue(undefined) } as any,
+      boss: { insert: vi.fn().mockResolvedValue(undefined) } as unknown as WorkerDeps["boss"],
       smsService: new MockSMSService(),
       logger: {
         info: vi.fn(),
         error: vi.fn(),
-      } as any,
+      } as unknown as WorkerDeps["logger"],
     };
   });
 

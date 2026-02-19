@@ -12,6 +12,7 @@ import { NotificationService } from "@/services/notification.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import { NotificationNotFoundError } from "@/errors.js";
 import { QUEUE } from "@/queues/types.js";
+import type { PgBoss } from "pg-boss";
 
 // Create service instances with db for testing (no boss = fallback path)
 const notificationService = new NotificationService(db);
@@ -640,7 +641,7 @@ describe("notification.service", () => {
       const mockBoss = {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as PgBoss;
       const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
@@ -667,7 +668,7 @@ describe("notification.service", () => {
       const mockBoss = {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as PgBoss;
       const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
@@ -692,7 +693,7 @@ describe("notification.service", () => {
       const mockBoss = {
         send: vi.fn().mockResolvedValue("job-id"),
         insert: vi.fn().mockResolvedValue(undefined),
-      } as any;
+      } as unknown as PgBoss;
       const serviceWithBoss = new NotificationService(db, mockBoss);
 
       await serviceWithBoss.notifyTripMembers({
