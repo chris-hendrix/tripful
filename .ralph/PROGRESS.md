@@ -120,3 +120,47 @@ No blocking issues. All review criteria passed:
 - **Mock WorkerDeps pattern**: `{ db: {} as any, boss: {} as any, smsService: { sendMessage: vi.fn() }, logger: { info: vi.fn(), error: vi.fn() } }` — only mock what the worker uses, stub the rest.
 - **API test count grew**: From 989 (iteration 1) to 993 (4 new worker tests added)
 - **New directories created**: `apps/api/src/queues/workers/` and `apps/api/tests/unit/workers/` — future worker tasks can place files here directly
+
+## Iteration 4 — Task 2.2: Create notification-batch worker with unit tests
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/queues/workers/notification-batch.worker.ts` | Created | Fan-out batch worker: resolves members, checks prefs, dedup for cron types, bulk inserts notifications + sentReminders, batch enqueues SMS |
+| `apps/api/tests/unit/workers/notification-batch.worker.test.ts` | Created | 22 tests: helper function unit tests (9), integration tests with real DB (13) |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (6 acceptable `@typescript-eslint/no-explicit-any` warnings in test mocks)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 26 tests across 3 files (22 new + 4 existing)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1015 tests across 46 files (no regressions)
+
+### Reviewer: APPROVED
+
+All 10 review criteria passed:
+1. Architecture compliance — worker matches ARCHITECTURE.md spec exactly (8 steps: member resolution, exclude filtering, batch preferences, dedup, notification insert, sentReminders insert, SMS enqueue)
+2. Type safety — zero `any` in production code, proper generics for Job<NotificationBatchPayload>
+3. Error handling — no try-catch, errors propagate for pg-boss retry
+4. Query efficiency — 3 batched queries replace N+1 pattern from original notifyTripMembers()
+5. Code conventions — @/ alias + .js extensions, naming matches codebase
+6. Helper function correctness — getPreferenceField() and shouldSendSms() match original notification.service.ts logic exactly
+7. Test coverage — all required scenarios covered (member resolution, prefs, dedup, SMS enqueue, excludeUserId)
+8. Test quality — real DB, mock boss spy, generateUniquePhone() isolation, proper FK-ordered cleanup
+9. Dedup correctness — sentReminders checked/inserted only for cron types (event_reminder, daily_itinerary)
+10. SMS message format — `${title}: ${body}` matches original
+
+Three non-blocking suggestions noted (LOW priority): `as any` in test mocks consistent with existing pattern, redundant cleanup is defensive, `type` parameter could be narrowed but matches shared types.
+
+### Learnings for Future Iterations
+
+- **Batch worker DB test pattern**: Use real DB with `generateUniquePhone()` isolation, mock only `boss` (spy on `insert`), cleanup in FK order: sentReminders → notifications → notificationPreferences → members → trips → users
+- **Default preferences**: When no notificationPreferences row exists for a (userId, tripId), default to `{ eventReminders: true, dailyItinerary: true, tripMessages: true }` — matches getPreferences() behavior in notification.service.ts
+- **Cron type identification**: `event_reminder` and `daily_itinerary` are the two cron types that need sentReminders dedup. `trip_update` and `trip_message` are real-time and skip dedup.
+- **referenceId for dedup**: Passed via `data.referenceId` in the batch payload. Cron workers (Task 2.3) will set this when enqueuing batch jobs.
+- **boss.insert() batch API**: `boss.insert(queueName, [{ data: payload }, ...])` — takes an array of JobInsert objects
+- **API test count**: From 993 (iteration 3) to 1015 (22 new batch worker tests added)
+- **Helper functions exported**: `getPreferenceField()` and `shouldSendSms()` are exported from the worker file for testability — future Task 4.1 can remove the private methods from NotificationService

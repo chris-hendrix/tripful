@@ -25,7 +25,7 @@
   - Test: Create `apps/api/tests/unit/workers/invitation-send.worker.test.ts` — test SMS send success, error propagation
   - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-- [ ] Task 2.2: Create notification-batch worker with unit tests
+- [x] Task 2.2: Create notification-batch worker with unit tests
   - Implement: Create `apps/api/src/queues/workers/notification-batch.worker.ts`
   - Implement: handleNotificationBatch(job, deps) — query going members with phoneNumber, filter excludeUserId, batch query prefs, batch query sentReminders for cron types, build notification+SMS+dedup arrays, bulk insert notifications, bulk insert sentReminders (onConflictDoNothing), batch enqueue SMS via boss.insert()
   - Implement: Extract getPreferenceField() and shouldSendSms() as helper functions (reuse logic from notification.service.ts:454-496)
