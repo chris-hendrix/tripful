@@ -164,3 +164,52 @@ Three non-blocking suggestions noted (LOW priority): `as any` in test mocks cons
 - **boss.insert() batch API**: `boss.insert(queueName, [{ data: payload }, ...])` — takes an array of JobInsert objects
 - **API test count**: From 993 (iteration 3) to 1015 (22 new batch worker tests added)
 - **Helper functions exported**: `getPreferenceField()` and `shouldSendSms()` are exported from the worker file for testability — future Task 4.1 can remove the private methods from NotificationService
+
+## Iteration 5 — Task 2.3: Create cron workers (event-reminders, daily-itineraries) with unit tests
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/queues/workers/event-reminders.worker.ts` | Created | Cron worker: queries events in 55-65 min window (non-deleted, non-allDay), batch queries trip names via inArray, enqueues notification:batch jobs with singletonKey |
+| `apps/api/src/queues/workers/daily-itineraries.worker.ts` | Created | Cron worker: queries active trips, checks timezone morning window (7:45-8:15 AM), date range, builds event body, enqueues notification:batch jobs with singletonKey |
+| `apps/api/tests/unit/workers/event-reminders.worker.test.ts` | Created | 13 tests: event window, allDay skip, deleted skip, location in body, trip name resolution, multiple events, singletonKey, referenceId, boundary tests |
+| `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` | Created | 19 tests: timezone window, cancelled/dateless trip skip, date range, event body formatting, empty events, deleted event exclusion, singletonKey, referenceId, boundary tests (7:44/7:45/8:15/8:16) |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (27 acceptable `@typescript-eslint/no-explicit-any` warnings in test mocks)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files (13 event-reminders + 19 daily-itineraries + 22 notification-batch + 2 notification-deliver + 2 invitation-send)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files
+- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
+
+### Reviewer: APPROVED
+
+All 10 review criteria passed:
+1. Architecture compliance — workers query DB and enqueue batch jobs only; no member resolution, preference checking, or notification creation
+2. Type safety — zero `any` in production code, `Job<object>` for cron jobs (pg-boss sends `{}`)
+3. Error handling — no try-catch, errors propagate for pg-boss retry
+4. Query correctness — event window (55-65 min), daily itinerary timezone morning window (7:45-8:15), date range checks match scheduler.service.ts exactly
+5. Code conventions — `@/` alias + `.js` extensions, named exports, consistent with existing workers
+6. Payload correctness — `data.referenceId` included for batch worker dedup, singletonKey format matches architecture spec, expireInSeconds correct (300/900)
+7. Test quality — all TASKS.md scenarios covered plus boundary tests
+8. Test isolation — `vi.useFakeTimers()`/`vi.useRealTimers()` in before/afterEach, `generateUniquePhone()` for user isolation, proper FK-ordered cleanup
+9. Batch trip query — event-reminders uses `inArray(trips.id, tripIds)` with Map, eliminating N+1
+10. Daily itinerary body — numbered list with `h:mm a` format and "No events scheduled for today." when empty, matching scheduler.service.ts exactly
+
+Three non-blocking LOW suggestions noted: shared `createMockDeps()` helper, structured logging parity for daily-itineraries worker, and in-memory event date filtering (faithful to original scheduler).
+
+### Learnings for Future Iterations
+
+- **Cron job `Job<object>` type**: pg-boss sends `{}` as cron payload. Use `Job<object>` (not `Job<void>`) and prefix parameter with underscore: `_job: Job<object>`
+- **`boss.send()` for cron->batch enqueue**: `boss.send(queueName, data, options)` where options includes `singletonKey` and `expireInSeconds` — distinct from `boss.insert()` which takes array for batch
+- **Batch trip name lookup**: Use `inArray(trips.id, tripIds)` + Map for O(1) lookups, replacing N+1 queries from original scheduler
+- **vi.useFakeTimers pattern for timezone tests**: Set system time to a known UTC instant, configure trip with timezone, assert morning window detection. Must call `vi.useRealTimers()` in afterEach to avoid affecting DB operations
+- **Cleanup order with events**: events → members → trips → users (events FK→trips via tripId, events FK→users via createdBy)
+- **Events table requires**: `createdBy` (FK users), `eventType` (enum: 'travel', 'meal', 'activity'), and `startTime` (timestamp tz, NOT NULL)
+- **API test count**: From 1015 (iteration 4) to 1047 (32 new cron worker tests added)
+- **Pre-existing web failures**: Same 8 tests unchanged from previous iterations
+- **Unused variable lint error**: When `createTrip()` return value is not needed, call without assignment to avoid `@typescript-eslint/no-unused-vars` error

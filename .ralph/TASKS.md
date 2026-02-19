@@ -32,7 +32,7 @@
   - Test: Create `apps/api/tests/unit/workers/notification-batch.worker.test.ts` — test member resolution, preference filtering, dedup for cron types, SMS enqueue, excludeUserId filtering. Use mock boss (spy insert/send), real DB, MockSMSService
   - Verify: `pnpm typecheck` and `pnpm test -- tests/unit/workers/` pass
 
-- [ ] Task 2.3: Create cron workers (event-reminders, daily-itineraries) with unit tests
+- [x] Task 2.3: Create cron workers (event-reminders, daily-itineraries) with unit tests
   - Implement: Create `apps/api/src/queues/workers/event-reminders.worker.ts` — extract event query logic from scheduler.service.ts:89-179 (55-65 min window, non-deleted, non-allDay). Batch query trip names. Enqueue notification:batch jobs with singletonKey "event-reminder:${eventId}" and expireInSeconds 300
   - Implement: Create `apps/api/src/queues/workers/daily-itineraries.worker.ts` — extract trip query + timezone/morning window check from scheduler.service.ts:186-321. Build daily itinerary body. Enqueue notification:batch jobs with singletonKey "daily-itinerary:${tripId}:${todayStr}" and expireInSeconds 900
   - Test: Create `apps/api/tests/unit/workers/event-reminders.worker.test.ts` — test event query window, batch enqueue with singletonKey, skipping allDay events
