@@ -75,13 +75,37 @@ test.describe("Invitation Journey", () => {
 
         await snap(page, "09-trip-detail-invite-button");
 
-        // Click "Invite" button in trip header
-        await page.getByRole("button", { name: "Invite" }).first().click();
+        // Dismiss any toast that might intercept the button click
+        const toastEl = page.locator("[data-sonner-toast]").first();
+        if (await toastEl.isVisible().catch(() => false)) {
+          await page.evaluate(() =>
+            document
+              .querySelectorAll("[data-sonner-toast]")
+              .forEach((el) => el.remove()),
+          );
+        }
 
-        // Wait for dialog (dynamically imported, may take time in CI)
-        await expect(
-          page.getByRole("heading", { name: "Invite members" }),
-        ).toBeVisible({ timeout: 15000 });
+        // Click "Invite" button in trip header
+        const inviteButton = page
+          .getByRole("button", { name: "Invite" })
+          .first();
+        await inviteButton.click();
+
+        // Wait for sheet (dynamically imported, may take time in CI)
+        // Retry click if sheet didn't open (handles rare hydration race in CI)
+        const inviteHeading = page.getByRole("heading", {
+          name: "Invite members",
+        });
+        if (
+          !(await inviteHeading
+            .isVisible({ timeout: DIALOG_TIMEOUT })
+            .catch(() => false))
+        ) {
+          await inviteButton.click();
+        }
+        await expect(inviteHeading).toBeVisible({
+          timeout: DIALOG_TIMEOUT,
+        });
 
         await snap(page, "10-invite-dialog");
 

@@ -363,8 +363,16 @@ test.describe("Itinerary Journey", () => {
       await page.locator('input[name="location"]').fill("Las Vegas Airport");
       await page.getByRole("button", { name: "Add travel details" }).click();
 
-      // Travel card shows member name
-      await expect(page.getByText(/View Mode User/).first()).toBeVisible();
+      // Wait for success toast confirming API call completed (refetch follows)
+      await expect(page.getByText(/travel details added/i)).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Travel card shows member name (appears after refetch with JOIN data;
+      // optimistic update lacks memberName so the real name loads on refetch)
+      await expect(page.getByText(/View Mode User/).first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Location is a Google Maps link
       const airportLink = page.getByRole("link", { name: "Las Vegas Airport" });
