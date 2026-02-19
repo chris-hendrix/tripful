@@ -90,9 +90,9 @@ export default fp(
 
 ```typescript
 import type { PgBoss } from "pg-boss";
-import type { AppDatabase } from "@/config/database.js";
+import type { AppDatabase } from "@/types/index.js";
 import type { ISMSService } from "@/services/sms.service.js";
-import type { Logger } from "pino";
+import type { Logger } from "@/types/logger.js";
 
 // Queue name constants
 export const QUEUE = {

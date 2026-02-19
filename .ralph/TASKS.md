@@ -10,7 +10,7 @@
   - Implement: In `apps/api/src/app.ts` — import queuePlugin, register after databasePlugin
   - Verify: `pnpm typecheck` passes
 
-- [ ] Task 1.2: Phase 1 cleanup
+- [x] Task 1.2: Phase 1 cleanup
   - Review: Read PROGRESS.md entries for Phase 1 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
