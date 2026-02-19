@@ -13,6 +13,9 @@ import type { ISMSService } from "./sms.service.js";
 import type { INotificationService } from "./notification.service.js";
 import type { Logger } from "@/types/logger.js";
 import type { MemberWithProfile } from "@tripful/shared/types";
+import type { PgBoss } from "pg-boss";
+import { QUEUE } from "@/queues/types.js";
+import type { InvitationSendPayload } from "@/queues/types.js";
 import {
   PermissionDeniedError,
   TripNotFoundError,
@@ -125,6 +128,7 @@ export class InvitationService implements IInvitationService {
     private smsService: ISMSService,
     private notificationService: INotificationService,
     private logger?: Logger,
+    private boss: PgBoss | null = null,
   ) {}
 
   /**
@@ -285,9 +289,24 @@ export class InvitationService implements IInvitationService {
       }
     });
 
-    // Send SMS for each new phone (mock - just logs)
-    for (const phone of newPhones) {
-      await this.smsService.sendMessage(phone, "You've been invited to a trip on Tripful!");
+    // Send invitation SMS via queue or fallback to inline delivery
+    if (this.boss && newPhones.length > 0) {
+      await this.boss.insert(
+        QUEUE.INVITATION_SEND,
+        newPhones.map((phone) => ({
+          data: {
+            phoneNumber: phone,
+            message: "You've been invited to a trip on Tripful!",
+          } as InvitationSendPayload,
+        })),
+      );
+    } else {
+      for (const phone of newPhones) {
+        await this.smsService.sendMessage(
+          phone,
+          "You've been invited to a trip on Tripful!",
+        );
+      }
     }
 
     return { invitations: createdInvitations, skipped };

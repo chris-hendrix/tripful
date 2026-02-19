@@ -14,11 +14,12 @@ export default fp(
     const notificationService = new NotificationService(
       fastify.db,
       fastify.smsService,
+      fastify.boss ?? null,
     );
     fastify.decorate("notificationService", notificationService);
   },
   {
     name: "notification-service",
-    dependencies: ["database", "sms-service"],
+    dependencies: ["database", "sms-service", "queue"],
   },
 );

@@ -31,6 +31,11 @@ export default fp(
 
     const { boss } = fastify;
 
+    // Boss is guaranteed non-null in non-test environments (queue plugin starts it)
+    if (!boss) {
+      throw new Error("pg-boss instance is not available");
+    }
+
     // --- Create queues (DLQs first) ---
 
     await boss.createQueue(QUEUE.NOTIFICATION_DELIVER_DLQ);
@@ -69,7 +74,7 @@ export default fp(
 
     const deps: WorkerDeps = {
       db: fastify.db,
-      boss: fastify.boss,
+      boss,
       smsService: fastify.smsService,
       logger: fastify.log,
     };

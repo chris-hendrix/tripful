@@ -8,6 +8,9 @@ import {
 import type { AppDatabase } from "@/types/index.js";
 import type { ISMSService } from "@/services/sms.service.js";
 import { NotificationNotFoundError } from "@/errors.js";
+import type { PgBoss } from "pg-boss";
+import { QUEUE } from "@/queues/types.js";
+import type { NotificationBatchPayload } from "@/queues/types.js";
 
 /**
  * Internal result type for notification queries
@@ -100,7 +103,8 @@ export interface INotificationService {
 export class NotificationService implements INotificationService {
   constructor(
     private db: AppDatabase,
-    private smsService: ISMSService,
+    _smsService: ISMSService,
+    private boss: PgBoss | null = null,
   ) {}
 
   /**
@@ -248,7 +252,8 @@ export class NotificationService implements INotificationService {
   }
 
   /**
-   * Creates a notification and optionally sends an SMS based on user preferences
+   * Creates a notification record in the database (pure DB insert).
+   * SMS delivery is handled separately by queue workers.
    */
   async createNotification(params: {
     userId: string;
@@ -275,25 +280,6 @@ export class NotificationService implements INotificationService {
 
     if (!notification) {
       throw new Error("Failed to create notification");
-    }
-
-    // Check if we should send SMS
-    const shouldSendSms = await this.shouldSendSms(userId, tripId, type);
-
-    if (shouldSendSms) {
-      // Look up user's phone number
-      const [user] = await this.db
-        .select({ phoneNumber: users.phoneNumber })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-
-      if (user) {
-        await this.smsService.sendMessage(
-          user.phoneNumber,
-          `${title}: ${body}`,
-        );
-      }
     }
 
     return {
@@ -323,7 +309,20 @@ export class NotificationService implements INotificationService {
   }): Promise<void> {
     const { tripId, type, title, body, data, excludeUserId } = params;
 
-    // Query going members
+    // When pg-boss is available, delegate to the notification batch queue
+    if (this.boss) {
+      await this.boss.send(QUEUE.NOTIFICATION_BATCH, {
+        tripId,
+        type,
+        title,
+        body,
+        data,
+        excludeUserId,
+      } as NotificationBatchPayload);
+      return;
+    }
+
+    // Fallback: inline member loop when no queue is available
     const goingMembers = await this.db
       .select({
         userId: members.userId,
@@ -333,7 +332,6 @@ export class NotificationService implements INotificationService {
       .innerJoin(users, eq(members.userId, users.id))
       .where(and(eq(members.tripId, tripId), eq(members.status, "going")));
 
-    // Create notification for each member (excluding the specified user)
     for (const member of goingMembers) {
       if (excludeUserId && member.userId === excludeUserId) {
         continue;
@@ -446,52 +444,5 @@ export class NotificationService implements INotificationService {
         tripMessages: true,
       })
       .onConflictDoNothing();
-  }
-
-  /**
-   * Determines whether an SMS should be sent based on notification type and user preferences
-   */
-  private async shouldSendSms(
-    userId: string,
-    tripId: string | undefined,
-    type: string,
-  ): Promise<boolean> {
-    // trip_update notifications always send
-    if (type === "trip_update") {
-      return true;
-    }
-
-    // Map notification type to preference field
-    const prefField = this.getPreferenceField(type);
-    if (!prefField) {
-      // Unknown type, default to sending
-      return true;
-    }
-
-    // If no tripId, we can't look up preferences, default to sending
-    if (!tripId) {
-      return true;
-    }
-
-    const prefs = await this.getPreferences(userId, tripId);
-    return prefs[prefField];
-  }
-
-  /**
-   * Maps a notification type to its corresponding preference field
-   */
-  private getPreferenceField(
-    type: string,
-  ): "eventReminders" | "dailyItinerary" | "tripMessages" | null {
-    switch (type) {
-      case "event_reminder":
-        return "eventReminders";
-      case "daily_itinerary":
-        return "dailyItinerary";
-      case "trip_message":
-        return "tripMessages";
-      default:
-        return null;
-    }
   }
 }

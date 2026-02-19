@@ -50,7 +50,7 @@ declare module "fastify" {
   interface FastifyInstance {
     config: Env;
     db: NodePgDatabase<FullSchema>;
-    boss: PgBoss;
+    boss: PgBoss | null;
     authService: IAuthService;
     tripService: ITripService;
     permissionsService: IPermissionsService;

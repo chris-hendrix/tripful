@@ -371,3 +371,59 @@ All cleanup sub-tasks verified complete:
 - **Pre-existing web failures stable**: Same 8 tests unchanged across all 8 iterations
 - **API test count stable**: 1047 tests (unchanged — cleanup added no new tests)
 - **Next phase**: Phase 4 (Service Refactoring) — refactor NotificationService and InvitationService to use pg-boss, then remove SchedulerService
+
+## Iteration 9 — Task 4.1: Refactor NotificationService and InvitationService to use pg-boss with updated tests
+
+**Status: COMPLETED**
+
+### Changes Made
+
+| File | Action | Description |
+|------|--------|-------------|
+| `apps/api/src/services/notification.service.ts` | Modified | Added `boss: PgBoss \| null = null` as optional 3rd constructor param. `notifyTripMembers()` delegates to `QUEUE.NOTIFICATION_BATCH` when boss exists, falls back to inline loop when null. `createNotification()` simplified to pure DB insert (SMS removed). Deleted private `shouldSendSms()` and `getPreferenceField()` methods. |
+| `apps/api/src/plugins/notification-service.ts` | Modified | Pass `fastify.boss ?? null` as 3rd arg. Added `"queue"` to dependencies. |
+| `apps/api/src/services/invitation.service.ts` | Modified | Added `boss: PgBoss \| null = null` as optional 6th constructor param (after logger). `createInvitations()` uses `boss.insert(QUEUE.INVITATION_SEND, ...)` when boss exists, falls back to inline SMS loop when null. |
+| `apps/api/src/plugins/invitation-service.ts` | Modified | Pass `fastify.boss ?? null` as last arg. Added `"queue"` to dependencies. |
+| `apps/api/src/plugins/queue.ts` | Modified | Decorates `boss: null` in test environment to avoid connection pool exhaustion. |
+| `apps/api/src/types/index.ts` | Modified | Changed `boss: PgBoss` to `boss: PgBoss \| null` in FastifyInstance declaration. |
+| `apps/api/src/queues/index.ts` | Modified | Added null guard for boss after early return for test env. |
+| `apps/api/tests/unit/notification.service.test.ts` | Modified | Updated createNotification tests to expect pure DB insert (no SMS). Renamed notifyTripMembers describe to "fallback without boss". Added new "with boss queue" describe block testing boss.send with correct payload. |
+| `apps/api/tests/unit/invitation.service.test.ts` | Modified | Added "with boss queue" describe testing boss.insert with correct payload. Added "fallback without boss" describe testing inline SMS loop. |
+
+### Verification Results
+
+- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
+- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — warnings only)
+- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1051 tests across 48 files (4 new tests added)
+- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
+- **Notification service tests**: PASS — 34 tests in 1 file
+- **Invitation service tests**: PASS — 37 tests in 1 file
+- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
+
+### Reviewer: APPROVED
+
+All 10 review criteria passed:
+1. Architecture compliance — services match ARCHITECTURE.md spec exactly
+2. Type safety — no `any` in production code, proper PgBoss typing with null union
+3. Fallback paths — both services work correctly with boss = null
+4. Import conventions — `@/` alias + `.js` extensions, type imports for PgBoss
+5. Plugin wiring — correct constructor args, `"queue"` in dependencies
+6. Test quality — both boss path (enqueue) and fallback path covered with correct payload assertions
+7. No dead code — `shouldSendSms()` and `getPreferenceField()` removed from NotificationService
+8. Queue type changes — `PgBoss | null` on FastifyInstance, WorkerDeps.boss remains non-null
+9. SMS removal from createNotification — no callers depend on inline SMS behavior
+10. Payload shapes — boss.send uses NotificationBatchPayload, boss.insert uses InvitationSendPayload
+
+Two non-blocking LOW observations:
+- `_smsService` parameter kept in NotificationService for constructor API compatibility (unused but harmless)
+- `as any` in test mock boss objects — standard practice for partial mocks
+
+### Learnings for Future Iterations
+
+- **boss: PgBoss | null pattern**: The FastifyInstance `boss` type is now `PgBoss | null`. In test environments, the queue plugin decorates `null` to avoid connection pool exhaustion. Services use `this.boss?.send()` or explicit null checks.
+- **Queue plugin test guard**: `queue.ts` now returns early with `decorate("boss", null)` in test env, rather than trying to connect pg-boss. This prevents database connection issues in parallel test runs.
+- **queues/index.ts null guard**: The worker registration plugin now checks `if (!fastify.boss)` after the NODE_ENV test guard, providing TypeScript narrowing for the rest of the function.
+- **createNotification is now pure DB insert**: No more SMS from `createNotification()`. SchedulerService (being removed in Task 4.2) still calls it, but inline SMS is no longer needed since cron workers handle batch notifications.
+- **Test count**: From 1047 (iteration 8) to 1051 (4 new tests: 2 notification boss path + 2 invitation boss/fallback)
+- **Pre-existing web failures stable**: Same 8 tests unchanged across all 9 iterations
+- **Next task**: Task 4.2 — Remove SchedulerService and delete old scheduler tests

@@ -65,7 +65,7 @@
 
 ## Phase 4: Service Refactoring
 
-- [ ] Task 4.1: Refactor NotificationService and InvitationService to use pg-boss with updated tests
+- [x] Task 4.1: Refactor NotificationService and InvitationService to use pg-boss with updated tests
   - Implement: In notification.service.ts — add optional 3rd constructor param `boss: PgBoss | null = null`. Simplify notifyTripMembers(): when boss exists, boss.send('notification:batch', payload) and return; keep existing loop as fallback. Simplify createNotification(): remove shouldSendSms() call, phone lookup, smsService.sendMessage() (lines 281-295), making it a pure DB insert. Remove private shouldSendSms() and getPreferenceField() methods.
   - Implement: Update plugins/notification-service.ts — pass `fastify.boss ?? null` as 3rd constructor arg
   - Implement: In invitation.service.ts — add optional 6th constructor param `boss: PgBoss | null = null` (after logger). In createInvitations(): replace SMS for-loop (lines 288-291) with boss.insert() batch enqueue when boss exists; keep fallback loop when null.
