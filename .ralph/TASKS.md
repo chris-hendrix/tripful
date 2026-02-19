@@ -2,7 +2,7 @@
 
 ## Phase 1: Infrastructure
 
-- [ ] Task 1.1: Install pg-boss, create queue plugin, types, and TypeScript declarations
+- [x] Task 1.1: Install pg-boss, create queue plugin, types, and TypeScript declarations
   - Implement: `pnpm add pg-boss --filter @tripful/api`
   - Implement: Create `apps/api/src/queues/types.ts` with QUEUE constants (7 queue names), payload interfaces (NotificationBatchPayload, NotificationDeliverPayload, InvitationSendPayload), and WorkerDeps interface
   - Implement: Create `apps/api/src/plugins/queue.ts` as fp() plugin depending on ["config"]. Init PgBoss with connectionString and max:3. Add error handler, boss.start(), onClose -> boss.stop({ graceful: true }). Decorate fastify.boss

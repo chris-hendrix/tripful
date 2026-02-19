@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 // Plugins
 import configPlugin from "./plugins/config.js";
 import databasePlugin from "./plugins/database.js";
+import queuePlugin from "./plugins/queue.js";
 import authServicePlugin from "./plugins/auth-service.js";
 import permissionsServicePlugin from "./plugins/permissions-service.js";
 import tripServicePlugin from "./plugins/trip-service.js";
@@ -82,6 +83,9 @@ export async function buildApp(
 
   // Register database plugin
   await app.register(databasePlugin);
+
+  // Register queue plugin (pg-boss)
+  await app.register(queuePlugin);
 
   // Register CORS
   await app.register(cors, {

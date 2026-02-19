@@ -1,6 +1,7 @@
 // API-specific types
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PgBoss } from "pg-boss";
 import type * as schema from "@/db/schema/index.js";
 import type * as relations from "@/db/schema/relations.js";
 import type { Env } from "@/config/env.js";
@@ -49,6 +50,7 @@ declare module "fastify" {
   interface FastifyInstance {
     config: Env;
     db: NodePgDatabase<FullSchema>;
+    boss: PgBoss;
     authService: IAuthService;
     tripService: ITripService;
     permissionsService: IPermissionsService;
