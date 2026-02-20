@@ -52,6 +52,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VenmoIcon } from "@/components/icons/venmo-icon";
+import { InstagramIcon } from "@/components/icons/instagram-icon";
 import {
   getInitials,
   formatPhoneNumber,
@@ -150,33 +151,29 @@ function MemberRow({
               Muted
             </Badge>
           )}
+          {member.handles?.venmo && (
+            <a
+              href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+              data-testid={`member-venmo-${member.userId}`}
+            >
+              <VenmoIcon className="w-4 h-4" />
+            </a>
+          )}
+          {member.handles?.instagram && (
+            <a
+              href={`https://instagram.com/${member.handles.instagram.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+              data-testid={`member-instagram-${member.userId}`}
+            >
+              <InstagramIcon className="w-4 h-4" />
+            </a>
+          )}
         </div>
-        {member.handles && Object.keys(member.handles).length > 0 && (
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            {member.handles.venmo && (
-              <a
-                href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary"
-                data-testid={`member-venmo-${member.userId}`}
-              >
-                <VenmoIcon className="w-4 h-4" />
-              </a>
-            )}
-            {member.handles.instagram && (
-              <a
-                href={`https://instagram.com/${member.handles.instagram.replace(/^@/, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline"
-                data-testid={`member-instagram-${member.userId}`}
-              >
-                Instagram
-              </a>
-            )}
-          </div>
-        )}
         {member.phoneNumber && (
           <div className="flex items-center gap-1 mt-0.5">
             <Phone className="w-3 h-3 text-muted-foreground" />
