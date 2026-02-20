@@ -1,269 +1,224 @@
-# Architecture: Notification Task Queue with pg-boss
+# Architecture: Member Privacy & List UX
 
 ## Overview
 
-Replace four sequential dispatch patterns (notification member loops, invitation SMS loops, setInterval-based cron jobs) with pg-boss queues. Zero new infrastructure — pg-boss uses the existing PostgreSQL database and auto-creates its own `pgboss` schema.
+Add per-member phone sharing opt-in, organizer-controlled member visibility, fix organizer phone leak in TripDetail, replace Venmo text with SVG icon, and fix member list padding.
 
-## Queue Topology
+## DB Schema
 
-```
-notification:batch          Fan-out: resolve members, check prefs, bulk insert, enqueue SMS
-notification:deliver        Leaf: send one SMS (retry 3x, exponential backoff, DLQ)
-notification:deliver:dlq    Dead letter for failed SMS
-invitation:send             Leaf: send one invitation SMS (retry 3x, exponential backoff, DLQ)
-invitation:send:dlq         Dead letter for failed invitation SMS
-event-reminders             Cron (*/5 * * * *): query upcoming events, enqueue batch jobs
-daily-itineraries           Cron (*/15 * * * *): query active trips, enqueue batch jobs
-```
+Two new columns in `apps/api/src/db/schema/index.ts`:
 
-## Flow
-
-```
-Triggers                          Workers
---------                          -------
-messageService.createMessage  --+
-invitationService.rsvp        --+
-cron: event-reminders         --+---> notification:batch ---> notification:deliver
-cron: daily-itineraries       --+
-invitationService.create      ------> invitation:send
-```
-
-## File Structure
-
-```
-apps/api/src/
-+-- plugins/
-|   +-- queue.ts                          # NEW: pg-boss Fastify plugin
-+-- queues/
-|   +-- types.ts                          # NEW: queue names, payload interfaces, WorkerDeps
-|   +-- index.ts                          # NEW: queue creation, cron schedules, worker registration
-|   +-- workers/
-|       +-- event-reminders.worker.ts     # NEW: cron handler
-|       +-- daily-itineraries.worker.ts   # NEW: cron handler
-|       +-- notification-batch.worker.ts  # NEW: fan-out worker
-|       +-- notification-deliver.worker.ts # NEW: SMS leaf
-|       +-- invitation-send.worker.ts     # NEW: invitation SMS leaf
-+-- services/
-|   +-- notification.service.ts           # MODIFIED: add boss, simplify notifyTripMembers + createNotification
-|   +-- invitation.service.ts             # MODIFIED: add boss, replace SMS loop
-|   +-- scheduler.service.ts             # DELETED
-+-- plugins/
-    +-- notification-service.ts           # MODIFIED: pass boss
-    +-- invitation-service.ts             # MODIFIED: pass boss
-    +-- scheduler-service.ts             # DELETED
-```
-
-## pg-boss Plugin (`plugins/queue.ts`)
-
-Fastify plugin following existing `fp()` pattern. Depends on `["config"]`.
-
+**members table** (after `isOrganizer` at line 145):
 ```typescript
-import { PgBoss } from "pg-boss";  // v12 uses named exports
-import fp from "fastify-plugin";
-
-export default fp(
-  async function queuePlugin(fastify: FastifyInstance) {
-    const boss = new PgBoss({
-      connectionString: fastify.config.DATABASE_URL,
-      max: 3,  // Connection pool limit (shares PG with Drizzle)
-    });
-
-    boss.on("error", (error) => fastify.log.error(error, "pg-boss error"));
-
-    await boss.start();
-
-    fastify.decorate("boss", boss);
-    fastify.addHook("onClose", async () => {
-      await boss.stop({ graceful: true });
-    });
-  },
-  { name: "queue", dependencies: ["config"] },
-);
+sharePhone: boolean("share_phone").notNull().default(false),
 ```
 
-**Important pg-boss v12 notes:**
-- Use named import: `import { PgBoss } from "pg-boss"` (NOT default import)
-- `archiveCompletedAfterSeconds` and `deleteAfterSeconds` are queue-level options (passed to `createQueue()`), NOT constructor options
-- pg-boss manages its own connection pool separate from Drizzle
-
-## Types (`queues/types.ts`)
-
+**trips table** (after `allowMembersToAddEvents` at line 113-115):
 ```typescript
-import type { PgBoss } from "pg-boss";
-import type { AppDatabase } from "@/types/index.js";
-import type { ISMSService } from "@/services/sms.service.js";
-import type { Logger } from "@/types/logger.js";
-
-// Queue name constants
-export const QUEUE = {
-  NOTIFICATION_BATCH: "notification:batch",
-  NOTIFICATION_DELIVER: "notification:deliver",
-  NOTIFICATION_DELIVER_DLQ: "notification:deliver:dlq",
-  INVITATION_SEND: "invitation:send",
-  INVITATION_SEND_DLQ: "invitation:send:dlq",
-  EVENT_REMINDERS: "event-reminders",
-  DAILY_ITINERARIES: "daily-itineraries",
-} as const;
-
-// Payload interfaces
-export interface NotificationBatchPayload {
-  tripId: string;
-  type: string;
-  title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  excludeUserId?: string;
-}
-
-export interface NotificationDeliverPayload {
-  phoneNumber: string;
-  message: string;
-}
-
-export interface InvitationSendPayload {
-  phoneNumber: string;
-  message: string;
-}
-
-// Worker dependency injection
-export interface WorkerDeps {
-  db: AppDatabase;
-  boss: PgBoss;
-  smsService: ISMSService;
-  logger: Logger;
-}
+showAllMembers: boolean("show_all_members").notNull().default(false),
 ```
 
-## TypeScript Declarations
+Generate migration: `cd apps/api && pnpm db:generate`
+Apply migration: `pnpm db:migrate`
 
-In `apps/api/src/types/index.ts`:
-- Add `import type { PgBoss } from "pg-boss"`
-- Add `boss: PgBoss` to `FastifyInstance`
-- Remove `schedulerService: ISchedulerService` and its import
+## API Contracts
 
-## Worker Registration Plugin (`queues/index.ts`)
+### Updated: `POST /trips/:tripId/rsvp`
 
-`fp()` plugin depending on `["queue", "database", "sms-service"]`. This plugin:
-1. Skips registration when `NODE_ENV === "test"` (same guard as existing scheduler)
-2. Creates queues with options (retry, backoff, DLQ, expiry)
-3. Registers cron schedules for event-reminders and daily-itineraries
-4. Registers all workers via `boss.work()`
-5. Builds `WorkerDeps` from fastify instance and passes to worker handlers
+**Route**: `apps/api/src/routes/invitation.routes.ts:146` (write scope)
+**Controller**: `apps/api/src/controllers/invitation.controller.ts:269`
+**Service**: `apps/api/src/services/invitation.service.ts:471` `updateRsvp()`
 
-Queue creation options for delivery queues:
+Extended request body:
 ```typescript
-await boss.createQueue(QUEUE.NOTIFICATION_DELIVER, {
-  retryLimit: 3,
-  retryDelay: 10,
-  retryBackoff: true,
-  expireInSeconds: 300,
-  deadLetter: QUEUE.NOTIFICATION_DELIVER_DLQ,
-  deleteAfterSeconds: 604800,
+// shared/schemas/invitation.ts
+export const updateRsvpSchema = z.object({
+  status: z.enum(["going", "not_going", "maybe"]),
+  sharePhone: z.boolean().optional(), // NEW
 });
 ```
 
-Cron schedules:
+Service changes:
+- Add `sharePhone?: boolean` parameter to `updateRsvp()` signature
+- When `sharePhone` is provided, include `sharePhone` in the `.set()` call alongside `status`
+- Controller destructures `sharePhone` from `request.body` and passes to service
+
+### New: `GET /trips/:tripId/my-settings`
+
+**Route**: `apps/api/src/routes/invitation.routes.ts` — read route (authenticate only, default rate limit)
+**Auth**: any trip member
+
 ```typescript
-await boss.schedule(QUEUE.EVENT_REMINDERS, "*/5 * * * *");
-await boss.schedule(QUEUE.DAILY_ITINERARIES, "*/15 * * * *");
+// Response
+{ success: true, sharePhone: boolean }
 ```
 
-## Worker Implementations
+Service method `getMySettings(userId, tripId)`: query `members.sharePhone` where `(tripId, userId)`. Throw `PermissionDeniedError` if not a member.
 
-### Leaf Workers (notification-deliver, invitation-send)
+### New: `PATCH /trips/:tripId/my-settings`
 
-Simple: receive `{ phoneNumber, message }`, call `deps.smsService.sendMessage()`, let errors propagate for pg-boss retry.
+**Route**: `apps/api/src/routes/invitation.routes.ts` — write scope (authenticate + requireCompleteProfile + write rate limit)
+**Auth**: any trip member with complete profile
 
 ```typescript
-import type { Job } from "pg-boss";
+// shared/schemas/invitation.ts
+export const updateMySettingsSchema = z.object({
+  sharePhone: z.boolean(),
+});
 
-export async function handleNotificationDeliver(
-  job: Job<NotificationDeliverPayload>,
-  deps: WorkerDeps,
-): Promise<void> {
-  const { phoneNumber, message } = job.data;
-  await deps.smsService.sendMessage(phoneNumber, message);
+export const mySettingsResponseSchema = z.object({
+  success: z.literal(true),
+  sharePhone: z.boolean(),
+});
+
+// Response
+{ success: true, sharePhone: boolean }
+```
+
+Service method `updateMySettings(userId, tripId, sharePhone)`: update `members.share_phone`, return new value. Throw `PermissionDeniedError` if not a member.
+
+### Updated: `GET /trips/:tripId/members`
+
+**Service**: `apps/api/src/services/invitation.service.ts:548` `getTripMembers()`
+
+Changes to query and response mapping:
+1. Add `sharePhone: members.sharePhone` to select fields
+2. Fetch trip's `showAllMembers` via `db.select({ showAllMembers: trips.showAllMembers }).from(trips).where(eq(trips.id, tripId)).limit(1)`
+3. **Member filtering**: when `!isOrg && !trip[0].showAllMembers`, filter results to only `going` + `maybe` status
+4. **Phone filtering**: include `phoneNumber` when `isOrg || r.sharePhone` (replaces current `isOrg`-only check)
+5. Include `sharePhone` in response when viewer is organizer
+
+### Updated: `GET /trips/:id`
+
+**Service**: `apps/api/src/services/trip.service.ts:311` `getTripById()`
+
+Changes:
+1. Conditionally include `phoneNumber` in organizer objects only when `userIsOrganizer`:
+```typescript
+organizers: organizerUsers.map(u => ({
+  id: u.id,
+  displayName: u.displayName,
+  ...(userIsOrganizer ? { phoneNumber: u.phoneNumber } : {}),
+  profilePhotoUrl: u.profilePhotoUrl,
+  timezone: u.timezone,
+})),
+```
+2. Include `showAllMembers` in full (non-preview) response
+
+### Updated: `PUT /trips/:id`
+
+Trip update already accepts any field from `updateTripSchema`. Adding `showAllMembers` to the schema is sufficient — the `updateTrip()` service method uses `...data` spread, so it will handle the new field automatically.
+
+## Shared Schemas & Types
+
+### `shared/schemas/invitation.ts`
+
+- Extend `updateRsvpSchema`: add `sharePhone: z.boolean().optional()`
+- Add `updateMySettingsSchema` and `mySettingsResponseSchema`
+- Export new schemas and `UpdateMySettingsInput` type
+
+### `shared/schemas/trip.ts`
+
+- Add `showAllMembers: z.boolean().default(false)` to `baseTripSchema` (line 69, after `allowMembersToAddEvents`)
+- Make `phoneNumber` optional in `organizerDetailSchema` (line 187): `.string()` → `.string().optional()`
+- Add `showAllMembers: z.boolean()` to `tripEntitySchema` (line 155, after `allowMembersToAddEvents`)
+
+### `shared/schemas/index.ts`
+
+- Export `updateMySettingsSchema`, `mySettingsResponseSchema`, `UpdateMySettingsInput` from invitation re-exports
+
+### `shared/types/invitation.ts`
+
+- Add `sharePhone?: boolean` to `MemberWithProfile` interface (line 34, after `isMuted`)
+
+### `shared/types/trip.ts`
+
+- Make `phoneNumber` optional in `TripDetail.organizers`: `phoneNumber?: string` (line 84)
+- Add `showAllMembers: boolean` to `Trip` interface (line 27, after `allowMembersToAddEvents`)
+
+## FE Components
+
+### New: `apps/web/src/components/icons/venmo-icon.tsx`
+
+Inline SVG of Venmo V logo mark:
+```typescript
+interface VenmoIconProps { className?: string }
+
+export function VenmoIcon({ className }: VenmoIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      {/* Venmo V path */}
+    </svg>
+  );
 }
 ```
 
-### Batch Worker (notification-batch)
+### Updated: `apps/web/src/components/trip/members-list.tsx`
 
-Fan-out logic extracted from `NotificationService.notifyTripMembers()` and scheduler:
+1. **Venmo icon**: Replace text "Venmo" link (lines 200-210) with `<VenmoIcon className="w-4 h-4" />` inside `<a>` tag. Keep href and target unchanged.
+2. **Padding**: Remove `first:pt-0 last:pb-0` from row className (line 168). Keep `py-3`.
+3. **Phone display**: Change condition from `isOrganizer && member.phoneNumber` (line 224) to just `member.phoneNumber` — API now handles the filtering.
 
-1. Query going members for tripId (JOIN members + users for phoneNumber)
-2. Filter excluded userId
-3. Batch query notification preferences: `WHERE tripId = X AND userId IN (...)`
-4. For cron types (event_reminder, daily_itinerary): batch query sentReminders for dedup
-5. Build notification records, determine who needs SMS
-6. Bulk insert notifications: `db.insert(notifications).values([...])`
-7. Bulk insert sentReminders dedup records: `.onConflictDoNothing()`
-8. Batch enqueue SMS delivery jobs: `boss.insert([...])`
+### Updated: `apps/web/src/components/trip/member-onboarding-wizard.tsx`
 
-Helper functions extracted from NotificationService:
-- `getPreferenceField(type)`: maps notification type to preference column name
-- `shouldSendSms(type, prefs)`: determines if SMS should be sent based on preferences
+Insert new **Step 0** (phone sharing) before existing arrival step:
 
-**Key improvement:** N+1 preference/dedup queries become 2 batched queries.
+- New state: `const [sharePhone, setSharePhone] = useState(false)`
+- Step 0 content: `Switch` component with label "Share your phone number" and description "Other members will be able to see your phone number for this trip. Organizers can always see it."
+- All existing steps shift by +1: arrival=1, departure=2, activities=3, done=last
+- `totalSteps` increases by 1 (was `canAddEvents ? 4 : 3`, becomes `canAddEvents ? 5 : 4`)
+- On completion, pass `sharePhone` via the RSVP mutation (extend existing `useUpdateRsvp` call to include `sharePhone`) or call my-settings endpoint
 
-### Cron Workers (event-reminders, daily-itineraries)
+### Updated: `apps/web/src/components/notifications/notification-preferences.tsx`
 
-**event-reminders.worker.ts:**
-- Extract from `scheduler.service.ts:89-179`
-- Query events WHERE `startTime BETWEEN now+55min AND now+65min AND deletedAt IS NULL AND allDay = false`
-- Batch query trip names for all found events
-- Enqueue `notification:batch` jobs with `singletonKey: "event-reminder:${eventId}"` and `expireInSeconds: 300`
+Add "Privacy" section below existing notification switches:
+- `<Separator />` after last notification preference
+- "Privacy" heading (`<p className="text-sm font-medium mt-4 mb-2">`)
+- `Switch` for "Share phone number" with description "Allow other members to see your phone number for this trip"
+- Wire to `useMySettings(tripId)` for initial value and `useUpdateMySettings(tripId)` for toggle
+- Accept `tripId` prop (already present)
 
-**daily-itineraries.worker.ts:**
-- Extract from `scheduler.service.ts:186-321`
-- Query active (non-cancelled) trips
-- Check if current time in trip's timezone is in 7:45-8:15 AM window
-- Check if today (in trip timezone) is within trip date range
-- Build daily itinerary body (today's events formatted as list)
-- Enqueue `notification:batch` jobs with `singletonKey: "daily-itinerary:${tripId}:${todayStr}"` and `expireInSeconds: 900`
+### Updated: `apps/web/src/components/trip/edit-trip-dialog.tsx`
 
-## Service Changes
+Add `showAllMembers` Checkbox (same pattern as `allowMembersToAddEvents` at lines 355-382):
+- Add to `defaultValues` (line 86): `showAllMembers: false`
+- Add to `form.reset()` (line 100): `showAllMembers: trip.showAllMembers`
+- New `FormField` with Checkbox, label "Show all invited members", description "Let members see everyone invited, not just those going or maybe"
+- Place after `allowMembersToAddEvents` field
 
-### NotificationService
-
-- Add optional 2nd constructor param: `private boss: PgBoss | null = null` (smsService removed — SMS is handled by workers)
-- `notifyTripMembers()`: when boss exists, `boss.send('notification:batch', payload)` and return immediately. When boss is null, keep existing member loop as fallback (for tests).
-- `createNotification()`: remove `shouldSendSms()` call, phone lookup, and `smsService.sendMessage()` lines 281-295. Method becomes pure DB insert returning `NotificationResult`.
-- Remove private methods `shouldSendSms()` and `getPreferenceField()` (logic moved to batch worker helpers).
-- Update `plugins/notification-service.ts`: pass `fastify.boss ?? null` as 2nd arg. Remove `sms-service` dependency.
-
-### InvitationService
-
-- Add optional 6th constructor param: `private boss: PgBoss | null = null` (after `logger?`)
-- `createInvitations()`: replace SMS for-loop (lines 288-291) with `boss.insert()` batch enqueue when boss exists. Keep fallback loop when boss is null.
-- Update `plugins/invitation-service.ts`: pass `fastify.boss ?? null` as last arg.
-
-### SchedulerService (DELETE)
-
-- Delete `apps/api/src/services/scheduler.service.ts`
-- Delete `apps/api/src/plugins/scheduler-service.ts`
-- Remove scheduler import and registration from `apps/api/src/app.ts`
-- Remove `schedulerService: ISchedulerService` from type declarations
-
-## Dedup Strategy (Two Layers)
-
-1. **Queue-level**: `singletonKey` on batch jobs prevents duplicate batch processing across cron cycles
-2. **Member-level**: `sentReminders` table check inside batch worker prevents duplicate notifications on retry. Uses existing `(type, referenceId, userId)` unique constraint with `.onConflictDoNothing()`.
-
-## App.ts Registration Order
+### New hooks: `apps/web/src/hooks/use-invitations.ts`
 
 ```typescript
-// After databasePlugin (line ~84):
-await app.register(queuePlugin);              // NEW: pg-boss connection
+export function useMySettings(tripId: string) {
+  return useQuery({
+    queryKey: ["trips", tripId, "my-settings"],
+    queryFn: () => api.get(`/trips/${tripId}/my-settings`),
+    // enabled when tripId exists
+  });
+}
 
-// ... existing service plugins ...
-
-// Replace schedulerServicePlugin with:
-await app.register(queueWorkersPlugin);       // NEW: worker registration (after messageServicePlugin)
+export function useUpdateMySettings(tripId: string) {
+  return useMutation({
+    mutationFn: (data: { sharePhone: boolean }) =>
+      api.patch(`/trips/${tripId}/my-settings`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trips", tripId, "my-settings"] });
+    },
+  });
+}
 ```
+
+Follow patterns from existing hooks in the same file (e.g., `useMembers`, `useUpdateRsvp`).
 
 ## Testing Strategy
 
-- **Worker unit tests**: Each worker gets a test file. Workers receive mock `boss` (spy on `insert`/`send`), real DB, `MockSMSService`. Same pattern as existing service tests: real PostgreSQL, `generateUniquePhone()` isolation, cleanup in `afterEach`.
-- **Service test updates**: `notification.service.test.ts` — remove assertions expecting `smsService.sendMessage` from `createNotification()`. Add tests for `notifyTripMembers()` with mock boss (verifies `boss.send` called) and without boss (fallback loop). `invitation.service.test.ts` — update SMS dispatch assertions. Test both paths.
-- **Scheduler tests**: Delete `scheduler.service.test.ts`, replaced by cron worker tests.
-- **Integration/E2E**: Existing tests pass unchanged since queue registration is skipped in test env and services fall back to direct execution.
+**Unit tests (Vitest)** — written WITH each implementation task:
+- `apps/web/src/components/trip/__tests__/members-list.test.tsx` — Venmo icon, phone conditional, padding
+- `apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx` — Step 0, navigation, sharePhone state
+- `apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx` — Privacy section, switch
+- `apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx` — showAllMembers checkbox
+- `apps/web/src/hooks/__tests__/use-invitations.test.tsx` — new hooks
+
+**No new E2E tests** — privacy filtering is best tested at unit level. Existing E2E covers member flows.
+
+**Code quality** — every task: `pnpm typecheck`, `pnpm lint`, relevant test file
