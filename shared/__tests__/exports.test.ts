@@ -36,6 +36,7 @@ import {
   type UpdateMemberTravelInput,
   type CreateInvitationsInput,
   type UpdateRsvpInput,
+  type UpdateMySettingsInput,
   createEventSchema,
   updateEventSchema,
   createAccommodationSchema,
@@ -44,6 +45,8 @@ import {
   updateMemberTravelSchema,
   createInvitationsSchema,
   updateRsvpSchema,
+  updateMySettingsSchema,
+  mySettingsResponseSchema,
 } from "../schemas/index.js";
 
 describe("Package Exports", () => {
@@ -77,6 +80,8 @@ describe("Package Exports", () => {
   it("should export all invitation schemas", () => {
     expect(createInvitationsSchema).toBeDefined();
     expect(updateRsvpSchema).toBeDefined();
+    expect(updateMySettingsSchema).toBeDefined();
+    expect(mySettingsResponseSchema).toBeDefined();
   });
 
   it("should export existing schemas", () => {
@@ -192,6 +197,11 @@ describe("Package Exports", () => {
       status: "going",
     };
     expect(updateRsvpInput).toBeDefined();
+
+    const updateMySettingsInput: UpdateMySettingsInput = {
+      sharePhone: true,
+    };
+    expect(updateMySettingsInput).toBeDefined();
   });
 
   it("should validate schemas with inferred types", () => {
