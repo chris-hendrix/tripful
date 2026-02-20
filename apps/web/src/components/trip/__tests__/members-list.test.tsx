@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MembersList } from "../members-list";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
+import type { Invitation } from "@tripful/shared/types";
 
 // Mock format
 vi.mock("@/lib/format", () => ({
@@ -15,13 +16,26 @@ vi.mock("@/lib/format", () => ({
       .toUpperCase()
       .slice(0, 2),
   formatPhoneNumber: (phone: string) => phone,
+  formatRelativeTime: (iso: string) => {
+    // Return a simple mock string for testing
+    return `${new Date(iso).toLocaleDateString()}`;
+  },
 }));
 
 // Mock hooks
 const mockUseMembers = vi.fn();
+const mockUseInvitations = vi.fn();
+const mockRevokeInvitation = {
+  mutateAsync: vi.fn().mockResolvedValue(undefined),
+  isPending: false,
+};
 
 vi.mock("@/hooks/use-invitations", () => ({
   useMembers: (tripId: string) => mockUseMembers(tripId),
+  useInvitations: (tripId: string, options?: { enabled?: boolean }) =>
+    mockUseInvitations(tripId, options),
+  useRevokeInvitation: () => mockRevokeInvitation,
+  getRevokeInvitationErrorMessage: () => "Failed to revoke invitation",
 }));
 
 const mockMuteMember = {
@@ -88,6 +102,31 @@ const mockMembers: MemberWithProfile[] = [
   },
 ];
 
+const mockInvitations: Invitation[] = [
+  {
+    id: "inv-1",
+    tripId: "trip-123",
+    inviterId: "user-1",
+    inviteePhone: "+14155550001",
+    status: "pending",
+    sentAt: "2026-02-18T12:00:00Z",
+    respondedAt: null,
+    createdAt: "2026-02-18T12:00:00Z",
+    updatedAt: "2026-02-18T12:00:00Z",
+  },
+  {
+    id: "inv-2",
+    tripId: "trip-123",
+    inviterId: "user-1",
+    inviteePhone: "+14155550002",
+    status: "failed",
+    sentAt: "2026-02-17T12:00:00Z",
+    respondedAt: null,
+    createdAt: "2026-02-17T12:00:00Z",
+    updatedAt: "2026-02-17T12:00:00Z",
+  },
+];
+
 beforeEach(() => {
   queryClient = new QueryClient({
     defaultOptions: {
@@ -104,6 +143,11 @@ beforeEach(() => {
 
   mockUseMembers.mockReturnValue({
     data: mockMembers,
+    isPending: false,
+  });
+
+  mockUseInvitations.mockReturnValue({
+    data: [],
     isPending: false,
   });
 });
@@ -127,414 +171,6 @@ describe("MembersList", () => {
       );
 
       expect(screen.getByTestId("members-list-skeleton")).toBeDefined();
-    });
-  });
-
-  describe("member rendering", () => {
-    it("renders member display names", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("John Doe")).toBeDefined();
-      expect(screen.getByText("Jane Smith")).toBeDefined();
-      expect(screen.getByText("Bob Wilson")).toBeDefined();
-      expect(screen.getByText("Alice Brown")).toBeDefined();
-    });
-
-    it("renders avatar containers for all members", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      // Radix Avatar doesn't render <img> in jsdom (no image loading support),
-      // but we verify avatars are rendered by checking for the avatar slots
-      const avatars = document.querySelectorAll("[data-slot='avatar']");
-      expect(avatars.length).toBe(4);
-    });
-
-    it("renders member avatars with initials fallback when no photo", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("JS")).toBeDefined();
-      expect(screen.getByText("BW")).toBeDefined();
-      expect(screen.getByText("AB")).toBeDefined();
-    });
-  });
-
-  describe("RSVP status badges", () => {
-    it("shows Going badge for going status", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("Going")).toBeDefined();
-    });
-
-    it("shows Maybe badge for maybe status", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("Maybe")).toBeDefined();
-    });
-
-    it("shows Not Going badge for not_going status", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("Not Going")).toBeDefined();
-    });
-
-    it("shows No Response badge for no_response status", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("No Response")).toBeDefined();
-    });
-
-    it("Going badge uses correct color classes", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const goingBadge = screen
-        .getByText("Going")
-        .closest("[data-slot='badge']");
-      expect(goingBadge).not.toBeNull();
-      expect(goingBadge!.className).toContain("bg-success/15");
-      expect(goingBadge!.className).toContain("text-success");
-    });
-
-    it("Maybe badge uses correct color classes", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const maybeBadge = screen
-        .getByText("Maybe")
-        .closest("[data-slot='badge']");
-      expect(maybeBadge).not.toBeNull();
-      expect(maybeBadge!.className).toContain("bg-amber-500/15");
-      expect(maybeBadge!.className).toContain("text-amber-600");
-    });
-
-    it("Not Going badge uses correct color classes", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const notGoingBadge = screen
-        .getByText("Not Going")
-        .closest("[data-slot='badge']");
-      expect(notGoingBadge).not.toBeNull();
-      expect(notGoingBadge!.className).toContain("bg-destructive/15");
-      expect(notGoingBadge!.className).toContain("text-destructive");
-    });
-
-    it("No Response badge uses correct color classes", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const noResponseBadge = screen
-        .getByText("No Response")
-        .closest("[data-slot='badge']");
-      expect(noResponseBadge).not.toBeNull();
-      expect(noResponseBadge!.className).toContain("bg-muted");
-      expect(noResponseBadge!.className).toContain("text-muted-foreground");
-    });
-  });
-
-  describe("organizer badge", () => {
-    it("shows Organizer badge for organizer members", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.getByText("Organizer")).toBeDefined();
-    });
-
-    it("Organizer badge uses gradient styling", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      const organizerBadge = screen
-        .getByText("Organizer")
-        .closest("[data-slot='badge']");
-      expect(organizerBadge).not.toBeNull();
-      expect(organizerBadge!.className).toContain("bg-gradient-to-r");
-      expect(organizerBadge!.className).toContain("from-primary");
-      expect(organizerBadge!.className).toContain("to-accent");
-    });
-
-    it("does not show Organizer badge for non-organizer members", () => {
-      const nonOrganizerMembers: MemberWithProfile[] = [
-        {
-          id: "member-2",
-          userId: "user-2",
-          displayName: "Jane Smith",
-          profilePhotoUrl: null,
-          status: "going",
-          isOrganizer: false,
-          createdAt: "2026-01-02T00:00:00Z",
-          handles: null,
-        },
-      ];
-
-      mockUseMembers.mockReturnValue({
-        data: nonOrganizerMembers,
-        isPending: false,
-      });
-
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.queryByText("Organizer")).toBeNull();
-    });
-  });
-
-  describe("phone number display", () => {
-    it("shows phone numbers when phoneNumber is present in the data", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={true} />,
-      );
-
-      expect(screen.getByText("+14155551234")).toBeDefined();
-      expect(screen.getByText("+14155555678")).toBeDefined();
-      expect(screen.getByText("+14155559999")).toBeDefined();
-    });
-
-    it("shows phone numbers for non-organizers when phoneNumber is present", () => {
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      // API now handles phone filtering server-side, so phones render
-      // whenever phoneNumber is present in the data regardless of isOrganizer
-      expect(screen.getByText("+14155551234")).toBeDefined();
-      expect(screen.getByText("+14155555678")).toBeDefined();
-      expect(screen.getByText("+14155559999")).toBeDefined();
-    });
-
-    it("does NOT show phone numbers when phoneNumber is absent from the data", () => {
-      const membersWithoutPhone: MemberWithProfile[] = [
-        {
-          id: "member-1",
-          userId: "user-1",
-          displayName: "John Doe",
-          profilePhotoUrl: null,
-          status: "going",
-          isOrganizer: true,
-          createdAt: "2026-01-01T00:00:00Z",
-          handles: null,
-        },
-        {
-          id: "member-2",
-          userId: "user-2",
-          displayName: "Jane Smith",
-          profilePhotoUrl: null,
-          status: "maybe",
-          isOrganizer: false,
-          createdAt: "2026-01-02T00:00:00Z",
-          handles: null,
-        },
-      ];
-
-      mockUseMembers.mockReturnValue({
-        data: membersWithoutPhone,
-        isPending: false,
-      });
-
-      renderWithQueryClient(
-        <MembersList tripId="trip-123" isOrganizer={false} />,
-      );
-
-      expect(screen.queryByText("+14155551234")).toBeNull();
-      expect(screen.queryByText("+14155555678")).toBeNull();
-    });
-  });
-
-  describe("organizer-only features", () => {
-    it("shows invite button for organizers", () => {
-      const onInvite = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          onInvite={onInvite}
-        />,
-      );
-
-      expect(screen.getByText("Invite")).toBeDefined();
-    });
-
-    it("does NOT show invite button for non-organizers", () => {
-      const onInvite = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={false}
-          onInvite={onInvite}
-        />,
-      );
-
-      expect(screen.queryByText("Invite")).toBeNull();
-    });
-
-    it("calls onInvite when invite button is clicked", async () => {
-      const user = userEvent.setup();
-      const onInvite = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          onInvite={onInvite}
-        />,
-      );
-
-      const inviteButton = screen.getByText("Invite");
-      await user.click(inviteButton);
-
-      expect(onInvite).toHaveBeenCalledOnce();
-    });
-
-    it("shows actions dropdown for non-creator members when organizer and onRemove provided", () => {
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          createdBy="user-1"
-          onRemove={onRemove}
-        />,
-      );
-
-      // Jane Smith, Bob Wilson, and Alice Brown are non-creators
-      expect(
-        screen.getByRole("button", { name: "Actions for Jane Smith" }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("button", { name: "Actions for Bob Wilson" }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("button", { name: "Actions for Alice Brown" }),
-      ).toBeDefined();
-    });
-
-    it("shows actions dropdown for non-organizer non-creator members even without onRemove/onUpdateRole (mute is available)", () => {
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          createdBy="user-1"
-        />,
-      );
-
-      // Jane Smith (non-organizer, non-creator) shows actions because canMute is true
-      expect(
-        screen.getByRole("button", { name: "Actions for Jane Smith" }),
-      ).toBeDefined();
-    });
-
-    it("does NOT show actions dropdown for trip creator", () => {
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          createdBy="user-1"
-          onRemove={onRemove}
-        />,
-      );
-
-      // John Doe (user-1) is the creator
-      expect(
-        screen.queryByRole("button", { name: "Actions for John Doe" }),
-      ).toBeNull();
-    });
-
-    it("does NOT show actions dropdown for non-organizers", () => {
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={false}
-          createdBy="user-1"
-          onRemove={onRemove}
-        />,
-      );
-
-      expect(
-        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
-      ).toBeNull();
-      expect(
-        screen.queryByRole("button", { name: "Actions for Bob Wilson" }),
-      ).toBeNull();
-    });
-  });
-
-  describe("remove member flow", () => {
-    it("calls onRemove with member when remove from trip is clicked in dropdown", async () => {
-      const user = userEvent.setup();
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          createdBy="user-1"
-          onRemove={onRemove}
-        />,
-      );
-
-      const actionsButton = screen.getByRole("button", {
-        name: "Actions for Jane Smith",
-      });
-      await user.click(actionsButton);
-
-      const removeItem = await screen.findByText("Remove from trip");
-      await user.click(removeItem);
-
-      expect(onRemove).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "member-2",
-          displayName: "Jane Smith",
-        }),
-      );
-    });
-
-    it("calls onRemove with correct member for different members", async () => {
-      const user = userEvent.setup();
-      const onRemove = vi.fn();
-      renderWithQueryClient(
-        <MembersList
-          tripId="trip-123"
-          isOrganizer={true}
-          createdBy="user-1"
-          onRemove={onRemove}
-        />,
-      );
-
-      const actionsButton = screen.getByRole("button", {
-        name: "Actions for Bob Wilson",
-      });
-      await user.click(actionsButton);
-
-      const removeItem = await screen.findByText("Remove from trip");
-      await user.click(removeItem);
-
-      expect(onRemove).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "member-3",
-          displayName: "Bob Wilson",
-        }),
-      );
     });
   });
 
@@ -592,10 +228,522 @@ describe("MembersList", () => {
 
       expect(mockUseMembers).toHaveBeenCalledWith("trip-123");
     });
+
+    it("calls useInvitations with enabled=true for organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(mockUseInvitations).toHaveBeenCalledWith("trip-123", {
+        enabled: true,
+      });
+    });
+
+    it("calls useInvitations with enabled=false for non-organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(mockUseInvitations).toHaveBeenCalledWith("trip-123", {
+        enabled: false,
+      });
+    });
+  });
+
+  describe("tab rendering", () => {
+    it("shows Going and Maybe tabs for non-organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(
+        screen.getByRole("tab", { name: /Going/ }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: /Maybe/ }),
+      ).toBeDefined();
+      expect(
+        screen.queryByRole("tab", { name: /Not Going/ }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("tab", { name: /Invited/ }),
+      ).toBeNull();
+    });
+
+    it("shows all four tabs for organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(
+        screen.getByRole("tab", { name: /^Going/ }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: /^Maybe/ }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: /^Not Going/ }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: /^Invited/ }),
+      ).toBeDefined();
+    });
+
+    it("shows correct tab counts", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      expect(
+        screen.getByRole("tab", { name: "Going (1)" }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: "Maybe (1)" }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("tab", { name: "Not Going (1)" }),
+      ).toBeDefined();
+      // Invited = 1 no_response member + 0 pending invitations
+      expect(
+        screen.getByRole("tab", { name: "Invited (1)" }),
+      ).toBeDefined();
+    });
+
+    it("shows correct Invited count including pending invitations", () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      // 1 no_response member + 2 pending/failed invitations = 3
+      expect(
+        screen.getByRole("tab", { name: "Invited (3)" }),
+      ).toBeDefined();
+    });
+
+    it("defaults to Going tab", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      const goingTab = screen.getByRole("tab", { name: /Going/ });
+      expect(goingTab.getAttribute("data-state")).toBe("active");
+    });
+  });
+
+  describe("Going tab content", () => {
+    it("renders going members on the default tab", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(screen.getByText("John Doe")).toBeDefined();
+      // Members in other tabs should not be visible
+      expect(screen.queryByText("Jane Smith")).toBeNull();
+    });
+
+    it("renders avatar for going members", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      const avatars = document.querySelectorAll("[data-slot='avatar']");
+      expect(avatars.length).toBe(1);
+    });
+
+    it("shows Organizer badge for organizer members", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(screen.getByText("Organizer")).toBeDefined();
+    });
+
+    it("Organizer badge uses gradient styling", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      const organizerBadge = screen
+        .getByText("Organizer")
+        .closest("[data-slot='badge']");
+      expect(organizerBadge).not.toBeNull();
+      expect(organizerBadge!.className).toContain("bg-gradient-to-r");
+      expect(organizerBadge!.className).toContain("from-primary");
+      expect(organizerBadge!.className).toContain("to-accent");
+    });
+
+    it("does not show Organizer badge for non-organizer members", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      // Switch to Maybe tab where Jane Smith (non-organizer) is
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
+      expect(screen.getByText("Jane Smith")).toBeDefined();
+      expect(screen.queryByText("Organizer")).toBeNull();
+    });
+  });
+
+  describe("Maybe tab content", () => {
+    it("renders maybe members when tab is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
+      expect(screen.getByText("Jane Smith")).toBeDefined();
+      expect(screen.queryByText("John Doe")).toBeNull();
+    });
+
+    it("renders avatar with initials fallback when no photo", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
+      expect(screen.getByText("JS")).toBeDefined();
+    });
+  });
+
+  describe("Not Going tab content", () => {
+    it("renders not_going members when tab is clicked", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Not Going/ }));
+
+      expect(screen.getByText("Bob Wilson")).toBeDefined();
+    });
+
+    it("is not visible for non-organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(
+        screen.queryByRole("tab", { name: /Not Going/ }),
+      ).toBeNull();
+    });
+  });
+
+  describe("Invited tab content", () => {
+    it("renders no_response members in Invited tab", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      expect(screen.getByText("Alice Brown")).toBeDefined();
+    });
+
+    it("renders pending invitations with phone number and Pending badge", async () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      expect(screen.getByText("+14155550001")).toBeDefined();
+      expect(screen.getByText("Pending")).toBeDefined();
+    });
+
+    it("renders failed invitations with destructive badge", async () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      expect(screen.getByText("+14155550002")).toBeDefined();
+      const failedBadge = screen.getByText("Failed");
+      expect(failedBadge).toBeDefined();
+      const badgeEl = failedBadge.closest("[data-slot='badge']");
+      expect(badgeEl!.className).toContain("destructive");
+    });
+
+    it("shows sent date for pending invitations", async () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      // formatRelativeTime is mocked to return date string
+      const sentTexts = screen.getAllByText(/^Sent /);
+      expect(sentTexts.length).toBe(2);
+    });
+
+    it("shows revoke button on pending invitation rows", async () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      expect(
+        screen.getByRole("button", {
+          name: "Revoke invitation to +14155550001",
+        }),
+      ).toBeDefined();
+      expect(
+        screen.getByRole("button", {
+          name: "Revoke invitation to +14155550002",
+        }),
+      ).toBeDefined();
+    });
+
+    it("calls revokeInvitation when revoke button is clicked", async () => {
+      mockUseInvitations.mockReturnValue({
+        data: mockInvitations,
+        isPending: false,
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      await user.click(screen.getByRole("tab", { name: /Invited/ }));
+
+      const revokeButton = screen.getByRole("button", {
+        name: "Revoke invitation to +14155550001",
+      });
+      await user.click(revokeButton);
+
+      expect(mockRevokeInvitation.mutateAsync).toHaveBeenCalledWith("inv-1");
+    });
+
+    it("is not visible for non-organizers", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(
+        screen.queryByRole("tab", { name: /Invited/ }),
+      ).toBeNull();
+    });
+  });
+
+  describe("phone number display", () => {
+    it("shows phone numbers when phoneNumber is present in the data", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={true} />,
+      );
+
+      // John Doe is on the Going tab (default)
+      expect(screen.getByText("+14155551234")).toBeDefined();
+    });
+
+    it("shows phone numbers for non-organizers when phoneNumber is present", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      // API handles phone filtering server-side
+      expect(screen.getByText("+14155551234")).toBeDefined();
+    });
+
+    it("does NOT show phone numbers when phoneNumber is absent from the data", () => {
+      const membersWithoutPhone: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithoutPhone,
+        isPending: false,
+      });
+
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(screen.queryByText("+14155551234")).toBeNull();
+    });
+  });
+
+  describe("invite button", () => {
+    it("shows invite button for organizers", () => {
+      const onInvite = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onInvite={onInvite}
+        />,
+      );
+
+      expect(screen.getByText("Invite")).toBeDefined();
+    });
+
+    it("does NOT show invite button for non-organizers", () => {
+      const onInvite = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={false}
+          onInvite={onInvite}
+        />,
+      );
+
+      expect(screen.queryByText("Invite")).toBeNull();
+    });
+
+    it("calls onInvite when invite button is clicked", async () => {
+      const user = userEvent.setup();
+      const onInvite = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          onInvite={onInvite}
+        />,
+      );
+
+      const inviteButton = screen.getByText("Invite");
+      await user.click(inviteButton);
+
+      expect(onInvite).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("organizer actions", () => {
+    it("shows actions dropdown for non-creator members when organizer", async () => {
+      const user = userEvent.setup();
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          onRemove={onRemove}
+        />,
+      );
+
+      // Switch to Maybe tab for Jane Smith
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
+      expect(
+        screen.getByRole("button", { name: "Actions for Jane Smith" }),
+      ).toBeDefined();
+    });
+
+    it("does NOT show actions dropdown for trip creator", () => {
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          onRemove={onRemove}
+        />,
+      );
+
+      // John Doe (user-1) is the creator on the Going tab
+      expect(
+        screen.queryByRole("button", { name: "Actions for John Doe" }),
+      ).toBeNull();
+    });
+
+    it("does NOT show actions dropdown for non-organizers", () => {
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={false}
+          createdBy="user-1"
+          onRemove={onRemove}
+        />,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Actions for John Doe" }),
+      ).toBeNull();
+    });
+  });
+
+  describe("remove member flow", () => {
+    it("calls onRemove with member when remove from trip is clicked", async () => {
+      const user = userEvent.setup();
+      const onRemove = vi.fn();
+      renderWithQueryClient(
+        <MembersList
+          tripId="trip-123"
+          isOrganizer={true}
+          createdBy="user-1"
+          onRemove={onRemove}
+        />,
+      );
+
+      // Jane Smith is on the Maybe tab
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
+      const actionsButton = screen.getByRole("button", {
+        name: "Actions for Jane Smith",
+      });
+      await user.click(actionsButton);
+
+      const removeItem = await screen.findByText("Remove from trip");
+      await user.click(removeItem);
+
+      expect(onRemove).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "member-2",
+          displayName: "Jane Smith",
+        }),
+      );
+    });
   });
 
   describe("co-organizer role management", () => {
-    it("shows dropdown menu with promote option for regular member when organizer views", async () => {
+    it("shows promote option for regular member when organizer views", async () => {
       const user = userEvent.setup();
       const onUpdateRole = vi.fn();
       renderWithQueryClient(
@@ -608,7 +756,9 @@ describe("MembersList", () => {
         />,
       );
 
-      // Jane Smith (user-2) is a regular member, not creator, not current user
+      // Jane Smith is on the Maybe tab
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -617,8 +767,7 @@ describe("MembersList", () => {
       expect(await screen.findByText("Make co-organizer")).toBeDefined();
     });
 
-    it("shows dropdown menu with demote option for co-organizer member when organizer views", async () => {
-      // Set up a co-organizer member (not creator, not current user)
+    it("shows demote option for co-organizer member", async () => {
       const membersWithCoOrg: MemberWithProfile[] = [
         {
           id: "member-1",
@@ -659,7 +808,7 @@ describe("MembersList", () => {
         />,
       );
 
-      // Jane Smith (user-2) is a co-organizer, not creator
+      // Both members are "going", so on the Going tab
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -680,7 +829,6 @@ describe("MembersList", () => {
         />,
       );
 
-      // John Doe (user-1) is the creator - no actions dropdown
       expect(
         screen.queryByRole("button", { name: "Actions for John Doe" }),
       ).toBeNull();
@@ -689,9 +837,6 @@ describe("MembersList", () => {
     it("does not show dropdown for current user", () => {
       const onUpdateRole = vi.fn();
 
-      // Only provide onUpdateRole (not onRemove), so the only reason to show
-      // actions is role management. Since current user cannot change own role,
-      // no dropdown should show for them.
       const membersWithCurrentUser: MemberWithProfile[] = [
         {
           id: "member-5",
@@ -730,9 +875,6 @@ describe("MembersList", () => {
         />,
       );
 
-      // Current user (user-5) should not have actions for role update
-      // (canUpdateRole is false because member.userId === currentUserId)
-      // And no onRemove provided, so canRemove is also false
       expect(
         screen.queryByRole("button", { name: "Actions for Current User" }),
       ).toBeNull();
@@ -750,6 +892,8 @@ describe("MembersList", () => {
           onUpdateRole={onUpdateRole}
         />,
       );
+
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
 
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
@@ -843,16 +987,16 @@ describe("MembersList", () => {
         />,
       );
 
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
       await user.click(actionsButton);
 
-      // Both role action and remove action should be present
       expect(await screen.findByText("Make co-organizer")).toBeDefined();
       expect(screen.getByText("Remove from trip")).toBeDefined();
 
-      // Separator should exist between role and remove actions
       const separator = document.querySelector(
         "[data-slot='dropdown-menu-separator']",
       );
@@ -878,7 +1022,7 @@ describe("MembersList", () => {
           userId: "user-2",
           displayName: "Jane Smith",
           profilePhotoUrl: null,
-          status: "maybe",
+          status: "going",
           isOrganizer: false,
           isMuted: true,
           createdAt: "2026-01-02T00:00:00Z",
@@ -917,7 +1061,8 @@ describe("MembersList", () => {
         />,
       );
 
-      // Jane Smith (user-2) is a regular member, not creator
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -943,7 +1088,7 @@ describe("MembersList", () => {
           userId: "user-2",
           displayName: "Jane Smith",
           profilePhotoUrl: null,
-          status: "maybe",
+          status: "going",
           isOrganizer: false,
           isMuted: true,
           createdAt: "2026-01-02T00:00:00Z",
@@ -1015,7 +1160,6 @@ describe("MembersList", () => {
         />,
       );
 
-      // Jane Smith is a co-organizer - should have actions for role but not mute
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -1038,7 +1182,7 @@ describe("MembersList", () => {
 
       // No actions dropdown at all for non-organizers
       expect(
-        screen.queryByRole("button", { name: "Actions for Jane Smith" }),
+        screen.queryByRole("button", { name: "Actions for John Doe" }),
       ).toBeNull();
     });
 
@@ -1053,6 +1197,8 @@ describe("MembersList", () => {
         />,
       );
 
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -1061,7 +1207,6 @@ describe("MembersList", () => {
       const muteItem = await screen.findByText("Mute");
       await user.click(muteItem);
 
-      // Confirmation dialog should appear
       expect(
         await screen.findByText("Mute Jane Smith?"),
       ).toBeDefined();
@@ -1083,6 +1228,8 @@ describe("MembersList", () => {
         />,
       );
 
+      await user.click(screen.getByRole("tab", { name: /Maybe/ }));
+
       const actionsButton = screen.getByRole("button", {
         name: "Actions for Jane Smith",
       });
@@ -1091,9 +1238,7 @@ describe("MembersList", () => {
       const muteItem = await screen.findByText("Mute");
       await user.click(muteItem);
 
-      // Click the Mute button in the confirmation dialog
       const confirmButtons = await screen.findAllByText("Mute");
-      // The dialog action button should be the last one (inside AlertDialogAction)
       const confirmButton = confirmButtons[confirmButtons.length - 1]!;
       await user.click(confirmButton);
 
@@ -1117,7 +1262,7 @@ describe("MembersList", () => {
           userId: "user-2",
           displayName: "Jane Smith",
           profilePhotoUrl: null,
-          status: "maybe",
+          status: "going",
           isOrganizer: false,
           isMuted: true,
           createdAt: "2026-01-02T00:00:00Z",
@@ -1148,7 +1293,6 @@ describe("MembersList", () => {
       const unmuteItem = await screen.findByText("Unmute");
       await user.click(unmuteItem);
 
-      // Unmute should be called directly without dialog
       expect(mockUnmuteMember.mutateAsync).toHaveBeenCalledWith("user-2");
     });
   });
@@ -1184,7 +1328,6 @@ describe("MembersList", () => {
       );
       expect(venmoLink.getAttribute("target")).toBe("_blank");
 
-      // VenmoIcon renders an SVG with aria-hidden="true"
       const svg = venmoLink.querySelector("svg");
       expect(svg).not.toBeNull();
       expect(svg!.getAttribute("aria-hidden")).toBe("true");
@@ -1196,7 +1339,6 @@ describe("MembersList", () => {
       );
 
       expect(screen.queryByTestId("member-venmo-user-1")).toBeNull();
-      expect(screen.queryByTestId("member-venmo-user-2")).toBeNull();
     });
   });
 
@@ -1206,8 +1348,9 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
+      // On the Going tab, there's 1 member row
       const memberRows = document.querySelectorAll(".py-3");
-      expect(memberRows.length).toBe(4);
+      expect(memberRows.length).toBe(1);
 
       memberRows.forEach((row) => {
         expect(row.className).not.toContain("first:pt-0");
