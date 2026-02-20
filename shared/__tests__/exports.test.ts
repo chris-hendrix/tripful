@@ -132,6 +132,7 @@ describe("Package Exports", () => {
       destination: "Hawaii",
       timezone: "Pacific/Honolulu",
       allowMembersToAddEvents: true,
+      showAllMembers: false,
     };
     expect(createTripInput).toBeDefined();
 

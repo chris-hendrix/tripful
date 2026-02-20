@@ -26,6 +26,7 @@ export const updateRsvpSchema = z.object({
   status: z.enum(["going", "not_going", "maybe"], {
     message: "Status must be one of: going, not_going, maybe",
   }),
+  sharePhone: z.boolean().optional(),
 });
 
 // --- Response schemas ---
@@ -84,6 +85,16 @@ export const getMembersResponseSchema = z.object({
   members: z.array(memberWithProfileSchema),
 });
 
+export const updateMySettingsSchema = z.object({
+  sharePhone: z.boolean(),
+});
+
+export const mySettingsResponseSchema = z.object({
+  success: z.literal(true),
+  sharePhone: z.boolean(),
+});
+
 // Inferred TypeScript types from schemas
 export type CreateInvitationsInput = z.infer<typeof createInvitationsSchema>;
 export type UpdateRsvpInput = z.infer<typeof updateRsvpSchema>;
+export type UpdateMySettingsInput = z.infer<typeof updateMySettingsSchema>;

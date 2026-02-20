@@ -2,7 +2,7 @@
 
 ## Phase 1: Database & Shared Layer
 
-- [ ] Task 1.1: Add database columns, shared schemas, and types
+- [x] Task 1.1: Add database columns, shared schemas, and types
   - Implement: Add `sharePhone` boolean column to members table in `apps/api/src/db/schema/index.ts` (after `isOrganizer`, line 145)
   - Implement: Add `showAllMembers` boolean column to trips table in `apps/api/src/db/schema/index.ts` (after `allowMembersToAddEvents`, line 115)
   - Implement: Run `cd apps/api && pnpm db:generate` to generate migration, review SQL, run `pnpm db:migrate`
