@@ -50,7 +50,10 @@ import {
 } from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
-import { TripNotificationBell } from "@/components/notifications";
+import {
+  TripNotificationBell,
+  TripSettingsButton,
+} from "@/components/notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
@@ -222,12 +225,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Trip header */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
               {trip.name}
             </h1>
             <div className="flex items-center gap-2 shrink-0">
               <TripNotificationBell tripId={tripId} />
+              <TripSettingsButton tripId={tripId} />
               {isOrganizer && (
                 <>
                   <Button

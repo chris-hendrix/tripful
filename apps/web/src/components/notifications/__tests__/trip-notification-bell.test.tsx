@@ -144,9 +144,7 @@ describe("TripNotificationBell", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(screen.getByText("Trip notifications")).toBeDefined();
-      expect(screen.getByRole("tab", { name: "Notifications" })).toBeDefined();
-      expect(screen.getByRole("tab", { name: "Preferences" })).toBeDefined();
+      expect(screen.getByText("Notifications")).toBeDefined();
     });
   });
 
