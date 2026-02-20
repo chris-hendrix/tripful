@@ -1607,6 +1607,304 @@ describe("Invitation Routes", () => {
       }
     });
 
+    it("should include phone for non-organizer when member has sharePhone=true", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Kyoto",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Add organizer as member with sharePhone=true
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+        sharePhone: true,
+      });
+
+      // Create regular member (viewer) without sharePhone
+      const memberResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Regular Member",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const regularMember = memberResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: regularMember.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      const token = app.jwt.sign({
+        sub: regularMember.id,
+        phone: regularMember.phoneNumber,
+        name: regularMember.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/members`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.members).toHaveLength(2);
+
+      // Organizer has sharePhone=true, so non-org should see their phone
+      const orgMember = body.members.find(
+        (m: { userId: string }) => m.userId === organizer.id,
+      );
+      expect(orgMember.phoneNumber).toBeDefined();
+
+      // Regular member has sharePhone=false (default), so phone should not appear
+      const regMember = body.members.find(
+        (m: { userId: string }) => m.userId === regularMember.id,
+      );
+      expect(regMember.phoneNumber).toBeUndefined();
+    });
+
+    it("should filter members by status when showAllMembers is false", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip (showAllMembers defaults to false)
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Osaka",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create member1 (going)
+      const member1Result = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member One",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const member1 = member1Result[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member1.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      // Create member2 (not_going)
+      const member2Result = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member Two",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const member2 = member2Result[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member2.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      // GET as member1 (non-organizer)
+      const token = app.jwt.sign({
+        sub: member1.id,
+        phone: member1.phoneNumber,
+        name: member1.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/members`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+
+      // Only going members should be returned (organizer + member1)
+      expect(body.members).toHaveLength(2);
+      const memberUserIds = body.members.map(
+        (m: { userId: string }) => m.userId,
+      );
+      expect(memberUserIds).toContain(organizer.id);
+      expect(memberUserIds).toContain(member1.id);
+      expect(memberUserIds).not.toContain(member2.id);
+    });
+
+    it("should show all members when showAllMembers is true", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const organizer = organizerResult[0];
+
+      // Create trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Nagoya",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+
+      const trip = tripResult[0];
+
+      // Enable showAllMembers
+      await db
+        .update(trips)
+        .set({ showAllMembers: true })
+        .where(eq(trips.id, trip.id));
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create member1 (going)
+      const member1Result = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member One",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const member1 = member1Result[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member1.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      // Create member2 (not_going)
+      const member2Result = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Member Two",
+          timezone: "UTC",
+        })
+        .returning();
+
+      const member2 = member2Result[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: member2.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      // GET as member1 (non-organizer)
+      const token = app.jwt.sign({
+        sub: member1.id,
+        phone: member1.phoneNumber,
+        name: member1.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/trips/${trip.id}/members`,
+        cookies: {
+          auth_token: token,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+
+      // All 3 members should be returned including not_going
+      expect(body.members).toHaveLength(3);
+      const memberUserIds = body.members.map(
+        (m: { userId: string }) => m.userId,
+      );
+      expect(memberUserIds).toContain(organizer.id);
+      expect(memberUserIds).toContain(member1.id);
+      expect(memberUserIds).toContain(member2.id);
+    });
+
     it("should return 403 for non-member", async () => {
       app = await buildApp();
 

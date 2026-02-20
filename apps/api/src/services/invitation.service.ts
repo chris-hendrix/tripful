@@ -102,6 +102,8 @@ export interface IInvitationService {
 
   /**
    * Gets all members of a trip with profile information
+   * Phone numbers are included when requesting user is an organizer or member has opted in via sharePhone.
+   * Non-organizer view is filtered to going/maybe members unless trip has showAllMembers enabled.
    * @param tripId - The ID of the trip
    * @param requestingUserId - The ID of the requesting user
    * @returns Members with profile information
@@ -627,7 +629,8 @@ export class InvitationService implements IInvitationService {
 
   /**
    * Gets all members of a trip with profile information
-   * Includes phone numbers only when requesting user is an organizer
+   * Phone numbers included when requesting user is organizer or member has sharePhone enabled.
+   * Non-organizers see only going/maybe members unless trip.showAllMembers is true.
    */
   async getTripMembers(
     tripId: string,

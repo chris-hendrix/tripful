@@ -429,7 +429,7 @@ export const invitationController = {
       const settings = await invitationService.updateMySettings(userId, tripId, sharePhone);
 
       auditLog(request, "member.settings.updated", {
-        resourceType: "member",
+        resourceType: "trip",
         resourceId: tripId,
         metadata: { sharePhone },
       });

@@ -167,3 +167,55 @@
 - Route placement follows a clear read/write split: GET routes go directly on `fastify` with `authenticate + defaultRateLimitConfig`, while write routes (POST/PATCH/DELETE) go inside a scoped plugin with shared `authenticate + requireCompleteProfile + writeRateLimitConfig` hooks
 - The `...(condition ? { field: value } : {})` spread pattern continues to be the standard for conditional field inclusion in both queries and updates
 - Audit logging uses the `auditLog` utility function pattern, not a service, accepting `request`, `action`, `resourceType`, `resourceId`, and optional `metadata`
+
+## Iteration 5 — Task 2.3: Phase 2 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Reviewer Items Addressed (from Tasks 2.1 and 2.2)
+
+1. **LOW (Task 2.1): Tests don't explicitly test new privacy behavior** — Fixed. Added 4 unit tests and 3 integration tests covering sharePhone visibility and showAllMembers filtering.
+2. **LOW (Task 2.1): JSDoc on getTripMembers() should reflect sharePhone-aware logic** — Fixed. Updated both interface and implementation JSDoc to document sharePhone and showAllMembers behaviors.
+3. **LOW (Task 2.2): Audit log uses `resourceType: "member"` with tripId** — Fixed. Changed to `resourceType: "trip"` for consistency with other member-related audit log calls.
+4. **LOW (Task 2.2): Stronger sharePhone preservation test** — Fixed. Replaced weak false→false test with true→(omit)→still-true test.
+
+### Changes Made
+
+**Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`):
+- Added "should include phone number for non-organizer when member has sharePhone=true" — verifies phone is visible when sharePhone is enabled
+- Added "should return only going and maybe members for non-organizer when showAllMembers is false" — verifies status filtering
+- Added "should return all members for non-organizer when showAllMembers is true" — verifies flag override
+- Added "should return all members for organizer regardless of showAllMembers" — verifies organizer bypass
+- Strengthened "should not change sharePhone when not provided" — now tests true→(omit)→still-true instead of false→false
+
+**Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`):
+- Added "should include phone for non-organizer when member has sharePhone=true" — HTTP-level verification
+- Added "should filter members by status when showAllMembers is false" — HTTP-level verification
+- Added "should show all members when showAllMembers is true" — HTTP-level verification
+
+**JSDoc** (`apps/api/src/services/invitation.service.ts`):
+- Updated interface JSDoc: documents sharePhone and showAllMembers behaviors with @param/@returns
+- Updated implementation JSDoc: concise summary of both privacy behaviors
+
+**Audit log fix** (`apps/api/src/controllers/invitation.controller.ts`):
+- Changed `resourceType: "member"` to `resourceType: "trip"` in updateMySettings handler
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- Targeted unit tests: PASS (48/48)
+- Targeted integration tests: PASS (40/40)
+- `pnpm test`: PASS — 226 shared, 1025 API (10 pre-existing daily-itineraries failures), 1062 web (8 pre-existing failures)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: showAllMembers unit test only covers `not_going` as excluded status, not `no_response` — acceptable since the filter logic (`going` || `maybe`) is verified and testing a second excluded status would be redundant
+- LOW: Manual test data cleanup within each test is consistent with existing patterns but slightly more fragile than beforeEach/afterEach — acceptable per codebase convention
+
+### Learnings
+- Phase 2 cleanup cleanly addressed all 4 reviewer caveats with focused, minimal changes
+- The true→(omit)→still-true test pattern is genuinely stronger than testing default preservation — it catches implementations that accidentally reset fields
+- For audit log consistency, member-scoped operations that use `tripId` as `resourceId` should always use `resourceType: "trip"` (not `"member"`)
+- Integration tests for privacy features provide valuable multi-layer coverage beyond unit tests since they verify the full HTTP request/response cycle including auth and serialization
