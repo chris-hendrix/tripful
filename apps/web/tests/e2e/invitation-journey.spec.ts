@@ -452,7 +452,8 @@ test.describe("Invitation Journey", () => {
       // Verify Member 1 with "Going" badge
       await expect(dialog.getByText("Member One")).toBeVisible();
 
-      // Verify Member 2 with "Maybe" badge
+      // Switch to Maybe tab and verify Member 2
+      await dialog.getByRole("tab", { name: /Maybe/ }).click();
       await expect(dialog.getByText("Member Two")).toBeVisible();
 
       await snap(page, "18-member-list-with-statuses");
