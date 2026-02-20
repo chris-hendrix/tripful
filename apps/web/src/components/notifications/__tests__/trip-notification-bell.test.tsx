@@ -59,7 +59,7 @@ describe("TripNotificationBell", () => {
       isLoading: false,
     });
     mockUseNotificationPreferences.mockReturnValue({
-      data: { eventReminders: true, dailyItinerary: true, tripMessages: true },
+      data: { dailyItinerary: true, tripMessages: true },
       isLoading: false,
     });
   });

@@ -465,7 +465,6 @@ export const notificationPreferences = pgTable(
     tripId: uuid("trip_id")
       .notNull()
       .references(() => trips.id, { onDelete: "cascade" }),
-    eventReminders: boolean("event_reminders").notNull().default(true),
     dailyItinerary: boolean("daily_itinerary").notNull().default(true),
     tripMessages: boolean("trip_messages").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })

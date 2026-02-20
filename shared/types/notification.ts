@@ -4,7 +4,6 @@
  * Supported notification types
  */
 export type NotificationType =
-  | "event_reminder"
   | "daily_itinerary"
   | "trip_message"
   | "trip_update";
@@ -28,7 +27,6 @@ export interface Notification {
  * User notification preference settings
  */
 export interface NotificationPreferences {
-  eventReminders: boolean;
   dailyItinerary: boolean;
   tripMessages: boolean;
 }

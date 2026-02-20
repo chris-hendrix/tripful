@@ -357,10 +357,7 @@ test.describe("Notification Journey", () => {
       await dialog.getByRole("tab", { name: "Preferences" }).click();
     });
 
-    await test.step("verify all 3 preference switches are visible and checked", async () => {
-      const eventRemindersSwitch = page.getByRole("switch", {
-        name: "Event Reminders",
-      });
+    await test.step("verify 2 preference switches are visible and checked", async () => {
       const dailyItinerarySwitch = page.getByRole("switch", {
         name: "Daily Itinerary",
       });
@@ -368,15 +365,10 @@ test.describe("Notification Journey", () => {
         name: "Trip Messages",
       });
 
-      await expect(eventRemindersSwitch).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-      await expect(dailyItinerarySwitch).toBeVisible();
+      await expect(dailyItinerarySwitch).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       await expect(tripMessagesSwitch).toBeVisible();
 
       // All should be checked (default is true when RSVP "going")
-      await expect(eventRemindersSwitch).toHaveAttribute(
-        "data-state",
-        "checked",
-      );
       await expect(dailyItinerarySwitch).toHaveAttribute(
         "data-state",
         "checked",

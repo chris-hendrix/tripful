@@ -92,6 +92,13 @@
       "when": 1771222490977,
       "tag": "0012_foamy_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1771557700061,
+      "tag": "0013_tough_yellowjacket",
+      "breakpoints": true
     }
   ]
 }

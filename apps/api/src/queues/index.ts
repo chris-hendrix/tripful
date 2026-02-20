@@ -10,7 +10,6 @@ import {
 import { handleNotificationDeliver } from "./workers/notification-deliver.worker.js";
 import { handleInvitationSend } from "./workers/invitation-send.worker.js";
 import { handleNotificationBatch } from "./workers/notification-batch.worker.js";
-import { handleEventReminders } from "./workers/event-reminders.worker.js";
 import { handleDailyItineraries } from "./workers/daily-itineraries.worker.js";
 
 /**
@@ -62,12 +61,10 @@ export default fp(
       deleteAfterSeconds: 3600,
     });
 
-    await boss.createQueue(QUEUE.EVENT_REMINDERS);
     await boss.createQueue(QUEUE.DAILY_ITINERARIES);
 
     // --- Cron schedules ---
 
-    await boss.schedule(QUEUE.EVENT_REMINDERS, "*/5 * * * *");
     await boss.schedule(QUEUE.DAILY_ITINERARIES, "*/15 * * * *");
 
     // --- Build worker dependencies ---
@@ -101,14 +98,6 @@ export default fp(
       QUEUE.NOTIFICATION_BATCH,
       async (jobs) => {
         await handleNotificationBatch(jobs[0]!, deps);
-      },
-    );
-
-    await boss.work<object>(
-      QUEUE.EVENT_REMINDERS,
-      { pollingIntervalSeconds: 60 },
-      async (jobs) => {
-        await handleEventReminders(jobs[0]!, deps);
       },
     );
 
