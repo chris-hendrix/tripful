@@ -241,10 +241,10 @@ test.describe("Notification Journey", () => {
 
       const dialog = page.getByRole("dialog");
       await expect(
-        dialog.getByRole("heading", { name: "Trip notifications" }),
+        dialog.getByRole("heading", { name: "Notifications" }),
       ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
-      // Verify "Notifications" tab is active and shows 2 items
+      // Verify shows 2 items
       const notificationItems = dialog
         .locator("button")
         .filter({ hasText: "New message" });
@@ -341,20 +341,17 @@ test.describe("Notification Journey", () => {
       });
     });
 
-    await test.step("open trip notification dialog and go to preferences tab", async () => {
-      const tripBell = page.getByRole("button", {
-        name: /Trip notifications/,
+    await test.step("open trip settings dialog", async () => {
+      const settingsButton = page.getByRole("button", {
+        name: "Trip settings",
       });
-      await expect(tripBell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-      await tripBell.click();
+      await expect(settingsButton).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      await settingsButton.click();
 
       const dialog = page.getByRole("dialog");
       await expect(
-        dialog.getByRole("heading", { name: "Trip notifications" }),
+        dialog.getByRole("heading", { name: "Trip settings" }),
       ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-
-      // Click the "Preferences" tab
-      await dialog.getByRole("tab", { name: "Preferences" }).click();
     });
 
     await test.step("verify 2 preference switches are visible and checked", async () => {

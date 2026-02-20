@@ -11,9 +11,9 @@ import {
   Users,
   ClipboardList,
   AlertCircle,
-  Settings,
   ImagePlus,
   UserPlus,
+  Pencil,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
@@ -232,32 +232,6 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <div className="flex items-center gap-2 shrink-0">
               <TripNotificationBell tripId={tripId} />
               <TripSettingsButton tripId={tripId} />
-              {isOrganizer && (
-                <>
-                  <Button
-                    onClick={() => setIsInviteOpen(true)}
-                    onMouseEnter={preloadInviteMembersDialog}
-                    onFocus={preloadInviteMembersDialog}
-                    variant="outline"
-                    size="sm"
-                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                  >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Invite
-                  </Button>
-                  <Button
-                    onClick={() => setIsEditOpen(true)}
-                    onMouseEnter={preloadEditTripDialog}
-                    onFocus={preloadEditTripDialog}
-                    variant="outline"
-                    size="sm"
-                    className="h-10 px-4 rounded-xl border-input hover:bg-secondary"
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit trip
-                  </Button>
-                </>
-              )}
             </div>
           </div>
 
@@ -285,6 +259,34 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </Badge>
             )}
           </div>
+
+          {/* Organizer actions */}
+          {isOrganizer && (
+            <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 mb-6">
+              <span className="text-sm text-muted-foreground">
+                You&apos;re organizing this trip
+              </span>
+              <span className="text-border">|</span>
+              <button
+                onClick={() => setIsInviteOpen(true)}
+                onMouseEnter={preloadInviteMembersDialog}
+                onFocus={preloadInviteMembersDialog}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Invite
+              </button>
+              <button
+                onClick={() => setIsEditOpen(true)}
+                onMouseEnter={preloadEditTripDialog}
+                onFocus={preloadEditTripDialog}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit trip
+              </button>
+            </div>
+          )}
 
           {/* Organizers */}
           {trip.organizers.length > 0 && (
