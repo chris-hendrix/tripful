@@ -1,6 +1,7 @@
 // API-specific types
 
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PgBoss } from "pg-boss";
 import type * as schema from "@/db/schema/index.js";
 import type * as relations from "@/db/schema/relations.js";
 import type { Env } from "@/config/env.js";
@@ -15,7 +16,6 @@ import type { ISMSService } from "@/services/sms.service.js";
 import type { IInvitationService } from "@/services/invitation.service.js";
 import type { IMessageService } from "@/services/message.service.js";
 import type { INotificationService } from "@/services/notification.service.js";
-import type { ISchedulerService } from "@/services/scheduler.service.js";
 
 export type FullSchema = typeof schema & typeof relations;
 export type AppDatabase = NodePgDatabase<FullSchema>;
@@ -49,6 +49,7 @@ declare module "fastify" {
   interface FastifyInstance {
     config: Env;
     db: NodePgDatabase<FullSchema>;
+    boss: PgBoss | null;
     authService: IAuthService;
     tripService: ITripService;
     permissionsService: IPermissionsService;
@@ -60,7 +61,6 @@ declare module "fastify" {
     invitationService: IInvitationService;
     messageService: IMessageService;
     notificationService: INotificationService;
-    schedulerService: ISchedulerService;
     healthService: { getStatus(): Promise<HealthCheckResponse> };
   }
 }

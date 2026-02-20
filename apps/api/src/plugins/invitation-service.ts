@@ -14,11 +14,12 @@ export default fp(
       fastify.smsService,
       fastify.notificationService,
       fastify.log,
+      fastify.boss ?? null,
     );
     fastify.decorate("invitationService", invitationService);
   },
   {
     name: "invitation-service",
-    dependencies: ["database", "permissions-service", "sms-service", "notification-service"],
+    dependencies: ["database", "permissions-service", "sms-service", "notification-service", "queue"],
   },
 );

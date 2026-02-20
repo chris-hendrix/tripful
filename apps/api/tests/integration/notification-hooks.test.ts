@@ -96,6 +96,7 @@ describe("Notification Hooks", () => {
       const body = JSON.parse(response.body);
       const messageId = body.message.id;
 
+      // In test environment, boss is null so notifyTripMembers uses the inline fallback path
       // Query notifications table
       const notifs = await db
         .select()

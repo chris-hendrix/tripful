@@ -9,13 +9,13 @@ import {
 } from "@/db/schema/index.js";
 import { eq, or } from "drizzle-orm";
 import { NotificationService } from "@/services/notification.service.js";
-import { MockSMSService } from "@/services/sms.service.js";
 import { generateUniquePhone } from "../test-utils.js";
 import { NotificationNotFoundError } from "@/errors.js";
+import { QUEUE } from "@/queues/types.js";
+import type { PgBoss } from "pg-boss";
 
-// Create service instances with db for testing
-const smsService = new MockSMSService();
-const notificationService = new NotificationService(db, smsService);
+// Create service instances with db for testing (no boss = fallback path)
+const notificationService = new NotificationService(db);
 
 describe("notification.service", () => {
   let testOrganizerPhone: string;
@@ -194,24 +194,6 @@ describe("notification.service", () => {
       expect(result.title).toBe("Welcome");
     });
 
-    it("should send SMS when preferences allow", async () => {
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
-
-      await notificationService.createNotification({
-        userId: testMemberId,
-        tripId: testTripId,
-        type: "trip_update",
-        title: "Trip Updated",
-        body: "The trip has been updated",
-      });
-
-      expect(sendMessageSpy).toHaveBeenCalledWith(
-        testMemberPhone,
-        "Trip Updated: The trip has been updated",
-      );
-
-      sendMessageSpy.mockRestore();
-    });
   });
 
   describe("getNotifications", () => {
@@ -611,7 +593,7 @@ describe("notification.service", () => {
     });
   });
 
-  describe("notifyTripMembers", () => {
+  describe("notifyTripMembers (fallback without boss)", () => {
     it("should create notifications for all going members", async () => {
       await notificationService.notifyTripMembers({
         tripId: testTripId,
@@ -652,81 +634,83 @@ describe("notification.service", () => {
       expect(mem2Count).toBe(1);
     });
 
-    it("should respect notification preferences (skip disabled type)", async () => {
-      // Disable trip_messages for testMemberId
-      await notificationService.updatePreferences(testMemberId, testTripId, {
-        eventReminders: true,
-        dailyItinerary: true,
-        tripMessages: false,
-      });
+  });
 
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
+  describe("notifyTripMembers (with boss queue)", () => {
+    it("should send payload to notification batch queue", async () => {
+      const mockBoss = {
+        send: vi.fn().mockResolvedValue("job-id"),
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as PgBoss;
+      const serviceWithBoss = new NotificationService(db, mockBoss);
 
-      await notificationService.notifyTripMembers({
+      await serviceWithBoss.notifyTripMembers({
         tripId: testTripId,
-        type: "trip_message",
-        title: "New Message",
-        body: "Someone sent a message",
+        type: "trip_update",
+        title: "Trip Changed",
+        body: "Details changed",
+        data: { eventId: "e1" },
         excludeUserId: testOrganizerId,
       });
 
-      // Notifications should still be created for both members
-      const memCount = await notificationService.getUnreadCount(testMemberId);
-      const mem2Count = await notificationService.getUnreadCount(testMember2Id);
-      expect(memCount).toBe(1);
-      expect(mem2Count).toBe(1);
-
-      // But SMS should NOT be sent for testMemberId (disabled pref)
-      // SMS should be sent for testMember2Id (default prefs = enabled)
-      const smsCallPhones = sendMessageSpy.mock.calls.map((call) => call[0]);
-      expect(smsCallPhones).not.toContain(testMemberPhone);
-      expect(smsCallPhones).toContain(testMember2Phone);
-
-      sendMessageSpy.mockRestore();
-    });
-
-    it("should send SMS for members with preferences enabled", async () => {
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
-
-      await notificationService.notifyTripMembers({
+      expect(mockBoss.send).toHaveBeenCalledOnce();
+      expect(mockBoss.send).toHaveBeenCalledWith(QUEUE.NOTIFICATION_BATCH, {
         tripId: testTripId,
         type: "trip_update",
-        title: "Trip Updated",
+        title: "Trip Changed",
+        body: "Details changed",
+        data: { eventId: "e1" },
+        excludeUserId: testOrganizerId,
+      });
+    });
+
+    it("should not create inline DB notifications when boss is available", async () => {
+      const mockBoss = {
+        send: vi.fn().mockResolvedValue("job-id"),
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as PgBoss;
+      const serviceWithBoss = new NotificationService(db, mockBoss);
+
+      await serviceWithBoss.notifyTripMembers({
+        tripId: testTripId,
+        type: "trip_update",
+        title: "Trip Changed",
         body: "Details changed",
       });
 
-      // All 3 members should get SMS (trip_update always sends)
-      expect(sendMessageSpy).toHaveBeenCalledTimes(3);
+      // No inline notifications should be created -- the queue worker handles that
+      const orgCount =
+        await serviceWithBoss.getUnreadCount(testOrganizerId);
+      const memCount = await serviceWithBoss.getUnreadCount(testMemberId);
+      const mem2Count = await serviceWithBoss.getUnreadCount(testMember2Id);
 
-      sendMessageSpy.mockRestore();
+      expect(orgCount).toBe(0);
+      expect(memCount).toBe(0);
+      expect(mem2Count).toBe(0);
     });
 
-    it("should not send SMS for members with preferences disabled", async () => {
-      // Disable event_reminders for testMemberId
-      await notificationService.updatePreferences(testMemberId, testTripId, {
-        eventReminders: false,
-        dailyItinerary: true,
-        tripMessages: true,
-      });
+    it("should handle optional data and excludeUserId fields", async () => {
+      const mockBoss = {
+        send: vi.fn().mockResolvedValue("job-id"),
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as PgBoss;
+      const serviceWithBoss = new NotificationService(db, mockBoss);
 
-      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
-
-      await notificationService.notifyTripMembers({
+      await serviceWithBoss.notifyTripMembers({
         tripId: testTripId,
-        type: "event_reminder",
-        title: "Event Soon",
-        body: "Your event starts soon",
+        type: "trip_update",
+        title: "Trip Changed",
+        body: "Details changed",
       });
 
-      // testMemberId should NOT get SMS
-      const smsCallPhones = sendMessageSpy.mock.calls.map((call) => call[0]);
-      expect(smsCallPhones).not.toContain(testMemberPhone);
-
-      // Others should get SMS (default prefs = enabled)
-      expect(smsCallPhones).toContain(testOrganizerPhone);
-      expect(smsCallPhones).toContain(testMember2Phone);
-
-      sendMessageSpy.mockRestore();
+      expect(mockBoss.send).toHaveBeenCalledWith(QUEUE.NOTIFICATION_BATCH, {
+        tripId: testTripId,
+        type: "trip_update",
+        title: "Trip Changed",
+        body: "Details changed",
+        data: undefined,
+        excludeUserId: undefined,
+      });
     });
   });
 

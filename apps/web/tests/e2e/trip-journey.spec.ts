@@ -33,10 +33,11 @@ test.describe("Trip Journey", () => {
     const tripDescription = "A test trip for E2E verification";
 
     await test.step("create trip with full details", async () => {
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
+      // Retry click — on cold CI the first click can be swallowed during React hydration
+      await expect(async () => {
+        await trips.createTripButton.click();
+        await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 3000 });
+      }).toPass({ timeout: 10000 });
       await expect(tripDetail.step1Indicator).toBeVisible();
       await expect(page.getByText("Basic information")).toBeVisible();
 
@@ -182,10 +183,10 @@ test.describe("Trip Journey", () => {
     let tripId: string;
 
     await test.step("create trip with dates", async () => {
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(async () => {
+        await trips.createTripButton.click();
+        await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 3000 });
+      }).toPass({ timeout: 10000 });
 
       await tripDetail.nameInput.fill(tripName);
       await tripDetail.destinationInput.fill(tripDestination);

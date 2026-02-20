@@ -23,11 +23,13 @@ import {
   CannotRemoveCreatorError,
   LastOrganizerError,
 } from "@/errors.js";
+import { QUEUE } from "@/queues/types.js";
+import type { PgBoss } from "pg-boss";
 
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
 const smsService = new MockSMSService();
-const notificationService = new NotificationService(db, smsService);
+const notificationService = new NotificationService(db);
 const invitationService = new InvitationService(
   db,
   permissionsService,
@@ -1038,6 +1040,124 @@ describe("invitation.service", () => {
       await db.delete(members).where(eq(members.tripId, trip2Id));
       await db.delete(trips).where(eq(trips.id, trip2Id));
       await db.delete(users).where(eq(users.phoneNumber, otherMemberPhone));
+    });
+  });
+
+  describe("createInvitations (with boss queue)", () => {
+    it("should send invitation SMS jobs to queue instead of inline SMS", async () => {
+      const mockBoss = {
+        send: vi.fn().mockResolvedValue(undefined),
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as PgBoss;
+      const serviceWithBoss = new InvitationService(
+        db,
+        permissionsService,
+        smsService,
+        notificationService,
+        undefined,
+        mockBoss,
+      );
+
+      const phone1 = generateUniquePhone();
+      const phone2 = generateUniquePhone();
+
+      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
+
+      const result = await serviceWithBoss.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [phone1, phone2],
+      );
+
+      expect(result.invitations).toHaveLength(2);
+
+      // boss.insert should have been called with the invitation send queue
+      expect(mockBoss.insert).toHaveBeenCalledOnce();
+      expect(mockBoss.insert).toHaveBeenCalledWith(
+        QUEUE.INVITATION_SEND,
+        expect.arrayContaining([
+          expect.objectContaining({
+            data: {
+              phoneNumber: phone1,
+              message: "You've been invited to a trip on Tripful!",
+            },
+          }),
+          expect.objectContaining({
+            data: {
+              phoneNumber: phone2,
+              message: "You've been invited to a trip on Tripful!",
+            },
+          }),
+        ]),
+      );
+
+      // Inline SMS should NOT be called
+      expect(sendMessageSpy).not.toHaveBeenCalled();
+
+      sendMessageSpy.mockRestore();
+
+      // Clean up
+      await db.delete(invitations).where(eq(invitations.tripId, testTripId));
+      await db
+        .delete(users)
+        .where(
+          or(eq(users.phoneNumber, phone1), eq(users.phoneNumber, phone2)),
+        );
+    });
+
+    it("should not call boss.insert when no new phones to invite", async () => {
+      const mockBoss = {
+        send: vi.fn().mockResolvedValue(undefined),
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as PgBoss;
+      const serviceWithBoss = new InvitationService(
+        db,
+        permissionsService,
+        smsService,
+        notificationService,
+        undefined,
+        mockBoss,
+      );
+
+      // Invite already-member phone (should be skipped)
+      const result = await serviceWithBoss.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [testOrganizerPhone],
+      );
+
+      expect(result.invitations).toHaveLength(0);
+      expect(result.skipped).toHaveLength(1);
+
+      // boss.insert should NOT be called since there are no new phones
+      expect(mockBoss.insert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createInvitations (fallback without boss)", () => {
+    it("should send SMS inline when boss is null", async () => {
+      const phone = generateUniquePhone();
+
+      const sendMessageSpy = vi.spyOn(smsService, "sendMessage");
+
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [phone],
+      );
+
+      expect(result.invitations).toHaveLength(1);
+
+      // Inline SMS should be called
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        phone,
+        "You've been invited to a trip on Tripful!",
+      );
+
+      sendMessageSpy.mockRestore();
+
+      // Clean up
+      await db.delete(invitations).where(eq(invitations.tripId, testTripId));
     });
   });
 });
