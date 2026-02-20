@@ -74,3 +74,44 @@
 ### Learnings
 - Phase 1 cleanup tasks are straightforward when previous iteration reviewer notes are specific and actionable
 - The `??` nullish coalescing pattern for optimistic updates is the established convention in this codebase for boolean fields that cannot be `null`
+
+## Iteration 3 — Task 2.1: Update getTripMembers with privacy filtering and fix getTripById phone leak
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation.service.ts** (`apps/api/src/services/invitation.service.ts`) — `getTripMembers()`:
+- Added `sharePhone: members.sharePhone` to the DB query select fields
+- Added secondary query to fetch `trips.showAllMembers` setting for the trip
+- Added member visibility filtering: when `!isOrg && !showAllMembers`, results are filtered to only `going` and `maybe` status members (non-organizers no longer see `not_going` or `no_response` members by default)
+- Updated phone number gating: changed from `isOrg` to `(isOrg || r.sharePhone)` — organizers always see all phone numbers, non-organizers see phone numbers only when the member has opted in via `sharePhone`
+- Added `sharePhone` field to organizer response output (organizers can see each member's sharePhone setting)
+
+**trip.service.ts** (`apps/api/src/services/trip.service.ts`) — `getTripById()`:
+- Made `phoneNumber` optional in `OrganizerInfo` type (`phoneNumber: string` → `phoneNumber?: string`)
+- Changed organizer mapping to conditionally include `phoneNumber` only when `userIsOrganizer` is true — fixes the phone leak where non-organizer members could see organizer phone numbers
+- `showAllMembers` is already included in full response via `...trip` spread (no explicit change needed)
+
+**invitation.ts** (`shared/schemas/invitation.ts`):
+- Added `sharePhone: z.boolean().optional()` to `memberWithProfileSchema` to match the conditional inclusion in the service layer
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1005 API tests (8 pre-existing daily-itineraries failures), 1062 web tests (8 pre-existing failures)
+- Critical test files all pass: invitation.service (37/37), trip.service (58/58), invitation.routes (29/29), trip.routes (89/89)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Consider combining the `tripSettings` query with the members query for a single DB round-trip (minor optimization, current approach is clear and indexed)
+- LOW: Existing tests pass but don't explicitly test the new privacy behavior (e.g., member with `sharePhone: true` visible to non-organizers, `showAllMembers` filtering). Consider adding in Task 2.3 cleanup
+- LOW: JSDoc on `getTripMembers()` should be updated to reflect the new `sharePhone`-aware logic
+
+### Learnings
+- The `...(condition ? { field: value } : {})` spread pattern is the established convention for conditional field inclusion throughout the codebase
+- Optional chaining (`tripSettings[0]?.showAllMembers`) provides a safe default of `false` (more restrictive) when the trip query returns empty, which is the correct privacy-safe behavior
+- The `OrganizerInfo` type was local to trip.service.ts, making the `phoneNumber?: string` change low-risk with no cascading type errors
+- All existing tests passed without modification because: (a) organizer viewers still see all phones via the `isOrg` check, and (b) non-organizer viewers still don't see phones since `sharePhone` defaults to `false`

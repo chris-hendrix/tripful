@@ -59,7 +59,7 @@ export type PaginatedTripsResult = {
 type OrganizerInfo = {
   id: string;
   displayName: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   profilePhotoUrl: string | null;
   timezone: string | null;
 };
@@ -369,7 +369,13 @@ export class TripService implements ITripService {
     const memberCount = await this.getMemberCount(tripId);
 
     const meta: TripMembershipMeta = {
-      organizers: organizerUsers,
+      organizers: organizerUsers.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        ...(userIsOrganizer ? { phoneNumber: u.phoneNumber } : {}),
+        profilePhotoUrl: u.profilePhotoUrl,
+        timezone: u.timezone,
+      })),
       memberCount,
       isPreview,
       userRsvpStatus,

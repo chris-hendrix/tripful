@@ -22,7 +22,7 @@
 
 ## Phase 2: API Layer
 
-- [ ] Task 2.1: Update getTripMembers with privacy filtering and fix getTripById phone leak
+- [x] Task 2.1: Update getTripMembers with privacy filtering and fix getTripById phone leak
   - Implement: In `apps/api/src/services/invitation.service.ts` `getTripMembers()` — add `sharePhone: members.sharePhone` to select, fetch trip's `showAllMembers` setting, filter members to going+maybe when !isOrg && !showAllMembers, include phoneNumber when isOrg || r.sharePhone
   - Implement: In `apps/api/src/services/trip.service.ts` `getTripById()` — conditionally include `phoneNumber` in organizer objects only when `userIsOrganizer` is true, include `showAllMembers` in full (non-preview) response
   - Test: Update existing tests if any break due to type changes

@@ -562,6 +562,13 @@ export class InvitationService implements IInvitationService {
 
     const isOrg = membershipInfo.isOrganizer;
 
+    // Fetch trip's showAllMembers setting
+    const tripSettings = await this.db
+      .select({ showAllMembers: trips.showAllMembers })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+
     // Query members with user profiles
     const results = await this.db
       .select({
@@ -571,6 +578,7 @@ export class InvitationService implements IInvitationService {
         profilePhotoUrl: users.profilePhotoUrl,
         handles: users.handles,
         phoneNumber: users.phoneNumber,
+        sharePhone: members.sharePhone,
         status: members.status,
         isOrganizer: members.isOrganizer,
         createdAt: members.createdAt,
@@ -589,16 +597,22 @@ export class InvitationService implements IInvitationService {
       mutedUserIds = new Set(mutedRows.map((r) => r.userId));
     }
 
-    return results.map((r) => ({
+    // Filter members for non-organizers when showAllMembers is off
+    const filteredResults = (!isOrg && !tripSettings[0]?.showAllMembers)
+      ? results.filter(r => r.status === "going" || r.status === "maybe")
+      : results;
+
+    return filteredResults.map((r) => ({
       id: r.id,
       userId: r.userId,
       displayName: r.displayName,
       profilePhotoUrl: r.profilePhotoUrl,
       handles: r.handles ?? null,
-      ...(isOrg ? { phoneNumber: r.phoneNumber } : {}),
+      ...((isOrg || r.sharePhone) ? { phoneNumber: r.phoneNumber } : {}),
       status: r.status,
       isOrganizer: r.isOrganizer,
       ...(isOrg ? { isMuted: mutedUserIds.has(r.userId) } : {}),
+      ...(isOrg ? { sharePhone: r.sharePhone } : {}),
       createdAt: r.createdAt.toISOString(),
     }));
   }
