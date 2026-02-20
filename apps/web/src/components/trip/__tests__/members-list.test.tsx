@@ -300,8 +300,8 @@ describe("MembersList", () => {
     });
   });
 
-  describe("organizer-only features", () => {
-    it("shows phone numbers when isOrganizer is true and phoneNumber is available", () => {
+  describe("phone number display", () => {
+    it("shows phone numbers when phoneNumber is present in the data", () => {
       renderWithQueryClient(
         <MembersList tripId="trip-123" isOrganizer={true} />,
       );
@@ -311,7 +311,47 @@ describe("MembersList", () => {
       expect(screen.getByText("+14155559999")).toBeDefined();
     });
 
-    it("does NOT show phone numbers when isOrganizer is false", () => {
+    it("shows phone numbers for non-organizers when phoneNumber is present", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      // API now handles phone filtering server-side, so phones render
+      // whenever phoneNumber is present in the data regardless of isOrganizer
+      expect(screen.getByText("+14155551234")).toBeDefined();
+      expect(screen.getByText("+14155555678")).toBeDefined();
+      expect(screen.getByText("+14155559999")).toBeDefined();
+    });
+
+    it("does NOT show phone numbers when phoneNumber is absent from the data", () => {
+      const membersWithoutPhone: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: true,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: null,
+        },
+        {
+          id: "member-2",
+          userId: "user-2",
+          displayName: "Jane Smith",
+          profilePhotoUrl: null,
+          status: "maybe",
+          isOrganizer: false,
+          createdAt: "2026-01-02T00:00:00Z",
+          handles: null,
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithoutPhone,
+        isPending: false,
+      });
+
       renderWithQueryClient(
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
@@ -319,7 +359,9 @@ describe("MembersList", () => {
       expect(screen.queryByText("+14155551234")).toBeNull();
       expect(screen.queryByText("+14155555678")).toBeNull();
     });
+  });
 
+  describe("organizer-only features", () => {
     it("shows invite button for organizers", () => {
       const onInvite = vi.fn();
       renderWithQueryClient(
@@ -1108,6 +1150,69 @@ describe("MembersList", () => {
 
       // Unmute should be called directly without dialog
       expect(mockUnmuteMember.mutateAsync).toHaveBeenCalledWith("user-2");
+    });
+  });
+
+  describe("Venmo icon link", () => {
+    it("renders Venmo link with SVG icon when member has venmo handle", () => {
+      const membersWithVenmo: MemberWithProfile[] = [
+        {
+          id: "member-1",
+          userId: "user-1",
+          displayName: "John Doe",
+          profilePhotoUrl: null,
+          status: "going",
+          isOrganizer: false,
+          createdAt: "2026-01-01T00:00:00Z",
+          handles: { venmo: "@testuser" },
+        },
+      ];
+
+      mockUseMembers.mockReturnValue({
+        data: membersWithVenmo,
+        isPending: false,
+      });
+
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      const venmoLink = screen.getByTestId("member-venmo-user-1");
+      expect(venmoLink).toBeDefined();
+      expect(venmoLink.getAttribute("href")).toBe(
+        "https://venmo.com/testuser",
+      );
+      expect(venmoLink.getAttribute("target")).toBe("_blank");
+
+      // VenmoIcon renders an SVG with aria-hidden="true"
+      const svg = venmoLink.querySelector("svg");
+      expect(svg).not.toBeNull();
+      expect(svg!.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    it("does not render Venmo link when member has no handles", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      expect(screen.queryByTestId("member-venmo-user-1")).toBeNull();
+      expect(screen.queryByTestId("member-venmo-user-2")).toBeNull();
+    });
+  });
+
+  describe("member row padding", () => {
+    it("uses consistent py-3 padding without first:pt-0 or last:pb-0 overrides", () => {
+      renderWithQueryClient(
+        <MembersList tripId="trip-123" isOrganizer={false} />,
+      );
+
+      const memberRows = document.querySelectorAll(".py-3");
+      expect(memberRows.length).toBe(4);
+
+      memberRows.forEach((row) => {
+        expect(row.className).not.toContain("first:pt-0");
+        expect(row.className).not.toContain("last:pb-0");
+      });
     });
   });
 });

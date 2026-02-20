@@ -49,7 +49,7 @@
 
 ## Phase 3: Frontend — UI Fixes & Privacy Controls
 
-- [ ] Task 3.1: Create Venmo icon and update member list UI
+- [x] Task 3.1: Create Venmo icon and update member list UI
   - Implement: Create `apps/web/src/components/icons/venmo-icon.tsx` — inline SVG Venmo V mark, accepts `className`, uses `currentColor`
   - Implement: In `members-list.tsx` — import VenmoIcon, replace Venmo text link (lines 200-210) with `<VenmoIcon className="w-4 h-4" />` inside `<a>` tag
   - Implement: In `members-list.tsx` — remove `first:pt-0 last:pb-0` from row className (line 168)

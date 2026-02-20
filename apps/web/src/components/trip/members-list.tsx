@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
+import { VenmoIcon } from "@/components/icons/venmo-icon";
 import { getInitials, formatPhoneNumber } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 
@@ -165,7 +166,7 @@ export function MembersList({
           return (
             <div
               key={member.id}
-              className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+              className="flex items-center gap-3 py-3"
             >
               <Avatar size="default">
                 <AvatarImage
@@ -205,7 +206,7 @@ export function MembersList({
                         className="text-xs text-primary hover:underline"
                         data-testid={`member-venmo-${member.userId}`}
                       >
-                        Venmo
+                        <VenmoIcon className="w-4 h-4" />
                       </a>
                     )}
                     {member.handles.instagram && (
@@ -221,7 +222,7 @@ export function MembersList({
                     )}
                   </div>
                 )}
-                {isOrganizer && member.phoneNumber && (
+                {member.phoneNumber && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <Phone className="w-3 h-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">

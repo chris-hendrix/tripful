@@ -219,3 +219,43 @@
 - The true→(omit)→still-true test pattern is genuinely stronger than testing default preservation — it catches implementations that accidentally reset fields
 - For audit log consistency, member-scoped operations that use `tripId` as `resourceId` should always use `resourceType: "trip"` (not `"member"`)
 - Integration tests for privacy features provide valuable multi-layer coverage beyond unit tests since they verify the full HTTP request/response cycle including auth and serialization
+
+## Iteration 6 — Task 3.1: Create Venmo icon and update member list UI
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**New file** (`apps/web/src/components/icons/venmo-icon.tsx`):
+- Created first custom SVG icon component in the project
+- Inline Venmo V mark SVG with `viewBox="0 0 24 24"`, `fill="currentColor"`, `aria-hidden="true"`
+- Accepts `className` prop for sizing, matching lucide-react icon patterns
+
+**members-list.tsx** (`apps/web/src/components/trip/members-list.tsx`) — 4 changes:
+- Added `import { VenmoIcon } from "@/components/icons/venmo-icon"` at the top
+- Removed `first:pt-0 last:pb-0` from member row className, keeping just `py-3` for consistent padding
+- Replaced `Venmo` text content with `<VenmoIcon className="w-4 h-4" />` inside the existing `<a>` tag (href, target, rel, data-testid unchanged)
+- Changed phone condition from `isOrganizer && member.phoneNumber` to just `member.phoneNumber` — API now handles phone filtering server-side
+
+**members-list.test.tsx** (`apps/web/src/components/trip/__tests__/members-list.test.tsx`) — 3 new describe blocks:
+- **"phone number display"** (3 tests): Replaced old organizer-gated phone tests with: shows for organizer, shows for non-organizer when phoneNumber present, hidden when phoneNumber absent
+- **"Venmo icon link"** (2 tests): Verifies SVG with `aria-hidden="true"` renders inside Venmo link with correct href and target; verifies no Venmo link when handles are null
+- **"member row padding"** (1 test): Verifies all member rows use `py-3` without `first:pt-0` or `last:pb-0` overrides
+
+### Verification Results
+- `pnpm vitest run members-list.test.tsx`: PASS (50 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Venmo anchor tag still has `text-xs text-primary hover:underline` CSS from old text link — `text-xs` and `hover:underline` have no visual effect on an SVG icon. Cosmetic dead code, could be cleaned up in Phase 3 cleanup (Task 3.5)
+- LOW: VenmoIcon omits `role` attribute — correct since `aria-hidden="true"` excludes it from the accessibility tree, and the containing `<a>` provides context
+
+### Learnings
+- This is the first custom SVG icon in the project — all others come from lucide-react. The `icons/` directory pattern is now established for future brand icons
+- Removing client-side phone filtering (`isOrganizer &&` gate) relies on the API correctly omitting `phoneNumber` from response data for unauthorized viewers — this was implemented in Task 2.1
+- The test pattern for SVG icons: query by `data-testid` on the parent element, then use `querySelector('svg')` and check `aria-hidden` attribute
+- Mock member data with `handles: { venmo: "@testuser" }` triggers the handles rendering code path — existing mocks all had `handles: null`
