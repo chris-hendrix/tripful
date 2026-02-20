@@ -66,7 +66,7 @@
   - Verify: `pnpm vitest run apps/web/src/hooks/__tests__/use-invitations.test.tsx` passes
   - Verify: `pnpm vitest run apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx` passes
 
-- [ ] Task 3.3: Add phone sharing step to onboarding wizard
+- [x] Task 3.3: Add phone sharing step to onboarding wizard
   - Implement: In `member-onboarding-wizard.tsx` — add `sharePhone` state (default false), insert new Step 0 with Switch + label + description, shift all existing steps by +1, update totalSteps
   - Implement: On wizard completion, pass `sharePhone` to RSVP mutation (extend existing mutation call) or call my-settings endpoint
   - Test: Update `member-onboarding-wizard.test.tsx` — test Step 0 renders with Switch, test step navigation (now 4-5 steps), test sharePhone is included in RSVP call

@@ -315,3 +315,55 @@
 - Error helpers must use `.toLowerCase()` consistently for case-insensitive network error detection — all 6 helpers in `use-invitations.ts` now follow this pattern
 - The `vi.mock` for hooks must be placed before component imports to ensure proper hoisting
 - Cache invalidation on privacy settings should include both the settings query AND the members list query, since `sharePhone` affects phone number visibility in the members list
+
+## Iteration 8 — Task 3.3: Add phone sharing step to onboarding wizard
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**member-onboarding-wizard.tsx** (`apps/web/src/components/trip/member-onboarding-wizard.tsx`):
+- Added imports: `Switch` from `@/components/ui/switch`, `Label` from `@/components/ui/label`, `useUpdateMySettings` from `@/hooks/use-invitations`
+- Added state: `const [sharePhone, setSharePhone] = useState(false)`
+- Added hook: `const updateMySettings = useUpdateMySettings(tripId)`
+- Updated `totalSteps`: `canAddEvents ? 4 : 3` → `canAddEvents ? 5 : 4`
+- Updated `eventsStepIndex`: `canAddEvents ? 2 : -1` → `canAddEvents ? 3 : -1`
+- Inserted new Step 0 (phone sharing) — header with "Share your phone number?" title and body with Switch toggle, label, and description text matching architecture spec
+- Added `handleNext` branch for step 0: calls `updateMySettings.mutate({ sharePhone })` with `onSuccess` (advance) and `onError` (toast) callbacks
+- Shifted all existing step references by +1: arrival step 0→1, departure step 1→2
+- Updated departure pre-fill useEffect: `step === 1` → `step === 2`
+- Added `updateMySettings.isPending` to the combined `isPending` check
+- Added `setSharePhone(false)` to the sheet open reset useEffect
+- Footer naturally handles Step 0: `step > 0` gate means no Back button on phone step
+
+**member-onboarding-wizard.test.tsx** (`apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx`):
+- Extended `@/hooks/use-invitations` mock to include `useUpdateMySettings` with `mockUpdateMySettingsMutate`
+- Added `skipPhoneStep()` helper function to navigate past new Step 0
+- Updated all step count assertions: "Step 1 of 4" → "Step 1 of 5" (with events), "Step 1 of 3" → "Step 1 of 4" (without events)
+- Updated all navigation tests to include extra skip past phone step
+- Added 6 new tests in "Phone sharing step" describe block:
+  1. Renders Switch with correct aria-label, label, and description text
+  2. Skip navigates to arrival without calling API
+  3. Next with switch ON calls mutate with `{ sharePhone: true }`
+  4. Next with switch OFF calls mutate with `{ sharePhone: false }`
+  5. Switch initial state is unchecked
+  6. Back button not shown on step 0
+
+### Verification Results
+- `pnpm vitest run member-onboarding-wizard.test.tsx`: PASS (28/28 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- LOW: Done summary does not show phone sharing status — appropriate since it's a privacy toggle rather than travel logistics
+- LOW: Wizard does not pre-fill `sharePhone` from existing settings — consistent with architecture spec (`useState(false)`) and the wizard being a one-time onboarding flow
+- LOW: No test for `isPending` disabling buttons during my-settings mutation — component code is correct (line 283), same pattern as other mutations
+
+### Learnings
+- The wizard has no RSVP mutation — RSVP "going" happens in TripPreview before the wizard opens, so `useUpdateMySettings` is the correct hook for persisting phone sharing preference
+- The `step > 0` footer guard for the Back button naturally handles the new Step 0 correctly — no explicit changes needed for back navigation
+- Adding a `skipPhoneStep()` helper function in tests reduces duplication when all existing navigation tests need an extra step
+- The `handleSkip()` function (`setStep(s => s + 1)`) is generic enough that no changes were needed — skipping Step 0 leaves `sharePhone` as `false` (conservative default)
