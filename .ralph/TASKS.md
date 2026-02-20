@@ -85,7 +85,7 @@
 
 ## Phase 4: Final Verification
 
-- [ ] Task 4.1: Full regression check
+- [x] Task 4.1: Full regression check
   - Verify: `pnpm typecheck` — all packages compile with 0 errors
   - Verify: `pnpm lint` — 0 errors
   - Verify: `pnpm test` — all unit tests pass

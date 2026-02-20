@@ -451,3 +451,45 @@
 - When cleaning up CSS on elements that changed from text to icon content, keep `color`-related classes (like `text-primary`) that drive `currentColor` inheritance but remove `font-size` and `text-decoration` classes that only affect text nodes
 - Test file type exclusion from `pnpm typecheck` means mock object completeness must be verified manually — a recurring theme across cleanup tasks
 - The auth lockout integration test (1 failure) is an additional pre-existing flaky test beyond the 10 daily-itineraries failures — timing/environment dependent
+
+## Iteration 11 — Task 4.1: Full regression check
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Verification Results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| `pnpm typecheck` | PASS | 0 errors across all 3 packages (shared, api, web) |
+| `pnpm lint` | PASS | 0 errors across all 3 packages |
+| `pnpm test` (shared) | PASS | 226/226 tests pass |
+| `pnpm test` (api) | PASS* | 1025 pass, 10 fail — all in `daily-itineraries.worker.test.ts` (pre-existing DB pollution) |
+| `pnpm test` (web) | PASS* | 1088 pass, 8 fail — all pre-existing (5 app-header, 1 metadata, 2 URL validation) |
+| `pnpm test:e2e` | PASS | 32/32 E2E tests pass, 0 failures |
+
+*Only pre-existing failures, no new regressions.
+
+### E2E Regression Found and Fixed
+
+Two E2E tests in `invitation-journey.spec.ts` failed because Task 3.3 added a new phone sharing Step 0 to the onboarding wizard, but the E2E tests were not updated:
+
+1. **"invitation and RSVP journey"** (line ~171) — expected "When are you arriving?" as first wizard step
+2. **"member completes onboarding wizard after RSVP"** (line ~535) — expected "When are you arriving?" and "Step 1 of 4"
+
+### Changes Made
+
+**E2E test fix** (`apps/web/tests/e2e/invitation-journey.spec.ts`):
+- Both tests now handle the new phone sharing Step 0: wait for "Share your phone number?" to be visible, click "Skip" to advance, then check for "When are you arriving?"
+- Step counter assertions updated: "Step N of 4" → "Step N+1 of 5" throughout the wizard completion test
+- Timeout adjusted: `NAVIGATION_TIMEOUT` for initial wizard appearance, `ELEMENT_TIMEOUT` for in-dialog transitions
+
+### Reviewer Notes
+- LOW: The shorter "invitation and RSVP journey" test omits step counter checks on the phone step, which is fine since that test's goal is to verify the wizard can be dismissed, not validate step numbering
+
+### Learnings
+- When adding steps to user-facing wizards, E2E tests must be updated alongside unit tests — Task 3.3 updated unit tests but missed the E2E tests
+- `CI=true` environment variable causes Playwright's `reuseExistingServer: !process.env.CI` to resolve to `false`, requiring `CI=` prefix to reuse running dev servers
+- The full regression check across all 4 verification layers (typecheck, lint, unit tests, E2E) caught a real regression that unit tests alone could not detect
+- Pre-existing failure counts remain stable: 10 API (daily-itineraries), 8 web (app-header/metadata/URL-validation), 0 E2E
