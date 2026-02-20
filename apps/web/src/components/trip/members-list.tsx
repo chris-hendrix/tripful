@@ -203,7 +203,7 @@ export function MembersList({
                         href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
+                        className="text-primary"
                         data-testid={`member-venmo-${member.userId}`}
                       >
                         <VenmoIcon className="w-4 h-4" />

@@ -92,6 +92,7 @@ const mockTrip: TripDetailWithMeta = {
   endDate: "2026-03-20",
   preferredTimezone: "America/New_York",
   allowMembersToAddEvents: true,
+  showAllMembers: false,
   isOrganizer: false,
   isPreview: false,
   userRsvpStatus: "going",

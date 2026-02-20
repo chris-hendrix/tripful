@@ -77,7 +77,7 @@
   - Test: Update `edit-trip-dialog.test.tsx` — test checkbox renders, test form submission includes showAllMembers value
   - Verify: `pnpm vitest run apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx` passes
 
-- [ ] Task 3.5: Phase 3 cleanup
+- [x] Task 3.5: Phase 3 cleanup
   - Review: Read PROGRESS.md entries for Phase 3 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

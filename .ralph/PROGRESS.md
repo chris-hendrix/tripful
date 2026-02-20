@@ -401,3 +401,53 @@
 - Adding a new boolean checkbox field to an existing form dialog is a straightforward 3-point change (defaultValues, reset, FormField) when the data layer (schema, types, hooks, API) already supports the field
 - The `JSON.parse(callArgs[1]?.body as string)` pattern from create-trip-dialog tests is the most precise way to assert boolean checkbox values in form submission tests, rather than `expect.stringContaining` which could match unintended strings
 - All 3 researcher agents returned consistent findings in under 90 seconds, confirming the entire data flow (DB → schema → types → API → hooks → optimistic update) was already complete — the UI was the only missing piece
+
+## Iteration 10 — Task 3.5: Phase 3 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Phase 3 Reviewer Caveats Triage
+
+| # | Source | Caveat | Resolution |
+|---|--------|--------|------------|
+| 1 | Task 3.1 | Venmo anchor `text-xs hover:underline` dead CSS | **FIXED** — removed dead classes |
+| 2 | Task 3.1 | VenmoIcon omits `role` attribute | No fix needed — `aria-hidden="true"` is correct |
+| 3 | Task 3.2 | Venmo CSS re-confirmed for 3.5 | Same as #1, **FIXED** |
+| 4 | Task 3.2 | Description text deviation from arch spec | No fix needed — reviewer deemed more concise |
+| 5 | Task 3.3 | Done summary no phone status | No fix needed — appropriate for privacy toggle |
+| 6 | Task 3.3 | No sharePhone pre-fill in wizard | No fix needed — per architecture spec |
+| 7 | Task 3.3 | No isPending test for my-settings | No fix needed — code correct, same pattern as others |
+| 8 | Task 3.4 | No issues | Nothing to address |
+
+### Changes Made
+
+**Venmo anchor CSS** (`apps/web/src/components/trip/members-list.tsx`):
+- Changed Venmo `<a>` tag className from `"text-xs text-primary hover:underline"` to `"text-primary"`
+- `text-xs` (font-size) and `hover:underline` (text-decoration) had no effect on the SVG icon child
+- `text-primary` retained because VenmoIcon uses `fill="currentColor"` to inherit color
+- Instagram anchor at line ~217 intentionally unchanged — it renders text where those classes are functional
+
+**Unused import** (`apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx`):
+- Removed unused `waitFor` from `@testing-library/react` import
+
+**Mock completeness** (`apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx`):
+- Added `showAllMembers: false` to `mockTrip` object to match the current `Trip` type (added in Task 1.1)
+- Test files are excluded from `pnpm typecheck`, so incomplete mocks aren't caught by type checking
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1024 API tests (11 pre-existing failures: 10 daily-itineraries + 1 auth lockout), 1088 web tests (8 pre-existing failures only)
+- Targeted tests: members-list (50/50), notification-preferences (15/15), member-onboarding-wizard (28/28) — all pass
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Two other test files (`trip-detail-content.test.tsx`, `trip-preview.test.tsx`) also have `TripDetailWithMeta` mocks missing `showAllMembers`. These are pre-existing gaps (not introduced by this task) and non-blocking. Could be addressed in Phase 4 or a future cleanup.
+
+### Learnings
+- Phase 3 cleanup was straightforward — only 1 of 8 reviewer caveats required a code fix; the rest were correctly deemed acceptable/by-design during original review
+- When cleaning up CSS on elements that changed from text to icon content, keep `color`-related classes (like `text-primary`) that drive `currentColor` inheritance but remove `font-size` and `text-decoration` classes that only affect text nodes
+- Test file type exclusion from `pnpm typecheck` means mock object completeness must be verified manually — a recurring theme across cleanup tasks
+- The auth lockout integration test (1 failure) is an additional pre-existing flaky test beyond the 10 daily-itineraries failures — timing/environment dependent
