@@ -124,8 +124,12 @@ export async function authenticateViaAPI(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-  // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
-  await page.getByText(/\d+ trips?/).waitFor({ timeout: ELEMENT_TIMEOUT });
+  // Wait for React hydration + data load — trip count for users with trips, empty state for new users
+  await page
+    .getByText(/\d+ trips?/)
+    .or(page.getByRole("heading", { name: "No trips yet" }))
+    .first()
+    .waitFor({ timeout: ELEMENT_TIMEOUT });
   // Ensure page is fully interactive — wait for client-rendered user menu
   // which confirms React hydration and auth context are complete
   await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
@@ -155,8 +159,12 @@ export async function authenticateViaAPIWithPhone(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-  // Wait for React hydration + data load (trip count only renders after TanStack Query resolves)
-  await page.getByText(/\d+ trips?/).waitFor({ timeout: ELEMENT_TIMEOUT });
+  // Wait for React hydration + data load — trip count for users with trips, empty state for new users
+  await page
+    .getByText(/\d+ trips?/)
+    .or(page.getByRole("heading", { name: "No trips yet" }))
+    .first()
+    .waitFor({ timeout: ELEMENT_TIMEOUT });
   // Ensure page is fully interactive — wait for client-rendered user menu
   // which confirms React hydration and auth context are complete
   await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
