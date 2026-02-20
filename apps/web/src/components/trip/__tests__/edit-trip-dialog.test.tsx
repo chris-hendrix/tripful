@@ -48,6 +48,7 @@ describe("EditTripDialog", () => {
     coverImageUrl: "https://example.com/image.jpg",
     createdBy: "user-123",
     allowMembersToAddEvents: true,
+    showAllMembers: false,
     cancelled: false,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
@@ -161,6 +162,13 @@ describe("EditTripDialog", () => {
         name: /allow members to add events/i,
       });
       expect(checkbox.getAttribute("data-state")).toBe("checked");
+
+      const showAllMembersCheckbox = screen.getByRole("checkbox", {
+        name: /show all invited members/i,
+      });
+      expect(showAllMembersCheckbox.getAttribute("data-state")).toBe(
+        "unchecked",
+      );
     });
 
     it("handles null description gracefully", () => {
@@ -502,6 +510,9 @@ describe("EditTripDialog", () => {
 
       const checkbox = screen.getByLabelText(/allow members to add events/i);
       expect(checkbox).toHaveProperty("disabled", true);
+
+      const showAllMembers = screen.getByLabelText(/show all invited members/i);
+      expect(showAllMembers).toHaveProperty("disabled", true);
     });
 
     it("shows error toast on update failure", async () => {
@@ -525,6 +536,38 @@ describe("EditTripDialog", () => {
         expect(mockToast.error).toHaveBeenCalledWith(
           expect.stringMatching(/you don't have permission to edit this trip/i),
         );
+      });
+    });
+
+    it("includes showAllMembers in form submission", async () => {
+      const { apiRequest } = await import("@/lib/api");
+      vi.mocked(apiRequest).mockClear();
+      vi.mocked(apiRequest).mockResolvedValueOnce({
+        success: true,
+        trip: { ...mockTrip, showAllMembers: true },
+      });
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <EditTripDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          trip={mockTrip}
+        />,
+      );
+
+      // Toggle showAllMembers on (it starts unchecked since mockTrip.showAllMembers is false)
+      const showAllMembersCheckbox = screen.getByRole("checkbox", {
+        name: /show all invited members/i,
+      });
+      await user.click(showAllMembersCheckbox);
+
+      await user.click(screen.getByRole("button", { name: /update trip/i }));
+
+      await waitFor(() => {
+        const callArgs = vi.mocked(apiRequest).mock.calls[0];
+        const body = JSON.parse(callArgs[1]?.body as string);
+        expect(body.showAllMembers).toBe(true);
       });
     });
   });
@@ -818,6 +861,9 @@ describe("EditTripDialog", () => {
       expect(screen.getByLabelText(/description/i)).toBeDefined();
       expect(
         screen.getByLabelText(/allow members to add events/i),
+      ).toBeDefined();
+      expect(
+        screen.getByLabelText(/show all invited members/i),
       ).toBeDefined();
     });
 

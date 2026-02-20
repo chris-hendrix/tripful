@@ -367,3 +367,37 @@
 - The `step > 0` footer guard for the Back button naturally handles the new Step 0 correctly — no explicit changes needed for back navigation
 - Adding a `skipPhoneStep()` helper function in tests reduces duplication when all existing navigation tests need an extra step
 - The `handleSkip()` function (`setStep(s => s + 1)`) is generic enough that no changes were needed — skipping Step 0 leaves `sharePhone` as `false` (conservative default)
+
+## Iteration 9 — Task 3.4: Add showAllMembers toggle to edit trip dialog
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**edit-trip-dialog.tsx** (`apps/web/src/components/trip/edit-trip-dialog.tsx`) — 3 changes:
+- Added `showAllMembers: false` to `defaultValues` (line 86), matching the schema default
+- Added `showAllMembers: trip.showAllMembers` to `form.reset()` (line 102), so the form pre-populates with the trip's current setting when the dialog opens
+- Added new `FormField` with Checkbox (lines 386-414) immediately after the existing `allowMembersToAddEvents` checkbox, following the identical pattern: label "Show all invited members", description "Let members see everyone invited, not just those going or maybe", `aria-label="Show all invited members"`, disabled during `isPending || isDeleting`
+
+**edit-trip-dialog.test.tsx** (`apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx`) — 5 changes:
+- Added `showAllMembers: false` to `mockTrip` object
+- Added pre-population assertion: verifies checkbox renders with `data-state="unchecked"` when `mockTrip.showAllMembers` is `false`
+- Added disabled state assertion: verifies checkbox is disabled during pending update
+- Added accessibility assertion: verifies `getByLabelText(/show all invited members/i)` works
+- Added new test "includes showAllMembers in form submission": toggles checkbox on, submits form, parses API request body to confirm `showAllMembers: true`
+
+### Verification Results
+- `pnpm vitest run edit-trip-dialog.test.tsx`: PASS (31/31 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), 1088 web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- No issues found. Implementation is a clean, minimal replica of the existing `allowMembersToAddEvents` pattern with no deviations from the architecture spec.
+
+### Learnings
+- Adding a new boolean checkbox field to an existing form dialog is a straightforward 3-point change (defaultValues, reset, FormField) when the data layer (schema, types, hooks, API) already supports the field
+- The `JSON.parse(callArgs[1]?.body as string)` pattern from create-trip-dialog tests is the most precise way to assert boolean checkbox values in form submission tests, rather than `expect.stringContaining` which could match unintended strings
+- All 3 researcher agents returned consistent findings in under 90 seconds, confirming the entire data flow (DB → schema → types → API → hooks → optimistic update) was already complete — the UI was the only missing piece

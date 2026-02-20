@@ -72,7 +72,7 @@
   - Test: Update `member-onboarding-wizard.test.tsx` — test Step 0 renders with Switch, test step navigation (now 4-5 steps), test sharePhone is included in RSVP call
   - Verify: `pnpm vitest run apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx` passes
 
-- [ ] Task 3.4: Add showAllMembers toggle to edit trip dialog
+- [x] Task 3.4: Add showAllMembers toggle to edit trip dialog
   - Implement: In `edit-trip-dialog.tsx` — add `showAllMembers` to defaultValues and form.reset(), add Checkbox FormField after allowMembersToAddEvents with label and description
   - Test: Update `edit-trip-dialog.test.tsx` — test checkbox renders, test form submission includes showAllMembers value
   - Verify: `pnpm vitest run apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx` passes
