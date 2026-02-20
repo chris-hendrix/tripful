@@ -27,5 +27,5 @@ export function canModifyMemberTravel(
   isLocked?: boolean,
 ): boolean {
   if (isLocked) return false;
-  return isOrganizer || travel.memberId === userId;
+  return isOrganizer || travel.userId === userId;
 }
