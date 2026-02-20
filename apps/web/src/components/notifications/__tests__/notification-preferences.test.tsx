@@ -24,6 +24,21 @@ vi.mock("@/hooks/use-notifications", () => ({
   },
 }));
 
+const mockUseMySettings = vi.fn();
+const mockUpdateMySettingsMutate = vi.fn();
+
+vi.mock("@/hooks/use-invitations", () => ({
+  useMySettings: (tripId: string) => mockUseMySettings(tripId),
+  useUpdateMySettings: () => ({
+    mutate: mockUpdateMySettingsMutate,
+    isPending: false,
+  }),
+  getUpdateMySettingsErrorMessage: (error: Error | null) => {
+    if (!error) return null;
+    return error.message || "Failed to update privacy settings";
+  },
+}));
+
 import { NotificationPreferences } from "../notification-preferences";
 
 describe("NotificationPreferences", () => {
@@ -36,6 +51,10 @@ describe("NotificationPreferences", () => {
     vi.clearAllMocks();
     mockUseNotificationPreferences.mockReturnValue({
       data: defaultPrefs,
+      isLoading: false,
+    });
+    mockUseMySettings.mockReturnValue({
+      data: false,
       isLoading: false,
     });
   });
@@ -191,6 +210,91 @@ describe("NotificationPreferences", () => {
       name: "Daily Itinerary",
     });
     await user.click(dailySwitch);
+
+    expect(mockToast.error).toHaveBeenCalledWith("Server error");
+  });
+
+  it("renders Privacy section with share phone toggle", () => {
+    render(<NotificationPreferences tripId="trip-1" />);
+
+    expect(screen.getByText("Privacy")).toBeDefined();
+    expect(screen.getByText("Share phone number")).toBeDefined();
+    expect(
+      screen.getByText("Allow other trip members to see your phone number"),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("switch", { name: "Share phone number" }),
+    ).toBeDefined();
+  });
+
+  it("shows share phone switch as checked when sharePhone is true", () => {
+    mockUseMySettings.mockReturnValue({
+      data: true,
+      isLoading: false,
+    });
+
+    render(<NotificationPreferences tripId="trip-1" />);
+
+    const sharePhoneSwitch = screen.getByRole("switch", {
+      name: "Share phone number",
+    });
+    expect(sharePhoneSwitch.getAttribute("data-state")).toBe("checked");
+  });
+
+  it("calls updateMySettings when toggling share phone", async () => {
+    const user = userEvent.setup();
+
+    render(<NotificationPreferences tripId="trip-1" />);
+
+    const sharePhoneSwitch = screen.getByRole("switch", {
+      name: "Share phone number",
+    });
+    await user.click(sharePhoneSwitch);
+
+    expect(mockUpdateMySettingsMutate).toHaveBeenCalledWith(
+      { sharePhone: true },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("shows success toast when privacy update succeeds", async () => {
+    const user = userEvent.setup();
+    mockUpdateMySettingsMutate.mockImplementation(
+      (
+        _data: unknown,
+        options: { onSuccess: () => void; onError: (error: Error) => void },
+      ) => {
+        options.onSuccess();
+      },
+    );
+
+    render(<NotificationPreferences tripId="trip-1" />);
+
+    const sharePhoneSwitch = screen.getByRole("switch", {
+      name: "Share phone number",
+    });
+    await user.click(sharePhoneSwitch);
+
+    expect(mockToast.success).toHaveBeenCalledWith("Privacy settings updated");
+  });
+
+  it("shows error toast when privacy update fails", async () => {
+    const user = userEvent.setup();
+    mockUpdateMySettingsMutate.mockImplementation(
+      (_data: unknown, options: { onError: (error: Error) => void }) => {
+        options.onError(new Error("Server error"));
+      },
+    );
+
+    render(<NotificationPreferences tripId="trip-1" />);
+
+    const sharePhoneSwitch = screen.getByRole("switch", {
+      name: "Share phone number",
+    });
+    await user.click(sharePhoneSwitch);
 
     expect(mockToast.error).toHaveBeenCalledWith("Server error");
   });

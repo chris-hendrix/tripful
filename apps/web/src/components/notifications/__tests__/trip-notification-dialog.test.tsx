@@ -34,6 +34,18 @@ vi.mock("@/hooks/use-notifications", () => ({
   getUpdatePreferencesErrorMessage: () => null,
 }));
 
+vi.mock("@/hooks/use-invitations", () => ({
+  useMySettings: () => ({
+    data: false,
+    isLoading: false,
+  }),
+  useUpdateMySettings: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  getUpdateMySettingsErrorMessage: () => null,
+}));
+
 import { TripNotificationDialog } from "../trip-notification-dialog";
 
 function makeNotification(

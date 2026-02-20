@@ -259,3 +259,59 @@
 - Removing client-side phone filtering (`isOrganizer &&` gate) relies on the API correctly omitting `phoneNumber` from response data for unauthorized viewers — this was implemented in Task 2.1
 - The test pattern for SVG icons: query by `data-testid` on the parent element, then use `querySelector('svg')` and check `aria-hidden` attribute
 - Mock member data with `handles: { venmo: "@testuser" }` triggers the handles rendering code path — existing mocks all had `handles: null`
+
+## Iteration 7 — Task 3.2: Add my-settings hooks and Privacy section in notification preferences
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation-queries.ts** (`apps/web/src/hooks/invitation-queries.ts`):
+- Added `mySettingsKeys` query key factory with `all`, `detail(tripId)`, and `update()` methods
+- Added `mySettingsQueryOptions(tripId)` query options function using `queryOptions<boolean>` — extracts `sharePhone` boolean from the `GET /trips/:tripId/my-settings` API response, with 2-minute stale time
+
+**use-invitations.ts** (`apps/web/src/hooks/use-invitations.ts`):
+- Added `useMySettings(tripId)` — query hook wrapping `mySettingsQueryOptions`
+- Added `useUpdateMySettings(tripId)` — mutation hook calling `PATCH /trips/:tripId/my-settings` with `{ sharePhone: boolean }` body, invalidates both `mySettingsKeys.detail(tripId)` and `memberKeys.list(tripId)` on settled (since phone visibility depends on sharePhone)
+- Added `getUpdateMySettingsErrorMessage(error)` — error helper handling `PERMISSION_DENIED`, `MEMBER_NOT_FOUND`, `UNAUTHORIZED`, `VALIDATION_ERROR`, network errors, and generic fallback
+- Imported `UpdateMySettingsInput` from `@tripful/shared/schemas`, `mySettingsQueryOptions` and `mySettingsKeys` from `./invitation-queries`
+
+**notification-preferences.tsx** (`apps/web/src/components/notifications/notification-preferences.tsx`):
+- Imported `useMySettings`, `useUpdateMySettings`, `getUpdateMySettingsErrorMessage` from `@/hooks/use-invitations`
+- Added `useMySettings(tripId)` and `useUpdateMySettings(tripId)` hook calls
+- Added `handleSharePhoneToggle` function with `onSuccess` (toast.success) and `onError` (toast.error with error message helper)
+- Added Privacy section: `<Separator>`, "Privacy" heading (`text-sm font-medium mt-4 mb-2`), Switch for "Share phone number" with description text
+- Added loading skeleton for Privacy section when `isMySettingsLoading` is true
+
+**trip-notification-dialog.test.tsx** (`apps/web/src/components/notifications/__tests__/trip-notification-dialog.test.tsx`):
+- Added `vi.mock("@/hooks/use-invitations", ...)` to mock the 3 new exports that `NotificationPreferences` now imports — fixed regression where 2 tests failed with "No QueryClient set" error
+
+**use-invitations.test.tsx** (`apps/web/src/hooks/__tests__/use-invitations.test.tsx`):
+- Added `useMySettings` describe block (2 tests): successful fetch, error handling
+- Added `useUpdateMySettings` describe block (2 tests): PATCH endpoint call with correct body, query invalidation on settled
+- Added `getUpdateMySettingsErrorMessage` describe block (7 tests): null, PERMISSION_DENIED, MEMBER_NOT_FOUND, UNAUTHORIZED, VALIDATION_ERROR, network errors, generic errors
+
+**notification-preferences.test.tsx** (`apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx`):
+- Added `vi.mock("@/hooks/use-invitations", ...)` with `mockUseMySettings` and `mockUpdateMySettingsMutate`
+- Added 5 new tests: Privacy section renders, switch checked state, toggle calls mutation, success toast, error toast
+
+### Verification Results
+- `pnpm vitest run use-invitations.test.tsx`: PASS (57 tests, 0 failures)
+- `pnpm vitest run notification-preferences.test.tsx`: PASS (15 tests, 0 failures)
+- `pnpm vitest run trip-notification-dialog.test.tsx`: PASS (19 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), 1080 web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- LOW: Venmo anchor CSS (`text-xs hover:underline`) still present from Task 3.1 — cosmetic dead code, defer to Task 3.5 cleanup
+- Minor description text deviation from architecture spec ("Allow other trip members to see your phone number" vs. "...for this trip") — implemented version is more concise
+
+### Learnings
+- When adding hooks to a component that's already rendered in other test files (like `NotificationPreferences` in `TripNotificationDialog`), the other test files need updated mocks too — always search for all test files that render parent components
+- The `queryOptions<boolean>` return type makes `data` be `boolean | undefined`, handled correctly with `sharePhone ?? false` in the component
+- Error helpers must use `.toLowerCase()` consistently for case-insensitive network error detection — all 6 helpers in `use-invitations.ts` now follow this pattern
+- The `vi.mock` for hooks must be placed before component imports to ensure proper hoisting
+- Cache invalidation on privacy settings should include both the settings query AND the members list query, since `sharePhone` affects phone number visibility in the members list

@@ -58,7 +58,7 @@
   - Verify: `pnpm vitest run apps/web/src/components/trip/__tests__/members-list.test.tsx` passes
   - Verify: `pnpm typecheck` passes
 
-- [ ] Task 3.2: Add my-settings hooks and Privacy section in notification preferences
+- [x] Task 3.2: Add my-settings hooks and Privacy section in notification preferences
   - Implement: In `apps/web/src/hooks/use-invitations.ts` — add `useMySettings(tripId)` query hook and `useUpdateMySettings(tripId)` mutation hook with `getUpdateMySettingsErrorMessage()` helper
   - Implement: In `notification-preferences.tsx` — import new hooks, add Separator + "Privacy" heading + Switch for "Share phone number" below notification switches
   - Test: Update `use-invitations.test.tsx` — test new hooks make correct API calls
