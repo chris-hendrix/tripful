@@ -29,7 +29,7 @@
   - Verify: `pnpm typecheck` passes in apps/api
   - Verify: `pnpm test` passes (run full test suite to catch regressions)
 
-- [ ] Task 2.2: Extend RSVP endpoint and add my-settings endpoints
+- [x] Task 2.2: Extend RSVP endpoint and add my-settings endpoints
   - Implement: In `invitation.service.ts` `updateRsvp()` — accept optional `sharePhone` parameter, include in `.set()` when provided, update `IInvitationService` interface
   - Implement: In `invitation.controller.ts` — destructure `sharePhone` from request body in `updateRsvp` handler, pass to service
   - Implement: Add `getMySettings(userId, tripId)` and `updateMySettings(userId, tripId, sharePhone)` methods to InvitationService

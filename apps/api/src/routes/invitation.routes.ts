@@ -12,6 +12,8 @@ import {
 import {
   createInvitationsSchema,
   updateRsvpSchema,
+  updateMySettingsSchema,
+  mySettingsResponseSchema,
   createInvitationsResponseSchema,
   getInvitationsResponseSchema,
   getMembersResponseSchema,
@@ -21,6 +23,7 @@ import {
 import type {
   CreateInvitationsInput,
   UpdateRsvpInput,
+  UpdateMySettingsInput,
 } from "@tripful/shared/schemas";
 
 // Reusable param schemas
@@ -80,6 +83,23 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
     },
     invitationController.getMembers,
+  );
+
+  /**
+   * GET /trips/:tripId/my-settings
+   * Get current member's per-trip settings
+   * Requires authentication only (not complete profile)
+   */
+  fastify.get<{ Params: { tripId: string } }>(
+    "/trips/:tripId/my-settings",
+    {
+      schema: {
+        params: tripIdParamsSchema,
+        response: { 200: mySettingsResponseSchema },
+      },
+      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+    },
+    invitationController.getMySettings,
   );
 
   /**
@@ -153,6 +173,22 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         },
       },
       invitationController.updateRsvp,
+    );
+
+    /**
+     * PATCH /trips/:tripId/my-settings
+     * Update current member's per-trip settings
+     */
+    scope.patch<{ Params: { tripId: string }; Body: UpdateMySettingsInput }>(
+      "/trips/:tripId/my-settings",
+      {
+        schema: {
+          params: tripIdParamsSchema,
+          body: updateMySettingsSchema,
+          response: { 200: mySettingsResponseSchema },
+        },
+      },
+      invitationController.updateMySettings,
     );
   });
 }

@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from "fastify";
 import type {
   CreateInvitationsInput,
   UpdateRsvpInput,
+  UpdateMySettingsInput,
 } from "@tripful/shared/schemas";
 import { PermissionDeniedError } from "../errors.js";
 import { auditLog } from "@/utils/audit.js";
@@ -275,7 +276,7 @@ export const invitationController = {
   ) {
     // Params and body are validated by Fastify route schema
     const { tripId } = request.params;
-    const { status } = request.body;
+    const { status, sharePhone } = request.body;
 
     try {
       const { invitationService } = request.server;
@@ -284,7 +285,7 @@ export const invitationController = {
       const userId = request.user.sub;
 
       // Update RSVP via service
-      const member = await invitationService.updateRsvp(userId, tripId, status);
+      const member = await invitationService.updateRsvp(userId, tripId, status, sharePhone);
 
       auditLog(request, "member.rsvp_updated", {
         resourceType: "trip",
@@ -361,6 +362,93 @@ export const invitationController = {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to get members",
         },
+      });
+    }
+  },
+
+  /**
+   * Get my settings endpoint
+   * Returns the current member's per-trip settings
+   *
+   * @route GET /api/trips/:tripId/my-settings
+   * @middleware authenticate
+   * @param request - Fastify request
+   * @param reply - Fastify reply object
+   * @returns Success response with settings
+   */
+  async getMySettings(
+    request: FastifyRequest<{ Params: { tripId: string } }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { invitationService } = request.server;
+      const userId = request.user.sub;
+      const { tripId } = request.params;
+
+      const settings = await invitationService.getMySettings(userId, tripId);
+
+      return reply.status(200).send({
+        success: true as const,
+        sharePhone: settings.sharePhone,
+      });
+    } catch (error) {
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+      request.log.error(
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
+        "Failed to get my settings",
+      );
+      return reply.status(500).send({
+        success: false,
+        error: { code: "INTERNAL_SERVER_ERROR", message: "Failed to get my settings" },
+      });
+    }
+  },
+
+  /**
+   * Update my settings endpoint
+   * Updates the current member's per-trip settings
+   *
+   * @route PATCH /api/trips/:tripId/my-settings
+   * @middleware authenticate, requireCompleteProfile
+   * @param request - Fastify request with settings in body
+   * @param reply - Fastify reply object
+   * @returns Success response with updated settings
+   */
+  async updateMySettings(
+    request: FastifyRequest<{ Params: { tripId: string }; Body: UpdateMySettingsInput }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { invitationService } = request.server;
+      const userId = request.user.sub;
+      const { tripId } = request.params;
+      const { sharePhone } = request.body;
+
+      const settings = await invitationService.updateMySettings(userId, tripId, sharePhone);
+
+      auditLog(request, "member.settings.updated", {
+        resourceType: "member",
+        resourceId: tripId,
+        metadata: { sharePhone },
+      });
+
+      return reply.status(200).send({
+        success: true as const,
+        sharePhone: settings.sharePhone,
+      });
+    } catch (error) {
+      if (error && typeof error === "object" && "statusCode" in error) {
+        throw error;
+      }
+      request.log.error(
+        { err: error, userId: request.user.sub, tripId: request.params.tripId },
+        "Failed to update my settings",
+      );
+      return reply.status(500).send({
+        success: false,
+        error: { code: "INTERNAL_SERVER_ERROR", message: "Failed to update my settings" },
       });
     }
   },

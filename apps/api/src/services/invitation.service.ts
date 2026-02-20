@@ -73,7 +73,32 @@ export interface IInvitationService {
     userId: string,
     tripId: string,
     status: "going" | "not_going" | "maybe",
+    sharePhone?: boolean,
   ): Promise<MemberWithProfile>;
+
+  /**
+   * Gets the current member's per-trip settings
+   * @param userId - The ID of the requesting user
+   * @param tripId - The ID of the trip
+   * @returns Current settings (sharePhone)
+   */
+  getMySettings(
+    userId: string,
+    tripId: string,
+  ): Promise<{ sharePhone: boolean }>;
+
+  /**
+   * Updates the current member's per-trip settings
+   * @param userId - The ID of the requesting user
+   * @param tripId - The ID of the trip
+   * @param sharePhone - Whether to share phone number with other members
+   * @returns Updated settings (sharePhone)
+   */
+  updateMySettings(
+    userId: string,
+    tripId: string,
+    sharePhone: boolean,
+  ): Promise<{ sharePhone: boolean }>;
 
   /**
    * Gets all members of a trip with profile information
@@ -472,6 +497,7 @@ export class InvitationService implements IInvitationService {
     userId: string,
     tripId: string,
     status: "going" | "not_going" | "maybe",
+    sharePhone?: boolean,
   ): Promise<MemberWithProfile> {
     // Check permission
     const canUpdate = await this.permissionsService.canUpdateRsvp(
@@ -498,7 +524,7 @@ export class InvitationService implements IInvitationService {
     // Update member status
     await this.db
       .update(members)
-      .set({ status, updatedAt: new Date() })
+      .set({ status, ...(sharePhone !== undefined ? { sharePhone } : {}), updatedAt: new Date() })
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
 
     // Create default notification preferences when RSVP changes to "going"
@@ -539,6 +565,64 @@ export class InvitationService implements IInvitationService {
       isOrganizer: result.isOrganizer,
       createdAt: result.createdAt.toISOString(),
     };
+  }
+
+  /**
+   * Gets the current member's per-trip settings
+   */
+  async getMySettings(
+    userId: string,
+    tripId: string,
+  ): Promise<{ sharePhone: boolean }> {
+    const membershipInfo = await this.permissionsService.getMembershipInfo(
+      userId,
+      tripId,
+    );
+    if (!membershipInfo.isMember) {
+      throw new PermissionDeniedError(
+        "Permission denied: only members can view settings",
+      );
+    }
+
+    const result = await this.db
+      .select({ sharePhone: members.sharePhone })
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    return { sharePhone: result[0]!.sharePhone };
+  }
+
+  /**
+   * Updates the current member's per-trip settings
+   */
+  async updateMySettings(
+    userId: string,
+    tripId: string,
+    sharePhone: boolean,
+  ): Promise<{ sharePhone: boolean }> {
+    const membershipInfo = await this.permissionsService.getMembershipInfo(
+      userId,
+      tripId,
+    );
+    if (!membershipInfo.isMember) {
+      throw new PermissionDeniedError(
+        "Permission denied: only members can update settings",
+      );
+    }
+
+    await this.db
+      .update(members)
+      .set({ sharePhone, updatedAt: new Date() })
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
+
+    const updatedResult = await this.db
+      .select({ sharePhone: members.sharePhone })
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    return { sharePhone: updatedResult[0]!.sharePhone };
   }
 
   /**

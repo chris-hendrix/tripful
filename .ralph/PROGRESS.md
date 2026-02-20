@@ -115,3 +115,55 @@
 - Optional chaining (`tripSettings[0]?.showAllMembers`) provides a safe default of `false` (more restrictive) when the trip query returns empty, which is the correct privacy-safe behavior
 - The `OrganizerInfo` type was local to trip.service.ts, making the `phoneNumber?: string` change low-risk with no cascading type errors
 - All existing tests passed without modification because: (a) organizer viewers still see all phones via the `isOrg` check, and (b) non-organizer viewers still don't see phones since `sharePhone` defaults to `false`
+
+## Iteration 4 — Task 2.2: Extend RSVP endpoint and add my-settings endpoints
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation.service.ts** (`apps/api/src/services/invitation.service.ts`):
+- Extended `IInvitationService` interface: added `sharePhone?: boolean` parameter to `updateRsvp`, added `getMySettings(userId, tripId)` and `updateMySettings(userId, tripId, sharePhone)` method signatures
+- Extended `updateRsvp()` implementation: accepts optional `sharePhone` parameter, conditionally includes it in `.set()` via `...(sharePhone !== undefined ? { sharePhone } : {})`
+- Added `getMySettings()`: checks membership via `getMembershipInfo()`, queries `members.sharePhone`, throws `PermissionDeniedError` for non-members
+- Added `updateMySettings()`: checks membership, updates `members.sharePhone`, returns updated value, throws `PermissionDeniedError` for non-members
+
+**invitation.controller.ts** (`apps/api/src/controllers/invitation.controller.ts`):
+- Updated `updateRsvp` handler: destructures `sharePhone` from `request.body`, passes to service as 4th argument
+- Added `getMySettings` handler: follows existing try/catch pattern, calls service, returns `{ success: true, sharePhone }`
+- Added `updateMySettings` handler: follows existing pattern, calls service, includes audit log, returns `{ success: true, sharePhone }`
+- Added `UpdateMySettingsInput` import from shared schemas
+
+**invitation.routes.ts** (`apps/api/src/routes/invitation.routes.ts`):
+- Added imports: `updateMySettingsSchema`, `mySettingsResponseSchema`, `UpdateMySettingsInput`
+- Added `GET /trips/:tripId/my-settings` as read route (authenticate + defaultRateLimitConfig)
+- Added `PATCH /trips/:tripId/my-settings` inside write scope (authenticate + requireCompleteProfile + writeRateLimitConfig)
+
+**Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`):
+- Added 7 new tests in 3 describe blocks: `updateRsvp - sharePhone` (2 tests), `getMySettings` (2 tests), `updateMySettings` (3 tests)
+- All 44 tests pass (7 new + 37 existing)
+
+**Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`):
+- Added 8 new tests in 3 describe blocks: `GET my-settings` (3 tests: defaults, 401, 403), `PATCH my-settings` (4 tests: set true, toggle false, 401, 403), `RSVP+sharePhone` (1 test)
+- All 37 tests pass (8 new + 29 existing)
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1028 API tests (10 pre-existing daily-itineraries failures, 1 flaky auth lockout), 1070 web tests (8 pre-existing failures)
+- Targeted `invitation.service.test.ts`: 44/44 PASS
+- Targeted `invitation.routes.test.ts`: 37/37 PASS
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: `updateMySettings` does update-then-select (two queries) instead of using `.returning()`. This is consistent with existing patterns (`updateRsvp`, `updateMemberRole`) so it's the right choice for consistency.
+- LOW: Unit test for "sharePhone not changed when omitted" could be stronger by first setting to `true`, then calling without `sharePhone`, and verifying it stays `true`. Current implementation is correct by inspection.
+- LOW: Audit log uses `resourceType: "member"` while other member-scoped entries use `resourceType: "trip"`. Minor consistency point.
+
+### Learnings
+- The `getMembershipInfo()` method from `permissionsService` is the standard way to check trip membership for GET-style operations, while `canUpdateRsvp()` is used for RSVP-specific checks
+- Route placement follows a clear read/write split: GET routes go directly on `fastify` with `authenticate + defaultRateLimitConfig`, while write routes (POST/PATCH/DELETE) go inside a scoped plugin with shared `authenticate + requireCompleteProfile + writeRateLimitConfig` hooks
+- The `...(condition ? { field: value } : {})` spread pattern continues to be the standard for conditional field inclusion in both queries and updates
+- Audit logging uses the `auditLog` utility function pattern, not a service, accepting `request`, `action`, `resourceType`, `resourceId`, and optional `metadata`

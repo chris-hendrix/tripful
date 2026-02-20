@@ -552,6 +552,100 @@ describe("invitation.service", () => {
     });
   });
 
+  describe("updateRsvp - sharePhone", () => {
+    it("should persist sharePhone when provided", async () => {
+      await invitationService.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+        true,
+      );
+
+      // Verify sharePhone is set in the database
+      const [memberRecord] = await db
+        .select({ sharePhone: members.sharePhone })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(memberRecord.sharePhone).toBe(true);
+    });
+
+    it("should not change sharePhone when not provided", async () => {
+      // First set sharePhone to false explicitly (default)
+      await invitationService.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+      );
+
+      // Verify sharePhone remains at default (false)
+      const [memberRecord] = await db
+        .select({ sharePhone: members.sharePhone })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(memberRecord.sharePhone).toBe(false);
+    });
+  });
+
+  describe("getMySettings", () => {
+    it("should return sharePhone for a member", async () => {
+      const result = await invitationService.getMySettings(
+        testMemberId,
+        testTripId,
+      );
+
+      expect(result).toEqual({ sharePhone: false });
+    });
+
+    it("should throw PermissionDeniedError for non-member", async () => {
+      await expect(
+        invitationService.getMySettings("00000000-0000-0000-0000-000000000000", testTripId),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
+  describe("updateMySettings", () => {
+    it("should update and return sharePhone", async () => {
+      const result = await invitationService.updateMySettings(
+        testMemberId,
+        testTripId,
+        true,
+      );
+
+      expect(result).toEqual({ sharePhone: true });
+    });
+
+    it("should persist the updated value", async () => {
+      await invitationService.updateMySettings(
+        testMemberId,
+        testTripId,
+        true,
+      );
+
+      const result = await invitationService.getMySettings(
+        testMemberId,
+        testTripId,
+      );
+
+      expect(result).toEqual({ sharePhone: true });
+    });
+
+    it("should throw PermissionDeniedError for non-member", async () => {
+      await expect(
+        invitationService.updateMySettings("00000000-0000-0000-0000-000000000000", testTripId, true),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
   describe("getTripMembers", () => {
     it("should return members with profiles", async () => {
       const result = await invitationService.getTripMembers(
