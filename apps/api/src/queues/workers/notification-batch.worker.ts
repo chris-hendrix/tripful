@@ -18,10 +18,8 @@ import {
  */
 export function getPreferenceField(
   type: string,
-): "eventReminders" | "dailyItinerary" | "tripMessages" | null {
+): "dailyItinerary" | "tripMessages" | null {
   switch (type) {
-    case "event_reminder":
-      return "eventReminders";
     case "daily_itinerary":
       return "dailyItinerary";
     case "trip_message":
@@ -38,7 +36,6 @@ export function getPreferenceField(
 export function shouldSendSms(
   type: string,
   prefs: {
-    eventReminders: boolean;
     dailyItinerary: boolean;
     tripMessages: boolean;
   },
@@ -102,7 +99,6 @@ export async function handleNotificationBatch(
     prefsRows.map((p) => [
       p.userId,
       {
-        eventReminders: p.eventReminders,
         dailyItinerary: p.dailyItinerary,
         tripMessages: p.tripMessages,
       },
@@ -110,13 +106,12 @@ export async function handleNotificationBatch(
   );
 
   const defaultPrefs = {
-    eventReminders: true,
     dailyItinerary: true,
     tripMessages: true,
   };
 
-  // 4. Dedup for cron types (event_reminder, daily_itinerary)
-  const isCronType = type === "event_reminder" || type === "daily_itinerary";
+  // 4. Dedup for cron types (daily_itinerary)
+  const isCronType = type === "daily_itinerary";
   const referenceId = data?.referenceId ? String(data.referenceId) : null;
   const dedupSet = new Set<string>();
 

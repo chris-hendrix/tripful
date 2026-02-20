@@ -534,7 +534,6 @@ export function useUpdateNotificationPreferences(tripId: string) {
       queryClient.setQueryData<NotificationPreferences>(
         notificationKeys.preferences(tripId),
         {
-          eventReminders: data.eventReminders,
           dailyItinerary: data.dailyItinerary,
           tripMessages: data.tripMessages,
         },

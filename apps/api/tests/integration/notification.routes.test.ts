@@ -700,7 +700,6 @@ describe("Notification Routes", () => {
       expect(body).toHaveProperty("success", true);
       expect(body).toHaveProperty("preferences");
       expect(body.preferences).toMatchObject({
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: true,
       });
@@ -715,7 +714,6 @@ describe("Notification Routes", () => {
       await db.insert(notificationPreferences).values({
         userId: testUser.id,
         tripId: trip.id,
-        eventReminders: false,
         dailyItinerary: true,
         tripMessages: false,
       });
@@ -737,7 +735,6 @@ describe("Notification Routes", () => {
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
       expect(body.preferences).toMatchObject({
-        eventReminders: false,
         dailyItinerary: true,
         tripMessages: false,
       });
@@ -772,7 +769,6 @@ describe("Notification Routes", () => {
         url: `/api/trips/${trip.id}/notification-preferences`,
         cookies: { auth_token: token },
         payload: {
-          eventReminders: false,
           dailyItinerary: true,
           tripMessages: false,
         },
@@ -784,7 +780,6 @@ describe("Notification Routes", () => {
       expect(body).toHaveProperty("success", true);
       expect(body).toHaveProperty("preferences");
       expect(body.preferences).toMatchObject({
-        eventReminders: false,
         dailyItinerary: true,
         tripMessages: false,
       });
@@ -799,7 +794,6 @@ describe("Notification Routes", () => {
       await db.insert(notificationPreferences).values({
         userId: testUser.id,
         tripId: trip.id,
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: true,
       });
@@ -815,7 +809,6 @@ describe("Notification Routes", () => {
         url: `/api/trips/${trip.id}/notification-preferences`,
         cookies: { auth_token: token },
         payload: {
-          eventReminders: false,
           dailyItinerary: false,
           tripMessages: false,
         },
@@ -826,7 +819,6 @@ describe("Notification Routes", () => {
       const body = JSON.parse(response.body);
       expect(body).toHaveProperty("success", true);
       expect(body.preferences).toMatchObject({
-        eventReminders: false,
         dailyItinerary: false,
         tripMessages: false,
       });
@@ -848,7 +840,7 @@ describe("Notification Routes", () => {
         url: `/api/trips/${trip.id}/notification-preferences`,
         cookies: { auth_token: token },
         payload: {
-          eventReminders: "not-a-boolean",
+          dailyItinerary: "not-a-boolean",
         },
       });
 
@@ -871,8 +863,8 @@ describe("Notification Routes", () => {
         url: `/api/trips/${trip.id}/notification-preferences`,
         cookies: { auth_token: token },
         payload: {
-          eventReminders: true,
-          // missing dailyItinerary and tripMessages
+          dailyItinerary: true,
+          // missing tripMessages
         },
       });
 
@@ -886,7 +878,6 @@ describe("Notification Routes", () => {
         method: "PUT",
         url: "/api/trips/550e8400-e29b-41d4-a716-446655440000/notification-preferences",
         payload: {
-          eventReminders: true,
           dailyItinerary: true,
           tripMessages: true,
         },
@@ -928,7 +919,6 @@ describe("Notification Routes", () => {
         url: `/api/trips/${trip.id}/notification-preferences`,
         cookies: { auth_token: token },
         payload: {
-          eventReminders: true,
           dailyItinerary: true,
           tripMessages: true,
         },

@@ -200,10 +200,6 @@ describe("notification-batch.worker", () => {
   }
 
   describe("getPreferenceField", () => {
-    it("should return eventReminders for event_reminder type", () => {
-      expect(getPreferenceField("event_reminder")).toBe("eventReminders");
-    });
-
     it("should return dailyItinerary for daily_itinerary type", () => {
       expect(getPreferenceField("daily_itinerary")).toBe("dailyItinerary");
     });
@@ -220,7 +216,6 @@ describe("notification-batch.worker", () => {
 
   describe("shouldSendSms", () => {
     const allEnabledPrefs = {
-      eventReminders: true,
       dailyItinerary: true,
       tripMessages: true,
     };
@@ -228,7 +223,6 @@ describe("notification-batch.worker", () => {
     it("should always return true for trip_update regardless of prefs", () => {
       expect(
         shouldSendSms("trip_update", {
-          eventReminders: false,
           dailyItinerary: false,
           tripMessages: false,
         }),
@@ -237,15 +231,6 @@ describe("notification-batch.worker", () => {
 
     it("should return true for unknown type", () => {
       expect(shouldSendSms("some_unknown_type", allEnabledPrefs)).toBe(true);
-    });
-
-    it("should respect eventReminders preference", () => {
-      expect(
-        shouldSendSms("event_reminder", { ...allEnabledPrefs, eventReminders: false }),
-      ).toBe(false);
-      expect(
-        shouldSendSms("event_reminder", allEnabledPrefs),
-      ).toBe(true);
     });
 
     it("should respect dailyItinerary preference", () => {
@@ -391,7 +376,6 @@ describe("notification-batch.worker", () => {
         .values({
           userId: testMemberId,
           tripId: testTripId,
-          eventReminders: true,
           dailyItinerary: true,
           tripMessages: false,
         })
@@ -426,7 +410,6 @@ describe("notification-batch.worker", () => {
         .values({
           userId: testMemberId,
           tripId: testTripId,
-          eventReminders: false,
           dailyItinerary: false,
           tripMessages: false,
         })
@@ -447,17 +430,17 @@ describe("notification-batch.worker", () => {
     });
 
     it("should deduplicate cron types using sentReminders", async () => {
-      const referenceId = `event-123`;
+      const referenceId = `daily-123`;
 
       // Pre-insert a sentReminder for testMemberId
       await db.insert(sentReminders).values({
-        type: "event_reminder",
+        type: "daily_itinerary",
         referenceId,
         userId: testMemberId,
       });
 
       const job = createMockJob({
-        type: "event_reminder",
+        type: "daily_itinerary",
         data: { referenceId },
       });
 
@@ -484,10 +467,10 @@ describe("notification-batch.worker", () => {
     });
 
     it("should insert sentReminders for cron types", async () => {
-      const referenceId = `event-456`;
+      const referenceId = `daily-456`;
 
       const job = createMockJob({
-        type: "event_reminder",
+        type: "daily_itinerary",
         data: { referenceId },
       });
 
@@ -591,7 +574,6 @@ describe("notification-batch.worker", () => {
           .values({
             userId,
             tripId: testTripId,
-            eventReminders: true,
             dailyItinerary: true,
             tripMessages: false,
           })

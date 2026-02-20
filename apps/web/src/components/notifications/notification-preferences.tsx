@@ -17,11 +17,6 @@ interface NotificationPreferencesProps {
 
 const preferences = [
   {
-    key: "eventReminders" as const,
-    label: "Event Reminders",
-    description: "Get notified 1 hour before each event",
-  },
-  {
     key: "dailyItinerary" as const,
     label: "Daily Itinerary",
     description: "Receive a summary of the day's events at 8am",
@@ -40,14 +35,13 @@ export function NotificationPreferences({
   const updatePreferences = useUpdateNotificationPreferences(tripId);
 
   function handleToggle(
-    key: "eventReminders" | "dailyItinerary" | "tripMessages",
+    key: "dailyItinerary" | "tripMessages",
     checked: boolean,
   ) {
     if (!prefs) return;
 
     updatePreferences.mutate(
       {
-        eventReminders: prefs.eventReminders,
         dailyItinerary: prefs.dailyItinerary,
         tripMessages: prefs.tripMessages,
         [key]: checked,
@@ -67,7 +61,7 @@ export function NotificationPreferences({
   if (isLoading) {
     return (
       <div className="space-y-4 py-2">
-        {Array.from({ length: 3 }).map((_, i) => (
+        {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="flex items-center justify-between py-4">
             <div className="space-y-2">
               <Skeleton className="h-4 w-32" />

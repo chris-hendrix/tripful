@@ -67,7 +67,7 @@ describe("TripNotificationDialog", () => {
       isLoading: false,
     });
     mockUseNotificationPreferences.mockReturnValue({
-      data: { eventReminders: true, dailyItinerary: true, tripMessages: true },
+      data: { dailyItinerary: true, tripMessages: true },
       isLoading: false,
     });
   });
@@ -322,7 +322,6 @@ describe("TripNotificationDialog", () => {
     await user.click(preferencesTab);
 
     await waitFor(() => {
-      expect(screen.getByText("Event Reminders")).toBeDefined();
       expect(screen.getByText("Daily Itinerary")).toBeDefined();
       expect(screen.getByText("Trip Messages")).toBeDefined();
     });
@@ -346,7 +345,7 @@ describe("TripNotificationDialog", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Get notified 1 hour before each event"),
+        screen.getByText("Receive a summary of the day's events at 8am"),
       ).toBeDefined();
       expect(
         screen.getByText(

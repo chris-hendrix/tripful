@@ -4,12 +4,10 @@ import { z } from "zod";
 
 /**
  * Validates notification preference update data
- * - eventReminders: boolean (required)
  * - dailyItinerary: boolean (required)
  * - tripMessages: boolean (required)
  */
 export const notificationPreferencesSchema = z.object({
-  eventReminders: z.boolean(),
   dailyItinerary: z.boolean(),
   tripMessages: z.boolean(),
 });
@@ -21,7 +19,7 @@ const notificationEntitySchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   tripId: z.string().uuid().nullable(),
-  type: z.enum(["event_reminder", "daily_itinerary", "trip_message", "trip_update"]),
+  type: z.enum(["daily_itinerary", "trip_message", "trip_update"]),
   title: z.string(),
   body: z.string(),
   data: z.record(z.string(), z.unknown()).nullable(),
@@ -52,7 +50,6 @@ export const unreadCountResponseSchema = z.object({
 export const notificationPreferencesResponseSchema = z.object({
   success: z.literal(true),
   preferences: z.object({
-    eventReminders: z.boolean(),
     dailyItinerary: z.boolean(),
     tripMessages: z.boolean(),
   }),

@@ -75,7 +75,6 @@ export interface INotificationService {
     userId: string,
     tripId: string,
   ): Promise<{
-    eventReminders: boolean;
     dailyItinerary: boolean;
     tripMessages: boolean;
   }>;
@@ -83,12 +82,10 @@ export interface INotificationService {
     userId: string,
     tripId: string,
     prefs: {
-      eventReminders: boolean;
       dailyItinerary: boolean;
       tripMessages: boolean;
     },
   ): Promise<{
-    eventReminders: boolean;
     dailyItinerary: boolean;
     tripMessages: boolean;
   }>;
@@ -354,13 +351,11 @@ export class NotificationService implements INotificationService {
     userId: string,
     tripId: string,
   ): Promise<{
-    eventReminders: boolean;
     dailyItinerary: boolean;
     tripMessages: boolean;
   }> {
     const [row] = await this.db
       .select({
-        eventReminders: notificationPreferences.eventReminders,
         dailyItinerary: notificationPreferences.dailyItinerary,
         tripMessages: notificationPreferences.tripMessages,
       })
@@ -375,14 +370,12 @@ export class NotificationService implements INotificationService {
 
     if (!row) {
       return {
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: true,
       };
     }
 
     return {
-      eventReminders: row.eventReminders,
       dailyItinerary: row.dailyItinerary,
       tripMessages: row.tripMessages,
     };
@@ -396,12 +389,10 @@ export class NotificationService implements INotificationService {
     userId: string,
     tripId: string,
     prefs: {
-      eventReminders: boolean;
       dailyItinerary: boolean;
       tripMessages: boolean;
     },
   ): Promise<{
-    eventReminders: boolean;
     dailyItinerary: boolean;
     tripMessages: boolean;
   }> {
@@ -437,7 +428,6 @@ export class NotificationService implements INotificationService {
       .values({
         userId,
         tripId,
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: true,
       })

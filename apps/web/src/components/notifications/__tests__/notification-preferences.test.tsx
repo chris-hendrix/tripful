@@ -28,7 +28,6 @@ import { NotificationPreferences } from "../notification-preferences";
 
 describe("NotificationPreferences", () => {
   const defaultPrefs = {
-    eventReminders: true,
     dailyItinerary: true,
     tripMessages: true,
   };
@@ -41,10 +40,9 @@ describe("NotificationPreferences", () => {
     });
   });
 
-  it("renders three preference toggles", () => {
+  it("renders two preference toggles", () => {
     render(<NotificationPreferences tripId="trip-1" />);
 
-    expect(screen.getByText("Event Reminders")).toBeDefined();
     expect(screen.getByText("Daily Itinerary")).toBeDefined();
     expect(screen.getByText("Trip Messages")).toBeDefined();
   });
@@ -52,9 +50,6 @@ describe("NotificationPreferences", () => {
   it("renders preference descriptions", () => {
     render(<NotificationPreferences tripId="trip-1" />);
 
-    expect(
-      screen.getByText("Get notified 1 hour before each event"),
-    ).toBeDefined();
     expect(
       screen.getByText("Receive a summary of the day's events at 8am"),
     ).toBeDefined();
@@ -84,7 +79,7 @@ describe("NotificationPreferences", () => {
     );
 
     // Should show skeleton elements, not the preference labels
-    expect(screen.queryByText("Event Reminders")).toBeNull();
+    expect(screen.queryByText("Daily Itinerary")).toBeNull();
 
     const skeletons = container.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
@@ -98,7 +93,6 @@ describe("NotificationPreferences", () => {
   it("renders switches with correct checked state", () => {
     mockUseNotificationPreferences.mockReturnValue({
       data: {
-        eventReminders: true,
         dailyItinerary: false,
         tripMessages: true,
       },
@@ -107,9 +101,6 @@ describe("NotificationPreferences", () => {
 
     render(<NotificationPreferences tripId="trip-1" />);
 
-    const eventSwitch = screen.getByRole("switch", {
-      name: "Event Reminders",
-    });
     const dailySwitch = screen.getByRole("switch", {
       name: "Daily Itinerary",
     });
@@ -117,32 +108,8 @@ describe("NotificationPreferences", () => {
       name: "Trip Messages",
     });
 
-    expect(eventSwitch.getAttribute("data-state")).toBe("checked");
     expect(dailySwitch.getAttribute("data-state")).toBe("unchecked");
     expect(messagesSwitch.getAttribute("data-state")).toBe("checked");
-  });
-
-  it("calls updatePreferences with all fields when toggling eventReminders", async () => {
-    const user = userEvent.setup();
-
-    render(<NotificationPreferences tripId="trip-1" />);
-
-    const eventSwitch = screen.getByRole("switch", {
-      name: "Event Reminders",
-    });
-    await user.click(eventSwitch);
-
-    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith(
-      {
-        eventReminders: false,
-        dailyItinerary: true,
-        tripMessages: true,
-      },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
-    );
   });
 
   it("calls updatePreferences with all fields when toggling dailyItinerary", async () => {
@@ -157,7 +124,6 @@ describe("NotificationPreferences", () => {
 
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith(
       {
-        eventReminders: true,
         dailyItinerary: false,
         tripMessages: true,
       },
@@ -180,7 +146,6 @@ describe("NotificationPreferences", () => {
 
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith(
       {
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: false,
       },
@@ -204,10 +169,10 @@ describe("NotificationPreferences", () => {
 
     render(<NotificationPreferences tripId="trip-1" />);
 
-    const eventSwitch = screen.getByRole("switch", {
-      name: "Event Reminders",
+    const dailySwitch = screen.getByRole("switch", {
+      name: "Daily Itinerary",
     });
-    await user.click(eventSwitch);
+    await user.click(dailySwitch);
 
     expect(mockToast.success).toHaveBeenCalledWith("Preferences updated");
   });
@@ -222,10 +187,10 @@ describe("NotificationPreferences", () => {
 
     render(<NotificationPreferences tripId="trip-1" />);
 
-    const eventSwitch = screen.getByRole("switch", {
-      name: "Event Reminders",
+    const dailySwitch = screen.getByRole("switch", {
+      name: "Daily Itinerary",
     });
-    await user.click(eventSwitch);
+    await user.click(dailySwitch);
 
     expect(mockToast.error).toHaveBeenCalledWith("Server error");
   });

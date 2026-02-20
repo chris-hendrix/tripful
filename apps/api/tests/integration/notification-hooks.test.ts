@@ -294,7 +294,6 @@ describe("Notification Hooks", () => {
         );
 
       expect(prefs).toHaveLength(1);
-      expect(prefs[0].eventReminders).toBe(true);
       expect(prefs[0].dailyItinerary).toBe(true);
       expect(prefs[0].tripMessages).toBe(true);
     });

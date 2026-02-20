@@ -7,7 +7,6 @@ import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const typeIcons: Record<NotificationType, ElementType> = {
-  event_reminder: Bell,
   daily_itinerary: Calendar,
   trip_message: MessageCircle,
   trip_update: Bell,

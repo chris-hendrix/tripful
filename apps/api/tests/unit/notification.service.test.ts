@@ -172,9 +172,9 @@ describe("notification.service", () => {
       const result = await notificationService.createNotification({
         userId: testMemberId,
         tripId: testTripId,
-        type: "event_reminder",
-        title: "Event Reminder",
-        body: "Your event starts in 1 hour",
+        type: "trip_update",
+        title: "Trip Update",
+        body: "Trip details changed",
         data: testData,
       });
 
@@ -717,7 +717,6 @@ describe("notification.service", () => {
   describe("getPreferences", () => {
     it("should return stored preferences", async () => {
       await notificationService.updatePreferences(testMemberId, testTripId, {
-        eventReminders: false,
         dailyItinerary: true,
         tripMessages: false,
       });
@@ -727,7 +726,6 @@ describe("notification.service", () => {
         testTripId,
       );
 
-      expect(prefs.eventReminders).toBe(false);
       expect(prefs.dailyItinerary).toBe(true);
       expect(prefs.tripMessages).toBe(false);
     });
@@ -738,7 +736,6 @@ describe("notification.service", () => {
         testTripId,
       );
 
-      expect(prefs.eventReminders).toBe(true);
       expect(prefs.dailyItinerary).toBe(true);
       expect(prefs.tripMessages).toBe(true);
     });
@@ -750,13 +747,11 @@ describe("notification.service", () => {
         testMemberId,
         testTripId,
         {
-          eventReminders: false,
           dailyItinerary: false,
           tripMessages: true,
         },
       );
 
-      expect(result.eventReminders).toBe(false);
       expect(result.dailyItinerary).toBe(false);
       expect(result.tripMessages).toBe(true);
 
@@ -765,7 +760,6 @@ describe("notification.service", () => {
         testMemberId,
         testTripId,
       );
-      expect(prefs.eventReminders).toBe(false);
       expect(prefs.dailyItinerary).toBe(false);
       expect(prefs.tripMessages).toBe(true);
     });
@@ -773,7 +767,6 @@ describe("notification.service", () => {
     it("should update existing preferences (upsert update)", async () => {
       // Create initial preferences
       await notificationService.updatePreferences(testMemberId, testTripId, {
-        eventReminders: true,
         dailyItinerary: true,
         tripMessages: true,
       });
@@ -783,13 +776,11 @@ describe("notification.service", () => {
         testMemberId,
         testTripId,
         {
-          eventReminders: false,
           dailyItinerary: false,
           tripMessages: false,
         },
       );
 
-      expect(result.eventReminders).toBe(false);
       expect(result.dailyItinerary).toBe(false);
       expect(result.tripMessages).toBe(false);
 
@@ -798,14 +789,12 @@ describe("notification.service", () => {
         testMemberId,
         testTripId,
       );
-      expect(prefs.eventReminders).toBe(false);
       expect(prefs.dailyItinerary).toBe(false);
       expect(prefs.tripMessages).toBe(false);
     });
 
     it("should return the updated values", async () => {
       const prefs = {
-        eventReminders: true,
         dailyItinerary: false,
         tripMessages: true,
       };
@@ -832,7 +821,6 @@ describe("notification.service", () => {
         testTripId,
       );
 
-      expect(prefs.eventReminders).toBe(true);
       expect(prefs.dailyItinerary).toBe(true);
       expect(prefs.tripMessages).toBe(true);
     });
@@ -845,7 +833,6 @@ describe("notification.service", () => {
 
       // Update preferences to non-default values
       await notificationService.updatePreferences(testMemberId, testTripId, {
-        eventReminders: false,
         dailyItinerary: false,
         tripMessages: false,
       });
@@ -861,7 +848,6 @@ describe("notification.service", () => {
         testMemberId,
         testTripId,
       );
-      expect(prefs.eventReminders).toBe(false);
       expect(prefs.dailyItinerary).toBe(false);
       expect(prefs.tripMessages).toBe(false);
     });
