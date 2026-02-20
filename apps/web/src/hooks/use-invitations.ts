@@ -5,6 +5,7 @@ import { apiRequest, APIError } from "@/lib/api";
 import type {
   CreateInvitationsInput,
   UpdateRsvpInput,
+  UpdateMySettingsInput,
 } from "@tripful/shared/schemas";
 import type {
   Invitation,
@@ -18,8 +19,10 @@ import {
   invitationKeys,
   memberKeys,
   rsvpKeys,
+  mySettingsKeys,
   invitationsQueryOptions,
   membersQueryOptions,
+  mySettingsQueryOptions,
 } from "./invitation-queries";
 
 // Import trip keys for cache invalidation on RSVP and member removal
@@ -33,8 +36,10 @@ export {
   invitationKeys,
   memberKeys,
   rsvpKeys,
+  mySettingsKeys,
   invitationsQueryOptions,
   membersQueryOptions,
+  mySettingsQueryOptions,
 };
 
 // Re-export types for backward compatibility with existing imports
@@ -390,6 +395,88 @@ export function getUpdateRsvpErrorMessage(error: Error | null): string | null {
         return "Please check your input and try again.";
       case "UNAUTHORIZED":
         return "You must be logged in to update your RSVP.";
+      default:
+        return error.message;
+    }
+  }
+
+  // Network errors or other generic errors
+  if (
+    error.message.includes("fetch") ||
+    error.message.includes("network") ||
+    error.message.toLowerCase().includes("failed to fetch")
+  ) {
+    return "Network error: Please check your connection and try again.";
+  }
+
+  return "An unexpected error occurred. Please try again.";
+}
+
+/**
+ * Hook for fetching my-settings (privacy) for a trip
+ *
+ * @param tripId - The ID of the trip
+ * @returns Query object with sharePhone boolean data
+ */
+export function useMySettings(tripId: string) {
+  return useQuery(mySettingsQueryOptions(tripId));
+}
+
+/**
+ * Hook for updating my-settings (privacy) for a trip
+ *
+ * @param tripId - The ID of the trip
+ * @returns Mutation object with mutate function and state
+ */
+export function useUpdateMySettings(tripId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { success: true; sharePhone: boolean },
+    Error,
+    UpdateMySettingsInput
+  >({
+    mutationKey: mySettingsKeys.update(),
+    mutationFn: async (data) => {
+      const response = await apiRequest<{
+        success: true;
+        sharePhone: boolean;
+      }>(`/trips/${tripId}/my-settings`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      return response;
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: mySettingsKeys.detail(tripId),
+      });
+      queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
+    },
+  });
+}
+
+/**
+ * Get user-friendly error message from update my-settings mutation error
+ *
+ * @param error - Error from mutation
+ * @returns User-friendly error message
+ */
+export function getUpdateMySettingsErrorMessage(
+  error: Error | null,
+): string | null {
+  if (!error) return null;
+
+  if (error instanceof APIError) {
+    switch (error.code) {
+      case "PERMISSION_DENIED":
+        return "You don't have permission to update these settings.";
+      case "MEMBER_NOT_FOUND":
+        return "You are not a member of this trip.";
+      case "UNAUTHORIZED":
+        return "Please sign in to update your settings.";
+      case "VALIDATION_ERROR":
+        return "Invalid settings data. Please try again.";
       default:
         return error.message;
     }

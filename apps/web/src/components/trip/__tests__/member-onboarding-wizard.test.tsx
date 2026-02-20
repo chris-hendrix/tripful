@@ -64,9 +64,14 @@ vi.mock("@/app/providers/auth-provider", () => ({
   useAuth: () => ({ user: { id: "user-1" } }),
 }));
 
-// Mock useMembers
+// Mock useMembers and useUpdateMySettings
+const mockUpdateMySettingsMutate = vi.fn();
 vi.mock("@/hooks/use-invitations", () => ({
   useMembers: () => ({ data: [] }),
+  useUpdateMySettings: () => ({
+    mutate: mockUpdateMySettingsMutate,
+    isPending: false,
+  }),
 }));
 
 // Mock useMemberTravels while keeping mutation hooks real
@@ -87,6 +92,7 @@ const mockTrip: TripDetailWithMeta = {
   endDate: "2026-03-20",
   preferredTimezone: "America/New_York",
   allowMembersToAddEvents: true,
+  showAllMembers: false,
   isOrganizer: false,
   isPreview: false,
   userRsvpStatus: "going",
@@ -127,8 +133,16 @@ describe("MemberOnboardingWizard", () => {
     );
   };
 
+  /** Helper: skip past the phone sharing step (step 0) to arrive at step 1 (arrival) */
+  async function skipPhoneStep(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: /skip/i }));
+    await waitFor(() => {
+      expect(screen.getByText("When are you arriving?")).toBeDefined();
+    });
+  }
+
   describe("Rendering", () => {
-    it("renders step 0 (arrival) when open", () => {
+    it("renders step 0 (phone sharing) when open", () => {
       renderWithQueryClient(
         <MemberOnboardingWizard
           open={true}
@@ -138,8 +152,8 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      expect(screen.getByText("When are you arriving?")).toBeDefined();
-      expect(screen.getByText("Step 1 of 4")).toBeDefined();
+      expect(screen.getByText("Share your phone number?")).toBeDefined();
+      expect(screen.getByText("Step 1 of 5")).toBeDefined();
     });
 
     it("does not render content when closed", () => {
@@ -152,10 +166,10 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      expect(screen.queryByText("When are you arriving?")).toBeNull();
+      expect(screen.queryByText("Share your phone number?")).toBeNull();
     });
 
-    it("shows 3 total steps when events are disabled", () => {
+    it("shows 4 total steps when events are disabled", () => {
       const tripNoEvents: TripDetailWithMeta = {
         ...mockTrip,
         allowMembersToAddEvents: false,
@@ -171,10 +185,10 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      expect(screen.getByText("Step 1 of 3")).toBeDefined();
+      expect(screen.getByText("Step 1 of 4")).toBeDefined();
     });
 
-    it("shows 4 total steps when events are enabled", () => {
+    it("shows 5 total steps when events are enabled", () => {
       renderWithQueryClient(
         <MemberOnboardingWizard
           open={true}
@@ -184,12 +198,146 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      expect(screen.getByText("Step 1 of 4")).toBeDefined();
+      expect(screen.getByText("Step 1 of 5")).toBeDefined();
+    });
+  });
+
+  describe("Phone sharing step", () => {
+    it("renders phone sharing step as step 1 with switch and description", () => {
+      renderWithQueryClient(
+        <MemberOnboardingWizard
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-1"
+          trip={mockTrip}
+        />,
+      );
+
+      expect(screen.getByText("Share your phone number?")).toBeDefined();
+      expect(
+        screen.getByText("Let other trip members contact you directly"),
+      ).toBeDefined();
+      expect(screen.getByText("Share phone number")).toBeDefined();
+      expect(
+        screen.getByText(
+          "Other members will be able to see your phone number for this trip. Organizers can always see it.",
+        ),
+      ).toBeDefined();
+
+      const sharePhoneSwitch = screen.getByRole("switch", {
+        name: "Share phone number",
+      });
+      expect(sharePhoneSwitch).toBeDefined();
+      expect(sharePhoneSwitch.getAttribute("data-state")).toBe("unchecked");
+    });
+
+    it("navigates from phone step to arrival step when clicking Skip", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MemberOnboardingWizard
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-1"
+          trip={mockTrip}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /skip/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+        expect(screen.getByText("Step 2 of 5")).toBeDefined();
+      });
+    });
+
+    it("calls updateMySettings when Next is clicked on phone step", async () => {
+      mockUpdateMySettingsMutate.mockImplementation(
+        (_data: unknown, opts: { onSuccess?: () => void }) => {
+          opts.onSuccess?.();
+        },
+      );
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MemberOnboardingWizard
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-1"
+          trip={mockTrip}
+        />,
+      );
+
+      // Toggle the switch on
+      const sharePhoneSwitch = screen.getByRole("switch", {
+        name: "Share phone number",
+      });
+      await user.click(sharePhoneSwitch);
+
+      // Click Next
+      await user.click(screen.getByRole("button", { name: /next/i }));
+
+      expect(mockUpdateMySettingsMutate).toHaveBeenCalledWith(
+        { sharePhone: true },
+        expect.objectContaining({ onSuccess: expect.any(Function) }),
+      );
+
+      // Should advance to arrival step after success
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+      });
+    });
+
+    it("calls updateMySettings with sharePhone false when left unchecked", async () => {
+      mockUpdateMySettingsMutate.mockImplementation(
+        (_data: unknown, opts: { onSuccess?: () => void }) => {
+          opts.onSuccess?.();
+        },
+      );
+
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MemberOnboardingWizard
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-1"
+          trip={mockTrip}
+        />,
+      );
+
+      // Click Next without toggling
+      await user.click(screen.getByRole("button", { name: /next/i }));
+
+      expect(mockUpdateMySettingsMutate).toHaveBeenCalledWith(
+        { sharePhone: false },
+        expect.objectContaining({ onSuccess: expect.any(Function) }),
+      );
+    });
+
+    it("skip on phone step advances without API call", async () => {
+      const user = userEvent.setup();
+      renderWithQueryClient(
+        <MemberOnboardingWizard
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          tripId="trip-1"
+          trip={mockTrip}
+        />,
+      );
+
+      // Click Skip
+      await user.click(screen.getByRole("button", { name: /skip/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+      });
+
+      // updateMySettings should NOT have been called
+      expect(mockUpdateMySettingsMutate).not.toHaveBeenCalled();
     });
   });
 
   describe("Step navigation forward", () => {
-    it("advances to step 1 after saving arrival", async () => {
+    it("advances to departure step after saving arrival", async () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
@@ -218,6 +366,9 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
+      // Skip phone step
+      await skipPhoneStep(user);
+
       // Fill arrival datetime
       const datetimeInput = screen.getByLabelText("Arrival date and time");
       await user.clear(datetimeInput);
@@ -232,13 +383,13 @@ describe("MemberOnboardingWizard", () => {
 
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
-        expect(screen.getByText("Step 2 of 4")).toBeDefined();
+        expect(screen.getByText("Step 3 of 5")).toBeDefined();
       });
     });
   });
 
   describe("Step navigation back", () => {
-    it("returns to step 0 when clicking Back on step 1", async () => {
+    it("returns to arrival step when clicking Back on departure step", async () => {
       const user = userEvent.setup();
       renderWithQueryClient(
         <MemberOnboardingWizard
@@ -249,7 +400,10 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      // Skip step 0 to get to step 1
+      // Skip phone step to get to arrival
+      await skipPhoneStep(user);
+
+      // Skip arrival to get to departure
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
@@ -261,13 +415,13 @@ describe("MemberOnboardingWizard", () => {
 
       await waitFor(() => {
         expect(screen.getByText("When are you arriving?")).toBeDefined();
-        expect(screen.getByText("Step 1 of 4")).toBeDefined();
+        expect(screen.getByText("Step 2 of 5")).toBeDefined();
       });
     });
   });
 
   describe("Skip behavior", () => {
-    it("advances to step 1 without calling API when skipping step 0", async () => {
+    it("advances from arrival to departure without calling API when skipping", async () => {
       const { apiRequest } = await import("@/lib/api");
 
       const user = userEvent.setup();
@@ -280,7 +434,10 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      // Click Skip on step 0
+      // Skip phone step
+      await skipPhoneStep(user);
+
+      // Click Skip on arrival step
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
@@ -321,6 +478,9 @@ describe("MemberOnboardingWizard", () => {
           trip={mockTrip}
         />,
       );
+
+      // Skip phone step
+      await skipPhoneStep(user);
 
       // Fill arrival datetime
       const datetimeInput = screen.getByLabelText("Arrival date and time");
@@ -382,6 +542,9 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
+      // Skip phone step
+      await skipPhoneStep(user);
+
       // Fill arrival datetime and location
       const datetimeInput = screen.getByLabelText("Arrival date and time");
       await user.clear(datetimeInput);
@@ -393,7 +556,7 @@ describe("MemberOnboardingWizard", () => {
       // Click Next to save arrival
       await user.click(screen.getByRole("button", { name: /next/i }));
 
-      // Wait for step 1 (departure)
+      // Wait for departure step
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
       });
@@ -460,20 +623,26 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      // Should be 3 total steps
-      expect(screen.getByText("Step 1 of 3")).toBeDefined();
+      // Should be 4 total steps
+      expect(screen.getByText("Step 1 of 4")).toBeDefined();
 
-      // Skip step 0 (arrival)
+      // Skip step 0 (phone sharing)
+      await user.click(screen.getByRole("button", { name: /skip/i }));
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+      });
+
+      // Skip step 1 (arrival)
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
       });
 
-      // Skip step 1 (departure)
+      // Skip step 2 (departure)
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
-      // Should go directly to done (step 2), NOT events
+      // Should go directly to done (step 3), NOT events
       await waitFor(() => {
         expect(screen.getByText("You're all set!")).toBeDefined();
         expect(
@@ -513,6 +682,9 @@ describe("MemberOnboardingWizard", () => {
           trip={mockTrip}
         />,
       );
+
+      // Skip phone step
+      await skipPhoneStep(user);
 
       // Fill and submit arrival
       const datetimeInput = screen.getByLabelText("Arrival date and time");
@@ -559,16 +731,22 @@ describe("MemberOnboardingWizard", () => {
       );
 
       // Skip all steps to reach done
+      // Skip phone step
+      await skipPhoneStep(user);
+
+      // Skip arrival
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
       });
+      // Skip departure
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(
           screen.getByText("Want to suggest any activities?"),
         ).toBeDefined();
       });
+      // Skip events
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
@@ -595,16 +773,22 @@ describe("MemberOnboardingWizard", () => {
       );
 
       // Skip all steps
+      // Skip phone step
+      await skipPhoneStep(user);
+
+      // Skip arrival
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
       });
+      // Skip departure
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(
           screen.getByText("Want to suggest any activities?"),
         ).toBeDefined();
       });
+      // Skip events
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
@@ -662,16 +846,22 @@ describe("MemberOnboardingWizard", () => {
       );
 
       // Skip all steps
+      // Skip phone step
+      await skipPhoneStep(user);
+
+      // Skip arrival
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(screen.getByText("When are you leaving?")).toBeDefined();
       });
+      // Skip departure
       await user.click(screen.getByRole("button", { name: /skip/i }));
       await waitFor(() => {
         expect(
           screen.getByText("Want to suggest any activities?"),
         ).toBeDefined();
       });
+      // Skip events
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
@@ -688,7 +878,7 @@ describe("MemberOnboardingWizard", () => {
   });
 
   describe("Next button triggers mutation", () => {
-    it("calls apiRequest when clicking Next with filled datetime", async () => {
+    it("calls apiRequest when clicking Next with filled datetime on arrival step", async () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
@@ -717,6 +907,9 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
+      // Skip phone step
+      await skipPhoneStep(user);
+
       // The arrival datetime should already be pre-populated from trip.startDate
       // Just click Next to trigger the mutation with the pre-populated value
       await user.click(screen.getByRole("button", { name: /next/i }));
@@ -732,7 +925,7 @@ describe("MemberOnboardingWizard", () => {
       });
     });
 
-    it("does not call apiRequest when clicking Next with empty datetime", async () => {
+    it("does not call apiRequest when clicking Next with empty datetime on arrival step", async () => {
       const { apiRequest } = await import("@/lib/api");
 
       const tripNoStart: TripDetailWithMeta = {
@@ -750,6 +943,12 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
+      // Skip phone step
+      await user.click(screen.getByRole("button", { name: /skip/i }));
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+      });
+
       // Click Next with empty datetime
       await user.click(screen.getByRole("button", { name: /next/i }));
 
@@ -762,12 +961,13 @@ describe("MemberOnboardingWizard", () => {
   });
 
   describe("Null date handling", () => {
-    it("handles null startDate gracefully", () => {
+    it("handles null startDate gracefully", async () => {
       const tripNoStartDate: TripDetailWithMeta = {
         ...mockTrip,
         startDate: null,
       };
 
+      const user = userEvent.setup();
       renderWithQueryClient(
         <MemberOnboardingWizard
           open={true}
@@ -777,8 +977,11 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      // Should render without errors
-      expect(screen.getByText("When are you arriving?")).toBeDefined();
+      // Skip phone step to reach arrival
+      await user.click(screen.getByRole("button", { name: /skip/i }));
+      await waitFor(() => {
+        expect(screen.getByText("When are you arriving?")).toBeDefined();
+      });
 
       // DateTimePicker should have empty value
       const datetimeInput = screen.getByLabelText("Arrival date and time");
@@ -801,6 +1004,9 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
+      // Skip phone step
+      await skipPhoneStep(user);
+
       // Skip to departure step
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
@@ -815,7 +1021,8 @@ describe("MemberOnboardingWizard", () => {
   });
 
   describe("Styling", () => {
-    it("applies Playfair Display font to title", () => {
+    it("applies Playfair Display font to title", async () => {
+      const user = userEvent.setup();
       renderWithQueryClient(
         <MemberOnboardingWizard
           open={true}
@@ -825,8 +1032,17 @@ describe("MemberOnboardingWizard", () => {
         />,
       );
 
-      const title = screen.getByText("When are you arriving?");
-      expect(title.className).toContain(
+      // Check phone step title first
+      const phoneTitle = screen.getByText("Share your phone number?");
+      expect(phoneTitle.className).toContain(
+        "font-[family-name:var(--font-playfair)]",
+      );
+
+      // Skip to arrival step and check that title too
+      await skipPhoneStep(user);
+
+      const arrivalTitle = screen.getByText("When are you arriving?");
+      expect(arrivalTitle.className).toContain(
         "font-[family-name:var(--font-playfair)]",
       );
     });
@@ -843,9 +1059,9 @@ describe("MemberOnboardingWizard", () => {
 
       // The first dot should have bg-primary (current step)
       const dots = document.querySelectorAll(".rounded-full.h-2.w-2");
-      expect(dots.length).toBe(4);
+      expect(dots.length).toBe(5);
       expect(dots[0]!.className).toContain("bg-primary");
-      expect(dots[3]!.className).toContain("bg-muted");
+      expect(dots[4]!.className).toContain("bg-muted");
     });
   });
 
@@ -882,6 +1098,9 @@ describe("MemberOnboardingWizard", () => {
           trip={mockTrip}
         />,
       );
+
+      // Skip phone step
+      await skipPhoneStep(user);
 
       // Skip arrival step
       await user.click(screen.getByRole("button", { name: /skip/i }));

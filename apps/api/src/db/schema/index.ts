@@ -113,6 +113,7 @@ export const trips = pgTable(
     allowMembersToAddEvents: boolean("allow_members_to_add_events")
       .notNull()
       .default(true),
+    showAllMembers: boolean("show_all_members").notNull().default(false),
     cancelled: boolean("cancelled").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -143,6 +144,7 @@ export const members = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     status: rsvpStatusEnum("status").notNull().default("no_response"),
     isOrganizer: boolean("is_organizer").notNull().default(false),
+    sharePhone: boolean("share_phone").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

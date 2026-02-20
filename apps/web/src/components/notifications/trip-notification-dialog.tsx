@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Notification } from "@tripful/shared/types";
 import {
   useNotifications,
@@ -22,7 +21,6 @@ import {
   useMarkAllAsRead,
 } from "@/hooks/use-notifications";
 import { NotificationItem } from "./notification-item";
-import { NotificationPreferences } from "./notification-preferences";
 
 const PAGE_SIZE = 20;
 
@@ -83,99 +81,82 @@ export function TripNotificationDialog({
       <SheetContent>
         <SheetHeader>
           <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
-            Trip notifications
+            Notifications
           </SheetTitle>
           <SheetDescription className="sr-only">
-            View and manage notifications for this trip
+            View notifications for this trip
           </SheetDescription>
         </SheetHeader>
 
         <SheetBody>
-          <Tabs defaultValue="notifications">
-            <TabsList className="w-full">
-              <TabsTrigger value="notifications" className="flex-1">
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger value="preferences" className="flex-1">
-                Preferences
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="notifications">
-              {isLoading ? (
-                <div className="py-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <Skeleton className="h-5 w-24" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="flex gap-3">
-                        <Skeleton className="size-4 shrink-0 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-full" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center px-4 py-10">
-                  <Bell className="mb-2 size-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    No notifications for this trip
-                  </p>
-                </div>
-              ) : (
-                <div className="max-h-[400px] overflow-y-auto">
-                  {hasUnread && (
-                    <>
-                      <div className="flex items-center justify-end py-2">
-                        <Button
-                          variant="ghost"
-                          size="xs"
-                          className="text-sm text-primary"
-                          onClick={handleMarkAllAsRead}
-                        >
-                          Mark all as read
-                        </Button>
-                      </div>
-                      <Separator />
-                    </>
-                  )}
-                  {notifications.map((notification, index) => (
-                    <div key={notification.id}>
-                      <NotificationItem
-                        notification={notification}
-                        onClick={handleNotificationClick}
-                      />
-                      {index < notifications.length - 1 && <Separator />}
+          {isLoading ? (
+            <div className="py-4">
+              <div className="mb-3 flex items-center justify-between">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex gap-3">
+                    <Skeleton className="size-4 shrink-0 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
                     </div>
-                  ))}
-                  {hasMore && (
-                    <>
-                      <Separator />
-                      <div className="flex justify-center py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-sm text-muted-foreground"
-                          onClick={handleLoadMore}
-                        >
-                          Load more
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center px-4 py-10">
+              <Bell className="mb-2 size-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                No notifications for this trip
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-[400px] overflow-y-auto">
+              {hasUnread && (
+                <>
+                  <div className="flex items-center justify-end py-2">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="text-sm text-primary"
+                      onClick={handleMarkAllAsRead}
+                    >
+                      Mark all as read
+                    </Button>
+                  </div>
+                  <Separator />
+                </>
               )}
-            </TabsContent>
-
-            <TabsContent value="preferences">
-              <NotificationPreferences tripId={tripId} />
-            </TabsContent>
-          </Tabs>
+              {notifications.map((notification, index) => (
+                <div key={notification.id}>
+                  <NotificationItem
+                    notification={notification}
+                    onClick={handleNotificationClick}
+                  />
+                  {index < notifications.length - 1 && <Separator />}
+                </div>
+              ))}
+              {hasMore && (
+                <>
+                  <Separator />
+                  <div className="flex justify-center py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-sm text-muted-foreground"
+                      onClick={handleLoadMore}
+                    >
+                      Load more
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </SheetBody>
       </SheetContent>
     </Sheet>

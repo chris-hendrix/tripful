@@ -85,12 +85,15 @@ export {
 export {
   createInvitationsSchema,
   updateRsvpSchema,
+  updateMySettingsSchema,
+  mySettingsResponseSchema,
   createInvitationsResponseSchema,
   getInvitationsResponseSchema,
   updateRsvpResponseSchema,
   getMembersResponseSchema,
   type CreateInvitationsInput,
   type UpdateRsvpInput,
+  type UpdateMySettingsInput,
 } from "./invitation";
 
 // Re-export member schemas

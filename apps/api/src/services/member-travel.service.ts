@@ -262,7 +262,7 @@ export class MemberTravelService implements IMemberTravelService {
   async getMemberTravelByTrip(
     tripId: string,
     includeDeleted = false,
-  ): Promise<(MemberTravel & { memberName: string })[]> {
+  ): Promise<(MemberTravel & { memberName: string; userId: string })[]> {
     const conditions = [eq(memberTravel.tripId, tripId)];
 
     if (!includeDeleted) {
@@ -273,6 +273,7 @@ export class MemberTravelService implements IMemberTravelService {
       .select({
         ...getTableColumns(memberTravel),
         memberName: users.displayName,
+        userId: members.userId,
       })
       .from(memberTravel)
       .innerJoin(members, eq(memberTravel.memberId, members.id))

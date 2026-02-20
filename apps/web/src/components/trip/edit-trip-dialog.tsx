@@ -83,6 +83,7 @@ export function EditTripDialog({
       description: "",
       coverImageUrl: null,
       allowMembersToAddEvents: true,
+      showAllMembers: false,
     },
   });
 
@@ -98,6 +99,7 @@ export function EditTripDialog({
         description: trip.description || "",
         coverImageUrl: trip.coverImageUrl,
         allowMembersToAddEvents: trip.allowMembersToAddEvents,
+        showAllMembers: trip.showAllMembers,
       });
     }
   }, [open, trip, form]);
@@ -375,6 +377,36 @@ export function EditTripDialog({
                     <FormDescription className="text-sm text-muted-foreground">
                       Let trip members create and propose events for the
                       itinerary
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {/* Show All Invited Members */}
+            <FormField
+              control={form.control}
+              name="showAllMembers"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      disabled={isPending || isDeleting}
+                      aria-label="Show all invited members"
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-base font-semibold text-foreground cursor-pointer">
+                      Show all invited members
+                    </FormLabel>
+                    <FormDescription className="text-sm text-muted-foreground">
+                      Let members see everyone invited, not just those going or
+                      maybe
                     </FormDescription>
                   </div>
                 </FormItem>

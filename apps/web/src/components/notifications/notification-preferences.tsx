@@ -10,6 +10,11 @@ import {
   useUpdateNotificationPreferences,
   getUpdatePreferencesErrorMessage,
 } from "@/hooks/use-notifications";
+import {
+  useMySettings,
+  useUpdateMySettings,
+  getUpdateMySettingsErrorMessage,
+} from "@/hooks/use-invitations";
 
 interface NotificationPreferencesProps {
   tripId: string;
@@ -33,6 +38,9 @@ export function NotificationPreferences({
 }: NotificationPreferencesProps) {
   const { data: prefs, isLoading } = useNotificationPreferences(tripId);
   const updatePreferences = useUpdateNotificationPreferences(tripId);
+  const { data: sharePhone, isLoading: isMySettingsLoading } =
+    useMySettings(tripId);
+  const updateMySettings = useUpdateMySettings(tripId);
 
   function handleToggle(
     key: "dailyItinerary" | "tripMessages",
@@ -57,6 +65,19 @@ export function NotificationPreferences({
       },
     );
   }
+
+  const handleSharePhoneToggle = (checked: boolean) => {
+    updateMySettings.mutate(
+      { sharePhone: checked },
+      {
+        onSuccess: () => toast.success("Privacy settings updated"),
+        onError: (error) => {
+          const message = getUpdateMySettingsErrorMessage(error);
+          toast.error(message || "Failed to update privacy settings");
+        },
+      },
+    );
+  };
 
   if (isLoading) {
     return (
@@ -95,6 +116,34 @@ export function NotificationPreferences({
           {index < preferences.length - 1 && <Separator />}
         </div>
       ))}
+      <Separator className="my-4" />
+      <p className="text-sm font-medium mt-4 mb-2">Privacy</p>
+      {isMySettingsLoading ? (
+        <div className="flex items-center justify-between py-3">
+          <div className="space-y-1.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton className="h-5 w-9 rounded-full" />
+        </div>
+      ) : (
+        <div className="flex items-center justify-between py-3">
+          <div className="space-y-0.5">
+            <Label htmlFor="share-phone" className="text-sm font-medium">
+              Share phone number
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Allow other trip members to see your phone number
+            </p>
+          </div>
+          <Switch
+            id="share-phone"
+            checked={sharePhone ?? false}
+            onCheckedChange={handleSharePhoneToggle}
+            aria-label="Share phone number"
+          />
+        </div>
+      )}
       <p className="mt-4 text-xs text-muted-foreground">
         Notifications are sent in-app and via SMS to your phone number.
       </p>

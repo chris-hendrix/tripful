@@ -66,7 +66,7 @@ test.describe("Trip Journey", () => {
       await expect(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
       await expect(page.getByText(tripDescription)).toBeVisible();
       await expect(page.getByText("Going")).toBeVisible();
-      await expect(page.getByText("Organizing")).toBeVisible();
+      await expect(page.getByText("Organizing", { exact: true })).toBeVisible();
       await snap(page, "07-trip-detail");
     });
 
@@ -202,7 +202,7 @@ test.describe("Trip Journey", () => {
         page.getByRole("heading", { level: 1, name: tripName }),
       ).toBeVisible();
       await expect(tripDetail.editButton).toBeVisible();
-      await expect(page.getByText("Organizing")).toBeVisible();
+      await expect(page.getByText("Organizing", { exact: true })).toBeVisible();
     });
 
     await test.step("non-member cannot access trip", async () => {
@@ -270,7 +270,7 @@ test.describe("Trip Journey", () => {
         page.getByRole("heading", { level: 1, name: tripName }),
       ).toBeVisible();
       await expect(tripDetail.editButton).toBeVisible();
-      await expect(page.getByText("Organizing")).toBeVisible();
+      await expect(page.getByText("Organizing", { exact: true })).toBeVisible();
 
       const updatedTripName = `${tripName} - Updated by Co-Org`;
       await tripDetail.editButton.click();

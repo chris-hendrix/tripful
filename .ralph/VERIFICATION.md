@@ -1,4 +1,4 @@
-# Verification: Notification Task Queue
+# Verification: Member Privacy & List UX
 
 ## Environment Setup
 
@@ -22,6 +22,13 @@ Copy from example files (already configured for dev):
 pnpm install
 ```
 
+### Database Migration
+After schema changes:
+```bash
+cd apps/api && pnpm db:generate    # Generate migration from schema
+cd apps/api && pnpm db:migrate     # Apply migration
+```
+
 ## Test Commands
 
 ### TypeScript Compilation
@@ -42,14 +49,22 @@ pnpm test
 ```
 Runs Vitest across all packages. Requires PostgreSQL running.
 
-To run only worker tests:
+To run specific test files:
 ```bash
-cd apps/api && pnpm vitest run tests/unit/workers/
-```
+# Member list component tests
+pnpm vitest run apps/web/src/components/trip/__tests__/members-list.test.tsx
 
-To run a specific test file:
-```bash
-cd apps/api && pnpm vitest run tests/unit/workers/notification-batch.worker.test.ts
+# Onboarding wizard tests
+pnpm vitest run apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx
+
+# Notification preferences tests
+pnpm vitest run apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx
+
+# Edit trip dialog tests
+pnpm vitest run apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx
+
+# Invitation hooks tests
+pnpm vitest run apps/web/src/hooks/__tests__/use-invitations.test.tsx
 ```
 
 ### E2E Tests
@@ -69,14 +84,27 @@ Runs Playwright E2E tests. Requires both web (port 3000) and api (port 8000) ser
 
 ## Feature Flags
 
-None required. pg-boss auto-creates its `pgboss` schema on first `boss.start()`.
+None required. New columns have sensible defaults:
+- `members.share_phone` defaults to `false` (privacy-first)
+- `trips.show_all_members` defaults to `false` (privacy-first)
 
-Worker registration is guarded by `NODE_ENV !== "test"` — workers only run in development/production.
+No third-party services needed. No feature flags to enable.
 
 ## Key Verification Points
 
-1. **pg-boss schema created**: After starting the API with queue plugin, verify `pgboss` schema exists in PostgreSQL
-2. **No new DB migrations needed**: pg-boss manages its own schema; no Drizzle migrations required
-3. **Test isolation**: Queue workers do NOT run during tests (NODE_ENV=test guard). Services fall back to direct execution.
-4. **Fallback paths**: NotificationService and InvitationService must work with `boss = null` (test path) and `boss = PgBoss` (production path)
-5. **Scheduler fully removed**: No references to SchedulerService, scheduler-service plugin, or setInterval patterns remain after Phase 4
+1. **Migration applied**: After schema changes, `pnpm db:generate` creates a new migration SQL file in `apps/api/src/db/migrations/`. `pnpm db:migrate` applies it. Verify `share_phone` column exists on members table and `show_all_members` column exists on trips table.
+2. **Phone privacy**: GET /trips/:tripId/members returns `phoneNumber` only when requesting user is organizer OR member has `sharePhone=true`. Non-organizers never see phones of members who haven't opted in.
+3. **Member visibility**: When `showAllMembers=false` (default), non-organizer members only see `going` + `maybe` members. Organizers always see all.
+4. **Organizer phone leak fixed**: GET /trips/:id no longer returns organizer phone numbers to non-organizer members.
+5. **RSVP extension**: POST /trips/:tripId/rsvp accepts optional `sharePhone` boolean alongside `status`.
+6. **My-settings endpoints**: GET and PATCH /trips/:tripId/my-settings work for any trip member.
+7. **UI changes**: Venmo shows as icon (not text), member list rows have consistent padding, phone display respects API filtering.
+
+## Pre-existing Test Failures
+
+From the previous Ralph run, 8 web unit tests are known to fail on main (unrelated to this feature):
+- app-header nav text (5 tests)
+- trip metadata (1 test)
+- URL validation dialogs (2 tests)
+
+These should NOT be treated as regressions from this feature.

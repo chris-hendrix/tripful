@@ -67,6 +67,7 @@ const baseTripSchema = z.object({
     .nullable()
     .optional(),
   allowMembersToAddEvents: z.boolean().default(true),
+  showAllMembers: z.boolean().default(false),
   coOrganizerPhones: z.array(phoneNumberSchema).optional(),
 });
 
@@ -153,6 +154,7 @@ const tripEntitySchema = z.object({
   coverImageUrl: z.string().nullable(),
   createdBy: z.string(),
   allowMembersToAddEvents: z.boolean(),
+  showAllMembers: z.boolean(),
   cancelled: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -184,7 +186,7 @@ const tripSummarySchema = z.object({
 const organizerDetailSchema = z.object({
   id: z.string(),
   displayName: z.string(),
-  phoneNumber: z.string(),
+  phoneNumber: z.string().optional(),
   profilePhotoUrl: z.string().nullable(),
   timezone: z.string().nullable(),
 });
@@ -196,6 +198,7 @@ const tripDetailSchema = tripEntitySchema
   .partial({
     createdBy: true,
     allowMembersToAddEvents: true,
+    showAllMembers: true,
     cancelled: true,
     createdAt: true,
     updatedAt: true,

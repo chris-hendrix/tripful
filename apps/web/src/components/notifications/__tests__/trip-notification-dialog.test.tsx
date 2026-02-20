@@ -8,13 +8,6 @@ const mockPush = vi.fn();
 const mockMarkAsRead = vi.fn();
 const mockMarkAllAsRead = vi.fn();
 const mockUseNotifications = vi.fn();
-const mockUseNotificationPreferences = vi.fn();
-const mockUpdatePreferencesMutate = vi.fn();
-
-const mockToast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
-vi.mock("sonner", () => ({
-  toast: mockToast,
-}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
@@ -25,13 +18,6 @@ vi.mock("@/hooks/use-notifications", () => ({
     mockUseNotifications(options),
   useMarkAsRead: () => ({ mutate: mockMarkAsRead, isPending: false }),
   useMarkAllAsRead: () => ({ mutate: mockMarkAllAsRead, isPending: false }),
-  useNotificationPreferences: (tripId: string) =>
-    mockUseNotificationPreferences(tripId),
-  useUpdateNotificationPreferences: () => ({
-    mutate: mockUpdatePreferencesMutate,
-    isPending: false,
-  }),
-  getUpdatePreferencesErrorMessage: () => null,
 }));
 
 import { TripNotificationDialog } from "../trip-notification-dialog";
@@ -66,41 +52,12 @@ describe("TripNotificationDialog", () => {
       data: undefined,
       isLoading: false,
     });
-    mockUseNotificationPreferences.mockReturnValue({
-      data: { dailyItinerary: true, tripMessages: true },
-      isLoading: false,
-    });
   });
 
   it("renders dialog with title", () => {
     render(<TripNotificationDialog {...defaultProps} />);
 
-    expect(screen.getByText("Trip notifications")).toBeDefined();
-  });
-
-  it("renders Notifications and Preferences tabs", () => {
-    render(<TripNotificationDialog {...defaultProps} />);
-
-    expect(screen.getByRole("tab", { name: "Notifications" })).toBeDefined();
-    expect(screen.getByRole("tab", { name: "Preferences" })).toBeDefined();
-  });
-
-  it("defaults to Notifications tab", () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
-        notifications: [],
-        unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
-      },
-      isLoading: false,
-    });
-
-    render(<TripNotificationDialog {...defaultProps} />);
-
-    const notificationsTab = screen.getByRole("tab", {
-      name: "Notifications",
-    });
-    expect(notificationsTab.getAttribute("data-state")).toBe("active");
+    expect(screen.getByText("Notifications")).toBeDefined();
   });
 
   it("shows empty state when no notifications", () => {
@@ -135,7 +92,7 @@ describe("TripNotificationDialog", () => {
     expect(screen.queryByText("Mark all as read")).toBeNull();
 
     // Dialog title should still be visible
-    expect(screen.getByText("Trip notifications")).toBeDefined();
+    expect(screen.getByText("Notifications")).toBeDefined();
   });
 
   it("shows notifications list", () => {
@@ -305,56 +262,6 @@ describe("TripNotificationDialog", () => {
     expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("switches to Preferences tab", async () => {
-    const user = userEvent.setup();
-    mockUseNotifications.mockReturnValue({
-      data: {
-        notifications: [],
-        unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
-      },
-      isLoading: false,
-    });
-
-    render(<TripNotificationDialog {...defaultProps} />);
-
-    const preferencesTab = screen.getByRole("tab", { name: "Preferences" });
-    await user.click(preferencesTab);
-
-    await waitFor(() => {
-      expect(screen.getByText("Daily Itinerary")).toBeDefined();
-      expect(screen.getByText("Trip Messages")).toBeDefined();
-    });
-  });
-
-  it("shows preference descriptions in Preferences tab", async () => {
-    const user = userEvent.setup();
-    mockUseNotifications.mockReturnValue({
-      data: {
-        notifications: [],
-        unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
-      },
-      isLoading: false,
-    });
-
-    render(<TripNotificationDialog {...defaultProps} />);
-
-    const preferencesTab = screen.getByRole("tab", { name: "Preferences" });
-    await user.click(preferencesTab);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("Receive a summary of the day's events at 8am"),
-      ).toBeDefined();
-      expect(
-        screen.getByText(
-          "Notifications are sent in-app and via SMS to your phone number.",
-        ),
-      ).toBeDefined();
-    });
-  });
-
   it("does not render content when dialog is closed", () => {
     render(
       <TripNotificationDialog
@@ -364,7 +271,7 @@ describe("TripNotificationDialog", () => {
       />,
     );
 
-    expect(screen.queryByText("Trip notifications")).toBeNull();
+    expect(screen.queryByText("Notifications")).toBeNull();
   });
 
   it('shows "Load more" button when there are more notifications', () => {

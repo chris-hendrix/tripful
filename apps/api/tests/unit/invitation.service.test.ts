@@ -552,6 +552,120 @@ describe("invitation.service", () => {
     });
   });
 
+  describe("updateRsvp - sharePhone", () => {
+    it("should persist sharePhone when provided", async () => {
+      await invitationService.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+        true,
+      );
+
+      // Verify sharePhone is set in the database
+      const [memberRecord] = await db
+        .select({ sharePhone: members.sharePhone })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(memberRecord.sharePhone).toBe(true);
+    });
+
+    it("should not change sharePhone when not provided", async () => {
+      // First set sharePhone to true
+      await invitationService.updateRsvp(
+        testMemberId,
+        testTripId,
+        "going",
+        true, // sharePhone = true
+      );
+
+      // Verify sharePhone is now true
+      const [before] = await db
+        .select({ sharePhone: members.sharePhone })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(before.sharePhone).toBe(true);
+
+      // Now call updateRsvp WITHOUT sharePhone
+      await invitationService.updateRsvp(
+        testMemberId,
+        testTripId,
+        "maybe",
+      );
+
+      // Verify sharePhone is still true (not reset to false)
+      const [after] = await db
+        .select({ sharePhone: members.sharePhone })
+        .from(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testMemberId),
+          ),
+        );
+      expect(after.sharePhone).toBe(true);
+    });
+  });
+
+  describe("getMySettings", () => {
+    it("should return sharePhone for a member", async () => {
+      const result = await invitationService.getMySettings(
+        testMemberId,
+        testTripId,
+      );
+
+      expect(result).toEqual({ sharePhone: false });
+    });
+
+    it("should throw PermissionDeniedError for non-member", async () => {
+      await expect(
+        invitationService.getMySettings("00000000-0000-0000-0000-000000000000", testTripId),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
+  describe("updateMySettings", () => {
+    it("should update and return sharePhone", async () => {
+      const result = await invitationService.updateMySettings(
+        testMemberId,
+        testTripId,
+        true,
+      );
+
+      expect(result).toEqual({ sharePhone: true });
+    });
+
+    it("should persist the updated value", async () => {
+      await invitationService.updateMySettings(
+        testMemberId,
+        testTripId,
+        true,
+      );
+
+      const result = await invitationService.getMySettings(
+        testMemberId,
+        testTripId,
+      );
+
+      expect(result).toEqual({ sharePhone: true });
+    });
+
+    it("should throw PermissionDeniedError for non-member", async () => {
+      await expect(
+        invitationService.updateMySettings("00000000-0000-0000-0000-000000000000", testTripId, true),
+      ).rejects.toThrow(PermissionDeniedError);
+    });
+  });
+
   describe("getTripMembers", () => {
     it("should return members with profiles", async () => {
       const result = await invitationService.getTripMembers(
@@ -602,6 +716,173 @@ describe("invitation.service", () => {
       await expect(
         invitationService.getTripMembers(testTripId, testNonMemberId),
       ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should include phone number for non-organizer when member has sharePhone=true", async () => {
+      // Update organizer's member record to share phone
+      await db
+        .update(members)
+        .set({ sharePhone: true })
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, testOrganizerId),
+          ),
+        );
+
+      // Call as non-organizer
+      const result = await invitationService.getTripMembers(
+        testTripId,
+        testMemberId,
+      );
+
+      // Organizer has sharePhone=true, so non-org should see their phone
+      const organizer = result.find((m) => m.userId === testOrganizerId);
+      expect(organizer).toBeDefined();
+      expect(organizer!.phoneNumber).toBeDefined();
+
+      // testMember still has sharePhone=false, so phone should NOT be visible
+      const member = result.find((m) => m.userId === testMemberId);
+      expect(member).toBeDefined();
+      expect(member!.phoneNumber).toBeUndefined();
+    });
+
+    it("should return only going and maybe members for non-organizer when showAllMembers is false", async () => {
+      // Trip already has showAllMembers: false by default
+      // Create a non-going user
+      const nonGoingPhone = generateUniquePhone();
+      const [nonGoingUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: nonGoingPhone,
+          displayName: "Not Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: nonGoingUser.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      // Call as non-organizer
+      const result = await invitationService.getTripMembers(
+        testTripId,
+        testMemberId,
+      );
+
+      // Should NOT contain nonGoingUser
+      expect(result.find((m) => m.userId === nonGoingUser.id)).toBeUndefined();
+
+      // Should contain organizer and member (both "going")
+      expect(result.find((m) => m.userId === testOrganizerId)).toBeDefined();
+      expect(result.find((m) => m.userId === testMemberId)).toBeDefined();
+
+      // Clean up
+      await db
+        .delete(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, nonGoingUser.id),
+          ),
+        );
+      await db.delete(users).where(eq(users.phoneNumber, nonGoingPhone));
+    });
+
+    it("should return all members for non-organizer when showAllMembers is true", async () => {
+      // Enable showAllMembers on trip
+      await db
+        .update(trips)
+        .set({ showAllMembers: true })
+        .where(eq(trips.id, testTripId));
+
+      // Create a non-going user
+      const nonGoingPhone = generateUniquePhone();
+      const [nonGoingUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: nonGoingPhone,
+          displayName: "Not Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: nonGoingUser.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      // Call as non-organizer
+      const result = await invitationService.getTripMembers(
+        testTripId,
+        testMemberId,
+      );
+
+      // Should contain all 3 members including the not_going one
+      expect(result).toHaveLength(3);
+      expect(result.find((m) => m.userId === nonGoingUser.id)).toBeDefined();
+      expect(result.find((m) => m.userId === testOrganizerId)).toBeDefined();
+      expect(result.find((m) => m.userId === testMemberId)).toBeDefined();
+
+      // Clean up
+      await db
+        .delete(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, nonGoingUser.id),
+          ),
+        );
+      await db.delete(users).where(eq(users.phoneNumber, nonGoingPhone));
+    });
+
+    it("should return all members for organizer regardless of showAllMembers", async () => {
+      // Ensure trip has showAllMembers: false (default)
+      // Create a non-going user
+      const nonGoingPhone = generateUniquePhone();
+      const [nonGoingUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: nonGoingPhone,
+          displayName: "Not Going User",
+          timezone: "UTC",
+        })
+        .returning();
+
+      await db.insert(members).values({
+        tripId: testTripId,
+        userId: nonGoingUser.id,
+        status: "not_going",
+        isOrganizer: false,
+      });
+
+      // Call as organizer
+      const result = await invitationService.getTripMembers(
+        testTripId,
+        testOrganizerId,
+      );
+
+      // Organizer should see all 3 members
+      expect(result).toHaveLength(3);
+      expect(result.find((m) => m.userId === nonGoingUser.id)).toBeDefined();
+      expect(result.find((m) => m.userId === testOrganizerId)).toBeDefined();
+      expect(result.find((m) => m.userId === testMemberId)).toBeDefined();
+
+      // Clean up
+      await db
+        .delete(members)
+        .where(
+          and(
+            eq(members.tripId, testTripId),
+            eq(members.userId, nonGoingUser.id),
+          ),
+        );
+      await db.delete(users).where(eq(users.phoneNumber, nonGoingPhone));
     });
   });
 

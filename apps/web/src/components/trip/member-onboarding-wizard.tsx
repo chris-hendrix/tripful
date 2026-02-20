@@ -13,8 +13,10 @@ import {
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useCreateMemberTravel, useUpdateMemberTravel, useMemberTravels } from "@/hooks/use-member-travel";
-import { useMembers } from "@/hooks/use-invitations";
+import { useMembers, useUpdateMySettings } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useCreateEvent } from "@/hooks/use-events";
 import { localPartsToUTC, formatInTimezone } from "@/lib/utils/timezone";
@@ -36,6 +38,7 @@ export function MemberOnboardingWizard({
   trip,
 }: MemberOnboardingWizardProps) {
   const [step, setStep] = useState(0);
+  const [sharePhone, setSharePhone] = useState(false);
   const [arrivalLocation, setArrivalLocation] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
   const [departureTime, setDepartureTime] = useState("");
@@ -57,7 +60,7 @@ export function MemberOnboardingWizard({
   );
 
   const canAddEvents = trip.isOrganizer || trip.allowMembersToAddEvents;
-  const totalSteps = canAddEvents ? 4 : 3;
+  const totalSteps = canAddEvents ? 5 : 4;
   const timezone =
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
     trip.preferredTimezone;
@@ -65,6 +68,7 @@ export function MemberOnboardingWizard({
   const createTravel = useCreateMemberTravel();
   const updateTravel = useUpdateMemberTravel();
   const createEvent = useCreateEvent();
+  const updateMySettings = useUpdateMySettings(tripId);
 
   // Arrival step form state
   const initialArrivalDate = trip.startDate
@@ -91,6 +95,7 @@ export function MemberOnboardingWizard({
   useEffect(() => {
     if (open) {
       setStep(0);
+      setSharePhone(false);
       setAddedEvents([]);
       setEventName("");
       setEventStartTime("");
@@ -124,10 +129,21 @@ export function MemberOnboardingWizard({
   }, [open]);
 
   const doneStepIndex = totalSteps - 1;
-  const eventsStepIndex = canAddEvents ? 2 : -1;
+  const eventsStepIndex = canAddEvents ? 3 : -1;
 
   function handleNext() {
     if (step === 0) {
+      // Phone sharing step
+      updateMySettings.mutate(
+        { sharePhone },
+        {
+          onSuccess: () => setStep((s) => s + 1),
+          onError: () => {
+            toast.error("Failed to save privacy setting. Please try again.");
+          },
+        },
+      );
+    } else if (step === 1) {
       // Arrival step
       if (!arrivalDateValue) {
         // Skip if no date entered
@@ -169,7 +185,7 @@ export function MemberOnboardingWizard({
           { onSuccess, onError },
         );
       }
-    } else if (step === 1) {
+    } else if (step === 2) {
       // Departure step
       if (!departureDateValue) {
         setStep((s) => s + 1);
@@ -256,15 +272,15 @@ export function MemberOnboardingWizard({
     setAddedEvents((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // Pre-fill departure location from arrival when entering step 1
+  // Pre-fill departure location from arrival when entering step 2
   useEffect(() => {
-    if (step === 1 && !departureLocationInitialized && arrivalLocation) {
+    if (step === 2 && !departureLocationInitialized && arrivalLocation) {
       setDepartureLocationValue(arrivalLocation);
       setDepartureLocationInitialized(true);
     }
   }, [step, arrivalLocation, departureLocationInitialized]);
 
-  const isPending = createTravel.isPending || updateTravel.isPending || createEvent.isPending;
+  const isPending = createTravel.isPending || updateTravel.isPending || createEvent.isPending || updateMySettings.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -287,6 +303,17 @@ export function MemberOnboardingWizard({
           {step === 0 && (
             <>
               <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+                Share your phone number?
+              </SheetTitle>
+              <SheetDescription>
+                Let other trip members contact you directly
+              </SheetDescription>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
                 When are you arriving?
               </SheetTitle>
               <SheetDescription>
@@ -295,7 +322,7 @@ export function MemberOnboardingWizard({
             </>
           )}
 
-          {step === 1 && (
+          {step === 2 && (
             <>
               <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
                 When are you leaving?
@@ -332,6 +359,27 @@ export function MemberOnboardingWizard({
         <SheetBody>
           {step === 0 && (
             <div className="space-y-4">
+              <div className="flex items-center justify-between py-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="share-phone-wizard" className="text-sm font-medium">
+                    Share phone number
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Other members will be able to see your phone number for this trip. Organizers can always see it.
+                  </p>
+                </div>
+                <Switch
+                  id="share-phone-wizard"
+                  checked={sharePhone}
+                  onCheckedChange={setSharePhone}
+                  aria-label="Share phone number"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date & Time</label>
                 <DateTimePicker
@@ -357,7 +405,7 @@ export function MemberOnboardingWizard({
             </div>
           )}
 
-          {step === 1 && (
+          {step === 2 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date & Time</label>

@@ -163,11 +163,16 @@ vi.mock("@/components/trip/members-list", () => ({
   ),
 }));
 
-// Mock TripNotificationBell component
+// Mock TripNotificationBell and TripSettingsButton components
 vi.mock("@/components/notifications", () => ({
   TripNotificationBell: ({ tripId }: { tripId: string }) => (
     <div data-testid="trip-notification-bell" data-trip-id={tripId}>
       Trip Notification Bell
+    </div>
+  ),
+  TripSettingsButton: ({ tripId }: { tripId: string }) => (
+    <div data-testid="trip-settings-button" data-trip-id={tripId}>
+      Trip Settings
     </div>
   ),
 }));

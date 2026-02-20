@@ -35,6 +35,15 @@ export const rsvpKeys = {
 };
 
 /**
+ * Query key factory for my-settings-related queries
+ */
+export const mySettingsKeys = {
+  all: ["mySettings"] as const,
+  detail: (tripId: string) => ["mySettings", tripId] as const,
+  update: () => ["mySettings", "update"] as const,
+};
+
+/**
  * Query options for fetching invitations for a trip (organizers only)
  */
 export const invitationsQueryOptions = (tripId: string) =>
@@ -64,6 +73,23 @@ export const membersQueryOptions = (tripId: string) =>
         { signal },
       );
       return response.members;
+    },
+    enabled: !!tripId,
+  });
+
+/**
+ * Query options for fetching my-settings (privacy) for a trip
+ */
+export const mySettingsQueryOptions = (tripId: string) =>
+  queryOptions<boolean>({
+    queryKey: mySettingsKeys.detail(tripId),
+    staleTime: 2 * 60 * 1000,
+    queryFn: async ({ signal }) => {
+      const response = await apiRequest<{ success: true; sharePhone: boolean }>(
+        `/trips/${tripId}/my-settings`,
+        { signal },
+      );
+      return response.sharePhone;
     },
     enabled: !!tripId,
   });

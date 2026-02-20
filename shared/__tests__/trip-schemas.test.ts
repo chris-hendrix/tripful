@@ -59,6 +59,17 @@ describe("createTripSchema", () => {
     expect(parsed.allowMembersToAddEvents).toBe(true);
   });
 
+  it("should apply default value for showAllMembers", () => {
+    const trip = {
+      name: "Test Trip",
+      destination: "Tokyo",
+      timezone: "Asia/Tokyo",
+    };
+
+    const parsed = createTripSchema.parse(trip);
+    expect(parsed.showAllMembers).toBe(false);
+  });
+
   it("should accept null for coverImageUrl", () => {
     const trip = {
       name: "Test Trip",
@@ -437,6 +448,7 @@ describe("updateTripSchema", () => {
       { description: "Updated description" },
       { coverImageUrl: "https://example.com/new-image.jpg" },
       { allowMembersToAddEvents: false },
+      { showAllMembers: true },
     ];
 
     partialUpdates.forEach((update) => {

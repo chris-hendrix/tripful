@@ -9,10 +9,13 @@ import {
   useRevokeInvitation,
   useUpdateRsvp,
   useUpdateMemberRole,
+  useMySettings,
+  useUpdateMySettings,
   getInviteMembersErrorMessage,
   getRevokeInvitationErrorMessage,
   getUpdateRsvpErrorMessage,
   getUpdateMemberRoleErrorMessage,
+  getUpdateMySettingsErrorMessage,
   type Invitation,
   type MemberWithProfile,
 } from "../use-invitations";
@@ -832,5 +835,187 @@ describe("useUpdateMemberRole", () => {
       queryKey: ["trips"],
       exact: true,
     });
+  });
+});
+
+describe("useMySettings", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  it("fetches my-settings successfully", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      success: true,
+      sharePhone: true,
+    });
+
+    const { result } = renderHook(() => useMySettings("trip-123"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toBe(true);
+  });
+
+  it("handles error", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    const apiError = new APIError("UNAUTHORIZED", "Not authenticated");
+    vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
+
+    const { result } = renderHook(() => useMySettings("trip-123"), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+  });
+});
+
+describe("useUpdateMySettings", () => {
+  let queryClient: QueryClient;
+  let wrapper: ({ children }: { children: ReactNode }) => JSX.Element;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    queryClient.clear();
+  });
+
+  it("calls PATCH endpoint with correct body", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      success: true,
+      sharePhone: true,
+    });
+
+    const { result } = renderHook(() => useUpdateMySettings("trip-123"), {
+      wrapper,
+    });
+
+    result.current.mutate({ sharePhone: true });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(apiRequest).toHaveBeenCalledWith("/trips/trip-123/my-settings", {
+      method: "PATCH",
+      body: JSON.stringify({ sharePhone: true }),
+    });
+  });
+
+  it("invalidates correct queries on settled", async () => {
+    const { apiRequest } = await import("@/lib/api");
+    vi.mocked(apiRequest).mockResolvedValueOnce({
+      success: true,
+      sharePhone: true,
+    });
+
+    queryClient.setQueryData(["mySettings", "trip-123"], false);
+    queryClient.setQueryData(["members", "list", "trip-123"], mockMembers);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useUpdateMySettings("trip-123"), {
+      wrapper,
+    });
+
+    result.current.mutate({ sharePhone: true });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["mySettings", "trip-123"],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ["members", "list", "trip-123"],
+    });
+  });
+});
+
+describe("getUpdateMySettingsErrorMessage", () => {
+  it("returns null for no error", () => {
+    expect(getUpdateMySettingsErrorMessage(null)).toBe(null);
+  });
+
+  it("handles PERMISSION_DENIED", () => {
+    const error = new APIError("PERMISSION_DENIED", "No permission");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "You don't have permission to update these settings.",
+    );
+  });
+
+  it("handles MEMBER_NOT_FOUND", () => {
+    const error = new APIError("MEMBER_NOT_FOUND", "Member not found");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "You are not a member of this trip.",
+    );
+  });
+
+  it("handles UNAUTHORIZED error", () => {
+    const error = new APIError("UNAUTHORIZED", "Not authorized");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "Please sign in to update your settings.",
+    );
+  });
+
+  it("handles VALIDATION_ERROR", () => {
+    const error = new APIError("VALIDATION_ERROR", "Invalid data");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "Invalid settings data. Please try again.",
+    );
+  });
+
+  it("handles network errors", () => {
+    const error = new Error("fetch failed");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "Network error: Please check your connection and try again.",
+    );
+  });
+
+  it("handles generic errors", () => {
+    const error = new Error("Something unexpected happened");
+    expect(getUpdateMySettingsErrorMessage(error)).toBe(
+      "An unexpected error occurred. Please try again.",
+    );
   });
 });

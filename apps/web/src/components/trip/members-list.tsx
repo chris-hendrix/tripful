@@ -12,10 +12,17 @@ import {
   VolumeX,
   Volume2,
   Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMembers } from "@/hooks/use-invitations";
+import {
+  useMembers,
+  useInvitations,
+  useRevokeInvitation,
+  getRevokeInvitationErrorMessage,
+} from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
+import type { Invitation } from "@tripful/shared/types";
 import {
   useMuteMember,
   useUnmuteMember,
@@ -42,9 +49,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RsvpBadge } from "@/components/ui/rsvp-badge";
-import { getInitials, formatPhoneNumber } from "@/lib/format";
+import { VenmoIcon } from "@/components/icons/venmo-icon";
+import { InstagramIcon } from "@/components/icons/instagram-icon";
+import {
+  getInitials,
+  formatPhoneNumber,
+  formatRelativeTime,
+} from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 
 interface MembersListProps {
@@ -73,6 +86,220 @@ function MembersListSkeleton() {
   );
 }
 
+interface MemberRowProps {
+  member: MemberWithProfile;
+  isOrganizer: boolean;
+  createdBy?: string | undefined;
+  currentUserId?: string | undefined;
+  onRemove?: ((member: MemberWithProfile) => void) | undefined;
+  onUpdateRole?:
+    | ((member: MemberWithProfile, isOrganizer: boolean) => void)
+    | undefined;
+  onMute: (member: MemberWithProfile) => void;
+  onUnmute: (member: MemberWithProfile) => void;
+}
+
+function MemberRow({
+  member,
+  isOrganizer,
+  createdBy,
+  currentUserId,
+  onRemove,
+  onUpdateRole,
+  onMute,
+  onUnmute,
+}: MemberRowProps) {
+  const canRemove =
+    isOrganizer && !!onRemove && member.userId !== createdBy;
+
+  const canUpdateRole =
+    !!onUpdateRole &&
+    member.userId !== createdBy &&
+    member.userId !== currentUserId;
+
+  const canMute =
+    isOrganizer && !member.isOrganizer && member.userId !== createdBy;
+
+  const showActions =
+    isOrganizer && (canRemove || canUpdateRole || canMute);
+
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <Avatar size="default">
+        <AvatarImage
+          src={getUploadUrl(member.profilePhotoUrl)}
+          alt={member.displayName}
+        />
+        <AvatarFallback>
+          {getInitials(member.displayName)}
+        </AvatarFallback>
+      </Avatar>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-foreground truncate">
+            {member.displayName}
+          </span>
+          {member.isOrganizer && (
+            <Badge className="bg-gradient-to-r from-primary to-accent text-white">
+              Organizer
+            </Badge>
+          )}
+          {member.isMuted && (
+            <Badge className="bg-orange-500/15 text-orange-600 border-orange-500/30">
+              <VolumeX className="w-3 h-3 mr-1" />
+              Muted
+            </Badge>
+          )}
+          {member.handles?.venmo && (
+            <a
+              href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+              data-testid={`member-venmo-${member.userId}`}
+            >
+              <VenmoIcon className="w-4 h-4" />
+            </a>
+          )}
+          {member.handles?.instagram && (
+            <a
+              href={`https://instagram.com/${member.handles.instagram.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+              data-testid={`member-instagram-${member.userId}`}
+            >
+              <InstagramIcon className="w-4 h-4" />
+            </a>
+          )}
+        </div>
+        {member.phoneNumber && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Phone className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {formatPhoneNumber(member.phoneNumber)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {showActions && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground"
+              aria-label={`Actions for ${member.displayName}`}
+            >
+              <EllipsisVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canUpdateRole && !member.isOrganizer && (
+              <DropdownMenuItem
+                onSelect={() => onUpdateRole!(member, true)}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Make co-organizer
+              </DropdownMenuItem>
+            )}
+            {canUpdateRole && member.isOrganizer && (
+              <DropdownMenuItem
+                onSelect={() => onUpdateRole!(member, false)}
+              >
+                <ShieldOff className="w-4 h-4" />
+                Remove co-organizer
+              </DropdownMenuItem>
+            )}
+            {canMute && canUpdateRole && (
+              <DropdownMenuSeparator />
+            )}
+            {canMute && (
+              <>
+                {member.isMuted ? (
+                  <DropdownMenuItem onSelect={() => onUnmute(member)}>
+                    <Volume2 className="w-4 h-4" />
+                    Unmute
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onSelect={() => onMute(member)}>
+                    <VolumeX className="w-4 h-4" />
+                    Mute
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+            {canRemove && (canUpdateRole || canMute) && (
+              <DropdownMenuSeparator />
+            )}
+            {canRemove && (
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => onRemove!(member)}
+              >
+                <UserMinus className="w-4 h-4" />
+                Remove from trip
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
+
+interface PendingInvitationRowProps {
+  invitation: Invitation;
+  onRevoke: (invitationId: string) => void;
+  isRevoking: boolean;
+}
+
+function PendingInvitationRow({
+  invitation,
+  onRevoke,
+  isRevoking,
+}: PendingInvitationRowProps) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <Avatar size="default">
+        <AvatarFallback>
+          <Phone className="w-4 h-4" />
+        </AvatarFallback>
+      </Avatar>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">
+            {formatPhoneNumber(invitation.inviteePhone)}
+          </span>
+          <Badge
+            variant={
+              invitation.status === "failed" ? "destructive" : "secondary"
+            }
+          >
+            {invitation.status === "failed" ? "Failed" : "Pending"}
+          </Badge>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Sent {formatRelativeTime(invitation.sentAt)}
+        </span>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={() => onRevoke(invitation.id)}
+        disabled={isRevoking}
+        aria-label={`Revoke invitation to ${invitation.inviteePhone}`}
+      >
+        <X className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
 export function MembersList({
   tripId,
   isOrganizer,
@@ -83,11 +310,15 @@ export function MembersList({
   onUpdateRole,
 }: MembersListProps) {
   const { data: members, isPending } = useMembers(tripId);
+  const { data: invitations } = useInvitations(tripId, {
+    enabled: isOrganizer,
+  });
   const [mutingMember, setMutingMember] = useState<MemberWithProfile | null>(
     null,
   );
   const muteMember = useMuteMember(tripId);
   const unmuteMember = useUnmuteMember(tripId);
+  const revokeInvitation = useRevokeInvitation(tripId);
 
   const handleMute = async () => {
     if (!mutingMember) return;
@@ -109,6 +340,16 @@ export function MembersList({
     } catch (error) {
       const msg = getUnmuteMemberErrorMessage(error as Error);
       toast.error(msg ?? "Failed to unmute member");
+    }
+  };
+
+  const handleRevoke = async (invitationId: string) => {
+    try {
+      await revokeInvitation.mutateAsync(invitationId);
+      toast.success("Invitation revoked");
+    } catch (error) {
+      const msg = getRevokeInvitationErrorMessage(error as Error);
+      toast.error(msg ?? "Failed to revoke invitation");
     }
   };
 
@@ -140,167 +381,108 @@ export function MembersList({
     );
   }
 
+  // Group members by RSVP status
+  const going = members.filter((m) => m.status === "going");
+  const maybe = members.filter((m) => m.status === "maybe");
+  const notGoing = members.filter((m) => m.status === "not_going");
+  const noResponse = members.filter((m) => m.status === "no_response");
+
+  // Pending/failed invitations for the Invited tab
+  const pendingInvitations =
+    invitations?.filter(
+      (inv) => inv.status === "pending" || inv.status === "failed",
+    ) ?? [];
+
+  const invitedCount = noResponse.length + pendingInvitations.length;
+
+  const memberRowProps = {
+    isOrganizer,
+    createdBy,
+    currentUserId,
+    onRemove,
+    onUpdateRole,
+    onMute: setMutingMember,
+    onUnmute: handleUnmute,
+  };
+
   return (
     <div className="flex flex-col flex-1">
-      <div className="flex-1 divide-y divide-border">
-        {members.map((member) => {
-          const canRemove =
-            isOrganizer &&
-            !!onRemove &&
-            member.userId !== createdBy;
+      <Tabs defaultValue="going" className="flex-1">
+        <TabsList className="w-full">
+          <TabsTrigger value="going">Going ({going.length})</TabsTrigger>
+          <TabsTrigger value="maybe">Maybe ({maybe.length})</TabsTrigger>
+          {isOrganizer && (
+            <TabsTrigger value="not_going">
+              Not Going ({notGoing.length})
+            </TabsTrigger>
+          )}
+          {isOrganizer && (
+            <TabsTrigger value="invited">
+              Invited ({invitedCount})
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-          const canUpdateRole =
-            !!onUpdateRole &&
-            member.userId !== createdBy &&
-            member.userId !== currentUserId;
+        <TabsContent value="going">
+          <div className="divide-y divide-border">
+            {going.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                {...memberRowProps}
+              />
+            ))}
+          </div>
+        </TabsContent>
 
-          const canMute =
-            isOrganizer &&
-            !member.isOrganizer &&
-            member.userId !== createdBy;
+        <TabsContent value="maybe">
+          <div className="divide-y divide-border">
+            {maybe.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                {...memberRowProps}
+              />
+            ))}
+          </div>
+        </TabsContent>
 
-          const showActions =
-            isOrganizer && (canRemove || canUpdateRole || canMute);
-
-          return (
-            <div
-              key={member.id}
-              className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-            >
-              <Avatar size="default">
-                <AvatarImage
-                  src={getUploadUrl(member.profilePhotoUrl)}
-                  alt={member.displayName}
+        {isOrganizer && (
+          <TabsContent value="not_going">
+            <div className="divide-y divide-border">
+              {notGoing.map((member) => (
+                <MemberRow
+                  key={member.id}
+                  member={member}
+                  {...memberRowProps}
                 />
-                <AvatarFallback>
-                  {getInitials(member.displayName)}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {member.displayName}
-                  </span>
-                  {member.isOrganizer && (
-                    <Badge className="bg-gradient-to-r from-primary to-accent text-white">
-                      Organizer
-                    </Badge>
-                  )}
-                  <RsvpBadge status={member.status} />
-                  {member.isMuted && (
-                    <Badge className="bg-orange-500/15 text-orange-600 border-orange-500/30">
-                      <VolumeX className="w-3 h-3 mr-1" />
-                      Muted
-                    </Badge>
-                  )}
-                </div>
-                {member.handles && Object.keys(member.handles).length > 0 && (
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {member.handles.venmo && (
-                      <a
-                        href={`https://venmo.com/${member.handles.venmo.replace(/^@/, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
-                        data-testid={`member-venmo-${member.userId}`}
-                      >
-                        Venmo
-                      </a>
-                    )}
-                    {member.handles.instagram && (
-                      <a
-                        href={`https://instagram.com/${member.handles.instagram.replace(/^@/, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
-                        data-testid={`member-instagram-${member.userId}`}
-                      >
-                        Instagram
-                      </a>
-                    )}
-                  </div>
-                )}
-                {isOrganizer && member.phoneNumber && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Phone className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      {formatPhoneNumber(member.phoneNumber)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {showActions && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="text-muted-foreground"
-                      aria-label={`Actions for ${member.displayName}`}
-                    >
-                      <EllipsisVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canUpdateRole && !member.isOrganizer && (
-                      <DropdownMenuItem
-                        onSelect={() => onUpdateRole(member, true)}
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        Make co-organizer
-                      </DropdownMenuItem>
-                    )}
-                    {canUpdateRole && member.isOrganizer && (
-                      <DropdownMenuItem
-                        onSelect={() => onUpdateRole(member, false)}
-                      >
-                        <ShieldOff className="w-4 h-4" />
-                        Remove co-organizer
-                      </DropdownMenuItem>
-                    )}
-                    {canMute && canUpdateRole && (
-                      <DropdownMenuSeparator />
-                    )}
-                    {canMute && (
-                      <>
-                        {member.isMuted ? (
-                          <DropdownMenuItem
-                            onSelect={() => handleUnmute(member)}
-                          >
-                            <Volume2 className="w-4 h-4" />
-                            Unmute
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem
-                            onSelect={() => setMutingMember(member)}
-                          >
-                            <VolumeX className="w-4 h-4" />
-                            Mute
-                          </DropdownMenuItem>
-                        )}
-                      </>
-                    )}
-                    {canRemove && (canUpdateRole || canMute) && (
-                      <DropdownMenuSeparator />
-                    )}
-                    {canRemove && (
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={() => onRemove!(member)}
-                      >
-                        <UserMinus className="w-4 h-4" />
-                        Remove from trip
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </TabsContent>
+        )}
+
+        {isOrganizer && (
+          <TabsContent value="invited">
+            <div className="divide-y divide-border">
+              {noResponse.map((member) => (
+                <MemberRow
+                  key={member.id}
+                  member={member}
+                  {...memberRowProps}
+                />
+              ))}
+              {pendingInvitations.map((invitation) => (
+                <PendingInvitationRow
+                  key={invitation.id}
+                  invitation={invitation}
+                  onRevoke={handleRevoke}
+                  isRevoking={revokeInvitation.isPending}
+                />
+              ))}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
 
       {isOrganizer && onInvite && (
         <div className="mt-auto pt-4 border-t border-border">

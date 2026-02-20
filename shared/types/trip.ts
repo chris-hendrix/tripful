@@ -25,6 +25,8 @@ export interface Trip {
   createdBy: string;
   /** Whether non-organizer members can add events */
   allowMembersToAddEvents: boolean;
+  /** Whether all members are visible to each other (vs only organizers visible) */
+  showAllMembers: boolean;
   /** Whether the trip has been cancelled (soft delete) */
   cancelled: boolean;
   /** Trip creation timestamp */
@@ -81,7 +83,7 @@ export interface TripDetail extends Trip {
     /** Organizer's display name */
     displayName: string;
     /** Organizer's phone number */
-    phoneNumber: string;
+    phoneNumber?: string;
     /** Organizer's profile photo URL */
     profilePhotoUrl: string | null;
     /** Organizer's IANA timezone */

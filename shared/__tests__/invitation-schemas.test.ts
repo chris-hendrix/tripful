@@ -1,7 +1,12 @@
 // Tests for invitation validation schemas
 
 import { describe, it, expect } from "vitest";
-import { createInvitationsSchema, updateRsvpSchema } from "../schemas/index.js";
+import {
+  createInvitationsSchema,
+  updateRsvpSchema,
+  updateMySettingsSchema,
+  mySettingsResponseSchema,
+} from "../schemas/index.js";
 
 describe("createInvitationsSchema", () => {
   it("should accept valid phone number arrays", () => {
@@ -165,5 +170,80 @@ describe("updateRsvpSchema", () => {
         "Status must be one of: going, not_going, maybe",
       );
     }
+  });
+
+  it("should accept sharePhone as optional boolean", () => {
+    const validInputs = [
+      { status: "going", sharePhone: true },
+      { status: "going", sharePhone: false },
+      { status: "going" },
+    ];
+
+    validInputs.forEach((input) => {
+      expect(() => updateRsvpSchema.parse(input)).not.toThrow();
+    });
+  });
+
+  it("should reject non-boolean sharePhone", () => {
+    const result = updateRsvpSchema.safeParse({
+      status: "going",
+      sharePhone: "yes",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateMySettingsSchema", () => {
+  it("should accept valid boolean sharePhone values", () => {
+    const validInputs = [{ sharePhone: true }, { sharePhone: false }];
+
+    validInputs.forEach((input) => {
+      expect(() => updateMySettingsSchema.parse(input)).not.toThrow();
+    });
+  });
+
+  it("should reject missing sharePhone field", () => {
+    const result = updateMySettingsSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it("should reject non-boolean sharePhone values", () => {
+    const invalidValues = ["true", null, 1];
+
+    invalidValues.forEach((value) => {
+      const result = updateMySettingsSchema.safeParse({ sharePhone: value });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe("mySettingsResponseSchema", () => {
+  it("should accept valid settings response", () => {
+    const validResponses = [
+      { success: true, sharePhone: true },
+      { success: true, sharePhone: false },
+    ];
+
+    validResponses.forEach((response) => {
+      expect(() => mySettingsResponseSchema.parse(response)).not.toThrow();
+    });
+  });
+
+  it("should reject success: false", () => {
+    const result = mySettingsResponseSchema.safeParse({
+      success: false,
+      sharePhone: true,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should reject missing success field", () => {
+    const result = mySettingsResponseSchema.safeParse({ sharePhone: true });
+    expect(result.success).toBe(false);
+  });
+
+  it("should reject missing sharePhone field", () => {
+    const result = mySettingsResponseSchema.safeParse({ success: true });
+    expect(result.success).toBe(false);
   });
 });

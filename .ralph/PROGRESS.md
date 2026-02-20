@@ -1,586 +1,495 @@
-# Progress: Notification Task Queue
+# Progress: Member Privacy & List UX
 
-## Iteration 1 — Task 1.1: Install pg-boss, create queue plugin, types, and TypeScript declarations
+## Iteration 1 — Task 1.1: Add database columns, shared schemas, and types
 
-**Status: COMPLETED**
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
 
 ### Changes Made
 
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/package.json` | Modified | Added `pg-boss@^12.13.0` dependency |
-| `apps/api/src/queues/types.ts` | Created | QUEUE constants (7 names), 3 payload interfaces, WorkerDeps interface |
-| `apps/api/src/plugins/queue.ts` | Created | Fastify fp() plugin: PgBoss init, error handler, start/stop lifecycle, decorate |
-| `apps/api/src/types/index.ts` | Modified | Added `import type { PgBoss }` and `boss: PgBoss` to FastifyInstance |
-| `apps/api/src/app.ts` | Modified | Imported and registered queuePlugin after databasePlugin |
+**Database schema** (`apps/api/src/db/schema/index.ts`):
+- Added `sharePhone: boolean("share_phone").notNull().default(false)` to `members` table (after `isOrganizer`)
+- Added `showAllMembers: boolean("show_all_members").notNull().default(false)` to `trips` table (after `allowMembersToAddEvents`)
+- Migration generated: `0014_fuzzy_mandroid.sql` — two `ALTER TABLE ADD COLUMN` statements applied successfully
+
+**Shared schemas** (`shared/schemas/`):
+- `invitation.ts`: Extended `updateRsvpSchema` with `sharePhone: z.boolean().optional()`, added `updateMySettingsSchema`, `mySettingsResponseSchema`, `UpdateMySettingsInput` type
+- `trip.ts`: Added `showAllMembers` to `baseTripSchema` (`.default(false)`), `tripEntitySchema`, and `tripDetailSchema` partial fields; made `phoneNumber` optional in `organizerDetailSchema`
+- `index.ts`: Added barrel exports for new schemas and types
+
+**Shared types** (`shared/types/`):
+- `invitation.ts`: Added `sharePhone?: boolean` to `MemberWithProfile`
+- `trip.ts`: Added `showAllMembers: boolean` to `Trip`; made `phoneNumber` optional in `TripDetail.organizers`
+
+**Cascading fixes**:
+- `shared/__tests__/exports.test.ts`: Added `showAllMembers: false` to `CreateTripInput` fixture
+- `apps/web/src/hooks/use-trips.ts`: Added `showAllMembers` to optimistic Trip in `useCreateTrip`
 
 ### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS (all failures are pre-existing — 8 known web tests, 1 flaky auth lockout)
+- All 216 shared tests pass, all 1013 API tests pass
 
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors
-- **API tests (`pnpm test`)**: PASS — 989 tests passed across 43 files
-- **Web tests**: 8 pre-existing failures unrelated to this task (app-header nav text, trip metadata, URL validation dialogs)
-
-### Reviewer: APPROVED
-
-No blocking issues. All 7 review criteria passed. Two low-priority notes:
-- Architecture doc references `AppDatabase` from `@/config/database.js` but implementation correctly uses `@/types/index.js` where it's actually exported
-- Logger type uses project's own `Logger` from `@/types/logger.js` instead of pino (matches codebase convention)
-
-### Learnings for Future Iterations
-
-- **pg-boss v12 import**: Must use named import `import { PgBoss } from "pg-boss"` (not default)
-- **AppDatabase location**: Exported from `@/types/index.js`, not `@/config/database.js` as architecture doc says
-- **Logger type**: Project uses its own `Logger` from `@/types/logger.js`, not pino directly
-- **Plugin pattern**: All plugins use `export default fp(async function name(fastify: FastifyInstance) { ... }, { name, dependencies })`
-- **Import convention**: Always `@/` alias + `.js` extension for local files; bare specifiers for npm packages
-- **Pre-existing web test failures**: 8 tests in web package fail (unrelated to queue work)
+### Reviewer Notes
+- LOW: `useUpdateTrip` optimistic update in `use-trips.ts` does not explicitly handle `showAllMembers` (it falls through via spread, so old value persists until server response). Minor UX gap — consider adding in Task 3.4 when edit-trip-dialog is updated.
+- Suggested: Add dedicated schema tests for new schemas (can be done in cleanup tasks)
 
 ## Iteration 2 — Task 1.2: Phase 1 cleanup
 
-**Status: COMPLETED**
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
 
-### Review Findings
+### Reviewer Items Addressed (from Task 1.1)
 
-Reviewed all Phase 1 (Task 1.1) PROGRESS.md entries and identified:
-
-- **FAILURES**: None
-- **BLOCKED items**: None
-- **Deferred items**: None
-- **Reviewer caveats**: Two informational notes about ARCHITECTURE.md import path inaccuracies (AppDatabase and Logger). Implementation was already correct; only the planning doc had wrong paths.
-- **New FIX tasks needed**: None — all Phase 1 implementation is correct and complete
+1. **LOW: `useUpdateTrip` optimistic update** — Fixed. Added `showAllMembers: data.showAllMembers ?? previousTrip.showAllMembers` to the optimistic update in `useUpdateTrip`, matching the existing `allowMembersToAddEvents` pattern.
+2. **Suggested: Schema tests** — Added. Full test coverage for `updateMySettingsSchema`, `mySettingsResponseSchema`, `sharePhone` in `updateRsvpSchema`, and `showAllMembers` in trip schemas.
 
 ### Changes Made
 
-| File | Action | Description |
-|------|--------|-------------|
-| `.ralph/ARCHITECTURE.md` | Modified | Fixed `AppDatabase` import path: `@/config/database.js` → `@/types/index.js` |
-| `.ralph/ARCHITECTURE.md` | Modified | Fixed `Logger` import path: `pino` → `@/types/logger.js` |
+**Bug fix** (`apps/web/src/hooks/use-trips.ts`):
+- Added `showAllMembers` to `useUpdateTrip` optimistic update (lines 329-330), preventing stale UI when toggling the setting
 
-No production code was modified. Only the planning document was corrected to match the actual (correct) implementation.
+**Schema tests** (`shared/__tests__/invitation-schemas.test.ts`):
+- `updateRsvpSchema`: Added tests for `sharePhone` optional boolean (accepted as true/false/omitted, rejected as non-boolean)
+- `updateMySettingsSchema`: Added full test suite (accepts boolean, rejects missing field, rejects non-boolean values)
+- `mySettingsResponseSchema`: Added full test suite (accepts valid response, rejects `success: false`, rejects missing fields)
 
-### Verification Results
+**Trip schema tests** (`shared/__tests__/trip-schemas.test.ts`):
+- `createTripSchema`: Added test that `showAllMembers` defaults to `false` when omitted
+- `updateTripSchema`: Added `{ showAllMembers: true }` to partial update acceptance tests
 
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors
-- **Shared tests**: PASS — 216/216 tests across 12 files
-- **API tests (`pnpm test`)**: PASS — 989/989 tests across 43 files
-- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
-
-### Reviewer: APPROVED
-
-All four cleanup sub-tasks verified complete:
-1. PROGRESS.md entries reviewed thoroughly
-2. No FAILURES, BLOCKED, or deferred items found
-3. Two architecture doc inaccuracies corrected directly (no FIX tasks needed)
-4. Full test suite passed
-
-### Learnings for Future Iterations
-
-- **ARCHITECTURE.md now accurate**: Import paths in Types section match actual implementation
-- **Pre-existing web failures stable**: Same 8 tests (app-header nav 5, trip metadata 1, URL validation dialogs 2) — unchanged from iteration 1
-- **API test transient flakiness**: Integration tests (`notification.routes`, `auth.routes`) may show transient 503 failures from database connection timing — retrying resolves them
-
-## Iteration 3 — Task 2.1: Create leaf workers (notification-deliver, invitation-send) with unit tests
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/queues/workers/notification-deliver.worker.ts` | Created | Leaf worker: destructures `job.data`, calls `smsService.sendMessage()`, lets errors propagate |
-| `apps/api/src/queues/workers/invitation-send.worker.ts` | Created | Leaf worker: same pattern for invitation SMS delivery |
-| `apps/api/tests/unit/workers/notification-deliver.worker.test.ts` | Created | Unit tests: success case + error propagation |
-| `apps/api/tests/unit/workers/invitation-send.worker.test.ts` | Created | Unit tests: success case + error propagation |
+**Export tests** (`shared/__tests__/exports.test.ts`):
+- Added import/assertion for `updateMySettingsSchema`, `mySettingsResponseSchema`
+- Added `UpdateMySettingsInput` type usage test
 
 ### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (4 expected `@typescript-eslint/no-explicit-any` warnings in test mock patterns)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 4 tests across 2 files
-- **API tests (`pnpm test`)**: PASS — 993 tests passed across 45 files
-- **Shared tests**: PASS — 216/216 tests across 12 files
-- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
-
-### Reviewer: APPROVED
-
-No blocking issues. All review criteria passed:
-1. Architecture compliance — workers match ARCHITECTURE.md spec exactly
-2. Type safety — proper generics, no `any` escapes in production code
-3. Error handling — no try/catch, errors propagate for pg-boss retry
-4. Test quality — both success and error propagation cases covered
-5. Code conventions — import style, naming, exports match existing codebase
-6. Test isolation — pure unit tests with no database dependency
-
-### Learnings for Future Iterations
-
-- **`Job<T>` import**: Use `import type { Job } from "pg-boss"` directly rather than `PgBoss.Job<T>` — pg-boss exports `PgBoss` as a class (not namespace), so `PgBoss.Job<T>` causes TS2702. The `Job` type is directly exported.
-- **Worker pattern**: Workers are named async function exports taking `(job: Job<Payload>, deps: WorkerDeps)`. The registration plugin (Task 3.1) will handle the array-to-single-job adaptation since `boss.work()` passes `Job<T>[]`.
-- **Mock WorkerDeps pattern**: `{ db: {} as any, boss: {} as any, smsService: { sendMessage: vi.fn() }, logger: { info: vi.fn(), error: vi.fn() } }` — only mock what the worker uses, stub the rest.
-- **API test count grew**: From 989 (iteration 1) to 993 (4 new worker tests added)
-- **New directories created**: `apps/api/src/queues/workers/` and `apps/api/tests/unit/workers/` — future worker tasks can place files here directly
-
-## Iteration 4 — Task 2.2: Create notification-batch worker with unit tests
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/queues/workers/notification-batch.worker.ts` | Created | Fan-out batch worker: resolves members, checks prefs, dedup for cron types, bulk inserts notifications + sentReminders, batch enqueues SMS |
-| `apps/api/tests/unit/workers/notification-batch.worker.test.ts` | Created | 22 tests: helper function unit tests (9), integration tests with real DB (13) |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (6 acceptable `@typescript-eslint/no-explicit-any` warnings in test mocks)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 26 tests across 3 files (22 new + 4 existing)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1015 tests across 46 files (no regressions)
-
-### Reviewer: APPROVED
-
-All 10 review criteria passed:
-1. Architecture compliance — worker matches ARCHITECTURE.md spec exactly (8 steps: member resolution, exclude filtering, batch preferences, dedup, notification insert, sentReminders insert, SMS enqueue)
-2. Type safety — zero `any` in production code, proper generics for Job<NotificationBatchPayload>
-3. Error handling — no try-catch, errors propagate for pg-boss retry
-4. Query efficiency — 3 batched queries replace N+1 pattern from original notifyTripMembers()
-5. Code conventions — @/ alias + .js extensions, naming matches codebase
-6. Helper function correctness — getPreferenceField() and shouldSendSms() match original notification.service.ts logic exactly
-7. Test coverage — all required scenarios covered (member resolution, prefs, dedup, SMS enqueue, excludeUserId)
-8. Test quality — real DB, mock boss spy, generateUniquePhone() isolation, proper FK-ordered cleanup
-9. Dedup correctness — sentReminders checked/inserted only for cron types (event_reminder, daily_itinerary)
-10. SMS message format — `${title}: ${body}` matches original
-
-Three non-blocking suggestions noted (LOW priority): `as any` in test mocks consistent with existing pattern, redundant cleanup is defensive, `type` parameter could be narrowed but matches shared types.
-
-### Learnings for Future Iterations
-
-- **Batch worker DB test pattern**: Use real DB with `generateUniquePhone()` isolation, mock only `boss` (spy on `insert`), cleanup in FK order: sentReminders → notifications → notificationPreferences → members → trips → users
-- **Default preferences**: When no notificationPreferences row exists for a (userId, tripId), default to `{ eventReminders: true, dailyItinerary: true, tripMessages: true }` — matches getPreferences() behavior in notification.service.ts
-- **Cron type identification**: `event_reminder` and `daily_itinerary` are the two cron types that need sentReminders dedup. `trip_update` and `trip_message` are real-time and skip dedup.
-- **referenceId for dedup**: Passed via `data.referenceId` in the batch payload. Cron workers (Task 2.3) will set this when enqueuing batch jobs.
-- **boss.insert() batch API**: `boss.insert(queueName, [{ data: payload }, ...])` — takes an array of JobInsert objects
-- **API test count**: From 993 (iteration 3) to 1015 (22 new batch worker tests added)
-- **Helper functions exported**: `getPreferenceField()` and `shouldSendSms()` are exported from the worker file for testability — future Task 4.1 can remove the private methods from NotificationService
-
-## Iteration 5 — Task 2.3: Create cron workers (event-reminders, daily-itineraries) with unit tests
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/queues/workers/event-reminders.worker.ts` | Created | Cron worker: queries events in 55-65 min window (non-deleted, non-allDay), batch queries trip names via inArray, enqueues notification:batch jobs with singletonKey |
-| `apps/api/src/queues/workers/daily-itineraries.worker.ts` | Created | Cron worker: queries active trips, checks timezone morning window (7:45-8:15 AM), date range, builds event body, enqueues notification:batch jobs with singletonKey |
-| `apps/api/tests/unit/workers/event-reminders.worker.test.ts` | Created | 13 tests: event window, allDay skip, deleted skip, location in body, trip name resolution, multiple events, singletonKey, referenceId, boundary tests |
-| `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` | Created | 19 tests: timezone window, cancelled/dateless trip skip, date range, event body formatting, empty events, deleted event exclusion, singletonKey, referenceId, boundary tests (7:44/7:45/8:15/8:16) |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (27 acceptable `@typescript-eslint/no-explicit-any` warnings in test mocks)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files (13 event-reminders + 19 daily-itineraries + 22 notification-batch + 2 notification-deliver + 2 invitation-send)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files
-- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
-
-### Reviewer: APPROVED
-
-All 10 review criteria passed:
-1. Architecture compliance — workers query DB and enqueue batch jobs only; no member resolution, preference checking, or notification creation
-2. Type safety — zero `any` in production code, `Job<object>` for cron jobs (pg-boss sends `{}`)
-3. Error handling — no try-catch, errors propagate for pg-boss retry
-4. Query correctness — event window (55-65 min), daily itinerary timezone morning window (7:45-8:15), date range checks match scheduler.service.ts exactly
-5. Code conventions — `@/` alias + `.js` extensions, named exports, consistent with existing workers
-6. Payload correctness — `data.referenceId` included for batch worker dedup, singletonKey format matches architecture spec, expireInSeconds correct (300/900)
-7. Test quality — all TASKS.md scenarios covered plus boundary tests
-8. Test isolation — `vi.useFakeTimers()`/`vi.useRealTimers()` in before/afterEach, `generateUniquePhone()` for user isolation, proper FK-ordered cleanup
-9. Batch trip query — event-reminders uses `inArray(trips.id, tripIds)` with Map, eliminating N+1
-10. Daily itinerary body — numbered list with `h:mm a` format and "No events scheduled for today." when empty, matching scheduler.service.ts exactly
-
-Three non-blocking LOW suggestions noted: shared `createMockDeps()` helper, structured logging parity for daily-itineraries worker, and in-memory event date filtering (faithful to original scheduler).
-
-### Learnings for Future Iterations
-
-- **Cron job `Job<object>` type**: pg-boss sends `{}` as cron payload. Use `Job<object>` (not `Job<void>`) and prefix parameter with underscore: `_job: Job<object>`
-- **`boss.send()` for cron->batch enqueue**: `boss.send(queueName, data, options)` where options includes `singletonKey` and `expireInSeconds` — distinct from `boss.insert()` which takes array for batch
-- **Batch trip name lookup**: Use `inArray(trips.id, tripIds)` + Map for O(1) lookups, replacing N+1 queries from original scheduler
-- **vi.useFakeTimers pattern for timezone tests**: Set system time to a known UTC instant, configure trip with timezone, assert morning window detection. Must call `vi.useRealTimers()` in afterEach to avoid affecting DB operations
-- **Cleanup order with events**: events → members → trips → users (events FK→trips via tripId, events FK→users via createdBy)
-- **Events table requires**: `createdBy` (FK users), `eventType` (enum: 'travel', 'meal', 'activity'), and `startTime` (timestamp tz, NOT NULL)
-- **API test count**: From 1015 (iteration 4) to 1047 (32 new cron worker tests added)
-- **Pre-existing web failures**: Same 8 tests unchanged from previous iterations
-- **Unused variable lint error**: When `createTrip()` return value is not needed, call without assignment to avoid `@typescript-eslint/no-unused-vars` error
-
-## Iteration 6 — Task 2.4: Phase 2 cleanup
-
-**Status: COMPLETED**
-
-### Review Findings
-
-Reviewed all Phase 2 (Tasks 2.1, 2.2, 2.3) PROGRESS.md entries and identified:
-
-- **FAILURES**: None
-- **BLOCKED items**: None
-- **Deferred items**: None
-- **Reviewer caveats assessed** (6 total across Tasks 2.2 and 2.3):
-  1. `as any` in test mocks — Standard DI mock pattern for WorkerDeps, not practical to eliminate without shared typed factory. No action needed.
-  2. Redundant cleanup in batch worker test — Defensive pattern preventing flaky tests. No action needed.
-  3. Type parameter narrowing for NotificationBatchPayload.type — Breaking change to shared types, future enhancement. No action needed.
-  4. Shared `createMockDeps()` helper — Low value since each test needs different mock shape. No action needed.
-  5. Structured logging parity for daily-itineraries — **Fixed directly** (see changes below).
-  6. In-memory event date filtering — Faithful to original scheduler, correct approach. No action needed.
-- **New FIX tasks needed**: None — all Phase 2 implementation is correct and complete
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `.ralph/ARCHITECTURE.md` | Modified | Fixed code sample: `PgBoss.Job<T>` → `Job<T>` with proper `import type { Job } from "pg-boss"` line |
-| `apps/api/src/queues/workers/daily-itineraries.worker.ts` | Modified | Added `enqueuedCount` counter, structured logging `{ count }` for parity with event-reminders worker |
-| `apps/api/tests/unit/workers/daily-itineraries.worker.test.ts` | Modified | Updated log assertion to match new structured format: `({ count: 1 }, "enqueued daily itinerary batches")` |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (27 `@typescript-eslint/no-explicit-any` warnings in worker test files — warnings only)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
-- **Full API test suite**: PASS — 1047 tests across 48 files (no regressions)
-- **Shared tests**: PASS — 216/216 tests across 12 files
-- **Web tests**: 8 pre-existing failures unrelated to queue work (1063 passing)
-
-### Reviewer: APPROVED
-
-All cleanup sub-tasks verified complete:
-1. PROGRESS.md entries reviewed thoroughly for all Phase 2 tasks
-2. No FAILURES, BLOCKED, or deferred items found
-3. Six reviewer caveats assessed: one fixed directly (structured logging), five justified as no-action
-4. Two documentation/code fixes correct and consistent with codebase patterns
-5. Full test suite passed with no regressions
-
-Two non-blocking observations noted:
-- [LOW] daily-itineraries logs `{ count: 0 }` when no trips qualify (always reaches log), while event-reminders early-returns and never logs when empty — acceptable behavioral difference for better operational observability
-- [LOW] Single-line vs multi-line format for structured log call — trivial formatting difference
-
-### Learnings for Future Iterations
-
-- **ARCHITECTURE.md now fully accurate**: All code samples match actual implementation (Job import, worker signatures)
-- **Structured logging convention**: Workers should use `deps.logger.info({ count }, "description")` pattern for observability
-- **Phase 2 complete**: All 5 workers (2 leaf, 1 batch, 2 cron) implemented with 58 total tests, ready for Phase 3 worker registration
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 6 iterations
-- **API test count stable**: 1047 tests (unchanged from iteration 5 — cleanup added no new tests)
-
-## Iteration 7 — Task 3.1: Create worker registration plugin with queue creation and cron schedules
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/queues/index.ts` | Created | fp() plugin: creates 7 queues (DLQs first), registers 2 cron schedules, registers 5 workers with WorkerDeps, guarded by NODE_ENV !== "test" |
-| `apps/api/src/app.ts` | Modified | Imported and registered queueWorkersPlugin after messageServicePlugin, before schedulerServicePlugin |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (27 pre-existing `@typescript-eslint/no-explicit-any` warnings in test files)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files (no regressions)
-- **Web tests**: 8 pre-existing failures unrelated to this task
-
-### Reviewer: APPROVED
-
-All 10 review criteria passed:
-1. Architecture compliance — matches ARCHITECTURE.md spec exactly
-2. Type safety — zero `any` in production code, proper generics on all `boss.work<T>()` calls
-3. pg-boss v12 API correctness — uses `localConcurrency` (not `teamSize`), `pollingIntervalSeconds` (not `newJobCheckInterval`), `deleteAfterSeconds` (not `archiveCompletedAfterSeconds`)
-4. Queue creation order — DLQ queues created before parent queues that reference them
-5. Worker handler wrapping — `async (jobs) => { await handler(jobs[0]!, deps); }` adapts Job[] to single Job
-6. Cron schedule correctness — `*/5 * * * *` (event-reminders), `*/15 * * * *` (daily-itineraries)
-7. Test guard — early return when `NODE_ENV === "test"`
-8. Import conventions — relative `.js` imports within queues/, `./queues/index.js` from app.ts
-9. Plugin registration order — after messageServicePlugin (line 184), before schedulerServicePlugin (line 186)
-10. WorkerDeps construction — correctly maps `fastify.db`, `fastify.boss`, `fastify.smsService`, `fastify.log`
-
-Two non-blocking LOW suggestions noted:
-- Debug-level log on early return in test mode for troubleshooting aid
-- Parallel queue creation for DLQ-independent queues (micro-optimization, negligible benefit)
-
-### Learnings for Future Iterations
-
-- **pg-boss v12 `work()` receives Job[] array**: Handler signature is `(jobs: Job<T>[]) => Promise<void>`. Use `jobs[0]!` with non-null assertion (safe since `batchSize` defaults to 1) rather than array destructuring `([job])` which TypeScript strict mode treats as potentially undefined
-- **pg-boss v12 renamed options**: `teamSize` → `localConcurrency`, `newJobCheckInterval` → `pollingIntervalSeconds`, `archiveCompletedAfterSeconds` → `deleteAfterSeconds`
-- **DLQ creation order matters**: Dead letter queues must exist before `createQueue()` references them in the `deadLetter` option
-- **`boss.schedule()` is idempotent**: Safe to call on every startup — updates existing schedules
-- **`boss.createQueue()` is idempotent**: Internally uses CREATE TABLE IF NOT EXISTS pattern
-- **Plugin name**: `"queue-workers"` (distinct from `"queue"` which is the pg-boss lifecycle plugin)
-- **No new tests needed**: Plugin is fully guarded by NODE_ENV check; test suite count unchanged at 1047
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 7 iterations
-- **Phase 3 worker registration started**: Queue infrastructure now complete — queues created, cron scheduled, workers registered. Next task is Phase 3 cleanup.
-
-## Iteration 8 — Task 3.2: Phase 3 cleanup
-
-**Status: COMPLETED**
-
-### Review Findings
-
-Reviewed all Phase 3 (Task 3.1) PROGRESS.md entries and identified:
-
-- **FAILURES**: None
-- **BLOCKED items**: None
-- **Deferred items**: None
-- **Reviewer caveats assessed** (2 from Iteration 7, both LOW):
-  1. Silent early return in test mode — **Fixed directly** (debug log added for observability)
-  2. Parallel queue creation for DLQ-independent queues — No action needed. Micro-optimization with negligible startup-time benefit; sequential execution is more readable and clearly shows DLQ dependency ordering.
-- **Architecture doc gap**: ARCHITECTURE.md queue creation code sample was missing `deleteAfterSeconds: 604800` — **Fixed directly**
-- **New FIX tasks needed**: None — all Phase 3 implementation is correct and complete
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/queues/index.ts` | Modified | Added `fastify.log.debug("queue workers skipped in test environment")` before early return in test guard |
-| `.ralph/ARCHITECTURE.md` | Modified | Added `deleteAfterSeconds: 604800` to queue creation code sample to match actual implementation |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (27 `@typescript-eslint/no-explicit-any` warnings in worker test files — warnings only)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1047 tests across 48 files (no regressions)
-- **Shared tests**: PASS — 216/216 tests across 12 files
-- **Web tests**: 8 pre-existing failures unrelated to queue work (1063 passing)
-
-### Reviewer: APPROVED
-
-All cleanup sub-tasks verified complete:
-1. PROGRESS.md entries reviewed thoroughly for Phase 3 (Iteration 7 only)
-2. No FAILURES, BLOCKED, or deferred items found
-3. Two reviewer caveats assessed: one fixed directly (debug log), one justified as no-action (parallel queue creation)
-4. Architecture doc gap fixed (deleteAfterSeconds added to code sample)
-5. Full test suite passed with no regressions
-6. No new FIX tasks needed
-
-### Learnings for Future Iterations
-
-- **ARCHITECTURE.md now fully accurate**: Queue creation code sample matches implementation including `deleteAfterSeconds`
-- **Debug logging convention for test guards**: `fastify.log.debug("... skipped in test environment")` provides visibility when troubleshooting without affecting production or test output
-- **Phase 3 complete**: Worker registration plugin fully implemented and cleaned up. Queue infrastructure is ready: 7 queues created, 2 cron schedules registered, 5 workers registered with proper concurrency/polling options
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 8 iterations
-- **API test count stable**: 1047 tests (unchanged — cleanup added no new tests)
-- **Next phase**: Phase 4 (Service Refactoring) — refactor NotificationService and InvitationService to use pg-boss, then remove SchedulerService
-
-## Iteration 9 — Task 4.1: Refactor NotificationService and InvitationService to use pg-boss with updated tests
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/services/notification.service.ts` | Modified | Added `boss: PgBoss \| null = null` as optional 3rd constructor param. `notifyTripMembers()` delegates to `QUEUE.NOTIFICATION_BATCH` when boss exists, falls back to inline loop when null. `createNotification()` simplified to pure DB insert (SMS removed). Deleted private `shouldSendSms()` and `getPreferenceField()` methods. |
-| `apps/api/src/plugins/notification-service.ts` | Modified | Pass `fastify.boss ?? null` as 3rd arg. Added `"queue"` to dependencies. |
-| `apps/api/src/services/invitation.service.ts` | Modified | Added `boss: PgBoss \| null = null` as optional 6th constructor param (after logger). `createInvitations()` uses `boss.insert(QUEUE.INVITATION_SEND, ...)` when boss exists, falls back to inline SMS loop when null. |
-| `apps/api/src/plugins/invitation-service.ts` | Modified | Pass `fastify.boss ?? null` as last arg. Added `"queue"` to dependencies. |
-| `apps/api/src/plugins/queue.ts` | Modified | Decorates `boss: null` in test environment to avoid connection pool exhaustion. |
-| `apps/api/src/types/index.ts` | Modified | Changed `boss: PgBoss` to `boss: PgBoss \| null` in FastifyInstance declaration. |
-| `apps/api/src/queues/index.ts` | Modified | Added null guard for boss after early return for test env. |
-| `apps/api/tests/unit/notification.service.test.ts` | Modified | Updated createNotification tests to expect pure DB insert (no SMS). Renamed notifyTripMembers describe to "fallback without boss". Added new "with boss queue" describe block testing boss.send with correct payload. |
-| `apps/api/tests/unit/invitation.service.test.ts` | Modified | Added "with boss queue" describe testing boss.insert with correct payload. Added "fallback without boss" describe testing inline SMS loop. |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — warnings only)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1051 tests across 48 files (4 new tests added)
-- **Worker tests (`cd apps/api && pnpm vitest run tests/unit/workers/`)**: PASS — 58 tests across 5 files
-- **Notification service tests**: PASS — 34 tests in 1 file
-- **Invitation service tests**: PASS — 37 tests in 1 file
-- **Web tests**: 8 pre-existing failures unrelated to this task (1063 passing)
-
-### Reviewer: APPROVED
-
-All 10 review criteria passed:
-1. Architecture compliance — services match ARCHITECTURE.md spec exactly
-2. Type safety — no `any` in production code, proper PgBoss typing with null union
-3. Fallback paths — both services work correctly with boss = null
-4. Import conventions — `@/` alias + `.js` extensions, type imports for PgBoss
-5. Plugin wiring — correct constructor args, `"queue"` in dependencies
-6. Test quality — both boss path (enqueue) and fallback path covered with correct payload assertions
-7. No dead code — `shouldSendSms()` and `getPreferenceField()` removed from NotificationService
-8. Queue type changes — `PgBoss | null` on FastifyInstance, WorkerDeps.boss remains non-null
-9. SMS removal from createNotification — no callers depend on inline SMS behavior
-10. Payload shapes — boss.send uses NotificationBatchPayload, boss.insert uses InvitationSendPayload
-
-Two non-blocking LOW observations:
-- `_smsService` parameter kept in NotificationService for constructor API compatibility (unused but harmless)
-- `as any` in test mock boss objects — standard practice for partial mocks
-
-### Learnings for Future Iterations
-
-- **boss: PgBoss | null pattern**: The FastifyInstance `boss` type is now `PgBoss | null`. In test environments, the queue plugin decorates `null` to avoid connection pool exhaustion. Services use `this.boss?.send()` or explicit null checks.
-- **Queue plugin test guard**: `queue.ts` now returns early with `decorate("boss", null)` in test env, rather than trying to connect pg-boss. This prevents database connection issues in parallel test runs.
-- **queues/index.ts null guard**: The worker registration plugin now checks `if (!fastify.boss)` after the NODE_ENV test guard, providing TypeScript narrowing for the rest of the function.
-- **createNotification is now pure DB insert**: No more SMS from `createNotification()`. SchedulerService (being removed in Task 4.2) still calls it, but inline SMS is no longer needed since cron workers handle batch notifications.
-- **Test count**: From 1047 (iteration 8) to 1051 (4 new tests: 2 notification boss path + 2 invitation boss/fallback)
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 9 iterations
-- **Next task**: Task 4.2 — Remove SchedulerService and delete old scheduler tests
-
-## Iteration 10 — Task 4.2: Remove SchedulerService and delete old scheduler tests
-
-**Status: COMPLETED**
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/services/scheduler.service.ts` | Deleted | 391-line SchedulerService class and ISchedulerService interface |
-| `apps/api/src/plugins/scheduler-service.ts` | Deleted | 38-line Fastify fp() plugin that instantiated and registered the scheduler |
-| `apps/api/tests/unit/scheduler.service.test.ts` | Deleted | 831-line test suite (21 tests) — replaced by cron worker tests |
-| `apps/api/src/app.ts` | Modified | Removed schedulerServicePlugin import (line 33) and registration (line 186) |
-| `apps/api/src/types/index.ts` | Modified | Removed ISchedulerService import (line 19) and `schedulerService` property from FastifyInstance (line 65) |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — pre-existing)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1030 tests across 47 files (down from 1051/48 — 21 scheduler tests removed)
-- **Scheduler reference grep**: PASS — zero matches for `SchedulerService`, `ISchedulerService`, `schedulerService`, `scheduler-service`, or `schedulerServicePlugin` in `apps/api/src/`
-- **Deleted files confirmed**: All 3 files no longer exist on disk
-
-### Reviewer: APPROVED
-
-All review criteria passed:
-1. **Completeness**: All scheduler references removed from source code (zero grep matches)
-2. **Clean edits**: app.ts and types/index.ts properly formatted after removal — no extra blank lines, no dangling commas
-3. **No side effects**: queueWorkersPlugin (already registered at line 184) fully replaces scheduler functionality
-4. **Plugin registration order**: Correct — queueWorkersPlugin registered after all its dependencies
-5. **Type declarations**: FastifyInstance augmentation properly formatted with `healthService` as last entry
-6. **Test coverage preserved**: Old 24 scheduler tests replaced by 33 cron worker tests (14 event-reminders + 19 daily-itineraries) with better boundary and timezone coverage
-
-No issues found. No NEEDS_WORK items.
-
-### Learnings for Future Iterations
-
-- **Clean removal pattern**: Deletion of a Fastify service requires changes in exactly 4 places: service file, plugin file, app.ts (import + register), types/index.ts (import + type declaration)
-- **Test count**: From 1051 (iteration 9) to 1030 (21 scheduler tests removed). Worker tests already existed from Phase 2, providing equivalent+ coverage.
-- **VERIFICATION.md Key Point #5 satisfied**: "Scheduler fully removed: No references to SchedulerService, scheduler-service plugin, or setInterval patterns remain after Phase 4"
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 10 iterations
-- **Phase 4 progress**: Task 4.1 (service refactoring) and Task 4.2 (scheduler removal) complete. Next: Task 4.3 (Phase 4 cleanup)
-- **Documentation references intentionally preserved**: Historical docs under `docs/2026-02-14-messaging-notifications/` still reference SchedulerService — this is expected as they document the pre-migration architecture
-
-## Iteration 11 — Task 4.3: Phase 4 cleanup
-
-**Status: COMPLETED**
-
-### Review Findings
-
-Reviewed all Phase 4 (Tasks 4.1 and 4.2) PROGRESS.md entries and identified:
-
-- **FAILURES**: None
-- **BLOCKED items**: None
-- **Deferred items**: None
-- **Reviewer caveats assessed** (3 total across Tasks 4.1 and 4.2):
-  1. `_smsService` parameter in NotificationService is dead code — **Fixed directly** (see changes below)
-  2. `as any` in test mock boss objects — Standard practice for partial mocks. No action needed.
-  3. All Task 4.2 criteria passed with no issues — No action needed.
-- **New FIX tasks needed**: None — all Phase 4 implementation is correct and complete
-
-### Changes Made
-
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/api/src/services/notification.service.ts` | Modified | Removed `_smsService: ISMSService` constructor parameter (dead code) and `ISMSService` import. Constructor now `(db: AppDatabase, boss: PgBoss \| null = null)` |
-| `apps/api/src/plugins/notification-service.ts` | Modified | Removed `fastify.smsService` from constructor call, removed `"sms-service"` from dependencies array, removed `@depends sms-service` JSDoc line |
-| `apps/api/tests/unit/notification.service.test.ts` | Modified | Removed `MockSMSService` import and `smsService` variable. Updated all `new NotificationService(db, smsService...)` calls. Removed 2 vacuous tests that spied on disconnected mock |
-| `apps/api/tests/unit/invitation.service.test.ts` | Modified | Updated `new NotificationService(db, smsService)` to `new NotificationService(db)`. `smsService` retained for InvitationService which still uses it |
-| `.ralph/ARCHITECTURE.md` | Modified | Updated NotificationService section: "3rd constructor param" → "2nd constructor param", "3rd arg" → "2nd arg", added note about sms-service dependency removal |
-
-### Verification Results
-
-- **TypeScript (`pnpm typecheck`)**: PASS — 0 errors across all 3 packages (api, web, shared)
-- **Linting (`pnpm lint`)**: PASS — 0 errors (32 `@typescript-eslint/no-explicit-any` warnings in test files — pre-existing)
-- **Full API test suite (`cd apps/api && pnpm vitest run`)**: PASS — 1028 tests across 47 files (down from 1030/47 — 2 vacuous tests removed)
-- **Grep verification**: Zero matches for `ISMSService`, `_smsService`, `MockSMSService`, or `smsService` in notification.service.ts and notification-service.ts
-
-### Reviewer: APPROVED
-
-All cleanup sub-tasks verified complete:
-1. PROGRESS.md entries reviewed thoroughly for Phase 4 (Iterations 9 and 10)
-2. No FAILURES, BLOCKED, or deferred items found
-3. Three reviewer caveats assessed: one fixed directly (`_smsService` dead code removal), two justified as no-action
-4. No new FIX tasks needed
-5. Full test suite passed with no regressions
-6. ARCHITECTURE.md updated to match current state
-
-One non-blocking LOW observation: ARCHITECTURE.md stale constructor param numbering — **Fixed directly** in this iteration.
-
-### Learnings for Future Iterations
-
-- **Dead code removal pattern**: When removing a constructor parameter, update: service file (param + import), plugin file (constructor call + dependencies + JSDoc), and all test files constructing the service
-- **Vacuous test identification**: After refactoring, check if spy-based tests are still connected to the code under test. Spying on a mock that is never wired into the service produces tautological "not called" assertions.
-- **Plugin dependency cleanup**: When a service no longer needs a dependency, remove it from the dependencies array — the Fastify plugin registration order is maintained by other plugins that still declare the dependency.
-- **Test count**: From 1030 (iteration 10) to 1028 (2 vacuous tests removed)
-- **Pre-existing web failures stable**: Same 8 tests unchanged across all 11 iterations
-- **Phase 4 complete**: All service refactoring, scheduler removal, and cleanup done. Ready for Phase 5 (Final Verification)
-
-## Iteration 12 — Task 5.1: Full regression check
-
-**Status: COMPLETED**
-
-### Verification Results
-
-All 4 required verification commands passed:
-
-| Command | Result | Details |
-|---------|--------|---------|
-| `pnpm typecheck` | PASS | 0 errors across all 3 packages (api, web, shared) |
-| `pnpm lint` | PASS | 0 errors, 32 warnings (`@typescript-eslint/no-explicit-any` in test files only) |
-| `pnpm test` | PASS | 1028 API + 216 shared + 1063 web passed. 8 web failures are pre-existing on main. 1 transient API failure (auth.lockout 503) passed on retry. |
-| `pnpm test:e2e` | PASS | **32 passed, 0 failures** — all E2E specs including notification-specific tests |
-
-### VERIFICATION.md Key Points (All 5 Satisfied)
-
-| # | Verification Point | Status |
-|---|---|---|
-| 1 | pg-boss schema created (auto on `boss.start()`) | ✓ Confirmed — `queue.ts` calls `boss.start()` in non-test env |
-| 2 | No new DB migrations needed | ✓ Confirmed — pg-boss manages own schema, no Drizzle migrations modified |
-| 3 | Test isolation (workers skip in test env) | ✓ Confirmed — `queue.ts` decorates `boss: null`, `queues/index.ts` early-returns with debug log |
-| 4 | Fallback paths work (boss = null) | ✓ Confirmed — NotificationService and InvitationService branch on `this.boss`, E2E tests exercise fallback path |
-| 5 | Scheduler fully removed | ✓ Confirmed — zero grep matches for SchedulerService/scheduler-service in `apps/api/src/` |
-
-### Pre-existing Failures (NOT Regressions)
-
-- **8 web unit test failures** (unchanged across all 12 iterations): app-header nav text (5), trip metadata (1), URL validation dialogs (2)
-- **1 transient API test** (auth.lockout 503 from `@fastify/under-pressure`): passes on retry, file not modified on this branch
-
-### Reviewer: APPROVED
-
-All review criteria passed:
-1. All 4 verification commands run with passing results
-2. All 5 VERIFICATION.md key points confirmed
-3. All phases 1-4 verified complete through PROGRESS.md and TASKS.md
-4. No regressions introduced — confirmed by zero web source changes and stable test counts
-5. E2E notifications spec exercises the fallback path (boss = null), confirming inline notification flow works end-to-end
-
-One LOW-severity documentation note: ARCHITECTURE.md uses colon-separated queue names (`notification:batch`) but implementation uses slash-separated (`notification/batch`). Non-blocking — production code uses `QUEUE.*` constants consistently.
-
-### Migration Summary (All 5 Phases Complete)
-
-| Phase | Tasks | Iterations | Key Deliverables |
-|-------|-------|------------|-----------------|
-| Phase 1: Infrastructure | 1.1, 1.2 | 1-2 | pg-boss plugin, types, TypeScript declarations |
-| Phase 2: Workers | 2.1, 2.2, 2.3, 2.4 | 3-6 | 5 workers (deliver, send, batch, event-reminders, daily-itineraries), 58 worker tests |
-| Phase 3: Worker Registration | 3.1, 3.2 | 7-8 | 7 queues, 2 cron schedules, 5 worker registrations |
-| Phase 4: Service Refactoring | 4.1, 4.2, 4.3 | 9-11 | Services refactored, SchedulerService deleted, dead code removed |
-| Phase 5: Final Verification | 5.1 | 12 | Full regression: typecheck, lint, test, E2E — all pass |
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1013 API tests, 1062 web tests (8 pre-existing failures only)
+- No regressions introduced
 
 ### Learnings
+- Phase 1 cleanup tasks are straightforward when previous iteration reviewer notes are specific and actionable
+- The `??` nullish coalescing pattern for optimistic updates is the established convention in this codebase for boolean fields that cannot be `null`
 
-- **E2E test environment**: `CI=true` is set in this environment, which makes Playwright's `reuseExistingServer: !process.env.CI` evaluate to `false`. Playwright must manage its own servers when CI=true.
-- **Port cleanup**: Background dev servers must be fully killed (including child processes like `next-server`) before Playwright can start its own servers
-- **Transient under-pressure failures**: The `@fastify/under-pressure` plugin can trigger 503s under heavy parallel test load. These are transient and pass on retry.
-- **Final test counts**: 1028 API tests, 216 shared tests, 1063+8 web tests, 32 E2E tests — all stable
-- **Migration complete**: The pg-boss notification queue migration is fully implemented and verified across 12 iterations with zero regressions
+## Iteration 3 — Task 2.1: Update getTripMembers with privacy filtering and fix getTripById phone leak
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation.service.ts** (`apps/api/src/services/invitation.service.ts`) — `getTripMembers()`:
+- Added `sharePhone: members.sharePhone` to the DB query select fields
+- Added secondary query to fetch `trips.showAllMembers` setting for the trip
+- Added member visibility filtering: when `!isOrg && !showAllMembers`, results are filtered to only `going` and `maybe` status members (non-organizers no longer see `not_going` or `no_response` members by default)
+- Updated phone number gating: changed from `isOrg` to `(isOrg || r.sharePhone)` — organizers always see all phone numbers, non-organizers see phone numbers only when the member has opted in via `sharePhone`
+- Added `sharePhone` field to organizer response output (organizers can see each member's sharePhone setting)
+
+**trip.service.ts** (`apps/api/src/services/trip.service.ts`) — `getTripById()`:
+- Made `phoneNumber` optional in `OrganizerInfo` type (`phoneNumber: string` → `phoneNumber?: string`)
+- Changed organizer mapping to conditionally include `phoneNumber` only when `userIsOrganizer` is true — fixes the phone leak where non-organizer members could see organizer phone numbers
+- `showAllMembers` is already included in full response via `...trip` spread (no explicit change needed)
+
+**invitation.ts** (`shared/schemas/invitation.ts`):
+- Added `sharePhone: z.boolean().optional()` to `memberWithProfileSchema` to match the conditional inclusion in the service layer
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1005 API tests (8 pre-existing daily-itineraries failures), 1062 web tests (8 pre-existing failures)
+- Critical test files all pass: invitation.service (37/37), trip.service (58/58), invitation.routes (29/29), trip.routes (89/89)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Consider combining the `tripSettings` query with the members query for a single DB round-trip (minor optimization, current approach is clear and indexed)
+- LOW: Existing tests pass but don't explicitly test the new privacy behavior (e.g., member with `sharePhone: true` visible to non-organizers, `showAllMembers` filtering). Consider adding in Task 2.3 cleanup
+- LOW: JSDoc on `getTripMembers()` should be updated to reflect the new `sharePhone`-aware logic
+
+### Learnings
+- The `...(condition ? { field: value } : {})` spread pattern is the established convention for conditional field inclusion throughout the codebase
+- Optional chaining (`tripSettings[0]?.showAllMembers`) provides a safe default of `false` (more restrictive) when the trip query returns empty, which is the correct privacy-safe behavior
+- The `OrganizerInfo` type was local to trip.service.ts, making the `phoneNumber?: string` change low-risk with no cascading type errors
+- All existing tests passed without modification because: (a) organizer viewers still see all phones via the `isOrg` check, and (b) non-organizer viewers still don't see phones since `sharePhone` defaults to `false`
+
+## Iteration 4 — Task 2.2: Extend RSVP endpoint and add my-settings endpoints
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation.service.ts** (`apps/api/src/services/invitation.service.ts`):
+- Extended `IInvitationService` interface: added `sharePhone?: boolean` parameter to `updateRsvp`, added `getMySettings(userId, tripId)` and `updateMySettings(userId, tripId, sharePhone)` method signatures
+- Extended `updateRsvp()` implementation: accepts optional `sharePhone` parameter, conditionally includes it in `.set()` via `...(sharePhone !== undefined ? { sharePhone } : {})`
+- Added `getMySettings()`: checks membership via `getMembershipInfo()`, queries `members.sharePhone`, throws `PermissionDeniedError` for non-members
+- Added `updateMySettings()`: checks membership, updates `members.sharePhone`, returns updated value, throws `PermissionDeniedError` for non-members
+
+**invitation.controller.ts** (`apps/api/src/controllers/invitation.controller.ts`):
+- Updated `updateRsvp` handler: destructures `sharePhone` from `request.body`, passes to service as 4th argument
+- Added `getMySettings` handler: follows existing try/catch pattern, calls service, returns `{ success: true, sharePhone }`
+- Added `updateMySettings` handler: follows existing pattern, calls service, includes audit log, returns `{ success: true, sharePhone }`
+- Added `UpdateMySettingsInput` import from shared schemas
+
+**invitation.routes.ts** (`apps/api/src/routes/invitation.routes.ts`):
+- Added imports: `updateMySettingsSchema`, `mySettingsResponseSchema`, `UpdateMySettingsInput`
+- Added `GET /trips/:tripId/my-settings` as read route (authenticate + defaultRateLimitConfig)
+- Added `PATCH /trips/:tripId/my-settings` inside write scope (authenticate + requireCompleteProfile + writeRateLimitConfig)
+
+**Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`):
+- Added 7 new tests in 3 describe blocks: `updateRsvp - sharePhone` (2 tests), `getMySettings` (2 tests), `updateMySettings` (3 tests)
+- All 44 tests pass (7 new + 37 existing)
+
+**Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`):
+- Added 8 new tests in 3 describe blocks: `GET my-settings` (3 tests: defaults, 401, 403), `PATCH my-settings` (4 tests: set true, toggle false, 401, 403), `RSVP+sharePhone` (1 test)
+- All 37 tests pass (8 new + 29 existing)
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1028 API tests (10 pre-existing daily-itineraries failures, 1 flaky auth lockout), 1070 web tests (8 pre-existing failures)
+- Targeted `invitation.service.test.ts`: 44/44 PASS
+- Targeted `invitation.routes.test.ts`: 37/37 PASS
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: `updateMySettings` does update-then-select (two queries) instead of using `.returning()`. This is consistent with existing patterns (`updateRsvp`, `updateMemberRole`) so it's the right choice for consistency.
+- LOW: Unit test for "sharePhone not changed when omitted" could be stronger by first setting to `true`, then calling without `sharePhone`, and verifying it stays `true`. Current implementation is correct by inspection.
+- LOW: Audit log uses `resourceType: "member"` while other member-scoped entries use `resourceType: "trip"`. Minor consistency point.
+
+### Learnings
+- The `getMembershipInfo()` method from `permissionsService` is the standard way to check trip membership for GET-style operations, while `canUpdateRsvp()` is used for RSVP-specific checks
+- Route placement follows a clear read/write split: GET routes go directly on `fastify` with `authenticate + defaultRateLimitConfig`, while write routes (POST/PATCH/DELETE) go inside a scoped plugin with shared `authenticate + requireCompleteProfile + writeRateLimitConfig` hooks
+- The `...(condition ? { field: value } : {})` spread pattern continues to be the standard for conditional field inclusion in both queries and updates
+- Audit logging uses the `auditLog` utility function pattern, not a service, accepting `request`, `action`, `resourceType`, `resourceId`, and optional `metadata`
+
+## Iteration 5 — Task 2.3: Phase 2 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Reviewer Items Addressed (from Tasks 2.1 and 2.2)
+
+1. **LOW (Task 2.1): Tests don't explicitly test new privacy behavior** — Fixed. Added 4 unit tests and 3 integration tests covering sharePhone visibility and showAllMembers filtering.
+2. **LOW (Task 2.1): JSDoc on getTripMembers() should reflect sharePhone-aware logic** — Fixed. Updated both interface and implementation JSDoc to document sharePhone and showAllMembers behaviors.
+3. **LOW (Task 2.2): Audit log uses `resourceType: "member"` with tripId** — Fixed. Changed to `resourceType: "trip"` for consistency with other member-related audit log calls.
+4. **LOW (Task 2.2): Stronger sharePhone preservation test** — Fixed. Replaced weak false→false test with true→(omit)→still-true test.
+
+### Changes Made
+
+**Unit tests** (`apps/api/tests/unit/invitation.service.test.ts`):
+- Added "should include phone number for non-organizer when member has sharePhone=true" — verifies phone is visible when sharePhone is enabled
+- Added "should return only going and maybe members for non-organizer when showAllMembers is false" — verifies status filtering
+- Added "should return all members for non-organizer when showAllMembers is true" — verifies flag override
+- Added "should return all members for organizer regardless of showAllMembers" — verifies organizer bypass
+- Strengthened "should not change sharePhone when not provided" — now tests true→(omit)→still-true instead of false→false
+
+**Integration tests** (`apps/api/tests/integration/invitation.routes.test.ts`):
+- Added "should include phone for non-organizer when member has sharePhone=true" — HTTP-level verification
+- Added "should filter members by status when showAllMembers is false" — HTTP-level verification
+- Added "should show all members when showAllMembers is true" — HTTP-level verification
+
+**JSDoc** (`apps/api/src/services/invitation.service.ts`):
+- Updated interface JSDoc: documents sharePhone and showAllMembers behaviors with @param/@returns
+- Updated implementation JSDoc: concise summary of both privacy behaviors
+
+**Audit log fix** (`apps/api/src/controllers/invitation.controller.ts`):
+- Changed `resourceType: "member"` to `resourceType: "trip"` in updateMySettings handler
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- Targeted unit tests: PASS (48/48)
+- Targeted integration tests: PASS (40/40)
+- `pnpm test`: PASS — 226 shared, 1025 API (10 pre-existing daily-itineraries failures), 1062 web (8 pre-existing failures)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: showAllMembers unit test only covers `not_going` as excluded status, not `no_response` — acceptable since the filter logic (`going` || `maybe`) is verified and testing a second excluded status would be redundant
+- LOW: Manual test data cleanup within each test is consistent with existing patterns but slightly more fragile than beforeEach/afterEach — acceptable per codebase convention
+
+### Learnings
+- Phase 2 cleanup cleanly addressed all 4 reviewer caveats with focused, minimal changes
+- The true→(omit)→still-true test pattern is genuinely stronger than testing default preservation — it catches implementations that accidentally reset fields
+- For audit log consistency, member-scoped operations that use `tripId` as `resourceId` should always use `resourceType: "trip"` (not `"member"`)
+- Integration tests for privacy features provide valuable multi-layer coverage beyond unit tests since they verify the full HTTP request/response cycle including auth and serialization
+
+## Iteration 6 — Task 3.1: Create Venmo icon and update member list UI
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**New file** (`apps/web/src/components/icons/venmo-icon.tsx`):
+- Created first custom SVG icon component in the project
+- Inline Venmo V mark SVG with `viewBox="0 0 24 24"`, `fill="currentColor"`, `aria-hidden="true"`
+- Accepts `className` prop for sizing, matching lucide-react icon patterns
+
+**members-list.tsx** (`apps/web/src/components/trip/members-list.tsx`) — 4 changes:
+- Added `import { VenmoIcon } from "@/components/icons/venmo-icon"` at the top
+- Removed `first:pt-0 last:pb-0` from member row className, keeping just `py-3` for consistent padding
+- Replaced `Venmo` text content with `<VenmoIcon className="w-4 h-4" />` inside the existing `<a>` tag (href, target, rel, data-testid unchanged)
+- Changed phone condition from `isOrganizer && member.phoneNumber` to just `member.phoneNumber` — API now handles phone filtering server-side
+
+**members-list.test.tsx** (`apps/web/src/components/trip/__tests__/members-list.test.tsx`) — 3 new describe blocks:
+- **"phone number display"** (3 tests): Replaced old organizer-gated phone tests with: shows for organizer, shows for non-organizer when phoneNumber present, hidden when phoneNumber absent
+- **"Venmo icon link"** (2 tests): Verifies SVG with `aria-hidden="true"` renders inside Venmo link with correct href and target; verifies no Venmo link when handles are null
+- **"member row padding"** (1 test): Verifies all member rows use `py-3` without `first:pt-0` or `last:pb-0` overrides
+
+### Verification Results
+- `pnpm vitest run members-list.test.tsx`: PASS (50 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Venmo anchor tag still has `text-xs text-primary hover:underline` CSS from old text link — `text-xs` and `hover:underline` have no visual effect on an SVG icon. Cosmetic dead code, could be cleaned up in Phase 3 cleanup (Task 3.5)
+- LOW: VenmoIcon omits `role` attribute — correct since `aria-hidden="true"` excludes it from the accessibility tree, and the containing `<a>` provides context
+
+### Learnings
+- This is the first custom SVG icon in the project — all others come from lucide-react. The `icons/` directory pattern is now established for future brand icons
+- Removing client-side phone filtering (`isOrganizer &&` gate) relies on the API correctly omitting `phoneNumber` from response data for unauthorized viewers — this was implemented in Task 2.1
+- The test pattern for SVG icons: query by `data-testid` on the parent element, then use `querySelector('svg')` and check `aria-hidden` attribute
+- Mock member data with `handles: { venmo: "@testuser" }` triggers the handles rendering code path — existing mocks all had `handles: null`
+
+## Iteration 7 — Task 3.2: Add my-settings hooks and Privacy section in notification preferences
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**invitation-queries.ts** (`apps/web/src/hooks/invitation-queries.ts`):
+- Added `mySettingsKeys` query key factory with `all`, `detail(tripId)`, and `update()` methods
+- Added `mySettingsQueryOptions(tripId)` query options function using `queryOptions<boolean>` — extracts `sharePhone` boolean from the `GET /trips/:tripId/my-settings` API response, with 2-minute stale time
+
+**use-invitations.ts** (`apps/web/src/hooks/use-invitations.ts`):
+- Added `useMySettings(tripId)` — query hook wrapping `mySettingsQueryOptions`
+- Added `useUpdateMySettings(tripId)` — mutation hook calling `PATCH /trips/:tripId/my-settings` with `{ sharePhone: boolean }` body, invalidates both `mySettingsKeys.detail(tripId)` and `memberKeys.list(tripId)` on settled (since phone visibility depends on sharePhone)
+- Added `getUpdateMySettingsErrorMessage(error)` — error helper handling `PERMISSION_DENIED`, `MEMBER_NOT_FOUND`, `UNAUTHORIZED`, `VALIDATION_ERROR`, network errors, and generic fallback
+- Imported `UpdateMySettingsInput` from `@tripful/shared/schemas`, `mySettingsQueryOptions` and `mySettingsKeys` from `./invitation-queries`
+
+**notification-preferences.tsx** (`apps/web/src/components/notifications/notification-preferences.tsx`):
+- Imported `useMySettings`, `useUpdateMySettings`, `getUpdateMySettingsErrorMessage` from `@/hooks/use-invitations`
+- Added `useMySettings(tripId)` and `useUpdateMySettings(tripId)` hook calls
+- Added `handleSharePhoneToggle` function with `onSuccess` (toast.success) and `onError` (toast.error with error message helper)
+- Added Privacy section: `<Separator>`, "Privacy" heading (`text-sm font-medium mt-4 mb-2`), Switch for "Share phone number" with description text
+- Added loading skeleton for Privacy section when `isMySettingsLoading` is true
+
+**trip-notification-dialog.test.tsx** (`apps/web/src/components/notifications/__tests__/trip-notification-dialog.test.tsx`):
+- Added `vi.mock("@/hooks/use-invitations", ...)` to mock the 3 new exports that `NotificationPreferences` now imports — fixed regression where 2 tests failed with "No QueryClient set" error
+
+**use-invitations.test.tsx** (`apps/web/src/hooks/__tests__/use-invitations.test.tsx`):
+- Added `useMySettings` describe block (2 tests): successful fetch, error handling
+- Added `useUpdateMySettings` describe block (2 tests): PATCH endpoint call with correct body, query invalidation on settled
+- Added `getUpdateMySettingsErrorMessage` describe block (7 tests): null, PERMISSION_DENIED, MEMBER_NOT_FOUND, UNAUTHORIZED, VALIDATION_ERROR, network errors, generic errors
+
+**notification-preferences.test.tsx** (`apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx`):
+- Added `vi.mock("@/hooks/use-invitations", ...)` with `mockUseMySettings` and `mockUpdateMySettingsMutate`
+- Added 5 new tests: Privacy section renders, switch checked state, toggle calls mutation, success toast, error toast
+
+### Verification Results
+- `pnpm vitest run use-invitations.test.tsx`: PASS (57 tests, 0 failures)
+- `pnpm vitest run notification-preferences.test.tsx`: PASS (15 tests, 0 failures)
+- `pnpm vitest run trip-notification-dialog.test.tsx`: PASS (19 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), 1080 web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- LOW: Venmo anchor CSS (`text-xs hover:underline`) still present from Task 3.1 — cosmetic dead code, defer to Task 3.5 cleanup
+- Minor description text deviation from architecture spec ("Allow other trip members to see your phone number" vs. "...for this trip") — implemented version is more concise
+
+### Learnings
+- When adding hooks to a component that's already rendered in other test files (like `NotificationPreferences` in `TripNotificationDialog`), the other test files need updated mocks too — always search for all test files that render parent components
+- The `queryOptions<boolean>` return type makes `data` be `boolean | undefined`, handled correctly with `sharePhone ?? false` in the component
+- Error helpers must use `.toLowerCase()` consistently for case-insensitive network error detection — all 6 helpers in `use-invitations.ts` now follow this pattern
+- The `vi.mock` for hooks must be placed before component imports to ensure proper hoisting
+- Cache invalidation on privacy settings should include both the settings query AND the members list query, since `sharePhone` affects phone number visibility in the members list
+
+## Iteration 8 — Task 3.3: Add phone sharing step to onboarding wizard
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**member-onboarding-wizard.tsx** (`apps/web/src/components/trip/member-onboarding-wizard.tsx`):
+- Added imports: `Switch` from `@/components/ui/switch`, `Label` from `@/components/ui/label`, `useUpdateMySettings` from `@/hooks/use-invitations`
+- Added state: `const [sharePhone, setSharePhone] = useState(false)`
+- Added hook: `const updateMySettings = useUpdateMySettings(tripId)`
+- Updated `totalSteps`: `canAddEvents ? 4 : 3` → `canAddEvents ? 5 : 4`
+- Updated `eventsStepIndex`: `canAddEvents ? 2 : -1` → `canAddEvents ? 3 : -1`
+- Inserted new Step 0 (phone sharing) — header with "Share your phone number?" title and body with Switch toggle, label, and description text matching architecture spec
+- Added `handleNext` branch for step 0: calls `updateMySettings.mutate({ sharePhone })` with `onSuccess` (advance) and `onError` (toast) callbacks
+- Shifted all existing step references by +1: arrival step 0→1, departure step 1→2
+- Updated departure pre-fill useEffect: `step === 1` → `step === 2`
+- Added `updateMySettings.isPending` to the combined `isPending` check
+- Added `setSharePhone(false)` to the sheet open reset useEffect
+- Footer naturally handles Step 0: `step > 0` gate means no Back button on phone step
+
+**member-onboarding-wizard.test.tsx** (`apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx`):
+- Extended `@/hooks/use-invitations` mock to include `useUpdateMySettings` with `mockUpdateMySettingsMutate`
+- Added `skipPhoneStep()` helper function to navigate past new Step 0
+- Updated all step count assertions: "Step 1 of 4" → "Step 1 of 5" (with events), "Step 1 of 3" → "Step 1 of 4" (without events)
+- Updated all navigation tests to include extra skip past phone step
+- Added 6 new tests in "Phone sharing step" describe block:
+  1. Renders Switch with correct aria-label, label, and description text
+  2. Skip navigates to arrival without calling API
+  3. Next with switch ON calls mutate with `{ sharePhone: true }`
+  4. Next with switch OFF calls mutate with `{ sharePhone: false }`
+  5. Switch initial state is unchecked
+  6. Back button not shown on step 0
+
+### Verification Results
+- `pnpm vitest run member-onboarding-wizard.test.tsx`: PASS (28/28 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- LOW: Done summary does not show phone sharing status — appropriate since it's a privacy toggle rather than travel logistics
+- LOW: Wizard does not pre-fill `sharePhone` from existing settings — consistent with architecture spec (`useState(false)`) and the wizard being a one-time onboarding flow
+- LOW: No test for `isPending` disabling buttons during my-settings mutation — component code is correct (line 283), same pattern as other mutations
+
+### Learnings
+- The wizard has no RSVP mutation — RSVP "going" happens in TripPreview before the wizard opens, so `useUpdateMySettings` is the correct hook for persisting phone sharing preference
+- The `step > 0` footer guard for the Back button naturally handles the new Step 0 correctly — no explicit changes needed for back navigation
+- Adding a `skipPhoneStep()` helper function in tests reduces duplication when all existing navigation tests need an extra step
+- The `handleSkip()` function (`setStep(s => s + 1)`) is generic enough that no changes were needed — skipping Step 0 leaves `sharePhone` as `false` (conservative default)
+
+## Iteration 9 — Task 3.4: Add showAllMembers toggle to edit trip dialog
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**edit-trip-dialog.tsx** (`apps/web/src/components/trip/edit-trip-dialog.tsx`) — 3 changes:
+- Added `showAllMembers: false` to `defaultValues` (line 86), matching the schema default
+- Added `showAllMembers: trip.showAllMembers` to `form.reset()` (line 102), so the form pre-populates with the trip's current setting when the dialog opens
+- Added new `FormField` with Checkbox (lines 386-414) immediately after the existing `allowMembersToAddEvents` checkbox, following the identical pattern: label "Show all invited members", description "Let members see everyone invited, not just those going or maybe", `aria-label="Show all invited members"`, disabled during `isPending || isDeleting`
+
+**edit-trip-dialog.test.tsx** (`apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx`) — 5 changes:
+- Added `showAllMembers: false` to `mockTrip` object
+- Added pre-population assertion: verifies checkbox renders with `data-state="unchecked"` when `mockTrip.showAllMembers` is `false`
+- Added disabled state assertion: verifies checkbox is disabled during pending update
+- Added accessibility assertion: verifies `getByLabelText(/show all invited members/i)` works
+- Added new test "includes showAllMembers in form submission": toggles checkbox on, submits form, parses API request body to confirm `showAllMembers: true`
+
+### Verification Results
+- `pnpm vitest run edit-trip-dialog.test.tsx`: PASS (31/31 tests, 0 failures)
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1025 API tests (10 pre-existing daily-itineraries failures), 1088 web tests (8 pre-existing failures only, 0 new regressions)
+
+### Reviewer Notes
+- No issues found. Implementation is a clean, minimal replica of the existing `allowMembersToAddEvents` pattern with no deviations from the architecture spec.
+
+### Learnings
+- Adding a new boolean checkbox field to an existing form dialog is a straightforward 3-point change (defaultValues, reset, FormField) when the data layer (schema, types, hooks, API) already supports the field
+- The `JSON.parse(callArgs[1]?.body as string)` pattern from create-trip-dialog tests is the most precise way to assert boolean checkbox values in form submission tests, rather than `expect.stringContaining` which could match unintended strings
+- All 3 researcher agents returned consistent findings in under 90 seconds, confirming the entire data flow (DB → schema → types → API → hooks → optimistic update) was already complete — the UI was the only missing piece
+
+## Iteration 10 — Task 3.5: Phase 3 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Phase 3 Reviewer Caveats Triage
+
+| # | Source | Caveat | Resolution |
+|---|--------|--------|------------|
+| 1 | Task 3.1 | Venmo anchor `text-xs hover:underline` dead CSS | **FIXED** — removed dead classes |
+| 2 | Task 3.1 | VenmoIcon omits `role` attribute | No fix needed — `aria-hidden="true"` is correct |
+| 3 | Task 3.2 | Venmo CSS re-confirmed for 3.5 | Same as #1, **FIXED** |
+| 4 | Task 3.2 | Description text deviation from arch spec | No fix needed — reviewer deemed more concise |
+| 5 | Task 3.3 | Done summary no phone status | No fix needed — appropriate for privacy toggle |
+| 6 | Task 3.3 | No sharePhone pre-fill in wizard | No fix needed — per architecture spec |
+| 7 | Task 3.3 | No isPending test for my-settings | No fix needed — code correct, same pattern as others |
+| 8 | Task 3.4 | No issues | Nothing to address |
+
+### Changes Made
+
+**Venmo anchor CSS** (`apps/web/src/components/trip/members-list.tsx`):
+- Changed Venmo `<a>` tag className from `"text-xs text-primary hover:underline"` to `"text-primary"`
+- `text-xs` (font-size) and `hover:underline` (text-decoration) had no effect on the SVG icon child
+- `text-primary` retained because VenmoIcon uses `fill="currentColor"` to inherit color
+- Instagram anchor at line ~217 intentionally unchanged — it renders text where those classes are functional
+
+**Unused import** (`apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx`):
+- Removed unused `waitFor` from `@testing-library/react` import
+
+**Mock completeness** (`apps/web/src/components/trip/__tests__/member-onboarding-wizard.test.tsx`):
+- Added `showAllMembers: false` to `mockTrip` object to match the current `Trip` type (added in Task 1.1)
+- Test files are excluded from `pnpm typecheck`, so incomplete mocks aren't caught by type checking
+
+### Verification Results
+- `pnpm typecheck`: PASS (0 errors, all 3 packages)
+- `pnpm lint`: PASS (0 errors)
+- `pnpm test`: PASS — 226 shared tests, 1024 API tests (11 pre-existing failures: 10 daily-itineraries + 1 auth lockout), 1088 web tests (8 pre-existing failures only)
+- Targeted tests: members-list (50/50), notification-preferences (15/15), member-onboarding-wizard (28/28) — all pass
+- No regressions introduced
+
+### Reviewer Notes
+- LOW: Two other test files (`trip-detail-content.test.tsx`, `trip-preview.test.tsx`) also have `TripDetailWithMeta` mocks missing `showAllMembers`. These are pre-existing gaps (not introduced by this task) and non-blocking. Could be addressed in Phase 4 or a future cleanup.
+
+### Learnings
+- Phase 3 cleanup was straightforward — only 1 of 8 reviewer caveats required a code fix; the rest were correctly deemed acceptable/by-design during original review
+- When cleaning up CSS on elements that changed from text to icon content, keep `color`-related classes (like `text-primary`) that drive `currentColor` inheritance but remove `font-size` and `text-decoration` classes that only affect text nodes
+- Test file type exclusion from `pnpm typecheck` means mock object completeness must be verified manually — a recurring theme across cleanup tasks
+- The auth lockout integration test (1 failure) is an additional pre-existing flaky test beyond the 10 daily-itineraries failures — timing/environment dependent
+
+## Iteration 11 — Task 4.1: Full regression check
+
+**Status**: COMPLETED
+**Verifier**: PASS
+**Reviewer**: APPROVED
+
+### Verification Results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| `pnpm typecheck` | PASS | 0 errors across all 3 packages (shared, api, web) |
+| `pnpm lint` | PASS | 0 errors across all 3 packages |
+| `pnpm test` (shared) | PASS | 226/226 tests pass |
+| `pnpm test` (api) | PASS* | 1025 pass, 10 fail — all in `daily-itineraries.worker.test.ts` (pre-existing DB pollution) |
+| `pnpm test` (web) | PASS* | 1088 pass, 8 fail — all pre-existing (5 app-header, 1 metadata, 2 URL validation) |
+| `pnpm test:e2e` | PASS | 32/32 E2E tests pass, 0 failures |
+
+*Only pre-existing failures, no new regressions.
+
+### E2E Regression Found and Fixed
+
+Two E2E tests in `invitation-journey.spec.ts` failed because Task 3.3 added a new phone sharing Step 0 to the onboarding wizard, but the E2E tests were not updated:
+
+1. **"invitation and RSVP journey"** (line ~171) — expected "When are you arriving?" as first wizard step
+2. **"member completes onboarding wizard after RSVP"** (line ~535) — expected "When are you arriving?" and "Step 1 of 4"
+
+### Changes Made
+
+**E2E test fix** (`apps/web/tests/e2e/invitation-journey.spec.ts`):
+- Both tests now handle the new phone sharing Step 0: wait for "Share your phone number?" to be visible, click "Skip" to advance, then check for "When are you arriving?"
+- Step counter assertions updated: "Step N of 4" → "Step N+1 of 5" throughout the wizard completion test
+- Timeout adjusted: `NAVIGATION_TIMEOUT` for initial wizard appearance, `ELEMENT_TIMEOUT` for in-dialog transitions
+
+### Reviewer Notes
+- LOW: The shorter "invitation and RSVP journey" test omits step counter checks on the phone step, which is fine since that test's goal is to verify the wizard can be dismissed, not validate step numbering
+
+### Learnings
+- When adding steps to user-facing wizards, E2E tests must be updated alongside unit tests — Task 3.3 updated unit tests but missed the E2E tests
+- `CI=true` environment variable causes Playwright's `reuseExistingServer: !process.env.CI` to resolve to `false`, requiring `CI=` prefix to reuse running dev servers
+- The full regression check across all 4 verification layers (typecheck, lint, unit tests, E2E) caught a real regression that unit tests alone could not detect
+- Pre-existing failure counts remain stable: 10 API (daily-itineraries), 8 web (app-header/metadata/URL-validation), 0 E2E

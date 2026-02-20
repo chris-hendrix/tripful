@@ -73,10 +73,37 @@ export interface IInvitationService {
     userId: string,
     tripId: string,
     status: "going" | "not_going" | "maybe",
+    sharePhone?: boolean,
   ): Promise<MemberWithProfile>;
 
   /**
+   * Gets the current member's per-trip settings
+   * @param userId - The ID of the requesting user
+   * @param tripId - The ID of the trip
+   * @returns Current settings (sharePhone)
+   */
+  getMySettings(
+    userId: string,
+    tripId: string,
+  ): Promise<{ sharePhone: boolean }>;
+
+  /**
+   * Updates the current member's per-trip settings
+   * @param userId - The ID of the requesting user
+   * @param tripId - The ID of the trip
+   * @param sharePhone - Whether to share phone number with other members
+   * @returns Updated settings (sharePhone)
+   */
+  updateMySettings(
+    userId: string,
+    tripId: string,
+    sharePhone: boolean,
+  ): Promise<{ sharePhone: boolean }>;
+
+  /**
    * Gets all members of a trip with profile information
+   * Phone numbers are included when requesting user is an organizer or member has opted in via sharePhone.
+   * Non-organizer view is filtered to going/maybe members unless trip has showAllMembers enabled.
    * @param tripId - The ID of the trip
    * @param requestingUserId - The ID of the requesting user
    * @returns Members with profile information
@@ -472,6 +499,7 @@ export class InvitationService implements IInvitationService {
     userId: string,
     tripId: string,
     status: "going" | "not_going" | "maybe",
+    sharePhone?: boolean,
   ): Promise<MemberWithProfile> {
     // Check permission
     const canUpdate = await this.permissionsService.canUpdateRsvp(
@@ -498,7 +526,7 @@ export class InvitationService implements IInvitationService {
     // Update member status
     await this.db
       .update(members)
-      .set({ status, updatedAt: new Date() })
+      .set({ status, ...(sharePhone !== undefined ? { sharePhone } : {}), updatedAt: new Date() })
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
 
     // Create default notification preferences when RSVP changes to "going"
@@ -542,8 +570,67 @@ export class InvitationService implements IInvitationService {
   }
 
   /**
+   * Gets the current member's per-trip settings
+   */
+  async getMySettings(
+    userId: string,
+    tripId: string,
+  ): Promise<{ sharePhone: boolean }> {
+    const membershipInfo = await this.permissionsService.getMembershipInfo(
+      userId,
+      tripId,
+    );
+    if (!membershipInfo.isMember) {
+      throw new PermissionDeniedError(
+        "Permission denied: only members can view settings",
+      );
+    }
+
+    const result = await this.db
+      .select({ sharePhone: members.sharePhone })
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    return { sharePhone: result[0]!.sharePhone };
+  }
+
+  /**
+   * Updates the current member's per-trip settings
+   */
+  async updateMySettings(
+    userId: string,
+    tripId: string,
+    sharePhone: boolean,
+  ): Promise<{ sharePhone: boolean }> {
+    const membershipInfo = await this.permissionsService.getMembershipInfo(
+      userId,
+      tripId,
+    );
+    if (!membershipInfo.isMember) {
+      throw new PermissionDeniedError(
+        "Permission denied: only members can update settings",
+      );
+    }
+
+    await this.db
+      .update(members)
+      .set({ sharePhone, updatedAt: new Date() })
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
+
+    const updatedResult = await this.db
+      .select({ sharePhone: members.sharePhone })
+      .from(members)
+      .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
+      .limit(1);
+
+    return { sharePhone: updatedResult[0]!.sharePhone };
+  }
+
+  /**
    * Gets all members of a trip with profile information
-   * Includes phone numbers only when requesting user is an organizer
+   * Phone numbers included when requesting user is organizer or member has sharePhone enabled.
+   * Non-organizers see only going/maybe members unless trip.showAllMembers is true.
    */
   async getTripMembers(
     tripId: string,
@@ -562,6 +649,13 @@ export class InvitationService implements IInvitationService {
 
     const isOrg = membershipInfo.isOrganizer;
 
+    // Fetch trip's showAllMembers setting
+    const tripSettings = await this.db
+      .select({ showAllMembers: trips.showAllMembers })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+
     // Query members with user profiles
     const results = await this.db
       .select({
@@ -571,6 +665,7 @@ export class InvitationService implements IInvitationService {
         profilePhotoUrl: users.profilePhotoUrl,
         handles: users.handles,
         phoneNumber: users.phoneNumber,
+        sharePhone: members.sharePhone,
         status: members.status,
         isOrganizer: members.isOrganizer,
         createdAt: members.createdAt,
@@ -589,16 +684,22 @@ export class InvitationService implements IInvitationService {
       mutedUserIds = new Set(mutedRows.map((r) => r.userId));
     }
 
-    return results.map((r) => ({
+    // Filter members for non-organizers when showAllMembers is off
+    const filteredResults = (!isOrg && !tripSettings[0]?.showAllMembers)
+      ? results.filter(r => r.status === "going" || r.status === "maybe")
+      : results;
+
+    return filteredResults.map((r) => ({
       id: r.id,
       userId: r.userId,
       displayName: r.displayName,
       profilePhotoUrl: r.profilePhotoUrl,
       handles: r.handles ?? null,
-      ...(isOrg ? { phoneNumber: r.phoneNumber } : {}),
+      ...((isOrg || r.sharePhone) ? { phoneNumber: r.phoneNumber } : {}),
       status: r.status,
       isOrganizer: r.isOrganizer,
       ...(isOrg ? { isMuted: mutedUserIds.has(r.userId) } : {}),
+      ...(isOrg ? { sharePhone: r.sharePhone } : {}),
       createdAt: r.createdAt.toISOString(),
     }));
   }

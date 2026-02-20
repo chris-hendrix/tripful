@@ -32,6 +32,7 @@ export interface MemberWithProfile {
   isOrganizer: boolean;
   /** Only included when requesting user is an organizer */
   isMuted?: boolean;
+  sharePhone?: boolean;
   createdAt: string;
 }
 

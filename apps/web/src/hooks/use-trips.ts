@@ -161,6 +161,7 @@ export function useCreateTrip() {
         coverImageUrl: newTrip.coverImageUrl || null,
         createdBy: "current-user", // Placeholder - will be replaced by server response
         allowMembersToAddEvents: newTrip.allowMembersToAddEvents ?? true,
+        showAllMembers: newTrip.showAllMembers ?? false,
         cancelled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -325,6 +326,8 @@ export function useUpdateTrip() {
           allowMembersToAddEvents:
             data.allowMembersToAddEvents ??
             previousTrip.allowMembersToAddEvents,
+          showAllMembers:
+            data.showAllMembers ?? previousTrip.showAllMembers,
           updatedAt: new Date(),
         };
 
