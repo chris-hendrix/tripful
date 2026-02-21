@@ -92,4 +92,31 @@ describe("Button", () => {
     const button = screen.getByRole("button", { name: "Test" });
     expect(button.getAttribute("data-slot")).toBe("button");
   });
+
+  describe("micro-interactions", () => {
+    it("applies motion-safe active scale to default variant", () => {
+      const classes = buttonVariants({ variant: "default" });
+      expect(classes).toContain("motion-safe:active:scale-[0.97]");
+    });
+
+    it("applies motion-safe active scale to all non-link variants", () => {
+      const variants = [
+        "default",
+        "destructive",
+        "outline",
+        "secondary",
+        "ghost",
+        "gradient",
+      ] as const;
+      for (const variant of variants) {
+        const classes = buttonVariants({ variant });
+        expect(classes).toContain("motion-safe:active:scale-[0.97]");
+      }
+    });
+
+    it("overrides active scale to 100 for link variant", () => {
+      const classes = buttonVariants({ variant: "link" });
+      expect(classes).toContain("active:scale-100");
+    });
+  });
 });

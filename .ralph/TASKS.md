@@ -242,7 +242,7 @@
   - Test: `pnpm dev:web` — verify font renders correctly across pages
   - Verify: run full test suite
 
-- [ ] Task 8.2: Add page transitions, staggered list reveals, and micro-interactions
+- [x] Task 8.2: Add page transitions, staggered list reveals, and micro-interactions
   - Implement: In `globals.css` — add `fadeIn` and `slideUp` keyframes
   - Implement: Apply `fadeIn` animation to page-level content wrappers for smooth page transitions
   - Implement: Apply staggered `slideUp` animation to list items (trip cards, member lists, event lists) with incremental `animation-delay`

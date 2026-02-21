@@ -101,7 +101,7 @@ export function TripsContent() {
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">

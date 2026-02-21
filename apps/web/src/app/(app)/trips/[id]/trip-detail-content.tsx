@@ -186,7 +186,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background motion-safe:animate-[fadeIn_500ms_ease-out]">
       {/* Breadcrumb navigation */}
       <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
         <BreadcrumbList>

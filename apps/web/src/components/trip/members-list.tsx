@@ -88,6 +88,7 @@ function MembersListSkeleton() {
 
 interface MemberRowProps {
   member: MemberWithProfile;
+  index?: number;
   isOrganizer: boolean;
   createdBy?: string | undefined;
   currentUserId?: string | undefined;
@@ -101,6 +102,7 @@ interface MemberRowProps {
 
 function MemberRow({
   member,
+  index = 0,
   isOrganizer,
   createdBy,
   currentUserId,
@@ -122,7 +124,10 @@ function MemberRow({
   const showActions = isOrganizer && (canRemove || canUpdateRole || canMute);
 
   return (
-    <div className="flex items-center gap-3 py-3">
+    <div
+      className="flex items-center gap-3 py-3 motion-safe:animate-[slideUp_400ms_ease-out_both]"
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
       <Avatar size="default">
         <AvatarImage
           src={getUploadUrl(member.profilePhotoUrl)}
@@ -413,16 +418,26 @@ export function MembersList({
 
         <TabsContent value="going">
           <div className="divide-y divide-border">
-            {going.map((member) => (
-              <MemberRow key={member.id} member={member} {...memberRowProps} />
+            {going.map((member, i) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                index={i}
+                {...memberRowProps}
+              />
             ))}
           </div>
         </TabsContent>
 
         <TabsContent value="maybe">
           <div className="divide-y divide-border">
-            {maybe.map((member) => (
-              <MemberRow key={member.id} member={member} {...memberRowProps} />
+            {maybe.map((member, i) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                index={i}
+                {...memberRowProps}
+              />
             ))}
           </div>
         </TabsContent>
@@ -430,10 +445,11 @@ export function MembersList({
         {isOrganizer && (
           <TabsContent value="not_going">
             <div className="divide-y divide-border">
-              {notGoing.map((member) => (
+              {notGoing.map((member, i) => (
                 <MemberRow
                   key={member.id}
                   member={member}
+                  index={i}
                   {...memberRowProps}
                 />
               ))}
@@ -444,10 +460,11 @@ export function MembersList({
         {isOrganizer && (
           <TabsContent value="invited">
             <div className="divide-y divide-border">
-              {noResponse.map((member) => (
+              {noResponse.map((member, i) => (
                 <MemberRow
                   key={member.id}
                   member={member}
+                  index={i}
                   {...memberRowProps}
                 />
               ))}

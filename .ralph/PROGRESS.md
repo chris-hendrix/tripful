@@ -1326,3 +1326,56 @@ Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
 - **Next.js `next/font/google` uses underscore naming for multi-word fonts**: `Plus_Jakarta_Sans` (not `PlusJakartaSans` or `plus-jakarta-sans`). This follows the Google Fonts API naming convention.
 - **Font swap is clean when CSS variable indirection is used**: Because components reference `font-sans` (via Tailwind's default body font) rather than `--font-dm-sans` directly, only the 4 infrastructure files needed changes. No component files were touched.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-30)
+
+## Iteration 31 — Task 8.2: Add page transitions, staggered list reveals, and micro-interactions
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/app/globals.css` | Added `fadeIn` keyframe (opacity 0 + translateY 8px → visible) and `slideUp` keyframe (opacity 0 + translateY 16px → visible) after existing keyframes, before @utility block |
+| `apps/web/src/components/ui/button.tsx` | Added `motion-safe:active:scale-[0.97]` to CVA base string for press feedback on all button variants; added `active:scale-100` override to `link` variant to prevent text links from scaling |
+| `apps/web/src/components/trip/trip-card.tsx` | Replaced `animate-in fade-in slide-in-from-bottom-4 duration-500` with `motion-safe:animate-[slideUp_500ms_ease-out_both]`; added `motion-safe:hover:-translate-y-0.5` for hover lift |
+| `apps/web/src/components/itinerary/event-card.tsx` | Added `motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98]` for hover lift and press feedback |
+| `apps/web/src/components/itinerary/accommodation-card.tsx` | Upgraded `hover:shadow-sm` to `hover:shadow-md`; added `motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98]` |
+| `apps/web/src/components/itinerary/member-travel-card.tsx` | Upgraded `hover:shadow-sm` to `hover:shadow-md`; added `motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98]` |
+| `apps/web/src/app/(app)/trips/trips-content.tsx` | Added `motion-safe:animate-[fadeIn_500ms_ease-out]` to page-level content wrapper for page transition |
+| `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` | Added `motion-safe:animate-[fadeIn_500ms_ease-out]` to page-level content wrapper for page transition |
+| `apps/web/src/components/trip/members-list.tsx` | Added `index` prop to `MemberRow` component; applied `motion-safe:animate-[slideUp_400ms_ease-out_both]` with `style={{ animationDelay: \`${index * 50}ms\` }}` to member rows; updated all 4 `.map()` calls to pass index |
+| `apps/web/src/components/ui/__tests__/button.test.tsx` | Added 3 tests: active scale on default variant, active scale on all non-link variants, `active:scale-100` override on link variant |
+| `apps/web/src/components/trip/__tests__/trip-card.test.tsx` | Updated animation tests to check for `motion-safe:animate-[slideUp_500ms_ease-out_both]` and `motion-safe:hover:-translate-y-0.5` instead of old `animate-in fade-in slide-in-from-bottom-4` |
+
+### Key Decisions
+
+- **Custom `slideUp` keyframe for trip cards**: Replaced the generic `animate-in fade-in slide-in-from-bottom-4` (Tailwind's built-in enter animation) with the custom `slideUp` keyframe. This provides a more consistent animation style across the app (trip cards and member rows use the same keyframe) and enables the `both` fill mode via the arbitrary animation shorthand.
+- **`animation-fill-mode: both` for staggered items**: Items with `animationDelay` need `both` fill mode to stay invisible until their delay completes and remain visible after animation ends. This is encoded via the `both` keyword in the Tailwind arbitrary syntax: `animate-[slideUp_400ms_ease-out_both]`.
+- **Cards use `active:scale-[0.98]`, buttons use `active:scale-[0.97]`**: Intentionally different values — buttons have a slightly more pronounced press effect (3% shrink) vs. cards (2% shrink). This creates a subtle differentiation between button-type and card-type interactive elements.
+- **Link variant overrides active scale**: `active:scale-100` on the link variant ensures text-style buttons don't have a physical press effect, which would feel unnatural for inline text links.
+- **Itinerary event lists left as-is**: Day-by-day-view and group-by-type-view already had proper staggered `motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4` animations with `animationDelay` — no changes needed.
+- **Shadow upgrade for consistency**: Accommodation-card and member-travel-card were upgraded from `hover:shadow-sm` to `hover:shadow-md` to match trip-card and event-card hover shadow intensity.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions. All task-specific tests pass.
+- **Grep checks**: All required patterns present in correct files. No bare `animate-in` without `motion-safe:` in any changed file. `fadeIn` and `slideUp` keyframes in globals.css.
+- **Reviewer**: APPROVED — all 6 requirements met, consistent `motion-safe:` usage, correct keyframe values, appropriate test coverage
+
+### Reviewer Notes (LOW severity, non-blocking)
+
+- Trip-card `active:scale-[0.98]` lacks `motion-safe:` prefix while event/accommodation/member-travel cards have it — minor inconsistency, but subtle 2% scale is arguably not "motion" in the a11y sense
+- Members-list stagger animation lacks dedicated test coverage — pattern is identical to already-tested trip-card pattern
+- Page-level fadeIn on trips-content and trip-detail-content lacks test assertions — CSS-only change, low risk
+
+### Learnings for Future Iterations
+
+- **Tailwind arbitrary animation shorthand**: `animate-[keyframeName_duration_easing_fillMode]` encodes all CSS animation properties in a single utility. The `both` keyword sets `animation-fill-mode: both`, which is critical for staggered items with `animationDelay`.
+- **`motion-safe:` prefix is the standard accessibility pattern**: All codebase animations (custom keyframes and built-in animate-in) should use this prefix. The pattern `motion-safe:animate-[...]` completely removes the animation when `prefers-reduced-motion: reduce` is set.
+- **Button CVA base vs variant overrides**: Adding `motion-safe:active:scale-[0.97]` to the CVA base string applies it to all variants. Individual variants can override with specificity (e.g., `active:scale-100` on link). This pattern avoids duplicating the class across each variant definition.
+- **`transition-all` covers `transition-transform`**: Button.tsx already had `transition-all` in its base — no need to add separate `transition-transform`. The task spec's "add `transition-transform`" is satisfied by the existing broader `transition-all`.
+- **Stagger delays must use inline styles**: Tailwind doesn't support dynamic index-based delays through class utilities. The `style={{ animationDelay: \`${index * Nms}\` }}` pattern with `N=50ms` for dense lists and `N=100ms` for sparse lists is the established convention.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-31)
