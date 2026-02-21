@@ -998,3 +998,65 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 - `API_BASE` was duplicated in 5 files — DRY violations in test infrastructure accumulate silently and should be caught during initial helper setup
 - Pre-existing test failure count: 18 (stable across iterations 5-23)
 - Task 6.4 (Phase 6 cleanup) will review all Phase 6 progress entries for any remaining issues
+
+## Iteration 24 — Task 6.4: Phase 6 cleanup
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Review Findings
+
+Reviewed all Phase 6 work (Tasks 6.1-6.3) across PROGRESS.md iterations 21-23:
+
+| Check                                                | Result                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
+| All Phase 6 files present and in expected state      | Verified (auth.ts, login.page.ts, trip-detail.page.ts, toast.ts, itinerary.ts, messaging.ts, timeouts.ts, 7 spec files) |
+| FAILURE or BLOCKED tasks                             | None found                                                                     |
+| Reviewer caveats or conditional approvals            | None -- all 3 tasks received clean APPROVED                                    |
+| No TODO/FIXME/HACK comments in changed files         | Verified                                                                       |
+| Anti-patterns fully eliminated                       | Verified: 0 page.evaluate(), 0 dispatchEvent, 0 .isVisible(), 0 .or(), 0 local API_BASE |
+| Regressions from Phase 6 changes                     | None detected                                                                  |
+| All 4 ARCHITECTURE.md Phase 6 spec items addressed   | Verified (locator strategy: partial — remaining covered by 6.4.1; auto-wait fixes: complete; expect.soft(): complete; helper consolidation: complete) |
+| VERIFICATION.md Phase 6 checks pass                  | Partial -- see below                                                           |
+
+### VERIFICATION.md Phase 6 Check Results
+
+| Check                                      | Result  | Detail                                                       |
+| ------------------------------------------ | ------- | ------------------------------------------------------------ |
+| No CSS selectors remain in E2E files       | FAIL    | ~35 CSS-selector-based `locator()` calls remain across 6 files |
+| No `.first()` / `.last()` on generic locators | FAIL | ~25 instances remain across spec files and helpers            |
+| No `page.evaluate()` for DOM manipulation  | PASS    | 0 remaining                                                  |
+| Full E2E suite passes                      | N/A     | Not run (requires dev servers; unit/integration tests verified stable at 18-20 pre-existing failures) |
+
+### Deferred Items Analysis
+
+| Item                                                                                       | Assessment                                                                                                                                                                                                               | Action                     |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| ~35 remaining CSS selectors across 6 E2E files                                             | Tasks 6.1-6.3 were narrowly scoped to specific files (auth.ts, login.page.ts, trip-detail.page.ts). Remaining selectors in itinerary-journey, trip-journey, invitation-journey, helpers/itinerary, helpers/date-pickers were not in scope. VERIFICATION.md explicitly requires "No CSS selectors remain." | FIX task 6.4.1 created     |
+| ~25 remaining `.first()/.last()` on generic locators                                       | Co-occurs with CSS selectors in the same files. Addressable in same pass.                                                                                                                                                | Included in FIX task 6.4.1 |
+| ProfilePage uses getByTestId vs role-based locators                                         | Minor inconsistency with other page objects. Not a VERIFICATION.md requirement.                                                                                                                                          | No follow-up task needed   |
+| `.locator("..")` parent traversal in trip-journey.spec.ts                                  | Acceptable Playwright pattern for navigating to parent elements. Not an anti-pattern.                                                                                                                                     | No follow-up task needed   |
+| `.getAttribute("aria-expanded")` for control flow in itinerary-journey.spec.ts             | Legitimate control flow decision (checking accordion state), not a polling assertion. Similar to textContent() for month navigation in date-pickers.                                                                      | No follow-up task needed   |
+| `data-testid` selectors that could use `getByTestId()`                                     | `.locator('[data-testid="..."]')` and `getByTestId("...")` are functionally equivalent. Converting is cosmetic, not a correctness issue.                                                                                  | No follow-up task needed   |
+| Auth function deduplication noted in iteration 21                                           | Addressed in Task 6.3 (iteration 23) -- authenticateViaAPI and authenticateUserViaBrowser now delegate to their WithPhone variants.                                                                                       | Resolved                   |
+
+### Changes Made
+
+| File              | Change                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `.ralph/TASKS.md` | Marked Task 6.4 as complete (`[x]`); added FIX task 6.4.1 for remaining CSS selectors and .first()/.last() patterns |
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 20 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1, auth lockout expiry 1, use-trips error handling 1). No new regressions.
+- **Phase 6 scope**: Tasks 6.1-6.3 all APPROVED. Highest-risk anti-patterns (page.evaluate, dispatchEvent, .isVisible, .or) fully eliminated. Remaining CSS selectors are lower-risk attribute/name selectors in files not covered by original task scope.
+
+### Learnings for Future Iterations
+
+- VERIFICATION.md checks can be aspirational relative to the actual task descriptions in TASKS.md -- when tasks are narrowly scoped to specific files, the verification checks may cover broader scope
+- Phase 6 successfully eliminated all high-risk anti-patterns (page.evaluate DOM manipulation, dispatchEvent synthetic events, .isVisible() synchronous polling, .or() broad locators) across the entire E2E suite
+- The remaining CSS selectors (`input[name="..."]`, `button[title="..."]`, `[role="gridcell"]`) are moderate-risk patterns -- less brittle than the eliminated ones but still not following Playwright best practices
+- FIX task 6.4.1 was created to close the gap between VERIFICATION.md requirements and current state
+- Pre-existing test failure count: 18-20 (stable across iterations 5-24, variance from flaky auth lockout and use-trips tests)

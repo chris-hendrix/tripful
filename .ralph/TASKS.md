@@ -182,11 +182,21 @@
   - Test: Run full E2E suite
   - Verify: `pnpm test:e2e` passes
 
-- [ ] Task 6.4: Phase 6 cleanup
+- [x] Task 6.4: Phase 6 cleanup
   - Review: Read PROGRESS.md entries for Phase 6 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
   - Verify: run full test suite
+
+- [ ] Task 6.4.1 FIX: Convert remaining CSS selectors and .first()/.last() patterns in E2E spec files to role-based locators
+  - Implement: In `itinerary-journey.spec.ts` — replace ~22 CSS selectors (`input[name="..."]`, `textarea[name="..."]`, `button[title="..."]`, `[role="button"][aria-expanded]`, `[title="..."]`) with `getByLabel()`, `getByRole()`, `getByTitle()` equivalents
+  - Implement: In `trip-journey.spec.ts` — replace ~4 CSS selectors with role-based locators
+  - Implement: In `invitation-journey.spec.ts` — replace CSS selectors (`input[type="tel"]`, `[data-testid="..."]`, `#id-selectors`) with role-based locators
+  - Implement: In `helpers/itinerary.ts` — replace `button[role="combobox"]` with `getByRole("combobox")`, `div[role="option"]` with `getByRole("option")`, `input[name="location"]` with `getByLabel()`
+  - Implement: In `helpers/date-pickers.ts` — replace CSS selectors (`[role="gridcell"]`, `data-slot`, `data-outside`) with role-based locators where feasible
+  - Implement: In remaining spec files — replace bare tag selectors (`.locator("button")`, `.locator("span")`, `.locator("p")`, `.locator("div")`) with role-based or scoped locators
+  - Implement: Reduce `.first()` / `.last()` on generic locators by scoping to parent elements or using more specific accessible names
+  - Test: `pnpm test:e2e` passes
 
 ## Phase 7: Mobile & Responsive
 
