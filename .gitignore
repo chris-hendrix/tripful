@@ -69,6 +69,7 @@ Thumbs.db
 # Misc
 *.pem
 .cache/
+.pnpm-store/
 temp/
 tmp/
 
