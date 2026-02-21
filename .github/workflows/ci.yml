@@ -240,7 +240,10 @@ jobs:
     needs: changes
     if: |
       github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/master'
+      github.ref == 'refs/heads/master' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.shared == 'true'
     strategy:
       fail-fast: false
       matrix:
