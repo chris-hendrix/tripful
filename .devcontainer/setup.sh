@@ -31,13 +31,13 @@ EOF
 fi
 
 # Install dependencies (approve native build scripts non-interactively)
-pnpm approve-builds esbuild sharp unrs-resolver 2>/dev/null || true
+pnpm approve-builds esbuild sharp unrs-resolver 2>&1 || true
 pnpm install
 
 # Build shared package (required before API/web can use it)
 pnpm --filter @tripful/shared build
 
 # Run database migrations
-cd /workspace/apps/api && pnpm db:migrate
+cd apps/api && pnpm db:migrate
 
 echo "[setup] Done! Ready to develop."

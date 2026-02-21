@@ -38,7 +38,7 @@ dev-up: check-deps
 dev-exec: check-deps
 	@$(DC) exec --workspace-folder "$(WORKTREE)" $(CMD)
 
-# Stop container (keeps worktree on disk)
+# Stop container + remove worktree
 dev-down: check-deps
 	@cid=$$(docker ps -q --filter "label=devcontainer.local_folder=$$(realpath $(WORKTREE))"); \
 	if [ -n "$$cid" ]; then \
@@ -46,8 +46,8 @@ dev-down: check-deps
 	  echo "Stopped container for $(BRANCH)"; \
 	else \
 	  echo "No running container for $(BRANCH)"; \
-	fi
-	@if [ -d "$(WORKTREE)" ]; then \
+	fi; \
+	if [ -d "$(WORKTREE)" ]; then \
 	  git worktree remove "$(WORKTREE)" 2>/dev/null \
 	    || echo "Worktree has changes — kept at $(WORKTREE). Use git worktree remove --force to delete."; \
 	fi
