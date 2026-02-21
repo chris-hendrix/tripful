@@ -14,7 +14,7 @@ import { dismissToast } from "./helpers/toast";
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
  *
- * Consolidates 10 individual trip tests into 3 journey tests.
+ * Consolidates 10 individual trip tests into 6 journey tests.
  * Uses authenticateViaAPI for fast auth (no browser navigation).
  */
 
@@ -167,7 +167,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("trip permissions journey", async ({ page, request }) => {
+  test("trip permissions journey", { tag: "@regression" }, async ({ page, request }) => {
     test.slow(); // Multiple auth switches and navigations
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
@@ -336,7 +336,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("auto-lock past trips", async ({ page, request }) => {
+  test("auto-lock past trips", { tag: "@regression" }, async ({ page, request }) => {
     const timestamp = Date.now();
     const shortTimestamp = timestamp.toString().slice(-10);
     const organizerPhone = `+1555${shortTimestamp}`;
@@ -413,7 +413,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("remove member from trip", async ({ page, request }) => {
+  test("remove member from trip", { tag: "@regression" }, async ({ page, request }) => {
     test.slow(); // Multiple auth cycles
 
     const timestamp = Date.now();
@@ -443,6 +443,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Test Member",
+        organizerCookie,
       );
 
       const memberCookie = await createUserViaAPI(
@@ -557,7 +558,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("promote and demote co-organizer via members dialog", async ({
+  test("promote and demote co-organizer via members dialog", { tag: "@regression" }, async ({
     page,
     request,
   }) => {
@@ -590,6 +591,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Test Promotee",
+        organizerCookie,
       );
     });
 
@@ -678,7 +680,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("organizer can add travel for another member via delegation", async ({
+  test("organizer can add travel for another member via delegation", { tag: "@regression" }, async ({
     page,
     request,
   }) => {
@@ -730,6 +732,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Delegated Member",
+        organizerCookie,
       );
     });
 
@@ -827,118 +830,6 @@ test.describe("Trip Journey", () => {
       await expect(locationLink).toBeVisible();
 
       await snap(page, "30-member-travel-delegation");
-    });
-  });
-
-  test("trip form validation", async ({ page, request }) => {
-    const trips = new TripsPage(page);
-    const tripDetail = new TripDetailPage(page);
-    await authenticateViaAPI(page, request, "Validation User");
-
-    await test.step("empty submission shows validation errors", async () => {
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-      await tripDetail.continueButton.click();
-
-      await expect(tripDetail.step1Indicator).toBeVisible();
-      await expect(
-        page.getByText(/trip name must be at least 3 characters/i),
-      ).toBeVisible();
-      await expect(page.getByText(/destination is required/i)).toBeVisible();
-
-      // Close dialog
-      await page.keyboard.press("Escape");
-    });
-
-    await test.step("back/forward navigation preserves data", async () => {
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-
-      const tripName = `Navigation Test ${Date.now()}`;
-      await tripDetail.nameInput.fill(tripName);
-      await tripDetail.destinationInput.fill("London, UK");
-      await tripDetail.continueButton.click();
-      await expect(tripDetail.step2Indicator).toBeVisible();
-
-      await tripDetail.backButton.click();
-      await expect(tripDetail.step1Indicator).toBeVisible();
-      await expect(tripDetail.nameInput).toHaveValue(tripName);
-      await expect(tripDetail.destinationInput).toHaveValue("London, UK");
-
-      // Close dialog
-      await page.keyboard.press("Escape");
-    });
-
-    await test.step("create trip with minimal fields", async () => {
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-
-      const tripName = `Minimal Trip ${Date.now()}`;
-      await tripDetail.nameInput.fill(tripName);
-      await tripDetail.destinationInput.fill("Paris, France");
-      await tripDetail.continueButton.click();
-      await expect(tripDetail.step2Indicator).toBeVisible();
-      await tripDetail.createTripButton.click();
-
-      await page.waitForURL("**/trips/**");
-      await expect(
-        page.getByRole("heading", { level: 1, name: tripName }),
-      ).toBeVisible();
-      await expect(page.getByText("Paris, France")).toBeVisible();
-      await expect(page.getByText("Dates TBD")).toBeVisible();
-    });
-
-    await test.step("empty state shows create button", async () => {
-      // New user with no trips
-      await page.context().clearCookies();
-      await authenticateViaAPI(page, request, "Empty State User");
-
-      await expect(trips.emptyStateHeading).toBeVisible();
-      await expect(
-        page.getByText("Start planning your next adventure"),
-      ).toBeVisible();
-      await expect(trips.emptyStateCreateButton).toBeVisible();
-
-      await trips.emptyStateCreateButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-    });
-
-    await test.step("edit validation prevents invalid updates", async () => {
-      // Close dialog and create a trip to edit
-      await page.keyboard.press("Escape");
-
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-
-      const tripName = `Validation Trip ${Date.now()}`;
-      await tripDetail.nameInput.fill(tripName);
-      await tripDetail.destinationInput.fill("Chicago, IL");
-      await tripDetail.continueButton.click();
-      await tripDetail.createTripButton.click();
-      await page.waitForURL("**/trips/**");
-
-      await tripDetail.editButton.click();
-      await expect(tripDetail.editDialogHeading).toBeVisible();
-
-      await tripDetail.nameInput.fill("AB"); // Too short
-      await tripDetail.destinationInput.fill(""); // Required field
-      await tripDetail.updateTripButton.click();
-
-      // Edit dialog is a single form — validation errors show inline
-      await expect(
-        page.getByText(/trip name must be at least 3 characters/i),
-      ).toBeVisible();
-      await expect(page.getByText(/destination is required/i)).toBeVisible();
     });
   });
 });

@@ -4,43 +4,58 @@ This repository uses GitHub Actions for continuous integration and deployment. T
 
 ## Features
 
-✅ **Smart Path Filtering** - Only runs tests for changed code
-✅ **Full Suite on Main** - Ensures production quality
-✅ **Turborepo Optimization** - Caches build outputs for faster runs
-✅ **Playwright E2E Tests** - Automated browser testing
-✅ **PostgreSQL Service** - Tests run against real database
-✅ **Concurrency Control** - Cancels outdated runs automatically
+- **Smart Path Filtering** - Only runs tests for changed code
+- **Full Suite on Main** - Ensures production quality with sharded E2E tests
+- **Smoke Tests on PRs** - Fast feedback with @smoke-tagged critical path tests
+- **Turborepo Optimization** - Caches build outputs for faster runs
+- **Playwright E2E Tests** - Automated browser testing with report merging
+- **PostgreSQL Service** - Tests run against real database
+- **Concurrency Control** - Cancels outdated runs automatically
 
 ## Workflow Overview
 
 ### Jobs
 
-1. **Detect Changes** - Identifies which packages changed
-2. **Quality Checks** - Runs ESLint and TypeScript checks
-3. **Unit Tests** - Runs API unit tests (if API changed)
-4. **E2E Tests** - Runs Playwright tests (if API/web changed)
+1. **Detect Changes** - Identifies which packages changed using path filters
+2. **Quality Checks** - Runs ESLint, TypeScript checks, and dependency audit
+3. **Unit Tests** - Runs API unit tests (if API or shared files changed, or on main)
+4. **E2E Smoke Tests** (PRs only) - Runs @smoke-tagged tests for fast PR feedback
+5. **E2E Tests** (main only) - Runs the full E2E suite across 2 shards
+6. **Merge E2E Reports** (main only) - Merges sharded Playwright blob reports into a single HTML report
+
+### Test Tiers
+
+E2E tests are organized into two tiers using Playwright tags:
+
+- **@smoke** (6 tests) - Critical path tests that run on every PR. Cover authentication, trip CRUD, and core navigation flows.
+- **@regression** (15 tests) - Extended tests covering edge cases, error handling, and less critical flows. Run on main branch only.
+
+All 21 tests run on main. Only the 6 @smoke tests run on PRs.
 
 ### Conditional Execution
 
 **On Pull Requests:**
 
 - Only affected packages are linted/typechecked (`--affected` flag)
-- Unit tests run only if `apps/api/**` changed
-- E2E tests run only if `apps/api/**` or `apps/web/**` changed
+- Unit tests run only if `apps/api/**` or shared config changed
+- E2E smoke tests run only if `apps/api/**`, `apps/web/**`, or shared config changed
+- Smoke tests use `--grep @smoke` to run only critical path tests
 
 **On Main Branch:**
 
 - Full suite always runs (quality gates for production)
 - All packages linted and typechecked
-- All tests run regardless of changes
+- All unit tests run regardless of changes
+- Full E2E suite runs across 2 parallel shards (all @smoke + @regression tests)
+- Sharded blob reports are merged into a single HTML report
 
 ### Path Filters
 
 Changes in these paths trigger specific jobs:
 
-- `apps/api/**` → Unit tests + E2E tests
-- `apps/web/**` → E2E tests
-- `package.json`, `turbo.json`, configs → All tests
+- `apps/api/**` - Unit tests + E2E tests
+- `apps/web/**` - E2E tests
+- `package.json`, `pnpm-lock.yaml`, `turbo.json`, `.github/**`, config files - All tests
 
 ## Setup Instructions
 
@@ -82,24 +97,26 @@ For faster builds across team members:
 
 Protect your main branch by requiring CI to pass:
 
-1. Go to repository **Settings** → **Branches**
+1. Go to repository **Settings** > **Branches**
 2. Add branch protection rule for `main`
 3. Enable **Require status checks to pass before merging**
 4. Select these required checks:
-   - ✅ Quality Checks
-   - ✅ Unit Tests
-   - ✅ E2E Tests
+   - Quality Checks
+   - Unit Tests
+   - E2E Smoke Tests
+
+Note: "E2E Tests" and "Merge E2E Reports" only run on main, so they should not be required status checks for PRs.
 
 ## CI Performance
 
 **Expected Run Times:**
 
-| Scenario                | Time    | Description                |
-| ----------------------- | ------- | -------------------------- |
-| PR (API only)           | 3-4 min | Quality + Unit + E2E tests |
-| PR (Web only)           | 2-3 min | Quality + E2E tests        |
-| PR (No changes to apps) | 1-2 min | Quality checks only        |
-| Main branch             | 5-7 min | Full suite always runs     |
+| Scenario                | Time    | Description                          |
+| ----------------------- | ------- | ------------------------------------ |
+| PR (API + Web changes)  | 3-4 min | Quality + Unit + Smoke tests         |
+| PR (Web only)           | 2-3 min | Quality + Smoke tests                |
+| PR (No changes to apps) | 1-2 min | Quality checks only                  |
+| Main branch             | 5-7 min | Full suite with 2 shards + reporting |
 
 **With Remote Cache:**
 
@@ -116,9 +133,25 @@ Protect your main branch by requiring CI to pass:
 
 ### Download Playwright Reports
 
+**For PRs (smoke tests):**
+
 1. Scroll to bottom of workflow run
-2. Download **playwright-report** artifact
+2. Download **smoke-report** artifact (retained for 7 days)
+3. This is a Playwright blob report (not HTML). To view locally:
+   ```bash
+   mkdir smoke-results && cd smoke-results
+   unzip ../smoke-report.zip
+   npx playwright merge-reports --reporter html .
+   open playwright-report/index.html
+   ```
+
+**For main (full suite):**
+
+1. Scroll to bottom of workflow run
+2. Download **playwright-report** artifact (retained for 30 days)
 3. Extract and open `index.html` in browser
+
+This merged report combines results from all shards into a single view.
 
 ### Run Locally
 
@@ -140,20 +173,23 @@ pnpm --filter @tripful/api db:migrate
 # Run tests
 pnpm test
 pnpm test:e2e
+
+# Run only smoke tests (like PR CI)
+pnpm --filter @tripful/web exec playwright test --grep @smoke
 ```
 
 ## Cost Estimation
 
 **GitHub Actions Free Tier:**
 
-- Public repos: Unlimited minutes ✅
+- Public repos: Unlimited minutes
 - Private repos: 2,000 minutes/month
 
 **Estimated Usage:**
 
-- 20 PRs/month × 5 min = 100 minutes/month
-- 40 commits to main × 7 min = 280 minutes/month
-- **Total: ~380 minutes/month** (well within free tier)
+- 20 PRs/month x 4 min = 80 minutes/month
+- 40 commits to main x 7 min = 280 minutes/month
+- **Total: ~360 minutes/month** (well within free tier)
 
 ## Workflow File Location
 
@@ -186,6 +222,14 @@ pnpm test:e2e
 3. Check for timing issues (CI is slower - adjust timeouts)
 4. Download Playwright report artifact for details
 
+### Shard Reports Not Merging
+
+**Solution:**
+
+1. Verify both shard jobs completed (even if one failed, merge still runs)
+2. Check that `blob-report-*` artifacts were uploaded successfully
+3. The merge job uses `merge-multiple: true` to combine all shard artifacts
+
 ## Next Steps
 
 1. **Test the workflow**: Create a PR and verify CI runs correctly
@@ -197,5 +241,6 @@ pnpm test:e2e
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Playwright CI Guide](https://playwright.dev/docs/ci-intro)
+- [Playwright Sharding Guide](https://playwright.dev/docs/test-sharding)
 - [Turborepo CI Guide](https://turborepo.com/docs/crafting-your-repository/constructing-ci)
 - [Full Strategy Document](.thoughts/research/2026-02-03-github-actions-ci-strategy.md)

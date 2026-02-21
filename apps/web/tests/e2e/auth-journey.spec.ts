@@ -3,6 +3,7 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { NAVIGATION_TIMEOUT } from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
@@ -82,18 +83,18 @@ test.describe("Auth Journey", () => {
 
     await test.step("cannot access protected route after logout", async () => {
       await page.goto("/trips");
-      await page.waitForURL("**/login", { timeout: 5000 });
+      await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/login");
     });
   });
 
-  test("auth guards", async ({ page, request }) => {
+  test("auth redirects and guards", { tag: "@regression" }, async ({ page, request }) => {
     const loginPage = new LoginPage(page);
     const trips = new TripsPage(page);
 
     await test.step("unauthenticated user redirects to login", async () => {
       await page.goto("/trips");
-      await page.waitForURL("**/login", { timeout: 5000 });
+      await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/login");
       await expect(loginPage.heading).toBeVisible();
     });
@@ -102,23 +103,16 @@ test.describe("Auth Journey", () => {
       await authenticateUser(page, request, "Existing User");
       await expect(trips.heading).toBeVisible();
     });
-  });
-
-  test("authenticated user redirects away from public pages", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request, "Redirect Test User");
 
     await test.step("authenticated user on landing page redirects to /trips", async () => {
       await page.goto("/");
-      await page.waitForURL("**/trips", { timeout: 5000 });
+      await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/trips");
     });
 
     await test.step("authenticated user on /login redirects to /trips", async () => {
       await page.goto("/login");
-      await page.waitForURL("**/trips", { timeout: 5000 });
+      await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/trips");
     });
   });

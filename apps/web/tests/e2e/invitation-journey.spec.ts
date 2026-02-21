@@ -193,7 +193,7 @@ test.describe("Invitation Journey", () => {
     },
   );
 
-  test("RSVP status change and member indicator", async ({ page, request }) => {
+  test("RSVP status change and member indicator", { tag: "@regression" }, async ({ page, request }) => {
     test.slow();
 
     const timestamp = Date.now();
@@ -223,6 +223,7 @@ test.describe("Invitation Journey", () => {
       organizerPhone,
       inviteePhone,
       "Member Beta",
+      organizerCookie,
     );
 
     const eventName = `Test Event ${timestamp}`;
@@ -322,7 +323,7 @@ test.describe("Invitation Journey", () => {
     });
   });
 
-  test("uninvited user access", async ({ page, request }) => {
+  test("uninvited user access", { tag: "@regression" }, async ({ page, request }) => {
     const timestamp = Date.now();
     const shortTimestamp = timestamp.toString().slice(-10);
     const organizerPhone = `+1555${shortTimestamp}`;
@@ -360,7 +361,7 @@ test.describe("Invitation Journey", () => {
     });
   });
 
-  test("member list", async ({ page, request }) => {
+  test("member list", { tag: "@regression" }, async ({ page, request }) => {
     test.slow();
 
     const timestamp = Date.now();
@@ -392,6 +393,7 @@ test.describe("Invitation Journey", () => {
       organizerPhone,
       member1Phone,
       "Member One",
+      organizerCookie,
     );
 
     // Member 2: invite, auth, then RSVP "maybe" via API
@@ -462,7 +464,7 @@ test.describe("Invitation Journey", () => {
     });
   });
 
-  test("member completes onboarding wizard after RSVP", async ({
+  test("member completes onboarding wizard after RSVP", { tag: "@regression" }, async ({
     page,
     request,
   }) => {

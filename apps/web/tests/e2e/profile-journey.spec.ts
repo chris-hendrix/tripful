@@ -9,7 +9,7 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
  * E2E Journey: Profile Management
  *
  * Tests profile dialog navigation, form editing, photo upload/remove,
- * and social handle display in a single journey test.
+ * and social handle display in 2 journey tests.
  */
 
 /**
@@ -63,7 +63,7 @@ test.describe("Profile Journey", () => {
 
   test(
     "profile page navigation and editing",
-    { tag: "@smoke" },
+    { tag: "@regression" },
     async ({ page, request }) => {
       const trips = new TripsPage(page);
       const profile = new ProfilePage(page);
@@ -124,7 +124,7 @@ test.describe("Profile Journey", () => {
     },
   );
 
-  test("profile photo upload and remove", async ({ page, request }) => {
+  test("profile photo upload and remove", { tag: "@regression" }, async ({ page, request }) => {
     const profile = new ProfilePage(page);
     await authenticateViaAPI(page, request, "Photo Test User");
     await profile.goto();

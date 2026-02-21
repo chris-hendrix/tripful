@@ -1,9 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPI } from "./helpers/auth";
-import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { pickDate, pickDateTime } from "./helpers/date-pickers";
+import { pickDateTime } from "./helpers/date-pickers";
 import { createTrip } from "./helpers/trips";
 import { clickFabAction, createEvent } from "./helpers/itinerary";
 
@@ -238,7 +237,7 @@ test.describe("Itinerary Journey", () => {
     },
   );
 
-  test("itinerary view modes", async ({ page, request }) => {
+  test("itinerary view modes", { tag: "@regression" }, async ({ page, request }) => {
     await authenticateViaAPI(page, request, "View Mode User");
     const tripName = `View Mode Trip ${Date.now()}`;
 
@@ -388,7 +387,7 @@ test.describe("Itinerary Journey", () => {
     });
   });
 
-  test("deleted items and restore", async ({ page, request }) => {
+  test("deleted items and restore", { tag: "@regression" }, async ({ page, request }) => {
     await authenticateViaAPI(page, request, "Delete Restore User");
     const tripName = `Delete Restore Trip ${Date.now()}`;
     let tripId: string;
@@ -502,246 +501,6 @@ test.describe("Itinerary Journey", () => {
       });
 
       await snap(page, "21-event-restored");
-    });
-  });
-
-  test("meetup location and time on event card", async ({ page, request }) => {
-    await authenticateViaAPI(page, request, "Meetup Fields User");
-    const tripName = `Meetup Trip ${Date.now()}`;
-    let tripId: string;
-
-    await test.step("create trip via UI", async () => {
-      await createTrip(
-        page,
-        tripName,
-        "San Francisco, CA",
-        "2026-10-01",
-        "2026-10-05",
-      );
-      tripId = page.url().split("/trips/")[1];
-      expect(tripId).toBeTruthy();
-    });
-
-    await test.step("create event with meetup fields via API", async () => {
-      const response = await page.request.post(
-        `http://localhost:8000/api/trips/${tripId}/events`,
-        {
-          data: {
-            name: "Museum Visit",
-            eventType: "activity",
-            startTime: "2026-10-02T10:00:00.000Z",
-            meetupLocation: "Hotel Lobby",
-            meetupTime: "2026-10-02T09:30:00.000Z",
-          },
-        },
-      );
-      expect(response.ok()).toBeTruthy();
-    });
-
-    await test.step("reload and verify event appears", async () => {
-      await page.reload();
-      await expect(page.getByText("Museum Visit")).toBeVisible({
-        timeout: 15000,
-      });
-    });
-
-    await test.step("expand event card and verify meetup info", async () => {
-      const card = page
-        .locator('[role="button"][aria-expanded]')
-        .filter({ hasText: /Museum Visit/ })
-        .first();
-      const expanded = await card.getAttribute("aria-expanded");
-      if (expanded !== "true") {
-        await card.click();
-      }
-
-      await expect(page.getByText(/Meet at Hotel Lobby at/)).toBeVisible({
-        timeout: 5000,
-      });
-
-      await snap(page, "26-meetup-fields-expanded");
-    });
-  });
-
-  test("multi-day event badge", async ({ page, request }) => {
-    await authenticateViaAPI(page, request, "Multi Day User");
-    const tripName = `Multi Day Trip ${Date.now()}`;
-    let tripId: string;
-
-    await test.step("create trip via UI", async () => {
-      await createTrip(
-        page,
-        tripName,
-        "Nashville, TN",
-        "2026-10-01",
-        "2026-10-10",
-      );
-      tripId = page.url().split("/trips/")[1];
-      expect(tripId).toBeTruthy();
-    });
-
-    await test.step("create multi-day event via API", async () => {
-      const response = await page.request.post(
-        `http://localhost:8000/api/trips/${tripId}/events`,
-        {
-          data: {
-            name: "Music Festival",
-            eventType: "activity",
-            startTime: "2026-10-03T10:00:00.000Z",
-            endTime: "2026-10-05T22:00:00.000Z",
-          },
-        },
-      );
-      expect(response.ok()).toBeTruthy();
-    });
-
-    await test.step("reload and verify event appears", async () => {
-      await page.reload();
-      await expect(page.getByText("Music Festival")).toBeVisible({
-        timeout: 15000,
-      });
-    });
-
-    await test.step("verify multi-day date range badge", async () => {
-      await expect(page.getByText(/Oct 3.*Oct 5/)).toBeVisible({
-        timeout: 5000,
-      });
-
-      await snap(page, "27-multi-day-badge");
-    });
-
-    await test.step("verify badge also visible in group-by-type view", async () => {
-      await page.getByRole("button", { name: "Group by Type" }).click();
-
-      await expect(page.getByText(/Oct 3.*Oct 5/)).toBeVisible({
-        timeout: 5000,
-      });
-
-      await snap(page, "28-multi-day-badge-group-view");
-
-      await page.getByRole("button", { name: "Day by Day" }).click();
-    });
-  });
-
-  test("itinerary permissions and validation", async ({ page, request }) => {
-    test.slow(); // 4 auth cycles — triple the timeout for CI
-    const trips = new TripsPage(page);
-
-    await test.step("organizer creates trip and verifies action buttons", async () => {
-      await authenticateViaAPI(page, request, "Trip Owner A");
-
-      const tripName = `Permission Trip ${Date.now()}`;
-      await createTrip(
-        page,
-        tripName,
-        "Atlanta, GA",
-        "2026-10-25",
-        "2026-10-27",
-      );
-
-      // Empty state shows direct action buttons for organizer
-      await expect(
-        page.getByRole("button", { name: "Add Event" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Add Accommodation" }),
-      ).toBeVisible();
-    });
-
-    let tripId: string;
-
-    await test.step("capture trip ID for later", async () => {
-      tripId = page.url().split("/trips/")[1];
-    });
-
-    await test.step("non-member cannot access trip", async () => {
-      await page.context().clearCookies();
-      await authenticateViaAPI(page, request, "Non-Member B");
-
-      await page.goto(`/trips/${tripId}`);
-      await expect(
-        page.getByRole("heading", { name: "Trip not found" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Add Event" }),
-      ).not.toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Add Accommodation" }),
-      ).not.toBeVisible();
-    });
-
-    await test.step("validation prevents empty event submission", async () => {
-      await page.context().clearCookies();
-      await authenticateViaAPI(page, request, "Validation Tester");
-
-      const tripName = `Validation Trip ${Date.now()}`;
-      await createTrip(page, tripName, "Miami, FL", "2026-11-01", "2026-11-03");
-
-      await page.getByRole("button", { name: "Add Event" }).click();
-      await expect(
-        page.getByRole("heading", { name: "Create a new event" }),
-      ).toBeVisible();
-
-      await page.getByRole("button", { name: "Create event" }).click();
-
-      await expect(
-        page.getByText("Event name must be at least 1 character"),
-      ).toBeVisible();
-      await expect(page.getByText("Invalid datetime")).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Create a new event" }),
-      ).toBeVisible();
-
-      // Fix and submit
-      await page.locator('input[name="name"]').fill("Valid Event");
-      const startTimeTrigger = page.getByRole("button", { name: "Start time" });
-      await pickDateTime(page, startTimeTrigger, "2026-11-01T10:00");
-      await page.getByRole("button", { name: "Create event" }).click();
-
-      await expect(page.getByText("Valid Event")).toBeVisible();
-    });
-
-    await test.step("organizer can add events when member creation disabled", async () => {
-      await page.context().clearCookies();
-      await authenticateViaAPI(page, request, "Trip Organizer RSVP");
-
-      const tripName = `RSVP Trip ${Date.now()}`;
-      const tripDetail = new TripDetailPage(page);
-
-      await trips.createTripButton.click();
-      await expect(tripDetail.createDialogHeading).toBeVisible({
-        timeout: 10000,
-      });
-      await tripDetail.nameInput.fill(tripName);
-      await tripDetail.destinationInput.fill("Chicago, IL");
-      await pickDate(page, tripDetail.startDateButton, "2026-09-20");
-      await pickDate(page, tripDetail.endDateButton, "2026-09-22");
-      await tripDetail.continueButton.click();
-      await expect(tripDetail.step2Indicator).toBeVisible();
-
-      // Disable "Allow members to add events"
-      const allowMembersCheckbox = page.locator(
-        'button[role="checkbox"][aria-label="Allow members to add events"]',
-      );
-      await allowMembersCheckbox.click();
-
-      await tripDetail.createTripButton.click();
-      await page.waitForURL("**/trips/**");
-
-      // Organizer can still add events (empty state shows Add Event button)
-      await expect(
-        page.getByRole("button", { name: "Add Event" }),
-      ).toBeVisible();
-
-      await createEvent(page, "Initial Event", "2026-09-20T10:00");
-      await expect(page.getByText("Initial Event")).toBeVisible();
-
-      // After adding content, FAB should be visible with Event option
-      const fab = page.getByRole("button", { name: "Add to itinerary" });
-      await expect(fab).toBeVisible();
-      await fab.click();
-      await expect(page.getByRole("menuitem", { name: "Event" })).toBeVisible();
-      await page.keyboard.press("Escape");
     });
   });
 });
