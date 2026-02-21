@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
@@ -189,19 +189,11 @@ export function DayByDayView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
-  // Stable callbacks for card props
-  const handleEditEvent = useCallback(
-    (event: Event) => setEditingEvent(event),
-    [],
-  );
-  const handleEditAccommodation = useCallback(
-    (acc: Accommodation) => setEditingAccommodation(acc),
-    [],
-  );
-  const handleEditMemberTravel = useCallback(
-    (travel: MemberTravel) => setEditingMemberTravel(travel),
-    [],
-  );
+  const handleEditEvent = (event: Event) => setEditingEvent(event);
+  const handleEditAccommodation = (acc: Accommodation) =>
+    setEditingAccommodation(acc);
+  const handleEditMemberTravel = (travel: MemberTravel) =>
+    setEditingMemberTravel(travel);
 
   return (
     <div className="divide-y divide-border">

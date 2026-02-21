@@ -436,3 +436,37 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 - `{value && <JSX>}` vs `{value ? <JSX> : null}` — while functionally equivalent for `null | string` values, the ternary pattern is preferred as it prevents the `0 && <JSX>` rendering pitfall for numeric types
 - `useMemo` for trivial string derivations is debatable — the overhead of dependency comparison may exceed computation cost. However, when explicitly requested by the task spec, apply it with correct minimal dependencies
 - Pre-existing test failure count: 18 this run (stable across iterations 5-11)
+
+## Iteration 12 — Task 3.4: Remove unnecessary useCallback in itinerary views
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/itinerary/group-by-type-view.tsx` | Removed `useCallback` from import; replaced 3 `useCallback`-wrapped handlers (`handleEditEvent`, `handleEditAccommodation`, `handleEditMemberTravel`) with plain arrow functions; removed `// Stable callbacks for card props` comment |
+| `apps/web/src/components/itinerary/day-by-day-view.tsx` | Same changes: removed `useCallback` from import; replaced 3 `useCallback`-wrapped handlers with plain arrow functions; removed comment |
+
+### Key Decisions
+
+- **Plain arrow functions, not direct setter passing**: The handlers couldn't be replaced with direct `setEditingEvent` references due to a type mismatch (`Dispatch<SetStateAction<Event | null>>` vs `(event: Event) => void`). Keeping the arrow function wrapper `(event: Event) => setEditingEvent(event)` maintains type safety without `useCallback`.
+- **Both view files updated for consistency**: The task explicitly targeted `group-by-type-view.tsx`, but `day-by-day-view.tsx` had the identical pattern. Both were updated to maintain codebase consistency.
+- **Variable names preserved**: Handler names (`handleEditEvent`, etc.) were kept so all JSX usage sites required zero changes — only the declarations changed.
+- **memo() on children is not affected in practice**: While child card components (`EventCard`, `AccommodationCard`, `MemberTravelCard`) use `React.memo()`, the `useCallback` wrappers were providing negligible benefit. The parent re-renders only when its own props/state change, which typically means card data changed too, making memo bypass inconsequential.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Targeted checks**: Zero remaining `useCallback` references in either modified file or any other itinerary view file
+- **Reviewer**: APPROVED — clean symmetrical changes, correct import cleanup, all 6 handlers converted
+
+### Learnings for Future Iterations
+
+- `useCallback(() => setState(val), [])` around a trivial state setter is unnecessary overhead — `useState` setters are already referentially stable, so the `useCallback` provides no memoization benefit beyond what the setter already gives
+- When `React.memo()` children receive inline-computed props alongside memoized callbacks, the `useCallback` is doubly pointless — the non-memoized props already break shallow comparison
+- Type mismatch prevents direct passing of `Dispatch<SetStateAction<T | null>>` where `(item: T) => void` is expected — keep a narrowing arrow function wrapper in these cases
+- Pre-existing test failure count: 18 this run (stable across iterations 5-12)

@@ -92,7 +92,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 3.4: Remove unnecessary useCallback in itinerary views
+- [x] Task 3.4: Remove unnecessary useCallback in itinerary views
   - Implement: In `itinerary/group-by-type-view.tsx:82-93` — remove `useCallback` wrappers around trivial state setters that have no complex dependencies
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite

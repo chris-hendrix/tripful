@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Building2, Car, Utensils, Calendar, PlaneLanding, PlaneTakeoff } from "lucide-react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
@@ -78,19 +78,11 @@ export function GroupByTypeView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
-  // Stable callbacks for card props
-  const handleEditEvent = useCallback(
-    (event: Event) => setEditingEvent(event),
-    [],
-  );
-  const handleEditAccommodation = useCallback(
-    (acc: Accommodation) => setEditingAccommodation(acc),
-    [],
-  );
-  const handleEditMemberTravel = useCallback(
-    (travel: MemberTravel) => setEditingMemberTravel(travel),
-    [],
-  );
+  const handleEditEvent = (event: Event) => setEditingEvent(event);
+  const handleEditAccommodation = (acc: Accommodation) =>
+    setEditingAccommodation(acc);
+  const handleEditMemberTravel = (travel: MemberTravel) =>
+    setEditingMemberTravel(travel);
 
   const sections = useMemo(
     () => [
