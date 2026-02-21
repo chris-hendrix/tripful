@@ -2,7 +2,7 @@
 
 ## Phase 1: Remove Redundant Tests
 
-- [ ] Task 1.1: Delete files and remove individual tests covered by unit tests
+- [x] Task 1.1: Delete files and remove individual tests covered by unit tests
   - Implement: Delete `apps/web/tests/e2e/app-shell.spec.ts` (entire file)
   - Implement: Delete `apps/web/tests/e2e/invitation-helpers.spec.ts` (entire file, keep `helpers/invitations.ts`)
   - Implement: Remove `"trip form validation"` test from `apps/web/tests/e2e/trip-journey.spec.ts`
