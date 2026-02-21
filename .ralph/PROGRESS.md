@@ -1291,3 +1291,38 @@ Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
 - **Select components need the same touch target treatment as buttons**: The select default was 36px — easy to overlook since it's not a `<Button>`. All interactive form elements need 44px minimum.
 - **The `xs`/`icon-xs` variant pattern works for intentionally compact areas**: Deleted items, card actions, and toolbar buttons can use these documented compact variants instead of ad-hoc className overrides. The comment in button.tsx line 28 makes the opt-in explicit.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-29)
+
+## Iteration 30 — Task 8.1: Replace DM Sans with Plus Jakarta Sans
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/lib/fonts.ts` | Replaced `DM_Sans` import with `Plus_Jakarta_Sans`, renamed export from `dmSans` to `plusJakartaSans`, changed CSS variable from `--font-dm-sans` to `--font-plus-jakarta` |
+| `apps/web/src/app/globals.css` | Updated `--font-sans: var(--font-dm-sans)` to `--font-sans: var(--font-plus-jakarta)` in `@theme` block |
+| `apps/web/src/app/layout.tsx` | Updated import from `dmSans` to `plusJakartaSans`, updated className to use `plusJakartaSans.variable` |
+| `apps/web/src/app/global-error.tsx` | Same import and className update as layout.tsx (not in task spec but required — also imports font) |
+
+### Key Decisions
+
+- **4 files changed instead of 3**: The task spec listed 3 files (fonts.ts, globals.css, layout.tsx), but `global-error.tsx` also imports and uses the font variable on its own `<html>` element. All 3 researchers independently identified this 4th file. Omitting it would cause a TypeScript compilation error since `dmSans` would no longer be exported.
+- **No documentation updates**: 5 documentation files (README.md, DESIGN.md, PHASES.md, ARCHITECTURE.md) still reference "DM Sans". These are informational and don't affect runtime behavior — updating them is out of scope for this code task. The reviewer noted this as a LOW severity suggestion.
+- **No test changes needed**: No test files reference `dmSans`, `DM_Sans`, or `--font-dm-sans`. The 11 test files that reference fonts only check for `font-[family-name:var(--font-playfair)]` (the Playfair Display headline font which was untouched).
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep checks**: 0 references to `dmSans`, `DM_Sans`, or `--font-dm-sans` in source files under `apps/web/src/`
+- **Reviewer**: APPROVED — clean diff, correct naming conventions, zero stale references
+
+### Learnings for Future Iterations
+
+- **`global-error.tsx` mirrors `layout.tsx` font setup**: Both files independently render `<html>` elements with font CSS variable classes. Any font change must update both files. The global-error page is the fallback when the root layout itself errors.
+- **Next.js `next/font/google` uses underscore naming for multi-word fonts**: `Plus_Jakarta_Sans` (not `PlusJakartaSans` or `plus-jakarta-sans`). This follows the Google Fonts API naming convention.
+- **Font swap is clean when CSS variable indirection is used**: Because components reference `font-sans` (via Tailwind's default body font) rather than `--font-dm-sans` directly, only the 4 infrastructure files needed changes. No component files were touched.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-30)

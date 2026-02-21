@@ -234,7 +234,7 @@
 
 ## Phase 8: Frontend Design & Typography
 
-- [ ] Task 8.1: Replace DM Sans with Plus Jakarta Sans
+- [x] Task 8.1: Replace DM Sans with Plus Jakarta Sans
   - Implement: In `apps/web/src/lib/fonts.ts` — replace `DM_Sans` import with `Plus_Jakarta_Sans`, update variable name to `--font-plus-jakarta`
   - Implement: In `apps/web/src/app/globals.css` — update `--font-sans: var(--font-plus-jakarta)` in @theme block
   - Implement: In `apps/web/src/app/layout.tsx` — update font variable class from `dmSans.variable` to `plusJakartaSans.variable`

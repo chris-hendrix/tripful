@@ -1,6 +1,6 @@
 "use client";
 
-import { playfairDisplay, dmSans } from "@/lib/fonts";
+import { playfairDisplay, plusJakartaSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 export default function GlobalError({
@@ -14,7 +14,7 @@ export default function GlobalError({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(playfairDisplay.variable, dmSans.variable)}
+      className={cn(playfairDisplay.variable, plusJakartaSans.variable)}
     >
       <body>
         <div className="flex min-h-screen items-center justify-center">

@@ -25,7 +25,7 @@
   --color-input: #e5ddd1;
   --color-ring: #1a5c9e;
   --radius: 0.5rem;
-  --font-sans: var(--font-dm-sans);
+  --font-sans: var(--font-plus-jakarta);
 
   /* Event type colors */
   --color-event-travel: #2563eb;
