@@ -115,6 +115,7 @@ export default fp(
   },
   {
     name: "queue-workers",
+    fastify: "5.x",
     dependencies: ["queue", "database", "sms-service"],
   },
 );

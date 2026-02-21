@@ -32,6 +32,7 @@ export default fp(
   },
   {
     name: "queue",
+    fastify: "5.x",
     dependencies: ["config"],
   },
 );

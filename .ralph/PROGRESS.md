@@ -572,3 +572,67 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 - `count(case when X then 1 end)` is equivalent to `count(*) filter (where X)` in PostgreSQL — the CASE WHEN approach is more portable across databases
 - When narrowing `select()` to specific columns, verify ALL downstream references to the result object — TypeScript will catch missing fields, but it's easy to miss property access chains
 - Pre-existing test failure count: 18 this run (stable across iterations 5-14)
+
+## Iteration 15 — Task 4.2: Fix 405 handling, hook ordering, plugin metadata, and AJV useDefaults
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/api/src/app.ts` | Added `ajv: { customOptions: { useDefaults: true } }` to Fastify constructor options (sub-item 4) |
+| `apps/api/src/routes/trip.routes.ts` | Reordered 2 inline preHandler arrays and 1 scoped addHook block: rate limiting now runs before authentication (sub-item 2) |
+| `apps/api/src/routes/event.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/accommodation.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/member-travel.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/invitation.routes.ts` | Same hook reordering: 3 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/message.routes.ts` | Same hook reordering: 3 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/notification.routes.ts` | Same hook reordering: 7 inline + 1 scoped (sub-item 2) |
+| `apps/api/src/routes/user.routes.ts` | Reordered 1 scoped addHook block (2 hooks, no requireCompleteProfile) (sub-item 2) |
+| `apps/api/src/plugins/config.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/database.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/queue.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/auth-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/permissions-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/trip-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/event-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/accommodation-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/member-travel-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/upload-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/invitation-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/sms-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/health-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/message-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/plugins/notification-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| `apps/api/src/queues/index.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+
+### Key Decisions
+
+- **Sub-item 1 (405 handling) — No code change needed**: The existing not-found handler at `apps/api/src/app.ts` already includes `request.method` and `request.url` in the error message (`Route ${request.method} ${request.url} not found`). Fastify 5 intentionally returns 404 for method mismatches (see Fastify PR #862) — it does NOT generate 405 natively. The existing test at `security.test.ts` correctly expects 404 for wrong methods on existing routes.
+- **Sub-item 2 (Hook ordering) — Rate limiting degrades to IP-based**: The `defaultRateLimitConfig` and `writeRateLimitConfig` key generators use `request.user?.sub || request.ip`. With rate limiting before auth, `request.user` is always undefined, so the key falls back to `request.ip`. This is intentional — IP-based rate limiting still protects the server while avoiding CPU waste on JWT verification for rate-limited requests. All users behind the same IP share a rate limit bucket, which is acceptable for an MVP.
+- **Sub-item 2 — `requireCompleteProfile` ordering preserved**: `requireCompleteProfile` must always run after `authenticate` since it depends on `request.user.sub` to query the database. The new order is: `rateLimit → authenticate → requireCompleteProfile`.
+- **Sub-item 2 — auth.routes.ts and health.routes.ts not affected**: Auth routes use single preHandlers (rate limit OR auth, never both in same array). Health routes have no preHandlers. Both were correctly left untouched.
+- **Sub-item 3 — All 16 plugins already had `name` and `dependencies`**: The task said "add metadata to plugins that lack it", but all plugins already had `name` and `dependencies`. The missing piece was the `fastify: "5.x"` version constraint, which was added to all 16 plugins.
+- **Sub-item 4 — AJV `useDefaults` is a no-op with Zod**: The codebase uses `fastify-type-provider-zod` which replaces AJV for request validation. Adding `useDefaults: true` to AJV is harmless and serves as a safety net for any internal/future AJV usage, but Zod handles its own defaults via `.default()`.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Auth lockout expiry flaky test passed this run. No new regressions.
+- **Reviewer**: APPROVED — all 4 sub-items verified correct, consistent changes across all files
+
+### Reviewer Notes
+
+- AJV `useDefaults` is a no-op with the current Zod-based validation setup — kept as a defensive measure
+- Notification routes have write-rate-limited routes both inline (markAsRead, markAllAsRead) and in the scoped block — two patterns for good reason (inline routes skip requireCompleteProfile)
+
+### Learnings for Future Iterations
+
+- Fastify 5 intentionally returns 404 (not 405) for method mismatches on registered routes — this is a deliberate design choice documented in Fastify PR #862. Don't try to add 405 handling unless the project specifically needs RFC 7231 compliance.
+- When reordering hooks, verify that downstream hooks don't depend on data set by upstream hooks. In this case, `requireCompleteProfile` depends on `request.user` set by `authenticate`, but `rateLimit` does not depend on either — it just uses `request.ip` as fallback.
+- `fastify-plugin` `fp()` options accept `fastify: "5.x"` as a semver range string — this acts as a runtime assertion that the plugin is compatible with the Fastify version. Without it, plugins registered against an incompatible Fastify version would silently succeed.
+- Rate limit key generators using `request.user?.sub || request.ip` gracefully degrade to IP-based limiting when auth hasn't run — the optional chaining + fallback pattern is robust for hook-order-agnostic usage.
+- Pre-existing test failure count: 18 this run (stable across iterations 5-15)

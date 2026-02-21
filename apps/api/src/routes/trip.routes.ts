@@ -67,7 +67,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
         querystring: paginationSchema,
         response: { 200: tripListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     tripController.getUserTrips,
   );
@@ -85,7 +85,7 @@ export async function tripRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: tripDetailResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     tripController.getTripById,
   );
@@ -96,9 +96,9 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /

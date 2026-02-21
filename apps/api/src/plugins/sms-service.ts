@@ -14,5 +14,6 @@ export default fp(
   },
   {
     name: "sms-service",
+    fastify: "5.x",
   },
 );

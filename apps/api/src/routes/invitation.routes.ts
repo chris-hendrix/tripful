@@ -63,7 +63,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: getInvitationsResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     invitationController.getInvitations,
   );
@@ -80,7 +80,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: getMembersResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     invitationController.getMembers,
   );
@@ -97,7 +97,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: mySettingsResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     invitationController.getMySettings,
   );
@@ -108,9 +108,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/invitations

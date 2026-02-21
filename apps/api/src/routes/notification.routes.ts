@@ -73,7 +73,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         querystring: globalNotificationQuerySchema,
         response: { 200: notificationListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     notificationController.listNotifications,
   );
@@ -89,7 +89,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       schema: {
         response: { 200: unreadCountResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     notificationController.getUnreadCount,
   );
@@ -110,7 +110,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         querystring: notificationQuerySchema,
         response: { 200: notificationListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     notificationController.listTripNotifications,
   );
@@ -129,7 +129,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: unreadCountResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     notificationController.getTripUnreadCount,
   );
@@ -148,7 +148,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: notificationPreferencesResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     notificationController.getPreferences,
   );
@@ -169,7 +169,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         params: notificationIdParamsSchema,
         response: { 200: successResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(writeRateLimitConfig)],
+      preHandler: [fastify.rateLimit(writeRateLimitConfig), authenticate],
     },
     notificationController.markAsRead,
   );
@@ -187,7 +187,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       schema: {
         response: { 200: successResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(writeRateLimitConfig)],
+      preHandler: [fastify.rateLimit(writeRateLimitConfig), authenticate],
     },
     notificationController.markAllAsRead,
   );
@@ -200,9 +200,9 @@ export async function notificationRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * PUT /trips/:tripId/notification-preferences

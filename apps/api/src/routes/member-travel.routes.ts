@@ -66,7 +66,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
         querystring: listMemberTravelQuerySchema,
         response: { 200: memberTravelListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     memberTravelController.listMemberTravel,
   );
@@ -83,7 +83,7 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
         params: memberTravelIdParamsSchema,
         response: { 200: memberTravelResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     memberTravelController.getMemberTravel,
   );
@@ -94,9 +94,9 @@ export async function memberTravelRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/member-travel

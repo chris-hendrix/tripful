@@ -113,7 +113,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 4.2: Fix 405 handling, hook ordering, plugin metadata, and AJV useDefaults
+- [x] Task 4.2: Fix 405 handling, hook ordering, plugin metadata, and AJV useDefaults
   - Implement: In `apps/api/src/app.ts:202-211` — verify Fastify handles 405 natively for registered routes, improve not-found handler error message to include method info
   - Implement: In `routes/trip.routes.ts:99-101` and similar — reorder `preHandler` to put rate limiting before authentication
   - Implement: Add `fastify-plugin` metadata (`fastify: "5.x"`, `name`) to service plugins that lack it

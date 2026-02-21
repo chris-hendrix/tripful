@@ -66,7 +66,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
         querystring: listAccommodationsQuerySchema,
         response: { 200: accommodationListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     accommodationController.listAccommodations,
   );
@@ -83,7 +83,7 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
         params: accommodationIdParamsSchema,
         response: { 200: accommodationResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     accommodationController.getAccommodation,
   );
@@ -94,9 +94,9 @@ export async function accommodationRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/accommodations

@@ -22,6 +22,7 @@ export default fp(
   },
   {
     name: "upload-service",
+    fastify: "5.x",
     dependencies: ["config"],
   },
 );
