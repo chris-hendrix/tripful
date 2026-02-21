@@ -1,7 +1,52 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Calendar, Building2, PartyPopper, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/json-ld";
+
+export const metadata: Metadata = {
+  title: "Tripful - Group Trip Planner | Plan Travel Together",
+  description:
+    "The group trip planner that makes collaborative travel planning easy. Coordinate itineraries, accommodations, events, and member logistics all in one place.",
+  alternates: { canonical: "/" },
+};
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripful.me";
+
+const features = [
+  {
+    icon: Calendar,
+    title: "Shared Itineraries",
+    description:
+      "Build a day-by-day schedule your whole group can see and contribute to.",
+  },
+  {
+    icon: Building2,
+    title: "Accommodations",
+    description:
+      "Research and decide on lodging together with all the details in one place.",
+  },
+  {
+    icon: PartyPopper,
+    title: "Event Planning",
+    description:
+      "Create events with RSVP tracking so everyone knows what's happening and when.",
+  },
+  {
+    icon: Plane,
+    title: "Travel Logistics",
+    description:
+      "Track member availability, flights, and travel details to keep the group in sync.",
+  },
+] as const;
+
+const steps = [
+  { number: "1", title: "Create a trip", description: "Set dates, add a destination, and give your trip a name." },
+  { number: "2", title: "Invite your group", description: "Share a link and everyone joins in seconds." },
+  { number: "3", title: "Plan together", description: "Add events, accommodations, and logistics as a group." },
+] as const;
 
 export default async function Home() {
   const cookieStore = await cookies();
@@ -12,31 +57,126 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      {/* Decorative accent line */}
-      <div className="mb-6 h-1 w-16 rounded-full bg-accent" />
+    <>
+      <main className="flex min-h-screen flex-col bg-background">
+        {/* Hero Section */}
+        <section className="flex flex-col items-center justify-center px-4 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
+          <div className="mb-6 h-1 w-16 rounded-full bg-accent" />
+          <h1 className="mb-4 max-w-2xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl font-[family-name:var(--font-playfair)]">
+            Plan Group Trips Together
+          </h1>
+          <p className="mb-10 max-w-lg text-center text-lg text-muted-foreground sm:text-xl">
+            The trip planning app that brings your travel group together.
+            Coordinate everything in one place.
+          </p>
+          <Button
+            variant="gradient"
+            size="lg"
+            className="rounded-xl px-10"
+            asChild
+          >
+            <Link href="/login">Get started</Link>
+          </Button>
+        </section>
 
-      {/* Wordmark */}
-      <h1 className="mb-4 text-6xl font-bold tracking-tight text-foreground sm:text-7xl font-[family-name:var(--font-playfair)]">
-        Tripful
-      </h1>
+        {/* Features Section */}
+        <section className="px-4 py-20 sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-[family-name:var(--font-playfair)]">
+              Everything your group needs to plan the perfect trip
+            </h2>
+            <div className="grid gap-8 sm:grid-cols-2">
+              {features.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="rounded-xl border border-border bg-card p-6"
+                >
+                  <feature.icon className="mb-3 h-6 w-6 text-accent" />
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {/* Tagline */}
-      <p className="mb-10 max-w-md text-center text-lg text-muted-foreground">
-        Plan and share your adventures
-      </p>
+        {/* How It Works Section */}
+        <section className="px-4 py-20 sm:py-28">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-[family-name:var(--font-playfair)]">
+              How Tripful works
+            </h2>
+            <div className="grid gap-8 sm:grid-cols-3">
+              {steps.map((step) => (
+                <div key={step.number} className="text-center">
+                  <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+                    {step.number}
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {/* CTA */}
-      <Button variant="gradient" size="lg" className="rounded-xl px-10" asChild>
-        <Link href="/login">Get started</Link>
-      </Button>
+        {/* Bottom CTA Section */}
+        <section className="flex flex-col items-center px-4 pt-12 pb-24 text-center sm:pb-32">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="h-px w-12 bg-border" />
+            <div className="h-2 w-2 rotate-45 border border-primary/40" />
+            <div className="h-px w-12 bg-border" />
+          </div>
+          <h2 className="mb-6 text-2xl font-bold tracking-tight text-foreground sm:text-3xl font-[family-name:var(--font-playfair)]">
+            Ready to plan your next adventure?
+          </h2>
+          <Button
+            variant="gradient"
+            size="lg"
+            className="rounded-xl px-10"
+            asChild
+          >
+            <Link href="/login">Start planning</Link>
+          </Button>
+        </section>
+      </main>
 
-      {/* Decorative bottom element */}
-      <div className="mt-16 flex items-center gap-3">
-        <div className="h-px w-12 bg-border" />
-        <div className="h-2 w-2 rotate-45 border border-primary/40" />
-        <div className="h-px w-12 bg-border" />
-      </div>
-    </div>
+      {/* Structured Data */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Tripful",
+          url: siteUrl,
+          description:
+            "Plan group trips together. Coordinate itineraries, accommodations, and events with your travel companions in one place.",
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "Tripful",
+          url: siteUrl,
+          applicationCategory: "TravelApplication",
+          operatingSystem: "Web",
+          description:
+            "The group trip planner that makes collaborative travel planning easy.",
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+        }}
+      />
+    </>
   );
 }
