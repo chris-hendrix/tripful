@@ -152,7 +152,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 5.3: Phase 5 cleanup
+- [x] Task 5.3: Phase 5 cleanup
   - Review: Read PROGRESS.md entries for Phase 5 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
