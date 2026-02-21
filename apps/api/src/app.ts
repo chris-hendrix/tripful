@@ -110,6 +110,7 @@ export async function buildApp(
       includeSubDomains: true,
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    hidePoweredBy: true,
   });
 
   // Register cookie plugin (must be before JWT)

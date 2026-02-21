@@ -63,6 +63,18 @@ export default function RootLayout({
       className={cn(playfairDisplay.variable, dmSans.variable)}
     >
       <body className="antialiased">
+        <noscript>
+          <div
+            style={{
+              padding: "2rem",
+              textAlign: "center",
+              fontFamily: "system-ui, sans-serif",
+            }}
+          >
+            Tripful requires JavaScript to run. Please enable JavaScript in your
+            browser settings.
+          </div>
+        </noscript>
         <SkipLink />
         <Providers>{children}</Providers>
       </body>

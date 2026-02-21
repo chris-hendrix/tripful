@@ -2,7 +2,7 @@
 
 ## Phase 1: Quick Wins & Critical Fixes
 
-- [ ] Task 1.1: Add viewport export, mobile meta, noscript, page metadata, and hidePoweredBy
+- [x] Task 1.1: Add viewport export, mobile meta, noscript, page metadata, and hidePoweredBy
   - Implement: In `apps/web/src/app/layout.tsx` — add `export const viewport: Viewport` with `width: "device-width"`, `initialScale: 1`, `maximumScale: 5`, `themeColor: "#1a1814"`
   - Implement: In `apps/web/src/app/layout.tsx` — extend `metadata` export with `appleWebApp: { capable: true, statusBarStyle: "default", title: "Tripful" }`
   - Implement: In `apps/web/src/app/layout.tsx` body — add `<noscript>` block with "JavaScript required" message
