@@ -85,3 +85,15 @@
     transform: scale(1.3);
   }
 }
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility bottom-safe-6 {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+@utility bottom-safe-8 {
+  bottom: calc(2rem + env(safe-area-inset-bottom));
+}

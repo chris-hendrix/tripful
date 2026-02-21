@@ -1151,3 +1151,46 @@ Reviewed all Phase 6 work (Tasks 6.1-6.3) across PROGRESS.md iterations 21-23:
 - **Intentionally compact variants need documentation**: When a component provides variants that violate accessibility guidelines (xs at 36px), add a code comment explaining the design decision. This prevents future audits from flagging it and documents that consumers are explicitly opting in.
 - **Consumer-level overrides can reintroduce issues**: Some card components pass `className="h-9 sm:h-7"` to buttons, re-introducing responsive shrinking. This is out of scope for the component fix but worth noting for a future sweep.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-26)
+
+## Iteration 27 — Task 7.2: Fix mobile-first CSS patterns, FAB padding, and SM breakpoint inconsistencies
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/itinerary/event-card.tsx` | Changed Edit and Delete buttons from `size="sm" className="h-9 sm:h-7 text-xs gap-1"` to `size="xs" className="text-xs gap-1"` — eliminates inverse mobile-first shrinking pattern |
+| `apps/web/src/components/itinerary/accommodation-card.tsx` | Same change for Edit button |
+| `apps/web/src/components/itinerary/member-travel-card.tsx` | Same change for Edit button |
+| `apps/web/src/app/layout.tsx` | Added `viewportFit: "cover"` to viewport export — enables `env(safe-area-inset-*)` on notched devices (iPhone home indicator) |
+| `apps/web/src/app/globals.css` | Added three `@utility` definitions: `pb-safe` (padding-bottom safe area), `bottom-safe-6` (calc(1.5rem + safe area)), `bottom-safe-8` (calc(2rem + safe area)) |
+| `apps/web/src/app/(app)/trips/trips-content.tsx` | FAB: `bottom-6` → `bottom-safe-6`, `sm:bottom-8` → `sm:bottom-safe-8` — accounts for notched device safe areas |
+| `apps/web/src/components/itinerary/itinerary-header.tsx` | FAB: `bottom-6` → `bottom-safe-6`, added `sm:bottom-safe-8 sm:right-8` — consistent with trips FAB pattern |
+| `apps/web/src/components/itinerary/itinerary-view.tsx` | Content container padding: `pb-4` → `pb-24` — ensures last items scroll past the FAB |
+
+### Key Decisions
+
+- **`size="xs"` for card action buttons**: These are inline edit/delete buttons that appear on card hover/expand. The `xs` button variant (36px) is the intentionally compact tier documented in button.tsx. Using it via the variant system is cleaner than overriding with className, and eliminates the inverse `sm:h-7` pattern that shrunk buttons to 28px on desktop.
+- **`@utility` in Tailwind v4 for safe area**: Custom utilities defined with `@utility` in Tailwind CSS v4 automatically support all variants including responsive prefixes (`sm:bottom-safe-8`). The `calc(Xrem + env(safe-area-inset-bottom))` pattern is backward-compatible: on non-notched devices or without `viewport-fit: cover`, `env()` resolves to `0px`, so the utility falls back to the original offset value.
+- **`viewportFit: "cover"` required**: Without this viewport meta property, `env(safe-area-inset-bottom)` always returns 0. This is a Next.js `Viewport` type field that generates `<meta name="viewport" content="... viewport-fit=cover">`.
+- **`pb-24` for FAB clearance**: Matches the existing `pb-24` (96px) pattern in `trips-content.tsx`. A 56px FAB positioned 24px from the bottom leaves 80px of occupied space — 96px provides comfortable clearance.
+- **`pb-safe` utility activates existing usage**: `trip-preview.tsx` already had `pb-safe` in its className (line 64) but it was a dead class. The new `@utility pb-safe` definition makes it functional.
+- **Select component left as-is**: The `h-9` default in select.tsx is a CVA size variant (not a breakpoint override). It was intentionally left unchanged in Task 7.1 and is not an inverse mobile-first pattern.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep checks**: 0 `sm:h-7` anti-patterns remaining (only `sm:h-72` for image containers). Both FABs use `bottom-safe-6` and `sm:bottom-safe-8`. `viewportFit: "cover"` present. 3 `@utility` definitions in globals.css. `pb-24` in itinerary-view.
+- **Reviewer**: APPROVED — all requirements met, backward-compatible safe area implementation, consistent FAB styling
+
+### Learnings for Future Iterations
+
+- **Tailwind v4 `@utility` directive**: Custom utilities support all Tailwind variants (responsive, hover, dark mode, etc.) automatically. `@utility bottom-safe-6 { bottom: calc(1.5rem + env(safe-area-inset-bottom)); }` generates `bottom-safe-6` and `sm:bottom-safe-6`, `md:bottom-safe-6`, etc.
+- **`env(safe-area-inset-bottom)` requires `viewport-fit: cover`**: Without the viewport meta property, the CSS environment variable always resolves to 0. This is a common gotcha — the CSS utility alone is insufficient.
+- **Consumer className overrides defeat component variant safety**: Task 7.1 fixed the button component's variants, but card components bypassed those fixes with `className="h-9 sm:h-7"`. The lesson: when fixing component-level sizing, always grep for consumer overrides that may re-introduce the anti-pattern.
+- **`calc()` with `env()` is backward-compatible**: `calc(1.5rem + env(safe-area-inset-bottom))` gracefully degrades — when `env()` isn't supported or returns 0, the result is just `1.5rem`.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-27)

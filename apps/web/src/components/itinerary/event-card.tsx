@@ -224,13 +224,13 @@ export const EventCard = memo(function EventCard({
             <div className="flex items-center gap-2 pt-1">
               {canEdit && onEdit && (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="outline"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit(event);
                   }}
-                  className="h-9 sm:h-7 text-xs gap-1"
+                  className="text-xs gap-1"
                   title="Edit event"
                 >
                   <Pencil className="w-3 h-3" />
@@ -239,13 +239,13 @@ export const EventCard = memo(function EventCard({
               )}
               {canDelete && onDelete && (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="destructive"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(event);
                   }}
-                  className="h-9 sm:h-7 text-xs gap-1"
+                  className="text-xs gap-1"
                   title="Delete event"
                 >
                   Delete

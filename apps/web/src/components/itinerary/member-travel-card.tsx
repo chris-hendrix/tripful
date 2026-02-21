@@ -142,13 +142,13 @@ export const MemberTravelCard = memo(function MemberTravelCard({
           {canEdit && onEdit && (
             <div className="pt-1">
               <Button
-                size="sm"
+                size="xs"
                 variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(memberTravel);
                 }}
-                className="h-9 sm:h-7 text-xs gap-1"
+                className="text-xs gap-1"
                 title="Edit flight"
               >
                 <Pencil className="w-3 h-3" />

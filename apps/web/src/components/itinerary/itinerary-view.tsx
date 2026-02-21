@@ -273,7 +273,7 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
       />
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 pt-4 pb-4">
+      <div className="max-w-5xl mx-auto px-4 pt-4 pb-24">
         {onAddTravel &&
           !isLocked &&
           currentMember &&

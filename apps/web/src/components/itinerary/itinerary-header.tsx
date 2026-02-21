@@ -171,7 +171,7 @@ export function ItineraryHeader({
           <DropdownMenuTrigger asChild>
             <Button
               variant="gradient"
-              className="fixed bottom-6 right-6 z-50 rounded-full w-14 h-14 shadow-lg"
+              className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 z-50 rounded-full w-14 h-14 shadow-lg"
               aria-label="Add to itinerary"
             >
               <Plus

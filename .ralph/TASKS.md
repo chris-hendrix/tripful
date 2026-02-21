@@ -209,7 +209,7 @@
   - Test: Manual check at mobile viewport — verify touch targets
   - Verify: run full test suite
 
-- [ ] Task 7.2: Fix mobile-first CSS patterns, FAB padding, and SM breakpoint inconsistencies
+- [x] Task 7.2: Fix mobile-first CSS patterns, FAB padding, and SM breakpoint inconsistencies
   - Implement: Audit and fix inverse mobile-first patterns (`h-11 sm:h-9` → proper mobile-first) across components
   - Implement: Ensure FAB (floating action button) has sufficient bottom padding to clear mobile browser navigation (80-100px or safe area insets)
   - Implement: Audit all `sm:` breakpoint overrides for consistency — ensure no conflicting size changes

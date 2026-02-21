@@ -232,7 +232,7 @@ export function TripsContent() {
         onClick={() => setCreateDialogOpen(true)}
         variant="gradient"
         size="icon"
-        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 rounded-full z-50"
+        className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
         aria-label="Create new trip"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
