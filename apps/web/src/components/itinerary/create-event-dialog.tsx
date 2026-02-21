@@ -193,6 +193,7 @@ export function CreateEventDialog({
                       placeholder="Dinner at Seaside Restaurant"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -221,6 +222,7 @@ export function CreateEventDialog({
                         ref={field.ref}
                         onBlur={field.onBlur}
                         className="h-12 text-base rounded-xl"
+                        aria-required="true"
                       >
                         <SelectValue />
                       </SelectTrigger>
@@ -554,6 +556,7 @@ export function CreateEventDialog({
                         disabled={isPending}
                         className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                         aria-label="Link URL"
+                        aria-describedby={linkError ? "event-link-error" : undefined}
                       />
                       <Button
                         type="button"
@@ -566,7 +569,13 @@ export function CreateEventDialog({
                       </Button>
                     </div>
                     {linkError && (
-                      <p className="text-sm text-destructive">{linkError}</p>
+                      <p
+                        id="event-link-error"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                      >
+                        {linkError}
+                      </p>
                     )}
                   </div>
 

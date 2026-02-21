@@ -241,6 +241,7 @@ export function EditEventDialog({
                       placeholder="Dinner at Seaside Restaurant"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending || isDeleting}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -269,6 +270,7 @@ export function EditEventDialog({
                         ref={field.ref}
                         onBlur={field.onBlur}
                         className="h-12 text-base rounded-xl"
+                        aria-required="true"
                       >
                         <SelectValue />
                       </SelectTrigger>
@@ -602,6 +604,7 @@ export function EditEventDialog({
                         disabled={isPending || isDeleting}
                         className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                         aria-label="Link URL"
+                        aria-describedby={linkError ? "edit-event-link-error" : undefined}
                       />
                       <Button
                         type="button"
@@ -614,7 +617,13 @@ export function EditEventDialog({
                       </Button>
                     </div>
                     {linkError && (
-                      <p className="text-sm text-destructive">{linkError}</p>
+                      <p
+                        id="edit-event-link-error"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                      >
+                        {linkError}
+                      </p>
                     )}
                   </div>
 

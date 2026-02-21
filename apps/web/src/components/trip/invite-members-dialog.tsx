@@ -196,6 +196,7 @@ export function InviteMembersDialog({
                           disabled={isPending}
                           placeholder="Enter phone number"
                           className="flex-1 h-12 rounded-xl"
+                          aria-describedby={phoneError ? "invite-phone-error" : undefined}
                         />
                       </FormControl>
                       <Button
@@ -210,7 +211,13 @@ export function InviteMembersDialog({
                       </Button>
                     </div>
                     {phoneError && (
-                      <p className="text-sm text-destructive">{phoneError}</p>
+                      <p
+                        id="invite-phone-error"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                      >
+                        {phoneError}
+                      </p>
                     )}
                     {phoneNumbers.length > 0 && (
                       <p className="text-xs text-muted-foreground">

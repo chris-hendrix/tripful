@@ -77,6 +77,7 @@ export default function LoginPage() {
                         onChange={field.onChange}
                         onBlur={field.onBlur}
                         name={field.name}
+                        aria-required="true"
                       />
                     </FormControl>
                     <FormDescription className="text-xs text-muted-foreground">

@@ -44,14 +44,16 @@ export function NotificationBell() {
           aria-label={ariaLabel}
         >
           <Bell className="size-5" />
-          {displayCount ? (
-            <span
-              key={displayCount}
-              className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] motion-safe:animate-[badgePulse_600ms_ease-in-out]"
-            >
-              {displayCount}
-            </span>
-          ) : null}
+          <span aria-live="polite">
+            {displayCount ? (
+              <span
+                key={displayCount}
+                className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] motion-safe:animate-[badgePulse_600ms_ease-in-out]"
+              >
+                {displayCount}
+              </span>
+            ) : null}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[380px] p-0" align="end">

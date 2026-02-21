@@ -174,6 +174,7 @@ export function EditTripDialog({
                       placeholder="Bachelor Party in Miami"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending || isDeleting}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -201,6 +202,7 @@ export function EditTripDialog({
                       placeholder="Miami Beach, FL"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending || isDeleting}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -277,6 +279,7 @@ export function EditTripDialog({
                           ref={field.ref}
                           onBlur={field.onBlur}
                           className="h-12 text-base rounded-xl"
+                          aria-required="true"
                         >
                           <SelectValue />
                         </SelectTrigger>

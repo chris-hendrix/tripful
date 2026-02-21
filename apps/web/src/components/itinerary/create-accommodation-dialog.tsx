@@ -174,6 +174,7 @@ export function CreateAccommodationDialog({
                       placeholder="Oceanview Hotel"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -353,6 +354,7 @@ export function CreateAccommodationDialog({
                         disabled={isPending}
                         className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                         aria-label="Link URL"
+                        aria-describedby={linkError ? "accommodation-link-error" : undefined}
                       />
                       <Button
                         type="button"
@@ -366,7 +368,13 @@ export function CreateAccommodationDialog({
                       </Button>
                     </div>
                     {linkError && (
-                      <p className="text-sm text-destructive">{linkError}</p>
+                      <p
+                        id="accommodation-link-error"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                      >
+                        {linkError}
+                      </p>
                     )}
                   </div>
 

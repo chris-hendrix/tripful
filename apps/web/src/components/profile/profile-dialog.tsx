@@ -290,7 +290,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                           placeholder="John Doe"
                           className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                           disabled={updateProfile.isPending}
-                          autoComplete="name"
+                          autoComplete="nickname"
+                          aria-required="true"
                           data-testid="display-name-input"
                           {...field}
                         />

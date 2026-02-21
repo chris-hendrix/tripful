@@ -213,6 +213,7 @@ export function EditAccommodationDialog({
                       placeholder="Oceanview Hotel"
                       className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                       disabled={isPending || isDeleting}
+                      aria-required="true"
                       {...field}
                     />
                   </FormControl>
@@ -392,6 +393,7 @@ export function EditAccommodationDialog({
                         disabled={isPending || isDeleting}
                         className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                         aria-label="Link URL"
+                        aria-describedby={linkError ? "edit-accommodation-link-error" : undefined}
                       />
                       <Button
                         type="button"
@@ -404,7 +406,13 @@ export function EditAccommodationDialog({
                       </Button>
                     </div>
                     {linkError && (
-                      <p className="text-sm text-destructive">{linkError}</p>
+                      <p
+                        id="edit-accommodation-link-error"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                      >
+                        {linkError}
+                      </p>
                     )}
                   </div>
 

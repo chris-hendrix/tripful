@@ -171,6 +171,7 @@ export function EditMemberTravelDialog({
                       className="flex gap-4"
                       role="radiogroup"
                       aria-label="Travel type"
+                      aria-required="true"
                     >
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input

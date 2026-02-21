@@ -234,7 +234,7 @@ export default function CompleteProfilePage() {
                         placeholder="John Doe"
                         className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
                         disabled={isSubmitting}
-                        autoComplete="name"
+                        autoComplete="nickname"
                         aria-required="true"
                         {...field}
                         ref={(e) => {

@@ -229,6 +229,7 @@ export function CreateTripDialog({
                           type="text"
                           placeholder="Bachelor Party in Miami"
                           className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                          aria-required="true"
                           {...field}
                         />
                       </FormControl>
@@ -255,6 +256,7 @@ export function CreateTripDialog({
                           type="text"
                           placeholder="Miami Beach, FL"
                           className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                          aria-required="true"
                           {...field}
                         />
                       </FormControl>
@@ -327,6 +329,7 @@ export function CreateTripDialog({
                             ref={field.ref}
                             onBlur={field.onBlur}
                             className="h-12 text-base rounded-xl"
+                            aria-required="true"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -517,6 +520,8 @@ export function CreateTripDialog({
                               disabled={isPending}
                               className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
                               aria-label="Co-organizer phone number"
+                              aria-describedby={coOrganizerError ? "co-organizer-phone-error" : undefined}
+                              autoComplete="tel"
                             />
                             <Button
                               type="button"
@@ -529,7 +534,11 @@ export function CreateTripDialog({
                             </Button>
                           </div>
                           {coOrganizerError && (
-                            <p className="text-sm text-destructive">
+                            <p
+                              id="co-organizer-phone-error"
+                              aria-live="polite"
+                              className="text-sm text-destructive"
+                            >
                               {coOrganizerError}
                             </p>
                           )}

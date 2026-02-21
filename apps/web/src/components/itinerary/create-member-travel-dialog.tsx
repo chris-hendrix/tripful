@@ -226,6 +226,7 @@ export function CreateMemberTravelDialog({
                       value={field.value}
                       disabled={isPending}
                       className="flex gap-4"
+                      aria-required="true"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="arrival" id="travel-arrival" />

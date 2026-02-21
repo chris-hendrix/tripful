@@ -727,3 +727,55 @@ Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 - Fastify 5 design decisions (404 instead of 405 for method mismatches) affect verification expectations — always check actual behavior against documentation
 - Pre-existing test failure count: 18 this run (stable across iterations 5-17)
 - Phase 4 is fully complete with no outstanding issues — Phase 5 can proceed cleanly
+
+## Iteration 18 — Task 5.1: Add aria-live, aria-required, aria-describedby, and autocomplete attributes
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/form.tsx` | Added `aria-live="polite"` to `FormMessage` `<p>` element — covers ALL forms using shadcn pattern |
+| `apps/web/src/components/ui/phone-input.tsx` | Added `autoComplete="tel"` to inner `<input>`, extended `PhoneInputProps` with `aria-required` and `aria-describedby` |
+| `apps/web/src/components/notifications/notification-bell.tsx` | Wrapped badge in stable `<span aria-live="polite">` wrapper for screen reader announcements |
+| `apps/web/src/components/notifications/trip-notification-bell.tsx` | Same stable `aria-live="polite"` wrapper on trip notification badge |
+| `apps/web/src/components/trip/create-trip-dialog.tsx` | Added `aria-required="true"` on name, destination, timezone; `autoComplete="tel"` and conditional `aria-describedby="co-organizer-phone-error"` on co-organizer phone input; `id` + `aria-live` on error `<p>` |
+| `apps/web/src/components/trip/edit-trip-dialog.tsx` | Added `aria-required="true"` on name, destination, timezone inputs |
+| `apps/web/src/components/itinerary/create-event-dialog.tsx` | Added `aria-required="true"` on name, event type; conditional `aria-describedby="event-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
+| `apps/web/src/components/itinerary/edit-event-dialog.tsx` | Added `aria-required="true"` on name, event type; conditional `aria-describedby="edit-event-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
+| `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` | Added `aria-required="true"` on name; conditional `aria-describedby="accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
+| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` | Added `aria-required="true"` on name; conditional `aria-describedby="edit-accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
+| `apps/web/src/components/itinerary/create-member-travel-dialog.tsx` | Added `aria-required="true"` on travel type RadioGroup |
+| `apps/web/src/components/itinerary/edit-member-travel-dialog.tsx` | Added `aria-required="true"` on travel type radio group div |
+| `apps/web/src/components/profile/profile-dialog.tsx` | Added `aria-required="true"` on display name; changed `autoComplete` from `"name"` to `"nickname"` |
+| `apps/web/src/app/(auth)/complete-profile/page.tsx` | Changed `autoComplete` from `"name"` to `"nickname"` |
+| `apps/web/src/app/(auth)/login/page.tsx` | Added `aria-required="true"` on PhoneInput |
+| `apps/web/src/components/trip/invite-members-dialog.tsx` | Added conditional `aria-describedby="invite-phone-error"` on PhoneInput; `id` + `aria-live` on phone error `<p>` |
+
+### Key Decisions
+
+- **FormMessage `aria-live="polite"`**: Single highest-impact change — automatically covers every form using the shadcn `FormMessage` component across the entire app.
+- **Stable wrapper for notification badges**: Used `<span aria-live="polite">` as a persistent wrapper around the conditionally rendered count badge. This ensures the live region stays in the DOM while the inner content changes via `key={displayCount}`.
+- **Conditional `aria-describedby`**: Custom inline errors (coOrganizerError, linkError, phoneError) use conditional `aria-describedby` — only set when the error exists. This avoids referencing non-existent IDs.
+- **`autoComplete="nickname"` not `"name"`**: Display name fields use `"nickname"` per HTML spec and task requirements. `"name"` is for legal full names; `"nickname"` is for casual/informal names, matching the "Display name" concept.
+- **Sonner already handles `aria-live`**: Confirmed sonner v2.0.7 renders `aria-live="polite"` on its toast container at line 1084 of its dist. No changes needed.
+- **shadcn `FormControl` already handles `aria-describedby`**: For `FormMessage`-based errors, `FormControl` auto-links via `aria-describedby`. Manual linking only needed for custom inline error `<p>` elements outside the form system.
+- **`autoComplete="tel"` centralized in PhoneInput**: Adding to the component's inner `<input>` automatically covers all usages (login, invite-members, etc.)
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Reviewer**: APPROVED — all requirements met after fixing autoComplete from "name" to "nickname"
+
+### Learnings for Future Iterations
+
+- shadcn `FormControl` auto-spreads `aria-describedby` and `aria-invalid` via Radix `Slot.Root` — don't duplicate these on inputs inside `FormControl`
+- `aria-live` regions ideally should persist in the DOM with changing content, not mount/unmount — but the conditional render pattern is broadly accepted by modern screen readers
+- Sonner v2.0.7 has built-in `aria-live="polite"` — no need to add custom toast accessibility
+- `autoComplete="nickname"` is the correct HTML value for display name fields; `"name"` is for legal/full names
+- When extending component prop types for accessibility, use `| undefined` suffix for `exactOptionalPropertyTypes` compatibility
+- Pre-existing test failure count: 18 (stable across iterations 5-18)
