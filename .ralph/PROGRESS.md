@@ -171,3 +171,40 @@
 - **TASKS.md inaccuracy**: Task listed `messaging.spec.ts` and `notifications.spec.ts` as callers of `inviteAndAcceptViaAPI`, but they use `inviteViaAPI` + `rsvpViaAPI` directly. Only `trip-journey.spec.ts` and `invitation-journey.spec.ts` call `inviteAndAcceptViaAPI`.
 - **Reviewer suggestion (LOW, addressed)**: JSDoc for `inviteAndAcceptViaAPI` step 1 updated from "Re-authenticate inviter" to "Use provided cookie or re-authenticate inviter" to reflect the optional cookie path.
 - **Savings**: 5 call sites × 3 API calls skipped = 15 fewer API round trips across the test suite.
+
+## Iteration 5 — Task 2.2: Phase 2 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass
+**Reviewer**: APPROVED
+
+### Review of Phase 2 (Task 2.1)
+
+**FAILURE / BLOCKED items**: None. Task 2.1 completed successfully with all checks passing.
+
+**Reviewer caveats from Task 2.1**: One LOW suggestion (JSDoc for `inviteAndAcceptViaAPI`) was already addressed during Task 2.1 itself.
+
+**Deferred items from Task 2.1**: The TASKS.md inaccuracy about `messaging.spec.ts` and `notifications.spec.ts` being callers of `inviteAndAcceptViaAPI` was already documented in PROGRESS.md Iteration 4. No code fix needed — the actual implementation correctly only updated real callers.
+
+### Changes Made
+
+**JSDoc corrections (2 files):**
+- `trip-journey.spec.ts` line 17: Changed "Consolidates 10 individual trip tests into 3 journey tests" → "6 journey tests" (file has 6 tests, not 3; pre-existing inaccuracy flagged in Iteration 3)
+- `profile-journey.spec.ts` line 12: Changed "in a single journey test" → "in 2 journey tests" (file has 2 tests, not 1; newly identified)
+
+**Researcher false positive**: Researcher 2 flagged `authenticateViaAPI` as an unused import in `trip-journey.spec.ts`, but coder verified it IS used on line 30 in the "trip CRUD journey" test. No change made.
+
+### Verification Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| `pnpm test:e2e` | PASS — 21 tests in 7 files (3.2m) |
+| `playwright test --list` | 21 tests confirmed |
+
+### Notes
+
+- **No new tasks needed**: All Phase 2 deferred items were either already addressed or required only simple JSDoc fixes.
+- **Pre-existing out-of-scope issues confirmed unchanged**: (1) Dead auth helpers in `helpers/auth.ts` (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`). (2) Hardcoded timeouts in `trip-journey.spec.ts`, `itinerary-journey.spec.ts`, `profile-journey.spec.ts`, and partially `invitation-journey.spec.ts`. (3) Hardcoded `http://localhost:8000` in 8 locations across 3 spec files instead of `API_BASE`. All pre-existing before this branch.
+- **Phase 2 is now complete**. All 2 tasks done, 21 tests passing across 7 files, 6 smoke / 15 regression. Ready for Phase 3.

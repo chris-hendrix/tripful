@@ -42,7 +42,7 @@
   - Verify: `pnpm test:e2e` — all 21 tests pass
   - Verify: Confirm `@smoke` grep matches exactly 6 tests (run `pnpm test:e2e:smoke --list` or dry-run)
 
-- [ ] Task 2.2: Phase 2 cleanup
+- [x] Task 2.2: Phase 2 cleanup
   - Review: Read PROGRESS.md entries for Phase 2 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

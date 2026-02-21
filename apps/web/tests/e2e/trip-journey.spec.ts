@@ -14,7 +14,7 @@ import { dismissToast } from "./helpers/toast";
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
  *
- * Consolidates 10 individual trip tests into 3 journey tests.
+ * Consolidates 10 individual trip tests into 6 journey tests.
  * Uses authenticateViaAPI for fast auth (no browser navigation).
  */
 

@@ -9,7 +9,7 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
  * E2E Journey: Profile Management
  *
  * Tests profile dialog navigation, form editing, photo upload/remove,
- * and social handle display in a single journey test.
+ * and social handle display in 2 journey tests.
  */
 
 /**
