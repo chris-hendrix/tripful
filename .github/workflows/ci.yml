@@ -25,6 +25,7 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
       shared: ${{ steps.filter.outputs.shared }}
+      devcontainer: ${{ steps.filter.outputs.devcontainer }}
     steps:
       - uses: actions/checkout@v6
 
@@ -43,6 +44,9 @@ jobs:
               - '.github/**'
               - 'tsconfig.base.json'
               - 'eslint.config.js'
+            devcontainer:
+              - '.devcontainer/**'
+              - 'Makefile'
 
   # Step 2: Lint + Type Check
   quality:
@@ -92,6 +96,18 @@ jobs:
 
       - name: Dependency audit
         run: pnpm audit --audit-level=high
+
+  # Step 2b: Devcontainer config validation (no Node/pnpm needed)
+  devcontainer:
+    name: Devcontainer Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.devcontainer == 'true'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate devcontainer config
+        run: bash scripts/__tests__/test-devcontainer.test.sh
 
   # Step 3: Unit Tests (API)
   unit-tests:
