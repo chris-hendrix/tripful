@@ -29,7 +29,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 1.4: Fix global error handler to display error message
+- [x] Task 1.4: Fix global error handler to display error message
   - Implement: In `apps/web/src/app/global-error.tsx` — extract `error` from destructuring, display `error.message` in the UI
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite

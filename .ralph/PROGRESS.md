@@ -119,3 +119,34 @@
 - pg-boss `createQueue()` accepts `QueueOptions` including `deleteAfterSeconds` and `retentionSeconds` — set these at queue creation time, not at schedule/send time
 - PostgreSQL FK constraints do NOT automatically create indexes — explicit indexes are needed for FK columns
 - A composite index `(a, b)` can serve single-column queries on `a`, making a separate single-column index on `a` potentially redundant — but this codebase convention is to keep both
+
+## Iteration 4 — Task 1.4: Fix global error handler to display error message
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/app/global-error.tsx` | Added `error` to destructured props, replaced hardcoded error message with `{error.message || "An unexpected error occurred. Please try again later."}` |
+
+### Key Decisions
+
+- **Minimal change**: Only two lines changed — adding `error` to destructuring and making the error message dynamic. No structural, styling, or layout changes.
+- **Fallback preserved**: The original hardcoded message is kept as the fallback for cases where `error.message` is empty/undefined, maintaining the same UX for edge cases.
+- **Pattern consistency**: The `error.message || "fallback"` pattern matches the three sibling error boundary files: `(app)/error.tsx`, `(auth)/error.tsx`, and `(app)/trips/[id]/error.tsx`.
+- **Security safe**: In Next.js production builds, Server Component error messages are automatically sanitized before reaching client error boundaries, so displaying `error.message` does not leak internal details.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: All pass. 19 pre-existing failures (unchanged): daily-itineraries worker (10), app-header nav (5), auth lockout expiry (1), trip metadata (1), URL validation dialogs (2)
+- **Reviewer**: APPROVED — correct implementation, matches existing patterns, minimal and focused diff
+
+### Learnings for Future Iterations
+
+- Pre-existing failure count is 19 (not 18 as previously documented) — `auth.lockout.test.ts > should give fresh 5 attempts after lockout expires` is an additional pre-existing failure not previously listed
+- Next.js global-error.tsx must render its own `<html>` and `<body>` tags since it replaces the root layout on error — this is different from segment-level error.tsx files which inherit the parent layout
+- The global-error fallback message is intentionally longer than segment-level ones ("Please try again later.") since the error is more severe (entire app failure)

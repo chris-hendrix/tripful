@@ -4,6 +4,7 @@ import { playfairDisplay, dmSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -20,7 +21,8 @@ export default function GlobalError({
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-semibold">Something went wrong</h2>
             <p className="text-muted-foreground">
-              An unexpected error occurred. Please try again later.
+              {error.message ||
+                "An unexpected error occurred. Please try again later."}
             </p>
             <button
               onClick={reset}
