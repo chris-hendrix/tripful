@@ -230,3 +230,50 @@ Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 - `Slot` from `radix-ui` is a namespace (`{ Root, Slot, Slottable, createSlot, createSlottable }`), not a component — always use `Slot.Root` after migration
 - When deleting lines from JSON files with the Edit tool, verify that adjacent lines retain proper indentation
 - Pre-existing test failure count: 18-19 depending on whether the flaky auth lockout expiry test triggers
+
+## Iteration 7 — Task 2.2: Fix focus styling, add "use client" directives, and refactor Select to CVA
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/dialog.tsx` | Replaced old `ring-offset-background focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-hidden` on close button with standardized `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-hidden` |
+| `apps/web/src/components/ui/sheet.tsx` | Identical focus fix to dialog.tsx on close button |
+| `apps/web/src/components/ui/datetime-picker.tsx` | Replaced inconsistent `ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` on time input with `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` |
+| `apps/web/src/components/ui/button.tsx` | Added `"use client";` directive as line 1 |
+| `apps/web/src/components/ui/input.tsx` | Added `"use client";` directive as line 1 |
+| `apps/web/src/components/ui/card.tsx` | Added `"use client";` directive as line 1 |
+| `apps/web/src/components/ui/badge.tsx` | Added `"use client";` directive as line 1 |
+| `apps/web/src/components/ui/select.tsx` | Refactored `SelectTrigger` from ad-hoc `data-[size=*]` CSS to `cva` variant pattern with `selectTriggerVariants` export, matching `buttonVariants` approach |
+| `apps/web/src/components/ui/__tests__/select.test.tsx` | NEW — 6 tests covering `selectTriggerVariants` output and rendered `SelectTrigger` component |
+
+### Key Decisions
+
+- **3 files needed focus fixes, not 2**: dialog.tsx and sheet.tsx had `focus:` (bare) patterns, while datetime-picker.tsx had `focus-visible:` but with the old ring-2/ring-offset style. All three were unified to the standard `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` pattern.
+- **Menu item `focus:bg-accent` preserved**: The `focus:bg-accent focus:text-accent-foreground` patterns in select.tsx and dropdown-menu.tsx were intentionally NOT changed — these are background-highlight patterns for Radix menu items that receive focus programmatically during keyboard navigation, not ring-based focus indicators.
+- **`has-focus:` in calendar.tsx preserved**: The `has-focus:border-ring has-focus:ring-ring/50 has-focus:ring-[3px]` pattern is parent-level focus detection with correct ring values already matching the standard — no change needed.
+- **`data-size` attribute retained**: The `data-size={size}` attribute was kept on `SelectTrigger` even after CVA refactor, matching the Button component convention and allowing external CSS targeting.
+- **`ring-offset-background` fully removed**: This deprecated Tailwind v3/old shadcn token had 3 remaining references — all removed. Zero matches remain in the UI components directory.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: All pass. 18 pre-existing failures (unchanged): daily-itineraries worker (10), app-header nav (5), URL validation dialogs (2), trip metadata (1). Auth lockout expiry test passed this run.
+- **Grep checks**: Zero `focus:ring-*` patterns remaining in `components/ui/` (only `has-focus:` in calendar.tsx and `focus:bg-accent` in menu items); zero `ring-offset-background` references remaining.
+- **Reviewer**: APPROVED — all 4 requirements met, CVA pattern matches button.tsx, tests comprehensive
+
+### Reviewer Notes
+
+- `skip-link.tsx` (outside `components/ui/`) still uses old `focus:ring-2 focus:ring-offset-2` pattern — out of scope for this task but noted for potential future cleanup
+- Calendar `has-focus:` pattern correctly identified as different use case and left untouched
+
+### Learnings for Future Iterations
+
+- Three distinct focus ring patterns existed in the codebase: (A) modern `focus-visible:` with 3px ring (correct), (B) old `focus:` with ring-2/ring-offset-2 (dialog/sheet), (C) hybrid `focus-visible:` with old ring style (datetime-picker). Always check for all variants when standardizing.
+- Menu items in Radix components use `focus:bg-accent` (not `focus-visible:`) intentionally — they receive focus programmatically during keyboard navigation, not just from Tab key. Don't blindly replace all `focus:` patterns.
+- CVA refactoring for size variants: replace `data-[size=X]:class` selectors with direct CVA variant classes. Keep `data-size` attribute for external CSS compatibility.
+- Pre-existing test failure count: 18 this run (auth lockout expiry flaky test passed)

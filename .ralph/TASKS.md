@@ -53,7 +53,7 @@
   - Test: `pnpm dev:web` — verify components render correctly (spot check dialogs, selects, badges, forms)
   - Verify: run full test suite
 
-- [ ] Task 2.2: Fix focus styling, add "use client" directives, and refactor Select to CVA
+- [x] Task 2.2: Fix focus styling, add "use client" directives, and refactor Select to CVA
   - Implement: Search all `components/ui/` files for `focus:ring` and `focus:outline` — replace with `focus-visible:ring` / `focus-visible:outline`
   - Implement: Unify focus ring width and color between dialog/sheet and button/input components
   - Implement: Add `"use client"` directive to top of `button.tsx`, `input.tsx`, `card.tsx`, `badge.tsx`
