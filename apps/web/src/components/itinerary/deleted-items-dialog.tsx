@@ -230,9 +230,9 @@ function DeletedEventRow({
         {event.eventType}
       </Badge>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(event.id)}
         disabled={isRestoring}
       >
@@ -272,9 +272,9 @@ function DeletedAccommodationRow({
         </p>
       </div>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(accommodation.id)}
         disabled={isRestoring}
       >
@@ -321,9 +321,9 @@ function DeletedMemberTravelRow({
         {memberTravel.travelType}
       </Badge>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(memberTravel.id)}
         disabled={isRestoring}
       >

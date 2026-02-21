@@ -223,7 +223,7 @@
   - Fix: Create new tasks in TASKS.md for any outstanding issues
   - Verify: run full test suite
 
-- [ ] Task 7.3.1 FIX: Remove consumer-level className overrides that reduce button touch targets below 44px
+- [x] Task 7.3.1 FIX: Remove consumer-level className overrides that reduce button touch targets below 44px
   - Implement: In `complete-profile/page.tsx` and `profile-dialog.tsx` — remove `h-9` className overrides on "Upload photo" and "Remove" buttons, letting variant's h-11 (44px) apply
   - Implement: In `travel-reminder-banner.tsx` — remove `h-9` className overrides on "Add Travel Details" and "Dismiss" buttons
   - Implement: In `itinerary-header.tsx` — replace `h-8 w-8` on view toggle buttons with `size="icon-xs"` plus after: pseudo-element touch target, or increase to `size="icon"`

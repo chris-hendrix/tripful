@@ -95,10 +95,10 @@ export function ItineraryHeader({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="icon"
+                      size="icon-xs"
                       variant={viewMode === "day-by-day" ? "default" : "ghost"}
                       onClick={() => onViewModeChange("day-by-day")}
-                      className="h-8 w-8 rounded-lg"
+                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
                       aria-label="Day by Day"
                     >
                       <Calendar className="w-4 h-4" />
@@ -109,12 +109,12 @@ export function ItineraryHeader({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="icon"
+                      size="icon-xs"
                       variant={
                         viewMode === "group-by-type" ? "default" : "ghost"
                       }
                       onClick={() => onViewModeChange("group-by-type")}
-                      className="h-8 w-8 rounded-lg"
+                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
                       aria-label="Group by Type"
                     >
                       <List className="w-4 h-4" />
@@ -129,7 +129,7 @@ export function ItineraryHeader({
               <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
                 <SelectTrigger
                   size="sm"
-                  className="h-8 text-xs"
+                  className="text-xs"
                   aria-label="Timezone"
                 >
                   <SelectValue />

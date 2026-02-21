@@ -79,7 +79,7 @@ export function TravelReminderBanner({
                 onClick={onAddTravel}
                 variant="gradient"
                 size="sm"
-                className="h-9 rounded-xl"
+                className="rounded-xl"
               >
                 Add Travel Details
               </Button>
@@ -87,7 +87,7 @@ export function TravelReminderBanner({
                 onClick={handleDismiss}
                 variant="ghost"
                 size="sm"
-                className="h-9 rounded-xl text-muted-foreground"
+                className="rounded-xl text-muted-foreground"
               >
                 Dismiss
               </Button>

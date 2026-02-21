@@ -8,24 +8,24 @@ import {
 } from "../select";
 
 describe("selectTriggerVariants", () => {
-  it("default size includes h-9", () => {
+  it("default size includes h-11", () => {
     const classes = selectTriggerVariants({ size: "default" });
-    expect(classes).toContain("h-9");
+    expect(classes).toContain("h-11");
   });
 
-  it("sm size includes h-8", () => {
+  it("sm size includes h-9", () => {
     const classes = selectTriggerVariants({ size: "sm" });
-    expect(classes).toContain("h-8");
+    expect(classes).toContain("h-9");
   });
 
   it("uses default size when no size is specified", () => {
     const classes = selectTriggerVariants();
-    expect(classes).toContain("h-9");
+    expect(classes).toContain("h-11");
   });
 });
 
 describe("SelectTrigger", () => {
-  it("renders with default size class h-9", () => {
+  it("renders with default size class h-11", () => {
     render(
       <Select>
         <SelectTrigger aria-label="test-trigger">
@@ -35,10 +35,10 @@ describe("SelectTrigger", () => {
     );
 
     const trigger = screen.getByRole("combobox", { name: "test-trigger" });
-    expect(trigger.className).toContain("h-9");
+    expect(trigger.className).toContain("h-11");
   });
 
-  it("renders with sm size class h-8", () => {
+  it("renders with sm size class h-9", () => {
     render(
       <Select>
         <SelectTrigger size="sm" aria-label="test-trigger-sm">
@@ -48,7 +48,7 @@ describe("SelectTrigger", () => {
     );
 
     const trigger = screen.getByRole("combobox", { name: "test-trigger-sm" });
-    expect(trigger.className).toContain("h-8");
+    expect(trigger.className).toContain("h-9");
   });
 
   it("sets data-size attribute", () => {

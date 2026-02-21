@@ -1252,3 +1252,42 @@ Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
 - **Phase cleanup tasks reliably catch scope gaps**: Just as Task 6.4 caught remaining CSS selectors → 6.4.1, Task 7.3 caught remaining touch target overrides → 7.3.1. The cleanup pattern works well for ensuring VERIFICATION.md checks are fully met.
 - **Skeleton/non-interactive elements don't need touch target fixes**: `h-9` on Skeleton components is a visual size, not a touch target. Only interactive elements (buttons, inputs, selects) need the 44px minimum.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-28)
+
+## Iteration 29 — Task 7.3.1 FIX: Remove consumer-level className overrides that reduce button touch targets below 44px
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/select.tsx` | Updated selectTriggerVariants CVA: default `h-9` → `h-11` (44px), sm `h-8` → `h-9` (36px compact) |
+| `apps/web/src/components/ui/__tests__/select.test.tsx` | Updated 6 test assertions to match new select sizes (default=h-11, sm=h-9) |
+| `apps/web/src/app/(auth)/complete-profile/page.tsx` | Removed `h-9` from "Upload photo" and "Remove" button classNames — now uses sm variant's h-11 (44px) |
+| `apps/web/src/components/profile/profile-dialog.tsx` | Removed `h-9` from "Upload photo" and "Remove" button classNames; updated Skeleton from `h-9` to `h-11` to match corrected button height |
+| `apps/web/src/components/trip/travel-reminder-banner.tsx` | Removed `h-9` from "Add Travel Details" and "Dismiss" button classNames |
+| `apps/web/src/components/itinerary/itinerary-header.tsx` | Changed view toggle buttons from `size="icon" className="h-8 w-8 rounded-lg"` to `size="icon-xs"` with pseudo-element touch expansion (`after:-inset-[4px]`, 36+8=44px). Removed `h-8` from timezone SelectTrigger className. |
+| `apps/web/src/components/itinerary/deleted-items-dialog.tsx` | Changed 3 "Restore" buttons from `size="sm" className="h-8 text-xs shrink-0"` to `size="xs" className="shrink-0"` (xs includes text-xs and h-9) |
+
+### Key Decisions
+
+- **Select default raised to 44px (h-11)**: The select component's default variant was below the WCAG 2.5.8 minimum. The `sm` variant was bumped from h-8 to h-9 to match the button `xs` paradigm for intentionally compact elements.
+- **Pseudo-element touch expansion for icon-xs buttons**: Itinerary header view toggles use `size="icon-xs"` (36px visual) with `after:-inset-[4px]` pseudo-element to achieve 44px effective touch target while preserving compact visual design. This mirrors the established pattern in checkbox.tsx and radio-group.tsx.
+- **Deleted items Restore buttons use size="xs"**: Rather than removing h-8 to get sm's full 44px height (too large for compact rows), switched to `size="xs"` (36px, intentionally compact). This is consistent with how card action buttons were fixed in Task 7.2.
+- **Skeleton height synced**: Profile dialog skeleton updated from h-9 to h-11 to match corrected button height, maintaining visual consistency during loading states.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions. All 6 select tests pass with updated assertions.
+- **Grep checks**: 0 consumer-level `h-9`/`h-8` overrides on Button or SelectTrigger elements in target files
+- **Reviewer**: APPROVED — all requirements met, no issues found
+
+### Learnings for Future Iterations
+
+- **Pseudo-element touch expansion is reliable for compact icon buttons**: `after:-inset-[Xpx]` cleanly bridges the gap between visual size and touch target without layout changes. Math: visual_size + (inset × 2) ≥ 44px.
+- **Select components need the same touch target treatment as buttons**: The select default was 36px — easy to overlook since it's not a `<Button>`. All interactive form elements need 44px minimum.
+- **The `xs`/`icon-xs` variant pattern works for intentionally compact areas**: Deleted items, card actions, and toolbar buttons can use these documented compact variants instead of ad-hoc className overrides. The comment in button.tsx line 28 makes the opt-in explicit.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-29)

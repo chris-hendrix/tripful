@@ -195,7 +195,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             <div className="space-y-6 pb-6">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-20 w-20 rounded-full shrink-0" />
-                <Skeleton className="h-9 w-32 rounded-xl" />
+                <Skeleton className="h-11 w-32 rounded-xl" />
               </div>
               <Skeleton className="h-12 w-full rounded-xl" />
               <Skeleton className="h-12 w-full rounded-xl" />
@@ -242,7 +242,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 px-3 rounded-xl"
+                    className="px-3 rounded-xl"
                     onClick={handlePhotoClick}
                     disabled={isPhotoLoading}
                     data-testid="upload-photo-button"
@@ -255,7 +255,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-9 px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={handleRemovePhoto}
                       disabled={isPhotoLoading}
                       data-testid="remove-photo-button"
