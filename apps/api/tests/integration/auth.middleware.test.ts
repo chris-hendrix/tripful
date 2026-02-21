@@ -94,7 +94,6 @@ describe("Authentication Middleware", () => {
       // Generate valid JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -112,7 +111,6 @@ describe("Authentication Middleware", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.user.sub).toBe(user.id);
-      expect(body.user.phone).toBe(user.phoneNumber);
 
       // Cleanup
       await db.delete(users).where(eq(users.id, user.id));
@@ -136,7 +134,6 @@ describe("Authentication Middleware", () => {
       // Generate valid JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -154,7 +151,6 @@ describe("Authentication Middleware", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.user.sub).toBe(user.id);
-      expect(body.user.phone).toBe(user.phoneNumber);
 
       // Cleanup
       await db.delete(users).where(eq(users.id, user.id));
@@ -223,7 +219,6 @@ describe("Authentication Middleware", () => {
         const token = app.jwt.sign(
           {
             sub: user.id,
-            phone: user.phoneNumber,
             name: user.displayName,
           },
           {
@@ -305,7 +300,6 @@ describe("Authentication Middleware", () => {
       // Generate valid JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -322,7 +316,6 @@ describe("Authentication Middleware", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.user.sub).toBe(user.id);
-      expect(body.user.phone).toBe(user.phoneNumber);
 
       // Cleanup
       await db.delete(users).where(eq(users.id, user.id));
@@ -346,7 +339,6 @@ describe("Authentication Middleware", () => {
       // Generate valid JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
       });
 
       const response = await app.inject({
@@ -390,7 +382,6 @@ describe("Authentication Middleware", () => {
       // Generate valid JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
       });
 
       const response = await app.inject({

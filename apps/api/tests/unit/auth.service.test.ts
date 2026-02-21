@@ -583,7 +583,7 @@ describe("auth.service", () => {
       const decoded = app.jwt.verify(token);
 
       expect(decoded.sub).toBe(updatedUser[0].id);
-      expect(decoded.phone).toBe(testPhoneNumber);
+      expect(decoded).not.toHaveProperty("phone");
       expect(decoded.name).toBe("John Doe");
       expect(decoded.iat).toBeDefined();
       expect(decoded.exp).toBeDefined();
@@ -651,7 +651,7 @@ describe("auth.service", () => {
 
       expect(decoded.name).toBeUndefined();
       expect(decoded.sub).toBeDefined();
-      expect(decoded.phone).toBeDefined();
+      expect(decoded).not.toHaveProperty("phone");
     });
   });
 
@@ -692,7 +692,7 @@ describe("auth.service", () => {
 
       expect(payload).toBeDefined();
       expect(payload.sub).toBe(updatedUser[0].id);
-      expect(payload.phone).toBe(testPhoneNumber);
+      expect(payload).not.toHaveProperty("phone");
       expect(payload.name).toBe("Test User");
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
@@ -763,7 +763,6 @@ describe("auth.service", () => {
       const user = await authService.getOrCreateUser(testPhoneNumber);
       const tokenWithWrongSignature = differentSecretApp.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -818,7 +817,7 @@ describe("auth.service", () => {
       const payload = testAuthService.verifyToken(token);
 
       expect(payload.sub).toBe(user.id);
-      expect(payload.phone).toBe(testPhoneNumber);
+      expect(payload).not.toHaveProperty("phone");
       expect(payload.name).toBeUndefined();
     });
   });
@@ -866,7 +865,7 @@ describe("auth.service", () => {
 
       // Verify all fields match
       expect(payload.sub).toBe(updatedUser[0].id);
-      expect(payload.phone).toBe(updatedUser[0].phoneNumber);
+      expect(payload).not.toHaveProperty("phone");
       expect(payload.name).toBe("Integration Test User");
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
@@ -910,7 +909,7 @@ describe("auth.service", () => {
       // 6. Verify JWT token
       const payload = testAuthService.verifyToken(token);
       expect(payload.sub).toBe(user.id);
-      expect(payload.phone).toBe(testPhoneNumber);
+      expect(payload).not.toHaveProperty("phone");
 
       // 7. Update profile
       await authService.updateProfile(user.id, {

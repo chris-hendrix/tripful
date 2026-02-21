@@ -321,7 +321,7 @@ export class AuthService implements IAuthService {
 
   /**
    * Generates a JWT token for a user with 7-day expiry
-   * Token payload includes user ID, phone number, and optional display name
+   * Token payload includes user ID and optional display name
    * @param user - The user to generate a token for
    * @returns The signed JWT token string
    */
@@ -332,7 +332,6 @@ export class AuthService implements IAuthService {
 
     const payload = {
       sub: user.id,
-      phone: user.phoneNumber,
       ...(user.displayName && { name: user.displayName }),
     };
 

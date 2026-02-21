@@ -73,7 +73,6 @@ describe("Drizzle ORM Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -129,7 +128,6 @@ describe("Drizzle ORM Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -181,7 +179,6 @@ describe("Drizzle ORM Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -226,7 +223,6 @@ describe("Drizzle ORM Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 

@@ -11,7 +11,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 1.2: Remove phone from JWT payload and add cache-control headers
+- [x] Task 1.2: Remove phone from JWT payload and add cache-control headers
   - Implement: In `apps/api/src/services/auth.service.ts:333-337` — remove `phone: user.phoneNumber` from JWT payload
   - Implement: In `apps/api/src/types/index.ts` — remove `phone: string` from `JWTPayload` interface
   - Implement: Update auth middleware comment that mentions phone in JWT payload

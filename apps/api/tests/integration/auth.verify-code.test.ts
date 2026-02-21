@@ -241,7 +241,7 @@ describe("POST /api/auth/verify-code", () => {
       // Verify JWT can be decoded
       const decoded = app.jwt.verify(authCookie!.value);
       expect(decoded).toHaveProperty("sub"); // user id
-      expect(decoded).toHaveProperty("phone", phoneNumber);
+      expect(decoded).not.toHaveProperty("phone");
     });
   });
 

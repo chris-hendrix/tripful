@@ -30,7 +30,6 @@ export interface HealthCheckResponse {
 // JWT Payload types
 export interface JWTPayload {
   sub: string; // User ID
-  phone: string; // Phone number
   name?: string; // Display name (optional)
   iat: number; // Issued at
   exp: number; // Expires at

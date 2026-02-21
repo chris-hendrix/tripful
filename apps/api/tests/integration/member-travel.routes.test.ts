@@ -53,7 +53,6 @@ describe("Member Travel Routes", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -147,7 +146,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -244,7 +242,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -327,7 +324,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -363,7 +359,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -430,7 +425,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -517,7 +511,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -587,7 +580,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -659,7 +651,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -729,7 +720,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -814,7 +804,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -870,7 +859,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -938,7 +926,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1002,7 +989,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1067,7 +1053,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1139,7 +1124,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1237,7 +1221,6 @@ describe("Member Travel Routes", () => {
       // user1 tries to create travel for user2 (not organizer)
       const token = app.jwt.sign({
         sub: user1.id,
-        phone: user1.phoneNumber,
         name: user1.displayName,
       });
 
@@ -1295,7 +1278,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1355,7 +1337,6 @@ describe("Member Travel Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 

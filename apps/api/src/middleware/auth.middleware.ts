@@ -13,7 +13,7 @@ export async function authenticate(
 ): Promise<void> {
   try {
     // Verify JWT token and populate request.user with JWTPayload
-    // After jwtVerify(), request.user contains { sub, phone, name?, iat, exp }
+    // After jwtVerify(), request.user contains { sub, name?, iat, exp }
     await request.jwtVerify();
   } catch {
     // JWT verification failed (missing token, invalid signature, expired, etc.)

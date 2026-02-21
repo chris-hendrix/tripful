@@ -28,6 +28,12 @@ import type {
  * @param fastify - Fastify instance
  */
 export async function authRoutes(fastify: FastifyInstance) {
+  // Prevent caching of auth responses (tokens, user data)
+  fastify.addHook("onSend", async (_request, reply) => {
+    reply.header("Cache-Control", "no-store, no-cache, must-revalidate");
+    reply.header("Pragma", "no-cache");
+  });
+
   /**
    * POST /request-code
    * Request a verification code via SMS
