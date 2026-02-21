@@ -30,10 +30,16 @@ vi.mock("@/hooks/use-trips", () => ({
 
 // Mock next/navigation
 const mockPush = vi.fn();
+const mockReplace = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
+  useSearchParams: () => mockSearchParams,
+  usePathname: () => "/trips",
 }));
 
 // Mock TripCard component
@@ -138,6 +144,7 @@ describe("TripsContent", () => {
       },
     });
 
+    mockSearchParams = new URLSearchParams();
     vi.clearAllMocks();
   });
 
@@ -459,6 +466,89 @@ describe("TripsContent", () => {
         expect(screen.getByText("Summer Vacation")).toBeDefined();
         expect(screen.getByText("Ski Weekend")).toBeDefined();
       });
+    });
+  });
+
+  describe("URL search state persistence", () => {
+    it("initializes search from URL query parameter", () => {
+      mockSearchParams = new URLSearchParams("q=Summer");
+      mockUseTrips.mockReturnValue({
+        data: mockTrips,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithClient(<TripsContent />);
+
+      const searchInput =
+        screen.getByPlaceholderText<HTMLInputElement>("Search trips...");
+      expect(searchInput.value).toBe("Summer");
+
+      // Should filter to show only matching trips
+      expect(screen.getByText("Summer Vacation")).toBeDefined();
+      expect(screen.queryByText("Ski Weekend")).toBeNull();
+    });
+
+    it("updates URL when typing in search", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup({
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      mockUseTrips.mockReturnValue({
+        data: mockTrips,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithClient(<TripsContent />);
+
+      const searchInput = screen.getByPlaceholderText("Search trips...");
+      await user.type(searchInput, "Hawaii");
+
+      // Advance past the 300ms debounce
+      vi.advanceTimersByTime(300);
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.stringContaining("q=Hawaii"),
+          { scroll: false },
+        );
+      });
+
+      vi.useRealTimers();
+    });
+
+    it("removes URL param when search is cleared", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mockSearchParams = new URLSearchParams("q=Summer");
+      const user = userEvent.setup({
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      mockUseTrips.mockReturnValue({
+        data: mockTrips,
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithClient(<TripsContent />);
+
+      const searchInput = screen.getByPlaceholderText("Search trips...");
+      await user.clear(searchInput);
+
+      // Advance past the 300ms debounce
+      vi.advanceTimersByTime(300);
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/trips", { scroll: false });
+      });
+
+      vi.useRealTimers();
     });
   });
 

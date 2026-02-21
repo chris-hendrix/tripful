@@ -779,3 +779,40 @@ Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 - `autoComplete="nickname"` is the correct HTML value for display name fields; `"name"` is for legal/full names
 - When extending component prop types for accessibility, use `| undefined` suffix for `exactOptionalPropertyTypes` compatibility
 - Pre-existing test failure count: 18 (stable across iterations 5-18)
+
+## Iteration 19 — Task 5.2: Fix color contrast and add URL state persistence
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/app/globals.css` | Changed `--color-muted-foreground` from `#8c8173` to `#6b6054` — passes WCAG AA (4.5:1) against all three background colors |
+| `apps/web/src/app/(app)/trips/trips-content.tsx` | Added `useSearchParams`, `useRouter`, `usePathname` imports; initialized `searchQuery` from `?q=` URL param; added debounced `useEffect` (300ms) to sync search state to URL via `router.replace()` with `{ scroll: false }` |
+| `apps/web/src/app/(app)/trips/page.tsx` | Added `<Suspense>` boundary around `<TripsContent />` (required by Next.js for `useSearchParams`) |
+| `apps/web/src/app/(app)/trips/trips-content.test.tsx` | Updated `next/navigation` mock to include `useSearchParams`, `usePathname`, and `router.replace`; added 3 new tests for URL state persistence |
+
+### Key Decisions
+
+- **Color `#6b6054`**: Darkened from `#8c8173` while preserving the warm brown tone (RGB 107, 96, 84 — red channel dominant). Contrast ratios: 6.13:1 vs `#ffffff` (card), 5.70:1 vs `#fbf6ef` (background), 5.08:1 vs `#eee9e2` (muted/secondary) — all exceed AA threshold of 4.5:1.
+- **Debounced URL sync (300ms)**: The search input updates `searchQuery` state instantly (for responsive filtering via `useMemo`), but the URL update is debounced to prevent excessive `router.replace()` calls during rapid typing.
+- **Dialog URL state skipped**: Evaluated the create-trip dialog — it's a multi-step Sheet form with complex local state (form data, co-organizer list, image upload). URL state would only persist "open/closed" while form data would be lost on refresh. Low value, skipped.
+- **`<Suspense>` without fallback**: Matches the existing pattern in verify/page.tsx. The component renders immediately (doesn't actually suspend), so a fallback is unnecessary.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 25/25 trips-content tests pass (22 existing + 3 new). 18 pre-existing failures (unchanged): daily-itineraries worker (10), app-header nav (5), URL validation dialogs (2), trip metadata (1).
+- **WCAG AA Contrast**: Verified `#6b6054` achieves ≥4.5:1 against all three backgrounds
+- **Reviewer**: APPROVED — all requirements met, two non-blocking observations noted
+
+### Learnings for Future Iterations
+
+- `useSearchParams()` in Next.js App Router requires a `<Suspense>` boundary above the client component that uses it
+- Debounce URL sync separately from state updates — keep filtering instant (via `useMemo`), debounce only the `router.replace()` call
+- `searchParams` object reference may change on `router.replace()` — could use `searchParams.toString()` in useEffect deps for stability (non-blocking, benign extra cycle)
+- For WCAG AA contrast calculation: relative luminance formula is `0.2126*R + 0.7152*G + 0.0722*B` with sRGB linearization, ratio = `(L1 + 0.05) / (L2 + 0.05)`. Always check against the lightest background where text appears.
+- Pre-existing test failure count: 18 (stable across iterations 5-19)

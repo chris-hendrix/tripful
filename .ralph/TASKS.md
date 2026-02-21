@@ -144,7 +144,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 5.2: Fix color contrast and add URL state persistence
+- [x] Task 5.2: Fix color contrast and add URL state persistence
   - Implement: Darken `--color-muted-foreground` from `#8c8173` to a WCAG AA compliant value (≥4.5:1 ratio), maintaining warm tone
   - Implement: Where search functionality exists — persist query in URL using `useSearchParams` and `router.replace()`
   - Implement: Evaluate if dialog URL state adds value — implement for key dialogs (create-trip) if beneficial
