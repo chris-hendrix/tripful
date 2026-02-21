@@ -168,6 +168,7 @@ test.describe("Trip Journey", () => {
   });
 
   test("trip permissions journey", async ({ page, request }) => {
+    test.slow(); // Multiple auth switches and navigations
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
     const timestamp = Date.now();
