@@ -167,7 +167,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("trip permissions journey", async ({ page, request }) => {
+  test("trip permissions journey", { tag: "@regression" }, async ({ page, request }) => {
     test.slow(); // Multiple auth switches and navigations
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
@@ -336,7 +336,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("auto-lock past trips", async ({ page, request }) => {
+  test("auto-lock past trips", { tag: "@regression" }, async ({ page, request }) => {
     const timestamp = Date.now();
     const shortTimestamp = timestamp.toString().slice(-10);
     const organizerPhone = `+1555${shortTimestamp}`;
@@ -413,7 +413,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("remove member from trip", async ({ page, request }) => {
+  test("remove member from trip", { tag: "@regression" }, async ({ page, request }) => {
     test.slow(); // Multiple auth cycles
 
     const timestamp = Date.now();
@@ -443,6 +443,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Test Member",
+        organizerCookie,
       );
 
       const memberCookie = await createUserViaAPI(
@@ -557,7 +558,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("promote and demote co-organizer via members dialog", async ({
+  test("promote and demote co-organizer via members dialog", { tag: "@regression" }, async ({
     page,
     request,
   }) => {
@@ -590,6 +591,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Test Promotee",
+        organizerCookie,
       );
     });
 
@@ -678,7 +680,7 @@ test.describe("Trip Journey", () => {
     });
   });
 
-  test("organizer can add travel for another member via delegation", async ({
+  test("organizer can add travel for another member via delegation", { tag: "@regression" }, async ({
     page,
     request,
   }) => {
@@ -730,6 +732,7 @@ test.describe("Trip Journey", () => {
         organizerPhone,
         memberPhone,
         "Delegated Member",
+        organizerCookie,
       );
     });
 

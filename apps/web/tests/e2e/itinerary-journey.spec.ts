@@ -237,7 +237,7 @@ test.describe("Itinerary Journey", () => {
     },
   );
 
-  test("itinerary view modes", async ({ page, request }) => {
+  test("itinerary view modes", { tag: "@regression" }, async ({ page, request }) => {
     await authenticateViaAPI(page, request, "View Mode User");
     const tripName = `View Mode Trip ${Date.now()}`;
 
@@ -387,7 +387,7 @@ test.describe("Itinerary Journey", () => {
     });
   });
 
-  test("deleted items and restore", async ({ page, request }) => {
+  test("deleted items and restore", { tag: "@regression" }, async ({ page, request }) => {
     await authenticateViaAPI(page, request, "Delete Restore User");
     const tripName = `Delete Restore Trip ${Date.now()}`;
     let tripId: string;

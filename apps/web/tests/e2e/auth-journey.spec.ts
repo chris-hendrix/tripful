@@ -88,7 +88,7 @@ test.describe("Auth Journey", () => {
     });
   });
 
-  test("auth redirects and guards", async ({ page, request }) => {
+  test("auth redirects and guards", { tag: "@regression" }, async ({ page, request }) => {
     const loginPage = new LoginPage(page);
     const trips = new TripsPage(page);
 

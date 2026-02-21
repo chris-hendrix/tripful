@@ -114,3 +114,60 @@
 - **No new tasks needed**: All deferred items from Phase 1 were simple fixes addressed directly in this cleanup.
 - **Out-of-scope pre-existing issues identified but not fixed**: (1) `trip-journey.spec.ts` JSDoc says "3 journey tests" but has 6 — pre-existing before this branch. (2) Dead auth helper functions (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) in `helpers/auth.ts` — pre-existing. (3) Mixed hardcoded/constant timeouts in other spec files — pre-existing.
 - **Phase 1 is now complete**. All 3 tasks done, 21 tests passing across 7 files. Ready for Phase 2.
+
+## Iteration 4 — Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
+
+**Status**: COMPLETED
+**Verifier**: PASS — lint, typecheck, 21 E2E tests pass, 6 smoke tests pass
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**Tag assignments (all 21 tests now explicitly tagged):**
+- 6 tests tagged `@smoke`: complete auth journey, trip CRUD journey, invitation and RSVP journey, itinerary CRUD journey, messaging CRUD journey, notification flow
+- 15 tests tagged `@regression`: all remaining tests
+- `profile page navigation and editing` changed from `@smoke` to `@regression` (not in the specified 6 smoke tests; matches ARCHITECTURE.md target state)
+- `organizer actions journey` already had `@regression` — no change needed
+
+**Files modified for tags:**
+- `auth-journey.spec.ts`: Added `{ tag: "@regression" }` to "auth redirects and guards"
+- `trip-journey.spec.ts`: Added `{ tag: "@regression" }` to 5 tests (permissions, auto-lock, remove member, promote/demote, delegation)
+- `invitation-journey.spec.ts`: Added `{ tag: "@regression" }` to 4 tests (RSVP status, uninvited access, member list, onboarding wizard)
+- `itinerary-journey.spec.ts`: Added `{ tag: "@regression" }` to 2 tests (view modes, deleted items)
+- `profile-journey.spec.ts`: Changed "profile page navigation and editing" from `@smoke` to `@regression`; added `{ tag: "@regression" }` to "profile photo upload and remove"
+
+**`inviteAndAcceptViaAPI` cookie optimization:**
+- Added optional `inviterCookie?: string` parameter (6th positional arg) to `helpers/invitations.ts`
+- When provided, skips `createUserViaAPI(request, inviterPhone)` re-auth (saves 3 API calls per invocation)
+- Uses `const resolvedInviterCookie = inviterCookie ?? (await createUserViaAPI(request, inviterPhone))` for backward compatibility
+- Updated JSDoc to document the optional cookie path
+- Updated all 5 callers to pass existing `organizerCookie`:
+  - `trip-journey.spec.ts`: 3 call sites (remove member, promote/demote, delegation)
+  - `invitation-journey.spec.ts`: 2 call sites (RSVP status, member list)
+- Note: `messaging.spec.ts` and `notifications.spec.ts` do NOT call `inviteAndAcceptViaAPI` (they use `inviteViaAPI` + `rsvpViaAPI` directly), so no changes were needed despite TASKS.md listing them
+
+**Infrastructure:**
+- `playwright.config.ts`: Changed CI workers from 2 to 4 (`workers: process.env.CI ? 4 : 1`)
+- `apps/web/package.json`: Added `"test:e2e:smoke": "playwright test --grep @smoke"` script
+
+**test.slow() review:**
+- All 11 `test.slow()` calls confirmed in active tests — none orphaned from deleted tests
+
+### Verification Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| `pnpm test:e2e` | PASS — 21 tests in 7 files (2.8m) |
+| `pnpm test:e2e:smoke` | PASS — 6 tests (57.2s) |
+| `playwright test --list` | 21 tests in 7 files confirmed |
+| `--grep @smoke --list` | 6 smoke tests confirmed |
+| `inviterCookie` backward compat | PASS — optional param, falls back to re-auth |
+| CI workers | 4 (was 2) |
+
+### Notes
+
+- **TASKS.md inaccuracy**: Task listed `messaging.spec.ts` and `notifications.spec.ts` as callers of `inviteAndAcceptViaAPI`, but they use `inviteViaAPI` + `rsvpViaAPI` directly. Only `trip-journey.spec.ts` and `invitation-journey.spec.ts` call `inviteAndAcceptViaAPI`.
+- **Reviewer suggestion (LOW, addressed)**: JSDoc for `inviteAndAcceptViaAPI` step 1 updated from "Re-authenticate inviter" to "Use provided cookie or re-authenticate inviter" to reflect the optional cookie path.
+- **Savings**: 5 call sites × 3 API calls skipped = 15 fewer API round trips across the test suite.

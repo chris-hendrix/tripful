@@ -108,7 +108,7 @@ export async function rsvpViaAPI(
  * issues a new token regardless.
  *
  * Important ordering:
- * 1. Re-authenticate inviter to get a fresh cookie
+ * 1. Use provided cookie or re-authenticate inviter to get a fresh cookie
  * 2. Send invitation (creates invitation record)
  * 3. Authenticate invitee (verify-code triggers processPendingInvitations,
  *    which finds the pending invitation and creates the member record)
@@ -120,12 +120,14 @@ export async function inviteAndAcceptViaAPI(
   inviterPhone: string,
   inviteePhone: string,
   inviteeName: string,
+  inviterCookie?: string,
 ): Promise<void> {
-  // Step 1: Re-authenticate the inviter to get a fresh cookie
-  const inviterCookie = await createUserViaAPI(request, inviterPhone);
+  // Step 1: Use provided cookie or re-authenticate the inviter
+  const resolvedInviterCookie =
+    inviterCookie ?? (await createUserViaAPI(request, inviterPhone));
 
   // Step 2: Send the invitation
-  await inviteViaAPI(request, tripId, inviterCookie, [inviteePhone]);
+  await inviteViaAPI(request, tripId, resolvedInviterCookie, [inviteePhone]);
 
   // Step 3: Authenticate the invitee (triggers processPendingInvitations)
   const inviteeCookie = await createUserViaAPI(

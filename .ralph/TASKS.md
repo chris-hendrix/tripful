@@ -30,7 +30,7 @@
 
 ## Phase 2: Tags and Infrastructure
 
-- [ ] Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
+- [x] Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
   - Implement: Ensure `@smoke` tag on these 6 tests: `"complete auth journey"`, `"trip CRUD journey"`, `"invitation and RSVP journey"`, `"itinerary CRUD journey"`, `"messaging CRUD journey"`, `"notification flow"` (the merged test)
   - Implement: Add `@regression` tag to all remaining 15 non-smoke tests that don't already have it
   - Implement: Review `test.slow()` calls — ensure no leftover calls from deleted tests, keep on remaining slow tests

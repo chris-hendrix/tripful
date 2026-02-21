@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI, // Fail if test.only is left in CI
   retries: 0, // Fail fast — no retries
-  workers: process.env.CI ? 2 : 1, // 1 locally to reduce memory pressure, 2 in CI
+  workers: process.env.CI ? 4 : 1, // 1 locally to reduce memory pressure, 4 in CI
 
   // Reporter to use
   reporter: "html",
