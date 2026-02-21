@@ -54,9 +54,12 @@ export function TripsContent() {
         params.delete("q");
       }
       const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
+      // Only replace URL if the query string actually changed
+      if (queryString !== searchParams.toString()) {
+        router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+          scroll: false,
+        });
+      }
     }, 300);
     return () => clearTimeout(timeout);
   }, [searchQuery, router, searchParams, pathname]);

@@ -206,6 +206,21 @@ test.describe("Notification Journey", () => {
           },
         );
         expect(msg2Response.ok()).toBeTruthy();
+
+        // Wait for async notification queue to process both notifications
+        await expect
+          .poll(
+            async () => {
+              const res = await request.get(
+                `${API_BASE}/trips/${tripId}/notifications/unread-count`,
+                { headers: { cookie: memberCookie } },
+              );
+              const json = await res.json();
+              return json.count;
+            },
+            { timeout: NAVIGATION_TIMEOUT, message: "Waiting for 2 unread notifications" },
+          )
+          .toBe(2);
       });
 
       await test.step("authenticate as member and navigate to trip", async () => {
