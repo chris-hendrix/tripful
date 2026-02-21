@@ -15,6 +15,7 @@ node_modules/
 coverage/
 .nyc_output/
 *.lcov
+.playwright-cli/
 
 # Next.js
 .next/

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# pnpm requires CI=true in non-TTY environments (devcontainer up)
+export CI=true
+
 echo "[setup] Configuring Tripful devcontainer..."
 
 # Generate API .env only if it doesn't exist (preserves manual edits)

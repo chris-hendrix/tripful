@@ -37,24 +37,16 @@ Use **pnpm** (required for workspace features). Never use `npm` or `yarn`.
 ### Common Commands
 
 ```bash
-# Setup
+# Setup (host)
 pnpm install
-pnpm docker:up        # Start PostgreSQL
+pnpm docker:up        # Start PostgreSQL for local dev
 
-# Development
+# Development (host)
 pnpm dev              # Both servers (web:3000, api:8000)
 pnpm dev:web          # Frontend only
 pnpm dev:api          # Backend only
 
-# Quality Checks
-pnpm lint             # ESLint check
-pnpm format           # Prettier format
-pnpm typecheck        # TypeScript validation
-pnpm test             # All tests
-pnpm test:e2e         # Playwright E2E tests
-pnpm test:e2e:ui      # Playwright E2E tests with UI (port 9323)
-
-# Database (run from apps/api)
+# Database (host, from apps/api)
 cd apps/api
 pnpm db:generate      # Generate migration from schema changes
 pnpm db:migrate       # Run pending migrations
@@ -83,7 +75,56 @@ Required: `DATABASE_URL` and `JWT_SECRET` (minimum 32 characters).
 - **Unit tests** for new services/utilities (Vitest)
 - **Integration tests** for API endpoints (Vitest)
 - **E2E tests** for user flows (Playwright)
-- Tests must pass before merging (`pnpm test`)
+- Tests must pass before merging
+
+### Container-First Testing
+
+**All test, lint, and typecheck commands MUST run inside the devcontainer** via `make test-exec CMD="..."`. Never run these directly on the host. The devcontainer provides the correct Node, PostgreSQL, and Playwright browser versions.
+
+```bash
+# Container lifecycle
+make test-up                          # Start container (once per session, idempotent)
+make test-status                      # Check if container is running
+make test-down                        # Tear down when done
+
+# Run commands inside container
+make test-exec CMD="pnpm test"        # Unit/integration tests
+make test-exec CMD="pnpm test:e2e"    # E2E tests (Playwright)
+make test-run                         # Full suite (unit + E2E)
+make test-exec CMD="pnpm lint"        # Lint
+make test-exec CMD="pnpm typecheck"   # Type check
+make test-exec CMD="pnpm format"      # Prettier format
+```
+
+### Manual Testing (Playwright CLI)
+
+The devcontainer includes `playwright-cli` for interactive browser testing. Start the dev servers inside the container, then use CLI commands to navigate, interact, and screenshot. All `playwright-cli` commands require the config flag: `--config .devcontainer/playwright-cli.config.json`.
+
+```bash
+# Start dev servers inside container (background)
+make test-exec CMD="bash -c 'pnpm --filter @tripful/api dev & pnpm --filter @tripful/web dev & wait'"
+
+# Open browser and navigate (PW_CLI is a shorthand for the full command)
+PW_CLI="playwright-cli --config .devcontainer/playwright-cli.config.json"
+make test-exec CMD="$PW_CLI open http://localhost:3000"
+
+# See the page (returns accessibility tree with element refs)
+make test-exec CMD="$PW_CLI snapshot"
+
+# Interact with elements by ref from snapshot
+make test-exec CMD="$PW_CLI click e5"
+make test-exec CMD="$PW_CLI fill e1 'user@example.com'"
+make test-exec CMD="$PW_CLI press Enter"
+
+# Take a screenshot (saves to .playwright-cli/ in workspace)
+make test-exec CMD="$PW_CLI screenshot"
+
+# Save/restore auth state to skip login on subsequent runs
+make test-exec CMD="$PW_CLI state-save auth.json"
+make test-exec CMD="$PW_CLI state-load auth.json"
+```
+
+Auth is handled by navigating the UI — no hardcoded tokens. Use `snapshot` to read element refs, then `fill`/`click`/`press` to interact. Save auth state with `state-save` to reuse across sessions. Screenshots are saved to `.playwright-cli/` and can be viewed with the Read tool.
 
 ### Shared Code Pattern
 
@@ -123,7 +164,8 @@ Always export through barrel files (`index.ts`).
 
 ### Troubleshooting
 
-- **Database connection issues**: Verify PostgreSQL is running (`pnpm docker:up`)
+- **Devcontainer won't start**: Check `docker` and `devcontainer` CLI are installed (`make test-status` for diagnostics)
 - **Hot reload not working**: Check file watchers limit (Linux: `sysctl fs.inotify.max_user_watches`)
 - **Pre-commit hook fails**: Ensure Docker is running (GitGuardian uses Docker)
 - **Type errors in shared package**: Run `pnpm build` in `shared/` first
+- **Port conflicts**: Each directory gets an isolated container with random ports — use `make test-status` to see assigned ports

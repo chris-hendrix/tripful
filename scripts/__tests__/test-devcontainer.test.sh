@@ -1,6 +1,6 @@
 #!/bin/bash
-# Tests for devcontainer multi-branch setup
-# Validates configs, slug generation, and setup.sh idempotency
+# Tests for devcontainer setup
+# Validates configs, Makefile targets, and setup.sh idempotency
 
 # Colors
 RED='\033[0;31m'
@@ -291,38 +291,6 @@ else
 fi
 
 # ============================================================
-# Makefile slug generation
-# ============================================================
-
-echo ""
-echo "=== Makefile slug generation ==="
-
-test_slug() {
-    local input="$1"
-    local expected="$2"
-    local description="$3"
-
-    local actual
-    actual=$(echo "$input" | tr '/' '-' | tr '_' '-' | tr '[:upper:]' '[:lower:]' | cut -c1-60)
-
-    log_test "$description: '$input' -> '$expected'"
-    if [ "$actual" = "$expected" ]; then
-        log_pass
-    else
-        log_fail "got '$actual'"
-    fi
-}
-
-test_slug "feature/auth" "feature-auth" "slashes become dashes"
-test_slug "feature_auth" "feature-auth" "underscores become dashes"
-test_slug "Feature/Auth" "feature-auth" "uppercase to lowercase"
-test_slug "main" "main" "simple branch name unchanged"
-test_slug "fix/JIRA-123_update_login" "fix-jira-123-update-login" "mixed separators normalized"
-test_slug "a-very-long-branch-name-that-exceeds-the-sixty-character-limit-for-slugs" \
-          "a-very-long-branch-name-that-exceeds-the-sixty-character-lim" \
-          "truncated to 60 chars"
-
-# ============================================================
 # Makefile targets
 # ============================================================
 
@@ -336,7 +304,7 @@ else
     log_fail "file not found"
 fi
 
-for target in dev-up dev-down dev-exec dev-list dev-clean dev-shell dev-logs dev-restart; do
+for target in test-up test-down test-exec test-run test-status; do
     log_test "Makefile has '$target' target"
     if grep -q "^$target:" "$PROJECT_ROOT/Makefile"; then
         log_pass
@@ -348,7 +316,7 @@ done
 log_test "Makefile targets are declared in .PHONY"
 PHONY_LINE=$(grep "^\.PHONY:" "$PROJECT_ROOT/Makefile")
 MISSING_PHONY=""
-for target in dev-up dev-down dev-exec dev-list dev-clean dev-shell dev-logs dev-restart; do
+for target in test-up test-down test-exec test-run test-status; do
     if ! echo "$PHONY_LINE" | grep -q "$target"; then
         MISSING_PHONY="$MISSING_PHONY $target"
     fi
@@ -357,15 +325,6 @@ if [ -z "$MISSING_PHONY" ]; then
     log_pass
 else
     log_fail "missing from .PHONY:$MISSING_PHONY"
-fi
-
-log_test "dev-down uses single shell block (worktree cleanup always runs)"
-# A single shell block means only one line starting with tab+@ in the recipe
-RECIPE_STARTS=$(sed -n '/^dev-down:/,/^[^	 ]/p' "$PROJECT_ROOT/Makefile" | grep -cP '^\t@')
-if [ "$RECIPE_STARTS" -eq 1 ]; then
-    log_pass
-else
-    log_fail "expected 1 recipe block, found $RECIPE_STARTS — worktree cleanup may be skipped on docker stop failure"
 fi
 
 log_test "check-deps verifies devcontainer CLI"
