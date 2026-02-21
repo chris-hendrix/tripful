@@ -127,7 +127,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 4.4: Phase 4 cleanup
+- [x] Task 4.4: Phase 4 cleanup
   - Review: Read PROGRESS.md entries for Phase 4 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

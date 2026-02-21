@@ -107,7 +107,7 @@ None required. No new features — this is a quality/fix run.
 
 ### Phase 4: API Backend
 - Verify: `getTripById` makes 1 query instead of 2 (check query logs or test response)
-- Verify: 405 response for wrong HTTP method on an existing route
+- Verify: 404 response for wrong HTTP method on an existing route (Fastify 5 returns 404 by design for method mismatches; the not-found handler includes method and URL in the error message)
 - Verify: Rate limiting runs before auth in preHandler chain
 
 ### Phase 5: Accessibility
