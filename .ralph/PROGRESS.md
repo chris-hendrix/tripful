@@ -192,3 +192,41 @@ Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 - Phase cleanup tasks are valuable for catching documentation drift — the pre-existing failures list was 40% incomplete (missing 11 out of 19 failures)
 - The auth lockout expiry test is intermittently flaky (appeared in Task 1.4 but not in this run) — timing-sensitive tests may not reproduce every run
 - Phase 1 is fully complete with no outstanding issues — Phase 2 can proceed cleanly
+
+## Iteration 6 — Task 2.1: Standardize Radix UI imports to unified "radix-ui" package
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/select.tsx` | Changed `import * as SelectPrimitive from "@radix-ui/react-select"` to `import { Select as SelectPrimitive } from "radix-ui"` |
+| `apps/web/src/components/ui/label.tsx` | Changed `import * as LabelPrimitive from "@radix-ui/react-label"` to `import { Label as LabelPrimitive } from "radix-ui"` |
+| `apps/web/src/components/ui/dialog.tsx` | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"` |
+| `apps/web/src/components/ui/sheet.tsx` | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"` |
+| `apps/web/src/components/ui/badge.tsx` | Changed import to unified `radix-ui`, updated `Slot` to `Slot.Root` in component assignment |
+| `apps/web/src/components/ui/form.tsx` | Replaced two legacy imports with `import { type Label as LabelPrimitive, Slot } from "radix-ui"`, updated `Slot` to `Slot.Root` in type annotation and JSX |
+| `apps/web/package.json` | Removed 4 legacy `@radix-ui/react-*` dependencies (dialog, label, select, slot) |
+
+### Key Decisions
+
+- **Inline `type` keyword for LabelPrimitive**: In `form.tsx`, `LabelPrimitive` is only used in a `typeof` expression for type purposes, while `Slot` is used as a runtime value. Used inline `type` syntax (`{ type Label as LabelPrimitive, Slot }`) to satisfy `@typescript-eslint/consistent-type-imports` while keeping a single import statement.
+- **Slot → Slot.Root pattern**: The unified `radix-ui` package exports `Slot` as a namespace, not a component. Changed all `Slot` component usages to `Slot.Root`, matching the established pattern in `button.tsx` and `breadcrumb.tsx`.
+- **Legacy deps removed**: All 4 individual `@radix-ui/react-*` packages removed from `package.json` dependencies. They remain available as transitive dependencies of `radix-ui`.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages (initial round had 1 ESLint error for missing `type` keyword, fixed in second round)
+- **Tests**: All pass. 18 pre-existing failures (unchanged): daily-itineraries worker (10), app-header nav (5), URL validation dialogs (2), trip metadata (1). Auth lockout expiry test passed this run (flaky).
+- **Reviewer**: APPROVED after fix round — all 6 files correctly migrated, Slot.Root pattern correct, package.json clean
+
+### Learnings for Future Iterations
+
+- When merging a `type`-only import and a value import into one line, use inline `type` syntax: `import { type Foo, Bar } from "pkg"` — this satisfies `@typescript-eslint/consistent-type-imports`
+- The unified `radix-ui` package (v1.4.3) is a thin re-export layer: `export * as X from "@radix-ui/react-x"` — type compatibility is guaranteed since both resolve to the same `.d.ts` files
+- `Slot` from `radix-ui` is a namespace (`{ Root, Slot, Slottable, createSlot, createSlottable }`), not a component — always use `Slot.Root` after migration
+- When deleting lines from JSON files with the Edit tool, verify that adjacent lines retain proper indentation
+- Pre-existing test failure count: 18-19 depending on whether the flaky auth lockout expiry test triggers

@@ -42,7 +42,7 @@
 
 ## Phase 2: Component Library Standardization
 
-- [ ] Task 2.1: Standardize Radix UI imports to unified "radix-ui" package
+- [x] Task 2.1: Standardize Radix UI imports to unified "radix-ui" package
   - Implement: In `ui/select.tsx` — change `import * as SelectPrimitive from "@radix-ui/react-select"` to `import { Select as SelectPrimitive } from "radix-ui"`, update subcomponent references
   - Implement: In `ui/label.tsx` — change `import * as LabelPrimitive from "@radix-ui/react-label"` to `import { Label as LabelPrimitive } from "radix-ui"`, update subcomponent references
   - Implement: In `ui/badge.tsx` — change `import { Slot } from "@radix-ui/react-slot"` to `import { Slot } from "radix-ui"`, change `Slot` → `Slot.Root` in component
