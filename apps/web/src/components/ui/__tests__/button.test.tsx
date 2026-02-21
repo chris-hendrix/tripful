@@ -3,66 +3,66 @@ import { render, screen } from "@testing-library/react";
 import { Button, buttonVariants } from "../button";
 
 describe("buttonVariants", () => {
-  describe("size variants have mobile-first responsive classes", () => {
-    it("default size has h-11 mobile and sm:h-9 desktop", () => {
+  describe("size variants meet WCAG 2.5.8 minimum touch target (>=44px)", () => {
+    it("default size has h-11 without responsive shrink", () => {
       const classes = buttonVariants({ size: "default" });
       expect(classes).toContain("h-11");
-      expect(classes).toContain("sm:h-9");
+      expect(classes).not.toContain("sm:h-9");
     });
 
-    it("xs size has h-9 mobile and sm:h-6 desktop", () => {
+    it("xs size has h-9 without responsive shrink", () => {
       const classes = buttonVariants({ size: "xs" });
       expect(classes).toContain("h-9");
-      expect(classes).toContain("sm:h-6");
+      expect(classes).not.toContain("sm:h-6");
       expect(classes).toContain("px-3");
-      expect(classes).toContain("sm:px-2");
+      expect(classes).not.toContain("sm:px-2");
     });
 
-    it("sm size has h-11 mobile and sm:h-8 desktop", () => {
+    it("sm size has h-11 without responsive shrink", () => {
       const classes = buttonVariants({ size: "sm" });
       expect(classes).toContain("h-11");
-      expect(classes).toContain("sm:h-8");
+      expect(classes).not.toContain("sm:h-8");
     });
 
-    it("lg size has h-12 mobile and sm:h-10 desktop", () => {
+    it("lg size has h-12 without responsive shrink", () => {
       const classes = buttonVariants({ size: "lg" });
       expect(classes).toContain("h-12");
-      expect(classes).toContain("sm:h-10");
+      expect(classes).not.toContain("sm:h-10");
     });
 
-    it("icon size has size-11 mobile and sm:size-9 desktop", () => {
+    it("icon size has size-11 without responsive shrink", () => {
       const classes = buttonVariants({ size: "icon" });
       expect(classes).toContain("size-11");
-      expect(classes).toContain("sm:size-9");
+      expect(classes).not.toContain("sm:size-9");
     });
 
-    it("icon-xs size has size-9 mobile and sm:size-6 desktop", () => {
+    it("icon-xs size has size-9 without responsive shrink", () => {
       const classes = buttonVariants({ size: "icon-xs" });
       expect(classes).toContain("size-9");
-      expect(classes).toContain("sm:size-6");
+      expect(classes).not.toContain("sm:size-6");
     });
 
-    it("icon-sm size has size-11 mobile and sm:size-8 desktop", () => {
+    it("icon-sm size has size-11 without responsive shrink", () => {
       const classes = buttonVariants({ size: "icon-sm" });
       expect(classes).toContain("size-11");
-      expect(classes).toContain("sm:size-8");
+      expect(classes).not.toContain("sm:size-8");
     });
 
-    it("icon-lg size has size-12 mobile and sm:size-10 desktop", () => {
+    it("icon-lg size has size-12 without responsive shrink", () => {
       const classes = buttonVariants({ size: "icon-lg" });
       expect(classes).toContain("size-12");
-      expect(classes).toContain("sm:size-10");
+      expect(classes).not.toContain("sm:size-10");
     });
   });
 });
 
 describe("Button", () => {
-  it("renders with default responsive size classes", () => {
+  it("renders with fixed h-11 height (no responsive shrink)", () => {
     render(<Button>Click me</Button>);
 
     const button = screen.getByRole("button", { name: "Click me" });
     expect(button.className).toContain("h-11");
-    expect(button.className).toContain("sm:h-9");
+    expect(button.className).not.toContain("sm:h-9");
   });
 
   it("renders with the correct variant classes", () => {

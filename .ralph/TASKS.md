@@ -200,7 +200,7 @@
 
 ## Phase 7: Mobile & Responsive
 
-- [ ] Task 7.1: Fix touch targets, input heights, and checkbox/radio hit areas
+- [x] Task 7.1: Fix touch targets, input heights, and checkbox/radio hit areas
   - Implement: In `button.tsx` — fix `h-11 sm:h-9` pattern so touch targets stay ≥44px on all screen sizes (or ensure tap area with min-h)
   - Implement: In `input.tsx` — fix height scaling that shrinks from 44px to 36px on `sm:` breakpoint
   - Implement: In `checkbox.tsx:17` — add padding around 16px visual to create ≥44px touch area

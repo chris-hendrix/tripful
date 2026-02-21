@@ -24,15 +24,15 @@ const buttonVariants = cva(
           "bg-gradient-to-r from-primary to-accent text-white hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 font-medium",
       },
       size: {
-        default: "h-11 sm:h-9 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-9 sm:h-6 gap-1 rounded-md px-3 sm:px-2 text-xs has-[>svg]:px-2 sm:has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-11 sm:h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-12 sm:h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-11 sm:size-9",
-        "icon-xs":
-          "size-9 sm:size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-11 sm:size-8",
-        "icon-lg": "size-12 sm:size-10",
+        default: "h-11 px-4 py-2 has-[>svg]:px-3",
+        // xs/icon-xs: intentionally compact variants (36px) — consumers opt into smaller touch targets
+        xs: "h-9 gap-1 rounded-md px-3 text-xs has-[>svg]:px-2 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-11 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-12 rounded-md px-6 has-[>svg]:px-4",
+        icon: "size-11",
+        "icon-xs": "size-9 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-11",
+        "icon-lg": "size-12",
       },
     },
     defaultVariants: {

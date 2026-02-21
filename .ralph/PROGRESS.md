@@ -1108,3 +1108,46 @@ Reviewed all Phase 6 work (Tasks 6.1-6.3) across PROGRESS.md iterations 21-23:
 - **alertdialog scoping** is more robust than `.last()` for distinguishing between menu buttons and confirmation dialog buttons — Radix UI AlertDialog renders with `role="alertdialog"` which is distinct from regular `role="dialog"`.
 - **CSS selector "valid exceptions"** should be documented explicitly so reviewers and future developers understand why they remain.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-25)
+
+## Iteration 26 — Task 7.1: Fix touch targets, input heights, and checkbox/radio hit areas
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/button.tsx` | Removed all responsive `sm:` size overrides from CVA size variants that shrank touch targets below 44px. `default`/`sm`: `h-11` (44px). `lg`: `h-12` (48px). `icon`/`icon-sm`: `size-11` (44px). `icon-lg`: `size-12` (48px). `xs`/`icon-xs`: kept at `h-9`/`size-9` (36px) as intentionally compact variants with explanatory comment. |
+| `apps/web/src/components/ui/input.tsx` | Removed `sm:h-9` — input stays at `h-11` (44px) on all screen sizes |
+| `apps/web/src/components/ui/phone-input.tsx` | Removed `sm:h-9` from `InputField` subcomponent — consistent with input.tsx |
+| `apps/web/src/components/ui/checkbox.tsx` | Added `relative after:absolute after:content-[''] after:-inset-[14px]` to expand 16px visual to 44px touch target via invisible pseudo-element |
+| `apps/web/src/components/ui/radio-group.tsx` | Added same `after:` pseudo-element touch target expansion to `RadioGroupItem` |
+| `apps/web/src/components/ui/__tests__/button.test.tsx` | Updated all 8 size variant assertions to match new class values (13 tests) |
+| `apps/web/src/components/ui/__tests__/input.test.tsx` | Updated assertions: `h-11` present, `sm:h-9` absent (5 tests) |
+| `apps/web/src/components/ui/__tests__/checkbox.test.tsx` | NEW — tests data-slot, touch target classes, visual size preservation (3 tests) |
+| `apps/web/src/components/ui/__tests__/radio-group.test.tsx` | NEW — tests radio role, touch target classes, visual size preservation (3 tests) |
+
+### Key Decisions
+
+- **Remove responsive `sm:` size overrides rather than adding `min-h`**: Since `min-h-11` would make `sm:h-9` dead code anyway, removing the responsive overrides is cleaner. The visual effect is that buttons/inputs are consistently 44px tall across all viewports rather than shrinking on desktop.
+- **`after:` pseudo-element for checkbox/radio**: The `::after` pseudo-element with `absolute` positioning and `-inset-[14px]` creates a 44px hit area (16px + 14px × 2) without changing visual layout or document flow. This is the standard WCAG touch target expansion technique.
+- **`xs`/`icon-xs` remain at 36px with comment**: These are intentionally compact variants. The `h-11 sm:h-9` pattern fix targets variants that START at 44px but SHRINK below it. The xs variants were always below 44px — a developer consciously opts into them. A code comment documents this decision.
+- **`sm` and `icon-sm` bumped to 44px (h-11/size-11)**: Initially set to h-10/size-10 as a compromise, the reviewer correctly flagged these as still below 44px. Bumped to match the WCAG minimum.
+- **phone-input.tsx included**: Not in the task description explicitly, but has the identical `h-11 sm:h-9` pattern as input.tsx. Fixed for consistency.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 24/24 task-specific tests pass. 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep checks**: 0 `sm:h-*` or `sm:size-*` responsive overrides in button.tsx. 0 `sm:h-9` in input.tsx/phone-input.tsx. 1 `after:-inset-[14px]` each in checkbox.tsx and radio-group.tsx.
+- **Reviewer**: APPROVED after fix round (initial NEEDS_WORK for sm/icon-sm at 40px instead of 44px)
+
+### Learnings for Future Iterations
+
+- **`after:` pseudo-element touch target expansion**: `relative after:absolute after:content-[''] after:-inset-[Xpx]` is the standard WCAG 2.5.8 technique for expanding touch targets without affecting layout. The pseudo-element is transparent and captures click events because it's part of the element's DOM. Math: element size + inset × 2 = touch target.
+- **`min-h-` vs removing responsive overrides**: When `min-h-11` would make `sm:h-9` dead code, it's cleaner to just remove the responsive override. Dead CSS is confusing for future developers.
+- **Intentionally compact variants need documentation**: When a component provides variants that violate accessibility guidelines (xs at 36px), add a code comment explaining the design decision. This prevents future audits from flagging it and documents that consumers are explicitly opting in.
+- **Consumer-level overrides can reintroduce issues**: Some card components pass `className="h-9 sm:h-7"` to buttons, re-introducing responsive shrinking. This is out of scope for the component fix but worth noting for a future sweep.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-26)
