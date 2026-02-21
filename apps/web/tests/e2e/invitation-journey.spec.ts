@@ -15,6 +15,7 @@ import {
   DIALOG_TIMEOUT,
 } from "./helpers/timeouts";
 import { pickDateTime } from "./helpers/date-pickers";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Invitations & RSVP
@@ -76,14 +77,7 @@ test.describe("Invitation Journey", () => {
         await snap(page, "09-trip-detail-invite-button");
 
         // Dismiss any toast that might intercept the button click
-        const toastEl = page.locator("[data-sonner-toast]").first();
-        if (await toastEl.isVisible().catch(() => false)) {
-          await page.evaluate(() =>
-            document
-              .querySelectorAll("[data-sonner-toast]")
-              .forEach((el) => el.remove()),
-          );
-        }
+        await dismissToast(page);
 
         // Click "Invite" button in trip header
         const inviteButton = page
@@ -525,21 +519,7 @@ test.describe("Invitation Journey", () => {
       });
 
       // Dismiss toast before interacting with wizard elements
-      const toast = page.locator("[data-sonner-toast]").first();
-      if (await toast.isVisible().catch(() => false)) {
-        await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-        const hidden = await toast
-          .waitFor({ state: "hidden", timeout: 3000 })
-          .then(() => true)
-          .catch(() => false);
-        if (!hidden) {
-          await page.evaluate(() =>
-            document
-              .querySelectorAll("[data-sonner-toast]")
-              .forEach((el) => el.remove()),
-          );
-        }
-      }
+      await dismissToast(page);
 
       // Wait for the onboarding wizard to appear (dynamically imported)
       const dialog = page.getByRole("dialog");

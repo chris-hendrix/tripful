@@ -14,8 +14,8 @@ import { snap } from "./helpers/screenshots";
 import {
   NAVIGATION_TIMEOUT,
   ELEMENT_TIMEOUT,
-  TOAST_TIMEOUT,
 } from "./helpers/timeouts";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Messaging Flows
@@ -26,22 +26,6 @@ import {
  */
 
 const API_BASE = "http://localhost:8000/api";
-
-/** Helper: dismiss any visible Sonner toast so it does not intercept clicks. */
-async function dismissToast(page: import("@playwright/test").Page) {
-  const toast = page.locator("[data-sonner-toast]").first();
-  if (
-    await toast.isVisible().catch((e) => {
-      console.warn("dismissToast: isVisible check failed", e.message);
-      return false;
-    })
-  ) {
-    // Sheet close animations can leave the toaster in "expanded" mode (pausing
-    // auto-dismiss), so we trigger a mouseleave to unpause the timer.
-    await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-    await toast.waitFor({ state: "hidden", timeout: TOAST_TIMEOUT });
-  }
-}
 
 /** Helper: scroll to the discussion section and wait for it to be visible. */
 async function scrollToDiscussion(page: import("@playwright/test").Page) {

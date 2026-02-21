@@ -166,7 +166,7 @@
   - Test: Run E2E tests that use auth helpers — all must pass with new locators
   - Verify: `pnpm test:e2e` passes
 
-- [ ] Task 6.2: Refactor page objects, fix auto-wait patterns, and remove page.evaluate DOM manipulation
+- [x] Task 6.2: Refactor page objects, fix auto-wait patterns, and remove page.evaluate DOM manipulation
   - Implement: In `tests/e2e/helpers/pages/trip-detail.page.ts` — replace CSS selectors (`input[name="..."]`, `textarea[name="..."]`) with `getByLabel()` or `getByRole()`
   - Implement: Across all spec files — replace `.textContent()` polling loops with `await expect(el).toHaveText()`, `.isVisible()` checks with `await expect(el).toBeVisible()`
   - Implement: Replace `page.evaluate()` DOM manipulation (e.g., toast removal via `document.querySelectorAll`) with Playwright's built-in waiting/interaction methods

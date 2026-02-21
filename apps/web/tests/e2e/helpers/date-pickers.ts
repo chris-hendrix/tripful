@@ -28,7 +28,7 @@ async function navigateToMonth(
 
   for (let i = 0; i < 24; i++) {
     const captionText = await calendar
-      .locator('[role="status"]')
+      .getByRole('status')
       .textContent();
     if (captionText?.trim() === targetCaption) return;
 

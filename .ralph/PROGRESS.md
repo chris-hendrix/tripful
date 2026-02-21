@@ -903,3 +903,47 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 - Regex patterns for input names (`/phone/i`) provide flexibility for minor label changes while exact strings for buttons (`"Continue"`) enforce precise text matching — this dual pattern is a good convention
 - Pre-existing test failure count: 18 (stable across iterations 5-21)
 - Task 6.2 and 6.3 will address remaining CSS selectors in other E2E files (trip-detail.page.ts, itinerary-journey.spec.ts, etc.) and helper consolidation
+
+## Iteration 22 — Task 6.2: Refactor page objects, fix auto-wait patterns, and remove page.evaluate DOM manipulation
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/tests/e2e/helpers/pages/trip-detail.page.ts` | Replaced 3 CSS selector locators: `input[name="name"]` → `getByLabel(/trip name/i)`, `input[name="destination"]` → `getByLabel(/destination/i)`, `textarea[name="description"]` → `getByLabel(/description/i)` |
+| `apps/web/tests/e2e/helpers/toast.ts` | NEW — shared `dismissToast(page)` helper using `page.mouse.move(0, 0)` to unpause Sonner auto-dismiss + `expect(toasts).toHaveCount(0)` to wait for dismissal |
+| `apps/web/tests/e2e/helpers/trips.ts` | Replaced inline toast dismissal block (`.isVisible()` + `waitFor` + `page.evaluate` DOM removal) with `await dismissToast(page)` |
+| `apps/web/tests/e2e/helpers/date-pickers.ts` | Replaced `calendar.locator('[role="status"]')` CSS selector with `calendar.getByRole('status')` role-based locator |
+| `apps/web/tests/e2e/itinerary-journey.spec.ts` | Replaced `clickFabAction` toast block (`.isVisible()` + `dispatchEvent("mouseleave")` + `page.evaluate`) with `await dismissToast(page)` |
+| `apps/web/tests/e2e/invitation-journey.spec.ts` | Replaced 2 inline toast blocks with `await dismissToast(page)` — one using `.isVisible()` + `page.evaluate`, one using `dispatchEvent("mouseleave")` + `.isVisible()` + `page.evaluate` |
+| `apps/web/tests/e2e/messaging.spec.ts` | Removed local `dismissToast` function (`.isVisible()` + `dispatchEvent("mouseleave")` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import |
+| `apps/web/tests/e2e/notifications.spec.ts` | Removed local `dismissToast` function (`.isVisible()` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import |
+| `apps/web/tests/e2e/trip-journey.spec.ts` | Replaced inline toast dismissal block (`.isVisible()` + `waitFor`) with `await dismissToast(page)` (caught in fix round) |
+
+### Key Decisions
+
+- **Shared `dismissToast` helper**: Created a single reusable helper in `toast.ts` that consolidates 6 different inline toast dismissal patterns scattered across the codebase. The helper uses `page.mouse.move(0, 0)` (real user interaction) instead of `dispatchEvent("mouseleave")` (synthetic event), and `expect(toasts).toHaveCount(0)` (Playwright auto-retry assertion) instead of `page.evaluate()` DOM removal (manual DOM manipulation).
+- **Early return for no-toast case**: The helper counts existing toasts first and returns immediately if count is 0, avoiding unnecessary mouse-move and wait operations.
+- **`textContent()` in date-pickers.ts preserved**: The `.textContent()` call in the calendar month navigation loop is legitimate control flow (reading current month to decide navigation direction), not a polling assertion. Only the CSS selector was modernized to `getByRole('status')`.
+- **trip-journey.spec.ts fixed in second pass**: Initial implementation covered 6 of 7 toast dismissal locations. The 7th (in trip-journey.spec.ts) was caught by the verifier's grep check and fixed in a follow-up coder pass.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep verification**: 0 matches for `page.evaluate`, `dispatchEvent`, `.isVisible()` across all E2E files. 0 matches for `input[name=` or `textarea[name=` in trip-detail.page.ts.
+- **Reviewer**: APPROVED — all 9 files verified, clean implementation, all anti-patterns eliminated
+
+### Learnings for Future Iterations
+
+- Sonner pauses its auto-dismiss timer on mouse hover — `page.mouse.move(0, 0)` is the correct Playwright pattern to unpause it, replacing `dispatchEvent("mouseleave")` which is a synthetic event workaround
+- `expect(locator).toHaveCount(0)` is more robust than `waitFor({ state: "hidden" })` for toast dismissal because it handles both single and multiple toasts, and auto-retries
+- When replacing anti-patterns across "all spec files", always grep to verify 100% coverage — the initial pass missed 1 of 7 locations
+- `.textContent()` for control flow decisions (not assertions) is acceptable in Playwright — the goal is to replace polling assertions, not all textContent reads
+- CSS selectors `input[name="..."]` should always be replaced with `getByLabel()` when FormLabel components exist — the accessible name from the label is more resilient to refactoring than the `name` attribute
+- Pre-existing test failure count: 18 (stable across iterations 5-22)
+- Task 6.3 will consolidate remaining inline helpers and address broad `.or()` locator patterns

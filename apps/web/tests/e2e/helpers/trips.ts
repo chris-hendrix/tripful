@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { TripsPage, TripDetailPage } from "./pages";
 import { pickDate } from "./date-pickers";
+import { dismissToast } from "./toast";
 
 /** Create a trip via the UI and land on the trip detail page. */
 export async function createTrip(
@@ -15,21 +16,7 @@ export async function createTrip(
   const trips = new TripsPage(page);
 
   // Dismiss any Sonner toast that could intercept the FAB click
-  const toast = page.locator("[data-sonner-toast]").first();
-  if (await toast.isVisible().catch(() => false)) {
-    const hidden = await toast
-      .waitFor({ state: "hidden", timeout: 3000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!hidden) {
-      await page.evaluate(() =>
-        // eslint-disable-next-line no-undef
-        document
-          .querySelectorAll("[data-sonner-toast]")
-          .forEach((el) => el.remove()),
-      );
-    }
-  }
+  await dismissToast(page);
 
   // Ensure the FAB is visible and stable before clicking
   await trips.createTripButton.waitFor({ state: "visible", timeout: 10000 });

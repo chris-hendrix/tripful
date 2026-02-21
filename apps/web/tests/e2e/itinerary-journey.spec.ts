@@ -5,6 +5,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTrip } from "./helpers/trips";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -19,23 +20,7 @@ async function clickFabAction(
   actionName: string,
 ) {
   // Dismiss any Sonner toast so it doesn't intercept the click.
-  // The mouseleave approach to unpause auto-dismiss is unreliable in CI,
-  // so we forcibly remove toasts from the DOM as a fallback.
-  const toast = page.locator("[data-sonner-toast]").first();
-  if (await toast.isVisible().catch(() => false)) {
-    await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-    const hidden = await toast
-      .waitFor({ state: "hidden", timeout: 3000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!hidden) {
-      await page.evaluate(() =>
-        document
-          .querySelectorAll("[data-sonner-toast]")
-          .forEach((el) => el.remove()),
-      );
-    }
-  }
+  await dismissToast(page);
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
   if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {
