@@ -59,14 +59,14 @@ export async function loginViaBrowser(
 ): Promise<void> {
   await page.goto("/login");
 
-  const phoneInput = page.locator('input[type="tel"]');
+  const phoneInput = page.getByRole("textbox", { name: /phone/i });
   await phoneInput.fill(phone);
-  await page.locator('button:has-text("Continue")').click();
+  await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");
-  const codeInput = page.locator('input[type="text"]').first();
+  const codeInput = page.getByRole("textbox", { name: /verification code/i });
   await codeInput.fill("123456");
-  await page.locator('button:has-text("Verify")').click();
+  await page.getByRole("button", { name: "Verify" }).click();
 
   await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
 }
@@ -183,14 +183,14 @@ export async function authenticateUserViaBrowser(
 
   await page.goto("/login");
 
-  const phoneInput = page.locator('input[type="tel"]');
+  const phoneInput = page.getByRole("textbox", { name: /phone/i });
   await phoneInput.fill(phone);
-  await page.locator('button:has-text("Continue")').click();
+  await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");
-  const codeInput = page.locator('input[type="text"]').first();
+  const codeInput = page.getByRole("textbox", { name: /verification code/i });
   await codeInput.fill("123456");
-  await page.locator('button:has-text("Verify")').click();
+  await page.getByRole("button", { name: "Verify" }).click();
 
   await Promise.race([
     page.waitForURL("**/trips"),
@@ -199,9 +199,9 @@ export async function authenticateUserViaBrowser(
 
   const currentUrl = page.url();
   if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.locator('input[type="text"]').first();
+    const displayNameInput = page.getByRole("textbox", { name: /display name/i });
     await displayNameInput.fill(displayName);
-    await page.locator('button:has-text("Complete profile")').click();
+    await page.getByRole("button", { name: "Complete profile" }).click();
     await page.waitForURL("**/trips");
   }
 
@@ -219,14 +219,14 @@ export async function authenticateUserViaBrowserWithPhone(
 ): Promise<void> {
   await page.goto("/login");
 
-  const phoneInput = page.locator('input[type="tel"]');
+  const phoneInput = page.getByRole("textbox", { name: /phone/i });
   await phoneInput.fill(phone);
-  await page.locator('button:has-text("Continue")').click();
+  await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");
-  const codeInput = page.locator('input[type="text"]').first();
+  const codeInput = page.getByRole("textbox", { name: /verification code/i });
   await codeInput.fill("123456");
-  await page.locator('button:has-text("Verify")').click();
+  await page.getByRole("button", { name: "Verify" }).click();
 
   await Promise.race([
     page.waitForURL("**/trips"),
@@ -235,9 +235,9 @@ export async function authenticateUserViaBrowserWithPhone(
 
   const currentUrl = page.url();
   if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.locator('input[type="text"]').first();
+    const displayNameInput = page.getByRole("textbox", { name: /display name/i });
     await displayNameInput.fill(displayName);
-    await page.locator('button:has-text("Complete profile")').click();
+    await page.getByRole("button", { name: "Complete profile" }).click();
     await page.waitForURL("**/trips");
   }
 }

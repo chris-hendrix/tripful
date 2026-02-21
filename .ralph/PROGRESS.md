@@ -866,3 +866,40 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 - `aria-required="true"` count of 19 instances across 13 files is comprehensive coverage of all required form fields
 - Pre-existing test failure count: 18 (stable across iterations 5-20)
 - Phase 5 is fully complete with no outstanding issues -- Phase 6 can proceed cleanly
+
+## Iteration 21 — Task 6.1: Refactor auth helpers and login page to role-based locators
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/tests/e2e/helpers/auth.ts` | Replaced 16 CSS-selector-based locators across 3 functions (`loginViaBrowser`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) with role-based `getByRole` locators: `input[type="tel"]` → `getByRole("textbox", { name: /phone/i })`, `button:has-text("Continue")` → `getByRole("button", { name: "Continue" })`, `input[type="text"].first()` (code) → `getByRole("textbox", { name: /verification code/i })`, `button:has-text("Verify")` → `getByRole("button", { name: "Verify" })`, `input[type="text"].first()` (display name) → `getByRole("textbox", { name: /display name/i })`, `button:has-text("Complete profile")` → `getByRole("button", { name: "Complete profile" })` |
+| `apps/web/tests/e2e/helpers/pages/login.page.ts` | Replaced 2 generic `.first()` locators: `codeInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /verification code/i })`, `displayNameInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /display name/i })` |
+
+### Key Decisions
+
+- **Label-based accessible names for inputs**: Used regex patterns matching the `FormLabel` text in each UI component: `/phone/i` for "Phone number", `/verification code/i` for "Verification code", `/display name/i` for "Display name". These are resilient to minor label text changes while remaining specific enough to uniquely identify elements.
+- **Exact strings for button names**: Used exact string matching for button text ("Continue", "Verify", "Complete profile") since button text is stable and intentional. This contrasts with regex for input labels — a deliberate pattern matching the existing `login.page.ts` convention.
+- **Consistency between auth.ts and login.page.ts**: The locator patterns in auth.ts now exactly mirror those in login.page.ts, eliminating the inconsistency where the page object used role-based locators but the helper functions used CSS selectors.
+- **Two legitimate `.first()` remaining in auth.ts**: Lines 131 and 166 use `.first()` on `.or()` compound locators for post-auth page load verification — these are acceptable as they combine two possible heading locators.
+- **No code deduplication**: The 3 functions (`loginViaBrowser`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) still have duplicated locator logic. Deduplication (e.g., having the browser-auth functions call `loginViaBrowser`) is out of scope for this locator-modernization task and better suited for Task 6.3 (helper consolidation).
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep checks**: Zero instances of `locator('input[type=` or `locator('button:has-text` remain in auth.ts. Zero instances of `.first()` remain in login.page.ts. 20 `getByRole` instances in auth.ts and 9 in login.page.ts confirmed.
+- **Reviewer**: APPROVED — all requirements met, locators verified against actual UI labels, consistent patterns, no remaining anti-patterns
+
+### Learnings for Future Iterations
+
+- `input[type="tel"]` has implicit ARIA role `textbox` — `getByRole("textbox", { name: /phone/i })` works because the FormLabel "Phone number" is associated via `htmlFor`/`id` through shadcn FormControl's Slot mechanism
+- `.first()` on generic locators is fragile — always prefer `{ name: ... }` to uniquely identify elements by their accessible name rather than relying on DOM ordering
+- The auth.ts helper functions and login.page.ts page object had diverged in locator strategy — page objects were modernized but helpers weren't. Always keep both in sync.
+- Regex patterns for input names (`/phone/i`) provide flexibility for minor label changes while exact strings for buttons (`"Continue"`) enforce precise text matching — this dual pattern is a good convention
+- Pre-existing test failure count: 18 (stable across iterations 5-21)
+- Task 6.2 and 6.3 will address remaining CSS selectors in other E2E files (trip-detail.page.ts, itinerary-journey.spec.ts, etc.) and helper consolidation

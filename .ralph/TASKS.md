@@ -160,7 +160,7 @@
 
 ## Phase 6: E2E Test Modernization
 
-- [ ] Task 6.1: Refactor auth helpers and login page to role-based locators
+- [x] Task 6.1: Refactor auth helpers and login page to role-based locators
   - Implement: In `tests/e2e/helpers/auth.ts` — replace all CSS selectors (`input[type="tel"]`, `button:has-text()`, etc.) with role-based locators (`getByRole`, `getByLabel`)
   - Implement: In `tests/e2e/helpers/pages/login.page.ts` — fix `.first()` on `codeInput` with a specific locator, verify all other locators use role-based patterns
   - Test: Run E2E tests that use auth helpers — all must pass with new locators
