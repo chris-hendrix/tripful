@@ -173,7 +173,11 @@ export function useCreateMessage(tripId: string) {
         deletedAt: null,
         createdAt: now,
         updatedAt: now,
-        author: { id: "current-user", displayName: "You", profilePhotoUrl: null },
+        author: {
+          id: "current-user",
+          displayName: "You",
+          profilePhotoUrl: null,
+        },
         reactions: [],
         replies: [],
         replyCount: 0,
@@ -392,9 +396,7 @@ export function useEditMessage(tripId: string) {
  * @param error - Error from mutation
  * @returns User-friendly error message
  */
-export function getEditMessageErrorMessage(
-  error: Error | null,
-): string | null {
+export function getEditMessageErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {
@@ -455,101 +457,100 @@ interface DeleteMessageContext {
 export function useDeleteMessage(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    { success: true },
-    APIError,
-    string,
-    DeleteMessageContext
-  >({
-    mutationKey: messageKeys.delete(),
-    mutationFn: async (messageId: string) => {
-      return await apiRequest<{ success: true }>(
-        `/trips/${tripId}/messages/${messageId}`,
-        {
-          method: "DELETE",
-        },
-      );
-    },
-
-    // Optimistic update: Mark message as deleted in cache
-    onMutate: async (messageId) => {
-      await queryClient.cancelQueries({ queryKey: messageKeys.list(tripId) });
-      await queryClient.cancelQueries({ queryKey: messageKeys.count(tripId) });
-      await queryClient.cancelQueries({
-        queryKey: messageKeys.latest(tripId),
-      });
-
-      const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-        messageKeys.list(tripId),
-      );
-      const previousCount = queryClient.getQueryData<number>(
-        messageKeys.count(tripId),
-      );
-      const previousLatest = queryClient.getQueryData<Message | null>(
-        messageKeys.latest(tripId),
-      );
-
-      // Mark message as soft-deleted (set deletedAt, clear content)
-      if (previousMessages) {
-        const now = new Date().toISOString();
-        queryClient.setQueryData<GetMessagesResponse>(
-          messageKeys.list(tripId),
+  return useMutation<{ success: true }, APIError, string, DeleteMessageContext>(
+    {
+      mutationKey: messageKeys.delete(),
+      mutationFn: async (messageId: string) => {
+        return await apiRequest<{ success: true }>(
+          `/trips/${tripId}/messages/${messageId}`,
           {
-            ...previousMessages,
-            messages: previousMessages.messages.map((msg) => {
-              if (msg.id === messageId) {
-                return { ...msg, content: "", deletedAt: now };
-              }
-              // Also check replies
-              return {
-                ...msg,
-                replies: msg.replies.map((reply) =>
-                  reply.id === messageId
-                    ? { ...reply, content: "", deletedAt: now }
-                    : reply,
-                ),
-              };
-            }),
+            method: "DELETE",
           },
         );
-      }
+      },
 
-      return {
-        previousMessages: previousMessages || undefined,
-        previousCount,
-        previousLatest,
-      };
-    },
+      // Optimistic update: Mark message as deleted in cache
+      onMutate: async (messageId) => {
+        await queryClient.cancelQueries({ queryKey: messageKeys.list(tripId) });
+        await queryClient.cancelQueries({
+          queryKey: messageKeys.count(tripId),
+        });
+        await queryClient.cancelQueries({
+          queryKey: messageKeys.latest(tripId),
+        });
 
-    // On error: Rollback optimistic update
-    onError: (_error, _messageId, context) => {
-      if (context?.previousMessages) {
-        queryClient.setQueryData(
+        const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
           messageKeys.list(tripId),
-          context.previousMessages,
         );
-      }
-      if (context?.previousCount !== undefined) {
-        queryClient.setQueryData(
+        const previousCount = queryClient.getQueryData<number>(
           messageKeys.count(tripId),
-          context.previousCount,
         );
-      }
-      if (context?.previousLatest !== undefined) {
-        queryClient.setQueryData(
+        const previousLatest = queryClient.getQueryData<Message | null>(
           messageKeys.latest(tripId),
-          context.previousLatest,
         );
-      }
-    },
 
-    // Always invalidate queries after mutation settles (success or error)
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: messageKeys.list(tripId) });
-      queryClient.invalidateQueries({ queryKey: messageKeys.count(tripId) });
-      queryClient.invalidateQueries({ queryKey: messageKeys.latest(tripId) });
+        // Mark message as soft-deleted (set deletedAt, clear content)
+        if (previousMessages) {
+          const now = new Date().toISOString();
+          queryClient.setQueryData<GetMessagesResponse>(
+            messageKeys.list(tripId),
+            {
+              ...previousMessages,
+              messages: previousMessages.messages.map((msg) => {
+                if (msg.id === messageId) {
+                  return { ...msg, content: "", deletedAt: now };
+                }
+                // Also check replies
+                return {
+                  ...msg,
+                  replies: msg.replies.map((reply) =>
+                    reply.id === messageId
+                      ? { ...reply, content: "", deletedAt: now }
+                      : reply,
+                  ),
+                };
+              }),
+            },
+          );
+        }
+
+        return {
+          previousMessages: previousMessages || undefined,
+          previousCount,
+          previousLatest,
+        };
+      },
+
+      // On error: Rollback optimistic update
+      onError: (_error, _messageId, context) => {
+        if (context?.previousMessages) {
+          queryClient.setQueryData(
+            messageKeys.list(tripId),
+            context.previousMessages,
+          );
+        }
+        if (context?.previousCount !== undefined) {
+          queryClient.setQueryData(
+            messageKeys.count(tripId),
+            context.previousCount,
+          );
+        }
+        if (context?.previousLatest !== undefined) {
+          queryClient.setQueryData(
+            messageKeys.latest(tripId),
+            context.previousLatest,
+          );
+        }
+      },
+
+      // Always invalidate queries after mutation settles (success or error)
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: messageKeys.list(tripId) });
+        queryClient.invalidateQueries({ queryKey: messageKeys.count(tripId) });
+        queryClient.invalidateQueries({ queryKey: messageKeys.latest(tripId) });
+      },
     },
-  });
+  );
 }
 
 /**
@@ -736,7 +737,10 @@ function toggleReactionInList(
   }
 
   // New reaction not in list
-  return [...reactions, { emoji, count: 1, reacted: true, reactorNames: ["You"] }];
+  return [
+    ...reactions,
+    { emoji, count: 1, reacted: true, reactorNames: ["You"] },
+  ];
 }
 
 /**
@@ -836,9 +840,7 @@ export function usePinMessage(tripId: string) {
           {
             ...previousMessages,
             messages: previousMessages.messages.map((msg) =>
-              msg.id === messageId
-                ? { ...msg, isPinned: data.pinned }
-                : msg,
+              msg.id === messageId ? { ...msg, isPinned: data.pinned } : msg,
             ),
           },
         );
@@ -870,9 +872,7 @@ export function usePinMessage(tripId: string) {
  * @param error - Error from mutation
  * @returns User-friendly error message
  */
-export function getPinMessageErrorMessage(
-  error: Error | null,
-): string | null {
+export function getPinMessageErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {
@@ -937,9 +937,7 @@ export function useMuteMember(tripId: string) {
  * @param error - Error from mutation
  * @returns User-friendly error message
  */
-export function getMuteMemberErrorMessage(
-  error: Error | null,
-): string | null {
+export function getMuteMemberErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {

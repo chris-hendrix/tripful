@@ -64,8 +64,8 @@ test.describe("Auth Journey", () => {
       const cookies = await page.context().cookies();
       const authCookie = cookies.find((c) => c.name === "auth_token");
       expect(authCookie).toBeDefined();
-      expect(authCookie?.httpOnly).toBe(true);
-      expect(authCookie?.value).toBeTruthy();
+      expect.soft(authCookie?.httpOnly).toBe(true);
+      expect.soft(authCookie?.value).toBeTruthy();
     });
 
     await test.step("logout clears session and redirects", async () => {

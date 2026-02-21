@@ -166,10 +166,7 @@ export default function CompleteProfilePage() {
 
           {/* Photo Upload Section */}
           <div className="flex flex-col items-center gap-3">
-            <Avatar
-              className="size-20 text-xl"
-              data-testid="profile-avatar"
-            >
+            <Avatar className="size-20 text-xl" data-testid="profile-avatar">
               {photoPreview && (
                 <AvatarImage src={photoPreview} alt="Profile photo preview" />
               )}

@@ -174,9 +174,7 @@ export const EventCard = memo(function EventCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                {event.location}
-              </span>
+              <span>{event.location}</span>
             </a>
           )}
 

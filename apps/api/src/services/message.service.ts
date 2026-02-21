@@ -240,10 +240,8 @@ export class MessageService implements IMessageService {
               messageId: messageReactions.messageId,
               emoji: messageReactions.emoji,
               count: count(),
-              reacted:
-                sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
-              reactorNames:
-                sql<string[]>`array_agg(${users.displayName})`,
+              reacted: sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
+              reactorNames: sql<string[]>`array_agg(${users.displayName})`,
             })
             .from(messageReactions)
             .leftJoin(users, eq(messageReactions.userId, users.id))
@@ -817,8 +815,7 @@ export class MessageService implements IMessageService {
         emoji: messageReactions.emoji,
         count: count(),
         reacted: sql<boolean>`bool_or(${messageReactions.userId} = ${userId})`,
-        reactorNames:
-          sql<string[]>`array_agg(${users.displayName})`,
+        reactorNames: sql<string[]>`array_agg(${users.displayName})`,
       })
       .from(messageReactions)
       .leftJoin(users, eq(messageReactions.userId, users.id))

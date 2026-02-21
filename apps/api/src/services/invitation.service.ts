@@ -526,7 +526,11 @@ export class InvitationService implements IInvitationService {
     // Update member status
     await this.db
       .update(members)
-      .set({ status, ...(sharePhone !== undefined ? { sharePhone } : {}), updatedAt: new Date() })
+      .set({
+        status,
+        ...(sharePhone !== undefined ? { sharePhone } : {}),
+        updatedAt: new Date(),
+      })
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)));
 
     // Create default notification preferences when RSVP changes to "going"
@@ -534,7 +538,10 @@ export class InvitationService implements IInvitationService {
       try {
         await this.notificationService.createDefaultPreferences(userId, tripId);
       } catch (err) {
-        this.logger?.error(err, "Failed to create default notification preferences");
+        this.logger?.error(
+          err,
+          "Failed to create default notification preferences",
+        );
       }
     }
 
@@ -685,9 +692,10 @@ export class InvitationService implements IInvitationService {
     }
 
     // Filter members for non-organizers when showAllMembers is off
-    const filteredResults = (!isOrg && !tripSettings[0]?.showAllMembers)
-      ? results.filter(r => r.status === "going" || r.status === "maybe")
-      : results;
+    const filteredResults =
+      !isOrg && !tripSettings[0]?.showAllMembers
+        ? results.filter((r) => r.status === "going" || r.status === "maybe")
+        : results;
 
     return filteredResults.map((r) => ({
       id: r.id,
@@ -695,7 +703,7 @@ export class InvitationService implements IInvitationService {
       displayName: r.displayName,
       profilePhotoUrl: r.profilePhotoUrl,
       handles: r.handles ?? null,
-      ...((isOrg || r.sharePhone) ? { phoneNumber: r.phoneNumber } : {}),
+      ...(isOrg || r.sharePhone ? { phoneNumber: r.phoneNumber } : {}),
       status: r.status,
       isOrganizer: r.isOrganizer,
       ...(isOrg ? { isMuted: mutedUserIds.has(r.userId) } : {}),

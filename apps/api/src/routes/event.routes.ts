@@ -32,9 +32,7 @@ const eventIdParamsSchema = z.object({
 
 // Query string schema for listing events
 const listEventsQuerySchema = z.object({
-  type: z
-    .enum(["travel", "meal", "activity"])
-    .optional(),
+  type: z.enum(["travel", "meal", "activity"]).optional(),
   includeDeleted: z
     .string()
     .transform((val) => val === "true")

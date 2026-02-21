@@ -24,15 +24,15 @@ A messaging and notification system for Tripful that enables trip members to com
 
 ## Terminology
 
-| Term                        | Definition                                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Message**                 | A text post in a trip's discussion feed                                                             |
-| **Reply**                   | A response to a top-level message (flat threading, not nested)                                      |
-| **Reaction**                | An emoji response to a message from a predefined set                                                |
-| **Notification**            | An in-app alert about trip activity (event reminder, daily itinerary, new message)                  |
-| **Notification Preferences** | Per-trip toggles controlling which notification types a member receives (in-app + SMS)              |
-| **Pinned Message**          | A message promoted to the top of the feed by an organizer                                           |
-| **Muted Member**            | A member blocked from posting messages by an organizer                                              |
+| Term                         | Definition                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| **Message**                  | A text post in a trip's discussion feed                                                |
+| **Reply**                    | A response to a top-level message (flat threading, not nested)                         |
+| **Reaction**                 | An emoji response to a message from a predefined set                                   |
+| **Notification**             | An in-app alert about trip activity (event reminder, daily itinerary, new message)     |
+| **Notification Preferences** | Per-trip toggles controlling which notification types a member receives (in-app + SMS) |
+| **Pinned Message**           | A message promoted to the top of the feed by an organizer                              |
+| **Muted Member**             | A member blocked from posting messages by an organizer                                 |
 
 ## Core User Flows
 

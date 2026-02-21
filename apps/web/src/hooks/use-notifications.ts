@@ -130,12 +130,7 @@ interface MarkAsReadContext {
 export function useMarkAsRead() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    { success: true },
-    APIError,
-    string,
-    MarkAsReadContext
-  >({
+  return useMutation<{ success: true }, APIError, string, MarkAsReadContext>({
     mutationKey: notificationKeys.markRead(),
     mutationFn: async (notificationId: string) => {
       return await apiRequest<{ success: true }>(
@@ -252,9 +247,7 @@ export function useMarkAsRead() {
  * @param error - Error from mutation
  * @returns User-friendly error message or null if no error
  */
-export function getMarkAsReadErrorMessage(
-  error: Error | null,
-): string | null {
+export function getMarkAsReadErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {
@@ -367,10 +360,7 @@ export function useMarkAllAsRead() {
           0,
         );
       } else {
-        queryClient.setQueryData<number>(
-          notificationKeys.unreadCount(),
-          0,
-        );
+        queryClient.setQueryData<number>(notificationKeys.unreadCount(), 0);
       }
 
       // Optimistically set readAt on all unread notifications in list caches
@@ -401,10 +391,7 @@ export function useMarkAllAsRead() {
           context.previousUnreadCount,
         );
       }
-      if (
-        params?.tripId &&
-        context?.previousTripUnreadCount !== undefined
-      ) {
+      if (params?.tripId && context?.previousTripUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.tripUnreadCount(params.tripId),
           context.previousTripUnreadCount,
@@ -500,14 +487,13 @@ export function useUpdateNotificationPreferences(tripId: string) {
   >({
     mutationKey: notificationKeys.updatePreferences(),
     mutationFn: async (data) => {
-      const response =
-        await apiRequest<UpdateNotificationPreferencesResponse>(
-          `/trips/${tripId}/notification-preferences`,
-          {
-            method: "PUT",
-            body: JSON.stringify(data),
-          },
-        );
+      const response = await apiRequest<UpdateNotificationPreferencesResponse>(
+        `/trips/${tripId}/notification-preferences`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        },
+      );
       return response;
     },
 

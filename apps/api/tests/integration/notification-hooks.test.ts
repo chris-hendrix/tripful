@@ -178,9 +178,7 @@ describe("Notification Hooks", () => {
         .returning();
 
       // Clear any existing notifications for this trip
-      await db
-        .delete(notifications)
-        .where(eq(notifications.tripId, trip.id));
+      await db.delete(notifications).where(eq(notifications.tripId, trip.id));
 
       const tokenB = app.jwt.sign({
         sub: userB.id,

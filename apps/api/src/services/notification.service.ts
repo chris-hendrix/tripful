@@ -133,7 +133,10 @@ export class NotificationService implements INotificationService {
     const [counts] = await this.db
       .select({
         total: count(),
-        unread: sql<number>`count(case when ${notifications.readAt} is null then 1 end)`.mapWith(Number),
+        unread:
+          sql<number>`count(case when ${notifications.readAt} is null then 1 end)`.mapWith(
+            Number,
+          ),
       })
       .from(notifications)
       .where(and(...conditions));

@@ -422,9 +422,7 @@ describe("CreateMemberTravelDialog", () => {
       );
 
       expect(
-        screen.queryByText(
-          "As organizer, you can add travel for any member",
-        ),
+        screen.queryByText("As organizer, you can add travel for any member"),
       ).toBeNull();
     });
 

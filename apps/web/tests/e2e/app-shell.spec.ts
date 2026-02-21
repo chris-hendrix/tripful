@@ -39,14 +39,14 @@ test.describe("App Shell", () => {
       await test.step("user menu opens with profile and logout", async () => {
         await trips.openUserMenu();
         await expect(trips.profileItem).toBeVisible({ timeout: 10000 });
-        await expect(trips.logoutItem).toBeVisible();
-        await expect(page.getByText("Test User")).toBeVisible();
+        await expect.soft(trips.logoutItem).toBeVisible();
+        await expect.soft(page.getByText("Test User")).toBeVisible();
       });
 
       await test.step("skip link exists and targets main content", async () => {
         const skipLink = page.locator('a[href="#main-content"]');
         await expect(skipLink).toHaveCount(1);
-        await expect(skipLink).toHaveText("Skip to main content");
+        await expect.soft(skipLink).toHaveText("Skip to main content");
       });
     },
   );

@@ -108,9 +108,7 @@ export const AccommodationCard = memo(function AccommodationCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="">
-                {accommodation.address}
-              </span>
+              <span className="">{accommodation.address}</span>
             </a>
           )}
 

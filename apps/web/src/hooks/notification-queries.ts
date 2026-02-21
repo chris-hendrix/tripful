@@ -13,8 +13,12 @@ import type {
 export const notificationKeys = {
   all: ["notifications"] as const,
   lists: () => ["notifications", "list"] as const,
-  list: (params?: { tripId?: string; page?: number; limit?: number; unreadOnly?: boolean }) =>
-    ["notifications", "list", params] as const,
+  list: (params?: {
+    tripId?: string;
+    page?: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  }) => ["notifications", "list", params] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
   tripUnreadCount: (tripId: string) =>
     ["notifications", "unread-count", tripId] as const,
@@ -114,11 +118,10 @@ export const notificationPreferencesQueryOptions = (tripId: string) =>
     queryKey: notificationKeys.preferences(tripId),
     staleTime: 60 * 1000,
     queryFn: async ({ signal }) => {
-      const response =
-        await apiRequest<GetNotificationPreferencesResponse>(
-          `/trips/${tripId}/notification-preferences`,
-          { signal },
-        );
+      const response = await apiRequest<GetNotificationPreferencesResponse>(
+        `/trips/${tripId}/notification-preferences`,
+        { signal },
+      );
       return response.preferences;
     },
     enabled: !!tripId,

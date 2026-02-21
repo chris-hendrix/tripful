@@ -53,10 +53,7 @@ describe("calculateNights", () => {
 
   it("calculates nights from ISO datetime strings", () => {
     expect(
-      calculateNights(
-        "2026-07-15T14:00:00.000Z",
-        "2026-07-20T11:00:00.000Z",
-      ),
+      calculateNights("2026-07-15T14:00:00.000Z", "2026-07-20T11:00:00.000Z"),
     ).toBe(5);
   });
 

@@ -56,7 +56,10 @@ export function NotificationBell() {
           </span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[380px] p-0" align="end">
+      <PopoverContent
+        className="w-[calc(100vw-2rem)] sm:w-[380px] p-0"
+        align="end"
+      >
         <Suspense fallback={null}>
           <ErrorBoundary>
             <NotificationDropdown onClose={() => setOpen(false)} />

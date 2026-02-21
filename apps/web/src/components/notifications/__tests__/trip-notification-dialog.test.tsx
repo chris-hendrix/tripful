@@ -22,9 +22,7 @@ vi.mock("@/hooks/use-notifications", () => ({
 
 import { TripNotificationDialog } from "../trip-notification-dialog";
 
-function makeNotification(
-  overrides: Partial<Notification> = {},
-): Notification {
+function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
     id: "notif-1",
     userId: "user-1",
@@ -72,9 +70,7 @@ describe("TripNotificationDialog", () => {
 
     render(<TripNotificationDialog {...defaultProps} />);
 
-    expect(
-      screen.getByText("No notifications for this trip"),
-    ).toBeDefined();
+    expect(screen.getByText("No notifications for this trip")).toBeDefined();
   });
 
   it("shows loading state and hides notification content", () => {
@@ -86,9 +82,7 @@ describe("TripNotificationDialog", () => {
     render(<TripNotificationDialog {...defaultProps} />);
 
     // When loading, should not show empty state or notification items
-    expect(
-      screen.queryByText("No notifications for this trip"),
-    ).toBeNull();
+    expect(screen.queryByText("No notifications for this trip")).toBeNull();
     expect(screen.queryByText("Mark all as read")).toBeNull();
 
     // Dialog title should still be visible
@@ -138,9 +132,7 @@ describe("TripNotificationDialog", () => {
   it('hides "Mark all as read" when all are read', () => {
     mockUseNotifications.mockReturnValue({
       data: {
-        notifications: [
-          makeNotification({ readAt: "2026-01-01T00:00:00Z" }),
-        ],
+        notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       },

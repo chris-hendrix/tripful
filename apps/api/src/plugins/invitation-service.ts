@@ -21,6 +21,12 @@ export default fp(
   {
     name: "invitation-service",
     fastify: "5.x",
-    dependencies: ["database", "permissions-service", "sms-service", "notification-service", "queue"],
+    dependencies: [
+      "database",
+      "permissions-service",
+      "sms-service",
+      "notification-service",
+      "queue",
+    ],
   },
 );

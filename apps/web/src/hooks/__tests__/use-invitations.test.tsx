@@ -803,10 +803,7 @@ describe("useUpdateMemberRole", () => {
     const { apiRequest } = await import("@/lib/api");
     vi.mocked(apiRequest).mockResolvedValueOnce({ success: true });
 
-    queryClient.setQueryData(
-      ["invitations", "list", "trip-123"],
-      [],
-    );
+    queryClient.setQueryData(["invitations", "list", "trip-123"], []);
     queryClient.setQueryData(["members", "list", "trip-123"], mockMembers);
     queryClient.setQueryData(["trips", "trip-123"], {});
     queryClient.setQueryData(["trips"], []);

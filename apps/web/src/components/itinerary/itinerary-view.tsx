@@ -4,8 +4,14 @@ import { useMemo, useState } from "react";
 import { AlertCircle, CalendarX, Lock, Trash2 } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useEvents, useEventsWithDeleted } from "@/hooks/use-events";
-import { useAccommodations, useAccommodationsWithDeleted } from "@/hooks/use-accommodations";
-import { useMemberTravels, useMemberTravelsWithDeleted } from "@/hooks/use-member-travel";
+import {
+  useAccommodations,
+  useAccommodationsWithDeleted,
+} from "@/hooks/use-accommodations";
+import {
+  useMemberTravels,
+  useMemberTravelsWithDeleted,
+} from "@/hooks/use-member-travel";
 import { useMembers } from "@/hooks/use-invitations";
 import { useTripDetail } from "@/hooks/use-trips";
 import { Button } from "@/components/ui/button";
@@ -268,13 +274,16 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 pt-4 pb-4">
-        {onAddTravel && !isLocked && currentMember && trip?.userRsvpStatus === "going" && (
-          <TravelReminderBanner
-            tripId={tripId}
-            memberId={currentMember.id}
-            onAddTravel={onAddTravel}
-          />
-        )}
+        {onAddTravel &&
+          !isLocked &&
+          currentMember &&
+          trip?.userRsvpStatus === "going" && (
+            <TravelReminderBanner
+              tripId={tripId}
+              memberId={currentMember.id}
+              onAddTravel={onAddTravel}
+            />
+          )}
         {isLocked && (
           <div className="bg-muted/50 border border-border rounded-xl p-4 text-center text-sm text-muted-foreground mb-6">
             <Lock className="w-4 h-4 inline mr-2" />

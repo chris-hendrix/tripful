@@ -34,7 +34,11 @@ import {
 const permissionsService = new PermissionsService(db);
 const smsService = new MockSMSService();
 const notificationService = new NotificationService(db, smsService);
-const messageService = new MessageService(db, permissionsService, notificationService);
+const messageService = new MessageService(
+  db,
+  permissionsService,
+  notificationService,
+);
 
 describe("message.service", () => {
   let testOrganizerPhone: string;
@@ -63,8 +67,12 @@ describe("message.service", () => {
           .where(eq(messageReactions.messageId, msg.id));
       }
 
-      await db.delete(notifications).where(eq(notifications.tripId, testTripId));
-      await db.delete(notificationPreferences).where(eq(notificationPreferences.tripId, testTripId));
+      await db
+        .delete(notifications)
+        .where(eq(notifications.tripId, testTripId));
+      await db
+        .delete(notificationPreferences)
+        .where(eq(notificationPreferences.tripId, testTripId));
       await db.delete(messages).where(eq(messages.tripId, testTripId));
       await db.delete(mutedMembers).where(eq(mutedMembers.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));
@@ -292,7 +300,9 @@ describe("message.service", () => {
 
       const failingNotificationService = {
         ...notificationService,
-        notifyTripMembers: vi.fn().mockRejectedValue(new Error("Notification failed")),
+        notifyTripMembers: vi
+          .fn()
+          .mockRejectedValue(new Error("Notification failed")),
       } as unknown as typeof notificationService;
 
       const serviceWithLogger = new MessageService(
@@ -940,11 +950,7 @@ describe("message.service", () => {
 
     it("should throw NotMutedError if member is not muted", async () => {
       await expect(
-        messageService.unmuteMember(
-          testTripId,
-          testMemberId,
-          testOrganizerId,
-        ),
+        messageService.unmuteMember(testTripId, testMemberId, testOrganizerId),
       ).rejects.toThrow(NotMutedError);
     });
 

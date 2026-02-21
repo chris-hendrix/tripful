@@ -30,7 +30,10 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const notifications = data?.notifications ?? [];
   const totalCount = data?.meta?.total ?? 0;
   const hasMore = notifications.length < totalCount;
-  const hasUnread = useMemo(() => notifications.some((n) => n.readAt === null), [notifications]);
+  const hasUnread = useMemo(
+    () => notifications.some((n) => n.readAt === null),
+    [notifications],
+  );
 
   // Extract tripId from pathname when on a trip detail page
   const tripPageMatch = pathname.match(TRIP_PAGE_REGEX);

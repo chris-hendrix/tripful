@@ -159,7 +159,9 @@ describe("TravelReminderBanner", () => {
   it("Add Travel Details button calls onAddTravel", async () => {
     const user = userEvent.setup();
     const onAddTravel = vi.fn();
-    render(<TravelReminderBanner {...defaultProps} onAddTravel={onAddTravel} />);
+    render(
+      <TravelReminderBanner {...defaultProps} onAddTravel={onAddTravel} />,
+    );
 
     await user.click(screen.getByText("Add Travel Details"));
 

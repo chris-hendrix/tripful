@@ -1,8 +1,5 @@
 import type { Job } from "pg-boss";
-import type {
-  NotificationDeliverPayload,
-  WorkerDeps,
-} from "@/queues/types.js";
+import type { NotificationDeliverPayload, WorkerDeps } from "@/queues/types.js";
 
 export async function handleNotificationDeliver(
   job: Job<NotificationDeliverPayload>,

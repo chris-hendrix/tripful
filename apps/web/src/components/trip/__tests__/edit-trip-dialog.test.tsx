@@ -862,9 +862,7 @@ describe("EditTripDialog", () => {
       expect(
         screen.getByLabelText(/allow members to add events/i),
       ).toBeDefined();
-      expect(
-        screen.getByLabelText(/show all invited members/i),
-      ).toBeDefined();
+      expect(screen.getByLabelText(/show all invited members/i)).toBeDefined();
     });
 
     it("has aria-invalid attribute on invalid fields", async () => {

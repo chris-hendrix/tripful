@@ -229,8 +229,18 @@ export function DayByDayView({
               key={`acc-${acc.id}-${day.date}`}
               accommodation={acc}
               timezone={timezone}
-              canEdit={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
-              canDelete={canModifyAccommodation(acc, userId, isOrganizer, isLocked)}
+              canEdit={canModifyAccommodation(
+                acc,
+                userId,
+                isOrganizer,
+                isLocked,
+              )}
+              canDelete={canModifyAccommodation(
+                acc,
+                userId,
+                isOrganizer,
+                isLocked,
+              )}
               onEdit={handleEditAccommodation}
               onDelete={handleEditAccommodation}
               createdByName={userNameMap.get(acc.createdBy)}
@@ -266,11 +276,19 @@ export function DayByDayView({
         day.events
           .filter((e) => !e.allDay)
           .forEach((event) => {
-            timedItems.push({ kind: "event", time: new Date(event.startTime).getTime(), event });
+            timedItems.push({
+              kind: "event",
+              time: new Date(event.startTime).getTime(),
+              event,
+            });
           });
 
         [...day.arrivals, ...day.departures].forEach((travel) => {
-          timedItems.push({ kind: "travel", time: new Date(travel.time).getTime(), travel });
+          timedItems.push({
+            kind: "travel",
+            time: new Date(travel.time).getTime(),
+            travel,
+          });
         });
 
         timedItems.sort((a, b) => a.time - b.time);
@@ -283,8 +301,18 @@ export function DayByDayView({
                 key={item.event.id}
                 event={item.event}
                 timezone={timezone}
-                canEdit={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
-                canDelete={canModifyEvent(item.event, userId, isOrganizer, isLocked)}
+                canEdit={canModifyEvent(
+                  item.event,
+                  userId,
+                  isOrganizer,
+                  isLocked,
+                )}
+                canDelete={canModifyEvent(
+                  item.event,
+                  userId,
+                  isOrganizer,
+                  isLocked,
+                )}
                 onEdit={handleEditEvent}
                 onDelete={handleEditEvent}
                 createdByName={userNameMap.get(item.event.createdBy)}
@@ -298,8 +326,18 @@ export function DayByDayView({
                 memberTravel={item.travel}
                 memberName={item.travel.memberName || "Unknown member"}
                 timezone={timezone}
-                canEdit={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
-                canDelete={canModifyMemberTravel(item.travel, userId, isOrganizer, isLocked)}
+                canEdit={canModifyMemberTravel(
+                  item.travel,
+                  userId,
+                  isOrganizer,
+                  isLocked,
+                )}
+                canDelete={canModifyMemberTravel(
+                  item.travel,
+                  userId,
+                  isOrganizer,
+                  isLocked,
+                )}
                 onEdit={handleEditMemberTravel}
                 onDelete={handleEditMemberTravel}
               />,

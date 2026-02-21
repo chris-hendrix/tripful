@@ -174,7 +174,7 @@
   - Test: Run affected E2E tests
   - Verify: `pnpm test:e2e` passes
 
-- [ ] Task 6.3: Consolidate helpers, add expect.soft(), and fix broad .or() locators
+- [x] Task 6.3: Consolidate helpers, add expect.soft(), and fix broad .or() locators
   - Implement: Move inline helper functions from spec files to shared helper files in `tests/e2e/helpers/`
   - Implement: Identify non-critical assertions and convert to `expect.soft()` where failure shouldn't abort the test
   - Implement: Replace overly broad `.or()` locator chains with more specific single locators

@@ -1,7 +1,6 @@
 import type { APIRequestContext } from "@playwright/test";
 import { createUserViaAPI } from "./auth";
-
-const API_BASE = "http://localhost:8000/api";
+import { API_BASE } from "./timeouts";
 
 /**
  * Create a trip via API.

@@ -151,230 +151,232 @@ export function EditMemberTravelDialog({
         </SheetHeader>
 
         <SheetBody>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
-          >
-            {/* Travel Type */}
-            <FormField
-              control={form.control}
-              name="travelType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    Travel type
-                    <span className="text-destructive ml-1">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <div
-                      className="flex gap-4"
-                      role="radiogroup"
-                      aria-label="Travel type"
-                      aria-required="true"
-                    >
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          value="arrival"
-                          checked={field.value === "arrival"}
-                          onChange={() => field.onChange("arrival")}
-                          disabled={isPending || isDeleting}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">Arrival</span>
-                      </label>
-                      <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          value="departure"
-                          checked={field.value === "departure"}
-                          onChange={() => field.onChange("departure")}
-                          disabled={isPending || isDeleting}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">Departure</span>
-                      </label>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Timezone */}
-            <div>
-              <label className="text-base font-semibold text-foreground">
-                Timezone
-              </label>
-              <Select
-                value={selectedTimezone}
-                onValueChange={setSelectedTimezone}
-                disabled={isPending || isDeleting}
-              >
-                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time */}
-            <FormField
-              control={form.control}
-              name="time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    {travelTypeLabel} time
-                    <span className="text-destructive ml-1">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <DateTimePicker
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      timezone={selectedTimezone}
-                      placeholder="Select date & time"
-                      aria-label="Travel time"
-                      disabled={isPending || isDeleting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Location */}
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    {travelTypeLabel} location
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Miami International Airport (MIA)"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                      disabled={isPending || isDeleting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-sm text-muted-foreground">
-                    Optional: Airport, station, or meeting point
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Details */}
-            <FormField
-              control={form.control}
-              name="details"
-              render={({ field }) => {
-                const charCount = field.value?.length || 0;
-                const showCounter = charCount >= 400;
-
-                return (
-                  <FormItem>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-6"
+            >
+              {/* Travel Type */}
+              <FormField
+                control={form.control}
+                name="travelType"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Details
+                      Travel type
+                      <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Flight number, terminal, or other relevant details..."
-                        className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
-                        disabled={isPending || isDeleting}
-                        {...field}
+                      <div
+                        className="flex gap-4"
+                        role="radiogroup"
+                        aria-label="Travel type"
+                        aria-required="true"
+                      >
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            value="arrival"
+                            checked={field.value === "arrival"}
+                            onChange={() => field.onChange("arrival")}
+                            disabled={isPending || isDeleting}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm font-medium">Arrival</span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            value="departure"
+                            checked={field.value === "departure"}
+                            onChange={() => field.onChange("departure")}
+                            disabled={isPending || isDeleting}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm font-medium">Departure</span>
+                        </label>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Timezone */}
+              <div>
+                <label className="text-base font-semibold text-foreground">
+                  Timezone
+                </label>
+                <Select
+                  value={selectedTimezone}
+                  onValueChange={setSelectedTimezone}
+                  disabled={isPending || isDeleting}
+                >
+                  <SelectTrigger className="h-12 text-base rounded-xl mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Time */}
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      {travelTypeLabel} time
+                      <span className="text-destructive ml-1">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <DateTimePicker
                         value={field.value || ""}
+                        onChange={field.onChange}
+                        timezone={selectedTimezone}
+                        placeholder="Select date & time"
+                        aria-label="Travel time"
+                        disabled={isPending || isDeleting}
                       />
                     </FormControl>
-                    {showCounter && (
-                      <div className="text-xs text-muted-foreground text-right">
-                        {charCount} / 500 characters
-                      </div>
-                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Location */}
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      {travelTypeLabel} location
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Miami International Airport (MIA)"
+                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                        disabled={isPending || isDeleting}
+                        {...field}
+                      />
+                    </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">
-                      Optional: Share additional travel details
+                      Optional: Airport, station, or meeting point
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isPending || isDeleting}
-                className="flex-1 h-12 rounded-xl border-input"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending || isDeleting}
-                variant="gradient"
-                className="flex-1 h-12 rounded-xl"
-              >
-                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isPending ? "Updating..." : "Update travel details"}
-              </Button>
-            </div>
+              {/* Details */}
+              <FormField
+                control={form.control}
+                name="details"
+                render={({ field }) => {
+                  const charCount = field.value?.length || 0;
+                  const showCounter = charCount >= 400;
 
-            {/* Delete — low-prominence link at the bottom */}
-            <div className="flex justify-center pt-2">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    type="button"
-                    disabled={isPending || isDeleting}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Delete travel details
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will delete your travel details. You can add them
-                      again later.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                    >
-                      {isDeleting && (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold text-foreground">
+                        Details
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Flight number, terminal, or other relevant details..."
+                          className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
+                          disabled={isPending || isDeleting}
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      {showCounter && (
+                        <div className="text-xs text-muted-foreground text-right">
+                          {charCount} / 500 characters
+                        </div>
                       )}
-                      {isDeleting ? "Deleting..." : "Yes, delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </form>
-        </Form>
+                      <FormDescription className="text-sm text-muted-foreground">
+                        Optional: Share additional travel details
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending || isDeleting}
+                  className="flex-1 h-12 rounded-xl border-input"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending || isDeleting}
+                  variant="gradient"
+                  className="flex-1 h-12 rounded-xl"
+                >
+                  {isPending && (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  )}
+                  {isPending ? "Updating..." : "Update travel details"}
+                </Button>
+              </div>
+
+              {/* Delete — low-prominence link at the bottom */}
+              <div className="flex justify-center pt-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      disabled={isPending || isDeleting}
+                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed py-2"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete travel details
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will delete your travel details. You can add them
+                        again later.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting && (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        )}
+                        {isDeleting ? "Deleting..." : "Yes, delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </form>
+          </Form>
         </SheetBody>
       </SheetContent>
     </Sheet>

@@ -4,19 +4,19 @@ Comprehensive codebase quality fixes based on the 14-skill audit (~90 findings).
 
 ## Excluded Findings
 
-| Finding | Reason |
-|---------|--------|
-| High #13: Redis rate limiter | MVP stage, single-instance deployment |
-| Medium #21: JWT expiry (7d → 1h) | Keep at 7 days for MVP |
-| Medium #23: Incomplete CSP | API-only server — restrictive CSP is correct |
-| Medium #5: Polling → WebSockets | Architecture change — separate feature |
-| Medium #9: reply.status/code mix | Non-issue: all 100+ usages are `reply.status()` |
-| Low #5: Missing response schemas | Non-issue: schemas defined on all routes |
+| Finding                               | Reason                                              |
+| ------------------------------------- | --------------------------------------------------- |
+| High #13: Redis rate limiter          | MVP stage, single-instance deployment               |
+| Medium #21: JWT expiry (7d → 1h)      | Keep at 7 days for MVP                              |
+| Medium #23: Incomplete CSP            | API-only server — restrictive CSP is correct        |
+| Medium #5: Polling → WebSockets       | Architecture change — separate feature              |
+| Medium #9: reply.status/code mix      | Non-issue: all 100+ usages are `reply.status()`     |
+| Low #5: Missing response schemas      | Non-issue: schemas defined on all routes            |
 | Medium #25/#26: Member access control | Non-issue: properly enforced with permission checks |
-| Low #19: CSRF token | Mitigated by SameSite + JWT |
-| Low #20: Rate limit on member enum | Access control already enforced |
-| Low #21: Privacy documentation | Not a code change |
-| Low #28: Custom cursor | Too minor/subjective |
+| Low #19: CSRF token                   | Mitigated by SameSite + JWT                         |
+| Low #20: Rate limit on member enum    | Access control already enforced                     |
+| Low #21: Privacy documentation        | Not a code change                                   |
+| Low #28: Custom cursor                | Too minor/subjective                                |
 
 ---
 
@@ -52,6 +52,7 @@ export const metadata: Metadata = {
 ```
 
 **Missing page metadata** — add `export const metadata` to:
+
 - `apps/web/src/app/verify/page.tsx`: `{ title: "Verify" }`
 - `apps/web/src/app/complete-profile/page.tsx` (or equivalent): `{ title: "Complete Profile" }`
 
@@ -80,9 +81,16 @@ await app.register(helmet, {
 
 ```typescript
 // Before
-const payload = { sub: user.id, phone: user.phoneNumber, ...(user.displayName && { name: user.displayName }) };
+const payload = {
+  sub: user.id,
+  phone: user.phoneNumber,
+  ...(user.displayName && { name: user.displayName }),
+};
 // After
-const payload = { sub: user.id, ...(user.displayName && { name: user.displayName }) };
+const payload = {
+  sub: user.id,
+  ...(user.displayName && { name: user.displayName }),
+};
 ```
 
 **Update JWTPayload type** — `apps/api/src/types/index.ts`:
@@ -157,14 +165,14 @@ export default function GlobalError({
 
 Migrate 6 files from `@radix-ui/react-*` to unified `"radix-ui"`:
 
-| File | Old Import | New Import |
-|------|-----------|------------|
-| `ui/select.tsx` | `import * as SelectPrimitive from "@radix-ui/react-select"` | `import { Select as SelectPrimitive } from "radix-ui"` |
-| `ui/label.tsx` | `import * as LabelPrimitive from "@radix-ui/react-label"` | `import { Label as LabelPrimitive } from "radix-ui"` |
-| `ui/badge.tsx` | `import { Slot } from "@radix-ui/react-slot"` | `import { Slot } from "radix-ui"` → use `Slot.Root` |
-| `ui/form.tsx` | `import type * as LabelPrimitive from "@radix-ui/react-label"` + `import { Slot } from "@radix-ui/react-slot"` | `import { Label as LabelPrimitive, Slot } from "radix-ui"` → use `Slot.Root` |
-| `ui/sheet.tsx` | `import * as DialogPrimitive from "@radix-ui/react-dialog"` | `import { Dialog as DialogPrimitive } from "radix-ui"` |
-| `ui/dialog.tsx` | `import * as DialogPrimitive from "@radix-ui/react-dialog"` | `import { Dialog as DialogPrimitive } from "radix-ui"` |
+| File            | Old Import                                                                                                     | New Import                                                                   |
+| --------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `ui/select.tsx` | `import * as SelectPrimitive from "@radix-ui/react-select"`                                                    | `import { Select as SelectPrimitive } from "radix-ui"`                       |
+| `ui/label.tsx`  | `import * as LabelPrimitive from "@radix-ui/react-label"`                                                      | `import { Label as LabelPrimitive } from "radix-ui"`                         |
+| `ui/badge.tsx`  | `import { Slot } from "@radix-ui/react-slot"`                                                                  | `import { Slot } from "radix-ui"` → use `Slot.Root`                          |
+| `ui/form.tsx`   | `import type * as LabelPrimitive from "@radix-ui/react-label"` + `import { Slot } from "@radix-ui/react-slot"` | `import { Label as LabelPrimitive, Slot } from "radix-ui"` → use `Slot.Root` |
+| `ui/sheet.tsx`  | `import * as DialogPrimitive from "@radix-ui/react-dialog"`                                                    | `import { Dialog as DialogPrimitive } from "radix-ui"`                       |
+| `ui/dialog.tsx` | `import * as DialogPrimitive from "@radix-ui/react-dialog"`                                                    | `import { Dialog as DialogPrimitive } from "radix-ui"`                       |
 
 After migration, update `Slot` → `Slot.Root` in badge.tsx and form.tsx. Other components already use the `Primitive.Root`, `Primitive.Content`, etc. pattern — verify subcomponent access works.
 
@@ -173,6 +181,7 @@ After migration, update `Slot` → `Slot.Root` in badge.tsx and form.tsx. Other 
 **Focus styling** — standardize all `focus:ring` / `focus:outline` to `focus-visible:ring` / `focus-visible:outline` across `components/ui/`. Unify ring width and color between dialog/sheet components and button/input components.
 
 **"use client" directives** — add to:
+
 - `button.tsx` (imports Slot from radix-ui)
 - `input.tsx` (receives event handlers)
 - `card.tsx` (defensive)
@@ -197,10 +206,22 @@ Replace local `useState` with `FormField`:
   render={({ field }) => (
     <FormItem>
       <FormLabel>Timezone</FormLabel>
-      <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+      <Select
+        value={field.value}
+        onValueChange={field.onChange}
+        disabled={isPending}
+      >
+        <FormControl>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+        </FormControl>
         <SelectContent>
-          {TIMEZONES.map(tz => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
+          {TIMEZONES.map((tz) => (
+            <SelectItem key={tz.value} value={tz.value}>
+              {tz.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </FormItem>
@@ -221,7 +242,7 @@ import { APIError } from "@/lib/api";
 export function mapServerErrors<T extends FieldValues>(
   error: Error,
   setError: UseFormSetError<T>,
-  fieldMap: Partial<Record<string, Path<T>>>
+  fieldMap: Partial<Record<string, Path<T>>>,
 ): boolean {
   if (!(error instanceof APIError)) return false;
   const fieldName = fieldMap[error.code];
@@ -285,7 +306,11 @@ const trip = await db.query.trips.findFirst({
 Replace `SELECT *` with minimal select:
 
 ```typescript
-const [exists] = await db.select({ id: events.id }).from(events).where(eq(events.id, eventId)).limit(1);
+const [exists] = await db
+  .select({ id: events.id })
+  .from(events)
+  .where(eq(events.id, eventId))
+  .limit(1);
 ```
 
 **Sequential counts** — `services/notification.service.ts:133-147`:
@@ -293,10 +318,13 @@ const [exists] = await db.select({ id: events.id }).from(events).where(eq(events
 Combine into single query with conditional aggregation:
 
 ```typescript
-const [counts] = await db.select({
-  total: count(),
-  unread: count(sql`CASE WHEN ${notifications.readAt} IS NULL THEN 1 END`),
-}).from(notifications).where(eq(notifications.userId, userId));
+const [counts] = await db
+  .select({
+    total: count(),
+    unread: count(sql`CASE WHEN ${notifications.readAt} IS NULL THEN 1 END`),
+  })
+  .from(notifications)
+  .where(eq(notifications.userId, userId));
 ```
 
 ### 4B. HTTP & Plugin Improvements
@@ -337,6 +365,7 @@ export const config = { matcher: ["/trips/:path*", "/settings/:path*"] };
 ### 5A. ARIA Improvements
 
 **aria-live** — add `aria-live="polite"` to:
+
 - Notification count badge
 - Toast container (verify sonner handles this)
 - Form validation error containers
@@ -347,6 +376,7 @@ export const config = { matcher: ["/trips/:path*", "/settings/:path*"] };
 **aria-describedby** — link error messages to form inputs (e.g., `create-trip-dialog.tsx:526`).
 
 **autocomplete** — add to:
+
 - Phone inputs: `autoComplete="tel"`
 - Name inputs: `autoComplete="name"`
 - Display name: `autoComplete="nickname"`
@@ -371,14 +401,15 @@ router.replace(`?q=${encodeURIComponent(query)}`, { scroll: false });
 
 ### Locator Strategy
 
-| Old Pattern | New Pattern |
-|-------------|------------|
-| `page.locator('input[type="tel"]')` | `page.getByRole("textbox", { name: /phone/i })` |
+| Old Pattern                                   | New Pattern                                      |
+| --------------------------------------------- | ------------------------------------------------ |
+| `page.locator('input[type="tel"]')`           | `page.getByRole("textbox", { name: /phone/i })`  |
 | `page.locator('button:has-text("Continue")')` | `page.getByRole("button", { name: "Continue" })` |
-| `page.locator('input[name="name"]')` | `page.getByLabel(/name/i)` |
-| `.first()` on generic locator | Specific locator targeting exact element |
+| `page.locator('input[name="name"]')`          | `page.getByLabel(/name/i)`                       |
+| `.first()` on generic locator                 | Specific locator targeting exact element         |
 
 **Auto-wait fixes**:
+
 - Replace `.textContent()` polling → `await expect(el).toHaveText(expected)`
 - Replace `.isVisible()` checks → `await expect(el).toBeVisible()`
 - Replace `page.evaluate()` DOM manipulation → Playwright's built-in interactions
@@ -392,6 +423,7 @@ router.replace(`?q=${encodeURIComponent(query)}`, { scroll: false });
 ## Phase 7: Mobile & Responsive
 
 **Touch targets** — current pattern `h-11 sm:h-9` shrinks from 44px to 36px. Fix:
+
 - Button/input: keep 44px minimum, or use `h-9 min-h-11` for visual 36px with 44px tap area
 - Checkbox/radio: add padding around 16px visual to reach 44px touch area
 
@@ -427,11 +459,29 @@ Update `layout.tsx` class to use new variable.
 Add to `globals.css`:
 
 ```css
-@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-@keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 ```
 
-Apply staggered reveals using `style={{ animationDelay: `${i * 50}ms` }}`.
+Apply staggered reveals using `style={{ animationDelay: `${i \* 50}ms` }}`.
 
 ### Micro-interactions
 
@@ -449,14 +499,14 @@ Apply staggered reveals using `style={{ animationDelay: `${i * 50}ms` }}`.
 
 ## Testing Strategy
 
-| Phase | Verification |
-|-------|-------------|
-| 1. Quick Wins | Unit tests for JWT. Integration tests for auth. Typecheck for schema. |
-| 2. Component Lib | Typecheck + dev server. E2E smoke. |
-| 3. Forms | Unit tests for error mapping. E2E for timezone. |
-| 4. API Backend | Integration tests for queries. Unit tests for middleware. |
-| 5. Accessibility | Manual axe audit. Contrast checker. |
-| 6. E2E Tests | Full E2E suite with new locators. |
-| 7. Mobile | Manual browser at mobile viewport. Screenshots. |
-| 8. Design | Visual review. Screenshots. |
-| Final | `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e` |
+| Phase            | Verification                                                          |
+| ---------------- | --------------------------------------------------------------------- |
+| 1. Quick Wins    | Unit tests for JWT. Integration tests for auth. Typecheck for schema. |
+| 2. Component Lib | Typecheck + dev server. E2E smoke.                                    |
+| 3. Forms         | Unit tests for error mapping. E2E for timezone.                       |
+| 4. API Backend   | Integration tests for queries. Unit tests for middleware.             |
+| 5. Accessibility | Manual axe audit. Contrast checker.                                   |
+| 6. E2E Tests     | Full E2E suite with new locators.                                     |
+| 7. Mobile        | Manual browser at mobile viewport. Screenshots.                       |
+| 8. Design        | Visual review. Screenshots.                                           |
+| Final            | `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`           |

@@ -671,8 +671,12 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: testUser.id,
           name: `Hotel ${i + 1}`,
-          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
-          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+          checkIn: new Date(
+            `2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`,
+          ),
+          checkOut: new Date(
+            `2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`,
+          ),
         })),
       );
 
@@ -737,8 +741,12 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: testUser.id,
           name: `Hotel ${i + 1}`,
-          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
-          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+          checkIn: new Date(
+            `2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`,
+          ),
+          checkOut: new Date(
+            `2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`,
+          ),
         })),
       );
 

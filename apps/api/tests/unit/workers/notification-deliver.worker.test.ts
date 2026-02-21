@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Job } from "pg-boss";
 import { handleNotificationDeliver } from "@/queues/workers/notification-deliver.worker.js";
-import type {
-  NotificationDeliverPayload,
-  WorkerDeps,
-} from "@/queues/types.js";
+import type { NotificationDeliverPayload, WorkerDeps } from "@/queues/types.js";
 
 describe("notification-deliver.worker", () => {
   let mockDeps: WorkerDeps;
@@ -63,8 +60,8 @@ describe("notification-deliver.worker", () => {
     const smsError = new Error("SMS delivery failed");
     vi.mocked(mockDeps.smsService.sendMessage).mockRejectedValueOnce(smsError);
 
-    await expect(
-      handleNotificationDeliver(mockJob, mockDeps),
-    ).rejects.toThrow("SMS delivery failed");
+    await expect(handleNotificationDeliver(mockJob, mockDeps)).rejects.toThrow(
+      "SMS delivery failed",
+    );
   });
 });

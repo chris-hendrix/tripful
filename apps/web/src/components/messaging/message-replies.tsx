@@ -46,7 +46,9 @@ function ReplyCard({
             src={getUploadUrl(reply.author.profilePhotoUrl)}
             alt={reply.author.displayName}
           />
-          <AvatarFallback>{getInitials(reply.author.displayName)}</AvatarFallback>
+          <AvatarFallback>
+            {getInitials(reply.author.displayName)}
+          </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">

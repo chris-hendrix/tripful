@@ -12,10 +12,12 @@ import {
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { snap } from "./helpers/screenshots";
 import {
+  API_BASE,
   NAVIGATION_TIMEOUT,
   ELEMENT_TIMEOUT,
 } from "./helpers/timeouts";
 import { dismissToast } from "./helpers/toast";
+import { scrollToDiscussion } from "./helpers/messaging";
 
 /**
  * E2E Journey: Messaging Flows
@@ -24,22 +26,6 @@ import { dismissToast } from "./helpers/toast";
  * Uses direct API calls for fast setup and authenticateViaAPIWithPhone
  * to switch between users.
  */
-
-const API_BASE = "http://localhost:8000/api";
-
-/** Helper: scroll to the discussion section and wait for it to be visible. */
-async function scrollToDiscussion(page: import("@playwright/test").Page) {
-  // Wait for the Discussion heading to be visible first — this ensures the
-  // TripMessages component has fully mounted and won't detach during a
-  // React re-render (which causes "Element is not attached to the DOM").
-  const heading = page.getByRole("heading", { name: "Discussion" });
-  await heading.waitFor({ state: "visible", timeout: NAVIGATION_TIMEOUT });
-  // Retry scroll in case a React re-render momentarily detaches the element
-  await expect(async () => {
-    await heading.scrollIntoViewIfNeeded();
-  }).toPass({ timeout: ELEMENT_TIMEOUT });
-  await expect(heading).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-}
 
 test.describe("Messaging Journey", () => {
   test.beforeEach(async ({ page }) => {
@@ -131,7 +117,9 @@ test.describe("Messaging Journey", () => {
         await page.getByRole("button", { name: "Send message" }).click();
 
         await expect(
-          page.getByRole("feed").getByText("This message will be edited then deleted"),
+          page
+            .getByRole("feed")
+            .getByText("This message will be edited then deleted"),
         ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
@@ -142,7 +130,9 @@ test.describe("Messaging Journey", () => {
         await expect(articles.first()).toContainText(
           "This message will be edited then deleted",
         );
-        await expect(articles.last()).toContainText("Hello from the organizer!");
+        await expect(articles.last()).toContainText(
+          "Hello from the organizer!",
+        );
       });
 
       await snap(page, "40-messaging-two-messages");
@@ -158,9 +148,7 @@ test.describe("Messaging Journey", () => {
         await firstMessageCard
           .getByRole("button", { name: "Add reaction" })
           .click();
-        await page
-          .getByRole("button", { name: "React with heart" })
-          .click();
+        await page.getByRole("button", { name: "React with heart" }).click();
 
         // Verify the reaction button appeared with active state
         const heartButton = firstMessageCard.getByRole("button", {
@@ -197,7 +185,7 @@ test.describe("Messaging Journey", () => {
         await page.getByRole("button", { name: "Save" }).click();
 
         // Verify "(edited)" indicator appears
-        await expect(page.getByText("(edited)")).toBeVisible({
+        await expect.soft(page.getByText("(edited)")).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
         await expect(
@@ -246,7 +234,9 @@ test.describe("Messaging Journey", () => {
           .getByRole("feed")
           .getByRole("article")
           .filter({ hasText: "Hello from the organizer!" });
-        const replyButton = firstMessageCard.getByRole("button", { name: "Reply" });
+        const replyButton = firstMessageCard.getByRole("button", {
+          name: "Reply",
+        });
         await replyButton.click();
 
         // The reply input should appear
@@ -260,7 +250,10 @@ test.describe("Messaging Journey", () => {
 
         // Verify the reply text appears in a rendered paragraph (not the textarea)
         await expect(
-          page.getByRole("feed").locator("p").getByText("This is a reply to the first message"),
+          page
+            .getByRole("feed")
+            .locator("p")
+            .getByText("This is a reply to the first message"),
         ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
@@ -268,348 +261,358 @@ test.describe("Messaging Journey", () => {
     },
   );
 
-  test("organizer actions journey", { tag: ["@regression", "@slow"] }, async ({ page, request }) => {
-    test.slow(); // Multiple auth cycles
+  test(
+    "organizer actions journey",
+    { tag: ["@regression", "@slow"] },
+    async ({ page, request }) => {
+      test.slow(); // Multiple auth cycles
 
-    const timestamp = Date.now();
-    const organizerPhone = generateUniquePhone();
-    const memberPhone = generateUniquePhone();
+      const timestamp = Date.now();
+      const organizerPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
 
-    let tripId: string;
-    let organizerCookie: string;
-    let memberCookie: string;
+      let tripId: string;
+      let organizerCookie: string;
+      let memberCookie: string;
 
-    await test.step("setup: create organizer, trip, member with message", async () => {
-      organizerCookie = await createUserViaAPI(
-        request,
-        organizerPhone,
-        "Org Admin",
-      );
+      await test.step("setup: create organizer, trip, member with message", async () => {
+        organizerCookie = await createUserViaAPI(
+          request,
+          organizerPhone,
+          "Org Admin",
+        );
 
-      tripId = await createTripViaAPI(request, organizerCookie, {
-        name: `Organizer Actions Trip ${timestamp}`,
-        destination: "Seattle, WA",
-        startDate: "2026-09-01",
-        endDate: "2026-09-05",
+        tripId = await createTripViaAPI(request, organizerCookie, {
+          name: `Organizer Actions Trip ${timestamp}`,
+          destination: "Seattle, WA",
+          startDate: "2026-09-01",
+          endDate: "2026-09-05",
+        });
+
+        memberCookie = await createUserViaAPI(
+          request,
+          memberPhone,
+          "Regular Member",
+        );
+        await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
+        await rsvpViaAPI(request, tripId, memberCookie, "going");
+
+        // Member posts a message via API
+        const msgResponse = await request.post(
+          `${API_BASE}/trips/${tripId}/messages`,
+          {
+            data: { content: "Hello from the member!" },
+            headers: { cookie: memberCookie },
+          },
+        );
+        expect(msgResponse.ok()).toBeTruthy();
       });
 
-      memberCookie = await createUserViaAPI(
-        request,
-        memberPhone,
-        "Regular Member",
-      );
-      await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
-      await rsvpViaAPI(request, tripId, memberCookie, "going");
+      await test.step("organizer navigates to trip and sees member message", async () => {
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          organizerPhone,
+          "Org Admin",
+        );
+        await page.goto(`/trips/${tripId}`);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+          timeout: NAVIGATION_TIMEOUT,
+        });
+        await scrollToDiscussion(page);
 
-      // Member posts a message via API
-      const msgResponse = await request.post(
-        `${API_BASE}/trips/${tripId}/messages`,
-        {
-          data: { content: "Hello from the member!" },
-          headers: { cookie: memberCookie },
-        },
-      );
-      expect(msgResponse.ok()).toBeTruthy();
-    });
-
-    await test.step("organizer navigates to trip and sees member message", async () => {
-      await authenticateViaAPIWithPhone(
-        page,
-        request,
-        organizerPhone,
-        "Org Admin",
-      );
-      await page.goto(`/trips/${tripId}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: NAVIGATION_TIMEOUT,
-      });
-      await scrollToDiscussion(page);
-
-      await expect(
-        page.getByRole("feed").getByText("Hello from the member!"),
-      ).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-    });
-
-    await test.step("pin the member message", async () => {
-      await dismissToast(page);
-
-      const actionsButton = page.getByRole("button", {
-        name: "Actions for message by Regular Member",
-      });
-      await actionsButton.click();
-
-      await page.getByRole("menuitem", { name: "Pin" }).click();
-
-      // Verify pinned section appears
-      await expect(page.getByText(/Pinned \(1\)/)).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-    });
-
-    await test.step("expand pinned section and verify content", async () => {
-      // Click the pinned toggle to expand
-      const pinnedToggle = page
-        .locator("button[aria-expanded]")
-        .filter({ hasText: /Pinned/ });
-      await pinnedToggle.click();
-
-      // Verify pinned message content is visible inside the section
-      const pinnedSection = page.getByTestId("pinned-messages");
-      await expect(
-        pinnedSection.getByText("Hello from the member!"),
-      ).toBeVisible();
-    });
-
-    await snap(page, "42-messaging-pinned");
-
-    await test.step("unpin the message", async () => {
-      await dismissToast(page);
-
-      const actionsButton = page.getByRole("button", {
-        name: "Actions for message by Regular Member",
-      });
-      await actionsButton.click();
-
-      await page.getByRole("menuitem", { name: "Unpin" }).click();
-
-      // Verify pinned section disappears
-      await expect(page.getByText(/Pinned \(\d+\)/)).not.toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-    });
-
-    await test.step("organizer deletes the member message", async () => {
-      await dismissToast(page);
-
-      const actionsButton = page.getByRole("button", {
-        name: "Actions for message by Regular Member",
-      });
-      await actionsButton.click();
-
-      await page.getByRole("menuitem", { name: "Delete" }).click();
-
-      // Confirm in dialog
-      await expect(
-        page.getByRole("heading", { name: "Delete message?" }),
-      ).toBeVisible();
-      await page.getByRole("button", { name: "Delete" }).last().click();
-
-      // Verify deleted placeholder
-      await expect(
-        page.getByRole("feed").getByText("This message was deleted"),
-      ).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-      await expect(
-        page.getByRole("feed").getByText("Hello from the member!"),
-      ).not.toBeVisible();
-    });
-
-    await test.step("organizer mutes the member via members dialog", async () => {
-      await dismissToast(page);
-
-      // Open members dialog
-      await page.getByText(/\d+ members?/).click();
-
-      const dialog = page.getByRole("dialog");
-      await expect(
-        dialog.getByRole("heading", { name: "Members" }),
-      ).toBeVisible();
-
-      // Find and click the actions button for the member
-      await page
-        .getByRole("button", { name: "Actions for Regular Member" })
-        .click();
-      await page.getByRole("menuitem", { name: "Mute" }).click();
-
-      // Confirm mute in the dialog
-      await expect(page.getByRole("heading", { name: /Mute/ })).toBeVisible();
-      // Click the destructive "Mute" button in the alert dialog
-      await page
-        .getByRole("button", { name: "Mute", exact: true })
-        .last()
-        .click();
-
-      // Verify toast
-      await expect(page.getByText(/Regular Member has been muted/)).toBeVisible(
-        { timeout: ELEMENT_TIMEOUT },
-      );
-
-      // Verify "Muted" badge appears in the dialog
-      await expect(dialog.getByText("Muted")).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-    });
-
-    await snap(page, "43-messaging-member-muted");
-  });
-
-  test("restricted states journey", { tag: ["@regression", "@slow"] }, async ({ page, request }) => {
-    test.slow(); // Multiple auth cycles
-
-    const timestamp = Date.now();
-    const organizerPhone = generateUniquePhone();
-    const memberPhone = generateUniquePhone();
-
-    let tripId: string;
-    let organizerCookie: string;
-
-    await test.step("setup: create trip with muted member", async () => {
-      organizerCookie = await createUserViaAPI(
-        request,
-        organizerPhone,
-        "Restrict Org",
-      );
-
-      tripId = await createTripViaAPI(request, organizerCookie, {
-        name: `Restricted Trip ${timestamp}`,
-        destination: "Denver, CO",
-        startDate: "2026-07-01",
-        endDate: "2026-07-05",
+        await expect(
+          page.getByRole("feed").getByText("Hello from the member!"),
+        ).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
       });
 
-      const memberCookie = await createUserViaAPI(
-        request,
-        memberPhone,
-        "Muted Person",
-      );
-      await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
-      await rsvpViaAPI(request, tripId, memberCookie, "going");
+      await test.step("pin the member message", async () => {
+        await dismissToast(page);
 
-      // Get the member's userId from the members list
-      const membersResponse = await request.get(
-        `${API_BASE}/trips/${tripId}/members`,
-        { headers: { cookie: organizerCookie } },
-      );
-      expect(membersResponse.ok()).toBeTruthy();
-      const membersData = await membersResponse.json();
-      const memberUserId = membersData.members.find(
-        (m: { displayName: string }) => m.displayName === "Muted Person",
-      )?.userId;
-      expect(memberUserId).toBeTruthy();
+        const actionsButton = page.getByRole("button", {
+          name: "Actions for message by Regular Member",
+        });
+        await actionsButton.click();
 
-      // Mute the member via API
-      const muteResponse = await request.post(
-        `${API_BASE}/trips/${tripId}/members/${memberUserId}/mute`,
-        { headers: { cookie: organizerCookie } },
-      );
-      expect(muteResponse.ok()).toBeTruthy();
-    });
+        await page.getByRole("menuitem", { name: "Pin" }).click();
 
-    await test.step("muted member tries to send a message and gets error", async () => {
-      await authenticateViaAPIWithPhone(
-        page,
-        request,
-        memberPhone,
-        "Muted Person",
-      );
-      await page.goto(`/trips/${tripId}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: NAVIGATION_TIMEOUT,
-      });
-      await scrollToDiscussion(page);
-
-      // The input should be visible (isMuted is not wired from parent)
-      const input = page.getByPlaceholder("Write a message...");
-      await expect(input).toBeVisible();
-
-      // Try to send a message
-      await input.fill("I am muted but trying to send");
-      await page.getByRole("button", { name: "Send message" }).click();
-
-      // Should see an error toast about being muted
-      await expect(
-        page.locator("[data-sonner-toast]").getByText(/muted/i),
-      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-    });
-
-    await snap(page, "44-messaging-muted-error");
-
-    // --- Past trip read-only test ---
-
-    let pastTripId: string;
-    const pastOrgPhone = generateUniquePhone();
-
-    await test.step("setup: create a trip, post a message, then set it to past dates", async () => {
-      const pastOrgCookie = await createUserViaAPI(
-        request,
-        pastOrgPhone,
-        "Past Trip Org",
-      );
-
-      // Create trip with future dates so we can post a message
-      pastTripId = await createTripViaAPI(request, pastOrgCookie, {
-        name: `Past Messaging Trip ${timestamp}`,
-        destination: "Historic Town",
-        startDate: "2026-12-01",
-        endDate: "2026-12-05",
+        // Verify pinned section appears
+        await expect(page.getByText(/Pinned \(1\)/)).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
       });
 
-      // Post a message while the trip is still active
-      const msgResponse = await request.post(
-        `${API_BASE}/trips/${pastTripId}/messages`,
-        {
-          data: { content: "Old message from the past" },
-          headers: { cookie: pastOrgCookie },
-        },
-      );
-      expect(msgResponse.ok()).toBeTruthy();
+      await test.step("expand pinned section and verify content", async () => {
+        // Click the pinned toggle to expand
+        const pinnedToggle = page
+          .locator("button[aria-expanded]")
+          .filter({ hasText: /Pinned/ });
+        await pinnedToggle.click();
 
-      // Now update the trip dates to the past so it becomes read-only
-      const updateResponse = await request.put(
-        `${API_BASE}/trips/${pastTripId}`,
-        {
-          data: { startDate: "2025-01-01", endDate: "2025-01-05" },
-          headers: { cookie: pastOrgCookie },
-        },
-      );
-      expect(updateResponse.ok()).toBeTruthy();
-    });
-
-    await test.step("navigate to past trip and verify read-only discussion", async () => {
-      await page.context().clearCookies();
-      await authenticateViaAPIWithPhone(
-        page,
-        request,
-        pastOrgPhone,
-        "Past Trip Org",
-      );
-      await page.goto(`/trips/${pastTripId}`);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
-        timeout: NAVIGATION_TIMEOUT,
-      });
-      await scrollToDiscussion(page);
-
-      // Verify "Trip has ended" disabled message instead of input (scoped to discussion section)
-      const discussion = page.locator("#discussion");
-      await expect(discussion.getByText("Trip has ended")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-      // The text input should NOT be visible (disabled state renders message instead)
-      await expect(
-        page.getByPlaceholder("Write a message..."),
-      ).not.toBeVisible();
-    });
-
-    await test.step("verify past trip message is visible but no actions", async () => {
-      // The old message should be visible
-      await expect(
-        page.getByRole("feed").getByText("Old message from the past"),
-      ).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
+        // Verify pinned message content is visible inside the section
+        const pinnedSection = page.getByTestId("pinned-messages");
+        await expect(
+          pinnedSection.getByText("Hello from the member!"),
+        ).toBeVisible();
       });
 
-      // No action buttons should be present (disabled=true removes them)
-      await expect(
-        page.getByRole("button", { name: /Actions for message by/ }),
-      ).not.toBeVisible();
+      await snap(page, "42-messaging-pinned");
 
-      // Reply button should not be visible on past trips
-      await expect(
-        page.getByRole("button", { name: "Reply" }),
-      ).not.toBeVisible();
-    });
+      await test.step("unpin the message", async () => {
+        await dismissToast(page);
 
-    await snap(page, "45-messaging-past-trip-readonly");
-  });
+        const actionsButton = page.getByRole("button", {
+          name: "Actions for message by Regular Member",
+        });
+        await actionsButton.click();
+
+        await page.getByRole("menuitem", { name: "Unpin" }).click();
+
+        // Verify pinned section disappears
+        await expect(page.getByText(/Pinned \(\d+\)/)).not.toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+      });
+
+      await test.step("organizer deletes the member message", async () => {
+        await dismissToast(page);
+
+        const actionsButton = page.getByRole("button", {
+          name: "Actions for message by Regular Member",
+        });
+        await actionsButton.click();
+
+        await page.getByRole("menuitem", { name: "Delete" }).click();
+
+        // Confirm in dialog
+        await expect(
+          page.getByRole("heading", { name: "Delete message?" }),
+        ).toBeVisible();
+        await page.getByRole("button", { name: "Delete" }).last().click();
+
+        // Verify deleted placeholder
+        await expect(
+          page.getByRole("feed").getByText("This message was deleted"),
+        ).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        await expect(
+          page.getByRole("feed").getByText("Hello from the member!"),
+        ).not.toBeVisible();
+      });
+
+      await test.step("organizer mutes the member via members dialog", async () => {
+        await dismissToast(page);
+
+        // Open members dialog
+        await page.getByText(/\d+ members?/).click();
+
+        const dialog = page.getByRole("dialog");
+        await expect(
+          dialog.getByRole("heading", { name: "Members" }),
+        ).toBeVisible();
+
+        // Find and click the actions button for the member
+        await page
+          .getByRole("button", { name: "Actions for Regular Member" })
+          .click();
+        await page.getByRole("menuitem", { name: "Mute" }).click();
+
+        // Confirm mute in the dialog
+        await expect(page.getByRole("heading", { name: /Mute/ })).toBeVisible();
+        // Click the destructive "Mute" button in the alert dialog
+        await page
+          .getByRole("button", { name: "Mute", exact: true })
+          .last()
+          .click();
+
+        // Verify toast
+        await expect(
+          page.getByText(/Regular Member has been muted/),
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+
+        // Verify "Muted" badge appears in the dialog
+        await expect(dialog.getByText("Muted")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+      });
+
+      await snap(page, "43-messaging-member-muted");
+    },
+  );
+
+  test(
+    "restricted states journey",
+    { tag: ["@regression", "@slow"] },
+    async ({ page, request }) => {
+      test.slow(); // Multiple auth cycles
+
+      const timestamp = Date.now();
+      const organizerPhone = generateUniquePhone();
+      const memberPhone = generateUniquePhone();
+
+      let tripId: string;
+      let organizerCookie: string;
+
+      await test.step("setup: create trip with muted member", async () => {
+        organizerCookie = await createUserViaAPI(
+          request,
+          organizerPhone,
+          "Restrict Org",
+        );
+
+        tripId = await createTripViaAPI(request, organizerCookie, {
+          name: `Restricted Trip ${timestamp}`,
+          destination: "Denver, CO",
+          startDate: "2026-07-01",
+          endDate: "2026-07-05",
+        });
+
+        const memberCookie = await createUserViaAPI(
+          request,
+          memberPhone,
+          "Muted Person",
+        );
+        await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
+        await rsvpViaAPI(request, tripId, memberCookie, "going");
+
+        // Get the member's userId from the members list
+        const membersResponse = await request.get(
+          `${API_BASE}/trips/${tripId}/members`,
+          { headers: { cookie: organizerCookie } },
+        );
+        expect(membersResponse.ok()).toBeTruthy();
+        const membersData = await membersResponse.json();
+        const memberUserId = membersData.members.find(
+          (m: { displayName: string }) => m.displayName === "Muted Person",
+        )?.userId;
+        expect(memberUserId).toBeTruthy();
+
+        // Mute the member via API
+        const muteResponse = await request.post(
+          `${API_BASE}/trips/${tripId}/members/${memberUserId}/mute`,
+          { headers: { cookie: organizerCookie } },
+        );
+        expect(muteResponse.ok()).toBeTruthy();
+      });
+
+      await test.step("muted member tries to send a message and gets error", async () => {
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          memberPhone,
+          "Muted Person",
+        );
+        await page.goto(`/trips/${tripId}`);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+          timeout: NAVIGATION_TIMEOUT,
+        });
+        await scrollToDiscussion(page);
+
+        // The input should be visible (isMuted is not wired from parent)
+        const input = page.getByPlaceholder("Write a message...");
+        await expect(input).toBeVisible();
+
+        // Try to send a message
+        await input.fill("I am muted but trying to send");
+        await page.getByRole("button", { name: "Send message" }).click();
+
+        // Should see an error toast about being muted
+        await expect(
+          page.locator("[data-sonner-toast]").getByText(/muted/i),
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      });
+
+      await snap(page, "44-messaging-muted-error");
+
+      // --- Past trip read-only test ---
+
+      let pastTripId: string;
+      const pastOrgPhone = generateUniquePhone();
+
+      await test.step("setup: create a trip, post a message, then set it to past dates", async () => {
+        const pastOrgCookie = await createUserViaAPI(
+          request,
+          pastOrgPhone,
+          "Past Trip Org",
+        );
+
+        // Create trip with future dates so we can post a message
+        pastTripId = await createTripViaAPI(request, pastOrgCookie, {
+          name: `Past Messaging Trip ${timestamp}`,
+          destination: "Historic Town",
+          startDate: "2026-12-01",
+          endDate: "2026-12-05",
+        });
+
+        // Post a message while the trip is still active
+        const msgResponse = await request.post(
+          `${API_BASE}/trips/${pastTripId}/messages`,
+          {
+            data: { content: "Old message from the past" },
+            headers: { cookie: pastOrgCookie },
+          },
+        );
+        expect(msgResponse.ok()).toBeTruthy();
+
+        // Now update the trip dates to the past so it becomes read-only
+        const updateResponse = await request.put(
+          `${API_BASE}/trips/${pastTripId}`,
+          {
+            data: { startDate: "2025-01-01", endDate: "2025-01-05" },
+            headers: { cookie: pastOrgCookie },
+          },
+        );
+        expect(updateResponse.ok()).toBeTruthy();
+      });
+
+      await test.step("navigate to past trip and verify read-only discussion", async () => {
+        await page.context().clearCookies();
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          pastOrgPhone,
+          "Past Trip Org",
+        );
+        await page.goto(`/trips/${pastTripId}`);
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible({
+          timeout: NAVIGATION_TIMEOUT,
+        });
+        await scrollToDiscussion(page);
+
+        // Verify "Trip has ended" disabled message instead of input (scoped to discussion section)
+        const discussion = page.locator("#discussion");
+        await expect(discussion.getByText("Trip has ended")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        // The text input should NOT be visible (disabled state renders message instead)
+        await expect(
+          page.getByPlaceholder("Write a message..."),
+        ).not.toBeVisible();
+      });
+
+      await test.step("verify past trip message is visible but no actions", async () => {
+        // The old message should be visible
+        await expect(
+          page.getByRole("feed").getByText("Old message from the past"),
+        ).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+
+        // No action buttons should be present (disabled=true removes them)
+        await expect(
+          page.getByRole("button", { name: /Actions for message by/ }),
+        ).not.toBeVisible();
+
+        // Reply button should not be visible on past trips
+        await expect(
+          page.getByRole("button", { name: "Reply" }),
+        ).not.toBeVisible();
+      });
+
+      await snap(page, "45-messaging-past-trip-readonly");
+    },
+  );
 });

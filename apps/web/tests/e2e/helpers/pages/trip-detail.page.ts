@@ -40,4 +40,8 @@ export class TripDetailPage {
     this.step1Indicator = page.getByText("Step 1 of 2");
     this.step2Indicator = page.getByText("Step 2 of 2");
   }
+
+  async goto(tripId: string) {
+    await this.page.goto(`/trips/${tripId}`);
+  }
 }

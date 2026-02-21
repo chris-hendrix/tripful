@@ -167,9 +167,7 @@ export class EventService implements IEventService {
       .from(events)
       .where(and(eq(events.tripId, tripId), isNull(events.deletedAt)));
     if ((eventCount?.value ?? 0) >= 50) {
-      throw new EventLimitExceededError(
-        "Maximum 50 events per trip reached.",
-      );
+      throw new EventLimitExceededError("Maximum 50 events per trip reached.");
     }
 
     // Create the event
@@ -453,9 +451,7 @@ export class EventService implements IEventService {
       .from(events)
       .where(and(eq(events.tripId, event.tripId), isNull(events.deletedAt)));
     if ((eventCount?.value ?? 0) >= 50) {
-      throw new EventLimitExceededError(
-        "Maximum 50 events per trip reached.",
-      );
+      throw new EventLimitExceededError("Maximum 50 events per trip reached.");
     }
 
     // Restore event

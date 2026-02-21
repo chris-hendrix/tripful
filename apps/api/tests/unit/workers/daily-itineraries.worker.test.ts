@@ -57,7 +57,9 @@ describe("daily-itineraries.worker", () => {
       boss: {
         send: vi.fn().mockResolvedValue(undefined),
       } as unknown as WorkerDeps["boss"],
-      smsService: { sendMessage: vi.fn() } as unknown as WorkerDeps["smsService"],
+      smsService: {
+        sendMessage: vi.fn(),
+      } as unknown as WorkerDeps["smsService"],
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -87,12 +89,14 @@ describe("daily-itineraries.worker", () => {
    * Helper to create a trip with given timezone and date range.
    * Sets the testTripId so cleanup can find it.
    */
-  async function createTrip(overrides: {
-    preferredTimezone?: string;
-    startDate?: string;
-    endDate?: string;
-    cancelled?: boolean;
-  } = {}) {
+  async function createTrip(
+    overrides: {
+      preferredTimezone?: string;
+      startDate?: string;
+      endDate?: string;
+      cancelled?: boolean;
+    } = {},
+  ) {
     const tripResult = await db
       .insert(trips)
       .values({
@@ -270,7 +274,8 @@ describe("daily-itineraries.worker", () => {
     await handleDailyItineraries(createMockJob(), mockDeps);
 
     expect(mockDeps.boss.send).toHaveBeenCalledTimes(1);
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe(
       "1. 9:00 AM - Morning Coffee\n2. 2:30 PM - City Tour",
     );
@@ -287,7 +292,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -313,7 +319,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -348,7 +355,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("1. 10:00 AM - Today Event");
     expect(payload.body).not.toContain("Tomorrow Event");
   });
@@ -364,13 +372,13 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as SendOptions;
-    expect(options.singletonKey).toBe(
-      `daily-itinerary:${trip.id}:2026-03-15`,
-    );
+    const options = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][2] as SendOptions;
+    expect(options.singletonKey).toBe(`daily-itinerary:${trip.id}:2026-03-15`);
     expect(options.expireInSeconds).toBe(900);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.data.referenceId).toBe(`${trip.id}:2026-03-15`);
     expect(payload.data.tripId).toBe(trip.id);
   });
@@ -492,7 +500,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.title).toBe("Daily Itinerary Trip - Today's Schedule");
     expect(payload.type).toBe("daily_itinerary");
   });

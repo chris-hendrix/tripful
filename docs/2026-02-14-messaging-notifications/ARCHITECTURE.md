@@ -103,6 +103,7 @@ CREATE INDEX idx_messages_trip_toplevel ON messages(trip_id, created_at DESC)
 ```
 
 **Notes**:
+
 - `parent_id` NULL = top-level message, set = reply to that message
 - Replies always point to a top-level message (no nested replies)
 - Soft delete via `deleted_at` + `deleted_by` (follows existing codebase pattern)
@@ -124,6 +125,7 @@ CREATE INDEX idx_reactions_message_id ON message_reactions(message_id);
 ```
 
 **Notes**:
+
 - `emoji` stores string key: `heart`, `thumbs_up`, `laugh`, `surprised`, `party`, `plane`
 - Unique constraint prevents duplicate reactions (same user, same emoji, same message)
 - CASCADE delete: reactions removed when message is deleted
@@ -150,6 +152,7 @@ CREATE INDEX idx_notifications_trip_user ON notifications(trip_id, user_id, crea
 ```
 
 **Notes**:
+
 - `type` enum values: `event_reminder`, `daily_itinerary`, `trip_message`, `trip_update`
 - `data` JSONB stores deep-link metadata: `{ eventId, messageId, tripId }`
 - Partial index on unread notifications for fast badge count queries
@@ -172,6 +175,7 @@ CREATE TABLE notification_preferences (
 ```
 
 **Notes**:
+
 - Created when member first RSVPs "Going" (all defaults: true)
 - Three independent toggles per trip per member
 - ON UPDATE triggers set `updated_at`
@@ -190,6 +194,7 @@ CREATE TABLE muted_members (
 ```
 
 **Notes**:
+
 - Tracks which organizer muted which member
 - Unique constraint prevents double-muting
 - CASCADE delete: mute records removed when trip is deleted
@@ -210,6 +215,7 @@ CREATE INDEX idx_sent_reminders_lookup ON sent_reminders(type, reference_id);
 ```
 
 **Notes**:
+
 - Deduplication table for scheduler
 - `type`: `event_reminder` or `daily_itinerary`
 - `reference_id`: event UUID for reminders, `{tripId}:{YYYY-MM-DD}` for daily digests
@@ -221,83 +227,141 @@ New tables added to `apps/api/src/db/schema/index.ts`:
 
 ```typescript
 // Enums
-export const notificationTypeEnum = pgEnum('notification_type', [
-  'event_reminder', 'daily_itinerary', 'trip_message', 'trip_update'
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "event_reminder",
+  "daily_itinerary",
+  "trip_message",
+  "trip_update",
 ]);
 
-export const reminderTypeEnum = pgEnum('reminder_type', [
-  'event_reminder', 'daily_itinerary'
+export const reminderTypeEnum = pgEnum("reminder_type", [
+  "event_reminder",
+  "daily_itinerary",
 ]);
 
 // Tables
-export const messages = pgTable('messages', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
-  authorId: uuid('author_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  parentId: uuid('parent_id').references(() => messages.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  isPinned: boolean('is_pinned').notNull().default(false),
-  editedAt: timestamp('edited_at', { withTimezone: true }),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-  deletedBy: uuid('deleted_by').references(() => users.id),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tripId: uuid("trip_id")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  parentId: uuid("parent_id").references(() => messages.id, {
+    onDelete: "cascade",
+  }),
+  content: text("content").notNull(),
+  isPinned: boolean("is_pinned").notNull().default(false),
+  editedAt: timestamp("edited_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  deletedBy: uuid("deleted_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const messageReactions = pgTable('message_reactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  messageId: uuid('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  emoji: varchar('emoji', { length: 20 }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  uniqueReaction: unique().on(table.messageId, table.userId, table.emoji),
-}));
+export const messageReactions = pgTable(
+  "message_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: varchar("emoji", { length: 20 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueReaction: unique().on(table.messageId, table.userId, table.emoji),
+  }),
+);
 
-export const notifications = pgTable('notifications', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tripId: uuid('trip_id').references(() => trips.id, { onDelete: 'cascade' }),
-  type: varchar('type', { length: 50 }).notNull(),
-  title: text('title').notNull(),
-  body: text('body').notNull(),
-  data: jsonb('data'),
-  readAt: timestamp('read_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  data: jsonb("data"),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const notificationPreferences = pgTable('notification_preferences', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
-  eventReminders: boolean('event_reminders').notNull().default(true),
-  dailyItinerary: boolean('daily_itinerary').notNull().default(true),
-  tripMessages: boolean('trip_messages').notNull().default(true),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  uniquePref: unique().on(table.userId, table.tripId),
-}));
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    eventReminders: boolean("event_reminders").notNull().default(true),
+    dailyItinerary: boolean("daily_itinerary").notNull().default(true),
+    tripMessages: boolean("trip_messages").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniquePref: unique().on(table.userId, table.tripId),
+  }),
+);
 
-export const mutedMembers = pgTable('muted_members', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  mutedBy: uuid('muted_by').notNull().references(() => users.id),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  uniqueMute: unique().on(table.tripId, table.userId),
-}));
+export const mutedMembers = pgTable(
+  "muted_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mutedBy: uuid("muted_by")
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueMute: unique().on(table.tripId, table.userId),
+  }),
+);
 
-export const sentReminders = pgTable('sent_reminders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  type: varchar('type', { length: 50 }).notNull(),
-  referenceId: text('reference_id').notNull(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  uniqueReminder: unique().on(table.type, table.referenceId, table.userId),
-}));
+export const sentReminders = pgTable(
+  "sent_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: varchar("type", { length: 50 }).notNull(),
+    referenceId: text("reference_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueReminder: unique().on(table.type, table.referenceId, table.userId),
+  }),
+);
 ```
 
 ### Relations
@@ -572,8 +636,12 @@ Location: `apps/api/src/services/message.service.ts`
 ```typescript
 class MessageService {
   // Queries
-  async getMessages(tripId: string, userId: string, page: number, limit: number):
-    Promise<PaginatedResult<MessageWithReplies>>
+  async getMessages(
+    tripId: string,
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResult<MessageWithReplies>>;
   // - Top-level messages, reverse chronological
   // - Includes author profile (displayName, profilePhotoUrl)
   // - Includes reaction summaries with current user flag
@@ -581,39 +649,59 @@ class MessageService {
   // - Includes total reply count per message
   // - Soft-deleted messages return as placeholders
 
-  async getMessageCount(tripId: string): Promise<number>
+  async getMessageCount(tripId: string): Promise<number>;
   // - Count of non-deleted top-level messages
 
-  async getLatestMessage(tripId: string): Promise<Message | null>
+  async getLatestMessage(tripId: string): Promise<Message | null>;
   // - Most recent non-deleted top-level message with author
 
   // Mutations
-  async createMessage(tripId: string, authorId: string, data: CreateMessageInput):
-    Promise<Message>
+  async createMessage(
+    tripId: string,
+    authorId: string,
+    data: CreateMessageInput,
+  ): Promise<Message>;
   // - Validates going member, not muted, within limit
   // - If reply, validates parent exists and is top-level in same trip
   // - Triggers notification for top-level messages
 
-  async editMessage(messageId: string, userId: string, content: string):
-    Promise<Message>
+  async editMessage(
+    messageId: string,
+    userId: string,
+    content: string,
+  ): Promise<Message>;
   // - Author only, sets editedAt
 
-  async deleteMessage(messageId: string, userId: string, tripId: string):
-    Promise<void>
+  async deleteMessage(
+    messageId: string,
+    userId: string,
+    tripId: string,
+  ): Promise<void>;
   // - Author or organizer, soft delete
 
-  async togglePin(messageId: string, userId: string, tripId: string, pinned: boolean):
-    Promise<Message>
+  async togglePin(
+    messageId: string,
+    userId: string,
+    tripId: string,
+    pinned: boolean,
+  ): Promise<Message>;
   // - Organizer only, top-level only
 
-  async toggleReaction(messageId: string, userId: string, emoji: string):
-    Promise<ReactionSummary[]>
+  async toggleReaction(
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<ReactionSummary[]>;
   // - Add/remove toggle, returns updated summaries
 
   // Moderation
-  async muteMember(tripId: string, userId: string, mutedBy: string): Promise<void>
-  async unmuteMember(tripId: string, userId: string): Promise<void>
-  async isMuted(tripId: string, userId: string): Promise<boolean>
+  async muteMember(
+    tripId: string,
+    userId: string,
+    mutedBy: string,
+  ): Promise<void>;
+  async unmuteMember(tripId: string, userId: string): Promise<void>;
+  async isMuted(tripId: string, userId: string): Promise<boolean>;
 }
 ```
 
@@ -641,46 +729,58 @@ Location: `apps/api/src/services/notification.service.ts`
 ```typescript
 class NotificationService {
   // Queries
-  async getNotifications(userId: string, options: {
-    page: number, limit: number, unreadOnly?: boolean, tripId?: string
-  }): Promise<PaginatedResult<Notification> & { unreadCount: number }>
+  async getNotifications(
+    userId: string,
+    options: {
+      page: number;
+      limit: number;
+      unreadOnly?: boolean;
+      tripId?: string;
+    },
+  ): Promise<PaginatedResult<Notification> & { unreadCount: number }>;
 
-  async getUnreadCount(userId: string): Promise<number>
+  async getUnreadCount(userId: string): Promise<number>;
 
   // Mutations
-  async markAsRead(notificationId: string, userId: string): Promise<void>
-  async markAllAsRead(userId: string): Promise<void>
+  async markAsRead(notificationId: string, userId: string): Promise<void>;
+  async markAllAsRead(userId: string): Promise<void>;
 
   // Creation & Delivery
   async createNotification(params: {
-    userId: string,
-    tripId: string,
-    type: NotificationType,
-    title: string,
-    body: string,
-    data?: Record<string, unknown>,
-  }): Promise<Notification>
+    userId: string;
+    tripId: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  }): Promise<Notification>;
   // - Inserts notification record
   // - Checks user's SMS preferences
   // - If subscribed, sends SMS via SmsService
 
   async notifyTripMembers(params: {
-    tripId: string,
-    type: NotificationType,
-    title: string,
-    body: string,
-    data?: Record<string, unknown>,
-    excludeUserId?: string,  // don't notify the actor
-  }): Promise<void>
+    tripId: string;
+    type: NotificationType;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+    excludeUserId?: string; // don't notify the actor
+  }): Promise<void>;
   // - Gets all going members of the trip
   // - For each (except excluded): creates notification + optional SMS
   // - Respects individual notification preferences
 
   // Preferences
-  async getPreferences(userId: string, tripId: string): Promise<NotificationPreferences>
-  async updatePreferences(userId: string, tripId: string, prefs: NotificationPreferencesInput):
-    Promise<NotificationPreferences>
-  async createDefaultPreferences(userId: string, tripId: string): Promise<void>
+  async getPreferences(
+    userId: string,
+    tripId: string,
+  ): Promise<NotificationPreferences>;
+  async updatePreferences(
+    userId: string,
+    tripId: string,
+    prefs: NotificationPreferencesInput,
+  ): Promise<NotificationPreferences>;
+  async createDefaultPreferences(userId: string, tripId: string): Promise<void>;
   // - Called when member first RSVPs Going
 }
 ```
@@ -697,7 +797,10 @@ export interface ISMSService {
 }
 
 interface SmsProvider {
-  sendSms(to: string, body: string): Promise<{ success: boolean; messageId?: string }>;
+  sendSms(
+    to: string,
+    body: string,
+  ): Promise<{ success: boolean; messageId?: string }>;
 }
 
 class MockSmsProvider implements SmsProvider {
@@ -722,11 +825,11 @@ class SmsService implements ISMSService {
 
 ```typescript
 // In SchedulerService.processEventReminders():
-const message = `${tripName}: ${eventName} starts in 1 hour${location ? ` at ${location}` : ''}`;
+const message = `${tripName}: ${eventName} starts in 1 hour${location ? ` at ${location}` : ""}`;
 await smsService.sendMessage(phone, message);
 
 // In SchedulerService.processDailyItineraries():
-const message = `${tripName} - Today's Schedule:\n${events.map((e, i) => `${i + 1}. ${e.time} - ${e.name}`).join('\n')}`;
+const message = `${tripName} - Today's Schedule:\n${events.map((e, i) => `${i + 1}. ${e.time} - ${e.name}`).join("\n")}`;
 await smsService.sendMessage(phone, message);
 
 // In NotificationService.notifyTripMembers() for trip_message:
@@ -738,9 +841,10 @@ await smsService.sendMessage(phone, message);
 
 ```typescript
 // In app setup (server.ts or similar)
-const smsProvider = process.env.SMS_PROVIDER === 'twilio'
-  ? new TwilioSmsProvider(process.env.TWILIO_SID, process.env.TWILIO_TOKEN)
-  : new MockSmsProvider();
+const smsProvider =
+  process.env.SMS_PROVIDER === "twilio"
+    ? new TwilioSmsProvider(process.env.TWILIO_SID, process.env.TWILIO_TOKEN)
+    : new MockSmsProvider();
 
 const smsService = new SmsService(smsProvider);
 ```
@@ -757,16 +861,16 @@ class SchedulerService {
     private db: DrizzleDB,
   ) {}
 
-  start(): void
+  start(): void;
   // - Called on server startup (not in test env)
   // - Registers interval timers
 
-  stop(): void
+  stop(): void;
   // - Called on server shutdown
   // - Clears interval timers
 
   // Event Reminders (runs every 5 minutes)
-  async processEventReminders(): Promise<void>
+  async processEventReminders(): Promise<void>;
   // 1. Query events with startTime in the next 55-65 minutes
   //    (10-minute window ensures we catch events between scheduler runs)
   // 2. For each event:
@@ -777,7 +881,7 @@ class SchedulerService {
   //    e. Record in sent_reminders
 
   // Daily Itinerary (runs every 15 minutes)
-  async processDailyItineraries(): Promise<void>
+  async processDailyItineraries(): Promise<void>;
   // 1. Get all active trips (not cancelled, not ended)
   // 2. For each trip, check if current UTC time corresponds to
   //    7:45-8:15 AM in the trip's preferredTimezone
@@ -795,6 +899,7 @@ class SchedulerService {
 The scheduling mechanism (`setInterval` in `start()`/`stop()`) is deliberately separated from the job logic (`processEventReminders()`, `processDailyItineraries()`). The process methods are fully stateless and idempotent - they query the DB, check dedup via `sent_reminders`, create notifications, and return. They don't care what invokes them.
 
 This means migrating to AWS (or any external scheduler) is a deployment change, not a code rewrite:
+
 1. Create Lambda handlers that call `processEventReminders()` / `processDailyItineraries()`
 2. Set up EventBridge rules for the 5-min / 15-min schedules
 3. Remove the `setInterval` calls from `start()`
@@ -804,7 +909,7 @@ No formal `ISchedulerProvider` abstraction is needed now (YAGNI) - the idempoten
 **Timezone handling for daily itinerary**:
 
 ```typescript
-import { DateTime } from 'luxon'; // or date-fns-tz
+import { DateTime } from "luxon"; // or date-fns-tz
 
 function isMorningWindowInTimezone(timezone: string): boolean {
   const now = DateTime.now().setZone(timezone);
@@ -935,18 +1040,22 @@ notifications/
 ### Integration Points
 
 **App Header** (`app-header.tsx`):
+
 - Add `<NotificationBell />` between nav links and user avatar
 
 **Trip Detail Page** (trip detail component):
+
 - Add `<TripNotificationBell tripId={trip.id} />` next to edit trip button
 - Add `<MessageCountIndicator tripId={trip.id} />` in trip meta section
 - Add `<TripMessages tripId={trip.id} />` below itinerary section
 
 **Members Dialog** (members list):
+
 - Add "Mute"/"Unmute" option in member action dropdown (organizer only)
 - Add muted badge next to RSVP status for muted members
 
 **RSVP Handler**:
+
 - When member RSVPs "Going": create default notification preferences
 
 ---
@@ -989,25 +1098,34 @@ export interface ReactionSummary {
 }
 
 export const ALLOWED_REACTIONS = [
-  'heart', 'thumbs_up', 'laugh', 'surprised', 'party', 'plane'
+  "heart",
+  "thumbs_up",
+  "laugh",
+  "surprised",
+  "party",
+  "plane",
 ] as const;
 
-export type AllowedReaction = typeof ALLOWED_REACTIONS[number];
+export type AllowedReaction = (typeof ALLOWED_REACTIONS)[number];
 
 export const REACTION_EMOJI_MAP: Record<AllowedReaction, string> = {
-  heart: '\u2764\ufe0f',
-  thumbs_up: '\ud83d\udc4d',
-  laugh: '\ud83d\ude02',
-  surprised: '\ud83d\ude2e',
-  party: '\ud83c\udf89',
-  plane: '\u2708\ufe0f',
+  heart: "\u2764\ufe0f",
+  thumbs_up: "\ud83d\udc4d",
+  laugh: "\ud83d\ude02",
+  surprised: "\ud83d\ude2e",
+  party: "\ud83c\udf89",
+  plane: "\u2708\ufe0f",
 };
 ```
 
 Location: `shared/types/notification.ts`
 
 ```typescript
-export type NotificationType = 'event_reminder' | 'daily_itinerary' | 'trip_message' | 'trip_update';
+export type NotificationType =
+  | "event_reminder"
+  | "daily_itinerary"
+  | "trip_message"
+  | "trip_update";
 
 export interface Notification {
   id: string;
@@ -1034,7 +1152,10 @@ Location: `shared/schemas/message.ts`
 
 ```typescript
 export const createMessageSchema = z.object({
-  content: z.string().min(1, 'Message cannot be empty').max(2000, 'Message too long (max 2000 characters)'),
+  content: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message too long (max 2000 characters)"),
   parentId: z.string().uuid().optional(),
 });
 
@@ -1043,7 +1164,7 @@ export const updateMessageSchema = z.object({
 });
 
 export const toggleReactionSchema = z.object({
-  emoji: z.enum(['heart', 'thumbs_up', 'laugh', 'surprised', 'party', 'plane']),
+  emoji: z.enum(["heart", "thumbs_up", "laugh", "surprised", "party", "plane"]),
 });
 
 export const pinMessageSchema = z.object({
@@ -1065,7 +1186,9 @@ export const notificationPreferencesSchema = z.object({
   tripMessages: z.boolean(),
 });
 
-export type NotificationPreferencesInput = z.infer<typeof notificationPreferencesSchema>;
+export type NotificationPreferencesInput = z.infer<
+  typeof notificationPreferencesSchema
+>;
 ```
 
 ---
@@ -1138,16 +1261,16 @@ User clicks notification → useMarkAsRead.mutate(notificationId)
 
 ### Message Access Control
 
-| Action          | Going Member | Organizer | Muted Member | Non-Going | Past Trip |
-| --------------- | ------------ | --------- | ------------ | --------- | --------- |
-| View messages   | Yes          | Yes       | Yes          | No        | Yes       |
-| Post message    | Yes          | Yes       | No           | No        | No        |
-| Edit own        | Yes          | Yes       | No           | No        | No        |
-| Delete own      | Yes          | Yes       | No           | No        | No        |
-| Delete any      | No           | Yes       | No           | No        | No        |
-| Pin/Unpin       | No           | Yes       | No           | No        | No        |
-| React           | Yes          | Yes       | Yes          | No        | No        |
-| Mute member     | No           | Yes       | No           | No        | No        |
+| Action        | Going Member | Organizer | Muted Member | Non-Going | Past Trip |
+| ------------- | ------------ | --------- | ------------ | --------- | --------- |
+| View messages | Yes          | Yes       | Yes          | No        | Yes       |
+| Post message  | Yes          | Yes       | No           | No        | No        |
+| Edit own      | Yes          | Yes       | No           | No        | No        |
+| Delete own    | Yes          | Yes       | No           | No        | No        |
+| Delete any    | No           | Yes       | No           | No        | No        |
+| Pin/Unpin     | No           | Yes       | No           | No        | No        |
+| React         | Yes          | Yes       | Yes          | No        | No        |
+| Mute member   | No           | Yes       | No           | No        | No        |
 
 ### Notification Access Control
 
@@ -1232,13 +1355,41 @@ User clicks notification → useMarkAsRead.mutate(notificationId)
 New error types added to `apps/api/src/errors.ts`:
 
 ```typescript
-export const MessageNotFoundError = createError('MESSAGE_NOT_FOUND', 'Message not found', 404);
-export const MemberMutedError = createError('MEMBER_MUTED', 'You have been muted and cannot post messages', 403);
-export const MessageLimitExceededError = createError('MESSAGE_LIMIT_EXCEEDED', 'Maximum 100 messages per trip reached', 409);
-export const NotificationNotFoundError = createError('NOTIFICATION_NOT_FOUND', 'Notification not found', 404);
-export const AlreadyMutedError = createError('ALREADY_MUTED', 'Member is already muted', 409);
-export const NotMutedError = createError('NOT_MUTED', 'Member is not muted', 404);
-export const CannotMuteOrganizerError = createError('CANNOT_MUTE_ORGANIZER', 'Cannot mute an organizer', 403);
+export const MessageNotFoundError = createError(
+  "MESSAGE_NOT_FOUND",
+  "Message not found",
+  404,
+);
+export const MemberMutedError = createError(
+  "MEMBER_MUTED",
+  "You have been muted and cannot post messages",
+  403,
+);
+export const MessageLimitExceededError = createError(
+  "MESSAGE_LIMIT_EXCEEDED",
+  "Maximum 100 messages per trip reached",
+  409,
+);
+export const NotificationNotFoundError = createError(
+  "NOTIFICATION_NOT_FOUND",
+  "Notification not found",
+  404,
+);
+export const AlreadyMutedError = createError(
+  "ALREADY_MUTED",
+  "Member is already muted",
+  409,
+);
+export const NotMutedError = createError(
+  "NOT_MUTED",
+  "Member is not muted",
+  404,
+);
+export const CannotMuteOrganizerError = createError(
+  "CANNOT_MUTE_ORGANIZER",
+  "Cannot mute an organizer",
+  403,
+);
 ```
 
 ---
@@ -1246,6 +1397,7 @@ export const CannotMuteOrganizerError = createError('CANNOT_MUTE_ORGANIZER', 'Ca
 ## File References
 
 ### Backend
+
 - Schema: `apps/api/src/db/schema/index.ts` (extend)
 - Relations: `apps/api/src/db/schema/relations.ts` (extend)
 - Services: `apps/api/src/services/message.service.ts`, `notification.service.ts`, `sms.service.ts`, `scheduler.service.ts` (new)
@@ -1255,6 +1407,7 @@ export const CannotMuteOrganizerError = createError('CANNOT_MUTE_ORGANIZER', 'Ca
 - Permissions: `apps/api/src/services/permissions.service.ts` (extend)
 
 ### Frontend
+
 - Hooks: `apps/web/src/hooks/use-messages.ts`, `use-notifications.ts` (new)
 - Messaging: `apps/web/src/components/messaging/` (new directory)
 - Notifications: `apps/web/src/components/notifications/` (new directory)
@@ -1262,6 +1415,7 @@ export const CannotMuteOrganizerError = createError('CANNOT_MUTE_ORGANIZER', 'Ca
 - Members dialog: `apps/web/src/components/trip/members-dialog.tsx` (extend)
 
 ### Shared
+
 - Types: `shared/types/message.ts`, `notification.ts` (new)
 - Schemas: `shared/schemas/message.ts`, `notification.ts` (new)
 - Barrel: `shared/types/index.ts`, `shared/schemas/index.ts` (extend)

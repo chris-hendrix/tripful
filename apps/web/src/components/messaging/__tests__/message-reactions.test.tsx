@@ -25,17 +25,18 @@ describe("MessageReactions", () => {
   });
 
   const baseReactions: ReactionSummary[] = [
-    { emoji: "heart", count: 3, reacted: true, reactorNames: ["You", "Alice", "Bob"] },
+    {
+      emoji: "heart",
+      count: 3,
+      reacted: true,
+      reactorNames: ["You", "Alice", "Bob"],
+    },
     { emoji: "thumbs_up", count: 1, reacted: false, reactorNames: ["Alice"] },
   ];
 
   it("renders only the add-reaction button when no reactions exist", () => {
     render(
-      <MessageReactions
-        messageId="msg-1"
-        tripId="trip-1"
-        reactions={[]}
-      />,
+      <MessageReactions messageId="msg-1" tripId="trip-1" reactions={[]} />,
     );
 
     const buttons = screen.getAllByRole("button");
@@ -60,11 +61,7 @@ describe("MessageReactions", () => {
 
   it("renders wrapper with role='group' and aria-label='Reactions'", () => {
     render(
-      <MessageReactions
-        messageId="msg-1"
-        tripId="trip-1"
-        reactions={[]}
-      />,
+      <MessageReactions messageId="msg-1" tripId="trip-1" reactions={[]} />,
     );
 
     const group = screen.getByRole("group", { name: "Reactions" });
@@ -194,7 +191,12 @@ describe("MessageReactions", () => {
   it("hides reactions with count of 0", () => {
     const withZero: ReactionSummary[] = [
       { emoji: "heart", count: 0, reacted: false, reactorNames: [] },
-      { emoji: "thumbs_up", count: 2, reacted: false, reactorNames: ["Alice", "Bob"] },
+      {
+        emoji: "thumbs_up",
+        count: 2,
+        reacted: false,
+        reactorNames: ["Alice", "Bob"],
+      },
     ];
     render(
       <MessageReactions

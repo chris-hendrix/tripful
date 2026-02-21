@@ -28,7 +28,11 @@ interface TripPreviewProps {
   onGoingSuccess?: () => void;
 }
 
-export function TripPreview({ trip, tripId, onGoingSuccess }: TripPreviewProps) {
+export function TripPreview({
+  trip,
+  tripId,
+  onGoingSuccess,
+}: TripPreviewProps) {
   const { mutate: updateRsvp, isPending } = useUpdateRsvp(tripId);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);

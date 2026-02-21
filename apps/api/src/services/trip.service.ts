@@ -866,9 +866,7 @@ export class TripService implements ITripService {
       })
       .from(members)
       .innerJoin(users, eq(members.userId, users.id))
-      .where(
-        and(eq(members.tripId, tripId), eq(members.isOrganizer, true)),
-      );
+      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
 
     return results;
   }

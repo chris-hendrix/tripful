@@ -7,12 +7,12 @@
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/app/layout.tsx` | Added `Viewport` type import, `viewport` export (width, initialScale, maximumScale, themeColor), extended `metadata` with `appleWebApp` config, added `<noscript>` fallback block |
-| `apps/web/src/app/(auth)/verify/layout.tsx` | NEW — metadata wrapper layout (`{ title: "Verify" }`) for client component page |
-| `apps/web/src/app/(auth)/complete-profile/layout.tsx` | NEW — metadata wrapper layout (`{ title: "Complete Profile" }`) for client component page |
-| `apps/api/src/app.ts` | Added `hidePoweredBy: true` to `@fastify/helmet` registration config |
+| File                                                  | Change                                                                                                                                                                            |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/app/layout.tsx`                         | Added `Viewport` type import, `viewport` export (width, initialScale, maximumScale, themeColor), extended `metadata` with `appleWebApp` config, added `<noscript>` fallback block |
+| `apps/web/src/app/(auth)/verify/layout.tsx`           | NEW — metadata wrapper layout (`{ title: "Verify" }`) for client component page                                                                                                   |
+| `apps/web/src/app/(auth)/complete-profile/layout.tsx` | NEW — metadata wrapper layout (`{ title: "Complete Profile" }`) for client component page                                                                                         |
+| `apps/api/src/app.ts`                                 | Added `hidePoweredBy: true` to `@fastify/helmet` registration config                                                                                                              |
 
 ### Key Decisions
 
@@ -40,30 +40,30 @@
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/api/src/services/auth.service.ts` | Removed `phone: user.phoneNumber` from JWT payload in `generateToken()`, updated docstring |
-| `apps/api/src/types/index.ts` | Removed `phone: string` from `JWTPayload` interface |
-| `apps/api/src/middleware/auth.middleware.ts` | Updated comment to remove `phone` from listed JWT fields |
-| `apps/api/src/routes/auth.routes.ts` | Added `onSend` hook setting `Cache-Control: no-store, no-cache, must-revalidate` and `Pragma: no-cache` on all auth routes |
-| `apps/api/tests/unit/auth.service.test.ts` | Replaced phone assertions with `not.toHaveProperty("phone")`, removed phone from jwt.sign() |
-| `apps/api/tests/integration/security.test.ts` | Removed phone from jwt.sign(), added Cache-Control header test |
-| `apps/api/tests/integration/auth.middleware.test.ts` | Removed phone from all jwt.sign() calls and phone assertions |
-| `apps/api/tests/integration/auth.complete-profile.test.ts` | Removed phone from jwt.sign(), changed assertion to not.toHaveProperty |
-| `apps/api/tests/integration/auth.me-logout.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/auth.verify-code.test.ts` | Changed phone assertion to not.toHaveProperty |
-| `apps/api/tests/integration/config-and-improvements.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/trip.routes.test.ts` | Removed phone/phoneNumber from all jwt.sign() calls (16 instances) |
-| `apps/api/tests/integration/event.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/invitation.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/message.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/accommodation.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/member-travel.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/notification.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/update-member-role.routes.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/drizzle-improvements.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/notification-hooks.test.ts` | Removed phone from all jwt.sign() calls |
-| `apps/api/tests/integration/user.routes.test.ts` | Removed phone from all jwt.sign() calls |
+| File                                                           | Change                                                                                                                     |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/services/auth.service.ts`                        | Removed `phone: user.phoneNumber` from JWT payload in `generateToken()`, updated docstring                                 |
+| `apps/api/src/types/index.ts`                                  | Removed `phone: string` from `JWTPayload` interface                                                                        |
+| `apps/api/src/middleware/auth.middleware.ts`                   | Updated comment to remove `phone` from listed JWT fields                                                                   |
+| `apps/api/src/routes/auth.routes.ts`                           | Added `onSend` hook setting `Cache-Control: no-store, no-cache, must-revalidate` and `Pragma: no-cache` on all auth routes |
+| `apps/api/tests/unit/auth.service.test.ts`                     | Replaced phone assertions with `not.toHaveProperty("phone")`, removed phone from jwt.sign()                                |
+| `apps/api/tests/integration/security.test.ts`                  | Removed phone from jwt.sign(), added Cache-Control header test                                                             |
+| `apps/api/tests/integration/auth.middleware.test.ts`           | Removed phone from all jwt.sign() calls and phone assertions                                                               |
+| `apps/api/tests/integration/auth.complete-profile.test.ts`     | Removed phone from jwt.sign(), changed assertion to not.toHaveProperty                                                     |
+| `apps/api/tests/integration/auth.me-logout.test.ts`            | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/auth.verify-code.test.ts`          | Changed phone assertion to not.toHaveProperty                                                                              |
+| `apps/api/tests/integration/config-and-improvements.test.ts`   | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/trip.routes.test.ts`               | Removed phone/phoneNumber from all jwt.sign() calls (16 instances)                                                         |
+| `apps/api/tests/integration/event.routes.test.ts`              | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/invitation.routes.test.ts`         | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/message.routes.test.ts`            | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/accommodation.routes.test.ts`      | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/member-travel.routes.test.ts`      | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/notification.routes.test.ts`       | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/update-member-role.routes.test.ts` | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/drizzle-improvements.test.ts`      | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/notification-hooks.test.ts`        | Removed phone from all jwt.sign() calls                                                                                    |
+| `apps/api/tests/integration/user.routes.test.ts`               | Removed phone from all jwt.sign() calls                                                                                    |
 
 ### Key Decisions
 
@@ -91,13 +91,13 @@
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/api/src/db/schema/index.ts` | Added `{ onDelete: "cascade" }` to `mutedBy` FK reference on `mutedMembers` table (line 505), making it consistent with `tripId` and `userId` FKs in the same table |
-| `apps/api/src/queues/index.ts` | Added `{ deleteAfterSeconds: 3600 }` to `DAILY_ITINERARIES` queue creation, matching `NOTIFICATION_BATCH` retention pattern |
-| `apps/api/src/db/migrations/0015_lonely_chamber.sql` | NEW — Auto-generated migration: drops old `muted_members_muted_by_users_id_fk` constraint and recreates it with `ON DELETE CASCADE` |
-| `apps/api/src/db/migrations/meta/_journal.json` | Updated migration journal with entry for 0015 |
-| `apps/api/src/db/migrations/meta/0015_snapshot.json` | NEW — Drizzle schema snapshot for migration 0015 |
+| File                                                 | Change                                                                                                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/db/schema/index.ts`                    | Added `{ onDelete: "cascade" }` to `mutedBy` FK reference on `mutedMembers` table (line 505), making it consistent with `tripId` and `userId` FKs in the same table |
+| `apps/api/src/queues/index.ts`                       | Added `{ deleteAfterSeconds: 3600 }` to `DAILY_ITINERARIES` queue creation, matching `NOTIFICATION_BATCH` retention pattern                                         |
+| `apps/api/src/db/migrations/0015_lonely_chamber.sql` | NEW — Auto-generated migration: drops old `muted_members_muted_by_users_id_fk` constraint and recreates it with `ON DELETE CASCADE`                                 |
+| `apps/api/src/db/migrations/meta/_journal.json`      | Updated migration journal with entry for 0015                                                                                                                       |
+| `apps/api/src/db/migrations/meta/0015_snapshot.json` | NEW — Drizzle schema snapshot for migration 0015                                                                                                                    |
 
 ### Key Decisions
 
@@ -127,9 +127,9 @@
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/app/global-error.tsx` | Added `error` to destructured props, replaced hardcoded error message with `{error.message || "An unexpected error occurred. Please try again later."}` |
+| File                                | Change                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ | --- | --------------------------------------------------------- |
+| `apps/web/src/app/global-error.tsx` | Added `error` to destructured props, replaced hardcoded error message with `{error.message |     | "An unexpected error occurred. Please try again later."}` |
 
 ### Key Decisions
 
@@ -160,24 +160,24 @@
 
 Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 
-| Check | Result |
-|-------|--------|
-| All 12 Phase 1 implementation items present in codebase | ✅ Verified |
-| FAILURE or BLOCKED tasks | None found |
-| Reviewer caveats or conditional approvals | None — all 4 tasks received clean APPROVED |
-| Deferred items requiring follow-up tasks | None actionable (see below) |
-| Regressions from Phase 1 changes | None detected |
+| Check                                                   | Result                                     |
+| ------------------------------------------------------- | ------------------------------------------ |
+| All 12 Phase 1 implementation items present in codebase | ✅ Verified                                |
+| FAILURE or BLOCKED tasks                                | None found                                 |
+| Reviewer caveats or conditional approvals               | None — all 4 tasks received clean APPROVED |
+| Deferred items requiring follow-up tasks                | None actionable (see below)                |
+| Regressions from Phase 1 changes                        | None detected                              |
 
 ### Deferred Items Analysis
 
-| Item | Assessment | Action |
-|------|-----------|--------|
+| Item                                         | Assessment                                                                                                                                                                                                                     | Action                   |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
 | `tripIdIdx` potentially redundant (Task 1.3) | Minor optimization — composite `tripIdIsOrganizerIdx` covers queries on `tripId` alone, making the single-column index technically redundant. However, keeping both is the codebase convention and the overhead is negligible. | No follow-up task needed |
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File                     | Change                                                                                                                                                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.ralph/VERIFICATION.md` | Updated "Pre-existing Test Failures" section from 3 incomplete categories to 5 complete categories with accurate counts (19 total: daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, auth lockout expiry 1, trip metadata 1) |
 
 ### Verification Results
@@ -200,15 +200,15 @@ Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/components/ui/select.tsx` | Changed `import * as SelectPrimitive from "@radix-ui/react-select"` to `import { Select as SelectPrimitive } from "radix-ui"` |
-| `apps/web/src/components/ui/label.tsx` | Changed `import * as LabelPrimitive from "@radix-ui/react-label"` to `import { Label as LabelPrimitive } from "radix-ui"` |
-| `apps/web/src/components/ui/dialog.tsx` | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"` |
-| `apps/web/src/components/ui/sheet.tsx` | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"` |
-| `apps/web/src/components/ui/badge.tsx` | Changed import to unified `radix-ui`, updated `Slot` to `Slot.Root` in component assignment |
-| `apps/web/src/components/ui/form.tsx` | Replaced two legacy imports with `import { type Label as LabelPrimitive, Slot } from "radix-ui"`, updated `Slot` to `Slot.Root` in type annotation and JSX |
-| `apps/web/package.json` | Removed 4 legacy `@radix-ui/react-*` dependencies (dialog, label, select, slot) |
+| File                                    | Change                                                                                                                                                     |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/ui/select.tsx` | Changed `import * as SelectPrimitive from "@radix-ui/react-select"` to `import { Select as SelectPrimitive } from "radix-ui"`                              |
+| `apps/web/src/components/ui/label.tsx`  | Changed `import * as LabelPrimitive from "@radix-ui/react-label"` to `import { Label as LabelPrimitive } from "radix-ui"`                                  |
+| `apps/web/src/components/ui/dialog.tsx` | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"`                              |
+| `apps/web/src/components/ui/sheet.tsx`  | Changed `import * as DialogPrimitive from "@radix-ui/react-dialog"` to `import { Dialog as DialogPrimitive } from "radix-ui"`                              |
+| `apps/web/src/components/ui/badge.tsx`  | Changed import to unified `radix-ui`, updated `Slot` to `Slot.Root` in component assignment                                                                |
+| `apps/web/src/components/ui/form.tsx`   | Replaced two legacy imports with `import { type Label as LabelPrimitive, Slot } from "radix-ui"`, updated `Slot` to `Slot.Root` in type annotation and JSX |
+| `apps/web/package.json`                 | Removed 4 legacy `@radix-ui/react-*` dependencies (dialog, label, select, slot)                                                                            |
 
 ### Key Decisions
 
@@ -238,17 +238,17 @@ Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/components/ui/dialog.tsx` | Replaced old `ring-offset-background focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-hidden` on close button with standardized `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-hidden` |
-| `apps/web/src/components/ui/sheet.tsx` | Identical focus fix to dialog.tsx on close button |
-| `apps/web/src/components/ui/datetime-picker.tsx` | Replaced inconsistent `ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` on time input with `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]` |
-| `apps/web/src/components/ui/button.tsx` | Added `"use client";` directive as line 1 |
-| `apps/web/src/components/ui/input.tsx` | Added `"use client";` directive as line 1 |
-| `apps/web/src/components/ui/card.tsx` | Added `"use client";` directive as line 1 |
-| `apps/web/src/components/ui/badge.tsx` | Added `"use client";` directive as line 1 |
-| `apps/web/src/components/ui/select.tsx` | Refactored `SelectTrigger` from ad-hoc `data-[size=*]` CSS to `cva` variant pattern with `selectTriggerVariants` export, matching `buttonVariants` approach |
-| `apps/web/src/components/ui/__tests__/select.test.tsx` | NEW — 6 tests covering `selectTriggerVariants` output and rendered `SelectTrigger` component |
+| File                                                   | Change                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/ui/dialog.tsx`                | Replaced old `ring-offset-background focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-hidden` on close button with standardized `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-hidden` |
+| `apps/web/src/components/ui/sheet.tsx`                 | Identical focus fix to dialog.tsx on close button                                                                                                                                                                                                          |
+| `apps/web/src/components/ui/datetime-picker.tsx`       | Replaced inconsistent `ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2` on time input with `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]`      |
+| `apps/web/src/components/ui/button.tsx`                | Added `"use client";` directive as line 1                                                                                                                                                                                                                  |
+| `apps/web/src/components/ui/input.tsx`                 | Added `"use client";` directive as line 1                                                                                                                                                                                                                  |
+| `apps/web/src/components/ui/card.tsx`                  | Added `"use client";` directive as line 1                                                                                                                                                                                                                  |
+| `apps/web/src/components/ui/badge.tsx`                 | Added `"use client";` directive as line 1                                                                                                                                                                                                                  |
+| `apps/web/src/components/ui/select.tsx`                | Refactored `SelectTrigger` from ad-hoc `data-[size=*]` CSS to `cva` variant pattern with `selectTriggerVariants` export, matching `buttonVariants` approach                                                                                                |
+| `apps/web/src/components/ui/__tests__/select.test.tsx` | NEW — 6 tests covering `selectTriggerVariants` output and rendered `SelectTrigger` component                                                                                                                                                               |
 
 ### Key Decisions
 
@@ -287,25 +287,25 @@ Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
 
 Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
-| Check | Result |
-|-------|--------|
-| All 8 Phase 2 implementation items present in codebase | ✅ Verified |
-| FAILURE or BLOCKED tasks | None found |
-| Reviewer caveats or conditional approvals | None — both tasks received APPROVED |
-| Deferred items requiring follow-up tasks | None actionable (see below) |
-| Regressions from Phase 2 changes | None detected |
-| VERIFICATION.md Phase 2 checks pass | ✅ All 3 items verified |
+| Check                                                  | Result                              |
+| ------------------------------------------------------ | ----------------------------------- |
+| All 8 Phase 2 implementation items present in codebase | ✅ Verified                         |
+| FAILURE or BLOCKED tasks                               | None found                          |
+| Reviewer caveats or conditional approvals              | None — both tasks received APPROVED |
+| Deferred items requiring follow-up tasks               | None actionable (see below)         |
+| Regressions from Phase 2 changes                       | None detected                       |
+| VERIFICATION.md Phase 2 checks pass                    | ✅ All 3 items verified             |
 
 ### Deferred Items Analysis
 
-| Item | Assessment | Action |
-|------|-----------|--------|
+| Item                                                            | Assessment                                                                                                                                                                                                                                                                                      | Action                   |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | `skip-link.tsx` old focus ring pattern (Task 2.2 reviewer note) | Out of scope — file is at `apps/web/src/components/skip-link.tsx`, not in `components/ui/`. Uses `focus:` intentionally for `sr-only focus:not-sr-only` visibility toggle. Only the ring values (`ring-2 ring-offset-2`) are cosmetically stale, not the `focus:` prefix. Functionally correct. | No follow-up task needed |
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File | Change                                                                               |
+| ---- | ------------------------------------------------------------------------------------ |
 | None | No code changes needed — Phase 2 is fully complete per ARCHITECTURE.md specification |
 
 ### Verification Results
@@ -329,15 +329,15 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `shared/schemas/event.ts` | Added `timezone: z.string().optional()` to `baseEventSchema` — makes `CreateEventInput` and `UpdateEventInput` include `timezone?: string` |
+| File                                                        | Change                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared/schemas/event.ts`                                   | Added `timezone: z.string().optional()` to `baseEventSchema` — makes `CreateEventInput` and `UpdateEventInput` include `timezone?: string`                                                                                                                                                                                        |
 | `apps/web/src/components/itinerary/create-event-dialog.tsx` | Removed `selectedTimezone` useState, added `timezone` to form defaultValues and reset, replaced bare `<FormItem>` timezone Select with proper `<FormField>` pattern, updated DateTimePicker timezone props to `form.watch("timezone")`, stripped timezone from API submission in handleSubmit, added `mapServerErrors` to onError |
-| `apps/web/src/components/itinerary/edit-event-dialog.tsx` | Same timezone changes as create dialog, fixed composite key `key={\`${link}-${index}\`}` to `key={link}` (links are unique), added `mapServerErrors` to onError |
-| `apps/web/src/components/trip/create-trip-dialog.tsx` | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback |
-| `apps/web/src/components/trip/edit-trip-dialog.tsx` | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback |
-| `apps/web/src/lib/form-errors.ts` | NEW — `mapServerErrors<T>()` generic utility: checks `instanceof APIError`, maps error codes to form fields via `setError()`, returns boolean for toast fallback decision |
-| `apps/web/src/lib/__tests__/form-errors.test.ts` | NEW — 6 unit tests: mapped APIError, unmapped APIError, non-APIError (Error), non-APIError (TypeError), multiple field mappings, empty field map |
+| `apps/web/src/components/itinerary/edit-event-dialog.tsx`   | Same timezone changes as create dialog, fixed composite key `key={\`${link}-${index}\`}`to`key={link}`(links are unique), added`mapServerErrors` to onError                                                                                                                                                                       |
+| `apps/web/src/components/trip/create-trip-dialog.tsx`       | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback                                                                                                                                                                                                                             |
+| `apps/web/src/components/trip/edit-trip-dialog.tsx`         | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback                                                                                                                                                                                                                             |
+| `apps/web/src/lib/form-errors.ts`                           | NEW — `mapServerErrors<T>()` generic utility: checks `instanceof APIError`, maps error codes to form fields via `setError()`, returns boolean for toast fallback decision                                                                                                                                                         |
+| `apps/web/src/lib/__tests__/form-errors.test.ts`            | NEW — 6 unit tests: mapped APIError, unmapped APIError, non-APIError (Error), non-APIError (TypeError), multiple field mappings, empty field map                                                                                                                                                                                  |
 
 ### Key Decisions
 
@@ -369,16 +369,16 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/hooks/use-trips.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics |
-| `apps/web/src/hooks/use-events.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
-| `apps/web/src/hooks/use-accommodations.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
-| `apps/web/src/hooks/use-member-travel.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
-| `apps/web/src/hooks/use-messages.ts` | Changed `Error` → `APIError` in 7 `useMutation` generics; removed extra `_mutationContext` 4th parameter from 5 `onError` callbacks |
-| `apps/web/src/hooks/use-invitations.ts` | Changed `Error` → `APIError` in 6 `useMutation` generics |
-| `apps/web/src/hooks/use-user.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics |
-| `apps/web/src/hooks/use-notifications.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics; removed extra `_mutationContext` parameter from 3 `onError` and 2 `onSettled` callbacks |
+| File                                       | Change                                                                                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/hooks/use-trips.ts`          | Changed `Error` → `APIError` in 3 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-events.ts`         | Changed `Error` → `APIError` in 4 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-accommodations.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-member-travel.ts`  | Changed `Error` → `APIError` in 4 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-messages.ts`       | Changed `Error` → `APIError` in 7 `useMutation` generics; removed extra `_mutationContext` 4th parameter from 5 `onError` callbacks               |
+| `apps/web/src/hooks/use-invitations.ts`    | Changed `Error` → `APIError` in 6 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-user.ts`           | Changed `Error` → `APIError` in 3 `useMutation` generics                                                                                          |
+| `apps/web/src/hooks/use-notifications.ts`  | Changed `Error` → `APIError` in 3 `useMutation` generics; removed extra `_mutationContext` parameter from 3 `onError` and 2 `onSettled` callbacks |
 
 ### Key Decisions
 
@@ -409,10 +409,10 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/components/notifications/notification-bell.tsx` | Replaced broken `useRef` + `useEffect` + `classList` animation re-trigger with React `key={displayCount}` technique; removed `ANIMATION_CLASS` constant, `badgeRef` ref, and `useEffect` block; wrapped `displayCount` and `ariaLabel` in `useMemo`; changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` |
-| `apps/web/src/components/notifications/trip-notification-bell.tsx` | Consistency fix: changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` to match the same conditional rendering pattern |
+| File                                                               | Change                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/components/notifications/notification-bell.tsx`      | Replaced broken `useRef` + `useEffect` + `classList` animation re-trigger with React `key={displayCount}` technique; removed `ANIMATION_CLASS` constant, `badgeRef` ref, and `useEffect` block; wrapped `displayCount` and `ariaLabel` in `useMemo`; changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` |
+| `apps/web/src/components/notifications/trip-notification-bell.tsx` | Consistency fix: changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` to match the same conditional rendering pattern                                                                                                                                                                                     |
 
 ### Key Decisions
 
@@ -444,10 +444,10 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File                                                       | Change                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/web/src/components/itinerary/group-by-type-view.tsx` | Removed `useCallback` from import; replaced 3 `useCallback`-wrapped handlers (`handleEditEvent`, `handleEditAccommodation`, `handleEditMemberTravel`) with plain arrow functions; removed `// Stable callbacks for card props` comment |
-| `apps/web/src/components/itinerary/day-by-day-view.tsx` | Same changes: removed `useCallback` from import; replaced 3 `useCallback`-wrapped handlers with plain arrow functions; removed comment |
+| `apps/web/src/components/itinerary/day-by-day-view.tsx`    | Same changes: removed `useCallback` from import; replaced 3 `useCallback`-wrapped handlers with plain arrow functions; removed comment                                                                                                 |
 
 ### Key Decisions
 
@@ -480,32 +480,32 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 
 Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 
-| Check | Result |
-|-------|--------|
-| All 22 Phase 3 files present and clean | ✅ Verified |
-| No TODO/FIXME/HACK comments in changed files | ✅ Verified |
-| All 15 ARCHITECTURE.md Phase 3 spec items implemented | ✅ Verified |
-| All 3 VERIFICATION.md Phase 3 checks pass | ✅ Verified |
-| FAILURE or BLOCKED tasks | None found |
-| Reviewer caveats or conditional approvals | None — all 4 tasks received clean APPROVED |
-| Regressions from Phase 3 changes | None detected |
+| Check                                                 | Result                                     |
+| ----------------------------------------------------- | ------------------------------------------ |
+| All 22 Phase 3 files present and clean                | ✅ Verified                                |
+| No TODO/FIXME/HACK comments in changed files          | ✅ Verified                                |
+| All 15 ARCHITECTURE.md Phase 3 spec items implemented | ✅ Verified                                |
+| All 3 VERIFICATION.md Phase 3 checks pass             | ✅ Verified                                |
+| FAILURE or BLOCKED tasks                              | None found                                 |
+| Reviewer caveats or conditional approvals             | None — all 4 tasks received clean APPROVED |
+| Regressions from Phase 3 changes                      | None detected                              |
 
 ### Deferred Items Analysis
 
-| Item | Assessment | Action |
-|------|-----------|--------|
-| `useMemo` not applied to `trip-notification-bell.tsx` (Task 3.3) | Intentional, reviewer-accepted inconsistency. Trivial computation — memoization overhead may exceed benefit. | No follow-up task needed |
-| `mapServerErrors` not in accommodation dialogs (Task 3.1) | Task spec explicitly listed only 4 dialogs. Accommodations handle errors via toast, which is functionally correct. | No follow-up task needed |
-| `timezone` in shared schema is frontend-only concern (Task 3.1) | Pragmatic approach avoiding complex type gymnastics. Well-documented in PROGRESS.md. | No follow-up task needed |
-| TanStack Query `APIError` is type hint only (Task 3.2) | Handled by `instanceof APIError` guards in error helpers and `mapServerErrors`. | No follow-up task needed |
-| `key={link}` instead of `field.id` from useFieldArray (Task 3.1) | Justified deviation — primitive string arrays require complex type workarounds with useFieldArray. | No follow-up task needed |
-| `edit-accommodation-dialog.tsx` composite key pattern (Task 3.1) | **Fixed** — see Changes Made below | Resolved in this iteration |
+| Item                                                             | Assessment                                                                                                         | Action                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `useMemo` not applied to `trip-notification-bell.tsx` (Task 3.3) | Intentional, reviewer-accepted inconsistency. Trivial computation — memoization overhead may exceed benefit.       | No follow-up task needed   |
+| `mapServerErrors` not in accommodation dialogs (Task 3.1)        | Task spec explicitly listed only 4 dialogs. Accommodations handle errors via toast, which is functionally correct. | No follow-up task needed   |
+| `timezone` in shared schema is frontend-only concern (Task 3.1)  | Pragmatic approach avoiding complex type gymnastics. Well-documented in PROGRESS.md.                               | No follow-up task needed   |
+| TanStack Query `APIError` is type hint only (Task 3.2)           | Handled by `instanceof APIError` guards in error helpers and `mapServerErrors`.                                    | No follow-up task needed   |
+| `key={link}` instead of `field.id` from useFieldArray (Task 3.1) | Justified deviation — primitive string arrays require complex type workarounds with useFieldArray.                 | No follow-up task needed   |
+| `edit-accommodation-dialog.tsx` composite key pattern (Task 3.1) | **Fixed** — see Changes Made below                                                                                 | Resolved in this iteration |
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` | Changed `links.map((link, index) =>` to `links.map((link) =>` and `key={\`${link}-${index}\`}` to `key={link}` — consistency fix matching the 3 other dialog components |
+| File                                                              | Change                                                                                                                                                                |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` | Changed `links.map((link, index) =>` to `links.map((link) =>` and `key={\`${link}-${index}\`}`to`key={link}` — consistency fix matching the 3 other dialog components |
 
 ### Key Decisions
 
@@ -538,11 +538,11 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/api/src/services/trip.service.ts` | Optimized `getTripById` membership check from `select()` to `select({ status, isOrganizer })` (only needed columns); replaced 2 sequential organizer queries (members query + users `inArray` query) with single `innerJoin` query; changed 4 trip existence checks in `updateTrip`, `cancelTrip`, `addCoOrganizers`, `removeCoOrganizer` from `select()` to `select({ id: trips.id })` |
-| `apps/api/src/services/event.service.ts` | Optimized `updateEvent` from `select()` to `select({ id, tripId, createdBy, startTime, endTime })` (only consumed fields); optimized `restoreEvent` from `select()` to `select({ id, tripId })` (only `tripId` used downstream) |
-| `apps/api/src/services/notification.service.ts` | Added `sql` to drizzle-orm imports; combined 2 sequential count queries (total + unread) into single query using conditional aggregation `count(case when readAt is null then 1 end)`; added `.mapWith(Number)` for runtime type coercion |
+| File                                            | Change                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/services/trip.service.ts`         | Optimized `getTripById` membership check from `select()` to `select({ status, isOrganizer })` (only needed columns); replaced 2 sequential organizer queries (members query + users `inArray` query) with single `innerJoin` query; changed 4 trip existence checks in `updateTrip`, `cancelTrip`, `addCoOrganizers`, `removeCoOrganizer` from `select()` to `select({ id: trips.id })` |
+| `apps/api/src/services/event.service.ts`        | Optimized `updateEvent` from `select()` to `select({ id, tripId, createdBy, startTime, endTime })` (only consumed fields); optimized `restoreEvent` from `select()` to `select({ id, tripId })` (only `tripId` used downstream)                                                                                                                                                         |
+| `apps/api/src/services/notification.service.ts` | Added `sql` to drizzle-orm imports; combined 2 sequential count queries (total + unread) into single query using conditional aggregation `count(case when readAt is null then 1 end)`; added `.mapWith(Number)` for runtime type coercion                                                                                                                                               |
 
 ### Key Decisions
 
@@ -580,33 +580,33 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/api/src/app.ts` | Added `ajv: { customOptions: { useDefaults: true } }` to Fastify constructor options (sub-item 4) |
-| `apps/api/src/routes/trip.routes.ts` | Reordered 2 inline preHandler arrays and 1 scoped addHook block: rate limiting now runs before authentication (sub-item 2) |
-| `apps/api/src/routes/event.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/accommodation.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/member-travel.routes.ts` | Same hook reordering: 2 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/invitation.routes.ts` | Same hook reordering: 3 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/message.routes.ts` | Same hook reordering: 3 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/notification.routes.ts` | Same hook reordering: 7 inline + 1 scoped (sub-item 2) |
-| `apps/api/src/routes/user.routes.ts` | Reordered 1 scoped addHook block (2 hooks, no requireCompleteProfile) (sub-item 2) |
-| `apps/api/src/plugins/config.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/database.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/queue.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/auth-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/permissions-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/trip-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/event-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/accommodation-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/member-travel-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/upload-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/invitation-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/sms-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/health-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/message-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/plugins/notification-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
-| `apps/api/src/queues/index.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3) |
+| File                                            | Change                                                                                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/app.ts`                           | Added `ajv: { customOptions: { useDefaults: true } }` to Fastify constructor options (sub-item 4)                          |
+| `apps/api/src/routes/trip.routes.ts`            | Reordered 2 inline preHandler arrays and 1 scoped addHook block: rate limiting now runs before authentication (sub-item 2) |
+| `apps/api/src/routes/event.routes.ts`           | Same hook reordering: 2 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/accommodation.routes.ts`   | Same hook reordering: 2 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/member-travel.routes.ts`   | Same hook reordering: 2 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/invitation.routes.ts`      | Same hook reordering: 3 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/message.routes.ts`         | Same hook reordering: 3 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/notification.routes.ts`    | Same hook reordering: 7 inline + 1 scoped (sub-item 2)                                                                     |
+| `apps/api/src/routes/user.routes.ts`            | Reordered 1 scoped addHook block (2 hooks, no requireCompleteProfile) (sub-item 2)                                         |
+| `apps/api/src/plugins/config.ts`                | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/database.ts`              | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/queue.ts`                 | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/auth-service.ts`          | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/permissions-service.ts`   | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/trip-service.ts`          | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/event-service.ts`         | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/accommodation-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/member-travel-service.ts` | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/upload-service.ts`        | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/invitation-service.ts`    | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/sms-service.ts`           | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/health-service.ts`        | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/message-service.ts`       | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/plugins/notification-service.ts`  | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
+| `apps/api/src/queues/index.ts`                  | Added `fastify: "5.x"` to fp() options (sub-item 3)                                                                        |
 
 ### Key Decisions
 
@@ -644,8 +644,8 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File                         | Change                                                                                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/web/src/middleware.ts` | NEW — Next.js edge middleware that checks for `auth_token` cookie on protected routes (`/trips/:path*`, `/settings/:path*`) and redirects to `/` if missing |
 
 ### Key Decisions
@@ -686,31 +686,31 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 
 Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 
-| Check | Result |
-|-------|--------|
-| All Phase 4 files present and in expected state | ✅ Verified (3 services, 8 route files, 16 plugins, 1 middleware, 1 app config) |
-| All 8 ARCHITECTURE.md Phase 4 spec items implemented | ✅ Verified |
-| All 3 VERIFICATION.md Phase 4 checks pass | ✅ Verified |
-| FAILURE or BLOCKED tasks | None found |
-| Reviewer caveats or conditional approvals | None — all 3 tasks received clean APPROVED |
-| No TODO/FIXME/HACK comments in changed files | ✅ Verified |
-| Comprehensive test coverage for modified services | ✅ Verified (trip 58, event 29, notification 32 tests) |
-| Regressions from Phase 4 changes | None detected |
+| Check                                                | Result                                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| All Phase 4 files present and in expected state      | ✅ Verified (3 services, 8 route files, 16 plugins, 1 middleware, 1 app config) |
+| All 8 ARCHITECTURE.md Phase 4 spec items implemented | ✅ Verified                                                                     |
+| All 3 VERIFICATION.md Phase 4 checks pass            | ✅ Verified                                                                     |
+| FAILURE or BLOCKED tasks                             | None found                                                                      |
+| Reviewer caveats or conditional approvals            | None — all 3 tasks received clean APPROVED                                      |
+| No TODO/FIXME/HACK comments in changed files         | ✅ Verified                                                                     |
+| Comprehensive test coverage for modified services    | ✅ Verified (trip 58, event 29, notification 32 tests)                          |
+| Regressions from Phase 4 changes                     | None detected                                                                   |
 
 ### Deferred Items Analysis
 
-| Item | Assessment | Action |
-|------|-----------|--------|
-| Additional `select()` patterns in other services (Task 4.1) | Out of Phase 4 spec scope, negligible performance impact for MVP | No follow-up task needed |
-| `addCoOrganizers`/`removeCoOrganizer` full `select()` calls (Task 4.1) | Deliberate scoping decision, minimal impact (single-row fetches) | No follow-up task needed |
-| AJV `useDefaults` is no-op with Zod (Task 4.2) | Defensive configuration, matches spec, harmless | No follow-up task needed |
-| Notification routes two hook ordering patterns (Task 4.2) | Correct architectural pattern — inline routes skip `requireCompleteProfile` for different authorization levels | No follow-up task needed |
-| Middleware redirect (`/`) vs layout redirect (`/login`) (Task 4.3) | Complementary defense-in-depth layers — middleware fires first as edge-level guard, layout is fallback | No follow-up task needed |
+| Item                                                                   | Assessment                                                                                                     | Action                   |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Additional `select()` patterns in other services (Task 4.1)            | Out of Phase 4 spec scope, negligible performance impact for MVP                                               | No follow-up task needed |
+| `addCoOrganizers`/`removeCoOrganizer` full `select()` calls (Task 4.1) | Deliberate scoping decision, minimal impact (single-row fetches)                                               | No follow-up task needed |
+| AJV `useDefaults` is no-op with Zod (Task 4.2)                         | Defensive configuration, matches spec, harmless                                                                | No follow-up task needed |
+| Notification routes two hook ordering patterns (Task 4.2)              | Correct architectural pattern — inline routes skip `requireCompleteProfile` for different authorization levels | No follow-up task needed |
+| Middleware redirect (`/`) vs layout redirect (`/login`) (Task 4.3)     | Complementary defense-in-depth layers — middleware fires first as edge-level guard, layout is fallback         | No follow-up task needed |
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File                     | Change                                                                                                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.ralph/VERIFICATION.md` | Updated Phase 4 check from "Verify: 405 response for wrong HTTP method" to "Verify: 404 response for wrong HTTP method" with explanatory note that Fastify 5 returns 404 by design for method mismatches |
 
 ### Verification Results
@@ -735,24 +735,24 @@ Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/components/ui/form.tsx` | Added `aria-live="polite"` to `FormMessage` `<p>` element — covers ALL forms using shadcn pattern |
-| `apps/web/src/components/ui/phone-input.tsx` | Added `autoComplete="tel"` to inner `<input>`, extended `PhoneInputProps` with `aria-required` and `aria-describedby` |
-| `apps/web/src/components/notifications/notification-bell.tsx` | Wrapped badge in stable `<span aria-live="polite">` wrapper for screen reader announcements |
-| `apps/web/src/components/notifications/trip-notification-bell.tsx` | Same stable `aria-live="polite"` wrapper on trip notification badge |
-| `apps/web/src/components/trip/create-trip-dialog.tsx` | Added `aria-required="true"` on name, destination, timezone; `autoComplete="tel"` and conditional `aria-describedby="co-organizer-phone-error"` on co-organizer phone input; `id` + `aria-live` on error `<p>` |
-| `apps/web/src/components/trip/edit-trip-dialog.tsx` | Added `aria-required="true"` on name, destination, timezone inputs |
-| `apps/web/src/components/itinerary/create-event-dialog.tsx` | Added `aria-required="true"` on name, event type; conditional `aria-describedby="event-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
-| `apps/web/src/components/itinerary/edit-event-dialog.tsx` | Added `aria-required="true"` on name, event type; conditional `aria-describedby="edit-event-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
-| `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` | Added `aria-required="true"` on name; conditional `aria-describedby="accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
-| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` | Added `aria-required="true"` on name; conditional `aria-describedby="edit-accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>` |
-| `apps/web/src/components/itinerary/create-member-travel-dialog.tsx` | Added `aria-required="true"` on travel type RadioGroup |
-| `apps/web/src/components/itinerary/edit-member-travel-dialog.tsx` | Added `aria-required="true"` on travel type radio group div |
-| `apps/web/src/components/profile/profile-dialog.tsx` | Added `aria-required="true"` on display name; changed `autoComplete` from `"name"` to `"nickname"` |
-| `apps/web/src/app/(auth)/complete-profile/page.tsx` | Changed `autoComplete` from `"name"` to `"nickname"` |
-| `apps/web/src/app/(auth)/login/page.tsx` | Added `aria-required="true"` on PhoneInput |
-| `apps/web/src/components/trip/invite-members-dialog.tsx` | Added conditional `aria-describedby="invite-phone-error"` on PhoneInput; `id` + `aria-live` on phone error `<p>` |
+| File                                                                | Change                                                                                                                                                                                                         |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/ui/form.tsx`                               | Added `aria-live="polite"` to `FormMessage` `<p>` element — covers ALL forms using shadcn pattern                                                                                                              |
+| `apps/web/src/components/ui/phone-input.tsx`                        | Added `autoComplete="tel"` to inner `<input>`, extended `PhoneInputProps` with `aria-required` and `aria-describedby`                                                                                          |
+| `apps/web/src/components/notifications/notification-bell.tsx`       | Wrapped badge in stable `<span aria-live="polite">` wrapper for screen reader announcements                                                                                                                    |
+| `apps/web/src/components/notifications/trip-notification-bell.tsx`  | Same stable `aria-live="polite"` wrapper on trip notification badge                                                                                                                                            |
+| `apps/web/src/components/trip/create-trip-dialog.tsx`               | Added `aria-required="true"` on name, destination, timezone; `autoComplete="tel"` and conditional `aria-describedby="co-organizer-phone-error"` on co-organizer phone input; `id` + `aria-live` on error `<p>` |
+| `apps/web/src/components/trip/edit-trip-dialog.tsx`                 | Added `aria-required="true"` on name, destination, timezone inputs                                                                                                                                             |
+| `apps/web/src/components/itinerary/create-event-dialog.tsx`         | Added `aria-required="true"` on name, event type; conditional `aria-describedby="event-link-error"` on link input; `id` + `aria-live` on link error `<p>`                                                      |
+| `apps/web/src/components/itinerary/edit-event-dialog.tsx`           | Added `aria-required="true"` on name, event type; conditional `aria-describedby="edit-event-link-error"` on link input; `id` + `aria-live` on link error `<p>`                                                 |
+| `apps/web/src/components/itinerary/create-accommodation-dialog.tsx` | Added `aria-required="true"` on name; conditional `aria-describedby="accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>`                                                          |
+| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`   | Added `aria-required="true"` on name; conditional `aria-describedby="edit-accommodation-link-error"` on link input; `id` + `aria-live` on link error `<p>`                                                     |
+| `apps/web/src/components/itinerary/create-member-travel-dialog.tsx` | Added `aria-required="true"` on travel type RadioGroup                                                                                                                                                         |
+| `apps/web/src/components/itinerary/edit-member-travel-dialog.tsx`   | Added `aria-required="true"` on travel type radio group div                                                                                                                                                    |
+| `apps/web/src/components/profile/profile-dialog.tsx`                | Added `aria-required="true"` on display name; changed `autoComplete` from `"name"` to `"nickname"`                                                                                                             |
+| `apps/web/src/app/(auth)/complete-profile/page.tsx`                 | Changed `autoComplete` from `"name"` to `"nickname"`                                                                                                                                                           |
+| `apps/web/src/app/(auth)/login/page.tsx`                            | Added `aria-required="true"` on PhoneInput                                                                                                                                                                     |
+| `apps/web/src/components/trip/invite-members-dialog.tsx`            | Added conditional `aria-describedby="invite-phone-error"` on PhoneInput; `id` + `aria-live` on phone error `<p>`                                                                                               |
 
 ### Key Decisions
 
@@ -787,12 +787,12 @@ Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/src/app/globals.css` | Changed `--color-muted-foreground` from `#8c8173` to `#6b6054` — passes WCAG AA (4.5:1) against all three background colors |
-| `apps/web/src/app/(app)/trips/trips-content.tsx` | Added `useSearchParams`, `useRouter`, `usePathname` imports; initialized `searchQuery` from `?q=` URL param; added debounced `useEffect` (300ms) to sync search state to URL via `router.replace()` with `{ scroll: false }` |
-| `apps/web/src/app/(app)/trips/page.tsx` | Added `<Suspense>` boundary around `<TripsContent />` (required by Next.js for `useSearchParams`) |
-| `apps/web/src/app/(app)/trips/trips-content.test.tsx` | Updated `next/navigation` mock to include `useSearchParams`, `usePathname`, and `router.replace`; added 3 new tests for URL state persistence |
+| File                                                  | Change                                                                                                                                                                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/app/globals.css`                        | Changed `--color-muted-foreground` from `#8c8173` to `#6b6054` — passes WCAG AA (4.5:1) against all three background colors                                                                                                  |
+| `apps/web/src/app/(app)/trips/trips-content.tsx`      | Added `useSearchParams`, `useRouter`, `usePathname` imports; initialized `searchQuery` from `?q=` URL param; added debounced `useEffect` (300ms) to sync search state to URL via `router.replace()` with `{ scroll: false }` |
+| `apps/web/src/app/(app)/trips/page.tsx`               | Added `<Suspense>` boundary around `<TripsContent />` (required by Next.js for `useSearchParams`)                                                                                                                            |
+| `apps/web/src/app/(app)/trips/trips-content.test.tsx` | Updated `next/navigation` mock to include `useSearchParams`, `usePathname`, and `router.replace`; added 3 new tests for URL state persistence                                                                                |
 
 ### Key Decisions
 
@@ -826,30 +826,30 @@ Three researchers analyzed all Phase 4 work (Tasks 4.1-4.3) in parallel:
 
 Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 
-| Check | Result |
-|-------|--------|
-| All 20 Phase 5 files present and correct | Verified |
-| All 11 ARCHITECTURE.md Phase 5 spec items implemented | Verified |
-| All 4 VERIFICATION.md Phase 5 checks pass | Verified |
-| FAILURE or BLOCKED tasks | None found |
-| Reviewer caveats or conditional approvals | None -- both tasks received APPROVED |
-| No TODO/FIXME/HACK comments in changed files | Verified |
-| Regressions from Phase 5 changes | None detected |
+| Check                                                 | Result                               |
+| ----------------------------------------------------- | ------------------------------------ |
+| All 20 Phase 5 files present and correct              | Verified                             |
+| All 11 ARCHITECTURE.md Phase 5 spec items implemented | Verified                             |
+| All 4 VERIFICATION.md Phase 5 checks pass             | Verified                             |
+| FAILURE or BLOCKED tasks                              | None found                           |
+| Reviewer caveats or conditional approvals             | None -- both tasks received APPROVED |
+| No TODO/FIXME/HACK comments in changed files          | Verified                             |
+| Regressions from Phase 5 changes                      | None detected                        |
 
 ### Deferred Items Analysis
 
-| Item | Assessment | Action |
-|------|-----------|--------|
-| `aria-live` on trip detail loading transition (Task 5.1) | trips-content.tsx has `aria-live="polite"` on its content section. Trip detail page lacks it but was not explicitly called out in spec. Primary location addressed. | No follow-up task needed |
-| ARCHITECTURE.md says `autoComplete="name"` but implementation uses `"nickname"` (Task 5.1) | Correct per HTML spec. `"nickname"` is semantically right for display name fields. ARCHITECTURE.md is a planning doc. | No change needed |
-| `searchParams` reference stability (Task 5.2) | Current implementation uses `searchParams` in useEffect deps which may trigger an extra re-render cycle after `router.replace()`. Non-blocking per reviewer. | No change needed for MVP |
-| Dialog URL state (Task 5.2) | Explicitly evaluated and justified skip -- multi-step Sheet form state would be lost on refresh anyway. | No follow-up task needed |
-| `useMemo` not applied to `trip-notification-bell.tsx` (Task 3.3, carried forward) | Intentional, reviewer-accepted. Trivial computation. | No follow-up task needed |
+| Item                                                                                       | Assessment                                                                                                                                                          | Action                   |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `aria-live` on trip detail loading transition (Task 5.1)                                   | trips-content.tsx has `aria-live="polite"` on its content section. Trip detail page lacks it but was not explicitly called out in spec. Primary location addressed. | No follow-up task needed |
+| ARCHITECTURE.md says `autoComplete="name"` but implementation uses `"nickname"` (Task 5.1) | Correct per HTML spec. `"nickname"` is semantically right for display name fields. ARCHITECTURE.md is a planning doc.                                               | No change needed         |
+| `searchParams` reference stability (Task 5.2)                                              | Current implementation uses `searchParams` in useEffect deps which may trigger an extra re-render cycle after `router.replace()`. Non-blocking per reviewer.        | No change needed for MVP |
+| Dialog URL state (Task 5.2)                                                                | Explicitly evaluated and justified skip -- multi-step Sheet form state would be lost on refresh anyway.                                                             | No follow-up task needed |
+| `useMemo` not applied to `trip-notification-bell.tsx` (Task 3.3, carried forward)          | Intentional, reviewer-accepted. Trivial computation.                                                                                                                | No follow-up task needed |
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File              | Change                              |
+| ----------------- | ----------------------------------- |
 | `.ralph/TASKS.md` | Marked Task 5.3 as complete (`[x]`) |
 
 ### Verification Results
@@ -874,10 +874,10 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
-| `apps/web/tests/e2e/helpers/auth.ts` | Replaced 16 CSS-selector-based locators across 3 functions (`loginViaBrowser`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) with role-based `getByRole` locators: `input[type="tel"]` → `getByRole("textbox", { name: /phone/i })`, `button:has-text("Continue")` → `getByRole("button", { name: "Continue" })`, `input[type="text"].first()` (code) → `getByRole("textbox", { name: /verification code/i })`, `button:has-text("Verify")` → `getByRole("button", { name: "Verify" })`, `input[type="text"].first()` (display name) → `getByRole("textbox", { name: /display name/i })`, `button:has-text("Complete profile")` → `getByRole("button", { name: "Complete profile" })` |
-| `apps/web/tests/e2e/helpers/pages/login.page.ts` | Replaced 2 generic `.first()` locators: `codeInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /verification code/i })`, `displayNameInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /display name/i })` |
+| File                                             | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/web/tests/e2e/helpers/auth.ts`             | Replaced 16 CSS-selector-based locators across 3 functions (`loginViaBrowser`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) with role-based `getByRole` locators: `input[type="tel"]` → `getByRole("textbox", { name: /phone/i })`, `button:has-text("Continue")` → `getByRole("button", { name: "Continue" })`, `input[type="text"].first()` (code) → `getByRole("textbox", { name: /verification code/i })`, `button:has-text("Verify")` → `getByRole("button", { name: "Verify" })`, `input[type="text"].first()` (display name) → `getByRole("textbox", { name: /display name/i })`, `button:has-text("Complete profile")` → `getByRole("button", { name: "Complete profile" })` |
+| `apps/web/tests/e2e/helpers/pages/login.page.ts` | Replaced 2 generic `.first()` locators: `codeInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /verification code/i })`, `displayNameInput` from `getByRole("textbox").first()` → `getByRole("textbox", { name: /display name/i })`                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ### Key Decisions
 
@@ -911,17 +911,17 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 
 ### Changes Made
 
-| File | Change |
-|------|--------|
+| File                                                   | Change                                                                                                                                                                                                         |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/web/tests/e2e/helpers/pages/trip-detail.page.ts` | Replaced 3 CSS selector locators: `input[name="name"]` → `getByLabel(/trip name/i)`, `input[name="destination"]` → `getByLabel(/destination/i)`, `textarea[name="description"]` → `getByLabel(/description/i)` |
-| `apps/web/tests/e2e/helpers/toast.ts` | NEW — shared `dismissToast(page)` helper using `page.mouse.move(0, 0)` to unpause Sonner auto-dismiss + `expect(toasts).toHaveCount(0)` to wait for dismissal |
-| `apps/web/tests/e2e/helpers/trips.ts` | Replaced inline toast dismissal block (`.isVisible()` + `waitFor` + `page.evaluate` DOM removal) with `await dismissToast(page)` |
-| `apps/web/tests/e2e/helpers/date-pickers.ts` | Replaced `calendar.locator('[role="status"]')` CSS selector with `calendar.getByRole('status')` role-based locator |
-| `apps/web/tests/e2e/itinerary-journey.spec.ts` | Replaced `clickFabAction` toast block (`.isVisible()` + `dispatchEvent("mouseleave")` + `page.evaluate`) with `await dismissToast(page)` |
-| `apps/web/tests/e2e/invitation-journey.spec.ts` | Replaced 2 inline toast blocks with `await dismissToast(page)` — one using `.isVisible()` + `page.evaluate`, one using `dispatchEvent("mouseleave")` + `.isVisible()` + `page.evaluate` |
-| `apps/web/tests/e2e/messaging.spec.ts` | Removed local `dismissToast` function (`.isVisible()` + `dispatchEvent("mouseleave")` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import |
-| `apps/web/tests/e2e/notifications.spec.ts` | Removed local `dismissToast` function (`.isVisible()` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import |
-| `apps/web/tests/e2e/trip-journey.spec.ts` | Replaced inline toast dismissal block (`.isVisible()` + `waitFor`) with `await dismissToast(page)` (caught in fix round) |
+| `apps/web/tests/e2e/helpers/toast.ts`                  | NEW — shared `dismissToast(page)` helper using `page.mouse.move(0, 0)` to unpause Sonner auto-dismiss + `expect(toasts).toHaveCount(0)` to wait for dismissal                                                  |
+| `apps/web/tests/e2e/helpers/trips.ts`                  | Replaced inline toast dismissal block (`.isVisible()` + `waitFor` + `page.evaluate` DOM removal) with `await dismissToast(page)`                                                                               |
+| `apps/web/tests/e2e/helpers/date-pickers.ts`           | Replaced `calendar.locator('[role="status"]')` CSS selector with `calendar.getByRole('status')` role-based locator                                                                                             |
+| `apps/web/tests/e2e/itinerary-journey.spec.ts`         | Replaced `clickFabAction` toast block (`.isVisible()` + `dispatchEvent("mouseleave")` + `page.evaluate`) with `await dismissToast(page)`                                                                       |
+| `apps/web/tests/e2e/invitation-journey.spec.ts`        | Replaced 2 inline toast blocks with `await dismissToast(page)` — one using `.isVisible()` + `page.evaluate`, one using `dispatchEvent("mouseleave")` + `.isVisible()` + `page.evaluate`                        |
+| `apps/web/tests/e2e/messaging.spec.ts`                 | Removed local `dismissToast` function (`.isVisible()` + `dispatchEvent("mouseleave")` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import                         |
+| `apps/web/tests/e2e/notifications.spec.ts`             | Removed local `dismissToast` function (`.isVisible()` + `waitFor`); replaced with import from `./helpers/toast`; removed unused `TOAST_TIMEOUT` import                                                         |
+| `apps/web/tests/e2e/trip-journey.spec.ts`              | Replaced inline toast dismissal block (`.isVisible()` + `waitFor`) with `await dismissToast(page)` (caught in fix round)                                                                                       |
 
 ### Key Decisions
 
@@ -947,3 +947,54 @@ Three researchers analyzed all Phase 5 work (Tasks 5.1-5.2) in parallel:
 - CSS selectors `input[name="..."]` should always be replaced with `getByLabel()` when FormLabel components exist — the accessible name from the label is more resilient to refactoring than the `name` attribute
 - Pre-existing test failure count: 18 (stable across iterations 5-22)
 - Task 6.3 will consolidate remaining inline helpers and address broad `.or()` locator patterns
+
+## Iteration 23 — Task 6.3: Consolidate helpers, add expect.soft(), and fix broad .or() locators
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/tests/e2e/helpers/timeouts.ts` | Added `API_BASE` constant export, consolidating 5 duplicate definitions |
+| `apps/web/tests/e2e/helpers/itinerary.ts` | NEW — extracted `clickFabAction` and `createEvent` from itinerary-journey.spec.ts |
+| `apps/web/tests/e2e/helpers/messaging.ts` | NEW — extracted `scrollToDiscussion` from messaging.spec.ts |
+| `apps/web/tests/e2e/helpers/auth.ts` | Removed `.or().first()` hydration checks (redundant with user menu button wait); deduplicated `authenticateViaAPI` → delegates to `authenticateViaAPIWithPhone`; deduplicated `authenticateUserViaBrowser` → delegates to `authenticateUserViaBrowserWithPhone`; imported `API_BASE` from timeouts |
+| `apps/web/tests/e2e/helpers/invitations.ts` | Removed local `API_BASE`, imported from timeouts |
+| `apps/web/tests/e2e/helpers/pages/trip-detail.page.ts` | Added `goto(tripId: string)` method for page object consistency |
+| `apps/web/tests/e2e/itinerary-journey.spec.ts` | Removed inline `clickFabAction`/`createEvent`, imported from helpers/itinerary; converted 12 assertions to `expect.soft()` |
+| `apps/web/tests/e2e/messaging.spec.ts` | Removed inline `scrollToDiscussion` and local `API_BASE`, imported from shared locations; converted 1 assertion to `expect.soft()` |
+| `apps/web/tests/e2e/trip-journey.spec.ts` | Replaced `.or().first()` with direct `emptyStateHeading` check; converted 11 assertions to `expect.soft()` |
+| `apps/web/tests/e2e/invitation-journey.spec.ts` | Converted 5 wizard step counter assertions to `expect.soft()` |
+| `apps/web/tests/e2e/notifications.spec.ts` | Removed local `API_BASE`, imported from timeouts; converted 1 assertion to `expect.soft()` |
+| `apps/web/tests/e2e/invitation-helpers.spec.ts` | Removed local `API_BASE`, imported from timeouts |
+| `apps/web/tests/e2e/app-shell.spec.ts` | Converted 3 assertions to `expect.soft()` |
+| `apps/web/tests/e2e/auth-journey.spec.ts` | Converted 2 cookie property assertions to `expect.soft()` |
+| `apps/web/tests/e2e/profile-journey.spec.ts` | Converted 3 form state assertions to `expect.soft()` |
+
+### Key Decisions
+
+- **Removed `.or().first()` hydration checks in auth.ts**: The `.getByText(/\d+ trips?/).or(page.getByRole("heading", { name: "No trips yet" })).first().waitFor()` blocks were redundant because the immediately subsequent `page.getByRole("button", { name: "User menu" }).waitFor()` already confirms React hydration and auth context completion. Removing them eliminates the broad `.or()` pattern without losing any reliability.
+- **Auth function deduplication**: `authenticateViaAPI` now generates a phone and delegates to `authenticateViaAPIWithPhone`, eliminating ~50 lines of duplicated code. Same pattern for browser-based auth variants.
+- **`expect.soft()` selection criteria**: Only assertions that verify supplementary/cosmetic information were converted — e.g., trip card details after the heading is confirmed visible, wizard step counters after step content is confirmed, cookie attributes after existence is confirmed. Primary/gate assertions remain as hard `expect()`.
+- **`API_BASE` in `timeouts.ts`**: Added to the existing constants file rather than creating a new file. The file's JSDoc was updated to reflect its broader "constants" scope.
+- **`TripDetailPage.goto()`**: Added for page object consistency — all 4 page objects now have a `goto()` method. Takes `tripId: string` parameter since trip detail pages require a dynamic ID.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep verification**: 0 local `API_BASE` definitions outside timeouts.ts, 0 inline helper functions in spec files, 0 `.or()` patterns, 37 `expect.soft()` occurrences across 7 spec files
+- **Reviewer**: APPROVED — all 5 changes verified correct, clean implementation
+
+### Learnings for Future Iterations
+
+- `expect.soft()` in Playwright records failures but continues test execution — ideal for secondary assertions that provide diagnostic value without aborting the test. Primary "gate" assertions should remain hard `expect()`
+- When auth helpers have duplicate code differing only in parameter handling, the "WithPhone" variant should be the core implementation and the convenience variant should delegate to it
+- `.or().first()` patterns for page hydration checks are often redundant when a subsequent element wait already confirms the same hydration state — the user menu button is a reliable universal indicator that the page is ready
+- Extracting inline helpers to shared files requires changing `import("@playwright/test").Page` inline type annotations to proper `import type { Page } from "@playwright/test"` imports
+- `API_BASE` was duplicated in 5 files — DRY violations in test infrastructure accumulate silently and should be caught during initial helper setup
+- Pre-existing test failure count: 18 (stable across iterations 5-23)
+- Task 6.4 (Phase 6 cleanup) will review all Phase 6 progress entries for any remaining issues

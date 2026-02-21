@@ -12,8 +12,7 @@ const mockCreateMessage = {
 
 vi.mock("@/hooks/use-messages", () => ({
   useCreateMessage: () => mockCreateMessage,
-  getCreateMessageErrorMessage: (error: Error | null) =>
-    error?.message ?? null,
+  getCreateMessageErrorMessage: (error: Error | null) => error?.message ?? null,
 }));
 
 vi.mock("@/app/providers/auth-provider", () => ({
@@ -39,9 +38,7 @@ describe("MessageInput", () => {
   it("renders textarea with placeholder", () => {
     render(<MessageInput tripId="trip-1" />);
 
-    expect(
-      screen.getByPlaceholderText("Write a message..."),
-    ).toBeDefined();
+    expect(screen.getByPlaceholderText("Write a message...")).toBeDefined();
   });
 
   it("renders textarea with aria-label 'Write a message'", () => {
@@ -73,9 +70,7 @@ describe("MessageInput", () => {
   it("renders compact placeholder for reply inputs", () => {
     render(<MessageInput tripId="trip-1" compact />);
 
-    expect(
-      screen.getByPlaceholderText("Write a reply..."),
-    ).toBeDefined();
+    expect(screen.getByPlaceholderText("Write a reply...")).toBeDefined();
   });
 
   it("shows disabled message when disabled", () => {
@@ -88,9 +83,7 @@ describe("MessageInput", () => {
     );
 
     expect(screen.getByText("You have been muted")).toBeDefined();
-    expect(
-      screen.queryByPlaceholderText("Write a message..."),
-    ).toBeNull();
+    expect(screen.queryByPlaceholderText("Write a message...")).toBeNull();
   });
 
   it("shows default disabled message when no custom message", () => {
@@ -258,9 +251,7 @@ describe("MessageInput", () => {
   });
 
   it("does not show avatar in compact mode", () => {
-    const { container } = render(
-      <MessageInput tripId="trip-1" compact />,
-    );
+    const { container } = render(<MessageInput tripId="trip-1" compact />);
 
     const avatars = container.querySelectorAll('[data-slot="avatar"]');
     expect(avatars.length).toBe(0);

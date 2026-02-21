@@ -119,9 +119,7 @@ export const MemberTravelCard = memo(function MemberTravelCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="">
-                {memberTravel.location}
-              </span>
+              <span className="">{memberTravel.location}</span>
             </a>
           )}
 

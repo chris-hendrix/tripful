@@ -77,7 +77,8 @@ vi.mock("@/hooks/use-invitations", () => ({
 // Mock useMemberTravels while keeping mutation hooks real
 const mockUseMemberTravels = vi.fn().mockReturnValue({ data: [] });
 vi.mock("@/hooks/use-member-travel", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/hooks/use-member-travel")>();
+  const actual =
+    await importOriginal<typeof import("@/hooks/use-member-travel")>();
   return {
     ...actual,
     useMemberTravels: (...args: unknown[]) => mockUseMemberTravels(...args),
@@ -754,9 +755,7 @@ describe("MemberOnboardingWizard", () => {
       });
 
       // Click View Itinerary
-      await user.click(
-        screen.getByRole("button", { name: /view itinerary/i }),
-      );
+      await user.click(screen.getByRole("button", { name: /view itinerary/i }));
 
       expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
@@ -793,9 +792,7 @@ describe("MemberOnboardingWizard", () => {
 
       await waitFor(() => {
         expect(screen.getByText("You're all set!")).toBeDefined();
-        expect(
-          screen.getByText(/no travel details added yet/i),
-        ).toBeDefined();
+        expect(screen.getByText(/no travel details added yet/i)).toBeDefined();
       });
     });
   });
@@ -828,9 +825,7 @@ describe("MemberOnboardingWizard", () => {
       await user.click(screen.getByRole("button", { name: /skip/i }));
 
       await waitFor(() => {
-        expect(
-          screen.getByRole("button", { name: /back/i }),
-        ).toBeDefined();
+        expect(screen.getByRole("button", { name: /back/i })).toBeDefined();
       });
     });
 

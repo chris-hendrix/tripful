@@ -83,7 +83,12 @@ export function TripMessages({
       : undefined;
 
   return (
-    <section ref={sectionRef} id="discussion" className="space-y-4" aria-label="Trip discussion">
+    <section
+      ref={sectionRef}
+      id="discussion"
+      className="space-y-4"
+      aria-label="Trip discussion"
+    >
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-semibold font-[family-name:var(--font-playfair)]">
           Discussion

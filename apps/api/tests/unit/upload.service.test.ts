@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, readdirSync, unlinkSync, rmSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  unlinkSync,
+  rmSync,
+  readFileSync,
+} from "node:fs";
 import { resolve } from "node:path";
 import { UploadService } from "@/services/upload.service.js";
 import { LocalStorageService } from "@/services/storage.service.js";

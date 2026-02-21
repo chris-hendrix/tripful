@@ -1201,13 +1201,11 @@ describe("Member Travel Routes", () => {
       });
 
       // Add user1 and user2 as regular members
-      await db
-        .insert(members)
-        .values({
-          tripId: trip.id,
-          userId: user1.id,
-          status: "going",
-        });
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: user1.id,
+        status: "going",
+      });
 
       const [member2] = await db
         .insert(members)

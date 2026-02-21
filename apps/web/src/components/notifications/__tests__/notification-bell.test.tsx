@@ -25,9 +25,7 @@ vi.mock("@/hooks/use-notifications", () => ({
 
 import { NotificationBell } from "../notification-bell";
 
-function makeNotification(
-  overrides: Partial<Notification> = {},
-): Notification {
+function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
     id: "notif-1",
     userId: "user-1",
@@ -71,14 +69,18 @@ describe("NotificationBell", () => {
     const { rerender } = render(<NotificationBell />);
 
     const badge = screen.getByText("3");
-    expect(badge.className).toContain("motion-safe:animate-[badgePulse_600ms_ease-in-out]");
+    expect(badge.className).toContain(
+      "motion-safe:animate-[badgePulse_600ms_ease-in-out]",
+    );
 
     // Change the unread count
     mockUseUnreadCount.mockReturnValue({ data: 5, isLoading: false });
     rerender(<NotificationBell />);
 
     const updatedBadge = screen.getByText("5");
-    expect(updatedBadge.className).toContain("motion-safe:animate-[badgePulse_600ms_ease-in-out]");
+    expect(updatedBadge.className).toContain(
+      "motion-safe:animate-[badgePulse_600ms_ease-in-out]",
+    );
   });
 
   it("hides badge when unread count is 0", () => {
@@ -97,9 +99,7 @@ describe("NotificationBell", () => {
 
     // No badge element should be rendered
     const button = screen.getByRole("button", { name: "Notifications" });
-    const badge = button.querySelector(
-      ".bg-destructive",
-    );
+    const badge = button.querySelector(".bg-destructive");
     expect(badge).toBeNull();
   });
 
@@ -341,9 +341,7 @@ describe("NotificationBell", () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
       data: {
-        notifications: [
-          makeNotification({ readAt: "2026-01-01T00:00:00Z" }),
-        ],
+        notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
         meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
       },

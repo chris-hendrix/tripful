@@ -51,10 +51,7 @@ export const notificationController = {
    * @route GET /api/notifications/unread-count
    * @middleware authenticate
    */
-  async getUnreadCount(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
+  async getUnreadCount(request: FastifyRequest, reply: FastifyReply) {
     const { notificationService } = request.server;
     const userId = request.user.sub;
 

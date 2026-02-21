@@ -1087,14 +1087,12 @@ describe("Invitation Routes", () => {
 
       const regularMember = memberResult[0];
 
-      await db
-        .insert(members)
-        .values({
-          tripId: trip.id,
-          userId: regularMember.id,
-          status: "going",
-          isOrganizer: false,
-        });
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: regularMember.id,
+        status: "going",
+        isOrganizer: false,
+      });
 
       // Create another member to be the target
       const targetResult = await db

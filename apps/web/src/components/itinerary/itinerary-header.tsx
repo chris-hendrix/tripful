@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Calendar,
-  List,
-  Plus,
-  Building2,
-  Plane,
-} from "lucide-react";
+import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -89,7 +83,10 @@ export function ItineraryHeader({
 
   return (
     <>
-      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8">
+      <div
+        data-testid="itinerary-header"
+        className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8"
+      >
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Left: View mode toggle + timezone */}
@@ -164,7 +161,6 @@ export function ItineraryHeader({
                 </SelectContent>
               </Select>
             </div>
-
           </div>
         </div>
       </div>

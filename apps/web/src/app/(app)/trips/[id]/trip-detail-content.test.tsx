@@ -153,7 +153,11 @@ vi.mock("@/components/trip/members-list", () => ({
         <button
           data-testid="members-remove-btn"
           onClick={() =>
-            onRemove({ id: "member-456", userId: "user-456", displayName: "Jane Smith" })
+            onRemove({
+              id: "member-456",
+              userId: "user-456",
+              displayName: "Jane Smith",
+            })
           }
         >
           Remove member
@@ -256,10 +260,7 @@ vi.mock("@/components/trip/member-onboarding-wizard", () => ({
     open ? (
       <div data-testid="member-onboarding-wizard" data-trip-id={tripId}>
         Onboarding Wizard
-        <button
-          data-testid="wizard-close"
-          onClick={() => onOpenChange(false)}
-        >
+        <button data-testid="wizard-close" onClick={() => onOpenChange(false)}>
           Close Wizard
         </button>
       </div>

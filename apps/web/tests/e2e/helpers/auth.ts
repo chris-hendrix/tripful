@@ -1,10 +1,5 @@
 import type { Page, APIRequestContext } from "@playwright/test";
-import {
-  NAVIGATION_TIMEOUT,
-  ELEMENT_TIMEOUT,
-} from "./timeouts";
-
-const API_BASE = "http://localhost:8000/api";
+import { API_BASE, NAVIGATION_TIMEOUT, ELEMENT_TIMEOUT } from "./timeouts";
 
 let phoneCounter = 0;
 
@@ -111,28 +106,7 @@ export async function authenticateViaAPI(
   displayName: string = "Test User",
 ): Promise<string> {
   const phone = generateUniquePhone();
-  const cookieString = await createUserViaAPI(request, phone, displayName);
-  const token = cookieString.match(/auth_token=([^;]+)/)?.[1] || "";
-  await page.context().addCookies([
-    {
-      name: "auth_token",
-      value: token,
-      domain: "localhost",
-      path: "/",
-      httpOnly: true,
-    },
-  ]);
-  await page.goto("/trips");
-  await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-  // Wait for React hydration + data load — trip count for users with trips, empty state for new users
-  await page
-    .getByText(/\d+ trips?/)
-    .or(page.getByRole("heading", { name: "No trips yet" }))
-    .first()
-    .waitFor({ timeout: ELEMENT_TIMEOUT });
-  // Ensure page is fully interactive — wait for client-rendered user menu
-  // which confirms React hydration and auth context are complete
-  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
+  await authenticateViaAPIWithPhone(page, request, phone, displayName);
   return phone;
 }
 
@@ -159,15 +133,11 @@ export async function authenticateViaAPIWithPhone(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-  // Wait for React hydration + data load — trip count for users with trips, empty state for new users
-  await page
-    .getByText(/\d+ trips?/)
-    .or(page.getByRole("heading", { name: "No trips yet" }))
-    .first()
-    .waitFor({ timeout: ELEMENT_TIMEOUT });
   // Ensure page is fully interactive — wait for client-rendered user menu
   // which confirms React hydration and auth context are complete
-  await page.getByRole("button", { name: "User menu" }).waitFor({ timeout: ELEMENT_TIMEOUT });
+  await page
+    .getByRole("button", { name: "User menu" })
+    .waitFor({ timeout: ELEMENT_TIMEOUT });
 }
 
 /**
@@ -180,31 +150,7 @@ export async function authenticateUserViaBrowser(
   displayName: string = "Test User",
 ): Promise<string> {
   const phone = generateUniquePhone();
-
-  await page.goto("/login");
-
-  const phoneInput = page.getByRole("textbox", { name: /phone/i });
-  await phoneInput.fill(phone);
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  await page.waitForURL("**/verify**");
-  const codeInput = page.getByRole("textbox", { name: /verification code/i });
-  await codeInput.fill("123456");
-  await page.getByRole("button", { name: "Verify" }).click();
-
-  await Promise.race([
-    page.waitForURL("**/trips"),
-    page.waitForURL("**/complete-profile"),
-  ]);
-
-  const currentUrl = page.url();
-  if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.getByRole("textbox", { name: /display name/i });
-    await displayNameInput.fill(displayName);
-    await page.getByRole("button", { name: "Complete profile" }).click();
-    await page.waitForURL("**/trips");
-  }
-
+  await authenticateUserViaBrowserWithPhone(page, phone, displayName);
   return phone;
 }
 
@@ -235,7 +181,9 @@ export async function authenticateUserViaBrowserWithPhone(
 
   const currentUrl = page.url();
   if (currentUrl.includes("/complete-profile")) {
-    const displayNameInput = page.getByRole("textbox", { name: /display name/i });
+    const displayNameInput = page.getByRole("textbox", {
+      name: /display name/i,
+    });
     await displayNameInput.fill(displayName);
     await page.getByRole("button", { name: "Complete profile" }).click();
     await page.waitForURL("**/trips");

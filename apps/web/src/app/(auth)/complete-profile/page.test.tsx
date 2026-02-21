@@ -67,11 +67,7 @@ describe("CompleteProfilePage", () => {
     vi.clearAllMocks();
   });
 
-  function createMockFile(
-    name: string,
-    type: string,
-    size: number,
-  ): File {
+  function createMockFile(name: string, type: string, size: number): File {
     const blob = new Blob(["x".repeat(size)], { type });
     return new File([blob], name, { type });
   }
@@ -96,9 +92,7 @@ describe("CompleteProfilePage", () => {
     expect(screen.getByTestId("profile-avatar")).toBeDefined();
     expect(screen.getByTestId("upload-photo-button")).toBeDefined();
     expect(screen.getByTestId("photo-file-input")).toBeDefined();
-    expect(
-      screen.getByRole("button", { name: /upload photo/i }),
-    ).toBeDefined();
+    expect(screen.getByRole("button", { name: /upload photo/i })).toBeDefined();
   });
 
   it("displays validation error for display name that is too short", async () => {

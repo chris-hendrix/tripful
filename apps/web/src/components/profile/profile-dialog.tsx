@@ -191,261 +191,261 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
         </SheetHeader>
 
         <SheetBody>
-        {loading ? (
-          <div className="space-y-6 pb-6">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-20 w-20 rounded-full shrink-0" />
-              <Skeleton className="h-9 w-32 rounded-xl" />
-            </div>
-            <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-12 w-full rounded-xl" />
-          </div>
-        ) : user ? (
-          <div className="space-y-6 pb-6">
-            {/* Profile Photo Section */}
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <Avatar
-                  className="size-20 text-xl"
-                  data-testid="profile-avatar"
-                >
-                  {currentPhotoUrl && (
-                    <AvatarImage
-                      src={getUploadUrl(currentPhotoUrl)}
-                      alt={user.displayName}
-                    />
-                  )}
-                  <AvatarFallback className="text-xl">
-                    {getInitials(user.displayName)}
-                  </AvatarFallback>
-                </Avatar>
-                {isPhotoLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/70 rounded-full">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                )}
+          {loading ? (
+            <div className="space-y-6 pb-6">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-20 w-20 rounded-full shrink-0" />
+                <Skeleton className="h-9 w-32 rounded-xl" />
               </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                onChange={handleFileChange}
-                className="hidden"
-                aria-label="Upload profile photo"
-                data-testid="photo-file-input"
-              />
-
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-3 rounded-xl"
-                  onClick={handlePhotoClick}
-                  disabled={isPhotoLoading}
-                  data-testid="upload-photo-button"
-                >
-                  <Camera className="w-4 h-4 mr-1.5" />
-                  {currentPhotoUrl ? "Change photo" : "Upload photo"}
-                </Button>
-                {currentPhotoUrl && !photoPreview && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={handleRemovePhoto}
-                    disabled={isPhotoLoading}
-                    data-testid="remove-photo-button"
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+            </div>
+          ) : user ? (
+            <div className="space-y-6 pb-6">
+              {/* Profile Photo Section */}
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0">
+                  <Avatar
+                    className="size-20 text-xl"
+                    data-testid="profile-avatar"
                   >
-                    <Trash2 className="w-4 h-4 mr-1.5" />
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Profile Form */}
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                {/* Display Name */}
-                <FormField
-                  control={form.control}
-                  name="displayName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Display name
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="John Doe"
-                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                          disabled={updateProfile.isPending}
-                          autoComplete="nickname"
-                          aria-required="true"
-                          data-testid="display-name-input"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        This is how others will see you on the platform
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                    {currentPhotoUrl && (
+                      <AvatarImage
+                        src={getUploadUrl(currentPhotoUrl)}
+                        alt={user.displayName}
+                      />
+                    )}
+                    <AvatarFallback className="text-xl">
+                      {getInitials(user.displayName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isPhotoLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/70 rounded-full">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
                   )}
-                />
-
-                {/* Phone Number (read-only) */}
-                <div className="space-y-2">
-                  <label className="text-base font-semibold text-foreground">
-                    Phone number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={formatPhoneNumber(user.phoneNumber)}
-                    readOnly
-                    disabled
-                    className="h-12 text-base border-input bg-muted cursor-not-allowed rounded-xl"
-                    data-testid="phone-number-input"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Phone number cannot be changed
-                  </p>
                 </div>
 
-                {/* Timezone */}
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Timezone
-                      </FormLabel>
-                      <Select
-                        onValueChange={onTimezoneChange}
-                        value={selectTimezoneValue}
-                        disabled={updateProfile.isPending}
-                      >
-                        <FormControl>
-                          <SelectTrigger
-                            ref={field.ref}
-                            onBlur={field.onBlur}
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            data-testid="timezone-select"
-                          >
-                            <SelectValue placeholder="Select your timezone" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={TIMEZONE_AUTO_DETECT}>
-                            Auto-detect ({getTimezoneLabel(detectedTimezone)})
-                          </SelectItem>
-                          {TIMEZONES.map((tz) => (
-                            <SelectItem key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        Used to show you times in your local timezone
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  aria-label="Upload profile photo"
+                  data-testid="photo-file-input"
                 />
 
-                <Separator />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 rounded-xl"
+                    onClick={handlePhotoClick}
+                    disabled={isPhotoLoading}
+                    data-testid="upload-photo-button"
+                  >
+                    <Camera className="w-4 h-4 mr-1.5" />
+                    {currentPhotoUrl ? "Change photo" : "Upload photo"}
+                  </Button>
+                  {currentPhotoUrl && !photoPreview && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={handleRemovePhoto}
+                      disabled={isPhotoLoading}
+                      data-testid="remove-photo-button"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1.5" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-                {/* Social Handles */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-base font-semibold text-foreground">
-                      Social handles
-                    </h2>
+              <Separator />
+
+              {/* Profile Form */}
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
+                  {/* Display Name */}
+                  <FormField
+                    control={form.control}
+                    name="displayName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-foreground">
+                          Display name
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="John Doe"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                            disabled={updateProfile.isPending}
+                            autoComplete="nickname"
+                            aria-required="true"
+                            data-testid="display-name-input"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          This is how others will see you on the platform
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Phone Number (read-only) */}
+                  <div className="space-y-2">
+                    <label className="text-base font-semibold text-foreground">
+                      Phone number
+                    </label>
+                    <Input
+                      type="tel"
+                      value={formatPhoneNumber(user.phoneNumber)}
+                      readOnly
+                      disabled
+                      className="h-12 text-base border-input bg-muted cursor-not-allowed rounded-xl"
+                      data-testid="phone-number-input"
+                    />
                     <p className="text-sm text-muted-foreground">
-                      Visible to other trip members
+                      Phone number cannot be changed
                     </p>
                   </div>
 
+                  {/* Timezone */}
                   <FormField
                     control={form.control}
-                    name="handles.venmo"
+                    name="timezone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-base font-semibold text-foreground">
-                          Venmo
+                          Timezone
                         </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="@your-venmo"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            disabled={updateProfile.isPending}
-                            data-testid="venmo-handle-input"
-                            {...field}
-                          />
-                        </FormControl>
+                        <Select
+                          onValueChange={onTimezoneChange}
+                          value={selectTimezoneValue}
+                          disabled={updateProfile.isPending}
+                        >
+                          <FormControl>
+                            <SelectTrigger
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                              data-testid="timezone-select"
+                            >
+                              <SelectValue placeholder="Select your timezone" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={TIMEZONE_AUTO_DETECT}>
+                              Auto-detect ({getTimezoneLabel(detectedTimezone)})
+                            </SelectItem>
+                            {TIMEZONES.map((tz) => (
+                              <SelectItem key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          Used to show you times in your local timezone
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="handles.instagram"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold text-foreground">
-                          Instagram
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="@your-instagram"
-                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                            disabled={updateProfile.isPending}
-                            data-testid="instagram-handle-input"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  <Separator />
 
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={updateProfile.isPending}
-                  variant="gradient"
-                  className="w-full h-12 rounded-xl"
-                  data-testid="save-profile-button"
-                >
-                  {updateProfile.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save changes"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </div>
-        ) : null}
+                  {/* Social Handles */}
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h2 className="text-base font-semibold text-foreground">
+                        Social handles
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Visible to other trip members
+                      </p>
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="handles.venmo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Venmo
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="@your-venmo"
+                              className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                              disabled={updateProfile.isPending}
+                              data-testid="venmo-handle-input"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="handles.instagram"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Instagram
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="@your-instagram"
+                              className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                              disabled={updateProfile.isPending}
+                              data-testid="instagram-handle-input"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    disabled={updateProfile.isPending}
+                    variant="gradient"
+                    className="w-full h-12 rounded-xl"
+                    data-testid="save-profile-button"
+                  >
+                    {updateProfile.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save changes"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          ) : null}
         </SheetBody>
       </SheetContent>
     </Sheet>

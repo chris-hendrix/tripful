@@ -610,7 +610,12 @@ interface RestoreMemberTravelContext {
 export function useRestoreMemberTravel() {
   const queryClient = useQueryClient();
 
-  return useMutation<MemberTravel, APIError, string, RestoreMemberTravelContext>({
+  return useMutation<
+    MemberTravel,
+    APIError,
+    string,
+    RestoreMemberTravelContext
+  >({
     mutationKey: memberTravelKeys.restore(),
     mutationFn: async (memberTravelId: string) => {
       const response = await apiRequest<RestoreMemberTravelResponse>(

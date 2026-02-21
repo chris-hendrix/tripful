@@ -101,10 +101,15 @@ export function NotificationPreferences({
         <div key={pref.key}>
           <div className="flex items-center justify-between py-4">
             <div className="space-y-1 pr-4">
-              <Label htmlFor={`pref-${pref.key}`} className="text-sm font-medium">
+              <Label
+                htmlFor={`pref-${pref.key}`}
+                className="text-sm font-medium"
+              >
                 {pref.label}
               </Label>
-              <p className="text-sm text-muted-foreground">{pref.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {pref.description}
+              </p>
             </div>
             <Switch
               id={`pref-${pref.key}`}

@@ -34,9 +34,7 @@ export function TripsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(
-    searchParams.get("q") ?? "",
-  );
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 
   // Sync search query to URL with debounce
   useEffect(() => {
@@ -172,7 +170,6 @@ export function TripsContent() {
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
-
                 variant="gradient"
                 className="h-12 px-8 rounded-xl"
               >

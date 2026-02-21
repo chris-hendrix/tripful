@@ -60,10 +60,7 @@ export function TravelReminderBanner({
   };
 
   return (
-    <div
-      data-testid="travel-reminder-banner"
-      className="mb-6"
-    >
+    <div data-testid="travel-reminder-banner" className="mb-6">
       <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] p-5">
         <div className="flex items-start gap-4">
           <div className="rounded-full bg-primary/10 p-2.5 shrink-0">

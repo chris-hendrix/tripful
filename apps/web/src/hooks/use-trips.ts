@@ -326,8 +326,7 @@ export function useUpdateTrip() {
           allowMembersToAddEvents:
             data.allowMembersToAddEvents ??
             previousTrip.allowMembersToAddEvents,
-          showAllMembers:
-            data.showAllMembers ?? previousTrip.showAllMembers,
+          showAllMembers: data.showAllMembers ?? previousTrip.showAllMembers,
           updatedAt: new Date(),
         };
 

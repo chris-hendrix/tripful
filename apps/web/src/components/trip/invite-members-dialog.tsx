@@ -136,125 +136,129 @@ export function InviteMembersDialog({
         </SheetHeader>
 
         <SheetBody>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6 pb-6"
-          >
-            <FormField
-              control={form.control}
-              name="phoneNumbers"
-              render={() => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    Phone numbers
-                  </FormLabel>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-6 pb-6"
+            >
+              <FormField
+                control={form.control}
+                name="phoneNumbers"
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      Phone numbers
+                    </FormLabel>
 
-                  {/* Phone chips */}
-                  {phoneNumbers.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {phoneNumbers.map((phone) => (
-                        <Badge
-                          key={phone}
-                          variant="secondary"
-                          className="px-3 py-1.5 text-sm gap-1.5"
-                        >
-                          <Phone className="w-3 h-3" />
-                          {formatPhoneNumber(phone)}
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePhone(phone)}
-                            disabled={isPending}
-                            className="ml-1 hover:text-destructive transition-colors"
-                            aria-label={`Remove ${phone}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Phone input */}
-                  <div className="space-y-2 mt-2">
-                    <div
-                      className="flex gap-2"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddPhone();
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <PhoneInput
-                          value={currentPhone}
-                          onChange={(val) => {
-                            setCurrentPhone(val || "");
-                            setPhoneError(null);
-                          }}
-                          disabled={isPending}
-                          placeholder="Enter phone number"
-                          className="flex-1 h-12 rounded-xl"
-                          aria-describedby={phoneError ? "invite-phone-error" : undefined}
-                        />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        onClick={handleAddPhone}
-                        disabled={isPending}
-                        variant="outline"
-                        className="h-12 px-4 rounded-xl"
-                      >
-                        <UserPlus className="w-5 h-5" />
-                        Add
-                      </Button>
-                    </div>
-                    {phoneError && (
-                      <p
-                        id="invite-phone-error"
-                        aria-live="polite"
-                        className="text-sm text-destructive"
-                      >
-                        {phoneError}
-                      </p>
-                    )}
+                    {/* Phone chips */}
                     {phoneNumbers.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {phoneNumbers.length} phone number
-                        {phoneNumbers.length !== 1 ? "s" : ""} added
-                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {phoneNumbers.map((phone) => (
+                          <Badge
+                            key={phone}
+                            variant="secondary"
+                            className="px-3 py-1.5 text-sm gap-1.5"
+                          >
+                            <Phone className="w-3 h-3" />
+                            {formatPhoneNumber(phone)}
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhone(phone)}
+                              disabled={isPending}
+                              className="ml-1 hover:text-destructive transition-colors"
+                              aria-label={`Remove ${phone}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
                     )}
-                  </div>
 
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    {/* Phone input */}
+                    <div className="space-y-2 mt-2">
+                      <div
+                        className="flex gap-2"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddPhone();
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <PhoneInput
+                            value={currentPhone}
+                            onChange={(val) => {
+                              setCurrentPhone(val || "");
+                              setPhoneError(null);
+                            }}
+                            disabled={isPending}
+                            placeholder="Enter phone number"
+                            className="flex-1 h-12 rounded-xl"
+                            aria-describedby={
+                              phoneError ? "invite-phone-error" : undefined
+                            }
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          onClick={handleAddPhone}
+                          disabled={isPending}
+                          variant="outline"
+                          className="h-12 px-4 rounded-xl"
+                        >
+                          <UserPlus className="w-5 h-5" />
+                          Add
+                        </Button>
+                      </div>
+                      {phoneError && (
+                        <p
+                          id="invite-phone-error"
+                          aria-live="polite"
+                          className="text-sm text-destructive"
+                        >
+                          {phoneError}
+                        </p>
+                      )}
+                      {phoneNumbers.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {phoneNumbers.length} phone number
+                          {phoneNumbers.length !== 1 ? "s" : ""} added
+                        </p>
+                      )}
+                    </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-                className="flex-1 h-12 rounded-xl border-input"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending || phoneNumbers.length === 0}
-                variant="gradient"
-                className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isPending ? "Sending invitations..." : "Send invitations"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                  className="flex-1 h-12 rounded-xl border-input"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending || phoneNumbers.length === 0}
+                  variant="gradient"
+                  className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPending && (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  )}
+                  {isPending ? "Sending invitations..." : "Send invitations"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </SheetBody>
       </SheetContent>
     </Sheet>

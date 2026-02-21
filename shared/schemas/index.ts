@@ -97,10 +97,7 @@ export {
 } from "./invitation";
 
 // Re-export member schemas
-export {
-  updateMemberRoleSchema,
-  type UpdateMemberRoleInput,
-} from "./member";
+export { updateMemberRoleSchema, type UpdateMemberRoleInput } from "./member";
 
 // Re-export user profile schemas
 export {

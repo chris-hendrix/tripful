@@ -53,7 +53,9 @@ describe("invitation.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
-      await db.delete(notificationPreferences).where(eq(notificationPreferences.tripId, testTripId));
+      await db
+        .delete(notificationPreferences)
+        .where(eq(notificationPreferences.tripId, testTripId));
       await db.delete(invitations).where(eq(invitations.tripId, testTripId));
       await db.delete(events).where(eq(events.tripId, testTripId));
       await db.delete(members).where(eq(members.tripId, testTripId));
@@ -524,7 +526,9 @@ describe("invitation.service", () => {
 
       const failingNotificationService = {
         ...notificationService,
-        createDefaultPreferences: vi.fn().mockRejectedValue(new Error("DB connection failed")),
+        createDefaultPreferences: vi
+          .fn()
+          .mockRejectedValue(new Error("DB connection failed")),
       } as unknown as typeof notificationService;
 
       const serviceWithLogger = new InvitationService(
@@ -566,10 +570,7 @@ describe("invitation.service", () => {
         .select({ sharePhone: members.sharePhone })
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
       expect(memberRecord.sharePhone).toBe(true);
     });
@@ -588,29 +589,19 @@ describe("invitation.service", () => {
         .select({ sharePhone: members.sharePhone })
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
       expect(before.sharePhone).toBe(true);
 
       // Now call updateRsvp WITHOUT sharePhone
-      await invitationService.updateRsvp(
-        testMemberId,
-        testTripId,
-        "maybe",
-      );
+      await invitationService.updateRsvp(testMemberId, testTripId, "maybe");
 
       // Verify sharePhone is still true (not reset to false)
       const [after] = await db
         .select({ sharePhone: members.sharePhone })
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
       expect(after.sharePhone).toBe(true);
     });
@@ -628,7 +619,10 @@ describe("invitation.service", () => {
 
     it("should throw PermissionDeniedError for non-member", async () => {
       await expect(
-        invitationService.getMySettings("00000000-0000-0000-0000-000000000000", testTripId),
+        invitationService.getMySettings(
+          "00000000-0000-0000-0000-000000000000",
+          testTripId,
+        ),
       ).rejects.toThrow(PermissionDeniedError);
     });
   });
@@ -645,11 +639,7 @@ describe("invitation.service", () => {
     });
 
     it("should persist the updated value", async () => {
-      await invitationService.updateMySettings(
-        testMemberId,
-        testTripId,
-        true,
-      );
+      await invitationService.updateMySettings(testMemberId, testTripId, true);
 
       const result = await invitationService.getMySettings(
         testMemberId,
@@ -661,7 +651,11 @@ describe("invitation.service", () => {
 
     it("should throw PermissionDeniedError for non-member", async () => {
       await expect(
-        invitationService.updateMySettings("00000000-0000-0000-0000-000000000000", testTripId, true),
+        invitationService.updateMySettings(
+          "00000000-0000-0000-0000-000000000000",
+          testTripId,
+          true,
+        ),
       ).rejects.toThrow(PermissionDeniedError);
     });
   });
@@ -1084,10 +1078,7 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
       expect(memberRecord).toBeDefined();
 
@@ -1103,10 +1094,7 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
       expect(membersAfter).toHaveLength(0);
     });
@@ -1117,10 +1105,7 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, testMemberId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, testMemberId)),
         );
 
       await expect(

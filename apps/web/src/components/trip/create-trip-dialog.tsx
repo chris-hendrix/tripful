@@ -164,123 +164,100 @@ export function CreateTripDialog({
 
         <SheetBody>
           {/* Progress indicator */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-foreground">
-              {currentStep === 1 ? "Basic information" : "Details & settings"}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              Step {currentStep} of 2
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Step 1 circle */}
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
-                currentStep >= 1
-                  ? "bg-gradient-to-r from-primary to-accent text-white"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              1
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-foreground">
+                {currentStep === 1 ? "Basic information" : "Details & settings"}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Step {currentStep} of 2
+              </span>
             </div>
+            <div className="flex items-center gap-2">
+              {/* Step 1 circle */}
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
+                  currentStep >= 1
+                    ? "bg-gradient-to-r from-primary to-accent text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                1
+              </div>
 
-            {/* Connecting line */}
-            <div
-              className={`flex-1 h-0.5 transition-colors ${
-                currentStep >= 2
-                  ? "bg-gradient-to-r from-primary to-accent"
-                  : "bg-muted"
-              }`}
-            />
+              {/* Connecting line */}
+              <div
+                className={`flex-1 h-0.5 transition-colors ${
+                  currentStep >= 2
+                    ? "bg-gradient-to-r from-primary to-accent"
+                    : "bg-muted"
+                }`}
+              />
 
-            {/* Step 2 circle */}
-            <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
-                currentStep >= 2
-                  ? "bg-gradient-to-r from-primary to-accent text-white"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              2
+              {/* Step 2 circle */}
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors ${
+                  currentStep >= 2
+                    ? "bg-gradient-to-r from-primary to-accent text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                2
+              </div>
             </div>
           </div>
-        </div>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6 pb-6"
-          >
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                {/* Trip Name */}
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Trip name
-                        <span className="text-destructive ml-1">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Bachelor Party in Miami"
-                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                          aria-required="true"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        Choose something memorable (3-100 characters)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Destination */}
-                <FormField
-                  control={form.control}
-                  name="destination"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Destination
-                        <span className="text-destructive ml-1">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Miami Beach, FL"
-                          className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                          aria-required="true"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Date Range */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-6 pb-6"
+            >
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  {/* Trip Name */}
                   <FormField
                     control={form.control}
-                    name="startDate"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-base font-semibold text-foreground">
-                          Start date
+                          Trip name
+                          <span className="text-destructive ml-1">*</span>
                         </FormLabel>
                         <FormControl>
-                          <DatePicker
-                            value={field.value ?? ""}
-                            onChange={field.onChange}
-                            placeholder="Start date"
-                            aria-label="Start date"
+                          <Input
+                            type="text"
+                            placeholder="Bachelor Party in Miami"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                            aria-required="true"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          Choose something memorable (3-100 characters)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Destination */}
+                  <FormField
+                    control={form.control}
+                    name="destination"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-foreground">
+                          Destination
+                          <span className="text-destructive ml-1">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="Miami Beach, FL"
+                            className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                            aria-required="true"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -288,298 +265,327 @@ export function CreateTripDialog({
                     )}
                   />
 
+                  {/* Date Range */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Start date
+                          </FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              placeholder="Start date"
+                              aria-label="Start date"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            End date
+                          </FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value ?? ""}
+                              onChange={field.onChange}
+                              placeholder="End date"
+                              aria-label="End date"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Timezone */}
                   <FormField
                     control={form.control}
-                    name="endDate"
+                    name="timezone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-base font-semibold text-foreground">
-                          End date
+                          Trip timezone
+                          <span className="text-destructive ml-1">*</span>
                         </FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value ?? ""}
-                            onChange={field.onChange}
-                            placeholder="End date"
-                            aria-label="End date"
-                          />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              className="h-12 text-base rounded-xl"
+                              aria-required="true"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TIMEZONES.map((tz) => (
+                              <SelectItem key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          All trip times will be shown in this timezone
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Continue Button */}
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      type="button"
+                      onClick={handleContinue}
+                      variant="gradient"
+                      className="h-12 px-8 rounded-xl"
+                    >
+                      Continue
+                    </Button>
+                  </div>
                 </div>
+              )}
 
-                {/* Timezone */}
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Trip timezone
-                        <span className="text-destructive ml-1">*</span>
-                      </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  {/* Description */}
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => {
+                      const charCount = field.value?.length || 0;
+                      const showCounter = charCount >= 1600;
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Description
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Tell your group about this trip..."
+                              className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
+                              disabled={isPending}
+                              {...field}
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          {showCounter && (
+                            <div className="text-xs text-muted-foreground text-right">
+                              {charCount} / 2000 characters
+                            </div>
+                          )}
+                          <FormDescription className="text-sm text-muted-foreground">
+                            Optional: Share details about the trip
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+
+                  {/* Cover Image */}
+                  <FormField
+                    control={form.control}
+                    name="coverImageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-foreground">
+                          Cover image
+                        </FormLabel>
                         <FormControl>
-                          <SelectTrigger
+                          <ImageUpload
+                            value={field.value ?? null}
+                            onChange={field.onChange}
+                            disabled={isPending}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          Optional: Upload a cover image for your trip
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Allow Members to Add Events */}
+                  <FormField
+                    control={form.control}
+                    name="allowMembersToAddEvents"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
                             ref={field.ref}
                             onBlur={field.onBlur}
-                            className="h-12 text-base rounded-xl"
-                            aria-required="true"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {TIMEZONES.map((tz) => (
-                            <SelectItem key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        All trip times will be shown in this timezone
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Continue Button */}
-                <div className="flex justify-end pt-4">
-                  <Button
-                    type="button"
-                    onClick={handleContinue}
-                    variant="gradient"
-                    className="h-12 px-8 rounded-xl"
-                  >
-                    Continue
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                {/* Description */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => {
-                    const charCount = field.value?.length || 0;
-                    const showCounter = charCount >= 1600;
-
-                    return (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold text-foreground">
-                          Description
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Tell your group about this trip..."
-                            className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
+                            name={field.name}
                             disabled={isPending}
-                            {...field}
-                            value={field.value || ""}
+                            aria-label="Allow members to add events"
                           />
                         </FormControl>
-                        {showCounter && (
-                          <div className="text-xs text-muted-foreground text-right">
-                            {charCount} / 2000 characters
-                          </div>
-                        )}
-                        <FormDescription className="text-sm text-muted-foreground">
-                          Optional: Share details about the trip
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-
-                {/* Cover Image */}
-                <FormField
-                  control={form.control}
-                  name="coverImageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-semibold text-foreground">
-                        Cover image
-                      </FormLabel>
-                      <FormControl>
-                        <ImageUpload
-                          value={field.value ?? null}
-                          onChange={field.onChange}
-                          disabled={isPending}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        Optional: Upload a cover image for your trip
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Allow Members to Add Events */}
-                <FormField
-                  control={form.control}
-                  name="allowMembersToAddEvents"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          disabled={isPending}
-                          aria-label="Allow members to add events"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-base font-semibold text-foreground cursor-pointer">
-                          Allow members to add events
-                        </FormLabel>
-                        <FormDescription className="text-sm text-muted-foreground">
-                          Let trip members create and propose events for the
-                          itinerary
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Co-Organizers */}
-                <FormField
-                  control={form.control}
-                  name="coOrganizerPhones"
-                  render={({ field }) => {
-                    const phones = field.value || [];
-
-                    return (
-                      <FormItem>
-                        <FormLabel className="text-base font-semibold text-foreground">
-                          Co-organizers
-                        </FormLabel>
-                        <FormDescription className="text-sm text-muted-foreground">
-                          Add phone numbers of people who can help organize this
-                          trip
-                        </FormDescription>
-
-                        {/* List of added co-organizers */}
-                        {phones.length > 0 && (
-                          <div className="space-y-2 mt-2">
-                            {phones.map((phone) => (
-                              <div
-                                key={phone}
-                                className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
-                              >
-                                <span className="text-sm font-medium text-foreground">
-                                  {phone}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveCoOrganizer(phone)}
-                                  disabled={isPending}
-                                  className="min-w-[44px] min-h-[44px] rounded-full hover:bg-muted"
-                                  aria-label={`Remove ${phone}`}
-                                >
-                                  <X className="w-4 h-4 text-muted-foreground" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Add co-organizer input */}
-                        <div className="space-y-2 mt-2">
-                          <div className="flex gap-2">
-                            <Input
-                              type="tel"
-                              placeholder="+14155552671"
-                              value={newCoOrganizerPhone}
-                              onChange={(e) => {
-                                setNewCoOrganizerPhone(e.target.value);
-                                setCoOrganizerError(null);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleAddCoOrganizer();
-                                }
-                              }}
-                              disabled={isPending}
-                              className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                              aria-label="Co-organizer phone number"
-                              aria-describedby={coOrganizerError ? "co-organizer-phone-error" : undefined}
-                              autoComplete="tel"
-                            />
-                            <Button
-                              type="button"
-                              onClick={handleAddCoOrganizer}
-                              disabled={isPending}
-                              className="h-12 px-4 bg-muted hover:bg-muted text-foreground rounded-xl"
-                              variant="outline"
-                            >
-                              <Plus className="w-5 h-5" />
-                            </Button>
-                          </div>
-                          {coOrganizerError && (
-                            <p
-                              id="co-organizer-phone-error"
-                              aria-live="polite"
-                              className="text-sm text-destructive"
-                            >
-                              {coOrganizerError}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            Format: E.164 (e.g., +14155552671)
-                          </p>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-base font-semibold text-foreground cursor-pointer">
+                            Allow members to add events
+                          </FormLabel>
+                          <FormDescription className="text-sm text-muted-foreground">
+                            Let trip members create and propose events for the
+                            itinerary
+                          </FormDescription>
                         </div>
-
-                        <FormMessage />
                       </FormItem>
-                    );
-                  }}
-                />
-
-                {/* Action Buttons */}
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={isPending}
-                    className="flex-1 h-12 rounded-xl border-input"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isPending}
-                    variant="gradient"
-                    className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPending && (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     )}
-                    {isPending ? "Creating trip..." : "Create trip"}
-                  </Button>
+                  />
+
+                  {/* Co-Organizers */}
+                  <FormField
+                    control={form.control}
+                    name="coOrganizerPhones"
+                    render={({ field }) => {
+                      const phones = field.value || [];
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-base font-semibold text-foreground">
+                            Co-organizers
+                          </FormLabel>
+                          <FormDescription className="text-sm text-muted-foreground">
+                            Add phone numbers of people who can help organize
+                            this trip
+                          </FormDescription>
+
+                          {/* List of added co-organizers */}
+                          {phones.length > 0 && (
+                            <div className="space-y-2 mt-2">
+                              {phones.map((phone) => (
+                                <div
+                                  key={phone}
+                                  className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
+                                >
+                                  <span className="text-sm font-medium text-foreground">
+                                    {phone}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleRemoveCoOrganizer(phone)
+                                    }
+                                    disabled={isPending}
+                                    className="min-w-[44px] min-h-[44px] rounded-full hover:bg-muted"
+                                    aria-label={`Remove ${phone}`}
+                                  >
+                                    <X className="w-4 h-4 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add co-organizer input */}
+                          <div className="space-y-2 mt-2">
+                            <div className="flex gap-2">
+                              <Input
+                                type="tel"
+                                placeholder="+14155552671"
+                                value={newCoOrganizerPhone}
+                                onChange={(e) => {
+                                  setNewCoOrganizerPhone(e.target.value);
+                                  setCoOrganizerError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddCoOrganizer();
+                                  }
+                                }}
+                                disabled={isPending}
+                                className="flex-1 h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                                aria-label="Co-organizer phone number"
+                                aria-describedby={
+                                  coOrganizerError
+                                    ? "co-organizer-phone-error"
+                                    : undefined
+                                }
+                                autoComplete="tel"
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleAddCoOrganizer}
+                                disabled={isPending}
+                                className="h-12 px-4 bg-muted hover:bg-muted text-foreground rounded-xl"
+                                variant="outline"
+                              >
+                                <Plus className="w-5 h-5" />
+                              </Button>
+                            </div>
+                            {coOrganizerError && (
+                              <p
+                                id="co-organizer-phone-error"
+                                aria-live="polite"
+                                className="text-sm text-destructive"
+                              >
+                                {coOrganizerError}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              Format: E.164 (e.g., +14155552671)
+                            </p>
+                          </div>
+
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      disabled={isPending}
+                      className="flex-1 h-12 rounded-xl border-input"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isPending}
+                      variant="gradient"
+                      className="flex-1 h-12 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isPending && (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      )}
+                      {isPending ? "Creating trip..." : "Create trip"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </form>
-        </Form>
+              )}
+            </form>
+          </Form>
         </SheetBody>
       </SheetContent>
     </Sheet>

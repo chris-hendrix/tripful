@@ -25,7 +25,9 @@ export class LoginPage {
     this.completeProfileHeading = page.getByRole("heading", {
       name: "Complete your profile",
     });
-    this.displayNameInput = page.getByRole("textbox", { name: /display name/i });
+    this.displayNameInput = page.getByRole("textbox", {
+      name: /display name/i,
+    });
     this.completeProfileButton = page.getByRole("button", {
       name: "Complete profile",
     });

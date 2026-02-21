@@ -93,9 +93,7 @@ describe("NotificationPreferences", () => {
       isLoading: true,
     });
 
-    const { container } = render(
-      <NotificationPreferences tripId="trip-1" />,
-    );
+    const { container } = render(<NotificationPreferences tripId="trip-1" />);
 
     // Should show skeleton elements, not the preference labels
     expect(screen.queryByText("Daily Itinerary")).toBeNull();

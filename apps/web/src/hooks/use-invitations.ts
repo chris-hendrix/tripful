@@ -80,7 +80,11 @@ export function useMembers(tripId: string) {
 export function useInviteMembers(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateInvitationsResponse, APIError, CreateInvitationsInput>({
+  return useMutation<
+    CreateInvitationsResponse,
+    APIError,
+    CreateInvitationsInput
+  >({
     mutationKey: invitationKeys.create(),
     mutationFn: async (data) => {
       const response = await apiRequest<CreateInvitationsResponse>(

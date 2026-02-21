@@ -468,9 +468,15 @@ The messaging and notification system extends Tripful's Mediterranean (Vivid Cap
 ```css
 /* Scale pop on reaction add */
 @keyframes reactionPop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 /* Duration: 200ms ease-in-out */
 ```
@@ -480,8 +486,13 @@ The messaging and notification system extends Tripful's Mediterranean (Vivid Cap
 ```css
 /* Pulse on new notification */
 @keyframes badgePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
 }
 /* Duration: 600ms, plays once on count change */
 ```
@@ -533,7 +544,9 @@ The messaging and notification system extends Tripful's Mediterranean (Vivid Cap
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm">{author.displayName}</span>
           <span className="text-xs text-muted-foreground">{relativeTime}</span>
-          {message.editedAt && <span className="text-xs text-muted-foreground">(edited)</span>}
+          {message.editedAt && (
+            <span className="text-xs text-muted-foreground">(edited)</span>
+          )}
         </div>
         <ActionsMenu />
       </div>
@@ -553,7 +566,7 @@ The messaging and notification system extends Tripful's Mediterranean (Vivid Cap
     "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm border transition-colors",
     isActive
       ? "bg-primary/10 border-primary/30 text-primary"
-      : "bg-muted/50 border-transparent hover:bg-muted text-muted-foreground"
+      : "bg-muted/50 border-transparent hover:bg-muted text-muted-foreground",
   )}
   aria-pressed={isActive}
 >

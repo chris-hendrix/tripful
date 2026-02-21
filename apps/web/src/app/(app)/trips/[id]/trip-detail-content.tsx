@@ -176,7 +176,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Preview mode: show limited trip info with RSVP buttons
   if (trip.isPreview) {
-    return <TripPreview trip={trip} tripId={tripId} onGoingSuccess={() => setShowOnboarding(true)} />;
+    return (
+      <TripPreview
+        trip={trip}
+        tripId={tripId}
+        onGoingSuccess={() => setShowOnboarding(true)}
+      />
+    );
   }
 
   return (
@@ -368,7 +374,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Itinerary */}
         <div id="itinerary" className="scroll-mt-14">
-          <ItineraryView tripId={tripId} onAddTravel={() => setShowOnboarding(true)} />
+          <ItineraryView
+            tripId={tripId}
+            onAddTravel={() => setShowOnboarding(true)}
+          />
         </div>
 
         {/* Discussion */}

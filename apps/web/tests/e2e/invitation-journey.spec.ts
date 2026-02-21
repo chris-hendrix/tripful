@@ -525,10 +525,10 @@ test.describe("Invitation Journey", () => {
       const dialog = page.getByRole("dialog");
 
       // Step 0: phone sharing step appears first
-      await expect(
-        dialog.getByText("Share your phone number?"),
-      ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
-      await expect(dialog.getByText("Step 1 of 5")).toBeVisible();
+      await expect(dialog.getByText("Share your phone number?")).toBeVisible({
+        timeout: NAVIGATION_TIMEOUT,
+      });
+      await expect.soft(dialog.getByText("Step 1 of 5")).toBeVisible();
 
       // Skip past the phone sharing step
       await dialog.getByRole("button", { name: "Skip" }).click();
@@ -537,7 +537,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("When are you arriving?")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 2 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 2 of 5")).toBeVisible();
       await snap(page, "20-wizard-arrival-step");
     });
 
@@ -560,7 +560,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("When are you leaving?")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 3 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 3 of 5")).toBeVisible();
     });
 
     await test.step("verify departure pre-fill and fill departure step", async () => {
@@ -584,7 +584,7 @@ test.describe("Invitation Journey", () => {
       await expect(
         dialog.getByText("Want to suggest any activities?"),
       ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-      await expect(dialog.getByText("Step 4 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 4 of 5")).toBeVisible();
     });
 
     await test.step("add an event and advance", async () => {
@@ -614,7 +614,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("You're all set!")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 5 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 5 of 5")).toBeVisible();
     });
 
     await test.step("verify done step summary and close wizard", async () => {
