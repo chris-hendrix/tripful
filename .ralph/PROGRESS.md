@@ -308,3 +308,48 @@
 - **No new tasks needed**: All issues from Phase 3 were fixed directly in this cleanup task.
 - **Pre-existing out-of-scope issues unchanged**: (1) Dead auth helpers in `helpers/auth.ts`. (2) Hardcoded timeouts in multiple spec files. (3) Hardcoded `http://localhost:8000/api` in 3 spec files. (4) `shared/` directory not included in CI change detection filter (pre-existing).
 - **Phase 3 is now complete**. All 2 tasks done, 21 tests passing across 7 files. Ready for Phase 4.
+
+## Iteration 8 — Task 4.1: Full regression check
+
+**Status**: COMPLETED
+**Verifier**: PASS — all 7 verification checks pass
+**Reviewer**: APPROVED
+
+### Verification Results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| `pnpm lint` | PASS | All 3 packages (shared, web, api) clean |
+| `pnpm typecheck` | PASS | All 3 packages pass `tsc --noEmit` |
+| `pnpm test` | PASS | 120 test files, 2391 tests passed (shared: 226, api: 1036, web: 1129) |
+| `pnpm test:e2e` | PASS | 21 tests in 7 files (2.8 minutes) |
+| `pnpm test:e2e:smoke` | PASS | 6 smoke tests (58.7 seconds) |
+| `playwright test --list` | PASS | 21 tests in 7 files confirmed |
+| `playwright test --grep @smoke --list` | PASS | 6 smoke tests in 6 files confirmed |
+
+### File Count Verification (7 spec files)
+
+| File | Tests | Smoke | Regression |
+|------|-------|-------|------------|
+| `auth-journey.spec.ts` | 2 | 1 | 1 |
+| `trip-journey.spec.ts` | 6 | 1 | 5 |
+| `invitation-journey.spec.ts` | 5 | 1 | 4 |
+| `itinerary-journey.spec.ts` | 3 | 1 | 2 |
+| `profile-journey.spec.ts` | 2 | 0 | 2 |
+| `messaging.spec.ts` | 2 | 1 | 1 |
+| `notifications.spec.ts` | 1 | 1 | 0 |
+| **Total** | **21** | **6** | **15** |
+
+### Import/Helper Analysis
+
+- **All 7 spec files**: Zero unused imports
+- **All helper exports**: Every exported function is used by at least one spec file
+- **3 pre-existing orphaned auth helpers**: `authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone` in `helpers/auth.ts` — confirmed pre-existing (auth.ts not modified on this branch), documented as out-of-scope in iterations 3, 5, 7
+- **11 `test.slow()` calls**: All within active test bodies, none orphaned
+
+### Notes
+
+- **No code changes made**: Task 4.1 is purely verification — all checks passed without requiring any fixes.
+- **Smoke script location**: `test:e2e:smoke` is defined in `apps/web/package.json` (not root). Invoked via `pnpm --filter @tripful/web test:e2e:smoke` from the devcontainer.
+- **Reviewer suggestions (LOW, non-blocking)**: (1) Clean up 3 orphaned auth helpers in a future PR. (2) Consider de-exporting `loginViaBrowser` since it's only used internally.
+- **Phase 4 and the E2E Test Simplification project are now complete.** Final state: 21 tests / 7 files (reduced from 32 tests / 9 files), 6 smoke / 15 regression, CI pipeline with PR smoke job + main branch sharded regression + report merging.

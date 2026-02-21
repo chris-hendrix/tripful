@@ -67,7 +67,7 @@
 
 ## Phase 4: Final Verification
 
-- [ ] Task 4.1: Full regression check
+- [x] Task 4.1: Full regression check
   - Verify: `pnpm lint` passes
   - Verify: `pnpm typecheck` passes
   - Verify: `pnpm test` — all unit/integration tests pass
