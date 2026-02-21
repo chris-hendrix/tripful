@@ -636,3 +636,43 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 - `fastify-plugin` `fp()` options accept `fastify: "5.x"` as a semver range string — this acts as a runtime assertion that the plugin is compatible with the Fastify version. Without it, plugins registered against an incompatible Fastify version would silently succeed.
 - Rate limit key generators using `request.user?.sub || request.ip` gracefully degrade to IP-based limiting when auth hasn't run — the optional chaining + fallback pattern is robust for hook-order-agnostic usage.
 - Pre-existing test failure count: 18 this run (stable across iterations 5-15)
+
+## Iteration 16 — Task 4.3: Add Next.js auth middleware for SSR protection
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/middleware.ts` | NEW — Next.js edge middleware that checks for `auth_token` cookie on protected routes (`/trips/:path*`, `/settings/:path*`) and redirects to `/` if missing |
+
+### Key Decisions
+
+- **Cookie name `auth_token` (not `token`)**: The ARCHITECTURE.md example used `"token"` as the cookie name, but the entire codebase consistently uses `"auth_token"` (set in `auth.controller.ts`, read in `(app)/layout.tsx`, `server-api.ts`, `login/layout.tsx`, and `page.tsx`). Used `"auth_token"` to match the actual convention.
+- **Redirect to `/` (not `/login`)**: The task and ARCHITECTURE.md specify redirecting to `/` (the landing page). This differs from the existing `(app)/layout.tsx` which redirects to `/login`. Both layers complement each other: the middleware provides an early SSR-level guard to the landing page, while the layout provides a deeper server-component-level guard.
+- **Existing layout guard preserved**: The `(app)/layout.tsx` cookie check remains untouched as defense-in-depth. The middleware adds an earlier layer of protection that runs before any page rendering or server component execution.
+- **`/settings/:path*` included for future-proofing**: No `/settings` routes exist yet, but the matcher includes them as the task specifies. This avoids needing to update the middleware when settings routes are added.
+- **Presence-only check (no JWT validation)**: The middleware only checks if the `auth_token` cookie exists, not whether the JWT is valid. This matches the existing pattern in `(app)/layout.tsx` and avoids the complexity of JWT verification at the edge layer.
+- **No tests written**: Edge middleware is tested via integration/E2E tests rather than unit tests. The existing test suite verifies that the middleware doesn't break any functionality.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Reviewer**: APPROVED — all 8 checklist items pass, clean minimal implementation
+
+### Reviewer Notes
+
+- The middleware redirect (`/`) and layout redirect (`/login`) serve complementary purposes — the middleware is a fast edge-level guard while the layout is a deeper server-component guard
+- Import ordering (type import before value import from same module) is consistent with other files in the codebase
+
+### Learnings for Future Iterations
+
+- Next.js middleware runs at the edge before server components — it's the first line of defense for route protection. Layout-level guards remain as defense-in-depth.
+- The `matcher` config in Next.js middleware uses `:path*` syntax (not glob) — `:path*` matches zero or more path segments after the prefix.
+- `request.cookies.get()` in Next.js middleware can read httpOnly cookies because middleware runs server-side on the edge, not in client-side JavaScript.
+- ARCHITECTURE.md may contain small errors (e.g., wrong cookie name) — always verify against the actual codebase patterns before implementing.
+- Pre-existing test failure count: 18 this run (stable across iterations 5-16)

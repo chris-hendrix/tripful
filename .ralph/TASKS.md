@@ -121,7 +121,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 4.3: Add Next.js auth middleware for SSR protection
+- [x] Task 4.3: Add Next.js auth middleware for SSR protection
   - Implement: Create `apps/web/src/middleware.ts` — check for auth token cookie on protected routes (`/trips/*`, `/settings/*`), redirect to `/` if missing
   - Implement: Configure `matcher` to cover all protected route patterns
   - Test: `pnpm typecheck` passes
