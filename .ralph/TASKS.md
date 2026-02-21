@@ -188,7 +188,7 @@
   - Fix: Create new tasks in TASKS.md for any outstanding issues
   - Verify: run full test suite
 
-- [ ] Task 6.4.1 FIX: Convert remaining CSS selectors and .first()/.last() patterns in E2E spec files to role-based locators
+- [x] Task 6.4.1 FIX: Convert remaining CSS selectors and .first()/.last() patterns in E2E spec files to role-based locators
   - Implement: In `itinerary-journey.spec.ts` — replace ~22 CSS selectors (`input[name="..."]`, `textarea[name="..."]`, `button[title="..."]`, `[role="button"][aria-expanded]`, `[title="..."]`) with `getByLabel()`, `getByRole()`, `getByTitle()` equivalents
   - Implement: In `trip-journey.spec.ts` — replace ~4 CSS selectors with role-based locators
   - Implement: In `invitation-journey.spec.ts` — replace CSS selectors (`input[type="tel"]`, `[data-testid="..."]`, `#id-selectors`) with role-based locators

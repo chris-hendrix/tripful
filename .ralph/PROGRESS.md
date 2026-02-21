@@ -1060,3 +1060,51 @@ Reviewed all Phase 6 work (Tasks 6.1-6.3) across PROGRESS.md iterations 21-23:
 - The remaining CSS selectors (`input[name="..."]`, `button[title="..."]`, `[role="gridcell"]`) are moderate-risk patterns -- less brittle than the eliminated ones but still not following Playwright best practices
 - FIX task 6.4.1 was created to close the gap between VERIFICATION.md requirements and current state
 - Pre-existing test failure count: 18-20 (stable across iterations 5-24, variance from flaky auth lockout and use-trips tests)
+
+## Iteration 25 — Task 6.4.1 FIX: Convert remaining CSS selectors and .first()/.last() patterns in E2E spec files to role-based locators
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/tests/e2e/helpers/itinerary.ts` | Replaced 3 CSS selectors: `button[role="combobox"]` → `getByRole("combobox")`, `div[role="option"]` → `getByRole("option")`, `input[name="location"]` → `getByLabel(/location/i)` |
+| `apps/web/tests/e2e/itinerary-journey.spec.ts` | Replaced ~17 CSS selectors: `input[name="name"]` → `getByLabel(/accommodation name/i)` or `getByLabel(/event name/i)`, `input[name="address"]` → `getByLabel(/address/i)`, `textarea[name="description"]` → `getByLabel(/description/i)`, `input[aria-label="Link URL"]` → `getByLabel("Link URL")`, `button[title="Edit event"]` → `getByTitle("Edit event")`, `input[name="location"]` → `getByLabel(/location/i)`, `textarea[name="details"]` → `getByLabel(/details/i)`, `[title="Meals/Activities/Arrivals"]` → `getByTitle(...)`, `button[role="checkbox"][aria-label="..."]` → `getByRole("checkbox", { name: "..." })` |
+| `apps/web/tests/e2e/trip-journey.spec.ts` | Replaced 5 CSS selectors: `locator("h1").filter(...)` → `getByRole("heading", { level: 1, name: ... })`, `locator('[data-testid="member-selector"]')` → `getByTestId("member-selector")`, `input[name="location"]` → `getByLabel(/location/i)`, `textarea[name="details"]` → `getByLabel(/details/i)` |
+| `apps/web/tests/e2e/invitation-journey.spec.ts` | Replaced 4 CSS selectors: `locator('[data-testid="rsvp-buttons"]')` → `getByTestId("rsvp-buttons")` (3 instances), `#arrival-location` → `getByLabel("Location")`, `#departure-location` → `getByLabel("Location")`, `#event-name` → `getByLabel("Activity name")` |
+| `apps/web/tests/e2e/messaging.spec.ts` | Replaced 3 CSS selectors: `.locator("p").getByText(...)` → `.getByText(...)`, `locator("#discussion")` → `getByRole("region", { name: "Trip discussion" })`; replaced 3 `.last()` calls on Delete/Mute buttons with `getByRole("alertdialog")` scoping |
+| `apps/web/tests/e2e/notifications.spec.ts` | Replaced 2 CSS selectors: `.locator("button")` → `.getByRole("button")` |
+| `apps/web/tests/e2e/app-shell.spec.ts` | Replaced 2 CSS selectors: `locator("main#main-content")` → `getByRole("main")`, `locator('a[href="#main-content"]')` → `getByRole("link", { name: /skip to main/i })` with added `toHaveAttribute("href", "#main-content")` assertion |
+
+### Key Decisions
+
+- **`getByTitle()` for Edit event buttons**: The button has visible text "Edit" plus an `aria-hidden` pencil icon, making the accessible name "Edit" not "Edit event". The `title="Edit event"` attribute is only a fallback per W3C accessible name computation. Using `getByTitle("Edit event")` correctly targets the element via its title attribute. Initially implemented as `getByRole("button", { name: "Edit event" })` which was caught by the reviewer.
+- **Valid exceptions kept**: `[data-sonner-toast]` (Sonner library), `[data-slot='calendar']` (shadcn), `[role="gridcell"]:not([data-outside]) button` (react-day-picker), `[role="button"][aria-expanded]` (attribute presence filter), `input[type="tel"]` (PhoneInput label issue), parent traversal `locator("..")`, `div.filter()` member rows.
+- **alertdialog scoping for .last()**: Replaced `.getByRole("button", { name: "Delete" }).last()` with `.getByRole("alertdialog").getByRole("button", { name: "Delete" })` — more robust and self-documenting.
+- **Skip link href assertion**: Added `toHaveAttribute("href", "#main-content")` as a hard assertion to maintain coverage lost during CSS-to-role locator conversion.
+- **No changes to date-pickers.ts**: All 5 CSS selectors were valid exceptions (data-slot, gridcell complex filters).
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Reviewer**: APPROVED after fix round (initial NEEDS_WORK for incorrect `getByRole` on Edit event button)
+
+### VERIFICATION.md Phase 6 Check Results (Post-Fix)
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| No CSS selectors remain in E2E files | PASS (with documented exceptions) | Remaining: `[data-sonner-toast]` (Sonner), `[data-slot]` (shadcn), `[role="gridcell"]:not([data-outside])` (react-day-picker), `[role="button"][aria-expanded]` (attr filter), `input[type="tel"]` (PhoneInput), `div.filter()` member rows, `locator("..")` parent traversal |
+| No `.first()` / `.last()` on generic locators | PASS (with documented exceptions) | Remaining: `.first()` after `.filter()` scoping (acceptable), `combobox.first()` (multi-field dialog), `Cancel.last()` (stacked dialogs), `articles.first()/last()` (intentional ordering), `.last()` for Send reply vs compose |
+| No `page.evaluate()` for DOM manipulation | PASS | 0 remaining (cleared in Task 6.2) |
+
+### Learnings for Future Iterations
+
+- **W3C accessible name computation order**: For buttons with both text content and a `title` attribute, the accessible name is the text content (not the title). This means `getByRole("button", { name: "Edit event" })` won't match a button with text "Edit" and `title="Edit event"`. Use `getByTitle()` for title-attribute matching.
+- **getByTitle()** is a valid Playwright semantic locator that sits between `getByRole`/`getByLabel` and CSS `locator()` in the priority hierarchy.
+- **alertdialog scoping** is more robust than `.last()` for distinguishing between menu buttons and confirmation dialog buttons — Radix UI AlertDialog renders with `role="alertdialog"` which is distinct from regular `role="dialog"`.
+- **CSS selector "valid exceptions"** should be documented explicitly so reviewers and future developers understand why they remain.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-25)
