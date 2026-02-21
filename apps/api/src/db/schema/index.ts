@@ -502,7 +502,7 @@ export const mutedMembers = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     mutedBy: uuid("muted_by")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

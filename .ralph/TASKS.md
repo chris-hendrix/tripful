@@ -21,7 +21,7 @@
   - Test: `pnpm typecheck` catches any remaining phone references
   - Verify: run full test suite
 
-- [ ] Task 1.3: Fix mutedBy schema reference, pg-boss retention, and review redundant index
+- [x] Task 1.3: Fix mutedBy schema reference, pg-boss retention, and review redundant index
   - Implement: In `apps/api/src/db/schema/index.ts` (~line 503) — add `{ onDelete: "cascade" }` to `mutedBy` `.references()` call
   - Implement: Generate and apply migration: `cd apps/api && pnpm db:generate && pnpm db:migrate`
   - Implement: Add retention/cleanup config to DAILY_ITINERARIES pg-boss cron job to prevent row accumulation

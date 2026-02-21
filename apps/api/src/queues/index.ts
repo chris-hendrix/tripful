@@ -61,7 +61,9 @@ export default fp(
       deleteAfterSeconds: 3600,
     });
 
-    await boss.createQueue(QUEUE.DAILY_ITINERARIES);
+    await boss.createQueue(QUEUE.DAILY_ITINERARIES, {
+      deleteAfterSeconds: 3600,
+    });
 
     // --- Cron schedules ---
 

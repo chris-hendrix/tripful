@@ -83,3 +83,39 @@
 - Test files may use variant key names (`phone:` vs `phoneNumber:`) — always search for both patterns when doing security-related removals
 - Fastify `onSend` hooks registered inside a route plugin are scoped to that plugin's routes — a clean pattern for adding response headers to a group of related endpoints
 - No code anywhere accessed `request.user.phone` downstream — the phone in JWT was unused PII, making removal safe with zero runtime impact
+
+## Iteration 3 — Task 1.3: Fix mutedBy schema reference, pg-boss retention, and review redundant index
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/api/src/db/schema/index.ts` | Added `{ onDelete: "cascade" }` to `mutedBy` FK reference on `mutedMembers` table (line 505), making it consistent with `tripId` and `userId` FKs in the same table |
+| `apps/api/src/queues/index.ts` | Added `{ deleteAfterSeconds: 3600 }` to `DAILY_ITINERARIES` queue creation, matching `NOTIFICATION_BATCH` retention pattern |
+| `apps/api/src/db/migrations/0015_lonely_chamber.sql` | NEW — Auto-generated migration: drops old `muted_members_muted_by_users_id_fk` constraint and recreates it with `ON DELETE CASCADE` |
+| `apps/api/src/db/migrations/meta/_journal.json` | Updated migration journal with entry for 0015 |
+| `apps/api/src/db/migrations/meta/0015_snapshot.json` | NEW — Drizzle schema snapshot for migration 0015 |
+
+### Key Decisions
+
+- **mutedBy cascade**: The `mutedMembers` table had 3 FK references — `tripId` and `userId` both had `{ onDelete: "cascade" }` but `mutedBy` was missing it. When the muting user is deleted, the mute record should be cleaned up (not left as an orphan), so cascade is the correct behavior.
+- **pg-boss retention at 1 hour**: The cron runs every 15 minutes (96 jobs/day). With `deleteAfterSeconds: 3600`, at most ~4 completed jobs exist at any time. This matches the `NOTIFICATION_BATCH` queue pattern — both are ephemeral, fire-and-forget jobs with no diagnostic value after completion.
+- **tripIdIsOrganizerIdx kept**: After review, the composite index on `(tripId, isOrganizer)` is NOT redundant — at least 4-5 queries in `trip.service.ts`, `invitation.service.ts`, and `permissions.service.ts` filter on both columns. The composite provides covering index benefit for these common query patterns. The single-column `tripIdIdx` is actually the potentially redundant one (since the composite's leading column is `tripId`), but removing it would be a separate concern outside this task's scope.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: All pass. 18 pre-existing failures (unchanged from previous iterations): daily-itineraries worker (10), app-header nav (5), trip metadata (1), URL validation dialogs (2)
+- **Migration**: Generated and applied successfully — `0015_lonely_chamber.sql` correctly drops old FK and adds new one with `ON DELETE CASCADE`
+- **Reviewer**: APPROVED — all 3 requirements met, clean minimal changes, correct analysis of index usage
+
+### Learnings for Future Iterations
+
+- Drizzle auto-generates migration names with random adjective+noun pairs (e.g., `0015_lonely_chamber.sql`) — don't try to customize them
+- pg-boss `createQueue()` accepts `QueueOptions` including `deleteAfterSeconds` and `retentionSeconds` — set these at queue creation time, not at schedule/send time
+- PostgreSQL FK constraints do NOT automatically create indexes — explicit indexes are needed for FK columns
+- A composite index `(a, b)` can serve single-column queries on `a`, making a separate single-column index on `a` potentially redundant — but this codebase convention is to keep both
