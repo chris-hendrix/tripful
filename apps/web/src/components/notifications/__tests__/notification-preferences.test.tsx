@@ -98,7 +98,7 @@ describe("NotificationPreferences", () => {
     // Should show skeleton elements, not the preference labels
     expect(screen.queryByText("Daily Itinerary")).toBeNull();
 
-    const skeletons = container.querySelectorAll(".animate-pulse");
+    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

@@ -173,7 +173,7 @@ describe("TripsContent", () => {
       renderWithClient(<TripsContent />);
 
       // Should show 3 skeleton cards
-      const skeletons = document.querySelectorAll(".animate-pulse");
+      const skeletons = document.querySelectorAll('[data-slot="skeleton"]');
       expect(skeletons.length).toBeGreaterThan(0);
     });
 

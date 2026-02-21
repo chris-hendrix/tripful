@@ -1378,4 +1378,60 @@ Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
 - **Button CVA base vs variant overrides**: Adding `motion-safe:active:scale-[0.97]` to the CVA base string applies it to all variants. Individual variants can override with specificity (e.g., `active:scale-100` on link). This pattern avoids duplicating the class across each variant definition.
 - **`transition-all` covers `transition-transform`**: Button.tsx already had `transition-all` in its base — no need to add separate `transition-transform`. The task spec's "add `transition-transform`" is satisfied by the existing broader `transition-all`.
 - **Stagger delays must use inline styles**: Tailwind doesn't support dynamic index-based delays through class utilities. The `style={{ animationDelay: \`${index * Nms}\` }}` pattern with `N=50ms` for dense lists and `N=100ms` for sparse lists is the established convention.
+
+## Iteration 32 — Task 8.3: Improve button/input/card styling, background atmosphere, and skeleton loaders
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/ui/button.tsx` | Changed base radius from `rounded-md` to `rounded-xl`; added `shadow-sm hover:shadow-md` to `default` and `destructive` variants; removed redundant `rounded-md` from `xs`, `sm`, `lg` size variants (inherit `rounded-xl` from base); kept `icon-xs` with `rounded-md` for compact icon buttons |
+| `apps/web/src/components/ui/input.tsx` | Changed `rounded-md` to `rounded-xl`; added `border-color` to transition property: `transition-[color,box-shadow,border-color]` |
+| `apps/web/src/components/ui/textarea.tsx` | Changed `rounded-md` to `rounded-xl`; added `border-color` to transition property |
+| `apps/web/src/components/ui/phone-input.tsx` | Changed inner input `rounded-md` to `rounded-xl`; added `border-color` to transition |
+| `apps/web/src/components/ui/skeleton.tsx` | Replaced `animate-pulse` with shimmer animation using `after:` pseudo-element with translating gradient; changed `rounded-md` to `rounded-lg` |
+| `apps/web/src/app/globals.css` | Added `@keyframes shimmer` animation (translateX from -100% to 100%) |
+| `apps/web/src/app/(app)/layout.tsx` | Added `bg-gradient-to-b from-background via-background to-secondary/30 min-h-screen` to `<main>` for subtle background atmosphere |
+| `apps/web/src/app/(app)/trips/loading.tsx` | Replaced raw `bg-muted animate-pulse` divs with `<Skeleton>` components; added header/search bar skeleton; improved card skeleton with avatar circle in footer |
+| `apps/web/src/app/(app)/trips/trips-content.tsx` | Enhanced `SkeletonCard` with badge skeleton overlay and avatar circle in footer |
+| `apps/web/src/app/(app)/trips/[id]/loading.tsx` | Replaced raw `bg-muted animate-pulse` divs with `<Skeleton>` components; added breadcrumb, icon, badge, and stats skeletons matching actual detail page structure |
+| `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` | Enhanced `SkeletonDetail` with breadcrumb, map pin, calendar, badge, stats, and description skeletons matching actual layout |
+| `apps/web/src/components/ui/__tests__/button.test.tsx` | Added "base radius uses rounded-xl" tests (2) and "shadow hierarchy" tests (6) covering all variant shadow expectations |
+| `apps/web/src/components/ui/__tests__/input.test.tsx` | Added tests for `rounded-xl` radius and `transition-[color,box-shadow,border-color]` |
+| `apps/web/src/app/(app)/trips/trips-content.test.tsx` | Updated skeleton detection from `.animate-pulse` to `[data-slot="skeleton"]` |
+| `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` | Updated skeleton detection from `.animate-pulse` to `[data-slot="skeleton"]` |
+| `apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx` | Updated skeleton detection from `.animate-pulse` to `[data-slot="skeleton"]` |
+
+### Key Decisions
+
+- **Button base `rounded-xl`**: Since 90%+ of consumers were already overriding `rounded-md` to `rounded-xl`, elevated this to the base class. Eliminates widespread consumer overrides (now redundant but harmless via `cn()`).
+- **Shadow hierarchy maintained**: `default`/`destructive` get `shadow-sm hover:shadow-md`, `outline` keeps `shadow-xs`, `gradient` keeps `shadow-lg`, and `ghost`/`secondary`/`link` remain flat. This preserves the established `xs → sm → md → lg → xl` escalation.
+- **Shimmer over pulse**: Replaced `animate-pulse` with a custom CSS shimmer (pseudo-element with gradient sweep). More polished and industry-standard. Uses `after:` Tailwind prefix for the pseudo-element.
+- **Background atmosphere**: `to-secondary/30` provides barely-perceptible warmth at the bottom of app pages. White cards pop against this subtle gradient without any contrast issues.
+- **Color distribution unchanged**: Research confirmed accent color is already sparingly used (only in gradient CTA variant endpoints and hover states). No changes needed.
+- **Select/datetime-picker left at `rounded-md`**: These complex Radix-based components were scoped out — they involve popover alignment concerns.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Zero new regressions. All task-specific tests pass (137 tests across 5 files).
+- **Reviewer**: APPROVED
+
+### Reviewer Notes (LOW severity, non-blocking)
+
+- `loading.tsx` SkeletonCard is missing the badge overlay skeleton that `trips-content.tsx` SkeletonCard has — minor inconsistency between server-side Suspense fallback and client-side TanStack Query loading state
+- Select trigger and datetime-picker time input still use `rounded-md` — scoped out of this task intentionally
+- Shimmer uses hardcoded `via-white/40` — would need theme-aware color if dark mode is ever added
+
+### Learnings for Future Iterations
+
+- **CVA base class changes propagate to all variants**: Changing `rounded-md` to `rounded-xl` in the base applies to every variant without touching individual variant definitions. Size variants that redundantly specified `rounded-md` should be cleaned up to avoid confusion.
+- **`transition-[color,box-shadow,border-color]` for smooth focus**: Adding `border-color` to the transition property list makes `focus-visible:border-ring` animate smoothly instead of snapping — a subtle but meaningful UX improvement.
+- **Skeleton shimmer pattern**: The `after:` pseudo-element approach (`relative overflow-hidden` on parent + `absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent` on pseudo) is the standard shimmer implementation. No JS required.
+- **Test selectors for skeletons**: `[data-slot="skeleton"]` is more resilient than `.animate-pulse` for querying skeleton elements in tests, since CSS animation classes may change but semantic data attributes persist.
+- **Background gradients should be nearly invisible**: `to-secondary/30` at the bottom of the page is barely perceptible but adds subconscious warmth. Over-saturated gradients compete with content.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-31)

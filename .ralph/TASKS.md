@@ -252,7 +252,7 @@
   - Test: Manual check — verify animations play smoothly, respect `prefers-reduced-motion`
   - Verify: run full test suite
 
-- [ ] Task 8.3: Improve button/input/card styling, background atmosphere, and skeleton loaders
+- [x] Task 8.3: Improve button/input/card styling, background atmosphere, and skeleton loaders
   - Implement: Enhance button styling — add subtle shadow to primary variant, refine border-radius
   - Implement: Enhance input styling — add focus transitions, subtle inner shadow, consider rounded-xl
   - Implement: Add subtle gradient or tonal background to page layouts for depth

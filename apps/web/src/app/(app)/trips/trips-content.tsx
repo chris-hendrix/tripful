@@ -13,7 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 function SkeletonCard() {
   return (
     <div className="bg-card rounded-2xl overflow-hidden border border-border">
-      <Skeleton className="h-48 w-full rounded-none" />
+      <div className="relative h-48">
+        <Skeleton className="h-full w-full rounded-none" />
+        <div className="absolute top-3 left-3 flex gap-2">
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+      </div>
       <div className="p-4 space-y-3">
         <div className="space-y-2">
           <Skeleton className="h-6 w-3/4" />
@@ -21,7 +26,10 @@ function SkeletonCard() {
         </div>
         <Skeleton className="h-4 w-2/3" />
         <div className="flex items-center justify-between pt-3 border-t border-border">
-          <Skeleton className="h-6 w-24" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-4 w-20" />
+          </div>
           <Skeleton className="h-4 w-20" />
         </div>
       </div>

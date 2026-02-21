@@ -5,7 +5,11 @@ function Skeleton({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="skeleton"
-      className={cn("bg-muted animate-pulse rounded-md", className)}
+      className={cn(
+        "bg-muted rounded-lg relative overflow-hidden",
+        "after:absolute after:inset-0 after:animate-[shimmer_2s_infinite] after:bg-gradient-to-r after:from-transparent after:via-white/40 after:to-transparent after:-translate-x-full",
+        className,
+      )}
       {...props}
     />
   );

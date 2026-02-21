@@ -20,6 +20,22 @@ describe("Input", () => {
     expect(h9Classes.length).toBe(0);
   });
 
+  it("uses rounded-xl border radius", () => {
+    render(<Input aria-label="test input" />);
+
+    const input = screen.getByRole("textbox", { name: "test input" });
+    expect(input.className).toContain("rounded-xl");
+  });
+
+  it("transitions border-color along with color and box-shadow", () => {
+    render(<Input aria-label="test input" />);
+
+    const input = screen.getByRole("textbox", { name: "test input" });
+    expect(input.className).toContain(
+      "transition-[color,box-shadow,border-color]",
+    );
+  });
+
   it("allows custom className to override height", () => {
     render(<Input aria-label="test input" className="h-16" />);
 

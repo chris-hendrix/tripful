@@ -54,6 +54,55 @@ describe("buttonVariants", () => {
       expect(classes).not.toContain("sm:size-10");
     });
   });
+
+  describe("base radius uses rounded-xl", () => {
+    it("default variant has rounded-xl", () => {
+      const classes = buttonVariants({ variant: "default" });
+      expect(classes).toContain("rounded-xl");
+    });
+
+    it("icon-xs retains rounded-md for compact icon buttons", () => {
+      const classes = buttonVariants({ size: "icon-xs" });
+      expect(classes).toContain("rounded-md");
+    });
+  });
+
+  describe("shadow hierarchy", () => {
+    it("default variant has shadow-sm and hover:shadow-md", () => {
+      const classes = buttonVariants({ variant: "default" });
+      expect(classes).toContain("shadow-sm");
+      expect(classes).toContain("hover:shadow-md");
+    });
+
+    it("destructive variant has shadow-sm and hover:shadow-md", () => {
+      const classes = buttonVariants({ variant: "destructive" });
+      expect(classes).toContain("shadow-sm");
+      expect(classes).toContain("hover:shadow-md");
+    });
+
+    it("ghost variant has no shadow", () => {
+      const classes = buttonVariants({ variant: "ghost" });
+      expect(classes).not.toContain("shadow-sm");
+      expect(classes).not.toContain("shadow-md");
+    });
+
+    it("secondary variant has no shadow", () => {
+      const classes = buttonVariants({ variant: "secondary" });
+      expect(classes).not.toContain("shadow-sm");
+      expect(classes).not.toContain("shadow-md");
+    });
+
+    it("link variant has no shadow", () => {
+      const classes = buttonVariants({ variant: "link" });
+      expect(classes).not.toContain("shadow-sm");
+      expect(classes).not.toContain("shadow-md");
+    });
+
+    it("gradient variant retains shadow-lg", () => {
+      const classes = buttonVariants({ variant: "gradient" });
+      expect(classes).toContain("shadow-lg");
+    });
+  });
 });
 
 describe("Button", () => {
