@@ -87,7 +87,7 @@ test.describe("Auth Journey", () => {
     });
   });
 
-  test("auth guards", async ({ page, request }) => {
+  test("auth redirects and guards", async ({ page, request }) => {
     const loginPage = new LoginPage(page);
     const trips = new TripsPage(page);
 
@@ -102,13 +102,6 @@ test.describe("Auth Journey", () => {
       await authenticateUser(page, request, "Existing User");
       await expect(trips.heading).toBeVisible();
     });
-  });
-
-  test("authenticated user redirects away from public pages", async ({
-    page,
-    request,
-  }) => {
-    await authenticateUser(page, request, "Redirect Test User");
 
     await test.step("authenticated user on landing page redirects to /trips", async () => {
       await page.goto("/");

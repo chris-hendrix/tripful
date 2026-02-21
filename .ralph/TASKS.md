@@ -15,7 +15,7 @@
   - Verify: `pnpm lint` and `pnpm typecheck` pass (no unused imports/variables)
   - Verify: `pnpm test:e2e` — remaining tests pass, count is 24 (32 - 8 removed, merges not yet done)
 
-- [ ] Task 1.2: Merge auth tests and notification tests
+- [x] Task 1.2: Merge auth tests and notification tests
   - Implement: In `auth-journey.spec.ts`, merge `"auth guards"` + `"authenticated user redirects away from public pages"` into single `"auth redirects and guards"` test. Combined flow: unauthenticated → redirect to /login → authenticate → existing user skips complete-profile → verify / redirects to /trips → verify /login redirects to /trips. Single `authenticateUser` call.
   - Implement: In `notifications.spec.ts`, merge `"notification bell and dropdown journey"` + `"mark all as read and trip notification bell journey"` into single `"notification flow"` test. Combined flow: setup organizer + member + trip + 2 messages → verify global bell shows unread → click notification → navigate to trip → verify trip bell shows 2 unread → open dialog → mark all as read → verify both global and trip bells show zero.
   - Implement: Clean up any orphaned imports after merges
