@@ -470,3 +470,63 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 - When `React.memo()` children receive inline-computed props alongside memoized callbacks, the `useCallback` is doubly pointless — the non-memoized props already break shallow comparison
 - Type mismatch prevents direct passing of `Dispatch<SetStateAction<T | null>>` where `(item: T) => void` is expected — keep a narrowing arrow function wrapper in these cases
 - Pre-existing test failure count: 18 this run (stable across iterations 5-12)
+
+## Iteration 13 — Task 3.5: Phase 3 cleanup
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Review Findings
+
+Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
+
+| Check | Result |
+|-------|--------|
+| All 22 Phase 3 files present and clean | ✅ Verified |
+| No TODO/FIXME/HACK comments in changed files | ✅ Verified |
+| All 15 ARCHITECTURE.md Phase 3 spec items implemented | ✅ Verified |
+| All 3 VERIFICATION.md Phase 3 checks pass | ✅ Verified |
+| FAILURE or BLOCKED tasks | None found |
+| Reviewer caveats or conditional approvals | None — all 4 tasks received clean APPROVED |
+| Regressions from Phase 3 changes | None detected |
+
+### Deferred Items Analysis
+
+| Item | Assessment | Action |
+|------|-----------|--------|
+| `useMemo` not applied to `trip-notification-bell.tsx` (Task 3.3) | Intentional, reviewer-accepted inconsistency. Trivial computation — memoization overhead may exceed benefit. | No follow-up task needed |
+| `mapServerErrors` not in accommodation dialogs (Task 3.1) | Task spec explicitly listed only 4 dialogs. Accommodations handle errors via toast, which is functionally correct. | No follow-up task needed |
+| `timezone` in shared schema is frontend-only concern (Task 3.1) | Pragmatic approach avoiding complex type gymnastics. Well-documented in PROGRESS.md. | No follow-up task needed |
+| TanStack Query `APIError` is type hint only (Task 3.2) | Handled by `instanceof APIError` guards in error helpers and `mapServerErrors`. | No follow-up task needed |
+| `key={link}` instead of `field.id` from useFieldArray (Task 3.1) | Justified deviation — primitive string arrays require complex type workarounds with useFieldArray. | No follow-up task needed |
+| `edit-accommodation-dialog.tsx` composite key pattern (Task 3.1) | **Fixed** — see Changes Made below | Resolved in this iteration |
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx` | Changed `links.map((link, index) =>` to `links.map((link) =>` and `key={\`${link}-${index}\`}` to `key={link}` — consistency fix matching the 3 other dialog components |
+
+### Key Decisions
+
+- **Inline fix rather than sub-task**: The composite key inconsistency was a one-line fix (removing unused `index` from `.map()` callback and simplifying the key). Fixed directly rather than creating a sub-task, since this is exactly the kind of issue cleanup tasks exist to resolve.
+- **No follow-up tasks added**: All 6 deferred items analyzed; none warrant follow-up tasks. Each is either an intentional design choice, out-of-scope by task specification, or handled by existing runtime guards.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Auth lockout expiry flaky test passed this run. No new regressions.
+- **Reviewer**: APPROVED — thorough analysis, correct minimal fix, all deferred items properly assessed
+
+### Reviewer Notes
+
+- Card components (`accommodation-card.tsx`, `event-card.tsx`) still use `key={index}` for displaying links in read-only context — acceptable for static lists, not worth changing
+
+### Learnings for Future Iterations
+
+- Phase 3 cleanup pattern consistent with Phase 1 and 2: verify all spec items, check PROGRESS.md for caveats/deferred items, validate against ARCHITECTURE.md, run full test suite
+- Cleanup tasks are the right place to fix minor consistency issues discovered across tasks — avoids creating sub-tasks for one-line fixes
+- All four editable-link dialog components now consistently use `key={link}` — links are guaranteed unique by `handleAddLink` duplicate check
+- Pre-existing test failure count: 18 this run (stable across iterations 5-13)
+- Phase 3 is fully complete with no outstanding issues — Phase 4 can proceed cleanly
