@@ -1194,3 +1194,61 @@ Reviewed all Phase 6 work (Tasks 6.1-6.3) across PROGRESS.md iterations 21-23:
 - **Consumer className overrides defeat component variant safety**: Task 7.1 fixed the button component's variants, but card components bypassed those fixes with `className="h-9 sm:h-7"`. The lesson: when fixing component-level sizing, always grep for consumer overrides that may re-introduce the anti-pattern.
 - **`calc()` with `env()` is backward-compatible**: `calc(1.5rem + env(safe-area-inset-bottom))` gracefully degrades — when `env()` isn't supported or returns 0, the result is just `1.5rem`.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-27)
+
+## Iteration 28 — Task 7.3: Phase 7 cleanup
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Review Findings
+
+Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
+
+| Check | Result |
+|-------|--------|
+| All Phase 7 files present and in expected state | Verified (17 files across button, input, phone-input, checkbox, radio-group, event-card, accommodation-card, member-travel-card, layout, globals.css, trips-content, itinerary-header, itinerary-view + 4 test files) |
+| FAILURE or BLOCKED tasks | None found |
+| Reviewer caveats or conditional approvals | None — both tasks received clean APPROVED (7.1 APPROVED after fix round for sm/icon-sm sizing) |
+| No TODO/FIXME/HACK comments in changed files | Verified — all 17 files clean |
+| Anti-patterns fully eliminated | Verified: 0 `sm:h-9` in production code, 0 `sm:h-7` (only `sm:h-72` for images), both FABs use `bottom-safe-*` |
+| All ARCHITECTURE.md Phase 7 spec items addressed | Verified (touch targets: complete, mobile-first CSS: complete, FAB padding: complete, SM breakpoint: complete) |
+| VERIFICATION.md Phase 7 checks pass | Partial — see below |
+
+### VERIFICATION.md Phase 7 Check Results
+
+| Check | Result | Detail |
+|-------|--------|--------|
+| All interactive elements ≥44px touch target | PARTIAL | Component-level fixes complete. Consumer-level `className` overrides (`h-9`, `h-8`) in 5 files reduce 9 buttons below 44px |
+| No `h-11 sm:h-9` inverse mobile-first patterns | PASS | 0 remaining in production code |
+| FAB has clearance from mobile browser navigation | PASS | Both FABs use `bottom-safe-6` / `sm:bottom-safe-8` with `viewportFit: "cover"` |
+
+### Deferred Items Analysis
+
+| Item | Assessment | Action |
+|------|------------|--------|
+| Consumer-level `h-9` overrides on buttons (complete-profile, profile-dialog, travel-reminder-banner) | 6 buttons at 36px instead of 44px — component variant fixed but consumer className defeats it | FIX task 7.3.1 created |
+| Consumer-level `h-8` overrides on buttons (itinerary-header view toggles, deleted-items-dialog restore) | 6 buttons at 32px — compact toolbar/dialog controls | Included in FIX task 7.3.1 |
+| Select component default `h-9` (36px) | Interactive element below 44px on mobile — explicitly left as-is in iteration 27 | Included in FIX task 7.3.1 |
+| Skeleton `h-9` usages (verify page, profile-dialog) | Non-interactive loading placeholders — not touch targets | No follow-up needed |
+| `message-input.tsx` compact reply `min-h-[36px]` | Compact mode for reply textarea — design-intentional | No follow-up needed |
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `.ralph/TASKS.md` | Marked Task 7.3 as complete (`[x]`); added FIX task 7.3.1 for consumer-level className overrides reducing button touch targets below 44px |
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Grep checks**: 0 `sm:h-9` in production components, 0 `sm:h-7` anti-patterns, `bottom-safe-*` on both FABs confirmed
+- **Reviewer**: APPROVED — cleanup analysis thorough, FIX task comprehensive and correctly placed
+
+### Learnings for Future Iterations
+
+- **Consumer-level overrides are a recurring pattern**: Task 7.1 fixed component variants, Task 7.2 fixed card-level `h-9 sm:h-7` consumer overrides, but `h-9`-only and `h-8` overrides across 5 files remain. When fixing component-level sizing in future, do a full sweep of consumer overrides in the same task rather than deferring.
+- **Phase cleanup tasks reliably catch scope gaps**: Just as Task 6.4 caught remaining CSS selectors → 6.4.1, Task 7.3 caught remaining touch target overrides → 7.3.1. The cleanup pattern works well for ensuring VERIFICATION.md checks are fully met.
+- **Skeleton/non-interactive elements don't need touch target fixes**: `h-9` on Skeleton components is a visual size, not a touch target. Only interactive elements (buttons, inputs, selects) need the 44px minimum.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-28)

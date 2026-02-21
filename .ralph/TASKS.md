@@ -217,10 +217,19 @@
   - Test: Manual check at multiple viewport widths
   - Verify: run full test suite
 
-- [ ] Task 7.3: Phase 7 cleanup
+- [x] Task 7.3: Phase 7 cleanup
   - Review: Read PROGRESS.md entries for Phase 7 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
+
+- [ ] Task 7.3.1 FIX: Remove consumer-level className overrides that reduce button touch targets below 44px
+  - Implement: In `complete-profile/page.tsx` and `profile-dialog.tsx` — remove `h-9` className overrides on "Upload photo" and "Remove" buttons, letting variant's h-11 (44px) apply
+  - Implement: In `travel-reminder-banner.tsx` — remove `h-9` className overrides on "Add Travel Details" and "Dismiss" buttons
+  - Implement: In `itinerary-header.tsx` — replace `h-8 w-8` on view toggle buttons with `size="icon-xs"` plus after: pseudo-element touch target, or increase to `size="icon"`
+  - Implement: In `deleted-items-dialog.tsx` — remove `h-8` overrides on "Restore" buttons, use `size="xs"` variant
+  - Implement: In `select.tsx` — add a `default` size variant at h-11 (44px), keep `sm` at h-9 as compact option
+  - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
 ## Phase 8: Frontend Design & Typography
