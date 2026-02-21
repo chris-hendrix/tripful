@@ -56,6 +56,7 @@ import {
   useDeleteEvent,
   getDeleteEventErrorMessage,
 } from "@/hooks/use-events";
+import { mapServerErrors } from "@/lib/form-errors";
 import { TIMEZONES } from "@/lib/constants";
 
 interface EditEventDialogProps {
@@ -77,7 +78,6 @@ export function EditEventDialog({
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
   const form = useForm<UpdateEventInput>({
     resolver: zodResolver(updateEventSchema),
@@ -93,6 +93,7 @@ export function EditEventDialog({
       allDay: false,
       isOptional: false,
       links: [],
+      timezone: timezone,
     },
   });
 
@@ -115,16 +116,17 @@ export function EditEventDialog({
         links: event.links || [],
         meetupLocation: event.meetupLocation || "",
         meetupTime: event.meetupTime ? new Date(event.meetupTime).toISOString() : undefined,
+        timezone: timezone,
       });
       setNewLink("");
       setLinkError(null);
-      setSelectedTimezone(timezone);
     }
   }, [open, event, form, timezone]);
 
   const handleSubmit = (data: UpdateEventInput) => {
+    const { timezone: _tz, ...eventData } = data;
     updateEvent(
-      { eventId: event.id, data },
+      { eventId: event.id, data: eventData as UpdateEventInput },
       {
         onSuccess: () => {
           toast.success("Event updated successfully");
@@ -132,10 +134,15 @@ export function EditEventDialog({
           onSuccess?.();
         },
         onError: (error) => {
-          toast.error(
-            getUpdateEventErrorMessage(error) ??
-              "An unexpected error occurred.",
-          );
+          const mapped = mapServerErrors(error, form.setError, {
+            VALIDATION_ERROR: "name",
+          });
+          if (!mapped) {
+            toast.error(
+              getUpdateEventErrorMessage(error) ??
+                "An unexpected error occurred.",
+            );
+          }
         },
       },
     );
@@ -301,27 +308,40 @@ export function EditEventDialog({
             />
 
             {/* Timezone */}
-            <div>
-              <label className="text-base font-semibold text-foreground">
-                Timezone
-              </label>
-              <Select
-                value={selectedTimezone}
-                onValueChange={setSelectedTimezone}
-                disabled={isPending || isDeleting}
-              >
-                <SelectTrigger className="h-12 text-base rounded-xl mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FormField
+              control={form.control}
+              name="timezone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Timezone
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? ""}
+                    disabled={isPending || isDeleting}
+                  >
+                    <FormControl>
+                      <SelectTrigger
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        className="h-12 text-base rounded-xl"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Start Time */}
             <FormField
@@ -337,7 +357,7 @@ export function EditEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={field.onChange}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select start time"
                       aria-label="Start time"
                       disabled={isPending || isDeleting}
@@ -361,7 +381,7 @@ export function EditEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val || undefined)}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select end time"
                       aria-label="End time"
                       disabled={isPending || isDeleting}
@@ -414,7 +434,7 @@ export function EditEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val || undefined)}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select meetup time"
                       aria-label="Meetup time"
                       disabled={isPending || isDeleting}
@@ -538,9 +558,9 @@ export function EditEventDialog({
                   {/* List of added links */}
                   {links.length > 0 && (
                     <div className="space-y-2 mt-2">
-                      {links.map((link, index) => (
+                      {links.map((link) => (
                         <div
-                          key={`${link}-${index}`}
+                          key={link}
                           className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
                         >
                           <span className="text-sm font-medium text-foreground truncate">

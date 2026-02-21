@@ -10,6 +10,7 @@ import {
 } from "@tripful/shared";
 import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
+import { mapServerErrors } from "@/lib/form-errors";
 import {
   Sheet,
   SheetBody,
@@ -100,9 +101,14 @@ export function CreateTripDialog({
         onOpenChange(false);
       },
       onError: (error) => {
-        toast.error(
-          getCreateTripErrorMessage(error) ?? "An unexpected error occurred.",
-        );
+        const mapped = mapServerErrors(error, form.setError, {
+          VALIDATION_ERROR: "name",
+        });
+        if (!mapped) {
+          toast.error(
+            getCreateTripErrorMessage(error) ?? "An unexpected error occurred.",
+          );
+        }
       },
     });
   };

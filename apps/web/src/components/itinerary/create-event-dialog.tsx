@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateEvent, getCreateEventErrorMessage } from "@/hooks/use-events";
+import { mapServerErrors } from "@/lib/form-errors";
 import { TIMEZONES } from "@/lib/constants";
 
 interface CreateEventDialogProps {
@@ -59,7 +60,6 @@ export function CreateEventDialog({
   const { mutate: createEvent, isPending } = useCreateEvent();
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
-  const [selectedTimezone, setSelectedTimezone] = useState(timezone);
 
   const form = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),
@@ -75,6 +75,7 @@ export function CreateEventDialog({
       allDay: false,
       isOptional: false,
       links: [],
+      timezone: timezone,
     },
   });
 
@@ -84,13 +85,13 @@ export function CreateEventDialog({
       form.reset();
       setNewLink("");
       setLinkError(null);
-      setSelectedTimezone(timezone);
     }
-  }, [open, form, timezone]);
+  }, [open, form]);
 
   const handleSubmit = (data: CreateEventInput) => {
+    const { timezone: _tz, ...eventData } = data;
     createEvent(
-      { tripId, data },
+      { tripId, data: eventData as CreateEventInput },
       {
         onSuccess: () => {
           toast.success("Event created successfully");
@@ -98,10 +99,15 @@ export function CreateEventDialog({
           onSuccess?.();
         },
         onError: (error) => {
-          toast.error(
-            getCreateEventErrorMessage(error) ??
-              "An unexpected error occurred.",
-          );
+          const mapped = mapServerErrors(error, form.setError, {
+            VALIDATION_ERROR: "name",
+          });
+          if (!mapped) {
+            toast.error(
+              getCreateEventErrorMessage(error) ??
+                "An unexpected error occurred.",
+            );
+          }
         },
       },
     );
@@ -254,29 +260,40 @@ export function CreateEventDialog({
             />
 
             {/* Timezone */}
-            <FormItem>
-              <FormLabel className="text-base font-semibold text-foreground">
-                Timezone
-              </FormLabel>
-              <Select
-                value={selectedTimezone}
-                onValueChange={setSelectedTimezone}
-                disabled={isPending}
-              >
-                <FormControl>
-                  <SelectTrigger className="h-12 text-base rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormItem>
+            <FormField
+              control={form.control}
+              name="timezone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-semibold text-foreground">
+                    Timezone
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? ""}
+                    disabled={isPending}
+                  >
+                    <FormControl>
+                      <SelectTrigger
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        className="h-12 text-base rounded-xl"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Start Time */}
             <FormField
@@ -292,7 +309,7 @@ export function CreateEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={field.onChange}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select start time"
                       aria-label="Start time"
                       disabled={isPending}
@@ -316,7 +333,7 @@ export function CreateEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val || undefined)}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select end time"
                       aria-label="End time"
                       disabled={isPending}
@@ -369,7 +386,7 @@ export function CreateEventDialog({
                     <DateTimePicker
                       value={field.value || ""}
                       onChange={(val) => field.onChange(val || undefined)}
-                      timezone={selectedTimezone}
+                      timezone={form.watch("timezone") || timezone}
                       placeholder="Select meetup time"
                       aria-label="Meetup time"
                       disabled={isPending}

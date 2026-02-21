@@ -69,7 +69,7 @@
 
 ## Phase 3: Form & Data Layer
 
-- [ ] Task 3.1: Fix timezone select, duplicate key pattern, and add server error mapping
+- [x] Task 3.1: Fix timezone select, duplicate key pattern, and add server error mapping
   - Implement: In `components/itinerary/create-event-dialog.tsx` — replace timezone `useState` + bare `FormItem` with `FormField` wrapping the Select, ensure `timezone` is in the Zod schema, remove `selectedTimezone` state
   - Implement: In `edit-event-dialog.tsx:543` — replace composite key with `field.id` from `useFieldArray`
   - Implement: Create `apps/web/src/lib/form-errors.ts` with `mapServerErrors<T>()` utility that maps API error codes to form fields via `setError()`

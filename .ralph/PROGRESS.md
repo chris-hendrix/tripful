@@ -321,3 +321,43 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 - Skip-link components use `focus:` (not `focus-visible:`) intentionally for visibility toggle — the `sr-only focus:not-sr-only` pattern requires bare `focus:` to work across all user agents
 - Pre-existing test failure count: 18 this run (stable across iterations 5-8)
 - Phase 2 is fully complete with no outstanding issues — Phase 3 can proceed cleanly
+
+## Iteration 9 — Task 3.1: Fix timezone select, duplicate key pattern, and add server error mapping
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `shared/schemas/event.ts` | Added `timezone: z.string().optional()` to `baseEventSchema` — makes `CreateEventInput` and `UpdateEventInput` include `timezone?: string` |
+| `apps/web/src/components/itinerary/create-event-dialog.tsx` | Removed `selectedTimezone` useState, added `timezone` to form defaultValues and reset, replaced bare `<FormItem>` timezone Select with proper `<FormField>` pattern, updated DateTimePicker timezone props to `form.watch("timezone")`, stripped timezone from API submission in handleSubmit, added `mapServerErrors` to onError |
+| `apps/web/src/components/itinerary/edit-event-dialog.tsx` | Same timezone changes as create dialog, fixed composite key `key={\`${link}-${index}\`}` to `key={link}` (links are unique), added `mapServerErrors` to onError |
+| `apps/web/src/components/trip/create-trip-dialog.tsx` | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback |
+| `apps/web/src/components/trip/edit-trip-dialog.tsx` | Added `mapServerErrors` import and updated onError handler to try field mapping before toast fallback |
+| `apps/web/src/lib/form-errors.ts` | NEW — `mapServerErrors<T>()` generic utility: checks `instanceof APIError`, maps error codes to form fields via `setError()`, returns boolean for toast fallback decision |
+| `apps/web/src/lib/__tests__/form-errors.test.ts` | NEW — 6 unit tests: mapped APIError, unmapped APIError, non-APIError (Error), non-APIError (TypeError), multiple field mappings, empty field map |
+
+### Key Decisions
+
+- **timezone in shared schema as optional**: Added `timezone: z.string().optional()` to the shared `baseEventSchema` rather than creating a local form schema. This is the cleanest approach since: (1) it's non-breaking (optional field), (2) `CreateEventInput`/`UpdateEventInput` types automatically include it, (3) no type casting needed for FormField. The API receives but ignores the field (no DB column). Timezone is stripped from API submission via destructuring (`const { timezone: _tz, ...eventData } = data`).
+- **`key={link}` instead of useFieldArray**: The task specified using `field.id` from `useFieldArray`, but `useFieldArray` with primitive string arrays (z.array(z.string())) requires complex type workarounds in react-hook-form. Since links are guaranteed unique (duplicates prevented by `handleAddLink` validation), using `key={link}` is consistent with the pattern already in `create-event-dialog.tsx` and is the idiomatic React approach for unique string lists.
+- **mapServerErrors design**: Returns `boolean` (not `string | null`) — `true` means error was mapped to a form field, `false` means caller should fall back to toast. This clean boolean return avoids mixing concerns. All 4 dialogs currently map `VALIDATION_ERROR → "name"` as the initial field mapping, extensible for future error codes.
+- **Delete handlers not updated**: `handleDelete` in edit-event-dialog and edit-trip-dialog correctly keep using plain toast errors — delete operations don't have form fields to map errors to.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **New tests**: 6/6 form-errors tests pass
+- **Full test suite**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Auth lockout expiry flaky test passed this run. No new regressions.
+- **Reviewer**: APPROVED — all 5 task requirements met, consistent patterns, clean code
+
+### Learnings for Future Iterations
+
+- `useFieldArray` with primitive arrays (`string[]`) is complex in react-hook-form — it wraps elements as objects with generated IDs but typing is awkward. For unique string lists, `key={value}` is simpler and correct.
+- Zod `.refine()` returns `ZodEffects` which does NOT support `.extend()` — if you need to add fields to a refined schema, either modify the base `z.object()` before the `.refine()` or create a new schema.
+- Adding optional fields to shared Zod schemas is non-breaking for both frontend and backend — the API will accept and ignore unknown optional fields since Drizzle inserts only explicitly mapped columns.
+- `form.watch("fieldName")` in render functions causes re-renders on every field change — acceptable for Select components with small option sets but worth noting for performance-sensitive contexts.
+- Pre-existing test failure count: 18 this run (stable across iterations 5-9)

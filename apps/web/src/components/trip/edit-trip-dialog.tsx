@@ -12,6 +12,7 @@ import {
   getCancelTripErrorMessage,
   type Trip,
 } from "@/hooks/use-trips";
+import { mapServerErrors } from "@/lib/form-errors";
 import {
   Sheet,
   SheetBody,
@@ -113,9 +114,14 @@ export function EditTripDialog({
           onSuccess?.();
         },
         onError: (error) => {
-          toast.error(
-            getUpdateTripErrorMessage(error) ?? "An unexpected error occurred.",
-          );
+          const mapped = mapServerErrors(error, form.setError, {
+            VALIDATION_ERROR: "name",
+          });
+          if (!mapped) {
+            toast.error(
+              getUpdateTripErrorMessage(error) ?? "An unexpected error occurred.",
+            );
+          }
         },
       },
     );
