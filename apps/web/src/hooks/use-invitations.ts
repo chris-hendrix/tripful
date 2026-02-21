@@ -80,7 +80,7 @@ export function useMembers(tripId: string) {
 export function useInviteMembers(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<CreateInvitationsResponse, Error, CreateInvitationsInput>({
+  return useMutation<CreateInvitationsResponse, APIError, CreateInvitationsInput>({
     mutationKey: invitationKeys.create(),
     mutationFn: async (data) => {
       const response = await apiRequest<CreateInvitationsResponse>(
@@ -108,7 +108,7 @@ export function useInviteMembers(tripId: string) {
 export function useRevokeInvitation(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
+  return useMutation<void, APIError, string>({
     mutationKey: invitationKeys.revoke(),
     mutationFn: async (invitationId: string) => {
       await apiRequest(`/invitations/${invitationId}`, {
@@ -131,7 +131,7 @@ export function useRevokeInvitation(tripId: string) {
 export function useRemoveMember(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
+  return useMutation<void, APIError, string>({
     mutationKey: memberKeys.remove(tripId),
     mutationFn: async (memberId: string) => {
       await apiRequest(`/trips/${tripId}/members/${memberId}`, {
@@ -203,7 +203,7 @@ export function useUpdateMemberRole(tripId: string) {
 
   return useMutation<
     { success: true },
-    Error,
+    APIError,
     { memberId: string; isOrganizer: boolean }
   >({
     mutationKey: memberKeys.updateRole(tripId),
@@ -279,7 +279,7 @@ export function getUpdateMemberRoleErrorMessage(
 export function useUpdateRsvp(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<MemberWithProfile, Error, UpdateRsvpInput>({
+  return useMutation<MemberWithProfile, APIError, UpdateRsvpInput>({
     mutationKey: rsvpKeys.update(),
     mutationFn: async (data) => {
       const response = await apiRequest<UpdateRsvpResponse>(
@@ -433,7 +433,7 @@ export function useUpdateMySettings(tripId: string) {
 
   return useMutation<
     { success: true; sharePhone: boolean },
-    Error,
+    APIError,
     UpdateMySettingsInput
   >({
     mutationKey: mySettingsKeys.update(),

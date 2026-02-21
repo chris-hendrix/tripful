@@ -143,7 +143,7 @@ export function useCreateEvent() {
 
   return useMutation<
     Event,
-    Error,
+    APIError,
     { tripId: string; data: CreateEventInput },
     CreateEventContext
   >({
@@ -293,7 +293,7 @@ export function useUpdateEvent() {
 
   return useMutation<
     Event,
-    Error,
+    APIError,
     { eventId: string; data: UpdateEventInput },
     UpdateEventContext
   >({
@@ -499,7 +499,7 @@ interface DeleteEventContext {
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string, DeleteEventContext>({
+  return useMutation<void, APIError, string, DeleteEventContext>({
     mutationKey: eventKeys.delete(),
     mutationFn: async (eventId: string) => {
       await apiRequest(`/events/${eventId}`, {
@@ -625,7 +625,7 @@ interface RestoreEventContext {
 export function useRestoreEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation<Event, Error, string, RestoreEventContext>({
+  return useMutation<Event, APIError, string, RestoreEventContext>({
     mutationKey: eventKeys.restore(),
     mutationFn: async (eventId: string) => {
       const response = await apiRequest<RestoreEventResponse>(

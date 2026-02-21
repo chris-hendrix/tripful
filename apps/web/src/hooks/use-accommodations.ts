@@ -142,7 +142,7 @@ export function useCreateAccommodation() {
 
   return useMutation<
     Accommodation,
-    Error,
+    APIError,
     { tripId: string; data: CreateAccommodationInput },
     CreateAccommodationContext
   >({
@@ -291,7 +291,7 @@ export function useUpdateAccommodation() {
 
   return useMutation<
     Accommodation,
-    Error,
+    APIError,
     { accommodationId: string; data: UpdateAccommodationInput },
     UpdateAccommodationContext
   >({
@@ -487,7 +487,7 @@ interface DeleteAccommodationContext {
 export function useDeleteAccommodation() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string, DeleteAccommodationContext>({
+  return useMutation<void, APIError, string, DeleteAccommodationContext>({
     mutationKey: accommodationKeys.delete(),
     mutationFn: async (accommodationId: string) => {
       await apiRequest(`/accommodations/${accommodationId}`, {
@@ -617,7 +617,7 @@ interface RestoreAccommodationContext {
 export function useRestoreAccommodation() {
   const queryClient = useQueryClient();
 
-  return useMutation<Accommodation, Error, string, RestoreAccommodationContext>(
+  return useMutation<Accommodation, APIError, string, RestoreAccommodationContext>(
     {
       mutationKey: accommodationKeys.restore(),
       mutationFn: async (accommodationId: string) => {

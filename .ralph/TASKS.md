@@ -78,7 +78,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 3.2: Fix TanStack Query mutation error types and verify callback signatures
+- [x] Task 3.2: Fix TanStack Query mutation error types and verify callback signatures
   - Implement: Add explicit `APIError` type parameter to all mutation hooks: `useMutation<ResponseType, APIError, InputType>({...})`
   - Implement: Review and fix callback signatures in `use-trips.ts`, `use-events.ts`, `use-accommodations.ts`, `use-member-travel.ts` to use complete v5 parameter lists
   - Test: `pnpm typecheck` passes with stricter error types

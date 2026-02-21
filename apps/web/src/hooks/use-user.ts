@@ -26,7 +26,7 @@ interface UserProfileResponse {
 export function useUpdateProfile() {
   const { refetch } = useAuth();
 
-  return useMutation<User, Error, UpdateProfileInput>({
+  return useMutation<User, APIError, UpdateProfileInput>({
     mutationKey: ["updateProfile"],
     mutationFn: async (data) => {
       const response = await apiRequest<UserProfileResponse>("/users/me", {
@@ -57,7 +57,7 @@ export function useUpdateProfile() {
 export function useUploadProfilePhoto() {
   const { refetch } = useAuth();
 
-  return useMutation<User, Error, File>({
+  return useMutation<User, APIError, File>({
     mutationKey: ["uploadProfilePhoto"],
     mutationFn: async (file) => {
       const formData = new FormData();
@@ -99,7 +99,7 @@ export function useUploadProfilePhoto() {
 export function useRemoveProfilePhoto() {
   const { refetch } = useAuth();
 
-  return useMutation<User, Error, void>({
+  return useMutation<User, APIError, void>({
     mutationKey: ["removeProfilePhoto"],
     mutationFn: async () => {
       const response = await apiRequest<UserProfileResponse>(

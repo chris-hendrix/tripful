@@ -124,7 +124,7 @@ export function useCreateMessage(tripId: string) {
 
   return useMutation<
     Message,
-    Error,
+    APIError,
     CreateMessageInput,
     CreateMessageContext
   >({
@@ -217,7 +217,7 @@ export function useCreateMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _data, context, _mutationContext) => {
+    onError: (_error, _data, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -318,7 +318,7 @@ export function useEditMessage(tripId: string) {
 
   return useMutation<
     Message,
-    Error,
+    APIError,
     { messageId: string; data: UpdateMessageInput },
     EditMessageContext
   >({
@@ -370,7 +370,7 @@ export function useEditMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context, _mutationContext) => {
+    onError: (_error, _vars, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -457,7 +457,7 @@ export function useDeleteMessage(tripId: string) {
 
   return useMutation<
     { success: true },
-    Error,
+    APIError,
     string,
     DeleteMessageContext
   >({
@@ -522,7 +522,7 @@ export function useDeleteMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _messageId, context, _mutationContext) => {
+    onError: (_error, _messageId, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -617,7 +617,7 @@ export function useToggleReaction(tripId: string) {
 
   return useMutation<
     ReactionSummary[],
-    Error,
+    APIError,
     { messageId: string; data: ToggleReactionInput },
     ToggleReactionContext
   >({
@@ -677,7 +677,7 @@ export function useToggleReaction(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context, _mutationContext) => {
+    onError: (_error, _vars, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -806,7 +806,7 @@ export function usePinMessage(tripId: string) {
 
   return useMutation<
     Message,
-    Error,
+    APIError,
     { messageId: string; data: PinMessageInput },
     PinMessageContext
   >({
@@ -848,7 +848,7 @@ export function usePinMessage(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _vars, context, _mutationContext) => {
+    onError: (_error, _vars, context) => {
       if (context?.previousMessages) {
         queryClient.setQueryData(
           messageKeys.list(tripId),
@@ -915,7 +915,7 @@ export function getPinMessageErrorMessage(
 export function useMuteMember(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<{ success: true }, Error, string>({
+  return useMutation<{ success: true }, APIError, string>({
     mutationKey: messageKeys.mute(),
     mutationFn: async (memberId: string) => {
       return await apiRequest<{ success: true }>(
@@ -986,7 +986,7 @@ export function getMuteMemberErrorMessage(
 export function useUnmuteMember(tripId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<{ success: true }, Error, string>({
+  return useMutation<{ success: true }, APIError, string>({
     mutationKey: messageKeys.unmute(),
     mutationFn: async (memberId: string) => {
       return await apiRequest<{ success: true }>(

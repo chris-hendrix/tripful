@@ -130,7 +130,7 @@ export function useCreateTrip() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  return useMutation<Trip, Error, CreateTripInput, CreateTripContext>({
+  return useMutation<Trip, APIError, CreateTripInput, CreateTripContext>({
     mutationKey: tripKeys.create(),
     mutationFn: async (data: CreateTripInput) => {
       const response = await apiRequest<CreateTripResponse>("/trips", {
@@ -271,7 +271,7 @@ export function useUpdateTrip() {
 
   return useMutation<
     Trip,
-    Error,
+    APIError,
     { tripId: string; data: UpdateTripInput },
     UpdateTripContext
   >({
@@ -436,7 +436,7 @@ export function useCancelTrip() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  return useMutation<void, Error, string, CancelTripContext>({
+  return useMutation<void, APIError, string, CancelTripContext>({
     mutationKey: tripKeys.cancel(),
     mutationFn: async (tripId: string) => {
       await apiRequest<CancelTripResponse>(`/trips/${tripId}`, {

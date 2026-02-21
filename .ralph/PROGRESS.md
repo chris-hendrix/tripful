@@ -361,3 +361,43 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 - Adding optional fields to shared Zod schemas is non-breaking for both frontend and backend — the API will accept and ignore unknown optional fields since Drizzle inserts only explicitly mapped columns.
 - `form.watch("fieldName")` in render functions causes re-renders on every field change — acceptable for Select components with small option sets but worth noting for performance-sensitive contexts.
 - Pre-existing test failure count: 18 this run (stable across iterations 5-9)
+
+## Iteration 10 — Task 3.2: Fix TanStack Query mutation error types and verify callback signatures
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/hooks/use-trips.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics |
+| `apps/web/src/hooks/use-events.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
+| `apps/web/src/hooks/use-accommodations.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
+| `apps/web/src/hooks/use-member-travel.ts` | Changed `Error` → `APIError` in 4 `useMutation` generics |
+| `apps/web/src/hooks/use-messages.ts` | Changed `Error` → `APIError` in 7 `useMutation` generics; removed extra `_mutationContext` 4th parameter from 5 `onError` callbacks |
+| `apps/web/src/hooks/use-invitations.ts` | Changed `Error` → `APIError` in 6 `useMutation` generics |
+| `apps/web/src/hooks/use-user.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics |
+| `apps/web/src/hooks/use-notifications.ts` | Changed `Error` → `APIError` in 3 `useMutation` generics; removed extra `_mutationContext` parameter from 3 `onError` and 2 `onSettled` callbacks |
+
+### Key Decisions
+
+- **All 8 hook files updated, not just the 4 listed**: The task said "all mutation hooks" for the type change, so all 34 mutations across 8 files were updated for consistency.
+- **Callback anomalies fixed in messages and notifications**: `use-messages.ts` and `use-notifications.ts` had extra `_mutationContext` parameters beyond the TanStack Query v5 standard (3 for `onError`, 4 for `onSettled`). These were removed — 10 callbacks total.
+- **No changes to helper functions**: `get*ErrorMessage()` helpers accept `Error | null` and `mapServerErrors` accepts `Error` — both work with `APIError` since it extends `Error`.
+- **No new imports needed**: `APIError` was already imported in all 8 hook files for use in `get*ErrorMessage()` helpers.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). No new regressions.
+- **Pattern checks**: Zero remaining `useMutation<..., Error, ...>` generics; zero remaining `_mutationContext` params
+- **Reviewer**: APPROVED — all 34 mutations verified, callback signatures conform to v5, no regressions
+
+### Learnings for Future Iterations
+
+- TanStack Query v5 does not validate error types at runtime — `TError` is a type hint only. If `mutationFn` throws a plain `Error` (e.g., network error), it will be assigned to the `APIError`-typed slot. Existing `instanceof APIError` checks in error message helpers handle this gracefully.
+- Extra callback parameters in TypeScript are silently accepted (structural typing) — they don't cause type errors but are misleading. Always verify callback signatures match the library's documentation.
+- `APIError extends Error` makes the narrowing from `Error` → `APIError` a safe, non-breaking change for all downstream consumers that accept `Error`.
+- Pre-existing test failure count: 18 this run (stable across iterations 5-10)

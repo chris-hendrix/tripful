@@ -142,7 +142,7 @@ export function useCreateMemberTravel() {
 
   return useMutation<
     MemberTravel,
-    Error,
+    APIError,
     { tripId: string; data: CreateMemberTravelInput },
     CreateMemberTravelContext
   >({
@@ -289,7 +289,7 @@ export function useUpdateMemberTravel() {
 
   return useMutation<
     MemberTravel,
-    Error,
+    APIError,
     { memberTravelId: string; data: UpdateMemberTravelInput },
     UpdateMemberTravelContext
   >({
@@ -480,7 +480,7 @@ interface DeleteMemberTravelContext {
 export function useDeleteMemberTravel() {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string, DeleteMemberTravelContext>({
+  return useMutation<void, APIError, string, DeleteMemberTravelContext>({
     mutationKey: memberTravelKeys.delete(),
     mutationFn: async (memberTravelId: string) => {
       await apiRequest(`/member-travel/${memberTravelId}`, {
@@ -610,7 +610,7 @@ interface RestoreMemberTravelContext {
 export function useRestoreMemberTravel() {
   const queryClient = useQueryClient();
 
-  return useMutation<MemberTravel, Error, string, RestoreMemberTravelContext>({
+  return useMutation<MemberTravel, APIError, string, RestoreMemberTravelContext>({
     mutationKey: memberTravelKeys.restore(),
     mutationFn: async (memberTravelId: string) => {
       const response = await apiRequest<RestoreMemberTravelResponse>(
