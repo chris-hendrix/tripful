@@ -135,9 +135,12 @@ None required. No new features — this is a quality/fix run.
 
 ## Pre-existing Test Failures
 
-From previous Ralph runs, some web unit tests may fail on main (unrelated to audit fixes):
-- app-header nav text tests
-- trip metadata tests
-- URL validation dialog tests
+From previous Ralph runs, 19 unit tests may fail on main (unrelated to audit fixes). These pre-date the skill audit and are not regressions:
+
+- **daily-itineraries worker** (10 failures) — itinerary scheduling/worker tests
+- **app-header nav text** (5 failures) — navigation link text assertions
+- **URL validation dialogs** (2 failures) — URL input validation in dialog components
+- **auth lockout expiry timing** (1 failure) — timing-sensitive lockout window test
+- **trip metadata** (1 failure) — trip detail metadata rendering
 
 These should NOT be treated as regressions from this audit fix run. If they appear, note them in PROGRESS.md but do not attempt to fix them unless they're related to audit findings.

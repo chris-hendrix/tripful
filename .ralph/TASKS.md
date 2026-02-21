@@ -34,7 +34,7 @@
   - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
-- [ ] Task 1.5: Phase 1 cleanup
+- [x] Task 1.5: Phase 1 cleanup
   - Review: Read PROGRESS.md entries for Phase 1 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues

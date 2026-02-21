@@ -150,3 +150,45 @@
 - Pre-existing failure count is 19 (not 18 as previously documented) — `auth.lockout.test.ts > should give fresh 5 attempts after lockout expires` is an additional pre-existing failure not previously listed
 - Next.js global-error.tsx must render its own `<html>` and `<body>` tags since it replaces the root layout on error — this is different from segment-level error.tsx files which inherit the parent layout
 - The global-error fallback message is intentionally longer than segment-level ones ("Please try again later.") since the error is more severe (entire app failure)
+
+## Iteration 5 — Task 1.5: Phase 1 cleanup
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Review Findings
+
+Three researchers analyzed all Phase 1 work (Tasks 1.1-1.4) in parallel:
+
+| Check | Result |
+|-------|--------|
+| All 12 Phase 1 implementation items present in codebase | ✅ Verified |
+| FAILURE or BLOCKED tasks | None found |
+| Reviewer caveats or conditional approvals | None — all 4 tasks received clean APPROVED |
+| Deferred items requiring follow-up tasks | None actionable (see below) |
+| Regressions from Phase 1 changes | None detected |
+
+### Deferred Items Analysis
+
+| Item | Assessment | Action |
+|------|-----------|--------|
+| `tripIdIdx` potentially redundant (Task 1.3) | Minor optimization — composite `tripIdIsOrganizerIdx` covers queries on `tripId` alone, making the single-column index technically redundant. However, keeping both is the codebase convention and the overhead is negligible. | No follow-up task needed |
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `.ralph/VERIFICATION.md` | Updated "Pre-existing Test Failures" section from 3 incomplete categories to 5 complete categories with accurate counts (19 total: daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, auth lockout expiry 1, trip metadata 1) |
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 failures observed, all pre-existing (auth lockout expiry did not trigger this run — expected for timing-sensitive test). No new regressions.
+- **Reviewer**: APPROVED — thorough analysis, accurate documentation update, correct decision to not add new tasks
+
+### Learnings for Future Iterations
+
+- Phase cleanup tasks are valuable for catching documentation drift — the pre-existing failures list was 40% incomplete (missing 11 out of 19 failures)
+- The auth lockout expiry test is intermittently flaky (appeared in Task 1.4 but not in this run) — timing-sensitive tests may not reproduce every run
+- Phase 1 is fully complete with no outstanding issues — Phase 2 can proceed cleanly
