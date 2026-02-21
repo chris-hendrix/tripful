@@ -50,7 +50,7 @@
 
 ## Phase 3: CI Pipeline
 
-- [ ] Task 3.1: Add CI smoke job, sharding, and report merging
+- [x] Task 3.1: Add CI smoke job, sharding, and report merging
   - Implement: In `.github/workflows/ci.yml`, add `e2e-smoke` job that runs `playwright test --grep @smoke` on PR commits. Needs same postgres service, browser install, and migration steps as existing e2e job. Condition: `github.event_name == 'pull_request'`.
   - Implement: Modify existing `e2e-tests` job to run only on main branch (`github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'`). Add matrix strategy: `shardIndex: [1, 2]`, `shardTotal: [2]`. Pass `--shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}` to playwright command.
   - Implement: Update playwright reporter config in `playwright.config.ts` to use `blob` reporter when `PLAYWRIGHT_SHARD` env var is set (CI sharding), keeping `html` as default for local runs. E.g.: `reporter: process.env.CI ? 'blob' : 'html'`

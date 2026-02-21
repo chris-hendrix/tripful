@@ -17,7 +17,7 @@ export default defineConfig({
   workers: process.env.CI ? 4 : 1, // 1 locally to reduce memory pressure, 4 in CI
 
   // Reporter to use
-  reporter: "html",
+  reporter: process.env.CI ? "blob" : "html",
 
   // Shared settings for all tests
   use: {

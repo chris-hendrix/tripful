@@ -208,3 +208,57 @@
 - **No new tasks needed**: All Phase 2 deferred items were either already addressed or required only simple JSDoc fixes.
 - **Pre-existing out-of-scope issues confirmed unchanged**: (1) Dead auth helpers in `helpers/auth.ts` (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`). (2) Hardcoded timeouts in `trip-journey.spec.ts`, `itinerary-journey.spec.ts`, `profile-journey.spec.ts`, and partially `invitation-journey.spec.ts`. (3) Hardcoded `http://localhost:8000` in 8 locations across 3 spec files instead of `API_BASE`. All pre-existing before this branch.
 - **Phase 2 is now complete**. All 2 tasks done, 21 tests passing across 7 files, 6 smoke / 15 regression. Ready for Phase 3.
+
+## Iteration 6 — Task 3.1: Add CI smoke job, sharding, and report merging
+
+**Status**: COMPLETED
+**Verifier**: PASS — lint, typecheck, and YAML validation all pass
+**Reviewer**: APPROVED (one LOW-severity finding addressed inline)
+
+### Changes Made
+
+**`apps/web/playwright.config.ts`** (1 change):
+- Line 20: Changed `reporter: "html"` to `reporter: process.env.CI ? "blob" : "html"`. Blob reporter in CI enables shard report merging; HTML reporter preserved for local development. Follows the existing `process.env.CI` ternary pattern used for `forbidOnly` (line 15), `workers` (line 17), and `reuseExistingServer` (lines 59, 67).
+
+**`.github/workflows/ci.yml`** (3 jobs added/modified):
+
+1. **`e2e-smoke` job (NEW, lines 173-233)**: Runs only `@smoke`-tagged E2E tests on PRs.
+   - Condition: `github.event_name == 'pull_request'` AND (api/web/shared changes detected)
+   - Same postgres service, browser install, and migration steps as existing e2e job
+   - Command: `playwright test --grep @smoke` (6 tests)
+   - Timeout: 30 minutes
+   - Uploads blob report as `smoke-report` artifact (7-day retention)
+
+2. **`e2e-tests` job (MODIFIED, lines 235-298)**: Runs full suite on main branch only, with 2-shard matrix.
+   - Condition changed from changes-based (api/web/shared) to main-only: `github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'`
+   - Added matrix strategy: `shardIndex: [1, 2]`, `shardTotal: [2]`, `fail-fast: false`
+   - Command: `playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}`
+   - Artifact: per-shard blob reports (`blob-report-1`, `blob-report-2`) with 1-day retention
+
+3. **`merge-e2e-reports` job (NEW, lines 300-337)**: Merges sharded blob reports into single HTML report.
+   - Depends on `e2e-tests`
+   - Condition: `!cancelled() && needs.e2e-tests.result != 'skipped'` (prevents running on PRs where e2e-tests is skipped)
+   - Downloads all `blob-report-*` artifacts with `merge-multiple: true`
+   - Runs `npx playwright merge-reports --reporter html ./all-blob-reports`
+   - Uploads merged HTML report as `playwright-report` (30-day retention)
+
+### Reviewer Finding (addressed)
+
+- **[LOW, FIXED]**: The reviewer identified that `if: ${{ !cancelled() }}` on `merge-e2e-reports` would cause the job to run and fail on PRs (where `e2e-tests` is skipped, producing no blob artifacts). Fixed by adding `needs.e2e-tests.result != 'skipped'` guard to the condition.
+
+### Verification Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| YAML syntax validation | PASS |
+| Job dependencies correct | PASS (`merge-e2e-reports` → `e2e-tests`, both smoke/e2e → `changes`) |
+| Artifact names unique | PASS (`smoke-report`, `blob-report-1`, `blob-report-2`, `playwright-report`) |
+| Action versions consistent | PASS (checkout@v6, setup-node@v6, upload-artifact@v6, download-artifact@v6, pnpm/action-setup@v4) |
+
+### Notes
+
+- **Cannot validate CI pipeline locally**: GitHub Actions workflows can only be fully validated when running in GitHub. The YAML structure, job dependencies, conditions, and action versions have been reviewed for correctness. Actual CI execution will be validated when code is pushed.
+- **Reporter strategy**: Both `e2e-smoke` and `e2e-tests` use `blob` reporter in CI (from the `process.env.CI` config). The smoke job uploads its blob directly (no merge needed for a single run). Only the sharded `e2e-tests` has a merge step.
+- **Phase 3 progress**: Task 3.1 complete. Task 3.2 (Phase 3 cleanup) remains.
