@@ -401,3 +401,38 @@ Three researchers analyzed all Phase 2 work (Tasks 2.1-2.2) in parallel:
 - Extra callback parameters in TypeScript are silently accepted (structural typing) — they don't cause type errors but are misleading. Always verify callback signatures match the library's documentation.
 - `APIError extends Error` makes the narrowing from `Error` → `APIError` a safe, non-breaking change for all downstream consumers that accept `Error`.
 - Pre-existing test failure count: 18 this run (stable across iterations 5-10)
+
+## Iteration 11 — Task 3.3: Fix notification bell animation, conditional rendering, and memoization
+
+**Status**: COMPLETED
+**Date**: 2026-02-20
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/notifications/notification-bell.tsx` | Replaced broken `useRef` + `useEffect` + `classList` animation re-trigger with React `key={displayCount}` technique; removed `ANIMATION_CLASS` constant, `badgeRef` ref, and `useEffect` block; wrapped `displayCount` and `ariaLabel` in `useMemo`; changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` |
+| `apps/web/src/components/notifications/trip-notification-bell.tsx` | Consistency fix: changed `{displayCount && (` to `{displayCount ? (` ... `) : null}` to match the same conditional rendering pattern |
+
+### Key Decisions
+
+- **`key={displayCount}` for animation re-trigger**: When `displayCount` changes (e.g., "3" → "5" or "9+"), React unmounts and remounts the `<span>`, naturally restarting the CSS animation `badgePulse`. This is cleaner than the previous imperative approach of `classList.remove()` + `void el.offsetWidth` (force reflow) + `classList.add()`, which conflicted with the static animation class already in the JSX `className`.
+- **Sibling consistency fix**: The reviewer flagged that `trip-notification-bell.tsx` had the same `{displayCount && (` pattern being fixed in `notification-bell.tsx`. Rather than deferring to a follow-up task, both components were fixed in the same iteration for consistency. The sibling already used `key={displayCount}` but still had the `&&` conditional rendering pattern.
+- **`useMemo` applied to both `displayCount` and `ariaLabel`**: While these are trivial computations, the task explicitly requested memoization. Both depend only on `[unreadCount]`, preventing recalculation when other state (e.g., `open` for popover) changes. The sibling `trip-notification-bell.tsx` was intentionally NOT given `useMemo` since the task scope was specifically about `notification-bell.tsx` and the reviewer accepted this as a non-blocking stylistic difference.
+- **TASKS.md wording "remove redundant static animation class from JSX"**: This refers to removing the redundant `ANIMATION_CLASS` constant and its `classList` manipulation, NOT removing the animation class from the span's static `className`. The architecture spec (section 3C) explicitly shows the animation class remaining in the `className`, and the `key` technique relies on it being there.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Notification bell tests**: 37/37 pass (22 in notification-bell.test.tsx, 15 in trip-notification-bell.test.tsx)
+- **Full test suite**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Auth lockout expiry flaky test passed this run. No new regressions.
+- **Reviewer**: APPROVED after fix round — sibling consistency resolved, all 4 requirements met, clean code
+
+### Learnings for Future Iterations
+
+- React `key` prop for animation re-trigger is preferred over imperative `classList` manipulation — forces clean unmount/remount which naturally restarts CSS animations without reflow hacks
+- When fixing a pattern in one component, check sibling components for the same pattern to maintain codebase consistency — the reviewer will flag inconsistencies
+- `{value && <JSX>}` vs `{value ? <JSX> : null}` — while functionally equivalent for `null | string` values, the ternary pattern is preferred as it prevents the `0 && <JSX>` rendering pitfall for numeric types
+- `useMemo` for trivial string derivations is debatable — the overhead of dependency comparison may exceed computation cost. However, when explicitly requested by the task spec, apply it with correct minimal dependencies
+- Pre-existing test failure count: 18 this run (stable across iterations 5-11)

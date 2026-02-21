@@ -36,14 +36,14 @@ export function TripNotificationBell({ tripId }: TripNotificationBellProps) {
         onClick={() => setOpen(true)}
       >
         <Bell className="size-5" />
-        {displayCount && (
+        {displayCount ? (
           <span
             key={displayCount}
             className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] motion-safe:animate-[badgePulse_600ms_ease-in-out]"
           >
             {displayCount}
           </span>
-        )}
+        ) : null}
       </Button>
       <TripNotificationDialog
         tripId={tripId}

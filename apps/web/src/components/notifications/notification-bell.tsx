@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,32 +12,27 @@ import { useUnreadCount } from "@/hooks/use-notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { NotificationDropdown } from "./notification-dropdown";
 
-const ANIMATION_CLASS = "motion-safe:animate-[badgePulse_600ms_ease-in-out]";
-
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { data: unreadCount } = useUnreadCount();
-  const badgeRef = useRef<HTMLSpanElement>(null);
 
-  const displayCount =
-    unreadCount !== undefined && unreadCount > 0
-      ? unreadCount > 9
-        ? "9+"
-        : String(unreadCount)
-      : null;
+  const displayCount = useMemo(
+    () =>
+      unreadCount !== undefined && unreadCount > 0
+        ? unreadCount > 9
+          ? "9+"
+          : String(unreadCount)
+        : null,
+    [unreadCount],
+  );
 
-  useEffect(() => {
-    const el = badgeRef.current;
-    if (!el) return;
-    el.classList.remove(ANIMATION_CLASS);
-    void el.offsetWidth;
-    el.classList.add(ANIMATION_CLASS);
-  }, [displayCount]);
-
-  const ariaLabel =
-    unreadCount !== undefined && unreadCount > 0
-      ? `Notifications, ${unreadCount} unread`
-      : "Notifications";
+  const ariaLabel = useMemo(
+    () =>
+      unreadCount !== undefined && unreadCount > 0
+        ? `Notifications, ${unreadCount} unread`
+        : "Notifications",
+    [unreadCount],
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -49,14 +44,14 @@ export function NotificationBell() {
           aria-label={ariaLabel}
         >
           <Bell className="size-5" />
-          {displayCount && (
+          {displayCount ? (
             <span
-              ref={badgeRef}
+              key={displayCount}
               className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground h-[18px] motion-safe:animate-[badgePulse_600ms_ease-in-out]"
             >
               {displayCount}
             </span>
-          )}
+          ) : null}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[380px] p-0" align="end">

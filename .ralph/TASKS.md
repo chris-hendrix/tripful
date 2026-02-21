@@ -84,7 +84,7 @@
   - Test: `pnpm typecheck` passes with stricter error types
   - Verify: run full test suite
 
-- [ ] Task 3.3: Fix notification bell animation, conditional rendering, and memoization
+- [x] Task 3.3: Fix notification bell animation, conditional rendering, and memoization
   - Implement: In `notification-bell.tsx` — fix animation re-trigger by using React `key={displayCount}` technique instead of broken useRef+useEffect class manipulation
   - Implement: Remove the `useRef` + `useEffect` + `classList` approach, remove redundant static animation class from JSX
   - Implement: Change `{displayCount && <span>...` to `{displayCount ? <span>... : null}` to prevent falsy value rendering
