@@ -415,7 +415,7 @@ describe("TripCard", () => {
 
       const card = container.firstChild as HTMLElement;
       expect(card.className).toContain("hover:shadow-md");
-      expect(card.className).toContain("active:scale-[0.98]");
+      expect(card.className).toContain("motion-safe:active:scale-[0.98]");
       expect(card.className).toContain("transition-all");
     });
 

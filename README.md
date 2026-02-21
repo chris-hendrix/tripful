@@ -32,7 +32,7 @@ The current implementation includes:
 - Full development environment with Docker Compose
 - Next.js frontend with modern UI components (shadcn/ui) and Vivid Capri design system
 - App shell with header navigation, user dropdown menu, and skip link
-- Playfair Display + DM Sans typography via `next/font/google`
+- Playfair Display + Plus Jakarta Sans typography via `next/font/google`
 - Toast notifications (Sonner), breadcrumbs, skeleton loading states
 - Fastify backend with plugin architecture and `buildApp()` factory pattern
 - SMS authentication with JWT, phone verification, and profile completion

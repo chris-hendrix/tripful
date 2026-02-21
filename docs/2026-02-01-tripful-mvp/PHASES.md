@@ -75,7 +75,7 @@
 ## ✅ Frontend Design Overhaul
 
 - [x] Mediterranean design system (Vivid Capri palette, hex colors in @theme)
-- [x] Typography: Playfair Display (headlines) + DM Sans (body)
+- [x] Typography: Playfair Display (headlines) + Plus Jakarta Sans (body)
 - [x] App shell header with navigation, user avatar dropdown, active link states
 - [x] Skip link for keyboard accessibility
 - [x] shadcn/ui additions: Sonner toasts, AlertDialog, Skeleton, DropdownMenu, Breadcrumb, Avatar, Separator, Tooltip

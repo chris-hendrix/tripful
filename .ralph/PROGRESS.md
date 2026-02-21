@@ -1481,3 +1481,47 @@ Reviewed PROGRESS.md entries for Phase 8 tasks (Iterations 30-32: Tasks 8.1, 8.2
 - **Cleanup tasks are investigative**: The main value is systematically reviewing all reviewer notes and deciding which warrant follow-up. Creating well-scoped FIX tasks with specific file paths and exact changes saves the next iteration significant research time.
 - **`motion-safe:` consistency across pages**: Auth pages were not in scope for Phase 8 animation work but have the same animation classes without the prefix. Future animation tasks should grep project-wide for the pattern being standardized, not just the files in scope.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-33)
+
+## Iteration 34 — Task 8.4.1 FIX: Fix Phase 8 consistency issues (motion-safe prefix, docs font reference, skeleton, border-radius)
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/web/src/components/trip/trip-card.tsx` | Changed `active:scale-[0.98]` to `motion-safe:active:scale-[0.98]` for accessibility consistency with other cards |
+| `apps/web/src/components/trip/__tests__/trip-card.test.tsx` | Updated test assertion to match `motion-safe:active:scale-[0.98]` |
+| `apps/web/src/app/(auth)/login/page.tsx` | Added `motion-safe:` prefix to `animate-in fade-in slide-in-from-bottom-4` classes |
+| `apps/web/src/app/(auth)/verify/page.tsx` | Same motion-safe prefix on animation classes |
+| `apps/web/src/app/(auth)/complete-profile/page.tsx` | Same motion-safe prefix on animation classes |
+| `apps/web/src/app/(app)/trips/loading.tsx` | Added badge overlay skeleton (`<Skeleton className="h-5 w-16 rounded-full" />`) to match `trips-content.tsx` SkeletonCard |
+| `apps/web/src/components/ui/select.tsx` | Changed SelectTrigger from `rounded-md` to `rounded-xl` in cva base string |
+| `apps/web/src/components/ui/datetime-picker.tsx` | Changed time input from `rounded-md` to `rounded-xl` |
+| `README.md` | Replaced "DM Sans" with "Plus Jakarta Sans" |
+| `docs/2026-02-01-tripful-mvp/DESIGN.md` | Replaced 3 occurrences of "DM Sans" with "Plus Jakarta Sans" |
+| `docs/2026-02-01-tripful-mvp/PHASES.md` | Replaced "DM Sans" with "Plus Jakarta Sans" |
+| `docs/2026-02-01-tripful-mvp/ARCHITECTURE.md` | Replaced "DM Sans" with "Plus Jakarta Sans" |
+| `apps/web/src/components/trip/README.md` | Updated documented pattern to `motion-safe:active:scale-[0.98]` |
+
+### Key Decisions
+
+- **`duration-700` not prefixed**: The `duration-700` class does NOT get the `motion-safe:` prefix — it is a CSS duration property, not an animation trigger. Only `animate-in`, `fade-in`, and `slide-in-from-bottom-4` need the prefix.
+- **SelectContent `rounded-md` preserved**: Only SelectTrigger was changed to `rounded-xl`. The `SelectContent` dropdown overlay intentionally keeps `rounded-md`, consistent with all other floating/overlay components (popover, tooltip, dropdown-menu).
+- **Radix UI component animations left as-is**: `dialog.tsx`, `sheet.tsx`, `popover.tsx`, etc. use bare `animate-in` without `motion-safe:` — these are standard shadcn/ui patterns gated behind `data-[state=...]` conditions, not page-load decorative animations.
+- **trip/README.md updated**: The component README documented the old `active:scale-[0.98]` pattern; updated to reflect the `motion-safe:` prefix.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Zero new regressions. Trip-card test: 33/33 pass.
+- **Reviewer**: APPROVED — all 7 requirements fully met, no issues found
+
+### Learnings for Future Iterations
+
+- **`motion-safe:` prefix applies per-class**: Each Tailwind utility class needs its own `motion-safe:` prefix (`motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4`), not a single prefix on the group.
+- **Floating vs input border-radius convention**: In this codebase, form input elements (button, input, textarea, select trigger, date picker trigger) use `rounded-xl`, while floating/overlay elements (popover content, tooltip, dropdown content, select content) use `rounded-md`. This creates visual hierarchy.
+- **SkeletonCard duplication**: The `SkeletonCard` component is now byte-for-byte identical in `loading.tsx` and `trips-content.tsx`. A future task could extract it to a shared component to prevent drift.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-34)

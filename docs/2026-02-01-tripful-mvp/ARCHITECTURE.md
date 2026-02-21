@@ -141,7 +141,7 @@ Comprehensive redesign of the web frontend with a travel-poster-inspired visual 
 **Design System:**
 
 - [x] Vivid Capri color palette with CSS custom properties (`@theme` in Tailwind v4)
-- [x] Typography: Playfair Display (headlines) + DM Sans (body) via `next/font/google`
+- [x] Typography: Playfair Display (headlines) + Plus Jakarta Sans (body) via `next/font/google`
 - [x] Gradient button variant added to shadcn/ui Button component
 - [x] Semantic tokens: `--color-success` (olive green), `--color-warning` (warm amber)
 - [x] All hardcoded slate-/gray-/blue- colors migrated to design tokens
