@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
 import type { Job } from "pg-boss";
 import { db } from "@/config/database.js";
 import { events, members, trips, users } from "@/db/schema/index.js";
@@ -8,6 +17,33 @@ import type { WorkerDeps, NotificationBatchPayload } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
 import type { SendOptions } from "pg-boss";
 import { generateUniquePhone } from "../../test-utils.js";
+
+/** Remove all stale data from previous test runs using the test marker name */
+async function cleanupStaleData() {
+  const staleUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.displayName, "Itinerary Organizer"));
+
+  for (const user of staleUsers) {
+    const staleTrips = await db
+      .select({ id: trips.id })
+      .from(trips)
+      .where(eq(trips.createdBy, user.id));
+
+    for (const trip of staleTrips) {
+      await db.delete(events).where(eq(events.tripId, trip.id));
+      await db.delete(members).where(eq(members.tripId, trip.id));
+    }
+    await db.delete(trips).where(eq(trips.createdBy, user.id));
+  }
+
+  if (staleUsers.length > 0) {
+    await db
+      .delete(users)
+      .where(eq(users.displayName, "Itinerary Organizer"));
+  }
+}
 
 describe("daily-itineraries.worker", () => {
   let testOrganizerPhone: string;
@@ -33,6 +69,14 @@ describe("daily-itineraries.worker", () => {
         );
     }
   };
+
+  beforeAll(async () => {
+    await cleanupStaleData();
+  });
+
+  afterAll(async () => {
+    await cleanupStaleData();
+  });
 
   beforeEach(async () => {
     vi.useFakeTimers();

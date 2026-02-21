@@ -119,10 +119,25 @@ describe("TripDetailPage (RSC)", () => {
 });
 
 describe("generateMetadata", () => {
-  it("returns title with trip ID", async () => {
+  it("returns trip name as title when fetch succeeds", async () => {
+    mockServerApiRequest.mockResolvedValue(mockTripResponse);
     const metadata = await generateMetadata({
       params: Promise.resolve({ id: "trip-123" }),
     });
-    expect(metadata).toEqual({ title: "Trip trip-123" });
+    expect(metadata).toEqual({
+      title: "Beach Trip",
+      robots: { index: false, follow: false },
+    });
+  });
+
+  it("returns fallback title when fetch fails", async () => {
+    mockServerApiRequest.mockRejectedValue(new Error("Not found"));
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ id: "trip-123" }),
+    });
+    expect(metadata).toEqual({
+      title: "Trip",
+      robots: { index: false, follow: false },
+    });
   });
 });

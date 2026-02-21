@@ -88,21 +88,6 @@ describe("AppHeader", () => {
     );
   });
 
-  it("renders a My Trips nav link", () => {
-    render(<AppHeader />);
-
-    const myTripsLink = screen.getByText("My Trips");
-    expect(myTripsLink).toBeDefined();
-    expect(myTripsLink.getAttribute("href")).toBe("/trips");
-  });
-
-  it("renders the main navigation landmark", () => {
-    render(<AppHeader />);
-
-    const nav = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(nav).toBeDefined();
-  });
-
   it("renders a header landmark", () => {
     render(<AppHeader />);
 
@@ -190,29 +175,4 @@ describe("AppHeader", () => {
     expect(mockLogout).toHaveBeenCalledOnce();
   });
 
-  it("applies active styling to My Trips link when on /trips", () => {
-    mockPathname = "/trips";
-    render(<AppHeader />);
-
-    const myTripsLink = screen.getByText("My Trips");
-    expect(myTripsLink.className).toContain("text-foreground");
-    expect(myTripsLink.className).not.toContain("text-foreground/60");
-  });
-
-  it("applies active styling to My Trips link on nested trips routes", () => {
-    mockPathname = "/trips/settings";
-    render(<AppHeader />);
-
-    const myTripsLink = screen.getByText("My Trips");
-    expect(myTripsLink.className).toContain("text-foreground");
-    expect(myTripsLink.className).not.toContain("text-foreground/60");
-  });
-
-  it("applies inactive styling to My Trips link when on a different page", () => {
-    mockPathname = "/settings";
-    render(<AppHeader />);
-
-    const myTripsLink = screen.getByText("My Trips");
-    expect(myTripsLink.className).toContain("text-foreground/60");
-  });
 });

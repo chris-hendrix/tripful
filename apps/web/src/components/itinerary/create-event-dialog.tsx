@@ -566,6 +566,7 @@ export function CreateEventDialog({
                           disabled={isPending}
                           className="h-12 px-4 bg-muted hover:bg-muted text-foreground rounded-xl"
                           variant="outline"
+                          aria-label="Add link"
                         >
                           <Plus className="w-5 h-5" />
                         </Button>
