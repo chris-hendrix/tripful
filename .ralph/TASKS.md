@@ -262,10 +262,21 @@
   - Test: Manual visual check — verify improvements look cohesive
   - Verify: run full test suite
 
-- [ ] Task 8.4: Phase 8 cleanup
+- [x] Task 8.4: Phase 8 cleanup
   - Review: Read PROGRESS.md entries for Phase 8 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
+  - Verify: run full test suite
+
+- [ ] Task 8.4.1 FIX: Fix Phase 8 consistency issues (motion-safe prefix, docs font reference, skeleton, border-radius)
+  - Implement: In `apps/web/src/components/trip/trip-card.tsx` — change `active:scale-[0.98]` to `motion-safe:active:scale-[0.98]` for accessibility consistency with other cards
+  - Implement: In `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — update test assertion to match `motion-safe:active:scale-[0.98]`
+  - Implement: In auth pages (`login/page.tsx`, `verify/page.tsx`, `complete-profile/page.tsx`) — add `motion-safe:` prefix to `animate-in fade-in slide-in-from-bottom-4` animations
+  - Implement: Update docs to replace "DM Sans" with "Plus Jakarta Sans": `README.md`, `docs/.../DESIGN.md`, `docs/.../PHASES.md`, `docs/.../ARCHITECTURE.md`
+  - Implement: In `apps/web/src/app/(app)/trips/loading.tsx` — add badge overlay skeleton to SkeletonCard matching `trips-content.tsx` version
+  - Implement: In `apps/web/src/components/ui/select.tsx` — change SelectTrigger from `rounded-md` to `rounded-xl` for consistency with input/textarea
+  - Implement: In `apps/web/src/components/ui/datetime-picker.tsx` — change time input from `rounded-md` to `rounded-xl`
+  - Test: `pnpm typecheck` passes
   - Verify: run full test suite
 
 ## Phase 9: Final Verification

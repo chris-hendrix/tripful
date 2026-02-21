@@ -1435,3 +1435,49 @@ Reviewed all Phase 7 work (Tasks 7.1-7.2) across PROGRESS.md iterations 26-27:
 - **Test selectors for skeletons**: `[data-slot="skeleton"]` is more resilient than `.animate-pulse` for querying skeleton elements in tests, since CSS animation classes may change but semantic data attributes persist.
 - **Background gradients should be nearly invisible**: `to-secondary/30` at the bottom of the page is barely perceptible but adds subconscious warmth. Over-saturated gradients compete with content.
 - **Pre-existing test failure count**: 18 (stable across iterations 5-31)
+
+## Iteration 33 — Task 8.4: Phase 8 cleanup
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Review Summary
+
+Reviewed PROGRESS.md entries for Phase 8 tasks (Iterations 30-32: Tasks 8.1, 8.2, 8.3). No FAILURES or BLOCKED items. Identified 5 actionable reviewer caveats and 3 non-actionable items.
+
+### Actionable Issues → Task 8.4.1 FIX Created
+
+| # | Issue | Source | Severity |
+|---|-------|--------|----------|
+| 1 | `trip-card.tsx` `active:scale-[0.98]` missing `motion-safe:` prefix | Task 8.2 reviewer | LOW-MED |
+| 2 | Auth pages (`login`, `verify`, `complete-profile`) missing `motion-safe:` on entry animations | Task 8.2 patterns research | LOW |
+| 3 | Documentation files (README, DESIGN, PHASES, ARCHITECTURE) still reference "DM Sans" | Task 8.1 reviewer | LOW |
+| 4 | `loading.tsx` SkeletonCard missing badge overlay skeleton (inconsistent with `trips-content.tsx`) | Task 8.3 reviewer | LOW |
+| 5 | `select.tsx` trigger and `datetime-picker.tsx` time input use `rounded-md` while other form controls use `rounded-xl` | Task 8.3 reviewer | LOW |
+
+### Dismissed Items (Not Worth FIX Tasks)
+
+| # | Item | Reason |
+|---|------|--------|
+| 1 | Members-list stagger animation lacks dedicated test coverage | Low-value unit test — pattern already tested in trip-card |
+| 2 | Page-level fadeIn lacks test assertions | CSS-only class, low regression risk |
+| 3 | Shimmer `via-white/40` hardcoded for light mode | Premature — no dark mode exists in the project |
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `.ralph/TASKS.md` | Added Task 8.4.1 FIX covering all 5 actionable issues; marked Task 8.4 complete |
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Tests**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Zero new regressions.
+- **Reviewer**: APPROVED — cleanup thorough, FIX task well-structured, dismissal rationale sound
+
+### Learnings for Future Iterations
+
+- **Cleanup tasks are investigative**: The main value is systematically reviewing all reviewer notes and deciding which warrant follow-up. Creating well-scoped FIX tasks with specific file paths and exact changes saves the next iteration significant research time.
+- **`motion-safe:` consistency across pages**: Auth pages were not in scope for Phase 8 animation work but have the same animation classes without the prefix. Future animation tasks should grep project-wide for the pattern being standardized, not just the files in scope.
+- **Pre-existing test failure count**: 18 (stable across iterations 5-33)
