@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Calendar,
-  List,
-  Plus,
-  Building2,
-  Plane,
-} from "lucide-react";
+import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -89,7 +83,10 @@ export function ItineraryHeader({
 
   return (
     <>
-      <div data-testid="itinerary-header" className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8">
+      <div
+        data-testid="itinerary-header"
+        className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8"
+      >
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Left: View mode toggle + timezone */}
@@ -98,10 +95,10 @@ export function ItineraryHeader({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="icon"
+                      size="icon-xs"
                       variant={viewMode === "day-by-day" ? "default" : "ghost"}
                       onClick={() => onViewModeChange("day-by-day")}
-                      className="h-8 w-8 rounded-lg"
+                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
                       aria-label="Day by Day"
                     >
                       <Calendar className="w-4 h-4" />
@@ -112,12 +109,12 @@ export function ItineraryHeader({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="icon"
+                      size="icon-xs"
                       variant={
                         viewMode === "group-by-type" ? "default" : "ghost"
                       }
                       onClick={() => onViewModeChange("group-by-type")}
-                      className="h-8 w-8 rounded-lg"
+                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
                       aria-label="Group by Type"
                     >
                       <List className="w-4 h-4" />
@@ -132,7 +129,7 @@ export function ItineraryHeader({
               <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
                 <SelectTrigger
                   size="sm"
-                  className="h-8 text-xs"
+                  className="text-xs"
                   aria-label="Timezone"
                 >
                   <SelectValue />
@@ -164,7 +161,6 @@ export function ItineraryHeader({
                 </SelectContent>
               </Select>
             </div>
-
           </div>
         </div>
       </div>
@@ -175,7 +171,7 @@ export function ItineraryHeader({
           <DropdownMenuTrigger asChild>
             <Button
               variant="gradient"
-              className="fixed bottom-6 right-6 z-50 rounded-full w-14 h-14 shadow-lg"
+              className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 z-50 rounded-full w-14 h-14 shadow-lg"
               aria-label="Add to itinerary"
             >
               <Plus

@@ -53,7 +53,6 @@ describe("Accommodation Routes", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -148,7 +147,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -224,7 +222,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -304,7 +301,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -340,7 +336,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -404,7 +399,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -488,7 +482,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -555,7 +548,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -624,7 +616,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -680,14 +671,17 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: testUser.id,
           name: `Hotel ${i + 1}`,
-          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
-          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+          checkIn: new Date(
+            `2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`,
+          ),
+          checkOut: new Date(
+            `2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`,
+          ),
         })),
       );
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -747,8 +741,12 @@ describe("Accommodation Routes", () => {
           tripId: trip.id,
           createdBy: testUser.id,
           name: `Hotel ${i + 1}`,
-          checkIn: new Date(`2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`),
-          checkOut: new Date(`2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`),
+          checkIn: new Date(
+            `2026-06-${String(15 + i).padStart(2, "0")}T15:00:00Z`,
+          ),
+          checkOut: new Date(
+            `2026-06-${String(16 + i).padStart(2, "0")}T11:00:00Z`,
+          ),
         })),
       );
 
@@ -765,7 +763,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -821,7 +818,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -886,7 +882,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -947,7 +942,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1009,7 +1003,6 @@ describe("Accommodation Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 

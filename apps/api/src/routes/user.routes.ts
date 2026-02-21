@@ -26,8 +26,8 @@ const userProfileResponseSchema = z.object({
 export async function userRoutes(fastify: FastifyInstance) {
   // All user profile routes require authentication and write rate limiting
   fastify.register(async (scope) => {
-    scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
+    scope.addHook("preHandler", authenticate);
 
     /**
      * PUT /me

@@ -15,7 +15,7 @@ last_updated: 2026-02-14
 - **Clarity First**: Information hierarchy that makes complex itineraries scannable
 - **Touch-Optimized**: Mobile-first with large touch targets (min 44px)
 - **Delightful Motion**: Subtle animations that guide attention without distraction
-- **Editorial Typography**: Playfair Display headlines with DM Sans body
+- **Editorial Typography**: Playfair Display headlines with Plus Jakarta Sans body
 - **Warm Mediterranean Palette**: Warm cream backgrounds, azure blue primary, terracotta accents
 
 ### Visual Language
@@ -36,10 +36,10 @@ last_updated: 2026-02-14
 
 - **Typography**:
   - Headlines: Playfair Display (serif) via `next/font/google`
-  - Body: DM Sans via `next/font/google` (set as `--font-sans` in `@theme`)
+  - Body: Plus Jakarta Sans via `next/font/google` (set as `--font-sans` in `@theme`)
   - Page titles: `text-4xl font-bold font-[family-name:var(--font-playfair)]`
   - Card titles: `text-xl font-semibold font-[family-name:var(--font-playfair)]`
-  - Body: `text-base` (DM Sans default)
+  - Body: `text-base` (Plus Jakarta Sans default)
   - Captions: `text-sm text-muted-foreground`
 
 - **Spacing**:

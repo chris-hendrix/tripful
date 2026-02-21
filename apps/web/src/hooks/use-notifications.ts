@@ -130,12 +130,7 @@ interface MarkAsReadContext {
 export function useMarkAsRead() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    { success: true },
-    Error,
-    string,
-    MarkAsReadContext
-  >({
+  return useMutation<{ success: true }, APIError, string, MarkAsReadContext>({
     mutationKey: notificationKeys.markRead(),
     mutationFn: async (notificationId: string) => {
       return await apiRequest<{ success: true }>(
@@ -215,7 +210,7 @@ export function useMarkAsRead() {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _notificationId, context, _mutationContext) => {
+    onError: (_error, _notificationId, context) => {
       if (context?.previousUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.unreadCount(),
@@ -230,13 +225,7 @@ export function useMarkAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: (
-      _data,
-      _error,
-      _notificationId,
-      onMutateResult,
-      _mutationContext,
-    ) => {
+    onSettled: (_data, _error, _notificationId, onMutateResult) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
@@ -258,9 +247,7 @@ export function useMarkAsRead() {
  * @param error - Error from mutation
  * @returns User-friendly error message or null if no error
  */
-export function getMarkAsReadErrorMessage(
-  error: Error | null,
-): string | null {
+export function getMarkAsReadErrorMessage(error: Error | null): string | null {
   if (!error) return null;
 
   if (error instanceof APIError) {
@@ -316,7 +303,7 @@ export function useMarkAllAsRead() {
 
   return useMutation<
     { success: true },
-    Error,
+    APIError,
     { tripId?: string } | undefined,
     MarkAllAsReadContext
   >({
@@ -373,10 +360,7 @@ export function useMarkAllAsRead() {
           0,
         );
       } else {
-        queryClient.setQueryData<number>(
-          notificationKeys.unreadCount(),
-          0,
-        );
+        queryClient.setQueryData<number>(notificationKeys.unreadCount(), 0);
       }
 
       // Optimistically set readAt on all unread notifications in list caches
@@ -400,17 +384,14 @@ export function useMarkAllAsRead() {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, params, context, _mutationContext) => {
+    onError: (_error, params, context) => {
       if (context?.previousUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.unreadCount(),
           context.previousUnreadCount,
         );
       }
-      if (
-        params?.tripId &&
-        context?.previousTripUnreadCount !== undefined
-      ) {
+      if (params?.tripId && context?.previousTripUnreadCount !== undefined) {
         queryClient.setQueryData(
           notificationKeys.tripUnreadCount(params.tripId),
           context.previousTripUnreadCount,
@@ -424,7 +405,7 @@ export function useMarkAllAsRead() {
     },
 
     // Always invalidate queries after mutation settles (success or error)
-    onSettled: (_data, _error, params, _onMutateResult, _mutationContext) => {
+    onSettled: (_data, _error, params) => {
       queryClient.invalidateQueries({
         queryKey: notificationKeys.lists(),
       });
@@ -500,20 +481,19 @@ export function useUpdateNotificationPreferences(tripId: string) {
 
   return useMutation<
     UpdateNotificationPreferencesResponse,
-    Error,
+    APIError,
     NotificationPreferencesInput,
     UpdatePreferencesContext
   >({
     mutationKey: notificationKeys.updatePreferences(),
     mutationFn: async (data) => {
-      const response =
-        await apiRequest<UpdateNotificationPreferencesResponse>(
-          `/trips/${tripId}/notification-preferences`,
-          {
-            method: "PUT",
-            body: JSON.stringify(data),
-          },
-        );
+      const response = await apiRequest<UpdateNotificationPreferencesResponse>(
+        `/trips/${tripId}/notification-preferences`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        },
+      );
       return response;
     },
 
@@ -543,7 +523,7 @@ export function useUpdateNotificationPreferences(tripId: string) {
     },
 
     // On error: Rollback optimistic update
-    onError: (_error, _data, context, _mutationContext) => {
+    onError: (_error, _data, context) => {
       if (context?.previousPreferences) {
         queryClient.setQueryData(
           notificationKeys.preferences(tripId),

@@ -85,12 +85,36 @@ const MemberOnboardingWizard = dynamic(() =>
 function SkeletonDetail() {
   return (
     <div>
+      {/* Breadcrumb skeleton */}
+      <div className="max-w-5xl mx-auto px-4 pt-6 pb-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-3" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </div>
+      {/* Hero image skeleton */}
       <Skeleton className="h-80 w-full rounded-none" />
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      {/* Content skeleton */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-6 w-1/3" />
-        <Skeleton className="h-6 w-1/4" />
-        <Skeleton className="h-20 w-full" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-5 w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+        <div className="flex items-center gap-6">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-20" />
+        </div>
+        <Skeleton className="h-28 w-full rounded-2xl" />
       </div>
     </div>
   );
@@ -176,11 +200,17 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   // Preview mode: show limited trip info with RSVP buttons
   if (trip.isPreview) {
-    return <TripPreview trip={trip} tripId={tripId} onGoingSuccess={() => setShowOnboarding(true)} />;
+    return (
+      <TripPreview
+        trip={trip}
+        tripId={tripId}
+        onGoingSuccess={() => setShowOnboarding(true)}
+      />
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background motion-safe:animate-[fadeIn_500ms_ease-out]">
       {/* Breadcrumb navigation */}
       <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
         <BreadcrumbList>
@@ -368,7 +398,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Itinerary */}
         <div id="itinerary" className="scroll-mt-14">
-          <ItineraryView tripId={tripId} onAddTravel={() => setShowOnboarding(true)} />
+          <ItineraryView
+            tripId={tripId}
+            onAddTravel={() => setShowOnboarding(true)}
+          />
         </div>
 
         {/* Discussion */}

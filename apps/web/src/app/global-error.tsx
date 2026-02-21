@@ -1,9 +1,10 @@
 "use client";
 
-import { playfairDisplay, dmSans } from "@/lib/fonts";
+import { playfairDisplay, plusJakartaSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -13,14 +14,15 @@ export default function GlobalError({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(playfairDisplay.variable, dmSans.variable)}
+      className={cn(playfairDisplay.variable, plusJakartaSans.variable)}
     >
       <body>
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-semibold">Something went wrong</h2>
             <p className="text-muted-foreground">
-              An unexpected error occurred. Please try again later.
+              {error.message ||
+                "An unexpected error occurred. Please try again later."}
             </p>
             <button
               onClick={reset}

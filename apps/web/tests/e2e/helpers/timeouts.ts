@@ -1,7 +1,12 @@
 /**
- * Named timeout constants for E2E tests.
- * Centralizes wait durations with documentation explaining each value.
+ * Named constants for E2E tests.
+ * Centralizes wait durations and shared configuration values.
  */
+
+/**
+ * Base URL for the API server used in E2E test setup (user creation, trip creation, etc.).
+ */
+export const API_BASE = "http://localhost:8000/api";
 
 /**
  * Timeout for page navigation — waiting for URL changes, heading visibility after route transition.

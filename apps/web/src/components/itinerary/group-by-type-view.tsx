@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Building2, Car, Utensils, Calendar, PlaneLanding, PlaneTakeoff } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Building2,
+  Car,
+  Utensils,
+  Calendar,
+  PlaneLanding,
+  PlaneTakeoff,
+} from "lucide-react";
 import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
 import { EventCard } from "./event-card";
 import { AccommodationCard } from "./accommodation-card";
@@ -78,19 +85,11 @@ export function GroupByTypeView({
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
-  // Stable callbacks for card props
-  const handleEditEvent = useCallback(
-    (event: Event) => setEditingEvent(event),
-    [],
-  );
-  const handleEditAccommodation = useCallback(
-    (acc: Accommodation) => setEditingAccommodation(acc),
-    [],
-  );
-  const handleEditMemberTravel = useCallback(
-    (travel: MemberTravel) => setEditingMemberTravel(travel),
-    [],
-  );
+  const handleEditEvent = (event: Event) => setEditingEvent(event);
+  const handleEditAccommodation = (acc: Accommodation) =>
+    setEditingAccommodation(acc);
+  const handleEditMemberTravel = (travel: MemberTravel) =>
+    setEditingMemberTravel(travel);
 
   const sections = useMemo(
     () => [
@@ -219,10 +218,22 @@ export function GroupByTypeView({
                                     <MemberTravelCard
                                       key={travel.id}
                                       memberTravel={travel}
-                                      memberName={travel.memberName || "Unknown"}
+                                      memberName={
+                                        travel.memberName || "Unknown"
+                                      }
                                       timezone={timezone}
-                                      canEdit={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
-                                      canDelete={canModifyMemberTravel(travel, userId, isOrganizer, isLocked)}
+                                      canEdit={canModifyMemberTravel(
+                                        travel,
+                                        userId,
+                                        isOrganizer,
+                                        isLocked,
+                                      )}
+                                      canDelete={canModifyMemberTravel(
+                                        travel,
+                                        userId,
+                                        isOrganizer,
+                                        isLocked,
+                                      )}
                                       onEdit={handleEditMemberTravel}
                                       onDelete={handleEditMemberTravel}
                                     />
@@ -233,8 +244,18 @@ export function GroupByTypeView({
                                     key={item.id}
                                     event={item as Event}
                                     timezone={timezone}
-                                    canEdit={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
-                                    canDelete={canModifyEvent(item as Event, userId, isOrganizer, isLocked)}
+                                    canEdit={canModifyEvent(
+                                      item as Event,
+                                      userId,
+                                      isOrganizer,
+                                      isLocked,
+                                    )}
+                                    canDelete={canModifyEvent(
+                                      item as Event,
+                                      userId,
+                                      isOrganizer,
+                                      isLocked,
+                                    )}
                                     onEdit={handleEditEvent}
                                     onDelete={handleEditEvent}
                                     createdByName={userNameMap.get(

@@ -85,7 +85,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -125,7 +124,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -150,7 +148,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -200,7 +197,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -245,7 +241,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -269,7 +264,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -307,7 +301,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -330,7 +323,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -361,7 +353,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: otherUser.id,
-        phone: otherUser.phoneNumber,
         name: otherUser.displayName,
       });
 
@@ -398,7 +389,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -454,7 +444,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -506,7 +495,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -556,7 +544,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -600,7 +587,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -648,7 +634,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -684,7 +669,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -720,7 +704,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -760,7 +743,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -800,7 +782,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -831,7 +812,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -854,7 +834,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -910,7 +889,6 @@ describe("Notification Routes", () => {
 
       const token = app.jwt.sign({
         sub: incompleteUser.id,
-        phone: incompleteUser.phoneNumber,
         name: null,
       });
 

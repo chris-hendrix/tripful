@@ -153,7 +153,7 @@ export default function CompleteProfilePage() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700">
         <div className="space-y-6">
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold text-foreground tracking-tight">
@@ -166,10 +166,7 @@ export default function CompleteProfilePage() {
 
           {/* Photo Upload Section */}
           <div className="flex flex-col items-center gap-3">
-            <Avatar
-              className="size-20 text-xl"
-              data-testid="profile-avatar"
-            >
+            <Avatar className="size-20 text-xl" data-testid="profile-avatar">
               {photoPreview && (
                 <AvatarImage src={photoPreview} alt="Profile photo preview" />
               )}
@@ -193,7 +190,7 @@ export default function CompleteProfilePage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 px-3 rounded-xl"
+                className="px-3 rounded-xl"
                 onClick={handlePhotoClick}
                 disabled={isSubmitting}
                 data-testid="upload-photo-button"
@@ -206,7 +203,7 @@ export default function CompleteProfilePage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-9 px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="px-3 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={handleRemovePhoto}
                   disabled={isSubmitting}
                   data-testid="remove-photo-button"
@@ -234,7 +231,7 @@ export default function CompleteProfilePage() {
                         placeholder="John Doe"
                         className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring"
                         disabled={isSubmitting}
-                        autoComplete="name"
+                        autoComplete="nickname"
                         aria-required="true"
                         {...field}
                         ref={(e) => {

@@ -82,7 +82,7 @@ export const EventCard = memo(function EventCard({
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      className={`rounded-xl border border-border/60 border-l-4 ${config.accent} ${config.bg} py-2 px-3 transition-all hover:shadow-md cursor-pointer`}
+      className={`rounded-xl border border-border/60 border-l-4 ${config.accent} ${config.bg} py-2 px-3 transition-all hover:shadow-md motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98] cursor-pointer`}
       onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -174,9 +174,7 @@ export const EventCard = memo(function EventCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                {event.location}
-              </span>
+              <span>{event.location}</span>
             </a>
           )}
 
@@ -226,13 +224,13 @@ export const EventCard = memo(function EventCard({
             <div className="flex items-center gap-2 pt-1">
               {canEdit && onEdit && (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="outline"
                   onClick={(e) => {
                     e.stopPropagation();
                     onEdit(event);
                   }}
-                  className="h-9 sm:h-7 text-xs gap-1"
+                  className="text-xs gap-1"
                   title="Edit event"
                 >
                   <Pencil className="w-3 h-3" />
@@ -241,13 +239,13 @@ export const EventCard = memo(function EventCard({
               )}
               {canDelete && onDelete && (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="destructive"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(event);
                   }}
-                  className="h-9 sm:h-7 text-xs gap-1"
+                  className="text-xs gap-1"
                   title="Delete event"
                 >
                   Delete

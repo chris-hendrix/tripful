@@ -13,6 +13,7 @@ export default fp(
   },
   {
     name: "permissions-service",
+    fastify: "5.x",
     dependencies: ["database"],
   },
 );

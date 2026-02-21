@@ -55,8 +55,16 @@ describe("createAccommodationSchema", () => {
 
   it("should accept accommodation name at boundary lengths", () => {
     const accommodations = [
-      { name: "A", checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Minimum (1)
-      { name: "a".repeat(255), checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Maximum (255)
+      {
+        name: "A",
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-16T11:00:00.000Z",
+      }, // Minimum (1)
+      {
+        name: "a".repeat(255),
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-16T11:00:00.000Z",
+      }, // Maximum (255)
     ];
 
     accommodations.forEach((accommodation) => {
@@ -99,7 +107,10 @@ describe("createAccommodationSchema", () => {
 
   it("should reject missing required fields", () => {
     const invalidAccommodations = [
-      { checkIn: "2026-07-15T14:00:00.000Z", checkOut: "2026-07-16T11:00:00.000Z" }, // Missing name
+      {
+        checkIn: "2026-07-15T14:00:00.000Z",
+        checkOut: "2026-07-16T11:00:00.000Z",
+      }, // Missing name
       { name: "Hotel", checkOut: "2026-07-16T11:00:00.000Z" }, // Missing checkIn
       { name: "Hotel", checkIn: "2026-07-15T14:00:00.000Z" }, // Missing checkOut
       {}, // Missing all required fields
@@ -154,10 +165,22 @@ describe("createAccommodationSchema", () => {
 
   it("should accept valid ISO datetime strings", () => {
     const validDates = [
-      { checkIn: "2026-01-15T14:00:00.000Z", checkOut: "2026-01-20T11:00:00.000Z" },
-      { checkIn: "2026-12-01T15:00:00.000Z", checkOut: "2026-12-31T10:00:00.000Z" },
-      { checkIn: "2026-02-28T14:00:00.000Z", checkOut: "2026-03-05T11:00:00.000Z" },
-      { checkIn: "2024-02-29T14:00:00.000Z", checkOut: "2024-03-05T11:00:00.000Z" }, // Leap year
+      {
+        checkIn: "2026-01-15T14:00:00.000Z",
+        checkOut: "2026-01-20T11:00:00.000Z",
+      },
+      {
+        checkIn: "2026-12-01T15:00:00.000Z",
+        checkOut: "2026-12-31T10:00:00.000Z",
+      },
+      {
+        checkIn: "2026-02-28T14:00:00.000Z",
+        checkOut: "2026-03-05T11:00:00.000Z",
+      },
+      {
+        checkIn: "2024-02-29T14:00:00.000Z",
+        checkOut: "2024-03-05T11:00:00.000Z",
+      }, // Leap year
     ];
 
     validDates.forEach(({ checkIn, checkOut }) => {
@@ -175,9 +198,18 @@ describe("createAccommodationSchema", () => {
 
   it("should accept datetime strings with timezone offset", () => {
     const validDates = [
-      { checkIn: "2026-07-15T14:00:00+05:00", checkOut: "2026-07-20T11:00:00+05:00" },
-      { checkIn: "2026-07-15T14:00:00-04:00", checkOut: "2026-07-20T11:00:00-04:00" },
-      { checkIn: "2026-07-15T14:00:00+00:00", checkOut: "2026-07-20T11:00:00+00:00" },
+      {
+        checkIn: "2026-07-15T14:00:00+05:00",
+        checkOut: "2026-07-20T11:00:00+05:00",
+      },
+      {
+        checkIn: "2026-07-15T14:00:00-04:00",
+        checkOut: "2026-07-20T11:00:00-04:00",
+      },
+      {
+        checkIn: "2026-07-15T14:00:00+00:00",
+        checkOut: "2026-07-20T11:00:00+00:00",
+      },
     ];
 
     validDates.forEach(({ checkIn, checkOut }) => {

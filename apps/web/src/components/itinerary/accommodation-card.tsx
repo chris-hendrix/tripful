@@ -43,7 +43,7 @@ export const AccommodationCard = memo(function AccommodationCard({
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      className="rounded-xl border border-border/60 border-l-2 border-l-[var(--color-accommodation)] py-2 px-3 transition-all hover:shadow-sm cursor-pointer"
+      className="rounded-xl border border-border/60 border-l-2 border-l-[var(--color-accommodation)] py-2 px-3 transition-all hover:shadow-md motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98] cursor-pointer"
       onClick={() => setIsExpanded((prev) => !prev)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -108,9 +108,7 @@ export const AccommodationCard = memo(function AccommodationCard({
               onClick={(e) => e.stopPropagation()}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span className="">
-                {accommodation.address}
-              </span>
+              <span className="">{accommodation.address}</span>
             </a>
           )}
 
@@ -165,13 +163,13 @@ export const AccommodationCard = memo(function AccommodationCard({
           {canEdit && onEdit && (
             <div className="pt-1">
               <Button
-                size="sm"
+                size="xs"
                 variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(accommodation);
                 }}
-                className="h-9 sm:h-7 text-xs gap-1"
+                className="text-xs gap-1"
                 title="Edit accommodation"
               >
                 <Pencil className="w-3 h-3" />

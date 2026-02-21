@@ -27,11 +27,11 @@ export class TripDetailPage {
     this.createDialogHeading = page.getByRole("heading", {
       name: "Create a new trip",
     });
-    this.nameInput = page.locator('input[name="name"]');
-    this.destinationInput = page.locator('input[name="destination"]');
+    this.nameInput = page.getByLabel(/trip name/i);
+    this.destinationInput = page.getByLabel(/destination/i);
     this.startDateButton = page.getByRole("button", { name: "Start date" });
     this.endDateButton = page.getByRole("button", { name: "End date" });
-    this.descriptionInput = page.locator('textarea[name="description"]');
+    this.descriptionInput = page.getByLabel(/description/i);
     this.continueButton = page.getByRole("button", { name: "Continue" });
     this.backButton = page.getByRole("button", { name: "Back" });
     this.createTripButton = page.getByRole("button", { name: "Create trip" });
@@ -39,5 +39,9 @@ export class TripDetailPage {
     this.deleteTripButton = page.getByRole("button", { name: "Delete trip" });
     this.step1Indicator = page.getByText("Step 1 of 2");
     this.step2Indicator = page.getByText("Step 2 of 2");
+  }
+
+  async goto(tripId: string) {
+    await this.page.goto(`/trips/${tripId}`);
   }
 }

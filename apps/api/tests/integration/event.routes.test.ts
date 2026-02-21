@@ -54,7 +54,6 @@ describe("Event Routes", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -152,7 +151,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -206,7 +204,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -267,7 +264,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -342,7 +338,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -413,7 +408,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -486,7 +480,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -564,7 +557,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -625,7 +617,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -705,7 +696,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: maybeUser.id,
-        phone: maybeUser.phoneNumber,
         name: maybeUser.displayName,
       });
 
@@ -790,7 +780,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -857,7 +846,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -893,7 +881,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -957,7 +944,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1026,7 +1012,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1110,7 +1095,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: unauthorized.id,
-        phone: unauthorized.phoneNumber,
         name: unauthorized.displayName,
       });
 
@@ -1177,7 +1161,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1246,7 +1229,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1311,7 +1293,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1391,7 +1372,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1447,7 +1427,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1512,7 +1491,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1573,7 +1551,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1635,7 +1612,6 @@ describe("Event Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 

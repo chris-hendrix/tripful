@@ -69,7 +69,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: organizer.id,
-      phone: organizer.phoneNumber,
       name: organizer.displayName,
     });
 
@@ -148,7 +147,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: organizer.id,
-      phone: organizer.phoneNumber,
       name: organizer.displayName,
     });
 
@@ -241,7 +239,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: regularMember.id,
-      phone: regularMember.phoneNumber,
       name: regularMember.displayName,
     });
 
@@ -312,7 +309,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: secondOrg.id,
-      phone: secondOrg.phoneNumber,
       name: secondOrg.displayName,
     });
 
@@ -369,7 +365,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: organizer.id,
-      phone: organizer.phoneNumber,
       name: organizer.displayName,
     });
 
@@ -423,7 +418,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: organizer.id,
-      phone: organizer.phoneNumber,
       name: organizer.displayName,
     });
 
@@ -488,7 +482,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: organizer.id,
-      phone: organizer.phoneNumber,
       name: organizer.displayName,
     });
 
@@ -562,7 +555,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
     // checks if user is trip creator
     const token = app.jwt.sign({
       sub: creator.id,
-      phone: creator.phoneNumber,
       name: creator.displayName,
     });
 
@@ -598,7 +590,6 @@ describe("PATCH /api/trips/:tripId/members/:memberId", () => {
 
     const token = app.jwt.sign({
       sub: user.id,
-      phone: user.phoneNumber,
       name: user.displayName,
     });
 

@@ -193,7 +193,6 @@ describe("notification.service", () => {
       expect(result.tripId).toBeNull();
       expect(result.title).toBe("Welcome");
     });
-
   });
 
   describe("getNotifications", () => {
@@ -633,7 +632,6 @@ describe("notification.service", () => {
       expect(memCount).toBe(1);
       expect(mem2Count).toBe(1);
     });
-
   });
 
   describe("notifyTripMembers (with boss queue)", () => {
@@ -679,8 +677,7 @@ describe("notification.service", () => {
       });
 
       // No inline notifications should be created -- the queue worker handles that
-      const orgCount =
-        await serviceWithBoss.getUnreadCount(testOrganizerId);
+      const orgCount = await serviceWithBoss.getUnreadCount(testOrganizerId);
       const memCount = await serviceWithBoss.getUnreadCount(testMemberId);
       const mem2Count = await serviceWithBoss.getUnreadCount(testMember2Id);
 

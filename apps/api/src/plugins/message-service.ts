@@ -22,6 +22,7 @@ export default fp(
   },
   {
     name: "message-service",
+    fastify: "5.x",
     dependencies: ["database", "permissions-service", "notification-service"],
   },
 );

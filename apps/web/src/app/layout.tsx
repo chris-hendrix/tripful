@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "./providers/providers";
-import { playfairDisplay, dmSans } from "@/lib/fonts";
+import { playfairDisplay, plusJakartaSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { SkipLink } from "@/components/skip-link";
 
@@ -49,6 +49,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: "#1a1814",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -60,9 +61,21 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(playfairDisplay.variable, dmSans.variable)}
+      className={cn(playfairDisplay.variable, plusJakartaSans.variable)}
     >
       <body className="antialiased">
+        <noscript>
+          <div
+            style={{
+              padding: "2rem",
+              textAlign: "center",
+              fontFamily: "system-ui, sans-serif",
+            }}
+          >
+            Tripful requires JavaScript to run. Please enable JavaScript in your
+            browser settings.
+          </div>
+        </noscript>
         <SkipLink />
         <Providers>{children}</Providers>
       </body>

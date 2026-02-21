@@ -787,9 +787,7 @@ describe("member-travel.service", () => {
       // Cleanup
       await db.delete(members).where(eq(members.tripId, otherTrip.id));
       await db.delete(trips).where(eq(trips.id, otherTrip.id));
-      await db
-        .delete(users)
-        .where(eq(users.phoneNumber, otherTripPhone));
+      await db.delete(users).where(eq(users.phoneNumber, otherTripPhone));
     });
 
     it("should throw MemberNotFoundError when memberId is completely non-existent", async () => {

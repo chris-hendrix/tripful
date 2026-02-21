@@ -70,7 +70,7 @@ The component uses Tailwind CSS with the following key styles:
 
 - Rounded corners (`rounded-2xl`)
 - Hover shadow effect
-- Active scale-down effect (`active:scale-[0.98]`)
+- Active scale-down effect (`motion-safe:active:scale-[0.98]`)
 - Playfair Display font for trip names (inline style)
 
 ### Testing

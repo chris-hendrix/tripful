@@ -12,7 +12,7 @@
   --color-secondary: #eee9e2;
   --color-secondary-foreground: #3a2d22;
   --color-muted: #eee9e2;
-  --color-muted-foreground: #8c8173;
+  --color-muted-foreground: #6b6054;
   --color-accent: #d1643d;
   --color-accent-foreground: #ffffff;
   --color-destructive: #c6372a;
@@ -25,7 +25,7 @@
   --color-input: #e5ddd1;
   --color-ring: #1a5c9e;
   --radius: 0.5rem;
-  --font-sans: var(--font-dm-sans);
+  --font-sans: var(--font-plus-jakarta);
 
   /* Event type colors */
   --color-event-travel: #2563eb;
@@ -84,4 +84,44 @@
   50% {
     transform: scale(1.3);
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility bottom-safe-6 {
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+@utility bottom-safe-8 {
+  bottom: calc(2rem + env(safe-area-inset-bottom));
 }

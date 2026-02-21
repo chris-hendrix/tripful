@@ -96,5 +96,8 @@ export async function handleDailyItineraries(
     enqueuedCount++;
   }
 
-  deps.logger.info({ count: enqueuedCount }, "enqueued daily itinerary batches");
+  deps.logger.info(
+    { count: enqueuedCount },
+    "enqueued daily itinerary batches",
+  );
 }

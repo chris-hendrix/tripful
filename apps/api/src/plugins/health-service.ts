@@ -14,6 +14,7 @@ export default fp(
   },
   {
     name: "health-service",
+    fastify: "5.x",
     dependencies: ["database"],
   },
 );

@@ -21,12 +21,17 @@ export function PinnedMessages({ messages }: PinnedMessagesProps) {
   if (pinnedMessages.length === 0) return null;
 
   return (
-    <div data-testid="pinned-messages" className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+    <div
+      data-testid="pinned-messages"
+      className="bg-primary/5 border border-primary/20 rounded-xl p-4"
+    >
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
-        aria-label={isExpanded ? "Collapse pinned messages" : "Expand pinned messages"}
+        aria-label={
+          isExpanded ? "Collapse pinned messages" : "Expand pinned messages"
+        }
         className="flex items-center gap-2 w-full"
       >
         <Pin className="w-4 h-4 text-primary shrink-0" />

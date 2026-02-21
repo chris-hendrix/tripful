@@ -440,10 +440,7 @@ describe("updateMemberRole", () => {
       .update(members)
       .set({ isOrganizer: false })
       .where(
-        and(
-          eq(members.tripId, testTripId),
-          eq(members.userId, thirdOrg.id),
-        ),
+        and(eq(members.tripId, testTripId), eq(members.userId, thirdOrg.id)),
       );
 
     // Re-promote thirdOrg so they can make the request
@@ -451,10 +448,7 @@ describe("updateMemberRole", () => {
       .update(members)
       .set({ isOrganizer: true })
       .where(
-        and(
-          eq(members.tripId, testTripId),
-          eq(members.userId, thirdOrg.id),
-        ),
+        and(eq(members.tripId, testTripId), eq(members.userId, thirdOrg.id)),
       );
 
     // Now testMember and thirdOrg are both organizers.
@@ -467,10 +461,7 @@ describe("updateMemberRole", () => {
       .update(members)
       .set({ isOrganizer: false })
       .where(
-        and(
-          eq(members.tripId, testTripId),
-          eq(members.userId, thirdOrg.id),
-        ),
+        and(eq(members.tripId, testTripId), eq(members.userId, thirdOrg.id)),
       );
 
     // testMember is the last organizer. We need someone who IS an organizer
@@ -501,10 +492,7 @@ describe("updateMemberRole", () => {
     await db
       .delete(members)
       .where(
-        and(
-          eq(members.tripId, testTripId),
-          eq(members.userId, thirdOrg.id),
-        ),
+        and(eq(members.tripId, testTripId), eq(members.userId, thirdOrg.id)),
       );
     await db.delete(users).where(eq(users.phoneNumber, thirdOrgPhone));
 

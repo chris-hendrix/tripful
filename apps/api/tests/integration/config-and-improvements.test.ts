@@ -142,7 +142,6 @@ describe("Config Flags & Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -172,7 +171,6 @@ describe("Config Flags & Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -202,7 +200,6 @@ describe("Config Flags & Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -238,7 +235,6 @@ describe("Config Flags & Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -272,7 +268,6 @@ describe("Config Flags & Improvements", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({

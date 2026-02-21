@@ -72,6 +72,11 @@ export async function buildApp(
   const app = Fastify({
     ...opts.fastify,
     trustProxy: env.TRUST_PROXY ?? false,
+    ajv: {
+      customOptions: {
+        useDefaults: true,
+      },
+    },
   });
 
   // Set Zod validator and serializer compilers
@@ -110,6 +115,7 @@ export async function buildApp(
       includeSubDomains: true,
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    hidePoweredBy: true,
   });
 
   // Register cookie plugin (must be before JWT)

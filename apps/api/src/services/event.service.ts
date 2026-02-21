@@ -167,9 +167,7 @@ export class EventService implements IEventService {
       .from(events)
       .where(and(eq(events.tripId, tripId), isNull(events.deletedAt)));
     if ((eventCount?.value ?? 0) >= 50) {
-      throw new EventLimitExceededError(
-        "Maximum 50 events per trip reached.",
-      );
+      throw new EventLimitExceededError("Maximum 50 events per trip reached.");
     }
 
     // Create the event
@@ -286,7 +284,13 @@ export class EventService implements IEventService {
   ): Promise<Event> {
     // Load existing event first (need tripId for lock check and data for validation)
     const [existingEvent] = await this.db
-      .select()
+      .select({
+        id: events.id,
+        tripId: events.tripId,
+        createdBy: events.createdBy,
+        startTime: events.startTime,
+        endTime: events.endTime,
+      })
       .from(events)
       .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
       .limit(1);
@@ -421,7 +425,7 @@ export class EventService implements IEventService {
   async restoreEvent(userId: string, eventId: string): Promise<Event> {
     // Load event to get tripId
     const [event] = await this.db
-      .select()
+      .select({ id: events.id, tripId: events.tripId })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
@@ -447,9 +451,7 @@ export class EventService implements IEventService {
       .from(events)
       .where(and(eq(events.tripId, event.tripId), isNull(events.deletedAt)));
     if ((eventCount?.value ?? 0) >= 50) {
-      throw new EventLimitExceededError(
-        "Maximum 50 events per trip reached.",
-      );
+      throw new EventLimitExceededError("Maximum 50 events per trip reached.");
     }
 
     // Restore event

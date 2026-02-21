@@ -30,9 +30,7 @@ describe("PinnedMessages", () => {
   });
 
   it("renders nothing when no messages are pinned", () => {
-    const { container } = render(
-      <PinnedMessages messages={[]} />,
-    );
+    const { container } = render(<PinnedMessages messages={[]} />);
 
     expect(container.innerHTML).toBe("");
   });
@@ -44,27 +42,21 @@ describe("PinnedMessages", () => {
         deletedAt: "2026-02-15T12:00:00Z",
       }),
     ];
-    const { container } = render(
-      <PinnedMessages messages={messages} />,
-    );
+    const { container } = render(<PinnedMessages messages={messages} />);
 
     expect(container.innerHTML).toBe("");
   });
 
   it("shows pinned header with count", () => {
     const messages = [makeMessage(), makeMessage({ id: "msg-2" })];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     expect(screen.getByText("Pinned (2)")).toBeDefined();
   });
 
   it("does not show pinned content by default (collapsed)", () => {
     const messages = [makeMessage()];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     expect(screen.queryByText("Pinned message content")).toBeNull();
   });
@@ -72,9 +64,7 @@ describe("PinnedMessages", () => {
   it("shows pinned content when expanded", async () => {
     const user = userEvent.setup();
     const messages = [makeMessage()];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     await user.click(screen.getByText("Pinned (1)"));
 
@@ -85,9 +75,7 @@ describe("PinnedMessages", () => {
   it("collapses when clicked again", async () => {
     const user = userEvent.setup();
     const messages = [makeMessage()];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     // Expand
     await user.click(screen.getByText("Pinned (1)"));
@@ -100,9 +88,7 @@ describe("PinnedMessages", () => {
 
   it("has aria-label 'Expand pinned messages' when collapsed", () => {
     const messages = [makeMessage()];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     const button = screen.getByRole("button", {
       name: "Expand pinned messages",
@@ -114,9 +100,7 @@ describe("PinnedMessages", () => {
   it("has aria-label 'Collapse pinned messages' when expanded", async () => {
     const user = userEvent.setup();
     const messages = [makeMessage()];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     await user.click(
       screen.getByRole("button", { name: "Expand pinned messages" }),
@@ -139,9 +123,7 @@ describe("PinnedMessages", () => {
         deletedAt: "2026-02-15T12:00:00Z",
       }),
     ];
-    render(
-      <PinnedMessages messages={messages} />,
-    );
+    render(<PinnedMessages messages={messages} />);
 
     expect(screen.getByText("Pinned (1)")).toBeDefined();
   });

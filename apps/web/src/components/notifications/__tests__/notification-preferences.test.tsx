@@ -93,14 +93,12 @@ describe("NotificationPreferences", () => {
       isLoading: true,
     });
 
-    const { container } = render(
-      <NotificationPreferences tripId="trip-1" />,
-    );
+    const { container } = render(<NotificationPreferences tripId="trip-1" />);
 
     // Should show skeleton elements, not the preference labels
     expect(screen.queryByText("Daily Itinerary")).toBeNull();
 
-    const skeletons = container.querySelectorAll(".animate-pulse");
+    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

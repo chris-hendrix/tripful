@@ -46,10 +46,8 @@ export function DeletedItemsDialog({
   timezone,
 }: DeletedItemsDialogProps) {
   const { data: allEvents = [] } = useEventsWithDeleted(tripId);
-  const { data: allAccommodations = [] } =
-    useAccommodationsWithDeleted(tripId);
-  const { data: allMemberTravels = [] } =
-    useMemberTravelsWithDeleted(tripId);
+  const { data: allAccommodations = [] } = useAccommodationsWithDeleted(tripId);
+  const { data: allMemberTravels = [] } = useMemberTravelsWithDeleted(tripId);
 
   const restoreEvent = useRestoreEvent();
   const restoreAccommodation = useRestoreAccommodation();
@@ -232,9 +230,9 @@ function DeletedEventRow({
         {event.eventType}
       </Badge>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(event.id)}
         disabled={isRestoring}
       >
@@ -274,9 +272,9 @@ function DeletedAccommodationRow({
         </p>
       </div>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(accommodation.id)}
         disabled={isRestoring}
       >
@@ -302,10 +300,9 @@ function DeletedMemberTravelRow({
   onRestore: (id: string) => void;
   isRestoring: boolean;
 }) {
-  const label =
-    memberTravel.memberName
-      ? `${memberTravel.memberName} - ${memberTravel.travelType}`
-      : memberTravel.travelType;
+  const label = memberTravel.memberName
+    ? `${memberTravel.memberName} - ${memberTravel.travelType}`
+    : memberTravel.travelType;
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2">
@@ -324,9 +321,9 @@ function DeletedMemberTravelRow({
         {memberTravel.travelType}
       </Badge>
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
-        className="h-8 text-xs shrink-0"
+        className="shrink-0"
         onClick={() => onRestore(memberTravel.id)}
         disabled={isRestoring}
       >

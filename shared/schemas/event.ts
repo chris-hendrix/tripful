@@ -43,6 +43,7 @@ const baseEventSchema = z.object({
       message: "Links must not exceed 10 items",
     })
     .optional(),
+  timezone: z.string().optional(),
 });
 
 /**

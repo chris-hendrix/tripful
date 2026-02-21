@@ -35,7 +35,6 @@ describe("GET /api/auth/me", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -76,7 +75,6 @@ describe("GET /api/auth/me", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -153,7 +151,6 @@ describe("GET /api/auth/me", () => {
       // Generate expired JWT token (expired 1 second ago)
       const expiredToken = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         exp: Math.floor(Date.now() / 1000) - 1, // Expired 1 second ago
       });
 
@@ -178,7 +175,6 @@ describe("GET /api/auth/me", () => {
       // Generate token with non-existent user ID
       const token = app.jwt.sign({
         sub: "00000000-0000-0000-0000-000000000000",
-        phone: generateUniquePhone(),
       });
 
       const response = await app.inject({
@@ -233,7 +229,6 @@ describe("POST /api/auth/logout", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -319,7 +314,6 @@ describe("POST /api/auth/logout", () => {
       // Generate expired JWT token (expired 1 second ago)
       const expiredToken = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         exp: Math.floor(Date.now() / 1000) - 1, // Expired 1 second ago
       });
 
@@ -358,7 +352,6 @@ describe("POST /api/auth/logout", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 

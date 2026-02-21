@@ -285,7 +285,12 @@ export const invitationController = {
       const userId = request.user.sub;
 
       // Update RSVP via service
-      const member = await invitationService.updateRsvp(userId, tripId, status, sharePhone);
+      const member = await invitationService.updateRsvp(
+        userId,
+        tripId,
+        status,
+        sharePhone,
+      );
 
       auditLog(request, "member.rsvp_updated", {
         resourceType: "trip",
@@ -401,7 +406,10 @@ export const invitationController = {
       );
       return reply.status(500).send({
         success: false,
-        error: { code: "INTERNAL_SERVER_ERROR", message: "Failed to get my settings" },
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to get my settings",
+        },
       });
     }
   },
@@ -417,7 +425,10 @@ export const invitationController = {
    * @returns Success response with updated settings
    */
   async updateMySettings(
-    request: FastifyRequest<{ Params: { tripId: string }; Body: UpdateMySettingsInput }>,
+    request: FastifyRequest<{
+      Params: { tripId: string };
+      Body: UpdateMySettingsInput;
+    }>,
     reply: FastifyReply,
   ) {
     try {
@@ -426,7 +437,11 @@ export const invitationController = {
       const { tripId } = request.params;
       const { sharePhone } = request.body;
 
-      const settings = await invitationService.updateMySettings(userId, tripId, sharePhone);
+      const settings = await invitationService.updateMySettings(
+        userId,
+        tripId,
+        sharePhone,
+      );
 
       auditLog(request, "member.settings.updated", {
         resourceType: "trip",
@@ -448,7 +463,10 @@ export const invitationController = {
       );
       return reply.status(500).send({
         success: false,
-        error: { code: "INTERNAL_SERVER_ERROR", message: "Failed to update my settings" },
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update my settings",
+        },
       });
     }
   },

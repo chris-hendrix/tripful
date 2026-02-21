@@ -60,7 +60,11 @@ export function MessageReactions({
   const activeReactions = reactions.filter((r) => r.count > 0);
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Reactions">
+    <div
+      className="flex flex-wrap items-center gap-1.5"
+      role="group"
+      aria-label="Reactions"
+    >
       <TooltipProvider>
         {activeReactions.map((reaction) => {
           const emoji = reaction.emoji as AllowedReaction;
@@ -88,11 +92,7 @@ export function MessageReactions({
                   <span className="text-xs">{reaction.count}</span>
                 </button>
               </TooltipTrigger>
-              {tooltipText && (
-                <TooltipContent>
-                  {tooltipText}
-                </TooltipContent>
-              )}
+              {tooltipText && <TooltipContent>{tooltipText}</TooltipContent>}
             </Tooltip>
           );
         })}

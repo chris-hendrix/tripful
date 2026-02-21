@@ -848,10 +848,7 @@ export class PermissionsService implements IPermissionsService {
    * Checks if a user can moderate messages (pin, delete others' messages)
    * Only organizers can moderate
    */
-  async canModerateMessages(
-    userId: string,
-    tripId: string,
-  ): Promise<boolean> {
+  async canModerateMessages(userId: string, tripId: string): Promise<boolean> {
     return this.isOrganizer(userId, tripId);
   }
 

@@ -33,9 +33,7 @@ vi.mock("@/hooks/use-notifications", () => ({
 
 import { TripNotificationBell } from "../trip-notification-bell";
 
-function makeNotification(
-  overrides: Partial<Notification> = {},
-): Notification {
+function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
     id: "notif-1",
     userId: "user-1",
@@ -200,9 +198,7 @@ describe("TripNotificationBell", () => {
     await user.click(button);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("No notifications for this trip"),
-      ).toBeDefined();
+      expect(screen.getByText("No notifications for this trip")).toBeDefined();
     });
   });
 
@@ -339,9 +335,7 @@ describe("TripNotificationBell", () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
       data: {
-        notifications: [
-          makeNotification({ readAt: "2026-01-01T00:00:00Z" }),
-        ],
+        notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       },

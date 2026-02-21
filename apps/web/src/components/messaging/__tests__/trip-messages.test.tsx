@@ -9,7 +9,9 @@ import type {
 // Mock IntersectionObserver
 const mockObserve = vi.fn();
 const mockDisconnect = vi.fn();
-let intersectionCallback: ((entries: { isIntersecting: boolean }[]) => void) | null = null;
+let intersectionCallback:
+  | ((entries: { isIntersecting: boolean }[]) => void)
+  | null = null;
 
 class MockIntersectionObserver {
   constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
@@ -109,9 +111,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     expect(screen.getByText("Discussion")).toBeDefined();
   });
@@ -137,9 +137,7 @@ describe("TripMessages", () => {
       meta: { total: 5, page: 1, limit: 20, totalPages: 1 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     expect(screen.getByText("5")).toBeDefined();
   });
@@ -150,9 +148,7 @@ describe("TripMessages", () => {
       <TripMessages tripId="trip-1" isOrganizer={false} />,
     );
 
-    const skeletons = container.querySelectorAll(
-      '[data-slot="skeleton"]',
-    );
+    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
@@ -163,9 +159,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     expect(
       screen.getByText("No messages yet. Start the conversation!"),
@@ -182,9 +176,7 @@ describe("TripMessages", () => {
       meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     expect(screen.getByText("First message")).toBeDefined();
     expect(screen.getByText("Second message")).toBeDefined();
@@ -197,13 +189,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages
-        tripId="trip-1"
-        isOrganizer={false}
-        disabled
-      />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} disabled />);
 
     expect(screen.getByText("Trip has ended")).toBeDefined();
   });
@@ -215,13 +201,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages
-        tripId="trip-1"
-        isOrganizer={false}
-        isMuted
-      />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} isMuted />);
 
     expect(screen.getByText("You have been muted")).toBeDefined();
   });
@@ -233,13 +213,9 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
-    expect(
-      screen.getByPlaceholderText("Write a message..."),
-    ).toBeDefined();
+    expect(screen.getByPlaceholderText("Write a message...")).toBeDefined();
   });
 
   it("does not show count when total is 0", () => {
@@ -249,9 +225,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     // The only text content should be "Discussion" in the header area
     const header = screen.getByText("Discussion");
@@ -265,9 +239,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     const section = screen.getByRole("region", { name: "Trip discussion" });
     expect(section).toBeDefined();
@@ -297,9 +269,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     expect(mockObserve).toHaveBeenCalled();
   });
@@ -311,9 +281,7 @@ describe("TripMessages", () => {
       meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
     };
 
-    render(
-      <TripMessages tripId="trip-1" isOrganizer={false} />,
-    );
+    render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
     // Initially isInView is true
     expect(lastUseMessagesEnabled).toBe(true);
@@ -328,7 +296,9 @@ describe("TripMessages", () => {
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
-    expect(screen.getByRole("button", { name: "Load earlier messages" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Load earlier messages" }),
+    ).toBeDefined();
   });
 
   it("does not show 'Load earlier messages' when all messages loaded", () => {
@@ -340,7 +310,9 @@ describe("TripMessages", () => {
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
-    expect(screen.queryByRole("button", { name: "Load earlier messages" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Load earlier messages" }),
+    ).toBeNull();
   });
 
   it("increases limit when 'Load earlier messages' is clicked", () => {
@@ -355,7 +327,9 @@ describe("TripMessages", () => {
     // Initially limit should be PAGE_SIZE (20)
     expect(lastUseMessagesLimit).toBe(20);
 
-    const button = screen.getByRole("button", { name: "Load earlier messages" });
+    const button = screen.getByRole("button", {
+      name: "Load earlier messages",
+    });
     fireEvent.click(button);
 
     // After click, limit should increase to 40 (PAGE_SIZE * 2)
@@ -371,6 +345,8 @@ describe("TripMessages", () => {
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
-    expect(screen.queryByRole("button", { name: "Load earlier messages" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Load earlier messages" }),
+    ).toBeNull();
   });
 });

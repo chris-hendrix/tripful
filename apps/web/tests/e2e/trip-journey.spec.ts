@@ -9,6 +9,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -36,7 +37,9 @@ test.describe("Trip Journey", () => {
       // Retry click — on cold CI the first click can be swallowed during React hydration
       await expect(async () => {
         await trips.createTripButton.click();
-        await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 3000 });
+        await expect(tripDetail.createDialogHeading).toBeVisible({
+          timeout: 3000,
+        });
       }).toPass({ timeout: 10000 });
       await expect(tripDetail.step1Indicator).toBeVisible();
       await expect(page.getByText("Basic information")).toBeVisible();
@@ -62,10 +65,10 @@ test.describe("Trip Journey", () => {
       await expect(
         page.getByRole("heading", { level: 1, name: tripName }),
       ).toBeVisible({ timeout: 10000 });
-      await expect(page.getByText(tripDestination)).toBeVisible();
-      await expect(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
-      await expect(page.getByText(tripDescription)).toBeVisible();
-      await expect(page.getByText("Going")).toBeVisible();
+      await expect.soft(page.getByText(tripDestination)).toBeVisible();
+      await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
+      await expect.soft(page.getByText(tripDescription)).toBeVisible();
+      await expect.soft(page.getByText("Going")).toBeVisible();
       await expect(page.getByText("Organizing", { exact: true })).toBeVisible();
       await snap(page, "07-trip-detail");
     });
@@ -93,11 +96,17 @@ test.describe("Trip Journey", () => {
       await expect(tripDetail.editDialogHeading).toBeVisible();
 
       // Edit dialog is a single form (no stepper)
-      await expect(tripDetail.nameInput).toHaveValue(tripName);
-      await expect(tripDetail.destinationInput).toHaveValue(tripDestination);
-      await expect(tripDetail.startDateButton).toContainText("Oct 12, 2026");
-      await expect(tripDetail.endDateButton).toContainText("Oct 14, 2026");
-      await expect(tripDetail.descriptionInput).toHaveValue(tripDescription);
+      await expect.soft(tripDetail.nameInput).toHaveValue(tripName);
+      await expect
+        .soft(tripDetail.destinationInput)
+        .toHaveValue(tripDestination);
+      await expect
+        .soft(tripDetail.startDateButton)
+        .toContainText("Oct 12, 2026");
+      await expect.soft(tripDetail.endDateButton).toContainText("Oct 14, 2026");
+      await expect
+        .soft(tripDetail.descriptionInput)
+        .toHaveValue(tripDescription);
 
       await tripDetail.nameInput.fill(updatedName);
       await tripDetail.destinationInput.fill(updatedDestination);
@@ -112,16 +121,16 @@ test.describe("Trip Journey", () => {
       await expect(page.getByText("Trip updated successfully")).toBeVisible();
       await expect(tripDetail.editDialogHeading).not.toBeVisible();
 
-      await expect(page.getByText(updatedDestination)).toBeVisible();
-      await expect(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
-      await expect(page.getByText(updatedDescription)).toBeVisible();
+      await expect.soft(page.getByText(updatedDestination)).toBeVisible();
+      await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
+      await expect.soft(page.getByText(updatedDescription)).toBeVisible();
     });
 
     await test.step("changes persist in trips list", async () => {
       await trips.goto();
       await expect(page.getByText(updatedName)).toBeVisible();
-      await expect(page.getByText(updatedDestination)).toBeVisible();
-      await expect(page.getByText(tripName)).not.toBeVisible();
+      await expect.soft(page.getByText(updatedDestination)).toBeVisible();
+      await expect.soft(page.getByText(tripName)).not.toBeVisible();
     });
 
     await test.step("delete trip with cancel then confirm", async () => {
@@ -154,13 +163,12 @@ test.describe("Trip Journey", () => {
       await page.waitForURL("**/trips", { timeout: 20000 });
       await expect(page.getByText(updatedName)).not.toBeVisible();
 
-      const emptyState = trips.emptyStateHeading;
-      const upcomingSection = trips.upcomingTripsHeading;
-      await expect(emptyState.or(upcomingSection).first()).toBeVisible();
+      await expect(trips.emptyStateHeading).toBeVisible();
     });
   });
 
   test("trip permissions journey", async ({ page, request }) => {
+    test.slow(); // Multiple auth switches and navigations
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
     const timestamp = Date.now();
@@ -185,7 +193,9 @@ test.describe("Trip Journey", () => {
     await test.step("create trip with dates", async () => {
       await expect(async () => {
         await trips.createTripButton.click();
-        await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: 3000 });
+        await expect(tripDetail.createDialogHeading).toBeVisible({
+          timeout: 3000,
+        });
       }).toPass({ timeout: 10000 });
 
       await tripDetail.nameInput.fill(tripName);
@@ -494,7 +504,9 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("click remove button for member", async () => {
-      await page.getByRole("button", { name: "Actions for Test Member" }).click();
+      await page
+        .getByRole("button", { name: "Actions for Test Member" })
+        .click();
       await page.getByText("Remove from trip").click();
 
       await expect(
@@ -537,9 +549,9 @@ test.describe("Trip Journey", () => {
         timeout: 10000,
       });
 
-      await expect(
-        page.getByText("Member no longer attending"),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText("Member no longer attending")).toBeVisible({
+        timeout: 10000,
+      });
 
       await snap(page, "25-member-no-longer-attending");
     });
@@ -613,7 +625,9 @@ test.describe("Trip Journey", () => {
       const dialog = page.getByRole("dialog");
 
       // Find the actions button for the member (not the organizer)
-      const memberRow = dialog.locator("div").filter({ hasText: "Test Promotee" });
+      const memberRow = dialog
+        .locator("div")
+        .filter({ hasText: "Test Promotee" });
       const actionsButton = memberRow.getByRole("button", {
         name: "Actions for Test Promotee",
       });
@@ -639,7 +653,9 @@ test.describe("Trip Journey", () => {
       const dialog = page.getByRole("dialog");
 
       // Open dropdown again on the same member
-      const memberRow = dialog.locator("div").filter({ hasText: "Test Promotee" });
+      const memberRow = dialog
+        .locator("div")
+        .filter({ hasText: "Test Promotee" });
       const actionsButton = memberRow.getByRole("button", {
         name: "Actions for Test Promotee",
       });
@@ -735,11 +751,7 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("open My Travel dialog via FAB", async () => {
-      // Wait for any toast to disappear
-      const toast = page.locator("[data-sonner-toast]").first();
-      if (await toast.isVisible().catch(() => false)) {
-        await toast.waitFor({ state: "hidden", timeout: 10000 });
-      }
+      await dismissToast(page);
 
       const fab = page.getByRole("button", { name: "Add to itinerary" });
       await expect(fab).toBeVisible({ timeout: 10000 });
@@ -767,7 +779,9 @@ test.describe("Trip Journey", () => {
       await memberSelector.click();
 
       // Wait for the dropdown options to appear
-      const delegatedOption = page.getByRole("option", { name: /Delegated Member/ });
+      const delegatedOption = page.getByRole("option", {
+        name: /Delegated Member/,
+      });
       await expect(delegatedOption).toBeVisible({ timeout: 5000 });
 
       // Select the delegated member
@@ -785,7 +799,9 @@ test.describe("Trip Journey", () => {
       });
       await pickDateTime(page, travelTimeTrigger, "2026-12-01T14:00");
 
-      await page.locator('input[name="location"]').fill("Seattle-Tacoma Airport");
+      await page
+        .locator('input[name="location"]')
+        .fill("Seattle-Tacoma Airport");
       await page
         .locator('textarea[name="details"]')
         .fill("Arriving on behalf of member");
@@ -800,9 +816,9 @@ test.describe("Trip Journey", () => {
     await test.step("verify delegated travel appears with correct member name", async () => {
       // The travel card shows "Name · Time · Location" format
       // Verify the delegated member's name appears on the travel card
-      await expect(
-        page.getByText("Delegated Member").first(),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText("Delegated Member").first()).toBeVisible({
+        timeout: 10000,
+      });
 
       // Location should also be visible (compact view truncates > 20 chars)
       const locationLink = page.getByRole("link", {

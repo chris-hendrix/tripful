@@ -78,9 +78,9 @@ test.describe("Profile Journey", () => {
 
       await test.step("profile form shows current user data", async () => {
         await expect(profile.displayNameInput).toHaveValue("Profile Test User");
-        await expect(profile.phoneNumberInput).toBeDisabled();
-        await expect(profile.saveButton).toBeVisible();
-        await expect(profile.timezoneSelect).toBeVisible();
+        await expect.soft(profile.phoneNumberInput).toBeDisabled();
+        await expect.soft(profile.saveButton).toBeVisible();
+        await expect.soft(profile.timezoneSelect).toBeVisible();
       });
 
       await test.step("edit display name and save", async () => {

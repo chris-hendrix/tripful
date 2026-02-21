@@ -12,5 +12,6 @@ export default fp(
   },
   {
     name: "config",
+    fastify: "5.x",
   },
 );

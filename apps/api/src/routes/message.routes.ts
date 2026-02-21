@@ -76,7 +76,7 @@ export async function messageRoutes(fastify: FastifyInstance) {
         querystring: paginationQuerySchema,
         response: { 200: messageListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     messageController.listMessages,
   );
@@ -95,7 +95,7 @@ export async function messageRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: messageCountResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     messageController.getMessageCount,
   );
@@ -114,7 +114,7 @@ export async function messageRoutes(fastify: FastifyInstance) {
         params: tripIdParamsSchema,
         response: { 200: latestMessageResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     messageController.getLatestMessage,
   );
@@ -125,9 +125,9 @@ export async function messageRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/messages

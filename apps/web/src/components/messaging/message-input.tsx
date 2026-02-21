@@ -138,7 +138,11 @@ export function MessageInput({
             disabled={createMessage.isPending}
           />
           <div className="flex items-center justify-between mt-2">
-            <div id="char-count" className="text-xs text-muted-foreground" aria-live="polite">
+            <div
+              id="char-count"
+              className="text-xs text-muted-foreground"
+              aria-live="polite"
+            >
               {content.length > CHAR_COUNT_THRESHOLD && (
                 <span
                   className={cn(

@@ -34,7 +34,10 @@ export function NotificationItem({
     >
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {isUnread ? (
-          <span className="h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
+          <span
+            className="h-2 w-2 rounded-full bg-primary"
+            aria-hidden="true"
+          />
         ) : (
           <span className="h-2 w-2" aria-hidden="true" />
         )}

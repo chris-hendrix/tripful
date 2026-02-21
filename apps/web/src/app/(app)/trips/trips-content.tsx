@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
 import { TripCard } from "@/components/trip/trip-card";
@@ -12,7 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 function SkeletonCard() {
   return (
     <div className="bg-card rounded-2xl overflow-hidden border border-border">
-      <Skeleton className="h-48 w-full rounded-none" />
+      <div className="relative h-48">
+        <Skeleton className="h-full w-full rounded-none" />
+        <div className="absolute top-3 left-3 flex gap-2">
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+      </div>
       <div className="p-4 space-y-3">
         <div className="space-y-2">
           <Skeleton className="h-6 w-3/4" />
@@ -20,7 +26,10 @@ function SkeletonCard() {
         </div>
         <Skeleton className="h-4 w-2/3" />
         <div className="flex items-center justify-between pt-3 border-t border-border">
-          <Skeleton className="h-6 w-24" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-4 w-20" />
+          </div>
           <Skeleton className="h-4 w-20" />
         </div>
       </div>
@@ -29,8 +38,31 @@ function SkeletonCard() {
 }
 
 export function TripsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+
+  // Sync search query to URL with debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchQuery) {
+        params.set("q", searchQuery);
+      } else {
+        params.delete("q");
+      }
+      const queryString = params.toString();
+      // Only replace URL if the query string actually changed
+      if (queryString !== searchParams.toString()) {
+        router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+          scroll: false,
+        });
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery, router, searchParams, pathname]);
 
   const {
     data: trips = [],
@@ -80,7 +112,7 @@ export function TripsContent() {
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -149,7 +181,6 @@ export function TripsContent() {
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
-
                 variant="gradient"
                 className="h-12 px-8 rounded-xl"
               >
@@ -212,7 +243,7 @@ export function TripsContent() {
         onClick={() => setCreateDialogOpen(true)}
         variant="gradient"
         size="icon"
-        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 rounded-full z-50"
+        className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
         aria-label="Create new trip"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />

@@ -18,6 +18,7 @@ export default fp(
   },
   {
     name: "notification-service",
+    fastify: "5.x",
     dependencies: ["database", "queue"],
   },
 );

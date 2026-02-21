@@ -83,7 +83,7 @@ function VerifyPageContent() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700">
         <div className="space-y-6">
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold text-foreground tracking-tight">

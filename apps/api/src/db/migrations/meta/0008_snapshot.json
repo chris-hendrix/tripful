@@ -157,12 +157,8 @@
           "name": "accommodations_trip_id_trips_id_fk",
           "tableFrom": "accommodations",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -170,12 +166,8 @@
           "name": "accommodations_created_by_users_id_fk",
           "tableFrom": "accommodations",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -183,12 +175,8 @@
           "name": "accommodations_deleted_by_users_id_fk",
           "tableFrom": "accommodations",
           "tableTo": "users",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -385,12 +373,8 @@
           "name": "events_trip_id_trips_id_fk",
           "tableFrom": "events",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -398,12 +382,8 @@
           "name": "events_created_by_users_id_fk",
           "tableFrom": "events",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -411,12 +391,8 @@
           "name": "events_deleted_by_users_id_fk",
           "tableFrom": "events",
           "tableTo": "users",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -529,12 +505,8 @@
           "name": "invitations_trip_id_trips_id_fk",
           "tableFrom": "invitations",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -542,12 +514,8 @@
           "name": "invitations_inviter_id_users_id_fk",
           "tableFrom": "invitations",
           "tableTo": "users",
-          "columnsFrom": [
-            "inviter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inviter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -557,10 +525,7 @@
         "invitations_trip_phone_unique": {
           "name": "invitations_trip_phone_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "trip_id",
-            "invitee_phone"
-          ]
+          "columns": ["trip_id", "invitee_phone"]
         }
       },
       "policies": {},
@@ -709,12 +674,8 @@
           "name": "member_travel_trip_id_trips_id_fk",
           "tableFrom": "member_travel",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -722,12 +683,8 @@
           "name": "member_travel_member_id_members_id_fk",
           "tableFrom": "member_travel",
           "tableTo": "members",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -735,12 +692,8 @@
           "name": "member_travel_deleted_by_users_id_fk",
           "tableFrom": "member_travel",
           "tableTo": "users",
-          "columnsFrom": [
-            "deleted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deleted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -841,12 +794,8 @@
           "name": "members_trip_id_trips_id_fk",
           "tableFrom": "members",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -854,12 +803,8 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -869,10 +814,7 @@
         "members_trip_user_unique": {
           "name": "members_trip_user_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "trip_id",
-            "user_id"
-          ]
+          "columns": ["trip_id", "user_id"]
         }
       },
       "policies": {},
@@ -989,12 +931,8 @@
           "name": "trips_created_by_users_id_fk",
           "tableFrom": "trips",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1084,9 +1022,7 @@
         "users_phone_number_unique": {
           "name": "users_phone_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "phone_number"
-          ]
+          "columns": ["phone_number"]
         }
       },
       "policies": {},
@@ -1165,39 +1101,22 @@
     "public.event_type": {
       "name": "event_type",
       "schema": "public",
-      "values": [
-        "travel",
-        "meal",
-        "activity"
-      ]
+      "values": ["travel", "meal", "activity"]
     },
     "public.invitation_status": {
       "name": "invitation_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "accepted",
-        "declined",
-        "failed"
-      ]
+      "values": ["pending", "accepted", "declined", "failed"]
     },
     "public.member_travel_type": {
       "name": "member_travel_type",
       "schema": "public",
-      "values": [
-        "arrival",
-        "departure"
-      ]
+      "values": ["arrival", "departure"]
     },
     "public.rsvp_status": {
       "name": "rsvp_status",
       "schema": "public",
-      "values": [
-        "going",
-        "not_going",
-        "maybe",
-        "no_response"
-      ]
+      "values": ["going", "not_going", "maybe", "no_response"]
     }
   },
   "schemas": {},

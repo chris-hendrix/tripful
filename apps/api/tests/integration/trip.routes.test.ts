@@ -35,7 +35,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -87,7 +86,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -160,7 +158,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -203,7 +200,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -277,7 +273,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -340,7 +335,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -387,7 +381,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -430,7 +423,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -471,7 +463,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -512,7 +503,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -611,7 +601,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token (without name in token)
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -659,7 +648,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -726,7 +714,6 @@ describe("POST /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -787,7 +774,6 @@ describe("GET /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -853,7 +839,6 @@ describe("GET /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -945,7 +930,6 @@ describe("GET /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1026,7 +1010,6 @@ describe("GET /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1116,7 +1099,6 @@ describe("GET /api/trips", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1225,7 +1207,6 @@ describe("GET /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phoneNumber: user.phoneNumber,
       });
 
       // Make request
@@ -1273,7 +1254,6 @@ describe("GET /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phoneNumber: user.phoneNumber,
       });
 
       // Make request with invalid UUID
@@ -1310,7 +1290,6 @@ describe("GET /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: user.id,
-        phoneNumber: user.phoneNumber,
       });
 
       // Make request with non-existent trip ID (valid UUID format)
@@ -1381,7 +1360,6 @@ describe("GET /api/trips/:id", () => {
       // Generate JWT token for non-member
       const token = app.jwt.sign({
         sub: nonMember.id,
-        phoneNumber: nonMember.phoneNumber,
       });
 
       // Make request
@@ -1530,7 +1508,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: uninvitedUser.id,
-        phone: uninvitedUser.phoneNumber,
         name: uninvitedUser.displayName,
       });
 
@@ -1598,7 +1575,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: invitedUser.id,
-        phone: invitedUser.phoneNumber,
         name: invitedUser.displayName,
       });
 
@@ -1686,7 +1662,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: maybeUser.id,
-        phone: maybeUser.phoneNumber,
         name: maybeUser.displayName,
       });
 
@@ -1769,7 +1744,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: notGoingUser.id,
-        phone: notGoingUser.phoneNumber,
         name: notGoingUser.displayName,
       });
 
@@ -1835,7 +1809,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1888,7 +1861,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1941,7 +1913,6 @@ describe("GET /api/trips/:id", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -2015,7 +1986,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2112,7 +2082,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token for co-organizer
       const token = app.jwt.sign({
         sub: coOrg.id,
-        phone: coOrg.phoneNumber,
         name: coOrg.displayName,
       });
 
@@ -2178,7 +2147,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2251,7 +2219,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2296,7 +2263,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2356,7 +2322,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2419,7 +2384,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2538,7 +2502,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token for the other user
       const token = app.jwt.sign({
         sub: otherUser.id,
-        phone: otherUser.phoneNumber,
         name: otherUser.displayName,
       });
 
@@ -2619,7 +2582,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token for the member
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -2659,7 +2621,6 @@ describe("PUT /api/trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2734,7 +2695,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -2821,7 +2781,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token for co-organizer
       const token = app.jwt.sign({
         sub: coOrg.id,
-        phone: coOrg.phoneNumber,
         name: coOrg.displayName,
       });
 
@@ -2867,7 +2826,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -3025,7 +2983,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token for the other user
       const token = app.jwt.sign({
         sub: otherUser.id,
-        phone: otherUser.phoneNumber,
         name: otherUser.displayName,
       });
 
@@ -3106,7 +3063,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token for regular member
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -3148,7 +3104,6 @@ describe("DELETE /trips/:id", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -3224,7 +3179,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
       // Generate token for creator
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3310,7 +3264,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
       // Generate token for first co-organizer
       const token = app.jwt.sign({
         sub: coOrg1.id,
-        phone: coOrg1.phoneNumber,
         name: coOrg1.displayName,
       });
 
@@ -3355,7 +3308,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3406,7 +3358,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3457,7 +3408,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3549,7 +3499,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
       // Generate token for non-member
       const token = app.jwt.sign({
         sub: nonMember.id,
-        phone: nonMember.phoneNumber,
         name: nonMember.displayName,
       });
 
@@ -3585,7 +3534,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3674,7 +3622,6 @@ describe("POST /api/trips/:id/co-organizers", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3753,7 +3700,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       // Generate token for creator
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3842,7 +3788,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       // Generate token for first co-organizer
       const token = app.jwt.sign({
         sub: coOrg1.id,
-        phone: coOrg1.phoneNumber,
         name: coOrg1.displayName,
       });
 
@@ -3884,7 +3829,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3917,7 +3861,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -3983,7 +3926,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       // Generate token for co-organizer
       const token = app.jwt.sign({
         sub: coOrg.id,
-        phone: coOrg.phoneNumber,
         name: coOrg.displayName,
       });
 
@@ -4076,7 +4018,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       // Generate token for non-member
       const token = app.jwt.sign({
         sub: nonMember.id,
-        phone: nonMember.phoneNumber,
         name: nonMember.displayName,
       });
 
@@ -4111,7 +4052,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
 
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -4173,7 +4113,6 @@ describe("DELETE /api/trips/:id/co-organizers/:userId", () => {
       // Generate token for creator
       const token = app.jwt.sign({
         sub: creator.id,
-        phone: creator.phoneNumber,
         name: creator.displayName,
       });
 
@@ -4242,7 +4181,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4322,7 +4260,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4398,7 +4335,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4455,7 +4391,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4525,7 +4460,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4574,7 +4508,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4692,7 +4625,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate token for non-organizer member
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -4744,7 +4676,6 @@ describe("POST /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4828,7 +4759,6 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4892,7 +4822,6 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -4931,7 +4860,6 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -5022,7 +4950,6 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       // Generate token for non-organizer member
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -5060,7 +4987,6 @@ describe("DELETE /api/trips/:id/cover-image", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 

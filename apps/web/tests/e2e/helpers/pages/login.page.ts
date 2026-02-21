@@ -20,12 +20,14 @@ export class LoginPage {
     this.verifyHeading = page.getByRole("heading", {
       name: "Verify your number",
     });
-    this.codeInput = page.getByRole("textbox").first();
+    this.codeInput = page.getByRole("textbox", { name: /verification code/i });
     this.verifyButton = page.getByRole("button", { name: "Verify" });
     this.completeProfileHeading = page.getByRole("heading", {
       name: "Complete your profile",
     });
-    this.displayNameInput = page.getByRole("textbox").first();
+    this.displayNameInput = page.getByRole("textbox", {
+      name: /display name/i,
+    });
     this.completeProfileButton = page.getByRole("button", {
       name: "Complete profile",
     });

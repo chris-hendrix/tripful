@@ -31,16 +31,12 @@ vi.mock("@/hooks/use-messages", () => ({
     mutate: vi.fn(),
     isPending: false,
   }),
-  getEditMessageErrorMessage: (error: Error | null) =>
-    error?.message ?? null,
-  getDeleteMessageErrorMessage: (error: Error | null) =>
-    error?.message ?? null,
-  getPinMessageErrorMessage: (error: Error | null) =>
-    error?.message ?? null,
+  getEditMessageErrorMessage: (error: Error | null) => error?.message ?? null,
+  getDeleteMessageErrorMessage: (error: Error | null) => error?.message ?? null,
+  getPinMessageErrorMessage: (error: Error | null) => error?.message ?? null,
   getToggleReactionErrorMessage: (error: Error | null) =>
     error?.message ?? null,
-  getCreateMessageErrorMessage: (error: Error | null) =>
-    error?.message ?? null,
+  getCreateMessageErrorMessage: (error: Error | null) => error?.message ?? null,
 }));
 
 vi.mock("@/app/providers/auth-provider", () => ({
@@ -456,8 +452,18 @@ describe("MessageCard", () => {
       const messageWithReactions = {
         ...baseMessage,
         reactions: [
-          { emoji: "heart", count: 2, reacted: true, reactorNames: ["You", "Alice"] },
-          { emoji: "thumbs_up", count: 1, reacted: false, reactorNames: ["Bob"] },
+          {
+            emoji: "heart",
+            count: 2,
+            reacted: true,
+            reactorNames: ["You", "Alice"],
+          },
+          {
+            emoji: "thumbs_up",
+            count: 1,
+            reacted: false,
+            reactorNames: ["Bob"],
+          },
         ],
       };
       render(
@@ -468,9 +474,11 @@ describe("MessageCard", () => {
         />,
       );
 
-      const reactionButtons = screen.getAllByRole("button").filter(
-        (btn) => btn.getAttribute("aria-label")?.startsWith("React with"),
-      );
+      const reactionButtons = screen
+        .getAllByRole("button")
+        .filter((btn) =>
+          btn.getAttribute("aria-label")?.startsWith("React with"),
+        );
       expect(reactionButtons.length).toBe(2);
     });
   });

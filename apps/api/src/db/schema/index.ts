@@ -376,9 +376,7 @@ export const messages = pgTable(
     authorIdIdx: index("messages_author_id_idx").on(table.authorId),
     tripTopLevelIdx: index("messages_trip_toplevel_idx")
       .on(table.tripId, table.createdAt)
-      .where(
-        sql`${table.parentId} IS NULL AND ${table.deletedAt} IS NULL`,
-      ),
+      .where(sql`${table.parentId} IS NULL AND ${table.deletedAt} IS NULL`),
   }),
 );
 
@@ -402,9 +400,7 @@ export const messageReactions = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    messageIdIdx: index("message_reactions_message_id_idx").on(
-      table.messageId,
-    ),
+    messageIdIdx: index("message_reactions_message_id_idx").on(table.messageId),
     userIdIdx: index("message_reactions_user_id_idx").on(table.userId),
     messageUserEmojiUnique: unique(
       "message_reactions_message_user_emoji_unique",
@@ -440,16 +436,17 @@ export const notifications = pgTable(
       table.userId,
       table.createdAt,
     ),
-    userIdCreatedAtDescIdx: index("notifications_user_id_created_at_desc_idx").on(
-      table.userId,
-      table.createdAt.desc(),
-    ),
+    userIdCreatedAtDescIdx: index(
+      "notifications_user_id_created_at_desc_idx",
+    ).on(table.userId, table.createdAt.desc()),
     userUnreadIdx: index("notifications_user_unread_idx")
       .on(table.userId, table.createdAt)
       .where(sql`${table.readAt} IS NULL`),
-    tripUserCreatedAtIdx: index(
-      "notifications_trip_user_created_at_idx",
-    ).on(table.tripId, table.userId, table.createdAt),
+    tripUserCreatedAtIdx: index("notifications_trip_user_created_at_idx").on(
+      table.tripId,
+      table.userId,
+      table.createdAt,
+    ),
   }),
 );
 
@@ -502,7 +499,7 @@ export const mutedMembers = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     mutedBy: uuid("muted_by")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -528,9 +525,7 @@ export const sentReminders = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    sentAt: timestamp("sent_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     typeRefUserUnique: unique("sent_reminders_type_ref_user_unique").on(

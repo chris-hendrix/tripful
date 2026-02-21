@@ -17,6 +17,7 @@ export default fp(
   },
   {
     name: "database",
+    fastify: "5.x",
     dependencies: ["config"],
   },
 );

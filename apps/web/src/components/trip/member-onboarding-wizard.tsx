@@ -15,7 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useCreateMemberTravel, useUpdateMemberTravel, useMemberTravels } from "@/hooks/use-member-travel";
+import {
+  useCreateMemberTravel,
+  useUpdateMemberTravel,
+  useMemberTravels,
+} from "@/hooks/use-member-travel";
 import { useMembers, useUpdateMySettings } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useCreateEvent } from "@/hooks/use-events";
@@ -53,17 +57,22 @@ export function MemberOnboardingWizard({
 
   // Find existing arrival/departure for current member
   const existingArrival = memberTravels.find(
-    (t) => t.memberId === currentMember?.id && t.travelType === "arrival" && !t.deletedAt,
+    (t) =>
+      t.memberId === currentMember?.id &&
+      t.travelType === "arrival" &&
+      !t.deletedAt,
   );
   const existingDeparture = memberTravels.find(
-    (t) => t.memberId === currentMember?.id && t.travelType === "departure" && !t.deletedAt,
+    (t) =>
+      t.memberId === currentMember?.id &&
+      t.travelType === "departure" &&
+      !t.deletedAt,
   );
 
   const canAddEvents = trip.isOrganizer || trip.allowMembersToAddEvents;
   const totalSteps = canAddEvents ? 5 : 4;
   const timezone =
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    trip.preferredTimezone;
+    Intl.DateTimeFormat().resolvedOptions().timeZone || trip.preferredTimezone;
 
   const createTravel = useCreateMemberTravel();
   const updateTravel = useUpdateMemberTravel();
@@ -280,7 +289,11 @@ export function MemberOnboardingWizard({
     }
   }, [step, arrivalLocation, departureLocationInitialized]);
 
-  const isPending = createTravel.isPending || updateTravel.isPending || createEvent.isPending || updateMySettings.isPending;
+  const isPending =
+    createTravel.isPending ||
+    updateTravel.isPending ||
+    createEvent.isPending ||
+    updateMySettings.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -361,11 +374,15 @@ export function MemberOnboardingWizard({
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3">
                 <div className="space-y-0.5">
-                  <Label htmlFor="share-phone-wizard" className="text-sm font-medium">
+                  <Label
+                    htmlFor="share-phone-wizard"
+                    className="text-sm font-medium"
+                  >
                     Share phone number
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Other members will be able to see your phone number for this trip. Organizers can always see it.
+                    Other members will be able to see your phone number for this
+                    trip. Organizers can always see it.
                   </p>
                 </div>
                 <Switch
@@ -391,7 +408,10 @@ export function MemberOnboardingWizard({
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="arrival-location" className="text-sm font-medium">
+                <label
+                  htmlFor="arrival-location"
+                  className="text-sm font-medium"
+                >
                   Location
                 </label>
                 <Input
@@ -464,7 +484,9 @@ export function MemberOnboardingWizard({
                 variant="outline"
                 className="h-12 rounded-xl w-full"
                 onClick={handleAddEvent}
-                disabled={!eventName || !eventStartTime || createEvent.isPending}
+                disabled={
+                  !eventName || !eventStartTime || createEvent.isPending
+                }
               >
                 {createEvent.isPending && (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -486,7 +508,11 @@ export function MemberOnboardingWizard({
                         <Calendar className="w-3 h-3" />
                         <span>{event.name}</span>
                         <span className="text-muted-foreground">
-                          {formatInTimezone(event.startTime, timezone, "datetime")}
+                          {formatInTimezone(
+                            event.startTime,
+                            timezone,
+                            "datetime",
+                          )}
                         </span>
                         <button
                           type="button"
@@ -605,9 +631,7 @@ export function MemberOnboardingWizard({
                 onClick={handleNext}
                 disabled={isPending}
               >
-                {isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                )}
+                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Next
               </Button>
             </div>

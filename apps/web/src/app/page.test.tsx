@@ -40,7 +40,7 @@ describe("Home (landing page)", () => {
     const result = await Home();
 
     render(result as React.ReactElement);
-    expect(screen.getByText("Tripful")).toBeDefined();
+    expect(screen.getByText("Plan Group Trips Together")).toBeDefined();
     expect(screen.getByText("Get started")).toBeDefined();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
@@ -51,7 +51,7 @@ describe("Home (landing page)", () => {
     const result = await Home();
 
     render(result as React.ReactElement);
-    expect(screen.getByText("Tripful")).toBeDefined();
+    expect(screen.getByText("Plan Group Trips Together")).toBeDefined();
     expect(screen.getByText("Get started")).toBeDefined();
     expect(mockRedirect).not.toHaveBeenCalled();
   });

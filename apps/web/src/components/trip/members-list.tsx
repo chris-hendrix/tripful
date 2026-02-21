@@ -88,6 +88,7 @@ function MembersListSkeleton() {
 
 interface MemberRowProps {
   member: MemberWithProfile;
+  index?: number;
   isOrganizer: boolean;
   createdBy?: string | undefined;
   currentUserId?: string | undefined;
@@ -101,6 +102,7 @@ interface MemberRowProps {
 
 function MemberRow({
   member,
+  index = 0,
   isOrganizer,
   createdBy,
   currentUserId,
@@ -109,8 +111,7 @@ function MemberRow({
   onMute,
   onUnmute,
 }: MemberRowProps) {
-  const canRemove =
-    isOrganizer && !!onRemove && member.userId !== createdBy;
+  const canRemove = isOrganizer && !!onRemove && member.userId !== createdBy;
 
   const canUpdateRole =
     !!onUpdateRole &&
@@ -120,19 +121,19 @@ function MemberRow({
   const canMute =
     isOrganizer && !member.isOrganizer && member.userId !== createdBy;
 
-  const showActions =
-    isOrganizer && (canRemove || canUpdateRole || canMute);
+  const showActions = isOrganizer && (canRemove || canUpdateRole || canMute);
 
   return (
-    <div className="flex items-center gap-3 py-3">
+    <div
+      className="flex items-center gap-3 py-3 motion-safe:animate-[slideUp_400ms_ease-out_both]"
+      style={{ animationDelay: `${index * 50}ms` }}
+    >
       <Avatar size="default">
         <AvatarImage
           src={getUploadUrl(member.profilePhotoUrl)}
           alt={member.displayName}
         />
-        <AvatarFallback>
-          {getInitials(member.displayName)}
-        </AvatarFallback>
+        <AvatarFallback>{getInitials(member.displayName)}</AvatarFallback>
       </Avatar>
 
       <div className="flex-1 min-w-0">
@@ -198,24 +199,18 @@ function MemberRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {canUpdateRole && !member.isOrganizer && (
-              <DropdownMenuItem
-                onSelect={() => onUpdateRole!(member, true)}
-              >
+              <DropdownMenuItem onSelect={() => onUpdateRole!(member, true)}>
                 <ShieldCheck className="w-4 h-4" />
                 Make co-organizer
               </DropdownMenuItem>
             )}
             {canUpdateRole && member.isOrganizer && (
-              <DropdownMenuItem
-                onSelect={() => onUpdateRole!(member, false)}
-              >
+              <DropdownMenuItem onSelect={() => onUpdateRole!(member, false)}>
                 <ShieldOff className="w-4 h-4" />
                 Remove co-organizer
               </DropdownMenuItem>
             )}
-            {canMute && canUpdateRole && (
-              <DropdownMenuSeparator />
-            )}
+            {canMute && canUpdateRole && <DropdownMenuSeparator />}
             {canMute && (
               <>
                 {member.isMuted ? (
@@ -417,18 +412,17 @@ export function MembersList({
             </TabsTrigger>
           )}
           {isOrganizer && (
-            <TabsTrigger value="invited">
-              Invited ({invitedCount})
-            </TabsTrigger>
+            <TabsTrigger value="invited">Invited ({invitedCount})</TabsTrigger>
           )}
         </TabsList>
 
         <TabsContent value="going">
           <div className="divide-y divide-border">
-            {going.map((member) => (
+            {going.map((member, i) => (
               <MemberRow
                 key={member.id}
                 member={member}
+                index={i}
                 {...memberRowProps}
               />
             ))}
@@ -437,10 +431,11 @@ export function MembersList({
 
         <TabsContent value="maybe">
           <div className="divide-y divide-border">
-            {maybe.map((member) => (
+            {maybe.map((member, i) => (
               <MemberRow
                 key={member.id}
                 member={member}
+                index={i}
                 {...memberRowProps}
               />
             ))}
@@ -450,10 +445,11 @@ export function MembersList({
         {isOrganizer && (
           <TabsContent value="not_going">
             <div className="divide-y divide-border">
-              {notGoing.map((member) => (
+              {notGoing.map((member, i) => (
                 <MemberRow
                   key={member.id}
                   member={member}
+                  index={i}
                   {...memberRowProps}
                 />
               ))}
@@ -464,10 +460,11 @@ export function MembersList({
         {isOrganizer && (
           <TabsContent value="invited">
             <div className="divide-y divide-border">
-              {noResponse.map((member) => (
+              {noResponse.map((member, i) => (
                 <MemberRow
                   key={member.id}
                   member={member}
+                  index={i}
                   {...memberRowProps}
                 />
               ))}

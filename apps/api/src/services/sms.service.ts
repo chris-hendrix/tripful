@@ -34,10 +34,7 @@ export class MockSMSService implements ISMSService {
    */
   async sendMessage(phoneNumber: string, message: string): Promise<void> {
     if (this.logger) {
-      this.logger.info(
-        { phoneNumber, message },
-        "SMS Message Sent",
-      );
+      this.logger.info({ phoneNumber, message }, "SMS Message Sent");
     }
   }
 }

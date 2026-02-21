@@ -281,9 +281,7 @@ export const MessageCard = memo(function MessageCard({
                   <Button
                     size="xs"
                     onClick={handleSaveEdit}
-                    disabled={
-                      !editContent.trim() || editMessage.isPending
-                    }
+                    disabled={!editContent.trim() || editMessage.isPending}
                   >
                     {editMessage.isPending ? (
                       <Loader2 className="w-3 h-3 animate-spin" />

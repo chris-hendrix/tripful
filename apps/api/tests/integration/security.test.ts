@@ -19,7 +19,6 @@ describe("Security & Schema Validation", () => {
       // Create a valid JWT token for auth
       const token = app.jwt.sign({
         sub: "00000000-0000-0000-0000-000000000001",
-        phone: "+11234567890",
         name: "Test User",
       });
 
@@ -73,7 +72,6 @@ describe("Security & Schema Validation", () => {
 
       const token = app.jwt.sign({
         sub: "00000000-0000-0000-0000-000000000001",
-        phone: "+11234567890",
         name: "Test User",
       });
 
@@ -117,6 +115,21 @@ describe("Security & Schema Validation", () => {
       expect(csp).toBeDefined();
       expect(csp).toContain("default-src 'none'");
       expect(csp).toContain("frame-ancestors 'none'");
+    });
+
+    it("should include Cache-Control and Pragma headers on auth responses", async () => {
+      app = await buildApp();
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/request-code",
+        payload: { phoneNumber: "+11234567890" },
+      });
+
+      expect(response.headers["cache-control"]).toBe(
+        "no-store, no-cache, must-revalidate",
+      );
+      expect(response.headers["pragma"]).toBe("no-cache");
     });
 
     it("should include Strict-Transport-Security header", async () => {

@@ -18,6 +18,8 @@ type PhoneInputProps = {
   placeholder?: string;
   className?: string;
   "aria-invalid"?: boolean | "true" | "false";
+  "aria-required"?: boolean | "true" | "false";
+  "aria-describedby"?: string | undefined;
   id?: string;
 };
 
@@ -90,8 +92,9 @@ function InputField(props: React.ComponentProps<"input">) {
   return (
     <input
       type="tel"
+      autoComplete="tel"
       className={cn(
-        "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground border-input h-11 sm:h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground border-input h-11 w-full min-w-0 rounded-xl border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow,border-color] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
         "aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
         className,

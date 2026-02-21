@@ -7,8 +7,7 @@ import {
   rsvpViaAPI,
 } from "./helpers/invitations";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-
-const API_BASE = "http://localhost:8000/api";
+import { API_BASE } from "./helpers/timeouts";
 
 /**
  * E2E: Invitation Helper Verification

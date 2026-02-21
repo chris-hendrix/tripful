@@ -16,6 +16,7 @@ export default fp(
   },
   {
     name: "member-travel-service",
+    fastify: "5.x",
     dependencies: ["database", "permissions-service"],
   },
 );

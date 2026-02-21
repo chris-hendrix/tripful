@@ -18,7 +18,12 @@ export default async function ProtectedLayout({
   return (
     <>
       <AppHeader />
-      <main id="main-content">{children}</main>
+      <main
+        id="main-content"
+        className="bg-gradient-to-b from-background via-background to-secondary/30 min-h-screen"
+      >
+        {children}
+      </main>
     </>
   );
 }

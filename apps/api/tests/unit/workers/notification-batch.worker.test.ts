@@ -15,10 +15,7 @@ import {
   getPreferenceField,
   shouldSendSms,
 } from "@/queues/workers/notification-batch.worker.js";
-import type {
-  NotificationBatchPayload,
-  WorkerDeps,
-} from "@/queues/types.js";
+import type { NotificationBatchPayload, WorkerDeps } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
 import { MockSMSService } from "@/services/sms.service.js";
 import { generateUniquePhone } from "../../test-utils.js";
@@ -49,14 +46,10 @@ describe("notification-batch.worker", () => {
           .select({ id: users.id })
           .from(users)
           .where(
-            or(
-              ...phoneNumbers.map((phone) => eq(users.phoneNumber, phone)),
-            ),
+            or(...phoneNumbers.map((phone) => eq(users.phoneNumber, phone))),
           );
         for (const u of testUsers) {
-          await db
-            .delete(sentReminders)
-            .where(eq(sentReminders.userId, u.id));
+          await db.delete(sentReminders).where(eq(sentReminders.userId, u.id));
         }
       }
 
@@ -79,12 +72,8 @@ describe("notification-batch.worker", () => {
         );
 
       for (const u of testUsers) {
-        await db
-          .delete(sentReminders)
-          .where(eq(sentReminders.userId, u.id));
-        await db
-          .delete(notifications)
-          .where(eq(notifications.userId, u.id));
+        await db.delete(sentReminders).where(eq(sentReminders.userId, u.id));
+        await db.delete(notifications).where(eq(notifications.userId, u.id));
       }
 
       await db
@@ -169,7 +158,9 @@ describe("notification-batch.worker", () => {
 
     mockDeps = {
       db,
-      boss: { insert: vi.fn().mockResolvedValue(undefined) } as unknown as WorkerDeps["boss"],
+      boss: {
+        insert: vi.fn().mockResolvedValue(undefined),
+      } as unknown as WorkerDeps["boss"],
       smsService: new MockSMSService(),
       logger: {
         info: vi.fn(),
@@ -235,20 +226,22 @@ describe("notification-batch.worker", () => {
 
     it("should respect dailyItinerary preference", () => {
       expect(
-        shouldSendSms("daily_itinerary", { ...allEnabledPrefs, dailyItinerary: false }),
+        shouldSendSms("daily_itinerary", {
+          ...allEnabledPrefs,
+          dailyItinerary: false,
+        }),
       ).toBe(false);
-      expect(
-        shouldSendSms("daily_itinerary", allEnabledPrefs),
-      ).toBe(true);
+      expect(shouldSendSms("daily_itinerary", allEnabledPrefs)).toBe(true);
     });
 
     it("should respect tripMessages preference", () => {
       expect(
-        shouldSendSms("trip_message", { ...allEnabledPrefs, tripMessages: false }),
+        shouldSendSms("trip_message", {
+          ...allEnabledPrefs,
+          tripMessages: false,
+        }),
       ).toBe(false);
-      expect(
-        shouldSendSms("trip_message", allEnabledPrefs),
-      ).toBe(true);
+      expect(shouldSendSms("trip_message", allEnabledPrefs)).toBe(true);
     });
   });
 

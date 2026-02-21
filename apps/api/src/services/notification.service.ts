@@ -1,4 +1,4 @@
-import { eq, and, count, isNull, desc } from "drizzle-orm";
+import { eq, and, count, isNull, desc, sql } from "drizzle-orm";
 import {
   notifications,
   notificationPreferences,
@@ -129,22 +129,19 @@ export class NotificationService implements INotificationService {
       conditions.push(isNull(notifications.readAt));
     }
 
-    // Count total matching notifications (respects unreadOnly filter)
-    const [totalResult] = await this.db
-      .select({ value: count() })
+    // Count total and unread in a single query using conditional aggregation
+    const [counts] = await this.db
+      .select({
+        total: count(),
+        unread:
+          sql<number>`count(case when ${notifications.readAt} is null then 1 end)`.mapWith(
+            Number,
+          ),
+      })
       .from(notifications)
       .where(and(...conditions));
-    const total = totalResult?.value ?? 0;
-
-    // Count unread notifications (always counts unread regardless of unreadOnly)
-    const unreadConditions = unreadOnly
-      ? conditions
-      : [...conditions, isNull(notifications.readAt)];
-    const [unreadResult] = await this.db
-      .select({ value: count() })
-      .from(notifications)
-      .where(and(...unreadConditions));
-    const unreadCount = unreadResult?.value ?? 0;
+    const total = counts?.total ?? 0;
+    const unreadCount = counts?.unread ?? 0;
 
     const totalPages = Math.ceil(total / limit) || 1;
     const offset = (page - 1) * limit;

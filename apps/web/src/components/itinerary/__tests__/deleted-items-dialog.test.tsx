@@ -93,8 +93,7 @@ vi.mock("@/hooks/use-member-travel", () => ({
     isPending: false,
     variables: undefined,
   }),
-  getRestoreMemberTravelErrorMessage: () =>
-    "Failed to restore member travel",
+  getRestoreMemberTravelErrorMessage: () => "Failed to restore member travel",
 }));
 
 vi.mock("sonner", () => ({

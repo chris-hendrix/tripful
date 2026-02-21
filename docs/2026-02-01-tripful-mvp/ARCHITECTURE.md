@@ -141,7 +141,7 @@ Comprehensive redesign of the web frontend with a travel-poster-inspired visual 
 **Design System:**
 
 - [x] Vivid Capri color palette with CSS custom properties (`@theme` in Tailwind v4)
-- [x] Typography: Playfair Display (headlines) + DM Sans (body) via `next/font/google`
+- [x] Typography: Playfair Display (headlines) + Plus Jakarta Sans (body) via `next/font/google`
 - [x] Gradient button variant added to shadcn/ui Button component
 - [x] Semantic tokens: `--color-success` (olive green), `--color-warning` (warm amber)
 - [x] All hardcoded slate-/gray-/blue- colors migrated to design tokens
@@ -2425,39 +2425,39 @@ GET    /api/health/ready
 
 **Error Codes**
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid input data (Zod schema validation failure) |
-| `INVALID_CODE` | 400 | Invalid or expired verification code |
-| `INVALID_DATE_RANGE` | 400 | End date/time is before start date/time |
-| `FILE_TOO_LARGE` | 400 | Upload exceeds maximum file size (5MB) |
-| `INVALID_FILE_TYPE` | 400 | Unsupported file type (only JPEG/PNG/WebP) |
-| `CO_ORGANIZER_NOT_FOUND` | 400 | Phone number not registered in system |
-| `CANNOT_REMOVE_CREATOR` | 400 | Cannot remove trip creator as co-organizer |
-| `CANNOT_DEMOTE_CREATOR` | 400 | Cannot change the role of the trip creator |
-| `CANNOT_MODIFY_OWN_ROLE` | 400 | Cannot modify your own organizer role |
-| `LAST_ORGANIZER` | 400 | Cannot remove/demote the last organizer |
-| `EVENT_LIMIT_EXCEEDED` | 400 | Maximum 50 events per trip reached |
-| `ACCOMMODATION_LIMIT_EXCEEDED` | 400 | Maximum 10 accommodations per trip reached |
-| `MEMBER_TRAVEL_LIMIT_EXCEEDED` | 400 | Maximum 20 travel entries per member reached |
-| `UNAUTHORIZED` | 401 | Missing or invalid authentication token |
-| `PROFILE_INCOMPLETE` | 403 | Profile setup required before this action |
-| `PERMISSION_DENIED` | 403 | Insufficient permissions for this action |
-| `TRIP_LOCKED` | 403 | Trip has ended and is now read-only |
-| `PREVIEW_ACCESS_ONLY` | 403 | Non-Going member cannot access full trip data |
-| `NOT_FOUND` | 404 | Trip not found |
-| `EVENT_NOT_FOUND` | 404 | Event not found |
-| `ACCOMMODATION_NOT_FOUND` | 404 | Accommodation not found |
-| `MEMBER_TRAVEL_NOT_FOUND` | 404 | Member travel entry not found |
-| `INVITATION_NOT_FOUND` | 404 | Invitation not found |
-| `MEMBER_NOT_FOUND` | 404 | Member not found |
-| `CO_ORGANIZER_NOT_IN_TRIP` | 404 | Co-organizer not found in trip |
-| `DUPLICATE_MEMBER` | 409 | User is already a member of the trip |
-| `MEMBER_LIMIT_EXCEEDED` | 400 | Maximum 25 members per trip reached |
-| `EVENT_CONFLICT` | 409 | Event time conflicts with existing event |
-| `ACCOUNT_LOCKED` | 429 | Too many failed verification attempts |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `INTERNAL_SERVER_ERROR` | 500 | Unexpected server error |
+| Code                           | HTTP Status | Description                                        |
+| ------------------------------ | ----------- | -------------------------------------------------- |
+| `VALIDATION_ERROR`             | 400         | Invalid input data (Zod schema validation failure) |
+| `INVALID_CODE`                 | 400         | Invalid or expired verification code               |
+| `INVALID_DATE_RANGE`           | 400         | End date/time is before start date/time            |
+| `FILE_TOO_LARGE`               | 400         | Upload exceeds maximum file size (5MB)             |
+| `INVALID_FILE_TYPE`            | 400         | Unsupported file type (only JPEG/PNG/WebP)         |
+| `CO_ORGANIZER_NOT_FOUND`       | 400         | Phone number not registered in system              |
+| `CANNOT_REMOVE_CREATOR`        | 400         | Cannot remove trip creator as co-organizer         |
+| `CANNOT_DEMOTE_CREATOR`        | 400         | Cannot change the role of the trip creator         |
+| `CANNOT_MODIFY_OWN_ROLE`       | 400         | Cannot modify your own organizer role              |
+| `LAST_ORGANIZER`               | 400         | Cannot remove/demote the last organizer            |
+| `EVENT_LIMIT_EXCEEDED`         | 400         | Maximum 50 events per trip reached                 |
+| `ACCOMMODATION_LIMIT_EXCEEDED` | 400         | Maximum 10 accommodations per trip reached         |
+| `MEMBER_TRAVEL_LIMIT_EXCEEDED` | 400         | Maximum 20 travel entries per member reached       |
+| `UNAUTHORIZED`                 | 401         | Missing or invalid authentication token            |
+| `PROFILE_INCOMPLETE`           | 403         | Profile setup required before this action          |
+| `PERMISSION_DENIED`            | 403         | Insufficient permissions for this action           |
+| `TRIP_LOCKED`                  | 403         | Trip has ended and is now read-only                |
+| `PREVIEW_ACCESS_ONLY`          | 403         | Non-Going member cannot access full trip data      |
+| `NOT_FOUND`                    | 404         | Trip not found                                     |
+| `EVENT_NOT_FOUND`              | 404         | Event not found                                    |
+| `ACCOMMODATION_NOT_FOUND`      | 404         | Accommodation not found                            |
+| `MEMBER_TRAVEL_NOT_FOUND`      | 404         | Member travel entry not found                      |
+| `INVITATION_NOT_FOUND`         | 404         | Invitation not found                               |
+| `MEMBER_NOT_FOUND`             | 404         | Member not found                                   |
+| `CO_ORGANIZER_NOT_IN_TRIP`     | 404         | Co-organizer not found in trip                     |
+| `DUPLICATE_MEMBER`             | 409         | User is already a member of the trip               |
+| `MEMBER_LIMIT_EXCEEDED`        | 400         | Maximum 25 members per trip reached                |
+| `EVENT_CONFLICT`               | 409         | Event time conflicts with existing event           |
+| `ACCOUNT_LOCKED`               | 429         | Too many failed verification attempts              |
+| `RATE_LIMIT_EXCEEDED`          | 429         | Too many requests                                  |
+| `INTERNAL_SERVER_ERROR`        | 500         | Unexpected server error                            |
 
 ---
 

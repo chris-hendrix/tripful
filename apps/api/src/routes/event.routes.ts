@@ -32,9 +32,7 @@ const eventIdParamsSchema = z.object({
 
 // Query string schema for listing events
 const listEventsQuerySchema = z.object({
-  type: z
-    .enum(["travel", "meal", "activity"])
-    .optional(),
+  type: z.enum(["travel", "meal", "activity"]).optional(),
   includeDeleted: z
     .string()
     .transform((val) => val === "true")
@@ -69,7 +67,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         querystring: listEventsQuerySchema,
         response: { 200: eventListResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     eventController.listEvents,
   );
@@ -86,7 +84,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         params: eventIdParamsSchema,
         response: { 200: eventResponseSchema },
       },
-      preHandler: [authenticate, fastify.rateLimit(defaultRateLimitConfig)],
+      preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
     eventController.getEvent,
   );
@@ -97,9 +95,9 @@ export async function eventRoutes(fastify: FastifyInstance) {
    * with stricter rate limiting for write operations
    */
   fastify.register(async (scope) => {
+    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
     scope.addHook("preHandler", authenticate);
     scope.addHook("preHandler", requireCompleteProfile);
-    scope.addHook("preHandler", scope.rateLimit(writeRateLimitConfig));
 
     /**
      * POST /trips/:tripId/events

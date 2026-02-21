@@ -1,4 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeAll,
+  beforeEach,
+  afterEach,
+  afterAll,
+} from "vitest";
 import type { Job } from "pg-boss";
 import { db } from "@/config/database.js";
 import { events, members, trips, users } from "@/db/schema/index.js";
@@ -8,6 +17,33 @@ import type { WorkerDeps, NotificationBatchPayload } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
 import type { SendOptions } from "pg-boss";
 import { generateUniquePhone } from "../../test-utils.js";
+
+/** Remove all stale data from previous test runs using the test marker name */
+async function cleanupStaleData() {
+  const staleUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.displayName, "Itinerary Organizer"));
+
+  for (const user of staleUsers) {
+    const staleTrips = await db
+      .select({ id: trips.id })
+      .from(trips)
+      .where(eq(trips.createdBy, user.id));
+
+    for (const trip of staleTrips) {
+      await db.delete(events).where(eq(events.tripId, trip.id));
+      await db.delete(members).where(eq(members.tripId, trip.id));
+    }
+    await db.delete(trips).where(eq(trips.createdBy, user.id));
+  }
+
+  if (staleUsers.length > 0) {
+    await db
+      .delete(users)
+      .where(eq(users.displayName, "Itinerary Organizer"));
+  }
+}
 
 describe("daily-itineraries.worker", () => {
   let testOrganizerPhone: string;
@@ -34,6 +70,14 @@ describe("daily-itineraries.worker", () => {
     }
   };
 
+  beforeAll(async () => {
+    await cleanupStaleData();
+  });
+
+  afterAll(async () => {
+    await cleanupStaleData();
+  });
+
   beforeEach(async () => {
     vi.useFakeTimers();
 
@@ -57,7 +101,9 @@ describe("daily-itineraries.worker", () => {
       boss: {
         send: vi.fn().mockResolvedValue(undefined),
       } as unknown as WorkerDeps["boss"],
-      smsService: { sendMessage: vi.fn() } as unknown as WorkerDeps["smsService"],
+      smsService: {
+        sendMessage: vi.fn(),
+      } as unknown as WorkerDeps["smsService"],
       logger: {
         info: vi.fn(),
         error: vi.fn(),
@@ -87,12 +133,14 @@ describe("daily-itineraries.worker", () => {
    * Helper to create a trip with given timezone and date range.
    * Sets the testTripId so cleanup can find it.
    */
-  async function createTrip(overrides: {
-    preferredTimezone?: string;
-    startDate?: string;
-    endDate?: string;
-    cancelled?: boolean;
-  } = {}) {
+  async function createTrip(
+    overrides: {
+      preferredTimezone?: string;
+      startDate?: string;
+      endDate?: string;
+      cancelled?: boolean;
+    } = {},
+  ) {
     const tripResult = await db
       .insert(trips)
       .values({
@@ -270,7 +318,8 @@ describe("daily-itineraries.worker", () => {
     await handleDailyItineraries(createMockJob(), mockDeps);
 
     expect(mockDeps.boss.send).toHaveBeenCalledTimes(1);
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe(
       "1. 9:00 AM - Morning Coffee\n2. 2:30 PM - City Tour",
     );
@@ -287,7 +336,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -313,7 +363,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("No events scheduled for today.");
   });
 
@@ -348,7 +399,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.body).toBe("1. 10:00 AM - Today Event");
     expect(payload.body).not.toContain("Tomorrow Event");
   });
@@ -364,13 +416,13 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const options = vi.mocked(mockDeps.boss.send).mock.calls[0][2] as SendOptions;
-    expect(options.singletonKey).toBe(
-      `daily-itinerary:${trip.id}:2026-03-15`,
-    );
+    const options = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][2] as SendOptions;
+    expect(options.singletonKey).toBe(`daily-itinerary:${trip.id}:2026-03-15`);
     expect(options.expireInSeconds).toBe(900);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.data.referenceId).toBe(`${trip.id}:2026-03-15`);
     expect(payload.data.tripId).toBe(trip.id);
   });
@@ -492,7 +544,8 @@ describe("daily-itineraries.worker", () => {
 
     await handleDailyItineraries(createMockJob(), mockDeps);
 
-    const payload = vi.mocked(mockDeps.boss.send).mock.calls[0][1] as NotificationBatchPayload;
+    const payload = vi.mocked(mockDeps.boss.send).mock
+      .calls[0][1] as NotificationBatchPayload;
     expect(payload.title).toBe("Daily Itinerary Trip - Today's Schedule");
     expect(payload.type).toBe("daily_itinerary");
   });

@@ -34,14 +34,7 @@ export const updateMessageSchema = z.object({
  * - emoji: one of the allowed reaction identifiers
  */
 export const toggleReactionSchema = z.object({
-  emoji: z.enum([
-    "heart",
-    "thumbs_up",
-    "laugh",
-    "surprised",
-    "party",
-    "plane",
-  ]),
+  emoji: z.enum(["heart", "thumbs_up", "laugh", "surprised", "party", "plane"]),
 });
 
 /**

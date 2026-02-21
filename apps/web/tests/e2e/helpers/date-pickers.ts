@@ -27,9 +27,7 @@ async function navigateToMonth(
   const targetCaption = `${MONTH_NAMES[targetMonth]} ${targetYear}`;
 
   for (let i = 0; i < 24; i++) {
-    const captionText = await calendar
-      .locator('[role="status"]')
-      .textContent();
+    const captionText = await calendar.getByRole("status").textContent();
     if (captionText?.trim() === targetCaption) return;
 
     const match = captionText?.trim().match(/^(\w+)\s+(\d{4})$/);
@@ -43,9 +41,7 @@ async function navigateToMonth(
     if (diff > 0) {
       await calendar.getByRole("button", { name: /next month/i }).click();
     } else if (diff < 0) {
-      await calendar
-        .getByRole("button", { name: /previous month/i })
-        .click();
+      await calendar.getByRole("button", { name: /previous month/i }).click();
     } else {
       break;
     }

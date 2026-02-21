@@ -52,7 +52,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -124,7 +123,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -201,7 +199,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: nonMember.id,
-        phone: nonMember.phoneNumber,
         name: nonMember.displayName,
       });
 
@@ -247,7 +244,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -318,7 +314,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: mutedUser.id,
-        phone: mutedUser.phoneNumber,
         name: mutedUser.displayName,
       });
 
@@ -388,7 +383,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -443,7 +437,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -527,7 +520,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -590,7 +582,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -639,7 +630,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -697,7 +687,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -774,7 +763,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: otherUser.id,
-        phone: otherUser.phoneNumber,
         name: otherUser.displayName,
       });
 
@@ -831,7 +819,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -904,7 +891,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -962,7 +948,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1039,7 +1024,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -1096,7 +1080,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1168,7 +1151,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1237,7 +1219,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1306,7 +1287,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1366,7 +1346,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer1.id,
-        phone: organizer1.phoneNumber,
         name: organizer1.displayName,
       });
 
@@ -1425,7 +1404,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -1504,7 +1482,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1566,7 +1543,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: organizer.id,
-        phone: organizer.phoneNumber,
         name: organizer.displayName,
       });
 
@@ -1632,7 +1608,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: member.id,
-        phone: member.phoneNumber,
         name: member.displayName,
       });
 
@@ -1688,7 +1663,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1761,7 +1735,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: testUser.displayName,
       });
 
@@ -1817,7 +1790,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1879,7 +1851,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 
@@ -1941,7 +1912,6 @@ describe("Message Routes", () => {
 
       const token = app.jwt.sign({
         sub: user.id,
-        phone: user.phoneNumber,
         name: user.displayName,
       });
 

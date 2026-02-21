@@ -305,7 +305,10 @@ export class MemberTravelService implements IMemberTravelService {
       })
       .from(memberTravel)
       .where(
-        and(eq(memberTravel.id, memberTravelId), isNull(memberTravel.deletedAt)),
+        and(
+          eq(memberTravel.id, memberTravelId),
+          isNull(memberTravel.deletedAt),
+        ),
       )
       .limit(1);
 
@@ -376,7 +379,10 @@ export class MemberTravelService implements IMemberTravelService {
       })
       .from(memberTravel)
       .where(
-        and(eq(memberTravel.id, memberTravelId), isNull(memberTravel.deletedAt)),
+        and(
+          eq(memberTravel.id, memberTravelId),
+          isNull(memberTravel.deletedAt),
+        ),
       )
       .limit(1);
 

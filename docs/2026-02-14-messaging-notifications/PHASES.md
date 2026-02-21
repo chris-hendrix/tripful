@@ -38,7 +38,7 @@
 - [ ] Implement muteMember() / unmuteMember() / isMuted()
 - [ ] Add messaging permission checks to PermissionsService (canViewMessages, canPostMessage, canModerateMessages, canMuteMember)
 - [ ] Create `MessageController` (thin adapter, delegates to service)
-- [ ] Create `message.routes.ts` (GET/POST/PUT/DELETE /trips/:tripId/messages/*, mute/unmute endpoints)
+- [ ] Create `message.routes.ts` (GET/POST/PUT/DELETE /trips/:tripId/messages/\*, mute/unmute endpoints)
 - [ ] Add error types: MESSAGE_NOT_FOUND, MEMBER_MUTED, MESSAGE_LIMIT_EXCEEDED, ALREADY_MUTED, NOT_MUTED, CANNOT_MUTE_ORGANIZER
 - [ ] Apply rate limiting (read: defaultRateLimit, write: writeRateLimit)
 
@@ -59,7 +59,7 @@
 - [ ] Implement notifyTripMembers() (bulk notification with preference checking)
 - [ ] Implement getPreferences() / updatePreferences() / createDefaultPreferences()
 - [ ] Create `NotificationController`
-- [ ] Create `notification.routes.ts` (GET/PATCH /notifications/*, GET/PUT /trips/:tripId/notification-preferences, GET /trips/:tripId/notifications)
+- [ ] Create `notification.routes.ts` (GET/PATCH /notifications/\*, GET/PUT /trips/:tripId/notification-preferences, GET /trips/:tripId/notifications)
 - [ ] Add error types: NOTIFICATION_NOT_FOUND
 - [ ] Hook message creation to notification delivery (top-level messages trigger notifyTripMembers)
 - [ ] Hook RSVP "Going" to create default notification preferences

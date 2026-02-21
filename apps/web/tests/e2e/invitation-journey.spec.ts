@@ -15,6 +15,7 @@ import {
   DIALOG_TIMEOUT,
 } from "./helpers/timeouts";
 import { pickDateTime } from "./helpers/date-pickers";
+import { dismissToast } from "./helpers/toast";
 
 /**
  * E2E Journey: Invitations & RSVP
@@ -76,14 +77,7 @@ test.describe("Invitation Journey", () => {
         await snap(page, "09-trip-detail-invite-button");
 
         // Dismiss any toast that might intercept the button click
-        const toastEl = page.locator("[data-sonner-toast]").first();
-        if (await toastEl.isVisible().catch(() => false)) {
-          await page.evaluate(() =>
-            document
-              .querySelectorAll("[data-sonner-toast]")
-              .forEach((el) => el.remove()),
-          );
-        }
+        await dismissToast(page);
 
         // Click "Invite" button in trip header
         const inviteButton = page
@@ -525,30 +519,16 @@ test.describe("Invitation Journey", () => {
       });
 
       // Dismiss toast before interacting with wizard elements
-      const toast = page.locator("[data-sonner-toast]").first();
-      if (await toast.isVisible().catch(() => false)) {
-        await page.locator("[data-sonner-toaster]").dispatchEvent("mouseleave");
-        const hidden = await toast
-          .waitFor({ state: "hidden", timeout: 3000 })
-          .then(() => true)
-          .catch(() => false);
-        if (!hidden) {
-          await page.evaluate(() =>
-            document
-              .querySelectorAll("[data-sonner-toast]")
-              .forEach((el) => el.remove()),
-          );
-        }
-      }
+      await dismissToast(page);
 
       // Wait for the onboarding wizard to appear (dynamically imported)
       const dialog = page.getByRole("dialog");
 
       // Step 0: phone sharing step appears first
-      await expect(
-        dialog.getByText("Share your phone number?"),
-      ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
-      await expect(dialog.getByText("Step 1 of 5")).toBeVisible();
+      await expect(dialog.getByText("Share your phone number?")).toBeVisible({
+        timeout: NAVIGATION_TIMEOUT,
+      });
+      await expect.soft(dialog.getByText("Step 1 of 5")).toBeVisible();
 
       // Skip past the phone sharing step
       await dialog.getByRole("button", { name: "Skip" }).click();
@@ -557,7 +537,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("When are you arriving?")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 2 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 2 of 5")).toBeVisible();
       await snap(page, "20-wizard-arrival-step");
     });
 
@@ -580,7 +560,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("When are you leaving?")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 3 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 3 of 5")).toBeVisible();
     });
 
     await test.step("verify departure pre-fill and fill departure step", async () => {
@@ -604,7 +584,7 @@ test.describe("Invitation Journey", () => {
       await expect(
         dialog.getByText("Want to suggest any activities?"),
       ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-      await expect(dialog.getByText("Step 4 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 4 of 5")).toBeVisible();
     });
 
     await test.step("add an event and advance", async () => {
@@ -634,7 +614,7 @@ test.describe("Invitation Journey", () => {
       await expect(dialog.getByText("You're all set!")).toBeVisible({
         timeout: ELEMENT_TIMEOUT,
       });
-      await expect(dialog.getByText("Step 5 of 5")).toBeVisible();
+      await expect.soft(dialog.getByText("Step 5 of 5")).toBeVisible();
     });
 
     await test.step("verify done step summary and close wizard", async () => {

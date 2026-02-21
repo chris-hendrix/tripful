@@ -134,262 +134,270 @@ export function CreateMemberTravelDialog({
         </SheetHeader>
 
         <SheetBody>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
-          >
-            {/* Member Selector */}
-            {isOrganizer && members && members.length > 0 ? (
-              <FormItem>
-                <FormLabel className="text-base font-semibold text-foreground">
-                  Member
-                </FormLabel>
-                <Select
-                  value={selectedMemberId}
-                  onValueChange={setSelectedMemberId}
-                  disabled={isPending}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-12 text-base rounded-xl" data-testid="member-selector">
-                      <SelectValue placeholder="Select a member" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {members.map((member) => (
-                      <SelectItem
-                        key={member.id}
-                        value={member.userId === user?.id ? "self" : member.id}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Avatar size="sm">
-                            {member.profilePhotoUrl && (
-                              <AvatarImage
-                                src={getUploadUrl(member.profilePhotoUrl)}
-                                alt={member.displayName}
-                              />
-                            )}
-                            <AvatarFallback>
-                              {getInitials(member.displayName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          {member.displayName}
-                          {member.userId === user?.id ? " (You)" : ""}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription className="text-sm text-muted-foreground">
-                  As organizer, you can add travel for any member
-                </FormDescription>
-              </FormItem>
-            ) : (
-              currentMember && (
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-6"
+            >
+              {/* Member Selector */}
+              {isOrganizer && members && members.length > 0 ? (
                 <FormItem>
                   <FormLabel className="text-base font-semibold text-foreground">
                     Member
                   </FormLabel>
-                  <div className="flex items-center gap-2 h-12 px-3 rounded-xl border border-input bg-muted/50">
-                    <Avatar size="sm">
-                      {currentMember.profilePhotoUrl && (
-                        <AvatarImage
-                          src={getUploadUrl(currentMember.profilePhotoUrl)}
-                          alt={currentMember.displayName}
-                        />
-                      )}
-                      <AvatarFallback>
-                        {getInitials(currentMember.displayName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-base text-muted-foreground">
-                      {currentMember.displayName}
-                    </span>
-                  </div>
-                </FormItem>
-              )
-            )}
-
-            {/* Travel Type */}
-            <FormField
-              control={form.control}
-              name="travelType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    Travel type
-                    <span className="text-destructive ml-1">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isPending}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="arrival" id="travel-arrival" />
-                        <Label
-                          htmlFor="travel-arrival"
-                          className="text-sm font-medium cursor-pointer"
+                  <Select
+                    value={selectedMemberId}
+                    onValueChange={setSelectedMemberId}
+                    disabled={isPending}
+                  >
+                    <FormControl>
+                      <SelectTrigger
+                        className="h-12 text-base rounded-xl"
+                        data-testid="member-selector"
+                      >
+                        <SelectValue placeholder="Select a member" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem
+                          key={member.id}
+                          value={
+                            member.userId === user?.id ? "self" : member.id
+                          }
                         >
-                          Arrival
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem
-                          value="departure"
-                          id="travel-departure"
-                        />
-                        <Label
-                          htmlFor="travel-departure"
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          Departure
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Timezone */}
-            <FormItem>
-              <FormLabel className="text-base font-semibold text-foreground">
-                Timezone
-              </FormLabel>
-              <Select
-                value={selectedTimezone}
-                onValueChange={setSelectedTimezone}
-                disabled={isPending}
-              >
-                <FormControl>
-                  <SelectTrigger className="h-12 text-base rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormItem>
-
-            {/* Time */}
-            <FormField
-              control={form.control}
-              name="time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    {travelTypeLabel} time
-                    <span className="text-destructive ml-1">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <DateTimePicker
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      timezone={selectedTimezone}
-                      placeholder="Select date & time"
-                      aria-label="Travel time"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Location */}
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-semibold text-foreground">
-                    {travelTypeLabel} location
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Miami International Airport (MIA)"
-                      className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
-                      disabled={isPending}
-                      {...field}
-                    />
-                  </FormControl>
+                          <span className="flex items-center gap-2">
+                            <Avatar size="sm">
+                              {member.profilePhotoUrl && (
+                                <AvatarImage
+                                  src={getUploadUrl(member.profilePhotoUrl)}
+                                  alt={member.displayName}
+                                />
+                              )}
+                              <AvatarFallback>
+                                {getInitials(member.displayName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {member.displayName}
+                            {member.userId === user?.id ? " (You)" : ""}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormDescription className="text-sm text-muted-foreground">
-                    Optional: Airport, station, or meeting point
+                    As organizer, you can add travel for any member
                   </FormDescription>
-                  <FormMessage />
                 </FormItem>
-              )}
-            />
-
-            {/* Details */}
-            <FormField
-              control={form.control}
-              name="details"
-              render={({ field }) => {
-                const charCount = field.value?.length || 0;
-                const showCounter = charCount >= 400;
-
-                return (
+              ) : (
+                currentMember && (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Details
+                      Member
+                    </FormLabel>
+                    <div className="flex items-center gap-2 h-12 px-3 rounded-xl border border-input bg-muted/50">
+                      <Avatar size="sm">
+                        {currentMember.profilePhotoUrl && (
+                          <AvatarImage
+                            src={getUploadUrl(currentMember.profilePhotoUrl)}
+                            alt={currentMember.displayName}
+                          />
+                        )}
+                        <AvatarFallback>
+                          {getInitials(currentMember.displayName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-base text-muted-foreground">
+                        {currentMember.displayName}
+                      </span>
+                    </div>
+                  </FormItem>
+                )
+              )}
+
+              {/* Travel Type */}
+              <FormField
+                control={form.control}
+                name="travelType"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      Travel type
+                      <span className="text-destructive ml-1">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Flight number, terminal, or other relevant details..."
-                        className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
                         disabled={isPending}
-                        {...field}
+                        className="flex gap-4"
+                        aria-required="true"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="arrival" id="travel-arrival" />
+                          <Label
+                            htmlFor="travel-arrival"
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            Arrival
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="departure"
+                            id="travel-departure"
+                          />
+                          <Label
+                            htmlFor="travel-departure"
+                            className="text-sm font-medium cursor-pointer"
+                          >
+                            Departure
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Timezone */}
+              <FormItem>
+                <FormLabel className="text-base font-semibold text-foreground">
+                  Timezone
+                </FormLabel>
+                <Select
+                  value={selectedTimezone}
+                  onValueChange={setSelectedTimezone}
+                  disabled={isPending}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-12 text-base rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+
+              {/* Time */}
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      {travelTypeLabel} time
+                      <span className="text-destructive ml-1">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <DateTimePicker
                         value={field.value || ""}
+                        onChange={field.onChange}
+                        timezone={selectedTimezone}
+                        placeholder="Select date & time"
+                        aria-label="Travel time"
+                        disabled={isPending}
                       />
                     </FormControl>
-                    {showCounter && (
-                      <div className="text-xs text-muted-foreground text-right">
-                        {charCount} / 500 characters
-                      </div>
-                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Location */}
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold text-foreground">
+                      {travelTypeLabel} location
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Miami International Airport (MIA)"
+                        className="h-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl"
+                        disabled={isPending}
+                        {...field}
+                      />
+                    </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">
-                      Optional: Share additional travel details
+                      Optional: Airport, station, or meeting point
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
-            />
+                )}
+              />
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-                className="flex-1 h-12 rounded-xl border-input"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                variant="gradient"
-                className="flex-1 h-12 rounded-xl"
-              >
-                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isPending ? "Adding..." : "Add travel details"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              {/* Details */}
+              <FormField
+                control={form.control}
+                name="details"
+                render={({ field }) => {
+                  const charCount = field.value?.length || 0;
+                  const showCounter = charCount >= 400;
+
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-base font-semibold text-foreground">
+                        Details
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Flight number, terminal, or other relevant details..."
+                          className="h-32 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-xl resize-none"
+                          disabled={isPending}
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      {showCounter && (
+                        <div className="text-xs text-muted-foreground text-right">
+                          {charCount} / 500 characters
+                        </div>
+                      )}
+                      <FormDescription className="text-sm text-muted-foreground">
+                        Optional: Share additional travel details
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                  className="flex-1 h-12 rounded-xl border-input"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  variant="gradient"
+                  className="flex-1 h-12 rounded-xl"
+                >
+                  {isPending && (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  )}
+                  {isPending ? "Adding..." : "Add travel details"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </SheetBody>
       </SheetContent>
     </Sheet>

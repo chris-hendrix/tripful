@@ -13,6 +13,7 @@ export default fp(
   },
   {
     name: "trip-service",
+    fastify: "5.x",
     dependencies: ["database", "permissions-service"],
   },
 );

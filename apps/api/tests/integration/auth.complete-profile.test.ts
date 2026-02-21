@@ -36,7 +36,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -69,7 +68,7 @@ describe("POST /api/auth/complete-profile", () => {
       // Verify new token includes updated displayName
       const decoded = app.jwt.verify(authCookie!.value);
       expect(decoded).toHaveProperty("sub", testUser.id);
-      expect(decoded).toHaveProperty("phone", testUser.phoneNumber);
+      expect(decoded).not.toHaveProperty("phone");
       expect(decoded).toHaveProperty("name", "John Doe");
     });
 
@@ -91,7 +90,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -131,7 +129,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -176,7 +173,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         name: "Old Name",
       });
 
@@ -220,7 +216,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -265,7 +260,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -305,7 +299,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const longName = "A".repeat(51);
@@ -349,7 +342,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -436,7 +428,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate expired JWT token (expired 1 second ago)
       const expiredToken = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
         exp: Math.floor(Date.now() / 1000) - 1, // Expired 1 second ago
       });
 
@@ -479,7 +470,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({
@@ -531,7 +521,6 @@ describe("POST /api/auth/complete-profile", () => {
       // Generate JWT token
       const token = app.jwt.sign({
         sub: testUser.id,
-        phone: testUser.phoneNumber,
       });
 
       const response = await app.inject({

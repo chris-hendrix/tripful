@@ -44,9 +44,7 @@ describe("MessageCountIndicator", () => {
     };
     render(<MessageCountIndicator tripId="trip-1" />);
 
-    expect(
-      screen.getByText(/Latest message preview text/),
-    ).toBeDefined();
+    expect(screen.getByText(/Latest message preview text/)).toBeDefined();
   });
 
   it("does not show preview for deleted messages", () => {
@@ -65,18 +63,14 @@ describe("MessageCountIndicator", () => {
 
   it("renders nothing when count is 0", () => {
     mockCount = 0;
-    const { container } = render(
-      <MessageCountIndicator tripId="trip-1" />,
-    );
+    const { container } = render(<MessageCountIndicator tripId="trip-1" />);
 
     expect(container.innerHTML).toBe("");
   });
 
   it("renders nothing when count is undefined", () => {
     mockCount = undefined;
-    const { container } = render(
-      <MessageCountIndicator tripId="trip-1" />,
-    );
+    const { container } = render(<MessageCountIndicator tripId="trip-1" />);
 
     expect(container.innerHTML).toBe("");
   });

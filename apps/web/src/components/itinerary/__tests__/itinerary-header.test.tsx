@@ -7,7 +7,11 @@ import { ItineraryHeader } from "../itinerary-header";
 // Mock useAuth (required by CreateMemberTravelDialog rendered inside ItineraryHeader)
 vi.mock("@/app/providers/auth-provider", () => ({
   useAuth: () => ({
-    user: { id: "user-1", displayName: "Test User", phoneNumber: "+15551234567" },
+    user: {
+      id: "user-1",
+      displayName: "Test User",
+      phoneNumber: "+15551234567",
+    },
   }),
 }));
 

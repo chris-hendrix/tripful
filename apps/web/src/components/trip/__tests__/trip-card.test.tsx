@@ -415,17 +415,18 @@ describe("TripCard", () => {
 
       const card = container.firstChild as HTMLElement;
       expect(card.className).toContain("hover:shadow-md");
-      expect(card.className).toContain("active:scale-[0.98]");
+      expect(card.className).toContain("motion-safe:active:scale-[0.98]");
       expect(card.className).toContain("transition-all");
     });
 
-    it("applies animation classes", () => {
+    it("applies motion-safe animation classes", () => {
       const { container } = render(<TripCard trip={baseTrip} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card.className).toContain("animate-in");
-      expect(card.className).toContain("fade-in");
-      expect(card.className).toContain("slide-in-from-bottom-4");
+      expect(card.className).toContain(
+        "motion-safe:animate-[slideUp_500ms_ease-out_both]",
+      );
+      expect(card.className).toContain("motion-safe:hover:-translate-y-0.5");
     });
   });
 });

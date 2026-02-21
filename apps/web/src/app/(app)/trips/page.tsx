@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/get-query-client";
 import { tripKeys } from "@/hooks/trip-queries";
@@ -20,7 +21,9 @@ export default async function TripsPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <TripsContent />
+      <Suspense>
+        <TripsContent />
+      </Suspense>
     </HydrationBoundary>
   );
 }

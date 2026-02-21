@@ -256,18 +256,10 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
-      expect(
-        screen.getByRole("tab", { name: /Going/ }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: /Maybe/ }),
-      ).toBeDefined();
-      expect(
-        screen.queryByRole("tab", { name: /Not Going/ }),
-      ).toBeNull();
-      expect(
-        screen.queryByRole("tab", { name: /Invited/ }),
-      ).toBeNull();
+      expect(screen.getByRole("tab", { name: /Going/ })).toBeDefined();
+      expect(screen.getByRole("tab", { name: /Maybe/ })).toBeDefined();
+      expect(screen.queryByRole("tab", { name: /Not Going/ })).toBeNull();
+      expect(screen.queryByRole("tab", { name: /Invited/ })).toBeNull();
     });
 
     it("shows all four tabs for organizers", () => {
@@ -275,18 +267,10 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={true} />,
       );
 
-      expect(
-        screen.getByRole("tab", { name: /^Going/ }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: /^Maybe/ }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: /^Not Going/ }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: /^Invited/ }),
-      ).toBeDefined();
+      expect(screen.getByRole("tab", { name: /^Going/ })).toBeDefined();
+      expect(screen.getByRole("tab", { name: /^Maybe/ })).toBeDefined();
+      expect(screen.getByRole("tab", { name: /^Not Going/ })).toBeDefined();
+      expect(screen.getByRole("tab", { name: /^Invited/ })).toBeDefined();
     });
 
     it("shows correct tab counts", () => {
@@ -294,19 +278,11 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={true} />,
       );
 
-      expect(
-        screen.getByRole("tab", { name: "Going (1)" }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: "Maybe (1)" }),
-      ).toBeDefined();
-      expect(
-        screen.getByRole("tab", { name: "Not Going (1)" }),
-      ).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Going (1)" })).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Maybe (1)" })).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Not Going (1)" })).toBeDefined();
       // Invited = 1 no_response member + 0 pending invitations
-      expect(
-        screen.getByRole("tab", { name: "Invited (1)" }),
-      ).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Invited (1)" })).toBeDefined();
     });
 
     it("shows correct Invited count including pending invitations", () => {
@@ -320,9 +296,7 @@ describe("MembersList", () => {
       );
 
       // 1 no_response member + 2 pending/failed invitations = 3
-      expect(
-        screen.getByRole("tab", { name: "Invited (3)" }),
-      ).toBeDefined();
+      expect(screen.getByRole("tab", { name: "Invited (3)" })).toBeDefined();
     });
 
     it("defaults to Going tab", () => {
@@ -433,9 +407,7 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
-      expect(
-        screen.queryByRole("tab", { name: /Not Going/ }),
-      ).toBeNull();
+      expect(screen.queryByRole("tab", { name: /Not Going/ })).toBeNull();
     });
   });
 
@@ -557,9 +529,7 @@ describe("MembersList", () => {
         <MembersList tripId="trip-123" isOrganizer={false} />,
       );
 
-      expect(
-        screen.queryByRole("tab", { name: /Invited/ }),
-      ).toBeNull();
+      expect(screen.queryByRole("tab", { name: /Invited/ })).toBeNull();
     });
   });
 
@@ -1207,9 +1177,7 @@ describe("MembersList", () => {
       const muteItem = await screen.findByText("Mute");
       await user.click(muteItem);
 
-      expect(
-        await screen.findByText("Mute Jane Smith?"),
-      ).toBeDefined();
+      expect(await screen.findByText("Mute Jane Smith?")).toBeDefined();
       expect(
         screen.getByText(
           "This member will not be able to post messages in the trip discussion. You can unmute them at any time.",
@@ -1323,9 +1291,7 @@ describe("MembersList", () => {
 
       const venmoLink = screen.getByTestId("member-venmo-user-1");
       expect(venmoLink).toBeDefined();
-      expect(venmoLink.getAttribute("href")).toBe(
-        "https://venmo.com/testuser",
-      );
+      expect(venmoLink.getAttribute("href")).toBe("https://venmo.com/testuser");
       expect(venmoLink.getAttribute("target")).toBe("_blank");
 
       const svg = venmoLink.querySelector("svg");

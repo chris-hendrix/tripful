@@ -8,10 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { AllowedReaction } from "@tripful/shared/types";
-import {
-  ALLOWED_REACTIONS,
-  REACTION_EMOJI_MAP,
-} from "@tripful/shared/types";
+import { ALLOWED_REACTIONS, REACTION_EMOJI_MAP } from "@tripful/shared/types";
 
 interface ReactionPickerProps {
   onSelect: (emoji: AllowedReaction) => void;
@@ -33,11 +30,7 @@ export function ReactionPicker({ onSelect, disabled }: ReactionPickerProps) {
           <SmilePlus className="size-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-auto p-2"
-        side="top"
-        align="start"
-      >
+      <PopoverContent className="w-auto p-2" side="top" align="start">
         <div className="flex gap-1" role="group" aria-label="Pick a reaction">
           {ALLOWED_REACTIONS.map((emoji) => (
             <button

@@ -1,9 +1,6 @@
 import type { Job } from "pg-boss";
 import { eq, and, inArray } from "drizzle-orm";
-import type {
-  NotificationBatchPayload,
-  WorkerDeps,
-} from "@/queues/types.js";
+import type { NotificationBatchPayload, WorkerDeps } from "@/queues/types.js";
 import { QUEUE } from "@/queues/types.js";
 import {
   members,
