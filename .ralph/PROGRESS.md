@@ -262,3 +262,49 @@
 - **Cannot validate CI pipeline locally**: GitHub Actions workflows can only be fully validated when running in GitHub. The YAML structure, job dependencies, conditions, and action versions have been reviewed for correctness. Actual CI execution will be validated when code is pushed.
 - **Reporter strategy**: Both `e2e-smoke` and `e2e-tests` use `blob` reporter in CI (from the `process.env.CI` config). The smoke job uploads its blob directly (no merge needed for a single run). Only the sharded `e2e-tests` has a merge step.
 - **Phase 3 progress**: Task 3.1 complete. Task 3.2 (Phase 3 cleanup) remains.
+
+## Iteration 7 — Task 3.2: Phase 3 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass (2 verification rounds)
+**Reviewer**: APPROVED (one MEDIUM finding fixed in re-review)
+
+### Review of Phase 3 (Task 3.1)
+
+**FAILURE / BLOCKED items**: None. Task 3.1 completed successfully with all checks passing.
+
+**Reviewer caveats from Task 3.1**: One LOW finding (`merge-e2e-reports` skipped guard) was already addressed during Task 3.1 itself. No deferred items.
+
+### Issues Found and Fixed
+
+**Issue 1 (MEDIUM): Accidentally committed blob-report artifact**
+- `apps/web/blob-report/report-f59bbac.zip` was committed to git during Task 3.1
+- Removed from git tracking via `git rm --cached`
+- Added `blob-report/` and `all-blob-reports/` to `apps/web/.gitignore` (alongside existing Playwright entries: `test-results/`, `playwright-report/`, `playwright-screenshots/`, `playwright/.cache/`)
+
+**Issue 2 (LOW): `.github/GITHUB_ACTIONS_SETUP.md` outdated**
+- Updated Jobs section from 4 jobs to 6 jobs (added E2E Smoke Tests, E2E Tests with sharding, Merge E2E Reports)
+- Added Test Tiers section documenting @smoke (6 tests) and @regression (15 tests) split
+- Updated Conditional Execution, Required Status Checks, CI Performance, Download Reports, Run Locally, and Troubleshooting sections
+- Removed emoji checkmarks for consistency
+
+**Issue 3 (MEDIUM, from reviewer): Smoke report download instructions inaccurate**
+- Original text told users to "Extract and open `index.html` in browser" for the smoke report
+- However, the smoke job uploads blob format (not HTML) — there is no merge step for smoke tests
+- Fixed: Updated instructions to explain it's a blob report and provide commands to convert to HTML locally (`npx playwright merge-reports --reporter html .`)
+
+### Verification Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| `pnpm test:e2e` | PASS — 21 tests in 7 files (3.0m) |
+| `blob-report/` gitignored | PASS — `git ls-files` returns empty, `git check-ignore` confirms |
+| `GITHUB_ACTIONS_SETUP.md` updated | PASS — reflects current CI pipeline |
+
+### Notes
+
+- **No new tasks needed**: All issues from Phase 3 were fixed directly in this cleanup task.
+- **Pre-existing out-of-scope issues unchanged**: (1) Dead auth helpers in `helpers/auth.ts`. (2) Hardcoded timeouts in multiple spec files. (3) Hardcoded `http://localhost:8000/api` in 3 spec files. (4) `shared/` directory not included in CI change detection filter (pre-existing).
+- **Phase 3 is now complete**. All 2 tasks done, 21 tests passing across 7 files. Ready for Phase 4.
