@@ -2,7 +2,7 @@
 
 ## Overview
 
-Reduce the E2E test suite from 32 tests / 9 files to 22 tests / 7 files by removing tests covered by unit tests, merging related tests, optimizing test infrastructure, and splitting CI into smoke/regression tiers.
+Reduce the E2E test suite from 32 tests / 9 files to 21 tests / 7 files by removing tests covered by unit tests, merging related tests, optimizing test infrastructure, and splitting CI into smoke/regression tiers.
 
 ## Testing Strategy
 
@@ -135,7 +135,7 @@ Add new `e2e-smoke` job:
 
 Modify existing `e2e-tests` job:
 - Runs on main branch merges only (full suite with sharding)
-- All 22 tests across 2 shards
+- All 21 tests across 2 shards
 
 ### Tag assignments
 
@@ -147,7 +147,7 @@ Modify existing `e2e-tests` job:
 5. `messaging: messaging CRUD journey`
 6. `notifications: notification flow` (merged)
 
-`@regression` (16 tests): all remaining tests
+`@regression` (15 tests): all remaining tests
 
 ### Convenience script
 
@@ -160,12 +160,12 @@ Add: `"test:e2e:smoke": "playwright test --grep @smoke"`
 ## Target State
 
 ```
-22 tests / 7 files
+21 tests / 7 files
 ├── auth-journey.spec.ts        (2: complete auth @smoke, redirects+guards @regression)
 ├── trip-journey.spec.ts        (6: CRUD @smoke, 5 others @regression)
 ├── invitation-journey.spec.ts  (5: invite+RSVP @smoke, 4 others @regression)
 ├── profile-journey.spec.ts     (2: editing @regression, photo @regression)
 ├── itinerary-journey.spec.ts   (3: CRUD @smoke, view modes + restore @regression)
 ├── messaging.spec.ts           (2: CRUD @smoke, organizer actions @regression)
-└── notifications.spec.ts       (2: notification flow @smoke, — merged)
+└── notifications.spec.ts       (1: notification flow @smoke)
 ```

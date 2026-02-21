@@ -13,40 +13,40 @@
   - Implement: Remove `"notification preferences journey"` test from `apps/web/tests/e2e/notifications.spec.ts`
   - Implement: Clean up any orphaned imports in modified files (unused helpers, timeouts, etc.)
   - Verify: `pnpm lint` and `pnpm typecheck` pass (no unused imports/variables)
-  - Verify: `pnpm test:e2e` — remaining tests pass, count is 24 (32 - 8 removed, merges not yet done)
+  - Verify: `pnpm test:e2e` — remaining tests pass, count is 23 (32 - 9 removed, merges not yet done)
 
 - [x] Task 1.2: Merge auth tests and notification tests
   - Implement: In `auth-journey.spec.ts`, merge `"auth guards"` + `"authenticated user redirects away from public pages"` into single `"auth redirects and guards"` test. Combined flow: unauthenticated → redirect to /login → authenticate → existing user skips complete-profile → verify / redirects to /trips → verify /login redirects to /trips. Single `authenticateUser` call.
   - Implement: In `notifications.spec.ts`, merge `"notification bell and dropdown journey"` + `"mark all as read and trip notification bell journey"` into single `"notification flow"` test. Combined flow: setup organizer + member + trip + 2 messages → verify global bell shows unread → click notification → navigate to trip → verify trip bell shows 2 unread → open dialog → mark all as read → verify both global and trip bells show zero.
   - Implement: Clean up any orphaned imports after merges
   - Verify: `pnpm lint` and `pnpm typecheck` pass
-  - Verify: `pnpm test:e2e` — all remaining tests pass, count is 22
+  - Verify: `pnpm test:e2e` — all remaining tests pass, count is 21
 
-- [ ] Task 1.3: Phase 1 cleanup
+- [x] Task 1.3: Phase 1 cleanup
   - Review: Read PROGRESS.md entries for Phase 1 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 22 tests pass
+  - Verify: `pnpm test:e2e` — all 21 tests pass
 
 ## Phase 2: Tags and Infrastructure
 
 - [ ] Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
   - Implement: Ensure `@smoke` tag on these 6 tests: `"complete auth journey"`, `"trip CRUD journey"`, `"invitation and RSVP journey"`, `"itinerary CRUD journey"`, `"messaging CRUD journey"`, `"notification flow"` (the merged test)
-  - Implement: Add `@regression` tag to all remaining 16 non-smoke tests that don't already have it
+  - Implement: Add `@regression` tag to all remaining 15 non-smoke tests that don't already have it
   - Implement: Review `test.slow()` calls — ensure no leftover calls from deleted tests, keep on remaining slow tests
   - Implement: In `apps/web/tests/e2e/helpers/invitations.ts`, add optional `inviterCookie?: string` parameter to `inviteAndAcceptViaAPI`. When provided, skip the `createUserViaAPI(request, inviterPhone)` re-auth and use the cookie directly. Falls back to current behavior when omitted.
   - Implement: Update callers that already have the organizer cookie to pass it: `invitation-journey.spec.ts`, `trip-journey.spec.ts`, `messaging.spec.ts`, `notifications.spec.ts`
   - Implement: In `apps/web/playwright.config.ts`, change `workers: process.env.CI ? 2 : 1` to `workers: process.env.CI ? 4 : 1`
   - Implement: Add `"test:e2e:smoke": "playwright test --grep @smoke"` to `apps/web/package.json` scripts
   - Verify: `pnpm lint` and `pnpm typecheck` pass
-  - Verify: `pnpm test:e2e` — all 22 tests pass
+  - Verify: `pnpm test:e2e` — all 21 tests pass
   - Verify: Confirm `@smoke` grep matches exactly 6 tests (run `pnpm test:e2e:smoke --list` or dry-run)
 
 - [ ] Task 2.2: Phase 2 cleanup
   - Review: Read PROGRESS.md entries for Phase 2 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 22 tests pass
+  - Verify: `pnpm test:e2e` — all 21 tests pass
 
 ## Phase 3: CI Pipeline
 
@@ -63,7 +63,7 @@
   - Review: Read PROGRESS.md entries for Phase 3 tasks
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
   - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 22 tests pass
+  - Verify: `pnpm test:e2e` — all 21 tests pass
 
 ## Phase 4: Final Verification
 
@@ -71,7 +71,7 @@
   - Verify: `pnpm lint` passes
   - Verify: `pnpm typecheck` passes
   - Verify: `pnpm test` — all unit/integration tests pass
-  - Verify: `pnpm test:e2e` — all 22 E2E tests pass
+  - Verify: `pnpm test:e2e` — all 21 E2E tests pass
   - Verify: `pnpm test:e2e:smoke` — exactly 6 smoke tests pass
   - Verify: Confirm file count is 7 spec files (no orphaned files)
   - Verify: Confirm no orphaned imports or unused helpers

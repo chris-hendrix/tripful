@@ -44,7 +44,7 @@ make dev-exec CMD="pnpm --filter @tripful/web exec playwright test --list"
 make dev-exec CMD="pnpm test:e2e"
 ```
 
-Expected: 22 tests pass across 7 spec files after all tasks complete.
+Expected: 21 tests pass across 7 spec files after all tasks complete.
 
 ### Smoke E2E subset
 
@@ -102,8 +102,8 @@ None — this task modifies test infrastructure only, no feature flags involved.
 
 | After Task | Expected State |
 |-----------|---------------|
-| 1.1 | 24 tests pass (8 removed) |
-| 1.2 | 22 tests pass (merges done) |
-| 2.1 | 22 tests pass, 6 smoke tests identified, `inviteAndAcceptViaAPI` accepts optional cookie |
+| 1.1 | 23 tests pass (9 removed) |
+| 1.2 | 21 tests pass (merges done) |
+| 2.1 | 21 tests pass, 6 smoke tests identified, `inviteAndAcceptViaAPI` accepts optional cookie |
 | 3.1 | CI YAML updated with smoke job + sharding + report merge |
-| 4.1 | All checks green: lint, typecheck, unit, E2E full (22), E2E smoke (6) |
+| 4.1 | All checks green: lint, typecheck, unit, E2E full (21), E2E smoke (6) |

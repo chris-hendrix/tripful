@@ -22,7 +22,7 @@ import { scrollToDiscussion } from "./helpers/messaging";
 /**
  * E2E Journey: Messaging Flows
  *
- * Consolidates 10 messaging scenarios into 3 journey tests.
+ * Consolidates 10 messaging scenarios into 2 journey tests.
  * Uses direct API calls for fast setup and authenticateViaAPIWithPhone
  * to switch between users.
  */

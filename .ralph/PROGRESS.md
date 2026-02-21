@@ -80,3 +80,37 @@
 - **Test count is 21** (23 − 2 merges = 21). TASKS.md predicted 22 but that was based on the original 32 − 8 = 24 estimate. Actual: 32 − 9 = 23 after Task 1.1, then 23 − 2 = 21 after Task 1.2. Downstream tasks should use 21 as the baseline.
 - **Reviewer suggestion (LOW)**: The auth-journey file uses hardcoded `timeout: 5000` instead of imported timeout constants. Pre-existing, not introduced by this change. Can be addressed in a future consistency pass.
 - **Reviewer confirmed**: The soft assertion `expect.soft(page.getByText(/Alice:.*First message from Alice/))` was restored in the merged notification test, preserving notification content rendering coverage.
+
+## Iteration 3 — Task 1.3: Phase 1 cleanup
+
+**Status**: COMPLETED
+**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass
+**Reviewer**: APPROVED
+
+### Changes Made
+
+**Deferred items from Task 1.1 — fixed:**
+- `messaging.spec.ts` line 25: JSDoc said "3 journey tests" → corrected to "2 journey tests" (the "restricted states journey" was removed in Task 1.1)
+
+**Deferred items from Task 1.2 — fixed:**
+- `auth-journey.spec.ts`: Added `import { NAVIGATION_TIMEOUT } from "./helpers/timeouts"` and replaced 4 hardcoded `timeout: 5000` values with `timeout: NAVIGATION_TIMEOUT` (lines 86, 97, 109, 115). This aligns with the pattern used by other spec files.
+
+**Test count corrections across .ralph/ docs:**
+- TASKS.md: Updated 6 downstream task references from "22 tests" to "21 tests"; corrected Task 1.1 verify from "24 (32 - 8)" to "23 (32 - 9)"; corrected Task 2.1 regression count from "16" to "15"
+- VERIFICATION.md: Updated 3 milestone references from "22" to "21"; corrected Task 1.1 milestone from "24 (8 removed)" to "23 (9 removed)"
+- ARCHITECTURE.md: Updated target state from "22 tests" to "21 tests" (2 lines); corrected @regression count from "16" to "15"; corrected notifications.spec.ts entry from "(2: ...)" to "(1: notification flow @smoke)"
+
+### Verification Results
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | PASS |
+| `pnpm typecheck` | PASS |
+| `pnpm test:e2e` | PASS — 21 tests in 7 files |
+| `playwright test --list` | 21 tests confirmed |
+
+### Notes
+
+- **No new tasks needed**: All deferred items from Phase 1 were simple fixes addressed directly in this cleanup.
+- **Out-of-scope pre-existing issues identified but not fixed**: (1) `trip-journey.spec.ts` JSDoc says "3 journey tests" but has 6 — pre-existing before this branch. (2) Dead auth helper functions (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) in `helpers/auth.ts` — pre-existing. (3) Mixed hardcoded/constant timeouts in other spec files — pre-existing.
+- **Phase 1 is now complete**. All 3 tasks done, 21 tests passing across 7 files. Ready for Phase 2.
