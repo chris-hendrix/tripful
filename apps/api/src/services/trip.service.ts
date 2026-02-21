@@ -312,9 +312,9 @@ export class TripService implements ITripService {
     tripId: string,
     userId: string,
   ): Promise<TripDetailResult | null> {
-    // Check if user is a member of the trip
+    // Check if user is a member of the trip (select only needed columns)
     const membershipCheck = await this.db
-      .select()
+      .select({ status: members.status, isOrganizer: members.isOrganizer })
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, userId)))
       .limit(1);
@@ -345,15 +345,7 @@ export class TripService implements ITripService {
 
     const trip = tripResult[0]!;
 
-    // Load organizers: members with isOrganizer=true (creator and co-organizers)
-    const organizerMembers = await this.db
-      .select()
-      .from(members)
-      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
-
-    const organizerUserIds = organizerMembers.map((m) => m.userId);
-
-    // Load user information for all organizers
+    // Load organizers with user info in a single JOIN query
     const organizerUsers = await this.db
       .select({
         id: users.id,
@@ -362,8 +354,9 @@ export class TripService implements ITripService {
         profilePhotoUrl: users.profilePhotoUrl,
         timezone: users.timezone,
       })
-      .from(users)
-      .where(inArray(users.id, organizerUserIds));
+      .from(members)
+      .innerJoin(users, eq(members.userId, users.id))
+      .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
 
     // Load member count
     const memberCount = await this.getMemberCount(tripId);
@@ -585,7 +578,7 @@ export class TripService implements ITripService {
     if (!canEdit) {
       // Check if trip exists to provide better error message
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -640,7 +633,7 @@ export class TripService implements ITripService {
     if (!canDelete) {
       // Check if trip exists for better error message
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -695,7 +688,7 @@ export class TripService implements ITripService {
     if (!canManage) {
       // Check if trip exists for better error message
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);
@@ -805,7 +798,7 @@ export class TripService implements ITripService {
     if (!canManage) {
       // Check if trip exists for better error message
       const tripExists = await this.db
-        .select()
+        .select({ id: trips.id })
         .from(trips)
         .where(eq(trips.id, tripId))
         .limit(1);

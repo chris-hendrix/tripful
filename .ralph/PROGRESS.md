@@ -530,3 +530,45 @@ Three researchers analyzed all Phase 3 work (Tasks 3.1-3.4) in parallel:
 - All four editable-link dialog components now consistently use `key={link}` — links are guaranteed unique by `handleAddLink` duplicate check
 - Pre-existing test failure count: 18 this run (stable across iterations 5-13)
 - Phase 3 is fully complete with no outstanding issues — Phase 4 can proceed cleanly
+
+## Iteration 14 — Task 4.1: Optimize N+1 query, existence checks, and sequential count queries
+
+**Status**: COMPLETED
+**Date**: 2026-02-21
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `apps/api/src/services/trip.service.ts` | Optimized `getTripById` membership check from `select()` to `select({ status, isOrganizer })` (only needed columns); replaced 2 sequential organizer queries (members query + users `inArray` query) with single `innerJoin` query; changed 4 trip existence checks in `updateTrip`, `cancelTrip`, `addCoOrganizers`, `removeCoOrganizer` from `select()` to `select({ id: trips.id })` |
+| `apps/api/src/services/event.service.ts` | Optimized `updateEvent` from `select()` to `select({ id, tripId, createdBy, startTime, endTime })` (only consumed fields); optimized `restoreEvent` from `select()` to `select({ id, tripId })` (only `tripId` used downstream) |
+| `apps/api/src/services/notification.service.ts` | Added `sql` to drizzle-orm imports; combined 2 sequential count queries (total + unread) into single query using conditional aggregation `count(case when readAt is null then 1 end)`; added `.mapWith(Number)` for runtime type coercion |
+
+### Key Decisions
+
+- **`innerJoin` for organizer loading**: Replaced the two-step pattern (fetch organizer member rows → extract userIds → fetch user rows via `inArray`) with a single `members INNER JOIN users` query filtered by `isOrganizer=true`. This eliminates the intermediate variable and avoids the edge case where `inArray` receives an empty array. The `innerJoin` is correct because every member must have a corresponding user record.
+- **Column narrowing scope**: Only narrowed `select()` calls where the downstream code uses a strict subset of columns. Left `select()` unchanged in locations that return full entity rows (e.g., `getEvent()` returns `Event`, `updateTrip` trip load returns `Trip`). The 8 locations changed are all either existence checks or partial-field lookups.
+- **Conditional aggregation over `FILTER (WHERE ...)`**: Used `count(case when ... then 1 end)` instead of PostgreSQL's `FILTER (WHERE ...)` clause because the `CASE WHEN` pattern is more portable and Drizzle's `sql` template handles it cleanly. Both produce identical results.
+- **`.mapWith(Number)` required**: Drizzle's `sql<number>` template only provides a TypeScript type hint — PostgreSQL returns `count()` results as strings. The `.mapWith(Number)` call ensures runtime numeric coercion, matching the behavior of Drizzle's built-in `count()` function.
+- **`getMemberCount()` kept separate**: The member count query in `getTripById` was not folded into the JOIN because it's a shared utility method (`getMemberCount`) used elsewhere. Keeping it separate maintains the DRY principle.
+
+### Verification Results
+
+- **TypeScript**: 0 errors across all 3 packages (shared, api, web)
+- **Linting**: 0 errors across all 3 packages
+- **Targeted service tests**: 119/119 pass — trip.service (58/58), event.service (29/29), notification.service (32/32)
+- **Full test suite**: 18 pre-existing failures (daily-itineraries worker 10, app-header nav 5, URL validation dialogs 2, trip metadata 1). Auth lockout expiry flaky test passed this run. No new regressions.
+- **Reviewer**: APPROVED — all 3 requirements met, correct JOIN optimization, proper column narrowing, semantically correct conditional aggregation
+
+### Reviewer Notes
+
+- Additional `select()` patterns remain in other services (accommodation.service.ts, invitation.service.ts, member-travel.service.ts, auth.service.ts) — out of scope for Task 4.1 but noted for potential future optimization
+- The `addCoOrganizers` and `removeCoOrganizer` methods in trip.service.ts still have some `select()` calls that load full records where subsets would suffice — also out of scope
+
+### Learnings for Future Iterations
+
+- Drizzle `innerJoin` on the query builder eliminates the need for separate `inArray` lookups — whenever you have a "fetch IDs then fetch related rows" pattern, consider a JOIN instead
+- `sql<T>` in Drizzle is a TypeScript-only type hint — PostgreSQL returns numeric aggregates as strings. Always use `.mapWith(Number)` on raw SQL count/sum expressions to get runtime numeric values
+- `count(case when X then 1 end)` is equivalent to `count(*) filter (where X)` in PostgreSQL — the CASE WHEN approach is more portable across databases
+- When narrowing `select()` to specific columns, verify ALL downstream references to the result object — TypeScript will catch missing fields, but it's easy to miss property access chains
+- Pre-existing test failure count: 18 this run (stable across iterations 5-14)

@@ -105,7 +105,7 @@
 
 ## Phase 4: API Backend
 
-- [ ] Task 4.1: Optimize N+1 query, existence checks, and sequential count queries
+- [x] Task 4.1: Optimize N+1 query, existence checks, and sequential count queries
   - Implement: In `services/trip.service.ts:349-366` — replace 2 sequential queries with single query using Drizzle `with`/join for `getTripById()`
   - Implement: In `services/event.service.ts:140-144` and similar locations — replace `SELECT *` for existence checks with `SELECT id ... LIMIT 1`
   - Implement: In `services/notification.service.ts:133-147` — combine total and unread count queries into single query with conditional aggregation
