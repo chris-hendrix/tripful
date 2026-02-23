@@ -2,21 +2,65 @@ import { resolve } from "node:path";
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
 import { UploadService } from "@/services/upload.service.js";
-import { LocalStorageService } from "@/services/storage.service.js";
+import {
+  LocalStorageService,
+  S3StorageService,
+} from "@/services/storage.service.js";
+import type { IStorageService } from "@/services/storage.service.js";
 
 /**
  * Upload service plugin
- * Creates a LocalStorageService and UploadService, decorating the Fastify instance
+ * Selects storage backend based on STORAGE_PROVIDER env var:
+ * - "local" (default): LocalStorageService for dev
+ * - "s3": S3StorageService for production (Railway Storage Bucket, AWS S3, etc.)
  */
 export default fp(
   async function uploadServicePlugin(fastify: FastifyInstance) {
-    const uploadsDir = resolve(
-      import.meta.dirname,
-      "..",
-      "..",
-      fastify.config.UPLOAD_DIR,
-    );
-    const storage = new LocalStorageService(uploadsDir);
+    let storage: IStorageService;
+
+    if (fastify.config.STORAGE_PROVIDER === "s3") {
+      const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, S3_REGION } =
+        fastify.config;
+
+      if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY || !S3_SECRET_KEY) {
+        throw new Error(
+          "S3 storage requires S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, and S3_SECRET_KEY",
+        );
+      }
+
+      const s3Storage = new S3StorageService({
+        endpoint: S3_ENDPOINT,
+        bucket: S3_BUCKET,
+        accessKeyId: S3_ACCESS_KEY,
+        secretAccessKey: S3_SECRET_KEY,
+        region: S3_REGION,
+      });
+      storage = s3Storage;
+
+      // Register redirect route for serving S3 files via /uploads/:key
+      fastify.get<{ Params: { key: string } }>(
+        "/uploads/:key",
+        async (request, reply) => {
+          const signedUrl = await s3Storage.getSignedUrl(
+            request.params.key,
+            3600,
+          );
+          return reply.redirect(signedUrl);
+        },
+      );
+
+      fastify.log.info("Using S3 storage backend");
+    } else {
+      const uploadsDir = resolve(
+        import.meta.dirname,
+        "..",
+        "..",
+        fastify.config.UPLOAD_DIR,
+      );
+      storage = new LocalStorageService(uploadsDir);
+      fastify.log.info("Using local storage backend");
+    }
+
     const uploadService = new UploadService(storage);
     fastify.decorate("uploadService", uploadService);
   },

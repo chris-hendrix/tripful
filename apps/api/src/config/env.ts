@@ -60,6 +60,16 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().default(""),
   TWILIO_VERIFY_SERVICE_SID: z.string().default(""),
 
+  // Storage Provider
+  STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
+
+  // S3-compatible Storage (required when STORAGE_PROVIDER is "s3")
+  S3_ENDPOINT: z.string().default(""),
+  S3_BUCKET: z.string().default(""),
+  S3_ACCESS_KEY: z.string().default(""),
+  S3_SECRET_KEY: z.string().default(""),
+  S3_REGION: z.string().default("us-east-1"),
+
   // File Upload Configuration
   UPLOAD_DIR: z.string().default("uploads"),
   MAX_FILE_SIZE: z

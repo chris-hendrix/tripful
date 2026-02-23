@@ -1,5 +1,12 @@
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl as awsGetSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
  * Storage Service Interface
@@ -84,23 +91,69 @@ export class LocalStorageService implements IStorageService {
 }
 
 /**
- * S3/R2 storage implementation (placeholder)
- * To be implemented when moving to cloud storage.
+ * S3-compatible storage implementation
+ * Works with AWS S3, Railway Storage Buckets, Cloudflare R2, etc.
  */
+export interface S3StorageConfig {
+  endpoint: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  region: string;
+}
+
 export class S3StorageService implements IStorageService {
+  private readonly client: S3Client;
+  private readonly bucket: string;
+
+  constructor(config: S3StorageConfig) {
+    this.bucket = config.bucket;
+    this.client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+      forcePathStyle: true,
+    });
+  }
+
   async upload(
-    _file: Buffer,
-    _filename: string,
-    _mimetype: string,
+    file: Buffer,
+    filename: string,
+    mimetype: string,
   ): Promise<string> {
-    throw new Error("S3StorageService not implemented");
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: filename,
+        Body: file,
+        ContentType: mimetype,
+      }),
+    );
+    return `/uploads/${filename}`;
   }
 
-  async delete(_url: string): Promise<void> {
-    throw new Error("S3StorageService not implemented");
+  async delete(key: string): Promise<void> {
+    // Strip /uploads/ prefix if present (for backward compatibility with local paths)
+    const cleanKey = key.replace(/^\/uploads\//, "");
+    await this.client.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: cleanKey,
+      }),
+    );
   }
 
-  async getSignedUrl(_key: string, _expiresIn: number): Promise<string> {
-    throw new Error("S3StorageService not implemented");
+  async getSignedUrl(key: string, expiresIn: number): Promise<string> {
+    return awsGetSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+      { expiresIn },
+    );
   }
 }
