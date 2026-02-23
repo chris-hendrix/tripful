@@ -39,6 +39,7 @@
     "typescript": "^5.7.3"
   },
   "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"],
     "overrides": {
       "minimatch": ">=10.2.1",
       "esbuild": ">=0.25.0",
