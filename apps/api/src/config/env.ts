@@ -37,18 +37,24 @@ const envSchema = z.object({
     .default("http://localhost:3000"),
 
   // Proxy
-  TRUST_PROXY: z.coerce.boolean().default(false),
+  TRUST_PROXY: z
+    .enum(["true", "false", "1", "0", ""])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
 
   // Security & Behavior Flags
-  COOKIE_SECURE: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV === "production"),
-  EXPOSE_ERROR_DETAILS: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV === "development"),
-  ENABLE_FIXED_VERIFICATION_CODE: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV !== "production"),
+  COOKIE_SECURE: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV === "production" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
+  EXPOSE_ERROR_DETAILS: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV === "development" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
+  ENABLE_FIXED_VERIFICATION_CODE: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV !== "production" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
 
   // Logging
   LOG_LEVEL: z
