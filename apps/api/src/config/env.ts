@@ -64,11 +64,12 @@ const envSchema = z.object({
   STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
 
   // S3-compatible Storage (required when STORAGE_PROVIDER is "s3")
-  S3_ENDPOINT: z.string().default(""),
-  S3_BUCKET: z.string().default(""),
-  S3_ACCESS_KEY: z.string().default(""),
-  S3_SECRET_KEY: z.string().default(""),
-  S3_REGION: z.string().default("us-east-1"),
+  // Names match Railway Storage Bucket's AWS SDK preset
+  AWS_ENDPOINT_URL: z.string().default(""),
+  AWS_S3_BUCKET_NAME: z.string().default(""),
+  AWS_ACCESS_KEY_ID: z.string().default(""),
+  AWS_SECRET_ACCESS_KEY: z.string().default(""),
+  AWS_DEFAULT_REGION: z.string().default("us-east-1"),
 
   // File Upload Configuration
   UPLOAD_DIR: z.string().default("uploads"),

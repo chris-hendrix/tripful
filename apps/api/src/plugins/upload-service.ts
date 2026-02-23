@@ -19,21 +19,26 @@ export default fp(
     let storage: IStorageService;
 
     if (fastify.config.STORAGE_PROVIDER === "s3") {
-      const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, S3_REGION } =
-        fastify.config;
+      const {
+        AWS_ENDPOINT_URL,
+        AWS_S3_BUCKET_NAME,
+        AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY,
+        AWS_DEFAULT_REGION,
+      } = fastify.config;
 
-      if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY || !S3_SECRET_KEY) {
+      if (!AWS_ENDPOINT_URL || !AWS_S3_BUCKET_NAME || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
         throw new Error(
-          "S3 storage requires S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, and S3_SECRET_KEY",
+          "S3 storage requires AWS_ENDPOINT_URL, AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY",
         );
       }
 
       const s3Storage = new S3StorageService({
-        endpoint: S3_ENDPOINT,
-        bucket: S3_BUCKET,
-        accessKeyId: S3_ACCESS_KEY,
-        secretAccessKey: S3_SECRET_KEY,
-        region: S3_REGION,
+        endpoint: AWS_ENDPOINT_URL,
+        bucket: AWS_S3_BUCKET_NAME,
+        accessKeyId: AWS_ACCESS_KEY_ID,
+        secretAccessKey: AWS_SECRET_ACCESS_KEY,
+        region: AWS_DEFAULT_REGION,
       });
       storage = s3Storage;
 
