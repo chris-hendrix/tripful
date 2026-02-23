@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, APIError } from "@/lib/api";
+
+const POLLING_ENABLED = process.env.NEXT_PUBLIC_ENABLE_POLLING !== "false";
 import type { NotificationPreferencesInput } from "@tripful/shared/schemas";
 import type {
   GetNotificationsResponse,
@@ -48,7 +50,7 @@ export type { NotificationType } from "@tripful/shared/types";
 export function useUnreadCount() {
   return useQuery({
     ...unreadCountQueryOptions(),
-    refetchInterval: 30000,
+    refetchInterval: POLLING_ENABLED ? 30000 : false,
   });
 }
 
@@ -65,7 +67,7 @@ export function useUnreadCount() {
 export function useTripUnreadCount(tripId: string) {
   return useQuery({
     ...tripUnreadCountQueryOptions(tripId),
-    refetchInterval: 30000,
+    refetchInterval: POLLING_ENABLED ? 30000 : false,
   });
 }
 
