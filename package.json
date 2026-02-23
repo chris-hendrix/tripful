@@ -8,7 +8,7 @@
     "dev:web": "turbo run dev --filter=@tripful/web",
     "dev:api": "turbo run dev --filter=@tripful/api",
     "build": "turbo run build",
-    "build:web": "turbo run build --filter=@tripful/web",
+    "build:web": "turbo run build --filter=@tripful/web && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static",
     "build:api": "turbo run build --filter=@tripful/api",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
