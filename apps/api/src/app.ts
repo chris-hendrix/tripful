@@ -95,7 +95,7 @@ export async function buildApp(
 
   // Register CORS
   await app.register(cors, {
-    origin: app.config.FRONTEND_URL,
+    origin: app.config.FRONTEND_URL.split(",").map((s) => s.trim()),
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
