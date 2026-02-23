@@ -81,9 +81,12 @@ Required: `DATABASE_URL` and `JWT_SECRET` (minimum 32 characters).
 
 **All test, lint, and typecheck commands MUST run inside the devcontainer** via `make test-exec CMD="..."`. Never run these directly on the host. The devcontainer provides the correct Node, PostgreSQL, and Playwright browser versions.
 
+`test-exec` wraps CMD in `bash -c`, so compound commands like `cd apps/api && pnpm db:migrate` work directly.
+
 ```bash
 # Container lifecycle
-make test-up                          # Start container (once per session, idempotent)
+make test-up                          # Start container + auto-setup (deps, migrations, env)
+make test-setup                       # Re-run setup manually (idempotent)
 make test-status                      # Check if container is running
 make test-down                        # Tear down when done
 
@@ -94,6 +97,9 @@ make test-run                         # Full suite (unit + E2E)
 make test-exec CMD="pnpm lint"        # Lint
 make test-exec CMD="pnpm typecheck"   # Type check
 make test-exec CMD="pnpm format"      # Prettier format
+
+# Maintenance
+make test-clean                       # Remove dist/, .next/, .turbo/, *.tsbuildinfo
 ```
 
 ### Manual Testing (Playwright CLI)
