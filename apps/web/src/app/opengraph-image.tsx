@@ -1,17 +1,16 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const alt = "Tripful - Group Trip Planner";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OGImage() {
+  const fontsDir = join(process.cwd(), "src/assets/fonts");
   const [playfairFont, dmSansFont] = await Promise.all([
-    fetch(
-      "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.ttf"
-    ).then((res) => res.arrayBuffer()),
-    fetch(
-      "https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.ttf"
-    ).then((res) => res.arrayBuffer()),
+    readFile(join(fontsDir, "PlayfairDisplay-Bold.ttf")),
+    readFile(join(fontsDir, "DMSans-Regular.ttf")),
   ]);
 
   return new ImageResponse(
