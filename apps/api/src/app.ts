@@ -27,6 +27,7 @@ import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
 import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
+import verificationServicePlugin from "./plugins/verification-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 import messageServicePlugin from "./plugins/message-service.js";
 import notificationServicePlugin from "./plugins/notification-service.js";
@@ -176,6 +177,7 @@ export async function buildApp(
 
   // Register service plugins
   await app.register(smsServicePlugin);
+  await app.register(verificationServicePlugin);
   await app.register(healthServicePlugin);
   await app.register(permissionsServicePlugin);
   await app.register(authServicePlugin);

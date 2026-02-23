@@ -13,6 +13,7 @@ import type { IAccommodationService } from "@/services/accommodation.service.js"
 import type { IMemberTravelService } from "@/services/member-travel.service.js";
 import type { IUploadService } from "@/services/upload.service.js";
 import type { ISMSService } from "@/services/sms.service.js";
+import type { IVerificationService } from "@/services/verification.service.js";
 import type { IInvitationService } from "@/services/invitation.service.js";
 import type { IMessageService } from "@/services/message.service.js";
 import type { INotificationService } from "@/services/notification.service.js";
@@ -57,6 +58,7 @@ declare module "fastify" {
     memberTravelService: IMemberTravelService;
     uploadService: IUploadService;
     smsService: ISMSService;
+    verificationService: IVerificationService;
     invitationService: IInvitationService;
     messageService: IMessageService;
     notificationService: INotificationService;

@@ -7,10 +7,8 @@ import {
   text,
   timestamp,
   index,
-  char,
   date,
   boolean,
-  integer,
   pgEnum,
   unique,
   jsonb,
@@ -38,33 +36,9 @@ export const users = pgTable(
   }),
 );
 
-// Verification codes table
-export const verificationCodes = pgTable(
-  "verification_codes",
-  {
-    phoneNumber: varchar("phone_number", { length: 20 }).primaryKey(),
-    code: char("code", { length: 6 }).notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    failedAttempts: integer("failed_attempts").notNull().default(0),
-    lockedUntil: timestamp("locked_until", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    expiresAtIdx: index("verification_codes_expires_at_idx").on(
-      table.expiresAt,
-    ),
-  }),
-);
-
 // Inferred types for users table
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-
-// Inferred types for verification_codes table
-export type VerificationCode = typeof verificationCodes.$inferSelect;
-export type NewVerificationCode = typeof verificationCodes.$inferInsert;
 
 // RSVP status enum
 export const rsvpStatusEnum = pgEnum("rsvp_status", [

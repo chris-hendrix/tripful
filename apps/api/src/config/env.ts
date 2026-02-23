@@ -55,6 +55,11 @@ const envSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
 
+  // Twilio (required when ENABLE_FIXED_VERIFICATION_CODE is false)
+  TWILIO_ACCOUNT_SID: z.string().default(""),
+  TWILIO_AUTH_TOKEN: z.string().default(""),
+  TWILIO_VERIFY_SERVICE_SID: z.string().default(""),
+
   // File Upload Configuration
   UPLOAD_DIR: z.string().default("uploads"),
   MAX_FILE_SIZE: z
