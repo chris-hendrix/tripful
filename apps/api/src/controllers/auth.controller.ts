@@ -150,6 +150,9 @@ export const authController = {
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
       });
 
       auditLog(request, "auth.login_success", {
@@ -231,6 +234,9 @@ export const authController = {
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
       });
 
       auditLog(request, "auth.profile_completed");
@@ -338,7 +344,12 @@ export const authController = {
       auditLog(request, "auth.logout");
 
       // Clear the auth_token cookie
-      reply.clearCookie("auth_token", { path: "/" });
+      reply.clearCookie("auth_token", {
+        path: "/",
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
+      });
 
       // Return success response
       return reply.status(200).send({

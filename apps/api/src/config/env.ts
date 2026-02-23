@@ -47,6 +47,7 @@ const envSchema = z.object({
     .enum(["true", "false", "1", "0", ""])
     .default(process.env.NODE_ENV === "production" ? "true" : "false")
     .transform((v) => v === "true" || v === "1"),
+  COOKIE_DOMAIN: z.string().optional(),
   EXPOSE_ERROR_DETAILS: z
     .enum(["true", "false", "1", "0", ""])
     .default(process.env.NODE_ENV === "development" ? "true" : "false")
