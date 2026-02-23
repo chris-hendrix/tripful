@@ -24,4 +24,5 @@ RUN mkdir -p /workspace/node_modules \
              /workspace/apps/api/node_modules \
              /workspace/apps/web/node_modules \
              /workspace/shared/node_modules \
-             /workspace/.pnpm-store
+             /workspace/.pnpm-store \
+             /workspace/apps/web/.next

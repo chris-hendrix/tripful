@@ -23,11 +23,6 @@ EOF
   echo "[setup] Created apps/api/.env"
 fi
 
-# Always fix DATABASE_URL for container context.
-# The host .env uses localhost:5433 (port-forwarded), but inside the
-# devcontainer the DB is at db:5432 via docker-compose networking.
-sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql://tripful:tripful_dev@db:5432/tripful|' apps/api/.env
-
 # Generate web .env.local only if it doesn't exist
 if [ ! -f apps/web/.env.local ]; then
   cat > apps/web/.env.local << 'EOF'
