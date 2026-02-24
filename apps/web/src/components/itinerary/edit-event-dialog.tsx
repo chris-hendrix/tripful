@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { parse, addHours } from "date-fns";
 import {
   updateEventSchema,
   type UpdateEventInput,
@@ -65,6 +66,8 @@ interface EditEventDialogProps {
   event: Event;
   timezone: string;
   onSuccess?: () => void;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function EditEventDialog({
@@ -73,11 +76,14 @@ export function EditEventDialog({
   event,
   timezone,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: EditEventDialogProps) {
   const { mutate: updateEvent, isPending } = useUpdateEvent();
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
+  const isInitializing = useRef(false);
 
   const form = useForm<UpdateEventInput>({
     resolver: zodResolver(updateEventSchema),
@@ -100,6 +106,7 @@ export function EditEventDialog({
   // Pre-populate form with existing event data when dialog opens
   useEffect(() => {
     if (open && event) {
+      isInitializing.current = true;
       form.reset({
         name: event.name,
         description: event.description || "",
@@ -122,8 +129,42 @@ export function EditEventDialog({
       });
       setNewLink("");
       setLinkError(null);
+      requestAnimationFrame(() => {
+        isInitializing.current = false;
+      });
     }
   }, [open, event, form, timezone]);
+
+  // Trip-aware defaults
+  const tripStartMonth = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    const parsed = parse(tripStartDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripStartDate]);
+
+  const tripRange = useMemo(() => {
+    if (!tripStartDate && !tripEndDate) return undefined;
+    return { start: tripStartDate, end: tripEndDate };
+  }, [tripStartDate, tripEndDate]);
+
+  // Compute defaultMonth from watched startTime for end/meetup pickers
+  const startTimeValue = form.watch("startTime");
+  const startTimeMonth = useMemo(() => {
+    if (!startTimeValue) return undefined;
+    const d = new Date(startTimeValue);
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [startTimeValue]);
+
+  // Auto-fill endTime when startTime is set and endTime is empty or before startTime (+1 hour)
+  useEffect(() => {
+    if (isInitializing.current) return;
+    if (startTimeValue) {
+      const currentEnd = form.getValues("endTime");
+      if (!currentEnd || new Date(currentEnd) <= new Date(startTimeValue)) {
+        form.setValue("endTime", addHours(new Date(startTimeValue), 1).toISOString());
+      }
+    }
+  }, [startTimeValue, form]);
 
   const handleSubmit = (data: UpdateEventInput) => {
     const { timezone: _tz, ...eventData } = data;
@@ -365,6 +406,8 @@ export function EditEventDialog({
                         placeholder="Select start time"
                         aria-label="Start time"
                         disabled={isPending || isDeleting}
+                        defaultMonth={tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormMessage />
@@ -389,6 +432,8 @@ export function EditEventDialog({
                         placeholder="Select end time"
                         aria-label="End time"
                         disabled={isPending || isDeleting}
+                        defaultMonth={startTimeMonth || tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">
@@ -442,6 +487,8 @@ export function EditEventDialog({
                         placeholder="Select meetup time"
                         aria-label="Meetup time"
                         disabled={isPending || isDeleting}
+                        defaultMonth={startTimeMonth || tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">

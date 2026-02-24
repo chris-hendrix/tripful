@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { parse } from "date-fns";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -10,6 +11,7 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButton,
+  type Matcher,
 } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -23,11 +25,46 @@ function Calendar({
   buttonVariant = "ghost",
   formatters,
   components,
+  tripRange,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+  tripRange?: { start?: string | null | undefined; end?: string | null | undefined };
 }) {
   const defaultClassNames = getDefaultClassNames();
+
+  // Compute trip range modifiers for highlighting
+  const tripModifiers = React.useMemo(() => {
+    if (!tripRange) return {};
+    const startDate = tripRange.start
+      ? parse(tripRange.start, "yyyy-MM-dd", new Date())
+      : undefined;
+    const endDate = tripRange.end
+      ? parse(tripRange.end, "yyyy-MM-dd", new Date())
+      : undefined;
+    if (
+      (!startDate || isNaN(startDate.getTime())) &&
+      (!endDate || isNaN(endDate.getTime()))
+    )
+      return {};
+
+    const mods: Record<string, Matcher | Matcher[] | undefined> = {};
+    if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+      mods.tripRange = { from: startDate, to: endDate };
+    }
+    if (startDate && !isNaN(startDate.getTime())) mods.tripRangeStart = startDate;
+    if (endDate && !isNaN(endDate.getTime())) mods.tripRangeEnd = endDate;
+    return mods;
+  }, [tripRange]);
+
+  const tripModifiersClassNames = React.useMemo(() => {
+    if (!tripRange) return {};
+    return {
+      tripRange: "bg-primary/8",
+      tripRangeStart: "bg-primary/15 rounded-l-md",
+      tripRangeEnd: "bg-primary/15 rounded-r-md",
+    };
+  }, [tripRange]);
 
   return (
     <DayPicker
@@ -131,6 +168,8 @@ function Calendar({
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
+      modifiers={{ ...tripModifiers, ...props.modifiers } as Record<string, Matcher | Matcher[]>}
+      modifiersClassNames={{ ...tripModifiersClassNames, ...props.modifiersClassNames }}
       components={{
         Root: ({ className, rootRef, ...props }) => {
           return (

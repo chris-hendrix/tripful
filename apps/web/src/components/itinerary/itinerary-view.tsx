@@ -238,12 +238,16 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
           onOpenChange={setIsCreateEventOpen}
           tripId={tripId}
           timezone={timezone}
+          tripStartDate={trip?.startDate || null}
+          tripEndDate={trip?.endDate || null}
         />
         <CreateAccommodationDialog
           open={isCreateAccommodationOpen}
           onOpenChange={setIsCreateAccommodationOpen}
           tripId={tripId}
           timezone={timezone}
+          tripStartDate={trip?.startDate || null}
+          tripEndDate={trip?.endDate || null}
         />
         <DeletedItemsDialog
           open={isDeletedItemsOpen}
@@ -270,6 +274,8 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
         isMember={!!isMember}
         allowMembersToAddEvents={trip?.allowMembersToAddEvents || false}
         isLocked={isLocked}
+        tripStartDate={trip?.startDate || null}
+        tripEndDate={trip?.endDate || null}
       />
 
       {/* Content */}
@@ -313,6 +319,8 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
             userId={user?.id || ""}
             userNameMap={userNameMap}
             isLocked={isLocked}
+            tripStartDate={trip?.startDate || null}
+            tripEndDate={trip?.endDate || null}
           />
         )}
         {isOrganizer && hasDeletedItems && (

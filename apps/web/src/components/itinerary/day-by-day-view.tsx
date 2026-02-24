@@ -428,6 +428,8 @@ export function DayByDayView({
           }}
           event={editingEvent}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
       {editingAccommodation && (
@@ -438,6 +440,8 @@ export function DayByDayView({
           }}
           accommodation={editingAccommodation}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
       {editingMemberTravel && (
@@ -448,6 +452,8 @@ export function DayByDayView({
           }}
           memberTravel={editingMemberTravel}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
     </div>

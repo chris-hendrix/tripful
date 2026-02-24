@@ -32,6 +32,8 @@ interface GroupByTypeViewProps {
   userId: string;
   userNameMap: Map<string, string>;
   isLocked?: boolean;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function GroupByTypeView({
@@ -43,6 +45,8 @@ export function GroupByTypeView({
   userId,
   userNameMap,
   isLocked,
+  tripStartDate,
+  tripEndDate,
 }: GroupByTypeViewProps) {
   // Group events by type
   const groupedEvents = useMemo(() => {
@@ -289,6 +293,8 @@ export function GroupByTypeView({
           }}
           event={editingEvent}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
       {editingAccommodation && (
@@ -299,6 +305,8 @@ export function GroupByTypeView({
           }}
           accommodation={editingAccommodation}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
       {editingMemberTravel && (
@@ -309,6 +317,8 @@ export function GroupByTypeView({
           }}
           memberTravel={editingMemberTravel}
           timezone={timezone}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
         />
       )}
     </div>

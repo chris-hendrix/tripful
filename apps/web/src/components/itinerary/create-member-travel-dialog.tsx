@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { parse } from "date-fns";
 import {
   createMemberTravelSchema,
   type CreateMemberTravelInput,
@@ -57,6 +58,8 @@ interface CreateMemberTravelDialogProps {
   timezone: string;
   isOrganizer?: boolean;
   onSuccess?: () => void;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function CreateMemberTravelDialog({
@@ -66,6 +69,8 @@ export function CreateMemberTravelDialog({
   timezone,
   isOrganizer,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: CreateMemberTravelDialogProps) {
   const { mutate: createMemberTravel, isPending } = useCreateMemberTravel();
   const { user } = useAuth();
@@ -97,6 +102,24 @@ export function CreateMemberTravelDialog({
       setSelectedMemberId("self");
     }
   }, [open, form, timezone]);
+
+  // Trip-aware defaults
+  const tripStartMonth = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    const parsed = parse(tripStartDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripStartDate]);
+
+  const tripEndMonth = useMemo(() => {
+    if (!tripEndDate) return undefined;
+    const parsed = parse(tripEndDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripEndDate]);
+
+  const tripRange = useMemo(() => {
+    if (!tripStartDate && !tripEndDate) return undefined;
+    return { start: tripStartDate, end: tripEndDate };
+  }, [tripStartDate, tripEndDate]);
 
   const handleSubmit = (formData: CreateMemberTravelInput) => {
     const data = { ...formData };
@@ -304,6 +327,8 @@ export function CreateMemberTravelDialog({
                         placeholder="Select date & time"
                         aria-label="Travel time"
                         disabled={isPending}
+                        defaultMonth={travelType === "departure" ? tripEndMonth : tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormMessage />

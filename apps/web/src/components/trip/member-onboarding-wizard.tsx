@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +25,7 @@ import { useAuth } from "@/app/providers/auth-provider";
 import { useCreateEvent } from "@/hooks/use-events";
 import { localPartsToUTC, formatInTimezone } from "@/lib/utils/timezone";
 import { toast } from "sonner";
+import { parse } from "date-fns";
 import type { TripDetailWithMeta } from "@/hooks/trip-queries";
 import { Loader2, X, Check, Plane, MapPin, Calendar } from "lucide-react";
 
@@ -295,6 +296,24 @@ export function MemberOnboardingWizard({
     createEvent.isPending ||
     updateMySettings.isPending;
 
+  // Trip-aware defaults
+  const tripRange = useMemo(() => {
+    if (!trip.startDate && !trip.endDate) return undefined;
+    return { start: trip.startDate, end: trip.endDate };
+  }, [trip.startDate, trip.endDate]);
+
+  const tripStartMonth = useMemo(() => {
+    if (!trip.startDate) return undefined;
+    const parsed = parse(trip.startDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [trip.startDate]);
+
+  const tripEndMonth = useMemo(() => {
+    if (!trip.endDate) return undefined;
+    const parsed = parse(trip.endDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [trip.endDate]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
@@ -405,6 +424,8 @@ export function MemberOnboardingWizard({
                   timezone={timezone}
                   placeholder="Pick arrival date & time"
                   aria-label="Arrival date and time"
+                  defaultMonth={tripStartMonth}
+                  tripRange={tripRange}
                 />
               </div>
               <div className="space-y-2">
@@ -435,6 +456,8 @@ export function MemberOnboardingWizard({
                   timezone={timezone}
                   placeholder="Pick departure date & time"
                   aria-label="Departure date and time"
+                  defaultMonth={tripEndMonth}
+                  tripRange={tripRange}
                 />
               </div>
               <div className="space-y-2">
@@ -477,6 +500,8 @@ export function MemberOnboardingWizard({
                   timezone={timezone}
                   placeholder="Pick event date & time"
                   aria-label="Event date and time"
+                  defaultMonth={tripStartMonth}
+                  tripRange={tripRange}
                 />
               </div>
               <Button
