@@ -21,8 +21,8 @@ interface DateTimePickerProps {
   placeholder?: string;
   disabled?: boolean;
   "aria-label"?: string;
-  defaultMonth?: Date;
-  tripRange?: { start?: string | null; end?: string | null };
+  defaultMonth?: Date | undefined;
+  tripRange?: { start?: string | null | undefined; end?: string | null | undefined } | undefined;
 }
 
 export function DateTimePicker({
@@ -96,11 +96,12 @@ export function DateTimePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
+        {/* @ts-expect-error — react-day-picker union types incompatible with exactOptionalPropertyTypes */}
         <Calendar
           mode="single"
           selected={selectedDate}
           onSelect={handleDateSelect}
-          defaultMonth={selectedDate || defaultMonth}
+          defaultMonth={(selectedDate ?? defaultMonth) as Date}
           tripRange={tripRange}
         />
         <div className="border-t border-border p-3">

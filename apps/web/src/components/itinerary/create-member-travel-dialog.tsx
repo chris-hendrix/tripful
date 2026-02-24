@@ -57,8 +57,8 @@ interface CreateMemberTravelDialogProps {
   timezone: string;
   isOrganizer?: boolean;
   onSuccess?: () => void;
-  tripStartDate?: string | null;
-  tripEndDate?: string | null;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function CreateMemberTravelDialog({
@@ -68,8 +68,8 @@ export function CreateMemberTravelDialog({
   timezone,
   isOrganizer,
   onSuccess,
-  tripStartDate,
-  tripEndDate,
+  tripStartDate: _tripStartDate,
+  tripEndDate: _tripEndDate,
 }: CreateMemberTravelDialogProps) {
   const { mutate: createMemberTravel, isPending } = useCreateMemberTravel();
   const { user } = useAuth();

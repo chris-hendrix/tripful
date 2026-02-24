@@ -32,8 +32,8 @@ interface GroupByTypeViewProps {
   userId: string;
   userNameMap: Map<string, string>;
   isLocked?: boolean;
-  tripStartDate?: string | null;
-  tripEndDate?: string | null;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function GroupByTypeView({

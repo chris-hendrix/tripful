@@ -55,8 +55,8 @@ interface EditAccommodationDialogProps {
   accommodation: Accommodation;
   timezone: string;
   onSuccess?: () => void;
-  tripStartDate?: string | null;
-  tripEndDate?: string | null;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function EditAccommodationDialog({
@@ -65,8 +65,8 @@ export function EditAccommodationDialog({
   accommodation,
   timezone,
   onSuccess,
-  tripStartDate,
-  tripEndDate,
+  tripStartDate: _tripStartDate,
+  tripEndDate: _tripEndDate,
 }: EditAccommodationDialogProps) {
   const { mutate: updateAccommodation, isPending } = useUpdateAccommodation();
   const { mutate: deleteAccommodation, isPending: isDeleting } =

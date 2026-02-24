@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
@@ -88,9 +88,12 @@ export function EditTripDialog({
     },
   });
 
+  const isInitializing = useRef(false);
+
   // Pre-populate form with existing trip data when dialog opens
   useEffect(() => {
     if (open && trip) {
+      isInitializing.current = true;
       form.reset({
         name: trip.name,
         destination: trip.destination,
@@ -102,8 +105,21 @@ export function EditTripDialog({
         allowMembersToAddEvents: trip.allowMembersToAddEvents,
         showAllMembers: trip.showAllMembers,
       });
+      // Allow the reset to settle before enabling auto-fill
+      requestAnimationFrame(() => {
+        isInitializing.current = false;
+      });
     }
   }, [open, trip, form]);
+
+  // Auto-fill endDate when startDate is set and endDate is empty
+  const startDateValue = form.watch("startDate");
+  useEffect(() => {
+    if (isInitializing.current) return;
+    if (startDateValue && !form.getValues("endDate")) {
+      form.setValue("endDate", startDateValue);
+    }
+  }, [startDateValue, form]);
 
   const handleSubmit = (data: UpdateTripInput) => {
     updateTrip(

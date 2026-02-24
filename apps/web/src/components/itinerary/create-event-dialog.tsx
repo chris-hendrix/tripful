@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { parse, addHours } from "date-fns";
 import {
   createEventSchema,
   type CreateEventInput,
@@ -48,8 +49,8 @@ interface CreateEventDialogProps {
   tripId: string;
   timezone: string;
   onSuccess?: () => void;
-  tripStartDate?: string | null;
-  tripEndDate?: string | null;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function CreateEventDialog({
@@ -91,6 +92,33 @@ export function CreateEventDialog({
       setLinkError(null);
     }
   }, [open, form]);
+
+  // Trip-aware defaults
+  const tripStartMonth = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    const parsed = parse(tripStartDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripStartDate]);
+
+  const tripRange = useMemo(() => {
+    if (!tripStartDate && !tripEndDate) return undefined;
+    return { start: tripStartDate, end: tripEndDate };
+  }, [tripStartDate, tripEndDate]);
+
+  // Compute defaultMonth from watched startTime for end/meetup pickers
+  const startTimeValue = form.watch("startTime");
+  const startTimeMonth = useMemo(() => {
+    if (!startTimeValue) return undefined;
+    const d = new Date(startTimeValue);
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [startTimeValue]);
+
+  // Auto-fill endTime when startTime is set and endTime is empty (+1 hour)
+  useEffect(() => {
+    if (startTimeValue && !form.getValues("endTime")) {
+      form.setValue("endTime", addHours(new Date(startTimeValue), 1).toISOString());
+    }
+  }, [startTimeValue, form]);
 
   const handleSubmit = (data: CreateEventInput) => {
     const { timezone: _tz, ...eventData } = data;
@@ -319,6 +347,8 @@ export function CreateEventDialog({
                         placeholder="Select start time"
                         aria-label="Start time"
                         disabled={isPending}
+                        defaultMonth={tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormMessage />
@@ -343,6 +373,8 @@ export function CreateEventDialog({
                         placeholder="Select end time"
                         aria-label="End time"
                         disabled={isPending}
+                        defaultMonth={startTimeMonth || tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">
@@ -396,6 +428,8 @@ export function CreateEventDialog({
                         placeholder="Select meetup time"
                         aria-label="Meetup time"
                         disabled={isPending}
+                        defaultMonth={startTimeMonth || tripStartMonth}
+                        tripRange={tripRange}
                       />
                     </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">

@@ -50,8 +50,8 @@ interface ItineraryHeaderProps {
   isMember: boolean;
   allowMembersToAddEvents: boolean;
   isLocked?: boolean;
-  tripStartDate?: string | null;
-  tripEndDate?: string | null;
+  tripStartDate?: string | null | undefined;
+  tripEndDate?: string | null | undefined;
 }
 
 export function ItineraryHeader({

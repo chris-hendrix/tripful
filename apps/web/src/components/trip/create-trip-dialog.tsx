@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -73,6 +73,14 @@ export function CreateTripDialog({
       coOrganizerPhones: [],
     },
   });
+
+  // Auto-fill endDate when startDate is set and endDate is empty
+  const startDateValue = form.watch("startDate");
+  useEffect(() => {
+    if (startDateValue && !form.getValues("endDate")) {
+      form.setValue("endDate", startDateValue);
+    }
+  }, [startDateValue, form]);
 
   const handleContinue = async () => {
     // Validate Step 1 fields before proceeding
