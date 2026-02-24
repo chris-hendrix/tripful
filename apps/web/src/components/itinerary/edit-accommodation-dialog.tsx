@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { parse, addDays } from "date-fns";
 import {
   updateAccommodationSchema,
   type UpdateAccommodationInput,
@@ -65,14 +66,15 @@ export function EditAccommodationDialog({
   accommodation,
   timezone,
   onSuccess,
-  tripStartDate: _tripStartDate,
-  tripEndDate: _tripEndDate,
+  tripStartDate,
+  tripEndDate,
 }: EditAccommodationDialogProps) {
   const { mutate: updateAccommodation, isPending } = useUpdateAccommodation();
   const { mutate: deleteAccommodation, isPending: isDeleting } =
     useDeleteAccommodation();
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
+  const isInitializing = useRef(false);
 
   const form = useForm<UpdateAccommodationInput>({
     resolver: zodResolver(updateAccommodationSchema),
@@ -89,6 +91,7 @@ export function EditAccommodationDialog({
   // Pre-populate form with existing accommodation data when dialog opens
   useEffect(() => {
     if (open && accommodation) {
+      isInitializing.current = true;
       form.reset({
         name: accommodation.name,
         address: accommodation.address || "",
@@ -99,8 +102,39 @@ export function EditAccommodationDialog({
       });
       setNewLink("");
       setLinkError(null);
+      requestAnimationFrame(() => {
+        isInitializing.current = false;
+      });
     }
   }, [open, accommodation, form]);
+
+  // Trip-aware defaults
+  const tripStartMonth = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    const parsed = parse(tripStartDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripStartDate]);
+
+  const tripRange = useMemo(() => {
+    if (!tripStartDate && !tripEndDate) return undefined;
+    return { start: tripStartDate, end: tripEndDate };
+  }, [tripStartDate, tripEndDate]);
+
+  // Compute defaultMonth from watched checkIn for checkOut picker
+  const checkInValue = form.watch("checkIn");
+  const checkInMonth = useMemo(() => {
+    if (!checkInValue) return undefined;
+    const d = new Date(checkInValue);
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [checkInValue]);
+
+  // Auto-fill checkOut when checkIn is set and checkOut is empty (+1 day)
+  useEffect(() => {
+    if (isInitializing.current) return;
+    if (checkInValue && !form.getValues("checkOut")) {
+      form.setValue("checkOut", addDays(new Date(checkInValue), 1).toISOString());
+    }
+  }, [checkInValue, form]);
 
   const handleSubmit = (data: UpdateAccommodationInput) => {
     updateAccommodation(
@@ -266,6 +300,8 @@ export function EditAccommodationDialog({
                           placeholder="Check-in"
                           aria-label="Check-in"
                           disabled={isPending || isDeleting}
+                          defaultMonth={tripStartMonth}
+                          tripRange={tripRange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -290,6 +326,8 @@ export function EditAccommodationDialog({
                           placeholder="Check-out"
                           aria-label="Check-out"
                           disabled={isPending || isDeleting}
+                          defaultMonth={checkInMonth || tripStartMonth}
+                          tripRange={tripRange}
                         />
                       </FormControl>
                       <FormMessage />

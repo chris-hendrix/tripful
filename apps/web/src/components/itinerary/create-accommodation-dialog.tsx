@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { parse, addDays } from "date-fns";
 import {
   createAccommodationSchema,
   type CreateAccommodationInput,
@@ -51,8 +52,8 @@ export function CreateAccommodationDialog({
   tripId,
   timezone,
   onSuccess,
-  tripStartDate: _tripStartDate,
-  tripEndDate: _tripEndDate,
+  tripStartDate,
+  tripEndDate,
 }: CreateAccommodationDialogProps) {
   const { mutate: createAccommodation, isPending } = useCreateAccommodation();
   const [newLink, setNewLink] = useState("");
@@ -78,6 +79,33 @@ export function CreateAccommodationDialog({
       setLinkError(null);
     }
   }, [open, form]);
+
+  // Trip-aware defaults
+  const tripStartMonth = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    const parsed = parse(tripStartDate, "yyyy-MM-dd", new Date());
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }, [tripStartDate]);
+
+  const tripRange = useMemo(() => {
+    if (!tripStartDate && !tripEndDate) return undefined;
+    return { start: tripStartDate, end: tripEndDate };
+  }, [tripStartDate, tripEndDate]);
+
+  // Compute defaultMonth from watched checkIn for checkOut picker
+  const checkInValue = form.watch("checkIn");
+  const checkInMonth = useMemo(() => {
+    if (!checkInValue) return undefined;
+    const d = new Date(checkInValue);
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [checkInValue]);
+
+  // Auto-fill checkOut when checkIn is set and checkOut is empty (+1 day)
+  useEffect(() => {
+    if (checkInValue && !form.getValues("checkOut")) {
+      form.setValue("checkOut", addDays(new Date(checkInValue), 1).toISOString());
+    }
+  }, [checkInValue, form]);
 
   const handleSubmit = (data: CreateAccommodationInput) => {
     createAccommodation(
@@ -229,6 +257,8 @@ export function CreateAccommodationDialog({
                           placeholder="Check-in"
                           aria-label="Check-in"
                           disabled={isPending}
+                          defaultMonth={tripStartMonth}
+                          tripRange={tripRange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -253,6 +283,8 @@ export function CreateAccommodationDialog({
                           placeholder="Check-out"
                           aria-label="Check-out"
                           disabled={isPending}
+                          defaultMonth={checkInMonth || tripStartMonth}
+                          tripRange={tripRange}
                         />
                       </FormControl>
                       <FormMessage />
