@@ -48,6 +48,8 @@ interface CreateEventDialogProps {
   tripId: string;
   timezone: string;
   onSuccess?: () => void;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 export function CreateEventDialog({
@@ -56,6 +58,8 @@ export function CreateEventDialog({
   tripId,
   timezone,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: CreateEventDialogProps) {
   const { mutate: createEvent, isPending } = useCreateEvent();
   const [newLink, setNewLink] = useState("");

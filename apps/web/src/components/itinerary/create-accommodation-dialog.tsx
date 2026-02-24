@@ -41,6 +41,8 @@ interface CreateAccommodationDialogProps {
   tripId: string;
   timezone: string;
   onSuccess?: () => void;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 export function CreateAccommodationDialog({
@@ -49,6 +51,8 @@ export function CreateAccommodationDialog({
   tripId,
   timezone,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: CreateAccommodationDialogProps) {
   const { mutate: createAccommodation, isPending } = useCreateAccommodation();
   const [newLink, setNewLink] = useState("");

@@ -21,6 +21,8 @@ interface DateTimePickerProps {
   placeholder?: string;
   disabled?: boolean;
   "aria-label"?: string;
+  defaultMonth?: Date;
+  tripRange?: { start?: string | null; end?: string | null };
 }
 
 export function DateTimePicker({
@@ -30,6 +32,8 @@ export function DateTimePicker({
   placeholder = "Pick a date & time",
   disabled,
   "aria-label": ariaLabel,
+  defaultMonth,
+  tripRange,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -96,7 +100,8 @@ export function DateTimePicker({
           mode="single"
           selected={selectedDate}
           onSelect={handleDateSelect}
-          {...(selectedDate ? { defaultMonth: selectedDate } : {})}
+          defaultMonth={selectedDate || defaultMonth}
+          tripRange={tripRange}
         />
         <div className="border-t border-border p-3">
           <input

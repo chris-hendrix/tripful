@@ -65,6 +65,8 @@ interface EditEventDialogProps {
   event: Event;
   timezone: string;
   onSuccess?: () => void;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 export function EditEventDialog({
@@ -73,6 +75,8 @@ export function EditEventDialog({
   event,
   timezone,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: EditEventDialogProps) {
   const { mutate: updateEvent, isPending } = useUpdateEvent();
   const { mutate: deleteEvent, isPending: isDeleting } = useDeleteEvent();

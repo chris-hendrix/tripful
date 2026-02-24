@@ -50,6 +50,8 @@ interface ItineraryHeaderProps {
   isMember: boolean;
   allowMembersToAddEvents: boolean;
   isLocked?: boolean;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 export function ItineraryHeader({
@@ -64,6 +66,8 @@ export function ItineraryHeader({
   isMember,
   allowMembersToAddEvents,
   isLocked,
+  tripStartDate,
+  tripEndDate,
 }: ItineraryHeaderProps) {
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateAccommodationOpen, setIsCreateAccommodationOpen] =
@@ -212,12 +216,16 @@ export function ItineraryHeader({
         onOpenChange={setIsCreateEventOpen}
         tripId={tripId}
         timezone={selectedTimezone}
+        tripStartDate={tripStartDate}
+        tripEndDate={tripEndDate}
       />
       <CreateAccommodationDialog
         open={isCreateAccommodationOpen}
         onOpenChange={setIsCreateAccommodationOpen}
         tripId={tripId}
         timezone={selectedTimezone}
+        tripStartDate={tripStartDate}
+        tripEndDate={tripEndDate}
       />
       <CreateMemberTravelDialog
         open={isCreateMemberTravelOpen}
@@ -225,6 +233,8 @@ export function ItineraryHeader({
         tripId={tripId}
         timezone={selectedTimezone}
         isOrganizer={isOrganizer}
+        tripStartDate={tripStartDate}
+        tripEndDate={tripEndDate}
       />
     </>
   );

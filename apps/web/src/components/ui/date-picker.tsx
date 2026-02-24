@@ -19,6 +19,8 @@ interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   "aria-label"?: string;
+  defaultMonth?: Date;
+  tripRange?: { start?: string | null; end?: string | null };
 }
 
 export function DatePicker({
@@ -27,6 +29,8 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled,
   "aria-label": ariaLabel,
+  defaultMonth,
+  tripRange,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -66,7 +70,8 @@ export function DatePicker({
           mode="single"
           selected={selected}
           onSelect={handleSelect}
-          {...(selected ? { defaultMonth: selected } : {})}
+          defaultMonth={selected || defaultMonth}
+          tripRange={tripRange}
         />
       </PopoverContent>
     </Popover>

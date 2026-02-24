@@ -63,6 +63,8 @@ interface EditMemberTravelDialogProps {
   memberTravel: MemberTravel;
   timezone: string;
   onSuccess?: () => void;
+  tripStartDate?: string | null;
+  tripEndDate?: string | null;
 }
 
 export function EditMemberTravelDialog({
@@ -71,6 +73,8 @@ export function EditMemberTravelDialog({
   memberTravel,
   timezone,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: EditMemberTravelDialogProps) {
   const { mutate: updateMemberTravel, isPending } = useUpdateMemberTravel();
   const { mutate: deleteMemberTravel, isPending: isDeleting } =
