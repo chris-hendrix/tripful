@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, APIError } from "@/lib/api";
+
+const POLLING_ENABLED = process.env.NEXT_PUBLIC_ENABLE_POLLING !== "false";
 import type {
   CreateMessageInput,
   UpdateMessageInput,
@@ -55,7 +57,7 @@ export type { Message, MessageWithReplies, ReactionSummary };
 export function useMessages(tripId: string, enabled?: boolean, limit?: number) {
   return useQuery({
     ...messagesQueryOptions(tripId, limit),
-    refetchInterval: 5000,
+    refetchInterval: POLLING_ENABLED ? 5000 : false,
     enabled: (enabled ?? true) && !!tripId,
   });
 }
@@ -73,7 +75,7 @@ export function useMessages(tripId: string, enabled?: boolean, limit?: number) {
 export function useMessageCount(tripId: string) {
   return useQuery({
     ...messageCountQueryOptions(tripId),
-    refetchInterval: 30000,
+    refetchInterval: POLLING_ENABLED ? 30000 : false,
   });
 }
 
@@ -90,7 +92,7 @@ export function useMessageCount(tripId: string) {
 export function useLatestMessage(tripId: string) {
   return useQuery({
     ...latestMessageQueryOptions(tripId),
-    refetchInterval: 30000,
+    refetchInterval: POLLING_ENABLED ? 30000 : false,
   });
 }
 

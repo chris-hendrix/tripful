@@ -8,7 +8,7 @@
     "dev:web": "turbo run dev --filter=@tripful/web",
     "dev:api": "turbo run dev --filter=@tripful/api",
     "build": "turbo run build",
-    "build:web": "turbo run build --filter=@tripful/web",
+    "build:web": "turbo run build --filter=@tripful/web && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static",
     "build:api": "turbo run build --filter=@tripful/api",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
@@ -39,6 +39,7 @@
     "typescript": "^5.7.3"
   },
   "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"],
     "overrides": {
       "minimatch": ">=10.2.1",
       "esbuild": ">=0.25.0",

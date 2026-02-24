@@ -45,19 +45,10 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
-      const { authService, smsService } = request.server;
+      const { verificationService } = request.server;
 
-      // Generate 6-digit verification code
-      const code = authService.generateCode();
-
-      // Store code in database with 5-minute expiry
-      await authService.storeCode(e164PhoneNumber, code);
-
-      // Send SMS with verification code (logs to console)
-      await smsService.sendMessage(
-        e164PhoneNumber,
-        `Your Tripful verification code is: ${code}`,
-      );
+      // Send verification code via verification service
+      await verificationService.sendCode(e164PhoneNumber);
 
       // Return success response
       return reply.status(200).send({
@@ -119,10 +110,13 @@ export const authController = {
     const e164PhoneNumber = phoneValidation.e164;
 
     try {
-      const { authService } = request.server;
+      const { authService, verificationService } = request.server;
 
-      // Verify code exists, matches, and hasn't expired
-      const isValid = await authService.verifyCode(e164PhoneNumber, code);
+      // Check code via verification service
+      const isValid = await verificationService.checkCode(
+        e164PhoneNumber,
+        code,
+      );
 
       if (!isValid) {
         auditLog(request, "auth.login_failure", {
@@ -156,10 +150,10 @@ export const authController = {
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
       });
-
-      // Delete verification code after successful verification
-      await authService.deleteCode(e164PhoneNumber);
 
       auditLog(request, "auth.login_success", {
         metadata: { userId: user.id },
@@ -240,6 +234,9 @@ export const authController = {
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
       });
 
       auditLog(request, "auth.profile_completed");
@@ -347,7 +344,12 @@ export const authController = {
       auditLog(request, "auth.logout");
 
       // Clear the auth_token cookie
-      reply.clearCookie("auth_token", { path: "/" });
+      reply.clearCookie("auth_token", {
+        path: "/",
+        ...(request.server.config.COOKIE_DOMAIN && {
+          domain: request.server.config.COOKIE_DOMAIN,
+        }),
+      });
 
       // Return success response
       return reply.status(200).send({

@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
+const apiUrl = process.env.API_URL?.replace(/\/api$/, "") || "http://localhost:8000";
+
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: ["@tripful/shared"],
   reactStrictMode: true,
   experimental: {
@@ -10,16 +13,19 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/uploads/:path*",
-        destination: "http://localhost:8000/uploads/:path*",
+        destination: `${apiUrl}/uploads/:path*`,
       },
     ];
   },
   images: {
-    // Production: add actual image CDN domains here
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "api.tripful.me",
       },
     ],
   },

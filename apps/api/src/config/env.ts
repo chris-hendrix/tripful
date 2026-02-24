@@ -37,23 +37,46 @@ const envSchema = z.object({
     .default("http://localhost:3000"),
 
   // Proxy
-  TRUST_PROXY: z.coerce.boolean().default(false),
+  TRUST_PROXY: z
+    .enum(["true", "false", "1", "0", ""])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
 
   // Security & Behavior Flags
-  COOKIE_SECURE: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV === "production"),
-  EXPOSE_ERROR_DETAILS: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV === "development"),
-  ENABLE_FIXED_VERIFICATION_CODE: z.coerce
-    .boolean()
-    .default(process.env.NODE_ENV !== "production"),
+  COOKIE_SECURE: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV === "production" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
+  COOKIE_DOMAIN: z.string().optional(),
+  EXPOSE_ERROR_DETAILS: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV === "development" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
+  ENABLE_FIXED_VERIFICATION_CODE: z
+    .enum(["true", "false", "1", "0", ""])
+    .default(process.env.NODE_ENV !== "production" ? "true" : "false")
+    .transform((v) => v === "true" || v === "1"),
 
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+
+  // Twilio (required when ENABLE_FIXED_VERIFICATION_CODE is false)
+  TWILIO_ACCOUNT_SID: z.string().default(""),
+  TWILIO_AUTH_TOKEN: z.string().default(""),
+  TWILIO_VERIFY_SERVICE_SID: z.string().default(""),
+
+  // Storage Provider
+  STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
+
+  // S3-compatible Storage (required when STORAGE_PROVIDER is "s3")
+  // Names match Railway Storage Bucket's AWS SDK preset
+  AWS_ENDPOINT_URL: z.string().default(""),
+  AWS_S3_BUCKET_NAME: z.string().default(""),
+  AWS_ACCESS_KEY_ID: z.string().default(""),
+  AWS_SECRET_ACCESS_KEY: z.string().default(""),
+  AWS_DEFAULT_REGION: z.string().default("us-east-1"),
 
   // File Upload Configuration
   UPLOAD_DIR: z.string().default("uploads"),
@@ -77,7 +100,18 @@ export type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
   try {
-    return envSchema.parse(process.env);
+    const parsed = envSchema.parse(process.env);
+
+    // SAFETY: Block mock/dev services in production
+    if (parsed.NODE_ENV === "production" && parsed.ENABLE_FIXED_VERIFICATION_CODE) {
+      console.error(
+        "❌ FATAL: ENABLE_FIXED_VERIFICATION_CODE cannot be true in production. " +
+          "This would allow anyone to authenticate with a hardcoded code.",
+      );
+      process.exit(1);
+    }
+
+    return parsed;
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("❌ Environment variable validation failed:");

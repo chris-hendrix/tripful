@@ -3,8 +3,20 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile
+    environment:
+      # Override .env DATABASE_URL — host uses localhost:5433, container uses db:5432
+      DATABASE_URL: postgresql://tripful:tripful_dev@db:5432/tripful
     volumes:
       - ..:/workspace:cached
+      # Isolate node_modules so host and container don't conflict on pnpm store paths.
+      # Host runs `pnpm add/install` freely; container syncs via `make test-exec CMD="pnpm install"`.
+      - node_modules:/workspace/node_modules
+      - api_node_modules:/workspace/apps/api/node_modules
+      - web_node_modules:/workspace/apps/web/node_modules
+      - shared_node_modules:/workspace/shared/node_modules
+      - pnpm_store:/workspace/.pnpm-store
+      # Isolate .next so host and container dev servers don't conflict on lock files.
+      - next_cache:/workspace/apps/web/.next
     ports:
       - "3000" # random host port -> container 3000 (Next.js)
       - "8000" # random host port -> container 8000 (Fastify)
@@ -29,3 +41,9 @@ services:
 
 volumes:
   postgres_data:
+  node_modules:
+  api_node_modules:
+  web_node_modules:
+  shared_node_modules:
+  pnpm_store:
+  next_cache:

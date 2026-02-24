@@ -27,6 +27,7 @@ import memberTravelServicePlugin from "./plugins/member-travel-service.js";
 import uploadServicePlugin from "./plugins/upload-service.js";
 import invitationServicePlugin from "./plugins/invitation-service.js";
 import smsServicePlugin from "./plugins/sms-service.js";
+import verificationServicePlugin from "./plugins/verification-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 import messageServicePlugin from "./plugins/message-service.js";
 import notificationServicePlugin from "./plugins/notification-service.js";
@@ -94,7 +95,7 @@ export async function buildApp(
 
   // Register CORS
   await app.register(cors, {
-    origin: app.config.FRONTEND_URL,
+    origin: app.config.FRONTEND_URL.split(",").map((s) => s.trim()),
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -159,12 +160,15 @@ export async function buildApp(
     throwFileSizeLimit: true,
   });
 
-  // Register static file serving plugin (for uploaded images)
-  await app.register(fastifyStatic, {
-    root: resolve(import.meta.dirname, "..", app.config.UPLOAD_DIR),
-    prefix: "/uploads/",
-    decorateReply: false,
-  });
+  // Register static file serving for local storage mode
+  // S3 mode registers its own redirect route in the upload-service plugin
+  if (env.STORAGE_PROVIDER !== "s3") {
+    await app.register(fastifyStatic, {
+      root: resolve(import.meta.dirname, "..", app.config.UPLOAD_DIR),
+      prefix: "/uploads/",
+      decorateReply: false,
+    });
+  }
 
   // Register under-pressure (health monitoring)
   await app.register(underPressure, {
@@ -176,6 +180,7 @@ export async function buildApp(
 
   // Register service plugins
   await app.register(smsServicePlugin);
+  await app.register(verificationServicePlugin);
   await app.register(healthServicePlugin);
   await app.register(permissionsServicePlugin);
   await app.register(authServicePlugin);
