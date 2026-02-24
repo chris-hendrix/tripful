@@ -100,7 +100,18 @@ export type Env = z.infer<typeof envSchema>;
 
 function validateEnv(): Env {
   try {
-    return envSchema.parse(process.env);
+    const parsed = envSchema.parse(process.env);
+
+    // SAFETY: Block mock/dev services in production
+    if (parsed.NODE_ENV === "production" && parsed.ENABLE_FIXED_VERIFICATION_CODE) {
+      console.error(
+        "❌ FATAL: ENABLE_FIXED_VERIFICATION_CODE cannot be true in production. " +
+          "This would allow anyone to authenticate with a hardcoded code.",
+      );
+      process.exit(1);
+    }
+
+    return parsed;
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("❌ Environment variable validation failed:");

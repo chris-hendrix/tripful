@@ -13,10 +13,20 @@ import {
  */
 export default fp(
   async function verificationServicePlugin(fastify: FastifyInstance) {
+    // Defense in depth: never allow mock verification in production
+    if (
+      fastify.config.NODE_ENV === "production" &&
+      fastify.config.ENABLE_FIXED_VERIFICATION_CODE
+    ) {
+      throw new Error(
+        "FATAL: MockVerificationService cannot be used in production",
+      );
+    }
+
     if (fastify.config.ENABLE_FIXED_VERIFICATION_CODE) {
       const service = new MockVerificationService(fastify.log);
       fastify.decorate("verificationService", service);
-      fastify.log.info("Using MockVerificationService (fixed code: 123456)");
+      fastify.log.warn("Using MockVerificationService (fixed code: 123456)");
     } else {
       const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } =
         fastify.config;
