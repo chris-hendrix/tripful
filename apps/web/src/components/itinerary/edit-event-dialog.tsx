@@ -155,11 +155,14 @@ export function EditEventDialog({
     return isNaN(d.getTime()) ? undefined : d;
   }, [startTimeValue]);
 
-  // Auto-fill endTime when startTime is set and endTime is empty (+1 hour)
+  // Auto-fill endTime when startTime is set and endTime is empty or before startTime (+1 hour)
   useEffect(() => {
     if (isInitializing.current) return;
-    if (startTimeValue && !form.getValues("endTime")) {
-      form.setValue("endTime", addHours(new Date(startTimeValue), 1).toISOString());
+    if (startTimeValue) {
+      const currentEnd = form.getValues("endTime");
+      if (!currentEnd || new Date(currentEnd) <= new Date(startTimeValue)) {
+        form.setValue("endTime", addHours(new Date(startTimeValue), 1).toISOString());
+      }
     }
   }, [startTimeValue, form]);
 

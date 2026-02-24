@@ -100,10 +100,13 @@ export function CreateAccommodationDialog({
     return isNaN(d.getTime()) ? undefined : d;
   }, [checkInValue]);
 
-  // Auto-fill checkOut when checkIn is set and checkOut is empty (+1 day)
+  // Auto-fill checkOut when checkIn is set and checkOut is empty or before checkIn (+1 day)
   useEffect(() => {
-    if (checkInValue && !form.getValues("checkOut")) {
-      form.setValue("checkOut", addDays(new Date(checkInValue), 1).toISOString());
+    if (checkInValue) {
+      const currentOut = form.getValues("checkOut");
+      if (!currentOut || new Date(currentOut) <= new Date(checkInValue)) {
+        form.setValue("checkOut", addDays(new Date(checkInValue), 1).toISOString());
+      }
     }
   }, [checkInValue, form]);
 
