@@ -39,16 +39,12 @@ describe("MockVerificationService", () => {
   });
 });
 
-// Hoist mock fns so they're available inside the hoisted vi.mock factory
-const { mockCreate, mockCheckCreate } = vi.hoisted(() => ({
-  mockCreate: vi.fn(),
-  mockCheckCreate: vi.fn(),
-}));
+describe("TwilioVerificationService", () => {
+  const mockCreate = vi.fn();
+  const mockCheckCreate = vi.fn();
 
-// Mock twilio CJS module: default export is a function with a .Twilio constructor property
-vi.mock("twilio", () => {
-  function TwilioClient() {
-    return {
+  function createService() {
+    const mockClient = {
       verify: {
         v2: {
           services: () => ({
@@ -57,23 +53,21 @@ vi.mock("twilio", () => {
           }),
         },
       },
-    };
-  }
-  const mod = Object.assign(TwilioClient, { Twilio: TwilioClient });
-  return { default: mod };
-});
+    } as any;
 
-describe("TwilioVerificationService", () => {
+    return new TwilioVerificationService({
+      accountSid: "AC_test",
+      authToken: "auth_test",
+      verifyServiceSid: "VA_test",
+      client: mockClient,
+    });
+  }
+
   describe("sendCode", () => {
     it("should call Twilio Verify API with correct params", async () => {
       mockCreate.mockResolvedValueOnce({ sid: "VE123", status: "pending" });
 
-      const service = new TwilioVerificationService({
-        accountSid: "AC_test",
-        authToken: "auth_test",
-        verifyServiceSid: "VA_test",
-      });
-
+      const service = createService();
       await service.sendCode("+14155552671");
 
       expect(mockCreate).toHaveBeenCalledWith({
@@ -87,12 +81,7 @@ describe("TwilioVerificationService", () => {
     it("should return true when Twilio returns approved", async () => {
       mockCheckCreate.mockResolvedValueOnce({ status: "approved" });
 
-      const service = new TwilioVerificationService({
-        accountSid: "AC_test",
-        authToken: "auth_test",
-        verifyServiceSid: "VA_test",
-      });
-
+      const service = createService();
       const result = await service.checkCode("+14155552671", "123456");
       expect(result).toBe(true);
       expect(mockCheckCreate).toHaveBeenCalledWith({
@@ -104,12 +93,7 @@ describe("TwilioVerificationService", () => {
     it("should return false when Twilio returns pending", async () => {
       mockCheckCreate.mockResolvedValueOnce({ status: "pending" });
 
-      const service = new TwilioVerificationService({
-        accountSid: "AC_test",
-        authToken: "auth_test",
-        verifyServiceSid: "VA_test",
-      });
-
+      const service = createService();
       const result = await service.checkCode("+14155552671", "000000");
       expect(result).toBe(false);
     });
