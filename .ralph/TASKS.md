@@ -1,77 +1,86 @@
-# Tasks: E2E Test Simplification
+# Tasks: Mutuals Invite
 
-## Phase 1: Remove Redundant Tests
+## Phase 1: Shared Types & Schemas
 
-- [x] Task 1.1: Delete files and remove individual tests covered by unit tests
-  - Implement: Delete `apps/web/tests/e2e/app-shell.spec.ts` (entire file)
-  - Implement: Delete `apps/web/tests/e2e/invitation-helpers.spec.ts` (entire file, keep `helpers/invitations.ts`)
-  - Implement: Remove `"trip form validation"` test from `apps/web/tests/e2e/trip-journey.spec.ts`
-  - Implement: Remove `"itinerary permissions and validation"` test from `apps/web/tests/e2e/itinerary-journey.spec.ts`
-  - Implement: Remove `"meetup location and time on event card"` test from `apps/web/tests/e2e/itinerary-journey.spec.ts`
-  - Implement: Remove `"multi-day event badge"` test from `apps/web/tests/e2e/itinerary-journey.spec.ts`
-  - Implement: Remove `"restricted states journey"` test from `apps/web/tests/e2e/messaging.spec.ts`
-  - Implement: Remove `"notification preferences journey"` test from `apps/web/tests/e2e/notifications.spec.ts`
-  - Implement: Clean up any orphaned imports in modified files (unused helpers, timeouts, etc.)
-  - Verify: `pnpm lint` and `pnpm typecheck` pass (no unused imports/variables)
-  - Verify: `pnpm test:e2e` — remaining tests pass, count is 23 (32 - 9 removed, merges not yet done)
+- [ ] Task 1.1: Add mutuals types/schemas and update notification/invitation shared code
+  - Implement: Create `shared/types/mutuals.ts` with `Mutual` interface and `GetMutualsResponse` type
+  - Implement: Export new types from `shared/types/index.ts`
+  - Implement: Add `"mutual_invite"` and `"sms_invite"` to `NotificationType` union in `shared/types/notification.ts`
+  - Implement: Add `addedMembers: { userId: string; displayName: string }[]` to `CreateInvitationsResponse` in `shared/types/invitation.ts`
+  - Implement: Create `shared/schemas/mutuals.ts` with `getMutualsQuerySchema` and `getMutualSuggestionsQuerySchema`
+  - Implement: Export new schemas from `shared/schemas/index.ts`
+  - Implement: Update `createInvitationsSchema` in `shared/schemas/invitation.ts` to accept optional `phoneNumbers` and optional `userIds` with refinement requiring at least one
+  - Test: Verify shared package builds (`pnpm --filter @tripful/shared build`)
+  - Test: Write unit tests for the updated `createInvitationsSchema` — phone-only, userId-only, mixed, empty-both-rejected
+  - Verify: run full test suite (`pnpm test`), lint, and typecheck pass
 
-- [x] Task 1.2: Merge auth tests and notification tests
-  - Implement: In `auth-journey.spec.ts`, merge `"auth guards"` + `"authenticated user redirects away from public pages"` into single `"auth redirects and guards"` test. Combined flow: unauthenticated → redirect to /login → authenticate → existing user skips complete-profile → verify / redirects to /trips → verify /login redirects to /trips. Single `authenticateUser` call.
-  - Implement: In `notifications.spec.ts`, merge `"notification bell and dropdown journey"` + `"mark all as read and trip notification bell journey"` into single `"notification flow"` test. Combined flow: setup organizer + member + trip + 2 messages → verify global bell shows unread → click notification → navigate to trip → verify trip bell shows 2 unread → open dialog → mark all as read → verify both global and trip bells show zero.
-  - Implement: Clean up any orphaned imports after merges
-  - Verify: `pnpm lint` and `pnpm typecheck` pass
-  - Verify: `pnpm test:e2e` — all remaining tests pass, count is 21
+## Phase 2: Backend API
 
-- [x] Task 1.3: Phase 1 cleanup
-  - Review: Read PROGRESS.md entries for Phase 1 tasks
-  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
-  - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 21 tests pass
+- [ ] Task 2.1: Implement mutuals service, controller, and routes with tests
+  - Implement: Create `apps/api/src/services/mutuals.service.ts` with `IMutualsService` interface and `MutualsService` class. Core query joins `members` + `users` + `trips` to derive mutuals. Keyset cursor pagination on `(shared_trip_count DESC, display_name ASC, id ASC)`. Support `tripId` filter, `search` prefix filter, and batch-load shared trips for each mutual.
+  - Implement: Create `apps/api/src/controllers/mutuals.controller.ts` with `getMutuals` and `getMutualSuggestions` handlers (extract params, call service, return response)
+  - Implement: Create `apps/api/src/routes/mutuals.routes.ts` with `GET /mutuals` (authenticate, defaultRateLimit) and `GET /trips/:tripId/mutual-suggestions` (authenticate, requireCompleteProfile, defaultRateLimit)
+  - Implement: Register `IMutualsService` on Fastify instance in `apps/api/src/types/index.ts`, wire up in server bootstrap
+  - Implement: Register mutuals routes in `apps/api/src/routes/index.ts`
+  - Test: Write unit tests for `MutualsService` — core query logic, cursor pagination, search filtering, trip filtering, empty results, shared trips loading
+  - Test: Write integration tests for `GET /mutuals` — auth required, paginated response, search, trip filter, empty for new user
+  - Test: Write integration tests for `GET /trips/:tripId/mutual-suggestions` — auth + organizer required, excludes existing members, 403 for non-organizer
+  - Verify: run full test suite, lint, and typecheck pass
 
-## Phase 2: Tags and Infrastructure
+- [ ] Task 2.2: Extend invitation service for mutual invites and sms_invite notifications with tests
+  - Implement: Modify `createInvitations` in `apps/api/src/services/invitation.service.ts` to accept `userIds` parameter
+  - Implement: For `userIds` flow — verify each is a mutual (shared trip membership check), check 25-member limit, skip existing trip members, create `members` records with `status: 'no_response'`, send `mutual_invite` notification via `notificationService.createNotification`
+  - Implement: For `phoneNumbers` flow — add `sms_invite` notification for existing users who get auto-added as members (after their member record is created)
+  - Implement: Update response to include `addedMembers` array
+  - Implement: Update controller and route schema to accept the new request body shape
+  - Test: Write unit tests — mutual invite creates member + notification, SMS invite creates notification for existing user, mixed invites, member limit enforcement, non-mutual user rejected, skip existing members
+  - Test: Write integration tests for `POST /trips/:tripId/invitations` — mutual-only, phone-only (backwards compat), mixed, notification verification
+  - Verify: run full test suite, lint, and typecheck pass
 
-- [x] Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
-  - Implement: Ensure `@smoke` tag on these 6 tests: `"complete auth journey"`, `"trip CRUD journey"`, `"invitation and RSVP journey"`, `"itinerary CRUD journey"`, `"messaging CRUD journey"`, `"notification flow"` (the merged test)
-  - Implement: Add `@regression` tag to all remaining 15 non-smoke tests that don't already have it
-  - Implement: Review `test.slow()` calls — ensure no leftover calls from deleted tests, keep on remaining slow tests
-  - Implement: In `apps/web/tests/e2e/helpers/invitations.ts`, add optional `inviterCookie?: string` parameter to `inviteAndAcceptViaAPI`. When provided, skip the `createUserViaAPI(request, inviterPhone)` re-auth and use the cookie directly. Falls back to current behavior when omitted.
-  - Implement: Update callers that already have the organizer cookie to pass it: `invitation-journey.spec.ts`, `trip-journey.spec.ts`, `messaging.spec.ts`, `notifications.spec.ts`
-  - Implement: In `apps/web/playwright.config.ts`, change `workers: process.env.CI ? 2 : 1` to `workers: process.env.CI ? 4 : 1`
-  - Implement: Add `"test:e2e:smoke": "playwright test --grep @smoke"` to `apps/web/package.json` scripts
-  - Verify: `pnpm lint` and `pnpm typecheck` pass
-  - Verify: `pnpm test:e2e` — all 21 tests pass
-  - Verify: Confirm `@smoke` grep matches exactly 6 tests (run `pnpm test:e2e:smoke --list` or dry-run)
+## Phase 3: Frontend — Mutuals Page
 
-- [x] Task 2.2: Phase 2 cleanup
-  - Review: Read PROGRESS.md entries for Phase 2 tasks
-  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
-  - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 21 tests pass
+- [ ] Task 3.1: Implement mutuals page with query hooks, search, filter, and infinite scroll
+  - Implement: Create `apps/web/src/hooks/mutuals-queries.ts` with `mutualKeys` query key factory and `mutualsQueryOptions` (infinite query options with cursor pagination)
+  - Implement: Create `apps/web/src/hooks/use-mutuals.ts` with `useMutuals(params)` hook using `useInfiniteQuery` and `useMutualSuggestions(tripId)` hook using `useQuery`
+  - Implement: Create `apps/web/src/app/(app)/mutuals/page.tsx` — server component with metadata
+  - Implement: Create `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — client component with search input (debounced 300ms), trip filter dropdown (from user's trips), avatar grid, empty state, infinite scroll via intersection observer
+  - Test: Write component tests for `mutuals-content.tsx` — renders mutuals, search filters, empty state displayed, loading state
+  - Verify: run full test suite, lint, and typecheck pass
 
-## Phase 3: CI Pipeline
+- [ ] Task 3.2: Implement mutual profile sheet and app header menu item
+  - Implement: Create `apps/web/src/components/mutuals/mutual-profile-sheet.tsx` — Sheet component showing large avatar, display name, shared trip count, list of shared trips as links to `/trips/:id`
+  - Implement: Wire up mutual card click in `mutuals-content.tsx` to open the profile sheet
+  - Implement: Add "My Mutuals" menu item to user dropdown in `apps/web/src/components/app-header.tsx` — `<Link href="/mutuals">` with `Users` icon, placed between profile item and separator
+  - Test: Write component tests for mutual profile sheet — renders info, trip links work
+  - Test: Write component test for app header — "My Mutuals" link present and navigates to /mutuals
+  - Verify: run full test suite, lint, and typecheck pass
 
-- [x] Task 3.1: Add CI smoke job, sharding, and report merging
-  - Implement: In `.github/workflows/ci.yml`, add `e2e-smoke` job that runs `playwright test --grep @smoke` on PR commits. Needs same postgres service, browser install, and migration steps as existing e2e job. Condition: `github.event_name == 'pull_request'`.
-  - Implement: Modify existing `e2e-tests` job to run only on main branch (`github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'`). Add matrix strategy: `shardIndex: [1, 2]`, `shardTotal: [2]`. Pass `--shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}` to playwright command.
-  - Implement: Update playwright reporter config in `playwright.config.ts` to use `blob` reporter when `PLAYWRIGHT_SHARD` env var is set (CI sharding), keeping `html` as default for local runs. E.g.: `reporter: process.env.CI ? 'blob' : 'html'`
-  - Implement: Add `merge-e2e-reports` job in CI that depends on `e2e-tests`, downloads all blob artifacts, runs `npx playwright merge-reports --reporter html ./all-blob-reports`, and uploads merged HTML report.
-  - Verify: `pnpm lint` passes (YAML/config syntax)
-  - Verify: `pnpm typecheck` passes
-  - Verify: Review CI YAML for correctness (job dependencies, artifact names, conditions)
+## Phase 4: Frontend — Invite Dialog & Notifications
 
-- [x] Task 3.2: Phase 3 cleanup
-  - Review: Read PROGRESS.md entries for Phase 3 tasks
-  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items
-  - Fix: Create new tasks in TASKS.md for any outstanding issues
-  - Verify: `pnpm test:e2e` — all 21 tests pass
+- [ ] Task 4.1: Update invite dialog with mutuals picker and notification icons
+  - Implement: Update `apps/web/src/components/trip/invite-members-dialog.tsx` — add mutuals section at top (searchable list with checkboxes, avatar, name), selected mutuals as badge chips, divider "Or invite by phone number", existing phone input below. Only show mutuals section if organizer AND suggestions exist. Use `useMutualSuggestions(tripId)` hook.
+  - Implement: Update form to use new `createInvitationsSchema` (optional `phoneNumbers` + optional `userIds`). Submit sends both arrays.
+  - Implement: Update `apps/web/src/hooks/use-invitations.ts` — `useInviteMembers` mutation accepts new schema shape, invalidates `mutualKeys.suggestion(tripId)` on success
+  - Implement: Update `apps/web/src/components/notifications/notification-item.tsx` — add `UserPlus` icon for `mutual_invite` and `sms_invite` types
+  - Test: Write component tests for updated invite dialog — mutuals section shown for organizer, hidden for non-organizer, mutual selection works, mixed submit, phone-only submit still works
+  - Test: Write E2E test — view mutuals page (user with co-trip history sees mutuals listed)
+  - Test: Write E2E test — invite a mutual from trip invite dialog (organizer sees suggestions, selects one, submits, member appears in trip)
+  - Verify: run full test suite including E2E, lint, and typecheck pass
+  - Verify: manual testing with screenshots — mutuals page layout, invite dialog two-section layout, notification appears after mutual invite
 
-## Phase 4: Final Verification
+## Phase 5: Cleanup
 
-- [x] Task 4.1: Full regression check
-  - Verify: `pnpm lint` passes
-  - Verify: `pnpm typecheck` passes
-  - Verify: `pnpm test` — all unit/integration tests pass
-  - Verify: `pnpm test:e2e` — all 21 E2E tests pass
-  - Verify: `pnpm test:e2e:smoke` — exactly 6 smoke tests pass
-  - Verify: Confirm file count is 7 spec files (no orphaned files)
-  - Verify: Confirm no orphaned imports or unused helpers
+- [ ] Task 5.1: Triage PROGRESS.md for unaddressed items
+  - Review: Read entire PROGRESS.md
+  - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
+  - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
+  - Verify: run full test suite
+
+## Phase 6: Final Verification
+
+- [ ] Task 6.1: Full regression check
+  - Verify: all unit tests pass (`pnpm test`)
+  - Verify: all E2E tests pass (`pnpm test:e2e`)
+  - Verify: linting passes (`pnpm lint`)
+  - Verify: type checking passes (`pnpm typecheck`)
+  - Verify: manual testing — mutuals page, profile sheet, invite dialog, notifications
