@@ -6,7 +6,9 @@
 export type NotificationType =
   | "daily_itinerary"
   | "trip_message"
-  | "trip_update";
+  | "trip_update"
+  | "mutual_invite"
+  | "sms_invite";
 
 /**
  * Notification entity as returned by the API

@@ -2,7 +2,7 @@
 
 ## Phase 1: Shared Types & Schemas
 
-- [ ] Task 1.1: Add mutuals types/schemas and update notification/invitation shared code
+- [x] Task 1.1: Add mutuals types/schemas and update notification/invitation shared code
   - Implement: Create `shared/types/mutuals.ts` with `Mutual` interface and `GetMutualsResponse` type
   - Implement: Export new types from `shared/types/index.ts`
   - Implement: Add `"mutual_invite"` and `"sms_invite"` to `NotificationType` union in `shared/types/notification.ts`

@@ -133,3 +133,11 @@ export {
   notificationPreferencesResponseSchema,
   type NotificationPreferencesInput,
 } from "./notification";
+
+// Re-export mutuals schemas
+export {
+  getMutualsQuerySchema,
+  getMutualSuggestionsQuerySchema,
+  type GetMutualsQueryInput,
+  type GetMutualSuggestionsQueryInput,
+} from "./mutuals";

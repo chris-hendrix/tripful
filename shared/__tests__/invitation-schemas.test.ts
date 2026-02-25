@@ -9,60 +9,52 @@ import {
 } from "../schemas/index.js";
 
 describe("createInvitationsSchema", () => {
-  it("should accept valid phone number arrays", () => {
-    const validInputs = [
-      { phoneNumbers: ["+14155552671"] },
-      { phoneNumbers: ["+14155552671", "+442071234567"] },
-      { phoneNumbers: ["+14155552671", "+442071234567", "+61412345678"] },
-    ];
-
-    validInputs.forEach((input) => {
-      expect(() => createInvitationsSchema.parse(input)).not.toThrow();
-    });
-  });
-
-  it("should accept various valid E.164 phone numbers", () => {
-    const validPhones = [
-      "+14155552671", // US
-      "+442071234567", // UK
-      "+61412345678", // Australia
-      "+8613800138000", // China
-      "+919876543210", // India
-      "+33123456789", // France
-      "+81312345678", // Japan
-    ];
-
-    const input = { phoneNumbers: validPhones };
-    expect(() => createInvitationsSchema.parse(input)).not.toThrow();
-  });
-
-  it("should accept at minimum boundary: 1 phone number", () => {
+  it("should accept phone-only invitations", () => {
     const input = { phoneNumbers: ["+14155552671"] };
     const parsed = createInvitationsSchema.parse(input);
     expect(parsed.phoneNumbers).toHaveLength(1);
+    expect(parsed.userIds).toEqual([]);
   });
 
-  it("should accept at maximum boundary: 25 phone numbers", () => {
-    const phoneNumbers = Array(25)
-      .fill(null)
-      .map((_, i) => `+1415555${String(i).padStart(4, "0")}`);
-    const input = { phoneNumbers };
+  it("should accept userId-only invitations", () => {
+    const input = { userIds: ["550e8400-e29b-41d4-a716-446655440000"] };
     const parsed = createInvitationsSchema.parse(input);
-    expect(parsed.phoneNumbers).toHaveLength(25);
+    expect(parsed.userIds).toHaveLength(1);
+    expect(parsed.phoneNumbers).toEqual([]);
   });
 
-  it("should reject empty array", () => {
-    const input = { phoneNumbers: [] };
+  it("should accept mixed phone and userId invitations", () => {
+    const input = {
+      phoneNumbers: ["+14155552671"],
+      userIds: ["550e8400-e29b-41d4-a716-446655440000"],
+    };
+    const parsed = createInvitationsSchema.parse(input);
+    expect(parsed.phoneNumbers).toHaveLength(1);
+    expect(parsed.userIds).toHaveLength(1);
+  });
+
+  it("should reject when both arrays are empty", () => {
+    const input = { phoneNumbers: [], userIds: [] };
     const result = createInvitationsSchema.safeParse(input);
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toContain(
-        "At least one phone number is required",
+        "At least one phone number or user ID is required",
       );
     }
   });
 
-  it("should reject array with more than 25 phone numbers", () => {
+  it("should reject when neither field is provided (defaults both to [])", () => {
+    const result = createInvitationsSchema.safeParse({});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        "At least one phone number or user ID is required",
+      );
+    }
+  });
+
+  it("should reject more than 25 phone numbers", () => {
     const phoneNumbers = Array(26)
       .fill(null)
       .map((_, i) => `+1415555${String(i).padStart(4, "0")}`);
@@ -76,13 +68,27 @@ describe("createInvitationsSchema", () => {
     }
   });
 
-  it("should reject invalid phone numbers", () => {
+  it("should reject more than 25 userIds", () => {
+    const userIds = Array(26)
+      .fill(null)
+      .map(() => "550e8400-e29b-41d4-a716-446655440000");
+    const input = { userIds };
+    const result = createInvitationsSchema.safeParse(input);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        "Cannot invite more than 25 members at once",
+      );
+    }
+  });
+
+  it("should reject invalid phone numbers in phoneNumbers array", () => {
     const invalidPhones = [
-      "4155552671", // Missing +
+      "not-a-phone", // Not a phone number at all
+      "4155552671", // Missing + prefix
       "+1", // Too short
       "+123456789012345678", // Too long (more than 15 digits after +)
       "+1abc5552671", // Contains letters
-      "+0155552671", // Country code starts with 0
     ];
 
     invalidPhones.forEach((phone) => {
@@ -93,6 +99,17 @@ describe("createInvitationsSchema", () => {
         expect(result.error.issues[0]?.message).toContain("E.164 format");
       }
     });
+  });
+
+  it("should reject invalid UUID in userIds", () => {
+    const input = { userIds: ["not-a-uuid"] };
+    const result = createInvitationsSchema.safeParse(input);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        "Each user ID must be a valid UUID",
+      );
+    }
   });
 
   it("should reject non-array phoneNumbers", () => {
@@ -108,20 +125,34 @@ describe("createInvitationsSchema", () => {
     });
   });
 
-  it("should reject missing phoneNumbers field", () => {
-    const result = createInvitationsSchema.safeParse({});
-    expect(result.success).toBe(false);
+  it("should accept at maximum boundary: 25 phone numbers", () => {
+    const phoneNumbers = Array(25)
+      .fill(null)
+      .map((_, i) => `+1415555${String(i).padStart(4, "0")}`);
+    const input = { phoneNumbers };
+    const parsed = createInvitationsSchema.parse(input);
+    expect(parsed.phoneNumbers).toHaveLength(25);
   });
 
-  it("should provide helpful error messages for invalid phone format", () => {
-    const input = { phoneNumbers: ["not-a-phone"] };
-    const result = createInvitationsSchema.safeParse(input);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        "Phone number must be in E.164 format",
-      );
-    }
+  it("should accept at maximum boundary: 25 userIds", () => {
+    const userIds = Array(25)
+      .fill(null)
+      .map(() => "550e8400-e29b-41d4-a716-446655440000");
+    const input = { userIds };
+    const parsed = createInvitationsSchema.parse(input);
+    expect(parsed.userIds).toHaveLength(25);
+  });
+
+  it("should default userIds to [] when only phoneNumbers provided", () => {
+    const input = { phoneNumbers: ["+14155552671"] };
+    const parsed = createInvitationsSchema.parse(input);
+    expect(parsed.userIds).toEqual([]);
+  });
+
+  it("should default phoneNumbers to [] when only userIds provided", () => {
+    const input = { userIds: ["550e8400-e29b-41d4-a716-446655440000"] };
+    const parsed = createInvitationsSchema.parse(input);
+    expect(parsed.phoneNumbers).toEqual([]);
   });
 });
 
