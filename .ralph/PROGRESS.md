@@ -502,3 +502,69 @@ Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing
 - Always put prototype stubs in `beforeEach`/`afterEach` rather than inline in the test body — if the test throws before the manual restore, the stubs leak and pollute subsequent tests
 - When testing that a modal/sheet opens with content that duplicates the trigger element's text, use `getAllByText().toHaveLength(N)` to verify the text appears in both locations
 - When a child component (like `MutualProfileSheet`) renders in integration tests but not in unit-style tests, additional `vi.mock` calls may be needed for the child's imports (`next/link`, utility libraries) — the child's code paths are only exercised when it receives real (non-null) data
+
+## Iteration 11 — Task 6.1: Full regression check
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Verification-only task** — no code was written or modified. Ran all automated checks and performed comprehensive manual testing.
+
+### Automated check results
+
+- **Unit/integration tests**: 2436 passing (shared: 231, api: 1036, web: 1169) — 0 failures
+- **E2E tests**: 22 passing — 0 failures
+- **Lint**: 0 errors (1 pre-existing warning in unrelated `verification.service.test.ts`)
+- **Typecheck**: All 3 packages pass (shared, api, web)
+
+### Manual testing results
+
+Created test data via API (two users, one shared trip for mutual relationship, one separate trip for invite testing). Performed full manual testing using `playwright-cli` inside the devcontainer.
+
+**Mutuals page** (screenshot: `.ralph/screenshots/task-6.1-mutuals-page.png`):
+- ✅ "My Mutuals" heading with "1 mutual" count
+- ✅ Search input with "Search mutuals..." placeholder
+- ✅ "All trips" filter dropdown
+- ✅ Bob Manual card with "BM" avatar initials and "1 shared trip"
+
+**Profile sheet** (screenshot: `.ralph/screenshots/task-6.1-profile-sheet.png`):
+- ✅ Side sheet with "Bob Manual" title in Playfair font
+- ✅ "1 shared trip" subtitle
+- ✅ Large "BM" avatar (size-20)
+- ✅ "SHARED TRIPS" heading with "Paris Adventure" link
+
+**Invite dialog** (screenshots: `.ralph/screenshots/task-6.1-invite-dialog.png`, `task-6.1-invite-dialog-selected.png`):
+- ✅ Two-section layout: "Suggest from mutuals" section at top with search and checkboxes
+- ✅ "Or invite by phone number" separator
+- ✅ Phone input section below
+- ✅ Selecting Bob shows blue checkbox and badge chip "Bob Manual ×"
+- ✅ "Send invitations" button enabled after selection
+
+**Invite success** (screenshot: `.ralph/screenshots/task-6.1-invite-success.png`):
+- ✅ Dialog closed after submission
+- ✅ Trip member count updated from "1 member" to "2 members"
+
+**App header menu** (screenshot: `.ralph/screenshots/task-6.1-app-header-menu.png`):
+- ✅ "My Mutuals" menu item with Users icon between profile and "Log out"
+
+**Notification** (verified via API):
+- ✅ Bob received `mutual_invite` notification: "Alice Manual invited you to Tokyo Explorer"
+- ✅ Unread count: 1
+
+### Reviewer assessment
+
+- **APPROVED** — All 5 verification criteria satisfied. Comprehensive manual testing with 6 screenshots covering all required features. Test counts consistent with incremental additions tracked across all 10 previous iterations. No issues found.
+- One LOW severity observation: the invite success screenshot shows the trip page after dialog close but at lower resolution — member count update "2 members" was confirmed in snapshot data and E2E test
+
+### Summary
+
+All tasks in the Mutuals Invite feature are now complete:
+- Phase 1 (Shared Types & Schemas): Task 1.1 ✅
+- Phase 2 (Backend API): Tasks 2.1, 2.2 ✅
+- Phase 3 (Frontend — Mutuals Page): Tasks 3.1, 3.2 ✅
+- Phase 4 (Frontend — Invite Dialog & Notifications): Task 4.1 ✅
+- Phase 5 (Cleanup): Tasks 5.1, 5.2, 5.3, 5.4 ✅
+- Phase 6 (Final Verification): Task 6.1 ✅
+
+Final test count: 2436 unit/integration + 22 E2E = 2458 tests — all passing

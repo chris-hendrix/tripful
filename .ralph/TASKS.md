@@ -95,7 +95,7 @@
 
 ## Phase 6: Final Verification
 
-- [ ] Task 6.1: Full regression check
+- [x] Task 6.1: Full regression check
   - Verify: all unit tests pass (`pnpm test`)
   - Verify: all E2E tests pass (`pnpm test:e2e`)
   - Verify: linting passes (`pnpm lint`)
