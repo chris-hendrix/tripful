@@ -461,3 +461,44 @@ Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing
 
 - Inline empty states inside scrollable containers should follow the compact `deleted-items-dialog.tsx` pattern (`py-6`, `w-8 h-8` icon, `text-sm`), not the full-page empty state pattern (`p-12`, `w-12 h-12` icon, `text-2xl` heading)
 - When adding empty state for filtered lists, always guard the condition with a check that the search/filter is active — otherwise the empty state would flash when the parent data hasn't loaded yet or when the list is naturally empty
+
+## Iteration 10 — Task 5.4: Add missing mutuals page test coverage
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — Added 3 new `vi.mock` calls (`next/link`, `@/lib/api`, `@/lib/format`) needed because the new tests render `MutualProfileSheet` with real data (previous tests never triggered this code path since the sheet was always rendered with `open={false}`). Added `React` import for JSX in the `next/link` mock. Added 2 new test `describe` blocks:
+  1. **"Mutual profile sheet"** — Clicks the Alice Johnson mutual card via `getByRole("button", { name: /Alice Johnson/ })`, waits for the sheet to open, verifies display name appears in both card and sheet (`getAllByText("Alice Johnson").toHaveLength(2)`), verifies "Shared Trips" heading, all three trip names ("Summer Vacation", "Ski Weekend", "Beach Party"), and all three trip link hrefs (`/trips/trip-1`, `/trips/trip-2`, `/trips/trip-3`)
+  2. **"Trip filter"** — Stubs `Element.prototype.hasPointerCapture/setPointerCapture/releasePointerCapture/scrollIntoView` in `beforeEach`/`afterEach` for safe cleanup (required for Radix Select in jsdom), mocks `useTrips` with trips ("Paris Adventure", "Tokyo Explorer" — distinct names to avoid collision with mock mutual data), renders component, clicks the combobox trigger, selects "Paris Adventure", asserts `mockUseMutuals` was called with `{ search: undefined, tripId: "filter-trip-1" }`
+
+### Verification results
+
+- Specific test file: 10/10 tests passed (8 pre-existing + 2 new)
+- Full test suite: 2436 tests passed (shared: 231, api: 1036, web: 1169) — all passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** (after one round of fixes)
+- First review returned NEEDS_WORK with 2 issues:
+  1. MEDIUM: Element.prototype stubs were in the test body with manual restore at end — if test failed before restore, stubs would leak. Fixed by moving to `beforeEach`/`afterEach` scoped to the "Trip filter" describe block.
+  2. LOW: Missing explicit display name assertion in the sheet test. Fixed by adding `expect(screen.getAllByText("Alice Johnson")).toHaveLength(2)` to verify name appears in both card and sheet title.
+- Second review confirmed both fixes correct and complete, no new issues.
+
+### Design decisions
+
+- Used `getAllByText("Alice Johnson").toHaveLength(2)` to verify display name renders in both the card and the sheet title — cleaner than DOM traversal to find the specific `SheetTitle` element
+- Used distinct trip names ("Paris Adventure", "Tokyo Explorer") for the Select test to avoid text collisions with `mockMutuals[0].sharedTrips` which include "Summer Vacation" and "Ski Weekend"
+- Element.prototype stubs scoped to the "Trip filter" describe block using the save-stub-restore pattern (same approach as `IntersectionObserver` mock in the module-level `beforeEach`)
+- `pointerEventsCheck: 0` on `userEvent.setup()` needed for Radix Select because it sets `pointer-events: none` during transitions
+
+### Learnings for future iterations
+
+- Radix Select in jsdom requires `Element.prototype` stubs for `hasPointerCapture`, `setPointerCapture`, `releasePointerCapture`, and `scrollIntoView` — jsdom does not provide these APIs
+- Always put prototype stubs in `beforeEach`/`afterEach` rather than inline in the test body — if the test throws before the manual restore, the stubs leak and pollute subsequent tests
+- When testing that a modal/sheet opens with content that duplicates the trigger element's text, use `getAllByText().toHaveLength(N)` to verify the text appears in both locations
+- When a child component (like `MutualProfileSheet`) renders in integration tests but not in unit-style tests, additional `vi.mock` calls may be needed for the child's imports (`next/link`, utility libraries) — the child's code paths are only exercised when it receives real (non-null) data

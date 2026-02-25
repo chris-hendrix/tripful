@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React, { Suspense, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, type ReactNode } from "react";
 import { MutualsContent } from "./mutuals-content";
 
 // Mock hooks
@@ -26,6 +26,36 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/mutuals",
+}));
+
+// Mock next/link for MutualProfileSheet
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+// Mock @/lib/api for getUploadUrl used by both MutualsContent and MutualProfileSheet
+vi.mock("@/lib/api", () => ({
+  getUploadUrl: (url: string | null) => url || "",
+}));
+
+// Mock @/lib/format for getInitials used by both MutualsContent and MutualProfileSheet
+vi.mock("@/lib/format", () => ({
+  getInitials: (name: string) =>
+    name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join(""),
 }));
 
 // Mock IntersectionObserver
@@ -310,6 +340,138 @@ describe("MutualsContent", () => {
       });
 
       vi.useRealTimers();
+    });
+  });
+
+  describe("Mutual profile sheet", () => {
+    it("opens sheet with mutual details when a mutual card is clicked", async () => {
+      const user = userEvent.setup();
+
+      mockUseMutuals.mockReturnValue({
+        data: {
+          pages: [{ success: true, mutuals: mockMutuals, nextCursor: null }],
+          pageParams: [undefined],
+        },
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+        isFetching: false,
+        hasNextPage: false,
+        isFetchingNextPage: false,
+        fetchNextPage: vi.fn(),
+      });
+
+      renderWithClient(<MutualsContent />);
+
+      // Click the first mutual card (Alice Johnson)
+      const aliceCard = screen.getByRole("button", {
+        name: /Alice Johnson/,
+      });
+      await user.click(aliceCard);
+
+      // The sheet should open with Alice's details
+      // Verify sheet-unique content: "Shared Trips" heading and individual trip names
+      await waitFor(() => {
+        expect(screen.getByText("Shared Trips")).toBeDefined();
+      });
+
+      // Verify display name appears in both card and sheet
+      expect(screen.getAllByText("Alice Johnson")).toHaveLength(2);
+
+      expect(screen.getByText("Summer Vacation")).toBeDefined();
+      expect(screen.getByText("Ski Weekend")).toBeDefined();
+      expect(screen.getByText("Beach Party")).toBeDefined();
+
+      // Verify trip links point to correct routes
+      const summerLink = screen.getByRole("link", {
+        name: "Summer Vacation",
+      });
+      expect(summerLink.getAttribute("href")).toBe("/trips/trip-1");
+
+      const skiLink = screen.getByRole("link", { name: "Ski Weekend" });
+      expect(skiLink.getAttribute("href")).toBe("/trips/trip-2");
+
+      const beachLink = screen.getByRole("link", { name: "Beach Party" });
+      expect(beachLink.getAttribute("href")).toBe("/trips/trip-3");
+    });
+  });
+
+  describe("Trip filter", () => {
+    // Radix Select calls hasPointerCapture/setPointerCapture/releasePointerCapture
+    // which are not available in jsdom -- stub them on Element.prototype
+    let originalHasPointerCapture: typeof Element.prototype.hasPointerCapture;
+    let originalSetPointerCapture: typeof Element.prototype.setPointerCapture;
+    let originalReleasePointerCapture: typeof Element.prototype.releasePointerCapture;
+    let originalScrollIntoView: typeof Element.prototype.scrollIntoView;
+
+    beforeEach(() => {
+      originalHasPointerCapture = Element.prototype.hasPointerCapture;
+      originalSetPointerCapture = Element.prototype.setPointerCapture;
+      originalReleasePointerCapture =
+        Element.prototype.releasePointerCapture;
+      originalScrollIntoView = Element.prototype.scrollIntoView;
+      Element.prototype.hasPointerCapture = vi.fn(() => false);
+      Element.prototype.setPointerCapture = vi.fn();
+      Element.prototype.releasePointerCapture = vi.fn();
+      Element.prototype.scrollIntoView = vi.fn();
+    });
+
+    afterEach(() => {
+      Element.prototype.hasPointerCapture = originalHasPointerCapture;
+      Element.prototype.setPointerCapture = originalSetPointerCapture;
+      Element.prototype.releasePointerCapture =
+        originalReleasePointerCapture;
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    });
+
+    it("passes selected tripId to useMutuals when a trip is selected", async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+      mockUseTrips.mockReturnValue({
+        data: [
+          { id: "filter-trip-1", name: "Paris Adventure" },
+          { id: "filter-trip-2", name: "Tokyo Explorer" },
+        ],
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseMutuals.mockReturnValue({
+        data: {
+          pages: [{ success: true, mutuals: mockMutuals, nextCursor: null }],
+          pageParams: [undefined],
+        },
+        isPending: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+        isFetching: false,
+        hasNextPage: false,
+        isFetchingNextPage: false,
+        fetchNextPage: vi.fn(),
+      });
+
+      renderWithClient(<MutualsContent />);
+
+      // The trip filter select should be visible since trips.length > 0
+      const selectTrigger = screen.getByRole("combobox");
+      await user.click(selectTrigger);
+
+      // Select "Paris Adventure" from the dropdown
+      const parisOption = await screen.findByRole("option", {
+        name: "Paris Adventure",
+      });
+      await user.click(parisOption);
+
+      // Verify useMutuals was called with the selected tripId
+      await waitFor(() => {
+        expect(mockUseMutuals).toHaveBeenCalledWith({
+          search: undefined,
+          tripId: "filter-trip-1",
+        });
+      });
     });
   });
 });

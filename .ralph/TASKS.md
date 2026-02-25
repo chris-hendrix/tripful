@@ -88,7 +88,7 @@
   - Test: Add test in `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — set up suggestions, type search that matches nothing, assert "No mutuals found" appears
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 5.4: Add missing mutuals page test coverage
+- [x] Task 5.4: Add missing mutuals page test coverage
   - Test: Add test in `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` that clicks a mutual card and verifies the MutualProfileSheet content appears (display name in sheet, "Shared Trips" heading)
   - Test: Add test in `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` that mocks `useTrips` with trips, renders the dropdown, selects a trip, and verifies `useMutuals` receives the `tripId` param
   - Verify: run full test suite, lint, and typecheck pass
