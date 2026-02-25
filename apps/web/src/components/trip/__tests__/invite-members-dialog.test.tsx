@@ -868,6 +868,27 @@ describe("InviteMembersDialog", () => {
       expect(screen.queryByText("Bob Jones")).toBeNull();
     });
 
+    it("shows empty state when search matches no mutuals", async () => {
+      const user = userEvent.setup();
+      mockUseMutualSuggestions.mockReturnValue({
+        data: mockSuggestions,
+        isPending: false,
+        isError: false,
+      });
+      renderWithQueryClient(<InviteMembersDialog {...defaultProps} />);
+
+      // Type search that matches nothing
+      const searchInput = screen.getByPlaceholderText(/search mutuals/i);
+      await user.type(searchInput, "Zzzznonexistent");
+
+      // Neither Alice nor Bob should be visible
+      expect(screen.queryByText("Alice Smith")).toBeNull();
+      expect(screen.queryByText("Bob Jones")).toBeNull();
+
+      // Empty state message should be shown
+      expect(screen.getByText("No mutuals found")).toBeDefined();
+    });
+
     it("shows success toast with addedMembers count", async () => {
       const { apiRequest } = await import("@/lib/api");
       vi.mocked(apiRequest).mockResolvedValueOnce({

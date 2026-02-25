@@ -242,38 +242,45 @@ export function InviteMembersDialog({
 
                   {/* Scrollable checkbox list */}
                   <div className="max-h-48 overflow-y-auto space-y-1 rounded-xl border border-border p-2">
-                    {filteredSuggestions.map((mutual: Mutual) => (
-                      <label
-                        key={mutual.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={userIds.includes(mutual.id)}
-                          onCheckedChange={() => toggleMutual(mutual.id)}
-                          aria-label={mutual.displayName}
-                        />
-                        <Avatar size="sm">
-                          {mutual.profilePhotoUrl && (
-                            <AvatarImage
-                              src={getUploadUrl(mutual.profilePhotoUrl)}
-                              alt={mutual.displayName}
-                            />
-                          )}
-                          <AvatarFallback>
-                            {getInitials(mutual.displayName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {mutual.displayName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {mutual.sharedTripCount} shared trip
-                            {mutual.sharedTripCount !== 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
+                    {filteredSuggestions.length === 0 && mutualSearch.trim() ? (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                        No mutuals found
+                      </div>
+                    ) : (
+                      filteredSuggestions.map((mutual: Mutual) => (
+                        <label
+                          key={mutual.id}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={userIds.includes(mutual.id)}
+                            onCheckedChange={() => toggleMutual(mutual.id)}
+                            aria-label={mutual.displayName}
+                          />
+                          <Avatar size="sm">
+                            {mutual.profilePhotoUrl && (
+                              <AvatarImage
+                                src={getUploadUrl(mutual.profilePhotoUrl)}
+                                alt={mutual.displayName}
+                              />
+                            )}
+                            <AvatarFallback>
+                              {getInitials(mutual.displayName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {mutual.displayName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {mutual.sharedTripCount} shared trip
+                              {mutual.sharedTripCount !== 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </label>
+                      ))
+                    )}
                   </div>
 
                   {/* Divider before phone section */}

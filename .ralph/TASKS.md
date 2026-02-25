@@ -83,7 +83,7 @@
   - Test: Add integration test in `apps/api/tests/integration/mutuals.routes.test.ts` — `GET /mutuals?cursor=garbage` returns 400
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 5.3: Add empty state for filtered mutuals in invite dialog
+- [x] Task 5.3: Add empty state for filtered mutuals in invite dialog
   - Fix: Add conditional "No mutuals found" text inside the scrollable container in `apps/web/src/components/trip/invite-members-dialog.tsx` (lines 244-277) when `filteredSuggestions.length === 0 && mutualSearch.trim()`, following the pattern from `deleted-items-dialog.tsx`
   - Test: Add test in `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — set up suggestions, type search that matches nothing, assert "No mutuals found" appears
   - Verify: run full test suite, lint, and typecheck pass

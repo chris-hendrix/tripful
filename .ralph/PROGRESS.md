@@ -426,3 +426,38 @@ Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing
 - `@fastify/error` instances automatically get a `statusCode` property, which the controller's duck-typing check `"statusCode" in error` uses to distinguish typed errors from unexpected errors — this means adding a new error class requires zero controller changes
 - `Buffer.from(str, "base64")` does NOT throw on invalid base64 — it silently ignores invalid characters and produces garbage bytes. The failure always comes from `JSON.parse()` on the resulting garbage string
 - For fix tasks from reviewer triage, the implementation is often very surgical (4 lines of production code + 2 test cases) — these are fast iterations
+
+## Iteration 9 — Task 5.3: Add empty state for filtered mutuals in invite dialog
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/web/src/components/trip/invite-members-dialog.tsx` — Inside the scrollable checkbox list container (lines 244-277), wrapped `filteredSuggestions.map(...)` in a ternary. When `filteredSuggestions.length === 0 && mutualSearch.trim()` is truthy, renders a centered empty state with a `Search` icon and "No mutuals found" text. Otherwise renders the existing mutual list unchanged. Follows the `deleted-items-dialog.tsx` inline empty state pattern exactly: `py-6 text-center text-sm text-muted-foreground` wrapper, `w-8 h-8 mx-auto mb-2 text-muted-foreground/50` icon.
+- `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — Added test "shows empty state when search matches no mutuals" in the "Mutuals section" describe block. Sets up mock suggestions with Alice Smith and Bob Jones, types non-matching search "Zzzznonexistent", asserts both mutuals are hidden and "No mutuals found" text is visible.
+
+### Verification results
+
+- Shared tests: 231 passing (12 files)
+- API tests: cached (all passing)
+- Web tests: 1167 passing (65 files), including 1 new test
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** — Pattern matches deleted-items-dialog exactly, correct condition logic (`filteredSuggestions.length === 0 && mutualSearch.trim()`), no regressions in the else branch, contextually appropriate Search icon choice, well-structured test
+- One optional suggestion (non-blocking): test could additionally verify clearing search restores full list, but existing "filters mutuals by search text" test already exercises the filtering path
+
+### Design decisions
+
+- Used `Search` icon (already imported) instead of `Users` or `Trash2` since this is a "no search results" state, consistent with how trips-content.tsx uses `Search` for filtered empty states
+- Condition guards on `mutualSearch.trim()` to prevent showing the empty state when the search field is blank (the outer `hasMutuals` conditional already handles the "no suggestions at all" case)
+- No new imports needed — `Search` was already imported at line 40
+
+### Learnings for future iterations
+
+- Inline empty states inside scrollable containers should follow the compact `deleted-items-dialog.tsx` pattern (`py-6`, `w-8 h-8` icon, `text-sm`), not the full-page empty state pattern (`p-12`, `w-12 h-12` icon, `text-2xl` heading)
+- When adding empty state for filtered lists, always guard the condition with a check that the search/filter is active — otherwise the empty state would flash when the parent data hasn't loaded yet or when the list is naturally empty
