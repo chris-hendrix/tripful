@@ -175,4 +175,31 @@ describe("AppHeader", () => {
     expect(mockLogout).toHaveBeenCalledOnce();
   });
 
+  it("shows My Mutuals link in dropdown", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const avatarButton = screen.getByRole("button", { name: "User menu" });
+    await user.click(avatarButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("My Mutuals")).toBeDefined();
+    });
+  });
+
+  it("My Mutuals link points to /mutuals", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const avatarButton = screen.getByRole("button", { name: "User menu" });
+    await user.click(avatarButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("My Mutuals")).toBeDefined();
+    });
+
+    const mutualsLink = screen.getByText("My Mutuals").closest("a");
+    expect(mutualsLink?.getAttribute("href")).toBe("/mutuals");
+  });
+
 });

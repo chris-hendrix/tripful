@@ -194,3 +194,46 @@
 - IntersectionObserver in tests requires a mock since jsdom doesn't provide it — mock at module level in `beforeEach` and store the callback to manually trigger intersection in tests
 - The `Select` component from Radix UI does not support empty string as a value — use a sentinel string like `"all"` and convert in the change handler
 - Pre-existing turbo parallel runner flakiness continues — run per-package tests individually for reliable results
+
+## Iteration 5 — Task 3.2: Implement mutual profile sheet and app header menu item
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**New files created:**
+- `apps/web/src/components/mutuals/mutual-profile-sheet.tsx` — Sheet component showing large avatar (size-20), display name as SheetTitle with Playfair font, shared trip count subtitle, and list of shared trips as clickable `<Link>` elements to `/trips/:id`. Props: `{ mutual: Mutual | null; open: boolean; onOpenChange: (open: boolean) => void }`. Follows the ProfileDialog pattern exactly.
+- `apps/web/src/components/mutuals/__tests__/mutual-profile-sheet.test.tsx` — 8 tests covering: display name rendering, large avatar with initials, avatar fallback when no photo, plural/singular trip count text, shared trip link hrefs, null mutual state, and closed state.
+
+**Modified files:**
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Added `selectedMutual` state (`useState<Mutual | null>`), click handler and keyboard accessibility (`role="button"`, `tabIndex={0}`, `onKeyDown` for Enter/Space) to mutual card divs, and rendered `<MutualProfileSheet>` at the bottom of the component with controlled open/close state.
+- `apps/web/src/components/app-header.tsx` — Added `Users` icon import from lucide-react, added "My Mutuals" `DropdownMenuItem` with `asChild` wrapping a `<Link href="/mutuals">` with `data-testid="mutuals-menu-item"`, placed between profile item and separator.
+- `apps/web/src/components/__tests__/app-header.test.tsx` — Added 2 tests: "shows My Mutuals link in dropdown" and "My Mutuals link points to /mutuals".
+- `turbo.json` — Added `passThroughEnv` for `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV` to the test pipeline to fix environment variable passthrough in Turborepo.
+
+### Verification results
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1155 passing (65 files), including 10 new tests (8 profile sheet + 2 app header)
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+- **APPROVED** — Clean component design, correct type usage, proper null handling, keyboard accessibility on cards
+- Two LOW severity notes (both non-blocking):
+  1. Redundant icon classes on Users icon in app-header — FIXED post-review (removed `className="mr-2 h-4 w-4"` to match LogOut icon pattern)
+  2. Missing test for card click opening profile sheet in mutuals-content — noted as non-blocking since the sheet itself is well-tested independently
+- Optional suggestion: consider auto-closing sheet on trip link navigation (UX polish, not a bug)
+
+### Design decisions
+- MutualProfileSheet follows the ProfileDialog pattern exactly: controlled `open`/`onOpenChange` props, same Sheet structure, same Playfair font title, same size-20 avatar
+- Card keyboard accessibility follows event-card.tsx/accommodation-card.tsx pattern: `role="button"`, `tabIndex={0}`, `onKeyDown` with Enter/Space handling and `e.preventDefault()`
+- No dynamic import for the sheet — it's only used on the mutuals page (already mutuals-specific), so code splitting benefit is minimal
+- Sheet displays data from the already-fetched Mutual object (no additional API call needed since `sharedTrips` is included in the list response)
+- `Users` icon in dropdown uses no explicit size classes, matching the `LogOut` icon pattern (shadcn DropdownMenuItem auto-sizes SVG children via CSS)
+
+### Learnings for future iterations
+- shadcn `DropdownMenuItem` applies `gap-2` and `[&_svg:not([class*='size-'])]:size-4` automatically — adding `mr-2 h-4 w-4` to icons is redundant and creates double spacing
+- Radix `Avatar` doesn't render `<img>` in jsdom (images don't load in test environment) — test avatar via the fallback initials and size class assertions instead
+- For controlled Sheet components receiving nullable data, use `{data && (...)}` conditional rendering inside `SheetContent` rather than conditionally rendering the entire `Sheet` — this keeps the close animation working smoothly
+- The `turbo.json` `passThroughEnv` configuration resolves the long-standing turbo runner flakiness — environment variables like `DATABASE_URL` were being stripped in parallel runs

@@ -47,7 +47,7 @@
   - Test: Write component tests for `mutuals-content.tsx` — renders mutuals, search filters, empty state displayed, loading state
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 3.2: Implement mutual profile sheet and app header menu item
+- [x] Task 3.2: Implement mutual profile sheet and app header menu item
   - Implement: Create `apps/web/src/components/mutuals/mutual-profile-sheet.tsx` — Sheet component showing large avatar, display name, shared trip count, list of shared trips as links to `/trips/:id`
   - Implement: Wire up mutual card click in `mutuals-content.tsx` to open the profile sheet
   - Implement: Add "My Mutuals" menu item to user dropdown in `apps/web/src/components/app-header.tsx` — `<Link href="/mutuals">` with `Users` icon, placed between profile item and separator

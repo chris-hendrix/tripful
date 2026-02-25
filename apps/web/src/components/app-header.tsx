@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
@@ -93,6 +93,12 @@ export function AppHeader() {
                       <p className="text-xs text-muted-foreground">
                         {user.phoneNumber}
                       </p>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild data-testid="mutuals-menu-item">
+                      <Link href="/mutuals">
+                        <Users />
+                        My Mutuals
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>

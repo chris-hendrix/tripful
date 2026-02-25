@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { Search, Users, AlertCircle, Loader2 } from "lucide-react";
+import type { Mutual } from "@tripful/shared/types";
 import { useMutuals } from "@/hooks/use-mutuals";
 import { useTrips } from "@/hooks/use-trips";
+import { MutualProfileSheet } from "@/components/mutuals/mutual-profile-sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +38,7 @@ export function MutualsContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTripId, setSelectedTripId] = useState<string>("");
+  const [selectedMutual, setSelectedMutual] = useState<Mutual | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Debounce search input by 300ms
@@ -192,7 +195,16 @@ export function MutualsContent() {
             {mutuals.map((mutual) => (
               <div
                 key={mutual.id}
+                role="button"
+                tabIndex={0}
                 className="bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedMutual(mutual)}
+                onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedMutual(mutual);
+                  }
+                }}
               >
                 <div className="flex items-center gap-4">
                   <Avatar size="lg">
@@ -229,6 +241,14 @@ export function MutualsContent() {
           </div>
         )}
       </div>
+
+      <MutualProfileSheet
+        mutual={selectedMutual}
+        open={!!selectedMutual}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMutual(null);
+        }}
+      />
     </div>
   );
 }
