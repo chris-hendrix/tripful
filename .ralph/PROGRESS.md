@@ -148,3 +148,49 @@
 - When adding new notification types that fire during existing flows (e.g., `sms_invite` during phone invites), check ALL E2E tests that count notifications — they will need count adjustments
 - The turbo runner still fails with `DATABASE_URL` not being passed through — this is a pre-existing `turbo.json` configuration issue (`passThroughEnv` missing). Run tests per-package to avoid this
 - The `members` self-join pattern for mutual verification is efficient: `SELECT user_id FROM members m1 JOIN members m2 ON m1.trip_id = m2.trip_id WHERE m1.user_id = :inviter AND m2.user_id IN (:userIds)` — reusable for any mutual check
+
+## Iteration 4 — Task 3.1: Implement mutuals page with query hooks, search, filter, and infinite scroll
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**New files created:**
+- `apps/web/src/hooks/mutuals-queries.ts` — Query key factory (`mutualKeys`) with hierarchical keys (`all`, `lists`, `list`, `suggestions`, `suggestion`) and two query option factories: `mutualsQueryOptions` using `infiniteQueryOptions` (first infinite query in the codebase) with cursor-based pagination, and `mutualSuggestionsQueryOptions` using regular `queryOptions` with `enabled: !!tripId` guard
+- `apps/web/src/hooks/use-mutuals.ts` — `"use client"` hook file exporting `useMutuals(params)` wrapping `useInfiniteQuery` and `useMutualSuggestions(tripId)` wrapping `useQuery`. Re-exports keys and options for convenience
+- `apps/web/src/app/(app)/mutuals/page.tsx` — Server component page with metadata `{ title: "My Mutuals | Tripful" }`, renders `<MutualsContent />` (no server prefetch for infinite queries)
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Client component with search input (300ms debounce via `useState`/`useEffect`), trip filter dropdown (populated from `useTrips()`), avatar grid of mutual cards, loading skeletons, error state with retry button, empty state, infinite scroll via `IntersectionObserver` sentinel div, and proper pluralization
+- `apps/web/src/hooks/__tests__/use-mutuals.test.tsx` — 8 hook tests covering: first page fetch, cursor-based pagination with `fetchNextPage`, search parameter passing, tripId filter, API error handling, empty results, suggestions fetch, disabled state when tripId is empty
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — 8 component tests covering: loading skeletons, no count during loading, mutuals grid rendering, singular/plural text, empty state, error state with retry, retry click handler, debounced search input
+
+### Verification results
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1145 passing (64 files), including 16 new tests (8 hook + 8 component)
+- E2E tests: 21 passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated file)
+- Typecheck: PASS (all 3 packages)
+- Shared package build: PASS
+
+### Reviewer assessment
+- **APPROVED** — Excellent pattern consistency with existing codebase
+- Three LOW severity notes (all non-blocking):
+  1. No server-side prefetch in page component — acceptable given infinite query hydration complexity; task spec only requires "server component with metadata"
+  2. `mutualCount` shows count of currently-loaded mutuals, not server total — minor UX concern, non-blocking
+  3. `"use client"` in hook file technically redundant but consistent with existing `use-trips.ts` pattern
+- Optional suggestions: consider `useMemo` for page flattening, add trip filter dropdown test, add keyboard accessibility to cards when click handler is added in Task 3.2
+
+### Design decisions
+- First `useInfiniteQuery` / `infiniteQueryOptions` usage in the codebase — used TanStack Query v5 API with `initialPageParam: undefined as string | undefined` and `getNextPageParam` returning `nextCursor ?? undefined`
+- No server-side prefetch for the mutuals page — infinite query hydration requires special handling that isn't worth the complexity for this page. Client-side fetch with skeleton loading provides good UX
+- Search uses local state debounce (not URL sync) because infinite queries reset on parameter change — URL sync would cause unnecessary refetches on browser back/forward
+- Trip filter dropdown uses `"all"` as sentinel value since Radix UI Select doesn't support empty string values; handler converts back to `""`
+- IntersectionObserver sentinel div at bottom of grid triggers `fetchNextPage()` when visible — guards with `hasNextPage && !isFetchingNextPage` to prevent duplicate fetches
+- Mutual cards have `cursor-pointer` but no click handler yet — Task 3.2 will add the profile sheet click handler with keyboard accessibility
+
+### Learnings for future iterations
+- TanStack Query v5's `infiniteQueryOptions()` is the analog of `queryOptions()` for infinite queries — must provide `initialPageParam` and `getNextPageParam` as required generic parameters
+- When using `useInfiniteQuery`, flatten pages for rendering with `data?.pages.flatMap((page) => page.items) ?? []` — consider wrapping in `useMemo` for performance if the component has frequent unrelated re-renders
+- IntersectionObserver in tests requires a mock since jsdom doesn't provide it — mock at module level in `beforeEach` and store the callback to manually trigger intersection in tests
+- The `Select` component from Radix UI does not support empty string as a value — use a sentinel string like `"all"` and convert in the change handler
+- Pre-existing turbo parallel runner flakiness continues — run per-package tests individually for reliable results

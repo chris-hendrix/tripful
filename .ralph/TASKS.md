@@ -39,7 +39,7 @@
 
 ## Phase 3: Frontend — Mutuals Page
 
-- [ ] Task 3.1: Implement mutuals page with query hooks, search, filter, and infinite scroll
+- [x] Task 3.1: Implement mutuals page with query hooks, search, filter, and infinite scroll
   - Implement: Create `apps/web/src/hooks/mutuals-queries.ts` with `mutualKeys` query key factory and `mutualsQueryOptions` (infinite query options with cursor pagination)
   - Implement: Create `apps/web/src/hooks/use-mutuals.ts` with `useMutuals(params)` hook using `useInfiniteQuery` and `useMutualSuggestions(tripId)` hook using `useQuery`
   - Implement: Create `apps/web/src/app/(app)/mutuals/page.tsx` — server component with metadata
