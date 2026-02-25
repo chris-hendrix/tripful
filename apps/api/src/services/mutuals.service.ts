@@ -3,7 +3,7 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import type { Logger } from "@/types/logger.js";
 import type { Mutual } from "@tripful/shared/types";
-import { PermissionDeniedError } from "../errors.js";
+import { PermissionDeniedError, InvalidCursorError } from "../errors.js";
 
 /**
  * Cursor structure for keyset pagination on mutuals
@@ -78,9 +78,13 @@ export class MutualsService implements IMutualsService {
    * Decodes a cursor string into pagination state
    */
   private decodeCursor(cursor: string): MutualsCursor {
-    return JSON.parse(
-      Buffer.from(cursor, "base64").toString(),
-    ) as MutualsCursor;
+    try {
+      return JSON.parse(
+        Buffer.from(cursor, "base64").toString(),
+      ) as MutualsCursor;
+    } catch {
+      throw new InvalidCursorError("Invalid cursor format");
+    }
   }
 
   async getMutuals(params: {

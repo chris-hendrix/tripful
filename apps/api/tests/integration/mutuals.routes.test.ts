@@ -190,6 +190,25 @@ describe("Mutuals Routes", () => {
       expect(body.mutuals[0].displayName).toBe("Alice");
     });
 
+    it("should return 400 for malformed cursor", async () => {
+      app = await buildApp();
+
+      const user = await createUser("Cursor Test User");
+
+      const token = app.jwt.sign({
+        sub: user.id,
+        name: user.displayName,
+      });
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/mutuals?cursor=garbage",
+        cookies: { auth_token: token },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
     it("should return empty for user with no trips", async () => {
       app = await buildApp();
 

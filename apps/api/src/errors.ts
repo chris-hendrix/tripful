@@ -68,6 +68,7 @@ export const InvalidDateRangeError = createError(
   "%s",
   400,
 );
+export const InvalidCursorError = createError("INVALID_CURSOR", "%s", 400);
 
 // Upload errors
 export const FileTooLargeError = createError("FILE_TOO_LARGE", "%s", 400);

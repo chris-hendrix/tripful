@@ -5,7 +5,7 @@ import { inArray } from "drizzle-orm";
 import { MutualsService } from "@/services/mutuals.service.js";
 import { PermissionsService } from "@/services/permissions.service.js";
 import { generateUniquePhone } from "../test-utils.js";
-import { PermissionDeniedError } from "@/errors.js";
+import { PermissionDeniedError, InvalidCursorError } from "@/errors.js";
 
 // Create service instances with db for testing
 const permissionsService = new PermissionsService(db);
@@ -202,6 +202,17 @@ describe("mutuals.service", () => {
 
       expect(result.mutuals).toHaveLength(1);
       expect(result.mutuals[0].displayName).toBe("Alice");
+    });
+
+    it("should throw InvalidCursorError for malformed cursor", async () => {
+      const currentUserId = await createUser("Current User");
+
+      await expect(
+        mutualsService.getMutuals({
+          userId: currentUserId,
+          cursor: "not-valid-base64!!!",
+        }),
+      ).rejects.toThrow(InvalidCursorError);
     });
 
     it("should return empty results for user with no trips", async () => {

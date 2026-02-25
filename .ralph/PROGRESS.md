@@ -380,3 +380,49 @@ Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing
 - Triage tasks should explicitly enumerate ALL dismissed reviewer notes, even when the reviewer marked them as acceptable — this creates a complete audit trail
 - The turbo runner flakiness from Iterations 1-4 was definitively resolved in Iteration 5 via `passThroughEnv` in `turbo.json` — this is no longer an issue
 - When triaging, items already resolved in a previous iteration (e.g., "FIXED post-review") should be noted as "ALREADY RESOLVED" to distinguish from items dismissed as cosmetic
+
+## Iteration 8 — Task 5.2: Return 400 instead of 500 for malformed cursor
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/api/src/errors.ts` — Added `InvalidCursorError` export (line 71): `createError("INVALID_CURSOR", "%s", 400)`, following the exact `InvalidDateRangeError` pattern
+- `apps/api/src/services/mutuals.service.ts` — Added `InvalidCursorError` to import (line 6), wrapped `decodeCursor` method (lines 80-88) in try/catch that catches any parsing error and throws `new InvalidCursorError("Invalid cursor format")`
+- `apps/api/tests/unit/mutuals.service.test.ts` — Added `InvalidCursorError` to imports, added unit test "should throw InvalidCursorError for malformed cursor" verifying `getMutuals({ userId, cursor: "not-valid-base64!!!" })` rejects with `InvalidCursorError`
+- `apps/api/tests/integration/mutuals.routes.test.ts` — Added integration test "should return 400 for malformed cursor" verifying `GET /api/mutuals?cursor=garbage` with valid auth returns HTTP 400
+
+**No changes needed (correct by design):**
+
+- `apps/api/src/controllers/mutuals.controller.ts` — Existing `if ("statusCode" in error) throw error` pattern already correctly re-throws `@fastify/error` instances to the global error handler
+- `apps/api/src/middleware/error.middleware.ts` — Existing handler already correctly maps `@fastify/error` instances with `statusCode < 500` to proper HTTP responses
+
+### Verification results
+
+- Shared tests: 231 passing (12 files)
+- API tests: 1036 passing (48 files), including 2 new tests (1 unit + 1 integration)
+- Web tests: 1166 passing (cached)
+- E2E tests: 22 passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** — Minimal, focused change with correct error propagation chain. Pattern consistency with existing `InvalidDateRangeError`. try/catch covers all failure modes (invalid base64 → garbage bytes → JSON parse fails; valid base64 → non-JSON string → JSON parse fails). Import style uses `.js` extension per project convention.
+- Two LOW severity notes (both non-blocking):
+  1. Could add additional test with valid-base64-but-invalid-JSON cursor to explicitly document both failure modes (current test already exercises the JSON parse throw path)
+  2. Integration test could also assert error body shape (`{ code: "INVALID_CURSOR" }`) in addition to status code
+
+### Design decisions
+
+- Wrapped the entire `decodeCursor` method body in a single try/catch rather than catching at each call site — this is cleaner since `decodeCursor` is called from both `getMutuals` and `getMutualSuggestions`, fixing both paths with one change
+- Used generic `catch` (not `catch (error)`) since we always want to throw `InvalidCursorError` regardless of the specific parsing failure type — this matches modern TypeScript catch handling
+- The error message "Invalid cursor format" is generic and does not leak internal details (no base64/JSON implementation details exposed to the client)
+
+### Learnings for future iterations
+
+- `@fastify/error` instances automatically get a `statusCode` property, which the controller's duck-typing check `"statusCode" in error` uses to distinguish typed errors from unexpected errors — this means adding a new error class requires zero controller changes
+- `Buffer.from(str, "base64")` does NOT throw on invalid base64 — it silently ignores invalid characters and produces garbage bytes. The failure always comes from `JSON.parse()` on the resulting garbage string
+- For fix tasks from reviewer triage, the implementation is often very surgical (4 lines of production code + 2 test cases) — these are fast iterations

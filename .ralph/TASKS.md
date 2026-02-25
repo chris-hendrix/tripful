@@ -76,7 +76,7 @@
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
 
-- [ ] Task 5.2: Return 400 instead of 500 for malformed cursor
+- [x] Task 5.2: Return 400 instead of 500 for malformed cursor
   - Fix: Add `InvalidCursorError` to `apps/api/src/errors.ts` with 400 status, following the `InvalidDateRangeError` pattern
   - Fix: Wrap `decodeCursor` in `apps/api/src/services/mutuals.service.ts` (lines 80-84) in try/catch and throw `InvalidCursorError` when `JSON.parse(Buffer.from(cursor, "base64").toString())` fails with SyntaxError
   - Test: Add unit test in `apps/api/tests/unit/mutuals.service.test.ts` — malformed cursor throws a 400-level error
