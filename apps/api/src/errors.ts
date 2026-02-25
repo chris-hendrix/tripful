@@ -79,6 +79,7 @@ export const InvitationNotFoundError = createError(
   "Invitation not found",
   404,
 );
+export const NotAMutualError = createError("NOT_A_MUTUAL", "%s", 403);
 
 // Member removal errors
 export const MemberNotFoundError = createError(

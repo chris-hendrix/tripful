@@ -27,7 +27,7 @@
   - Test: Write integration tests for `GET /trips/:tripId/mutual-suggestions` — auth + organizer required, excludes existing members, 403 for non-organizer
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 2.2: Extend invitation service for mutual invites and sms_invite notifications with tests
+- [x] Task 2.2: Extend invitation service for mutual invites and sms_invite notifications with tests
   - Implement: Modify `createInvitations` in `apps/api/src/services/invitation.service.ts` to accept `userIds` parameter
   - Implement: For `userIds` flow — verify each is a mutual (shared trip membership check), check 25-member limit, skip existing trip members, create `members` records with `status: 'no_response'`, send `mutual_invite` notification via `notificationService.createNotification`
   - Implement: For `phoneNumbers` flow — add `sms_invite` notification for existing users who get auto-added as members (after their member record is created)

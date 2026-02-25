@@ -83,3 +83,68 @@
 - PostgreSQL `COUNT` returns `bigint` which node-postgres serializes as string — must convert with `Number()` before use
 - The `HAVING` clause must use the full aggregate expression (e.g., `COUNT(DISTINCT ...)`) not a column alias, as PostgreSQL doesn't allow aliases in HAVING
 - The turbo parallel runner flakiness persists (pre-existing) — running per-package tests individually is reliable
+
+## Iteration 3 — Task 2.2: Extend invitation service for mutual invites and sms_invite notifications with tests
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+- `apps/api/src/errors.ts` — Added `NotAMutualError` error class (403 status) for rejecting non-mutual userId invites
+- `apps/api/src/services/invitation.service.ts` — Extended `IInvitationService` interface and `createInvitations` implementation:
+  - Added `userIds` parameter (optional, defaults to `[]`) for backwards compatibility
+  - Fetches inviter display name and trip name for notification body text
+  - **userIds flow**: Verifies each userId is a mutual via `members` self-join query, rejects non-mutuals with `NotAMutualError`, skips existing trip members, creates `members` records with `status: 'no_response'`, sends `mutual_invite` notification
+  - **phoneNumbers flow enhancement**: Sends `sms_invite` notification for existing users who get auto-added as members
+  - Member limit enforcement counts both phone + userId flows combined
+  - Returns `addedMembers` array containing both mutual-invited and phone-auto-added users
+  - Notifications sent outside transaction with try/catch (best-effort, don't break invitation on notification failure)
+- `apps/api/src/controllers/invitation.controller.ts` — Updated `createInvitations` handler to extract `userIds` from body, pass to service, include `addedMembers` in 201 response
+- `apps/web/tests/e2e/notifications.spec.ts` — Updated notification count assertions from 2→3 to account for new `sms_invite` notification (1 sms_invite + 2 trip_message = 3 total)
+
+**Tests added:**
+- `apps/api/tests/unit/invitation.service.test.ts` — 8 new unit tests in `createInvitations (mutual invites via userIds)` describe block:
+  1. Mutual invite creates member record + `mutual_invite` notification
+  2. SMS invite creates `sms_invite` notification for existing user auto-added via phone
+  3. Mixed invites (both userIds and phoneNumbers)
+  4. Member limit enforcement across combined flows
+  5. Non-mutual userId rejected with `NotAMutualError`
+  6. Skip existing members for userIds
+  7. `addedMembers` includes both mutual-added and phone-auto-added users
+  8. Backwards compatibility (phone-only returns empty `addedMembers`)
+- `apps/api/tests/integration/invitation.routes.test.ts` — 5 new integration tests in `POST /api/trips/:tripId/invitations (mutual invites)` describe block:
+  1. Mutual-only payload returns 201 with member record and notification
+  2. Phone-only payload (backwards compat)
+  3. Mixed payload with both phones and userIds
+  4. `sms_invite` notification verification for phone auto-added users
+  5. Non-mutual userId returns 403
+
+### Verification results
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1129 passing (62 files)
+- E2E tests: 21 passing (all green)
+- Total: 2394 unit/integration + 21 E2E = 2415 tests — all passing
+- Lint: PASS (0 errors, 1 pre-existing warning)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+- **APPROVED** — Clean separation of flows, parameterized queries (no SQL injection), proper backwards compatibility, notification body matches spec exactly, comprehensive test coverage
+- Four LOW severity notes (all non-blocking):
+  1. `NotAMutualError` message includes target userId — low risk since caller already knows the ID
+  2. Inviter/trip lookups outside transaction — acceptable with fallback values
+  3. Integration tests don't explicitly clean up (matches existing pattern)
+  4. `phoneNumbers` destructuring relies on schema `.default([])` — correct since Fastify validates body through schema
+
+### Design decisions
+- `userIds` parameter defaults to `[]` for full backwards compatibility — no changes needed to existing callers
+- Mutual verification uses a self-join on `members` table (same pattern as mutuals service) rather than importing the mutuals service
+- Notifications sent outside the DB transaction to avoid holding locks, with try/catch to prevent notification failures from breaking the invitation flow
+- `addedMembers` response includes users from BOTH flows (mutual-invited and phone-auto-added)
+- E2E notification test updated to expect 3 unread notifications (was 2) — the `sms_invite` adds 1 notification when a user is invited via phone
+
+### Learnings for future iterations
+- When adding new notification types that fire during existing flows (e.g., `sms_invite` during phone invites), check ALL E2E tests that count notifications — they will need count adjustments
+- The turbo runner still fails with `DATABASE_URL` not being passed through — this is a pre-existing `turbo.json` configuration issue (`passThroughEnv` missing). Run tests per-package to avoid this
+- The `members` self-join pattern for mutual verification is efficient: `SELECT user_id FROM members m1 JOIN members m2 ON m1.trip_id = m2.trip_id WHERE m1.user_id = :inviter AND m2.user_id IN (:userIds)` — reusable for any mutual check
