@@ -2472,9 +2472,7 @@ describe("Invitation Routes", () => {
       const memberRecords = await db
         .select()
         .from(members)
-        .where(
-          and(eq(members.tripId, trip.id), eq(members.userId, mutual.id)),
-        );
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, mutual.id)));
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("no_response");
 

@@ -118,7 +118,10 @@ export function CreateEventDialog({
     if (startTimeValue) {
       const currentEnd = form.getValues("endTime");
       if (!currentEnd || new Date(currentEnd) <= new Date(startTimeValue)) {
-        form.setValue("endTime", addHours(new Date(startTimeValue), 1).toISOString());
+        form.setValue(
+          "endTime",
+          addHours(new Date(startTimeValue), 1).toISOString(),
+        );
       }
     }
   }, [startTimeValue, form]);

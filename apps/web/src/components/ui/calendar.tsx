@@ -29,7 +29,10 @@ function Calendar({
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
-  tripRange?: { start?: string | null | undefined; end?: string | null | undefined };
+  tripRange?: {
+    start?: string | null | undefined;
+    end?: string | null | undefined;
+  };
 }) {
   const defaultClassNames = getDefaultClassNames();
 
@@ -49,10 +52,16 @@ function Calendar({
       return {};
 
     const mods: Record<string, Matcher | Matcher[] | undefined> = {};
-    if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+    if (
+      startDate &&
+      !isNaN(startDate.getTime()) &&
+      endDate &&
+      !isNaN(endDate.getTime())
+    ) {
       mods.tripRange = { from: startDate, to: endDate };
     }
-    if (startDate && !isNaN(startDate.getTime())) mods.tripRangeStart = startDate;
+    if (startDate && !isNaN(startDate.getTime()))
+      mods.tripRangeStart = startDate;
     if (endDate && !isNaN(endDate.getTime())) mods.tripRangeEnd = endDate;
     return mods;
   }, [tripRange]);
@@ -168,8 +177,16 @@ function Calendar({
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
-      modifiers={{ ...tripModifiers, ...props.modifiers } as Record<string, Matcher | Matcher[]>}
-      modifiersClassNames={{ ...tripModifiersClassNames, ...props.modifiersClassNames }}
+      modifiers={
+        { ...tripModifiers, ...props.modifiers } as Record<
+          string,
+          Matcher | Matcher[]
+        >
+      }
+      modifiersClassNames={{
+        ...tripModifiersClassNames,
+        ...props.modifiersClassNames,
+      }}
       components={{
         Root: ({ className, rootRef, ...props }) => {
           return (

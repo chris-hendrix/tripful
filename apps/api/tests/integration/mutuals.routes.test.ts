@@ -16,9 +16,7 @@ describe("Mutuals Routes", () => {
   afterEach(async () => {
     // Cleanup in FK order
     if (testTripIds.length > 0) {
-      await db
-        .delete(members)
-        .where(inArray(members.tripId, testTripIds));
+      await db.delete(members).where(inArray(members.tripId, testTripIds));
       await db.delete(trips).where(inArray(trips.id, testTripIds));
     }
     if (testUserIds.length > 0) {
@@ -50,10 +48,7 @@ describe("Mutuals Routes", () => {
   }
 
   // Helper to create a trip and track for cleanup
-  async function createTrip(
-    name: string,
-    createdBy: string,
-  ): Promise<string> {
+  async function createTrip(name: string, createdBy: string): Promise<string> {
     const [trip] = await db
       .insert(trips)
       .values({

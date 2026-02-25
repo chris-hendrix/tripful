@@ -22,7 +22,9 @@ interface DateTimePickerProps {
   disabled?: boolean;
   "aria-label"?: string;
   defaultMonth?: Date | undefined;
-  tripRange?: { start?: string | null | undefined; end?: string | null | undefined } | undefined;
+  tripRange?:
+    | { start?: string | null | undefined; end?: string | null | undefined }
+    | undefined;
 }
 
 export function DateTimePicker({

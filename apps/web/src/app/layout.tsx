@@ -8,7 +8,7 @@ import { SkipLink } from "@/components/skip-link";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://tripful.me"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://tripful.me",
   ),
   title: { default: "Tripful - Group Trip Planner", template: "%s | Tripful" },
   description:

@@ -88,32 +88,36 @@ test.describe("Auth Journey", () => {
     });
   });
 
-  test("auth redirects and guards", { tag: "@regression" }, async ({ page, request }) => {
-    const loginPage = new LoginPage(page);
-    const trips = new TripsPage(page);
+  test(
+    "auth redirects and guards",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      const loginPage = new LoginPage(page);
+      const trips = new TripsPage(page);
 
-    await test.step("unauthenticated user redirects to login", async () => {
-      await page.goto("/trips");
-      await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
-      expect(page.url()).toContain("/login");
-      await expect(loginPage.heading).toBeVisible();
-    });
+      await test.step("unauthenticated user redirects to login", async () => {
+        await page.goto("/trips");
+        await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
+        expect(page.url()).toContain("/login");
+        await expect(loginPage.heading).toBeVisible();
+      });
 
-    await test.step("existing user skips complete-profile", async () => {
-      await authenticateUser(page, request, "Existing User");
-      await expect(trips.heading).toBeVisible();
-    });
+      await test.step("existing user skips complete-profile", async () => {
+        await authenticateUser(page, request, "Existing User");
+        await expect(trips.heading).toBeVisible();
+      });
 
-    await test.step("authenticated user on landing page redirects to /trips", async () => {
-      await page.goto("/");
-      await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-      expect(page.url()).toContain("/trips");
-    });
+      await test.step("authenticated user on landing page redirects to /trips", async () => {
+        await page.goto("/");
+        await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
+        expect(page.url()).toContain("/trips");
+      });
 
-    await test.step("authenticated user on /login redirects to /trips", async () => {
-      await page.goto("/login");
-      await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-      expect(page.url()).toContain("/trips");
-    });
-  });
+      await test.step("authenticated user on /login redirects to /trips", async () => {
+        await page.goto("/login");
+        await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
+        expect(page.url()).toContain("/trips");
+      });
+    },
+  );
 });

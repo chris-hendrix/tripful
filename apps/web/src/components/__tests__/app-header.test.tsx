@@ -201,5 +201,4 @@ describe("AppHeader", () => {
     const mutualsLink = screen.getByText("My Mutuals").closest("a");
     expect(mutualsLink?.getAttribute("href")).toBe("/mutuals");
   });
-
 });

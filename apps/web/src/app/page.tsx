@@ -43,9 +43,21 @@ const features = [
 ] as const;
 
 const steps = [
-  { number: "1", title: "Create a trip", description: "Set dates, add a destination, and give your trip a name." },
-  { number: "2", title: "Invite your group", description: "Share a link and everyone joins in seconds." },
-  { number: "3", title: "Plan together", description: "Add events, accommodations, and logistics as a group." },
+  {
+    number: "1",
+    title: "Create a trip",
+    description: "Set dates, add a destination, and give your trip a name.",
+  },
+  {
+    number: "2",
+    title: "Invite your group",
+    description: "Share a link and everyone joins in seconds.",
+  },
+  {
+    number: "3",
+    title: "Plan together",
+    description: "Add events, accommodations, and logistics as a group.",
+  },
 ] as const;
 
 export default async function Home() {

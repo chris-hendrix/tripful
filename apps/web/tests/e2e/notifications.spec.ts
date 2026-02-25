@@ -47,7 +47,11 @@ test.describe("Notification Journey", () => {
       let organizerCookie: string;
 
       await test.step("setup: create users, trip, and seed 3 notifications", async () => {
-        organizerCookie = await createUserViaAPI(request, organizerPhone, "Alice");
+        organizerCookie = await createUserViaAPI(
+          request,
+          organizerPhone,
+          "Alice",
+        );
 
         tripId = await createTripViaAPI(request, organizerCookie, {
           name: `Notif Trip ${timestamp}`,
@@ -56,7 +60,11 @@ test.describe("Notification Journey", () => {
           endDate: "2026-06-22",
         });
 
-        const memberCookie = await createUserViaAPI(request, memberPhone, "Bob");
+        const memberCookie = await createUserViaAPI(
+          request,
+          memberPhone,
+          "Bob",
+        );
         await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
         await rsvpViaAPI(request, tripId, memberCookie, "going");
 
@@ -90,7 +98,10 @@ test.describe("Notification Journey", () => {
               const json = await res.json();
               return json.count;
             },
-            { timeout: NAVIGATION_TIMEOUT, message: "Waiting for 3 unread notifications" },
+            {
+              timeout: NAVIGATION_TIMEOUT,
+              message: "Waiting for 3 unread notifications",
+            },
           )
           .toBe(3);
       });

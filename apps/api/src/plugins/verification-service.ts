@@ -28,10 +28,17 @@ export default fp(
       fastify.decorate("verificationService", service);
       fastify.log.warn("Using MockVerificationService (fixed code: 123456)");
     } else {
-      const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } =
-        fastify.config;
+      const {
+        TWILIO_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN,
+        TWILIO_VERIFY_SERVICE_SID,
+      } = fastify.config;
 
-      if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) {
+      if (
+        !TWILIO_ACCOUNT_SID ||
+        !TWILIO_AUTH_TOKEN ||
+        !TWILIO_VERIFY_SERVICE_SID
+      ) {
         throw new Error(
           "Twilio env vars required when ENABLE_FIXED_VERIFICATION_CODE is false: " +
             "TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID",

@@ -1484,9 +1484,7 @@ describe("invitation.service", () => {
         await db
           .delete(notifications)
           .where(eq(notifications.tripId, sharedTripId));
-        await db
-          .delete(members)
-          .where(eq(members.tripId, sharedTripId));
+        await db.delete(members).where(eq(members.tripId, sharedTripId));
         await db.delete(trips).where(eq(trips.id, sharedTripId));
       }
       if (mutualUserPhone) {
@@ -1516,10 +1514,7 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, mutualUserId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, mutualUserId)),
         );
       expect(memberRecords).toHaveLength(1);
       expect(memberRecords[0].status).toBe("no_response");
@@ -1598,10 +1593,7 @@ describe("invitation.service", () => {
         .select()
         .from(members)
         .where(
-          and(
-            eq(members.tripId, testTripId),
-            eq(members.userId, mutualUserId),
-          ),
+          and(eq(members.tripId, testTripId), eq(members.userId, mutualUserId)),
         );
       expect(memberRecords).toHaveLength(1);
     });

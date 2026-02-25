@@ -129,11 +129,7 @@ describe("MutualProfileSheet", () => {
 
   it("does not render content when mutual is null", () => {
     render(
-      <MutualProfileSheet
-        mutual={null}
-        open={true}
-        onOpenChange={() => {}}
-      />,
+      <MutualProfileSheet mutual={null} open={true} onOpenChange={() => {}} />,
     );
 
     expect(screen.queryByText("Shared Trips")).toBeNull();

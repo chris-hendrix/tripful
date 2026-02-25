@@ -284,9 +284,7 @@ export class InvitationService implements IInvitationService {
                 inArray(members.userId, existingUserIds),
               ),
             );
-          alreadyMemberUserIds = new Set(
-            existingMembers.map((m) => m.userId),
-          );
+          alreadyMemberUserIds = new Set(existingMembers.map((m) => m.userId));
         }
 
         // Build skipped list for phones
@@ -331,10 +329,7 @@ export class InvitationService implements IInvitationService {
 
           for (const phone of newPhones) {
             const existingUser = phoneToUserMap.get(phone);
-            if (
-              existingUser &&
-              !alreadyMemberUserIds.has(existingUser.id)
-            ) {
+            if (existingUser && !alreadyMemberUserIds.has(existingUser.id)) {
               newMemberValues.push({
                 tripId,
                 userId: existingUser.id,
@@ -390,10 +385,7 @@ export class InvitationService implements IInvitationService {
           .select({ userId: members.userId })
           .from(members)
           .where(
-            and(
-              eq(members.tripId, tripId),
-              inArray(members.userId, userIds),
-            ),
+            and(eq(members.tripId, tripId), inArray(members.userId, userIds)),
           );
         const alreadyMemberMutualIds = new Set(
           existingTripMembers.map((m) => m.userId),

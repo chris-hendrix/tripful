@@ -167,10 +167,9 @@ describe("useMutuals", () => {
         nextCursor: null,
       } satisfies GetMutualsResponse);
 
-      const { result } = renderHook(
-        () => useMutuals({ search: "Alice" }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useMutuals({ search: "Alice" }), {
+        wrapper,
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -192,10 +191,9 @@ describe("useMutuals", () => {
         nextCursor: null,
       } satisfies GetMutualsResponse);
 
-      const { result } = renderHook(
-        () => useMutuals({ tripId: "trip-1" }),
-        { wrapper },
-      );
+      const { result } = renderHook(() => useMutuals({ tripId: "trip-1" }), {
+        wrapper,
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -293,10 +291,9 @@ describe("useMutualSuggestions", () => {
       nextCursor: null,
     } satisfies GetMutualsResponse);
 
-    const { result } = renderHook(
-      () => useMutualSuggestions("trip-1"),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useMutualSuggestions("trip-1"), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -311,10 +308,7 @@ describe("useMutualSuggestions", () => {
   });
 
   it("is disabled when tripId is empty", () => {
-    const { result } = renderHook(
-      () => useMutualSuggestions(""),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useMutualSuggestions(""), { wrapper });
 
     // Should not be fetching since enabled is false
     expect(result.current.isPending).toBe(true);

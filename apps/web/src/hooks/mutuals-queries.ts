@@ -8,11 +8,12 @@ import type { GetMutualsResponse } from "@tripful/shared/types";
 export const mutualKeys = {
   all: ["mutuals"] as const,
   lists: () => ["mutuals", "list"] as const,
-  list: (params?: { tripId?: string | undefined; search?: string | undefined }) =>
-    ["mutuals", "list", params] as const,
+  list: (params?: {
+    tripId?: string | undefined;
+    search?: string | undefined;
+  }) => ["mutuals", "list", params] as const,
   suggestions: () => ["mutuals", "suggestions"] as const,
-  suggestion: (tripId: string) =>
-    ["mutuals", "suggestions", tripId] as const,
+  suggestion: (tripId: string) => ["mutuals", "suggestions", tripId] as const,
 };
 
 /**

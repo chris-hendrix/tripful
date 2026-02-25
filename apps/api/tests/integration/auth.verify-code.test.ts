@@ -2,12 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
-import {
-  users,
-  trips,
-  members,
-  invitations,
-} from "@/db/schema/index.js";
+import { users, trips, members, invitations } from "@/db/schema/index.js";
 import { eq, and } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 

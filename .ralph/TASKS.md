@@ -57,7 +57,7 @@
 
 ## Phase 4: Frontend — Invite Dialog & Notifications
 
-- [ ] Task 4.1: Update invite dialog with mutuals picker and notification icons
+- [x] Task 4.1: Update invite dialog with mutuals picker and notification icons
   - Implement: Update `apps/web/src/components/trip/invite-members-dialog.tsx` — add mutuals section at top (searchable list with checkboxes, avatar, name), selected mutuals as badge chips, divider "Or invite by phone number", existing phone input below. Only show mutuals section if organizer AND suggestions exist. Use `useMutualSuggestions(tripId)` hook.
   - Implement: Update form to use new `createInvitationsSchema` (optional `phoneNumbers` + optional `userIds`). Submit sends both arrays.
   - Implement: Update `apps/web/src/hooks/use-invitations.ts` — `useInviteMembers` mutation accepts new schema shape, invalidates `mutualKeys.suggestion(tripId)` on success

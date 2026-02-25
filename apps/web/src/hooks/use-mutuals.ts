@@ -18,7 +18,10 @@ export { mutualKeys, mutualsQueryOptions, mutualSuggestionsQueryOptions };
  * @param params - Optional filter parameters (search, tripId)
  * @returns Infinite query object with pages of mutuals
  */
-export function useMutuals(params?: { tripId?: string | undefined; search?: string | undefined }) {
+export function useMutuals(params?: {
+  tripId?: string | undefined;
+  search?: string | undefined;
+}) {
   return useInfiniteQuery(mutualsQueryOptions(params));
 }
 

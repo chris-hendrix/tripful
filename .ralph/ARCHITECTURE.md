@@ -28,7 +28,7 @@ interface IMutualsService {
 }
 
 interface Mutual {
-  id: string;             // user.id
+  id: string; // user.id
   displayName: string;
   profilePhotoUrl: string | null;
   sharedTripCount: number;
@@ -78,6 +78,7 @@ Both read-only, so no write-scoped plugin needed. Register in `apps/api/src/rout
 ### Extended Invitation Service (`apps/api/src/services/invitation.service.ts`)
 
 **`createInvitations` method changes:**
+
 - Accept optional `userIds: string[]` in addition to `phoneNumbers` (both now optional, at least one required)
 - For `userIds` flow:
   1. Verify each userId is a mutual of the inviter (security — can't add arbitrary users). Query `members` table for shared trip membership.
@@ -88,6 +89,7 @@ Both read-only, so no write-scoped plugin needed. Register in `apps/api/src/rout
 - For `phoneNumbers` flow: existing logic unchanged, but now ALSO send `sms_invite` notification to existing users who get auto-added as members (currently they get a member record but no in-app notification)
 
 **Notification payloads:**
+
 ```typescript
 // For mutual invites
 await this.notificationService.createNotification({
@@ -111,6 +113,7 @@ await this.notificationService.createNotification({
 ```
 
 **Response shape changes** (`CreateInvitationsResponse`):
+
 ```typescript
 {
   success: true,
@@ -230,6 +233,7 @@ This is a breaking change to the schema — the frontend form and hook must be u
 ### Mutual Profile Sheet (`apps/web/src/components/mutuals/mutual-profile-sheet.tsx`)
 
 A shadcn `Sheet` component (same as invite dialog):
+
 - Large avatar with fallback initials
 - Display name
 - "N shared trips" subtitle
@@ -276,7 +280,8 @@ The form schema changes from `createInvitationsSchema` (phone-only) to the new s
 export const mutualKeys = {
   all: ["mutuals"] as const,
   lists: () => ["mutuals", "list"] as const,
-  list: (filters: Record<string, unknown>) => ["mutuals", "list", filters] as const,
+  list: (filters: Record<string, unknown>) =>
+    ["mutuals", "list", filters] as const,
   suggestions: () => ["mutuals", "suggestions"] as const,
   suggestion: (tripId: string) => ["mutuals", "suggestions", tripId] as const,
 };
@@ -308,6 +313,7 @@ const typeIcons: Record<NotificationType, ElementType> = {
 ### Updated Invitation Hook (`apps/web/src/hooks/use-invitations.ts`)
 
 Update `useInviteMembers` mutation:
+
 - Accept new schema shape `{ phoneNumbers?: string[], userIds?: string[] }`
 - On success, invalidate `mutualKeys.suggestion(tripId)` alongside existing `invitationKeys` and `memberKeys` invalidations
 - Update `getInviteMembersErrorMessage` for any new error codes
@@ -315,19 +321,23 @@ Update `useInviteMembers` mutation:
 ## Testing Strategy
 
 ### Unit Tests
+
 - Mutuals service: core query, cursor pagination, search filtering, trip filtering, empty results
 - Extended invitation service: mutual invite creates members + notifications, SMS invite creates notifications for existing users, mixed invites, member limit enforcement, mutual verification (non-mutual user rejected), skip existing members
 
 ### Integration Tests
+
 - `GET /mutuals` — requires auth, returns paginated mutuals, search filter, trip filter, empty for new user
 - `GET /trips/:tripId/mutual-suggestions` — requires auth + organizer, excludes existing members, returns 403 for non-organizer
 - `POST /trips/:tripId/invitations` — mixed payload (userIds + phoneNumbers), mutual-only payload, phone-only payload (backwards compatible), notification created for mutual invites, notification created for SMS invites to existing users
 
 ### E2E Tests (Core Flows)
+
 - View mutuals page (logged in user with co-trip history sees mutuals)
 - Invite a mutual from trip invite dialog (organizer sees suggestion, selects, submits, member appears)
 
 ### Manual Testing
+
 - Mutuals page layout, empty state, search, trip filter, infinite scroll
 - Mutual profile sheet appearance and shared trip links
 - Invite dialog two-section layout with mutuals picker

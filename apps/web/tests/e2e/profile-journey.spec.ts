@@ -124,56 +124,60 @@ test.describe("Profile Journey", () => {
     },
   );
 
-  test("profile photo upload and remove", { tag: "@regression" }, async ({ page, request }) => {
-    const profile = new ProfilePage(page);
-    await authenticateViaAPI(page, request, "Photo Test User");
-    await profile.goto();
-    await expect(profile.heading).toBeVisible({ timeout: 10000 });
+  test(
+    "profile photo upload and remove",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      const profile = new ProfilePage(page);
+      await authenticateViaAPI(page, request, "Photo Test User");
+      await profile.goto();
+      await expect(profile.heading).toBeVisible({ timeout: 10000 });
 
-    await test.step("upload photo button is visible", async () => {
-      await expect(profile.uploadPhotoButton).toBeVisible();
-      await expect(profile.uploadPhotoButton).toHaveText("Upload photo");
-    });
-
-    await test.step("upload a profile photo", async () => {
-      // Create a test image file
-      const tmpDir = path.join("/tmp", `tripful-test-${Date.now()}`);
-      fs.mkdirSync(tmpDir, { recursive: true });
-      const testImagePath = createTestImage(tmpDir);
-
-      // Set file via file chooser
-      const fileChooserPromise = page.waitForEvent("filechooser");
-      await profile.uploadPhotoButton.click();
-      const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles(testImagePath);
-
-      // Wait for upload success toast
-      await expect(page.getByText("Profile photo updated")).toBeVisible({
-        timeout: 15000,
+      await test.step("upload photo button is visible", async () => {
+        await expect(profile.uploadPhotoButton).toBeVisible();
+        await expect(profile.uploadPhotoButton).toHaveText("Upload photo");
       });
 
-      // Button text should change to "Change photo"
-      await expect(profile.uploadPhotoButton).toHaveText("Change photo");
+      await test.step("upload a profile photo", async () => {
+        // Create a test image file
+        const tmpDir = path.join("/tmp", `tripful-test-${Date.now()}`);
+        fs.mkdirSync(tmpDir, { recursive: true });
+        const testImagePath = createTestImage(tmpDir);
 
-      // Remove button should now be visible
-      await expect(profile.removePhotoButton).toBeVisible();
+        // Set file via file chooser
+        const fileChooserPromise = page.waitForEvent("filechooser");
+        await profile.uploadPhotoButton.click();
+        const fileChooser = await fileChooserPromise;
+        await fileChooser.setFiles(testImagePath);
 
-      // Clean up test file
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    });
+        // Wait for upload success toast
+        await expect(page.getByText("Profile photo updated")).toBeVisible({
+          timeout: 15000,
+        });
 
-    await test.step("remove profile photo", async () => {
-      await profile.removePhotoButton.click();
+        // Button text should change to "Change photo"
+        await expect(profile.uploadPhotoButton).toHaveText("Change photo");
 
-      await expect(page.getByText("Profile photo removed")).toBeVisible({
-        timeout: 10000,
+        // Remove button should now be visible
+        await expect(profile.removePhotoButton).toBeVisible();
+
+        // Clean up test file
+        fs.rmSync(tmpDir, { recursive: true, force: true });
       });
 
-      // Button text should revert to "Upload photo"
-      await expect(profile.uploadPhotoButton).toHaveText("Upload photo");
+      await test.step("remove profile photo", async () => {
+        await profile.removePhotoButton.click();
 
-      // Remove button should not be visible
-      await expect(profile.removePhotoButton).not.toBeVisible();
-    });
-  });
+        await expect(page.getByText("Profile photo removed")).toBeVisible({
+          timeout: 10000,
+        });
+
+        // Button text should revert to "Upload photo"
+        await expect(profile.uploadPhotoButton).toHaveText("Upload photo");
+
+        // Remove button should not be visible
+        await expect(profile.removePhotoButton).not.toBeVisible();
+      });
+    },
+  );
 });

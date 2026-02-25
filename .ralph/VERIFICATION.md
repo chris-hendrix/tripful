@@ -97,11 +97,11 @@ Screenshots saved to `.playwright-cli/` and viewable with the Read tool.
 
 ## Ports and URLs
 
-| Service | Container Port | Notes |
-|---------|---------------|-------|
-| Web (Next.js) | 3000 | `http://localhost:3000` inside container |
-| API (Fastify) | 8000 | `http://localhost:8000` inside container |
-| PostgreSQL | 5432 | Internal only |
+| Service       | Container Port | Notes                                    |
+| ------------- | -------------- | ---------------------------------------- |
+| Web (Next.js) | 3000           | `http://localhost:3000` inside container |
+| API (Fastify) | 8000           | `http://localhost:8000` inside container |
+| PostgreSQL    | 5432           | Internal only                            |
 
 Host ports vary — use `make test-status` to see assigned ports.
 
@@ -110,6 +110,7 @@ Host ports vary — use `make test-status` to see assigned ports.
 E2E tests use auto-generated phone numbers via `generateUniquePhone()` with test bypass code `123456`. No manual credentials needed.
 
 For manual testing:
+
 - Create users via the auth flow (phone + verification code `123456` in test mode)
 - Create trips and invite members to establish mutual relationships
 
@@ -120,6 +121,7 @@ None — this feature has no feature flags.
 ## Seed Data
 
 For manual testing of mutuals, you need at least 2 users who share a trip:
+
 1. Create User A, create a trip
 2. Create User B, invite them to the trip via phone number
 3. User B accepts (RSVP as "going")
@@ -129,13 +131,13 @@ The database seed script (`pnpm --filter @tripful/api db:seed`) may create test 
 
 ## Verification Milestones
 
-| After Task | Expected State |
-|-----------|---------------|
-| 1.1 | Shared types/schemas build, schema unit tests pass, lint + typecheck pass |
-| 2.1 | Mutuals API endpoints work, unit + integration tests pass |
-| 2.2 | Extended invitations accept userIds, notifications created, unit + integration tests pass |
-| 3.1 | Mutuals page renders, query hooks work, component tests pass |
-| 3.2 | Profile sheet works, app header has "My Mutuals" link, component tests pass |
-| 4.1 | Invite dialog has mutuals section, E2E tests pass, manual testing verified with screenshots |
-| 5.1 | All cleanup items addressed |
-| 6.1 | All checks green: lint, typecheck, unit, E2E |
+| After Task | Expected State                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| 1.1        | Shared types/schemas build, schema unit tests pass, lint + typecheck pass                   |
+| 2.1        | Mutuals API endpoints work, unit + integration tests pass                                   |
+| 2.2        | Extended invitations accept userIds, notifications created, unit + integration tests pass   |
+| 3.1        | Mutuals page renders, query hooks work, component tests pass                                |
+| 3.2        | Profile sheet works, app header has "My Mutuals" link, component tests pass                 |
+| 4.1        | Invite dialog has mutuals section, E2E tests pass, manual testing verified with screenshots |
+| 5.1        | All cleanup items addressed                                                                 |
+| 6.1        | All checks green: lint, typecheck, unit, E2E                                                |
