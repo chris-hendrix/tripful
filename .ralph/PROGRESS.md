@@ -315,3 +315,68 @@
 - Zod schema validation runs during form submission even in tests — mock data must use valid UUIDs (e.g., `00000000-0000-4000-8000-000000000001`) when the schema validates with `z.string().uuid()`
 - The `useMutualSuggestions` hook returns a non-paginated response (all suggestions at once), so client-side search filtering with `useMemo` is the right approach rather than passing search params to the API
 - E2E tests for UI mutations need the relevant cache invalidation to be in place before the test will pass — if a mutation result isn't visible in the UI, check what query feeds the display
+
+## Iteration 7 — Task 5.1: Triage PROGRESS.md for unaddressed items
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing every reviewer note, optional suggestion, deferred item, and bug across all phases. Classified each item as ACTIONABLE, INTENTIONAL, or COSMETIC.
+
+**ACTIONABLE items — fix tasks created in TASKS.md:**
+
+1. **Task 5.2: Return 400 instead of 500 for malformed cursor** (from Iteration 2 reviewer, LOW)
+   - `decodeCursor` in `apps/api/src/services/mutuals.service.ts` throws unhandled SyntaxError on malformed base64/JSON input, which the controller catches as a generic 500. Should throw a 400 `InvalidCursorError` instead.
+
+2. **Task 5.3: Add empty state for filtered mutuals in invite dialog** (from Iteration 6 reviewer, LOW)
+   - When mutual search in the invite dialog matches no results, the scrollable container renders as an empty bordered box with no feedback message. Should show "No mutuals found" text.
+
+3. **Task 5.4: Add missing mutuals page test coverage** (from Iterations 4 & 5 reviewers, LOW)
+   - No test for clicking a mutual card and verifying the profile sheet opens (Iteration 5 gap).
+   - No test for trip filter dropdown rendering and selection behavior (Iteration 4 gap). Combined into one task since both target the same test file.
+
+**INTENTIONAL/COSMETIC items — no fix task needed (9 items):**
+
+- `shared_trip_count` always 1 with `tripId` filter (Iteration 2) — intentional per architecture; when filtering by trip, count reflects the filter
+- `NotAMutualError` message includes target userId (Iteration 3) — reviewer confirmed low risk, caller already knows the ID
+- Inviter/trip lookups outside transaction (Iteration 3) — reviewer confirmed acceptable with fallback values
+- Integration tests don't explicitly clean up (Iteration 3) — matches existing test patterns
+- `phoneNumbers` destructuring relies on schema `.default([])` (Iteration 3) — correct, Fastify validates body through schema
+- No server-side prefetch in mutuals page (Iteration 4) — acceptable given infinite query hydration complexity
+- `mutualCount` shows loaded count, not server total (Iteration 4) — cursor pagination doesn't produce total count; would require extra COUNT query
+- `useMemo` for page flattening (Iteration 4) — negligible performance impact, flatMapping <100 items is microseconds
+- `"use client"` redundant in hook file (Iteration 4) — consistent with existing `use-trips.ts` pattern
+- Auto-closing sheet on trip link navigation (Iteration 5) — non-issue, page unmounts on navigate
+- AvatarImage conditional vs always-render (Iteration 6) — cosmetic inconsistency, both produce identical behavior
+- Pre-existing `as any` lint warning in `verification.service.test.ts` — not part of mutuals feature
+
+**ALREADY RESOLVED items (no action needed):**
+
+- Redundant icon classes on Users icon in app-header (Iteration 5) — fixed during that iteration
+- Keyboard accessibility on mutual cards (Iteration 4 suggestion) — implemented in Iteration 5
+- Turbo runner flakiness (Iterations 1-4) — fixed in Iteration 5 via `turbo.json` `passThroughEnv`
+- Member count not updating after mutual invite (Iteration 6) — found and fixed during that iteration
+
+**No FAILURE or BLOCKED statuses exist** — all 6 iterations completed successfully.
+
+### Verification results
+
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1166 passing (65 files)
+- E2E tests: 22 passing
+- Total: 2431 unit/integration + 22 E2E = 2453 tests — all passing
+- Lint: PASS (1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** — All genuinely actionable items identified and given fix tasks with accurate file paths and line numbers. ACTIONABLE vs COSMETIC/INTENTIONAL classification is sound. Fix tasks are well-specified with clear Fix/Test/Verify structure.
+- One LOW severity note: Iteration 3's four reviewer notes and two Iteration 4 notes were not explicitly listed in the dismissed items enumeration, though they were all correctly excluded from fix tasks since the reviewer had explicitly marked each as acceptable/correct. Addressed by including them in the INTENTIONAL/COSMETIC list above.
+
+### Learnings for future iterations
+
+- Triage tasks should explicitly enumerate ALL dismissed reviewer notes, even when the reviewer marked them as acceptable — this creates a complete audit trail
+- The turbo runner flakiness from Iterations 1-4 was definitively resolved in Iteration 5 via `passThroughEnv` in `turbo.json` — this is no longer an issue
+- When triaging, items already resolved in a previous iteration (e.g., "FIXED post-review") should be noted as "ALREADY RESOLVED" to distinguish from items dismissed as cosmetic

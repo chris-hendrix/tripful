@@ -70,11 +70,28 @@
 
 ## Phase 5: Cleanup
 
-- [ ] Task 5.1: Triage PROGRESS.md for unaddressed items
+- [x] Task 5.1: Triage PROGRESS.md for unaddressed items
   - Review: Read entire PROGRESS.md
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
+
+- [ ] Task 5.2: Return 400 instead of 500 for malformed cursor
+  - Fix: Add `InvalidCursorError` to `apps/api/src/errors.ts` with 400 status, following the `InvalidDateRangeError` pattern
+  - Fix: Wrap `decodeCursor` in `apps/api/src/services/mutuals.service.ts` (lines 80-84) in try/catch and throw `InvalidCursorError` when `JSON.parse(Buffer.from(cursor, "base64").toString())` fails with SyntaxError
+  - Test: Add unit test in `apps/api/tests/unit/mutuals.service.test.ts` — malformed cursor throws a 400-level error
+  - Test: Add integration test in `apps/api/tests/integration/mutuals.routes.test.ts` — `GET /mutuals?cursor=garbage` returns 400
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 5.3: Add empty state for filtered mutuals in invite dialog
+  - Fix: Add conditional "No mutuals found" text inside the scrollable container in `apps/web/src/components/trip/invite-members-dialog.tsx` (lines 244-277) when `filteredSuggestions.length === 0 && mutualSearch.trim()`, following the pattern from `deleted-items-dialog.tsx`
+  - Test: Add test in `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — set up suggestions, type search that matches nothing, assert "No mutuals found" appears
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 5.4: Add missing mutuals page test coverage
+  - Test: Add test in `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` that clicks a mutual card and verifies the MutualProfileSheet content appears (display name in sheet, "Shared Trips" heading)
+  - Test: Add test in `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` that mocks `useTrips` with trips, renders the dropdown, selects a trip, and verifies `useMutuals` receives the `tripId` param
+  - Verify: run full test suite, lint, and typecheck pass
 
 ## Phase 6: Final Verification
 
