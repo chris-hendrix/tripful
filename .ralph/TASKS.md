@@ -16,7 +16,7 @@
 
 ## Phase 2: Backend API
 
-- [ ] Task 2.1: Implement mutuals service, controller, and routes with tests
+- [x] Task 2.1: Implement mutuals service, controller, and routes with tests
   - Implement: Create `apps/api/src/services/mutuals.service.ts` with `IMutualsService` interface and `MutualsService` class. Core query joins `members` + `users` + `trips` to derive mutuals. Keyset cursor pagination on `(shared_trip_count DESC, display_name ASC, id ASC)`. Support `tripId` filter, `search` prefix filter, and batch-load shared trips for each mutual.
   - Implement: Create `apps/api/src/controllers/mutuals.controller.ts` with `getMutuals` and `getMutualSuggestions` handlers (extract params, call service, return response)
   - Implement: Create `apps/api/src/routes/mutuals.routes.ts` with `GET /mutuals` (authenticate, defaultRateLimit) and `GET /trips/:tripId/mutual-suggestions` (authenticate, requireCompleteProfile, defaultRateLimit)
