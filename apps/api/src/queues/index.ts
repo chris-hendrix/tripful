@@ -12,6 +12,7 @@ import { handleNotificationDeliver } from "./workers/notification-deliver.worker
 import { handleInvitationSend } from "./workers/invitation-send.worker.js";
 import { handleNotificationBatch } from "./workers/notification-batch.worker.js";
 import { handleDailyItineraries } from "./workers/daily-itineraries.worker.js";
+import { handleDlq } from "./workers/dlq.worker.js";
 
 /**
  * Queue workers plugin
@@ -58,11 +59,23 @@ export default fp(
       deleteAfterSeconds: 604800,
     });
 
+    await boss.createQueue(QUEUE.NOTIFICATION_BATCH_DLQ);
     await boss.createQueue(QUEUE.NOTIFICATION_BATCH, {
+      retryLimit: 3,
+      retryDelay: 10,
+      retryBackoff: true,
+      expireInSeconds: 300,
+      deadLetter: QUEUE.NOTIFICATION_BATCH_DLQ,
       deleteAfterSeconds: 3600,
     });
 
+    await boss.createQueue(QUEUE.DAILY_ITINERARIES_DLQ);
     await boss.createQueue(QUEUE.DAILY_ITINERARIES, {
+      retryLimit: 2,
+      retryDelay: 30,
+      retryBackoff: true,
+      expireInSeconds: 600,
+      deadLetter: QUEUE.DAILY_ITINERARIES_DLQ,
       deleteAfterSeconds: 3600,
     });
 
@@ -111,6 +124,24 @@ export default fp(
         await handleDailyItineraries(jobs[0]!, deps);
       },
     );
+
+    // --- DLQ workers ---
+
+    await boss.work<unknown>(QUEUE.NOTIFICATION_DELIVER_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.INVITATION_SEND_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.NOTIFICATION_BATCH_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.DAILY_ITINERARIES_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
 
     // --- Cleanup queues ---
 

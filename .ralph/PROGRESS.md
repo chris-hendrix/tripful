@@ -148,3 +148,44 @@
 - MockVerificationService accepts "123456" and rejects everything else — integration tests use "654321" as the wrong code to trigger failures
 - Integration tests can simulate lockout expiry by directly updating `lockedUntil` in the DB to a past timestamp, avoiding time mocking complexity
 - Exporting constants from service files and importing in controllers keeps configuration DRY and prevents stale hardcoded values (e.g., Retry-After header staying in sync with lockout duration)
+
+## Iteration 5 — Task 2.1: Fix pg-boss queue configuration (expiration, DLQ, DLQ workers)
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/queues/types.ts` — Added `NOTIFICATION_BATCH_DLQ: "notification/batch/dlq"` and `DAILY_ITINERARIES_DLQ: "daily-itineraries/dlq"` to the `QUEUE` constant
+- `apps/api/src/queues/index.ts` — (1) Imported `handleDlq` from new DLQ worker, (2) added DLQ queue creation for `notification/batch` and `daily-itineraries` before their parent queues, (3) added retry/expiration/deadLetter config to both parent queues, (4) registered DLQ workers for all 4 DLQ queues (including the 2 pre-existing ones that previously had no workers)
+
+**Files created:**
+- `apps/api/src/queues/workers/dlq.worker.ts` — Generic DLQ handler that logs failed job details (queue name, job ID, full payload) at error level using structured logging
+- `apps/api/tests/unit/workers/dlq.worker.test.ts` — 5 unit tests: basic error logging format, different queue names, empty payloads, complex nested payloads, non-throwing behavior
+- `apps/api/tests/integration/dlq.worker.test.ts` — 6 integration tests: realistic failed-job payloads for all 4 DLQ queue types, sequential processing of multiple DLQ types, null data resilience
+
+### Queue Configuration Changes
+
+| Queue | retryLimit | retryDelay | retryBackoff | expireInSeconds | deadLetter |
+|-------|-----------|------------|--------------|-----------------|------------|
+| `notification/batch` | 3 | 10s | true | 300s | `notification/batch/dlq` |
+| `daily-itineraries` | 2 | 30s | true | 600s | `daily-itineraries/dlq` |
+
+### DLQ Workers Registered (all 4)
+1. `notification/deliver/dlq` (pre-existing queue, NEW worker)
+2. `invitation/send/dlq` (pre-existing queue, NEW worker)
+3. `notification/batch/dlq` (new queue + new worker)
+4. `daily-itineraries/dlq` (new queue + new worker)
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in verification.service.test.ts)
+- **Unit/Integration Tests**: PASS — 11 new DLQ tests all pass (5 unit + 6 integration); full suite passes with 1 pre-existing flaky failure (pg-rate-limit-store concurrent access, known from Task 1.2)
+- **Reviewer**: APPROVED — all requirements met, code follows existing patterns exactly
+
+### Learnings
+- DLQ queues must be created BEFORE parent queues that reference them via `deadLetter` option — pg-boss validates the target queue exists at creation time
+- The 2 pre-existing DLQ queues (`notification/deliver/dlq`, `invitation/send/dlq`) had no workers registered — jobs landing there would accumulate silently; this task fixed that gap
+- pg-boss queue-workers plugin is skipped in test environment (`NODE_ENV === "test"`), so DLQ integration tests directly invoke the handler function rather than testing through the full pg-boss lifecycle
+- A single generic `handleDlq` function serves all 4 DLQ queues since the behavior is identical (log at error level) — `job.name` distinguishes which queue the failed job came from
+- The pre-existing pg-rate-limit-store concurrent access test failure is a race condition flaky test (produces different wrong orderings each run: `[1,1,1,2,3]`, `[1,1,2,2,3]`, etc.) — unrelated to any DLQ work

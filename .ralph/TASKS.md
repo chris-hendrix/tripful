@@ -42,7 +42,7 @@
 
 ## Phase 2: API Quality
 
-- [ ] Task 2.1: Fix pg-boss queue configuration (expiration, DLQ, DLQ workers)
+- [x] Task 2.1: Fix pg-boss queue configuration (expiration, DLQ, DLQ workers)
   - Implement: Add DLQ queue names to `apps/api/src/queues/types.ts` — `NOTIFICATION_BATCH_DLQ`, `DAILY_ITINERARIES_DLQ`
   - Implement: Update `apps/api/src/queues/index.ts` — create DLQ queues, add retryLimit/retryBackoff/expireInSeconds/deadLetter to notification/batch and daily-itineraries queue configs
   - Implement: Create `apps/api/src/queues/workers/dlq.worker.ts` — register workers for all 4 DLQ queues that log failed jobs at error level with full payload
