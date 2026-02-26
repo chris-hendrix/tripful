@@ -3,7 +3,7 @@ import {
   trips,
   type Accommodation,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, isNull, count, getTableColumns } from "drizzle-orm";
 import type {
   CreateAccommodationInput,
   UpdateAccommodationInput,
@@ -208,7 +208,7 @@ export class AccommodationService implements IAccommodationService {
     accommodationId: string,
   ): Promise<Accommodation | null> {
     const result = await this.db
-      .select()
+      .select(getTableColumns(accommodations))
       .from(accommodations)
       .where(
         and(
@@ -276,7 +276,12 @@ export class AccommodationService implements IAccommodationService {
   ): Promise<Accommodation> {
     // Load existing accommodation first (need tripId for lock check and data for validation)
     const [existingAccommodation] = await this.db
-      .select()
+      .select({
+        id: accommodations.id,
+        tripId: accommodations.tripId,
+        checkIn: accommodations.checkIn,
+        checkOut: accommodations.checkOut,
+      })
       .from(accommodations)
       .where(
         and(
@@ -417,7 +422,7 @@ export class AccommodationService implements IAccommodationService {
   ): Promise<Accommodation> {
     // Load accommodation to get tripId
     const [accommodation] = await this.db
-      .select()
+      .select({ id: accommodations.id, tripId: accommodations.tripId })
       .from(accommodations)
       .where(eq(accommodations.id, accommodationId))
       .limit(1);

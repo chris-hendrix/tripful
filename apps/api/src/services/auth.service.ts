@@ -7,7 +7,7 @@ import {
   type User,
 } from "@/db/schema/index.js";
 import type { JWTPayload, AppDatabase } from "@/types/index.js";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, getTableColumns } from "drizzle-orm";
 import { AccountLockedError } from "../errors.js";
 
 /**
@@ -130,7 +130,7 @@ export class AuthService implements IAuthService {
   async getOrCreateUser(phoneNumber: string): Promise<User> {
     // Try to find existing user
     const existingResult = await this.db
-      .select()
+      .select(getTableColumns(users))
       .from(users)
       .where(eq(users.phoneNumber, phoneNumber))
       .limit(1);
@@ -164,7 +164,7 @@ export class AuthService implements IAuthService {
    */
   async getUserById(userId: string): Promise<User | null> {
     const result = await this.db
-      .select()
+      .select(getTableColumns(users))
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -291,7 +291,7 @@ export class AuthService implements IAuthService {
    */
   async checkAccountLocked(phoneNumber: string): Promise<void> {
     const result = await this.db
-      .select()
+      .select({ lockedUntil: authAttempts.lockedUntil })
       .from(authAttempts)
       .where(eq(authAttempts.phoneNumber, phoneNumber))
       .limit(1);

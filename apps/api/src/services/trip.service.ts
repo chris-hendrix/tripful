@@ -7,7 +7,16 @@ import {
   type Member,
   type User,
 } from "@/db/schema/index.js";
-import { eq, inArray, and, asc, sql, count, isNull } from "drizzle-orm";
+import {
+  eq,
+  inArray,
+  and,
+  asc,
+  sql,
+  count,
+  isNull,
+  getTableColumns,
+} from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -233,7 +242,7 @@ export class TripService implements ITripService {
 
       // Lookup users by phone number
       const coOrganizerUsers = await this.db
-        .select()
+        .select({ id: users.id, phoneNumber: users.phoneNumber })
         .from(users)
         .where(inArray(users.phoneNumber, data.coOrganizerPhones));
 
@@ -333,7 +342,7 @@ export class TripService implements ITripService {
 
     // Load the trip
     const tripResult = await this.db
-      .select()
+      .select(getTableColumns(trips))
       .from(trips)
       .where(eq(trips.id, tripId))
       .limit(1);
@@ -440,7 +449,14 @@ export class TripService implements ITripService {
 
     // Load paginated trips
     const userTrips = await this.db
-      .select()
+      .select({
+        id: trips.id,
+        name: trips.name,
+        destination: trips.destination,
+        startDate: trips.startDate,
+        endDate: trips.endDate,
+        coverImageUrl: trips.coverImageUrl,
+      })
       .from(trips)
       .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
       .orderBy(
@@ -462,7 +478,11 @@ export class TripService implements ITripService {
     const pageTripIds = userTrips.map((t) => t.id);
 
     const allMembers = await this.db
-      .select()
+      .select({
+        tripId: members.tripId,
+        userId: members.userId,
+        isOrganizer: members.isOrganizer,
+      })
       .from(members)
       .where(inArray(members.tripId, pageTripIds));
 
@@ -704,7 +724,7 @@ export class TripService implements ITripService {
 
     // 2. Lookup users by phone numbers
     const newCoOrganizerUsers = await this.db
-      .select()
+      .select({ id: users.id, phoneNumber: users.phoneNumber })
       .from(users)
       .where(inArray(users.phoneNumber, phoneNumbers));
 
@@ -723,7 +743,7 @@ export class TripService implements ITripService {
     await this.db.transaction(async (tx) => {
       // 3-4. Get existing members (derive count from result length)
       const existingMembers = await tx
-        .select()
+        .select({ userId: members.userId })
         .from(members)
         .where(eq(members.tripId, tripId));
 
@@ -814,7 +834,7 @@ export class TripService implements ITripService {
 
     // 2. Load trip to check creator
     const [trip] = await this.db
-      .select()
+      .select({ id: trips.id, createdBy: trips.createdBy })
       .from(trips)
       .where(eq(trips.id, tripId))
       .limit(1);
@@ -830,7 +850,7 @@ export class TripService implements ITripService {
 
     // 4. Verify co-organizer is a member of the trip
     const [memberRecord] = await this.db
-      .select()
+      .select({ id: members.id })
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, coOrgUserId)))
       .limit(1);

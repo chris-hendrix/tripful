@@ -301,3 +301,41 @@ The Drizzle db singleton is created at module-level in `config/database.ts` befo
 - Integration tests using `app.inject()` bypass browser CSP enforcement — a broken CSP would not be caught by inject-based tests alone; a dedicated CSP header assertion test is needed
 - `@fastify/swagger` serializes route paths with or without trailing slash depending on how the route is registered — tests should handle both forms
 - The `jsonSchemaTransform` from `fastify-type-provider-zod` v4.0.2 is compatible with `@fastify/swagger` — no additional transform configuration needed beyond passing it as the `transform` option
+
+## Iteration 8 — Task 2.4: Fix all bare select() calls across services (20+ occurrences)
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (7 files, 22 bare `.select()` calls fixed):**
+
+- `apps/api/src/services/auth.service.ts` — Added `getTableColumns` import; 2 Category B selects use `getTableColumns(users)` for API-facing queries returning `User`; 1 Category A select narrowed to `{ lockedUntil }` for `checkAccountLocked`
+- `apps/api/src/services/trip.service.ts` — Added `getTableColumns` import; 1 Category B select uses `getTableColumns(trips)` for `getTripById`; 7 Category A selects narrowed (createTrip co-organizer `{id, phoneNumber}`, getUserTrips trips `{id, name, destination, startDate, endDate, coverImageUrl}`, getUserTrips members `{tripId, userId, isOrganizer}`, addCoOrganizers user `{id, phoneNumber}`, addCoOrganizers members `{userId}`, removeCoOrganizer trip `{id, createdBy}`, removeCoOrganizer member `{id}`)
+- `apps/api/src/services/invitation.service.ts` — 4 Category A selects narrowed (revokeInvitation `{id, tripId, inviteePhone}`, removeMember `{id, userId, isOrganizer}`, updateMemberRole `{id, userId, isOrganizer}`, processPendingInvitations `{id, tripId}`)
+- `apps/api/src/services/accommodation.service.ts` — Added `getTableColumns` import; 1 Category B select uses `getTableColumns(accommodations)` for `getAccommodation`; 2 Category A selects narrowed (updateAccommodation `{id, tripId, checkIn, checkOut}`, restoreAccommodation `{id, tripId}`)
+- `apps/api/src/services/event.service.ts` — Added `getTableColumns` import; 1 Category B select uses `getTableColumns(events)` for `getEvent`
+- `apps/api/src/services/member-travel.service.ts` — 1 Category B select uses `getTableColumns(memberTravel)` for `getMemberTravel`; 1 Category A select narrowed (restoreMemberTravel `{id, tripId, memberId}`)
+- `apps/api/src/queues/workers/notification-batch.worker.ts` — 1 Category A select narrowed (notification preferences `{userId, dailyItinerary, tripMessages}`)
+
+### Design Approach
+
+Two categories of fix applied:
+
+1. **Category A (16 occurrences) — Internal-use queries**: Narrowed to minimum columns accessed downstream. E.g., existence checks use `{ id }`, permission checks use `{ id, tripId }`, user lookups use `{ id, phoneNumber }`.
+
+2. **Category B (6 occurrences) — API-facing queries returning full entity types**: Used `getTableColumns(table)` from `drizzle-orm` to explicitly select all columns while preserving the return type. This pattern was already used in the codebase (`member-travel.service.ts` line ~273) and avoids maintaining manual column lists that could go stale when schema changes.
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Unit/Integration Tests**: PASS — 2,520 tests across all packages (shared: 251, web: 1169, api: 1100), 0 failures
+- **Manual Check**: Zero bare `.select()` calls remain in `apps/api/src/` (verified via grep)
+- **Reviewer**: APPROVED — all 22 selects verified, downstream field access traced for 5 Category A items, consistent patterns confirmed
+
+### Learnings
+- `getTableColumns(table)` from `drizzle-orm` returns the same type as bare `.select()`, making it a zero-risk replacement for API-facing queries that need all columns — the explicit intent is clearer than bare `.select()`
+- For Category A narrowed selects, the local variable type changes from the full entity type (e.g., `User`) to an inferred type with only the selected columns — TypeScript catches any downstream access to omitted columns at compile time
+- The `{ columnName: table.columnName }` naming convention (no aliases) is consistent across the entire codebase
+- `notification-batch.worker.ts` was not in the original task description but was discovered by researchers — always search broadly for the pattern being fixed
+- No test modifications were needed — all 2,520 tests pass unchanged, confirming that downstream code only accesses columns that were included in the narrowed selects

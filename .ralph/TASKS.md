@@ -69,7 +69,7 @@
   - Test: Write integration test — verify `/docs/json` returns valid OpenAPI spec with all routes
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 2.4: Fix all bare select() calls across services (20+ occurrences)
+- [x] Task 2.4: Fix all bare select() calls across services (20+ occurrences)
   - Implement: Add explicit column selection to `auth.service.ts` (lines 83, 117) — select only id, phoneNumber, displayName, createdAt
   - Implement: Add column selection to `trip.service.ts` (lines 236, 336, 443, 465, 707, 726, 817, 833) — select per query context
   - Implement: Add column selection to `invitation.service.ts` (lines 533, 595, 906, 992)

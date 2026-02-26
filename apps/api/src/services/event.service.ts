@@ -5,7 +5,7 @@ import {
   members,
   type Event,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, isNull, count, getTableColumns } from "drizzle-orm";
 import type {
   CreateEventInput,
   UpdateEventInput,
@@ -205,7 +205,7 @@ export class EventService implements IEventService {
    */
   async getEvent(eventId: string): Promise<Event | null> {
     const result = await this.db
-      .select()
+      .select(getTableColumns(events))
       .from(events)
       .where(and(eq(events.id, eventId), isNull(events.deletedAt)))
       .limit(1);
