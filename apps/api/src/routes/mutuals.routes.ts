@@ -9,6 +9,7 @@ import { defaultRateLimitConfig } from "@/middleware/rate-limit.middleware.js";
 import {
   getMutualsQuerySchema,
   getMutualSuggestionsQuerySchema,
+  getMutualsResponseSchema,
   type GetMutualsQueryInput,
   type GetMutualSuggestionsQueryInput,
 } from "@tripful/shared/schemas";
@@ -31,6 +32,7 @@ export async function mutualsRoutes(fastify: FastifyInstance) {
     {
       schema: {
         querystring: getMutualsQuerySchema,
+        response: { 200: getMutualsResponseSchema },
       },
       preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],
     },
@@ -53,6 +55,7 @@ export async function mutualsRoutes(fastify: FastifyInstance) {
           tripId: z.string().uuid({ message: "Invalid trip ID format" }),
         }),
         querystring: getMutualSuggestionsQuerySchema,
+        response: { 200: getMutualsResponseSchema },
       },
       preHandler: [
         fastify.rateLimit(defaultRateLimitConfig),

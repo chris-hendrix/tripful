@@ -245,3 +245,59 @@ The Drizzle db singleton is created at module-level in `config/database.ts` befo
 - When monkey-patching `pool.query` for timing, both promise-based `.then()` AND rejection paths need handling — a slow query that errors is arguably more important to log than a slow success
 - The `search` field in `getMutualsQuerySchema` already had `.max(100)` from a previous implementation — always check before adding constraints
 - `.max()` constraints must be placed BEFORE `.optional()`, `.nullable()`, `.transform()`, and `.refine()` in the Zod chain for correct validation order
+
+## Iteration 7 — Task 2.3: Add response schemas to remaining routes and OpenAPI/Swagger integration
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created:**
+- `apps/api/src/plugins/swagger.ts` — Fastify plugin that registers `@fastify/swagger` with OpenAPI 3.x config (title "Tripful API", version "1.0.0", server URL, cookie auth security scheme) and `@fastify/swagger-ui` at `/docs`. Uses `jsonSchemaTransform` from `fastify-type-provider-zod` to convert Zod schemas to JSON Schema for the OpenAPI spec. Includes `staticCSP: true` and `transformStaticCSP` to override helmet's restrictive CSP for swagger-ui routes, allowing inline scripts/styles and data URIs.
+- `apps/api/tests/integration/swagger.test.ts` — 5 integration tests covering: Swagger UI HTML at `/docs/`, valid OpenAPI spec at `/docs/json`, mutuals route with response schema, CSP headers on swagger-ui routes, redirect from `/docs` to `/docs/`
+
+**Files modified:**
+- `shared/schemas/mutuals.ts` — Added `sharedTripSchema`, `mutualEntitySchema`, and `getMutualsResponseSchema` (Zod response schemas) plus `GetMutualsResponse` inferred type
+- `shared/schemas/index.ts` — Re-exported `getMutualsResponseSchema` and `GetMutualsResponse` from the mutuals barrel
+- `apps/api/src/routes/mutuals.routes.ts` — Added `response: { 200: getMutualsResponseSchema }` to both `GET /mutuals` and `GET /trips/:tripId/mutual-suggestions` route schemas
+- `apps/api/src/routes/invitation.routes.ts` — Added `response: { 204: z.null().optional() }` to `DELETE /trips/:tripId/members/:memberId` route schema
+- `apps/api/src/app.ts` — Imported swagger plugin, registered it conditionally (`NODE_ENV !== "production"`) after service plugins and before routes
+- `apps/api/package.json` + `pnpm-lock.yaml` — Added `@fastify/swagger` and `@fastify/swagger-ui` dependencies
+
+### Response Schemas Added
+
+| Route | File | Status Code | Schema |
+|-------|------|-------------|--------|
+| `DELETE /trips/:tripId/members/:memberId` | `invitation.routes.ts` | 204 | `z.null().optional()` |
+| `GET /mutuals` | `mutuals.routes.ts` | 200 | `getMutualsResponseSchema` |
+| `GET /trips/:tripId/mutual-suggestions` | `mutuals.routes.ts` | 200 | `getMutualsResponseSchema` |
+
+### Swagger Plugin Architecture
+
+- Uses `jsonSchemaTransform` from `fastify-type-provider-zod` (already installed v4.0.2) to automatically convert all Zod route schemas into JSON Schema for the OpenAPI spec
+- Registered before routes in `app.ts`, gated by `NODE_ENV !== "production"`
+- UI served at `/docs`, JSON spec at `/docs/json`
+- Cookie auth security scheme (`cookieAuth`) defined in OpenAPI components
+- `staticCSP: true` + `transformStaticCSP` overrides helmet's restrictive CSP for swagger-ui routes, allowing the UI to render properly in a browser
+
+### Reviewer Feedback Addressed (1 round)
+1. **HIGH — Helmet CSP blocks Swagger UI**: Fixed by adding `staticCSP: true` and `transformStaticCSP` to swagger-ui registration, overriding helmet's `default-src 'none'` with permissive directives for swagger assets
+2. **MEDIUM — `z.null()` for 204 may fail serialization**: Changed to `z.null().optional()` to accept both `null` and `undefined` (since `reply.status(204).send()` sends `undefined`)
+3. **MEDIUM — Brittle health route path assertion**: Changed to `spec.paths["/api/health"] || spec.paths["/api/health/"]` to handle either trailing-slash form
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in verification.service.test.ts)
+- **Shared Tests**: PASS — 251 tests
+- **Web Tests**: PASS — 1169 tests
+- **API Tests**: PASS — 1100 tests; pre-existing flaky failures in pg-rate-limit-store, account-lockout, auth.request-code rate limiting (all timing-dependent, unrelated)
+- **Swagger Tests**: All 5 pass (UI HTML, OpenAPI spec, mutuals route schema, CSP headers, redirect)
+- **Invitation Route Tests**: All 45 pass (including 204 member removal)
+- **Reviewer**: APPROVED (after 1 round of feedback — 3 items fixed)
+
+### Learnings
+- `@fastify/swagger-ui` supports `staticCSP: true` + `transformStaticCSP` to override parent CSP policies — the `onSend` hook fires after helmet's hook, so the final CSP for `/docs/*` routes will be the permissive one
+- `z.null().optional()` is the correct Zod schema for 204 No Content responses where the controller calls `reply.status(204).send()` (which passes `undefined`) — `z.null()` alone would reject `undefined`
+- Integration tests using `app.inject()` bypass browser CSP enforcement — a broken CSP would not be caught by inject-based tests alone; a dedicated CSP header assertion test is needed
+- `@fastify/swagger` serializes route paths with or without trailing slash depending on how the route is registered — tests should handle both forms
+- The `jsonSchemaTransform` from `fastify-type-provider-zod` v4.0.2 is compatible with `@fastify/swagger` — no additional transform configuration needed beyond passing it as the `transform` option

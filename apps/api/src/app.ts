@@ -16,6 +16,7 @@ import { resolve } from "node:path";
 
 // Plugins
 import configPlugin from "./plugins/config.js";
+import swaggerPlugin from "./plugins/swagger.js";
 import databasePlugin from "./plugins/database.js";
 import { createPgRateLimitStoreClass } from "./plugins/pg-rate-limit-store.js";
 import queuePlugin from "./plugins/queue.js";
@@ -198,6 +199,11 @@ export async function buildApp(
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
   await app.register(queueWorkersPlugin);
+
+  // Register Swagger/OpenAPI documentation (non-production only)
+  if (app.config.NODE_ENV !== "production") {
+    await app.register(swaggerPlugin);
+  }
 
   // Register error handler
   app.setErrorHandler(errorHandler);

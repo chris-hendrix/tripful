@@ -28,8 +28,32 @@ export const getMutualSuggestionsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
 });
 
+/**
+ * Response schema for GET /api/mutuals and GET /api/trips/:tripId/mutual-suggestions
+ * Both endpoints return the same paginated mutuals shape
+ */
+const sharedTripSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+const mutualEntitySchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  profilePhotoUrl: z.string().nullable(),
+  sharedTripCount: z.number(),
+  sharedTrips: z.array(sharedTripSchema),
+});
+
+export const getMutualsResponseSchema = z.object({
+  success: z.literal(true),
+  mutuals: z.array(mutualEntitySchema),
+  nextCursor: z.string().nullable(),
+});
+
 // Inferred TypeScript types from schemas
 export type GetMutualsQueryInput = z.infer<typeof getMutualsQuerySchema>;
 export type GetMutualSuggestionsQueryInput = z.infer<
   typeof getMutualSuggestionsQuerySchema
 >;
+export type GetMutualsResponse = z.infer<typeof getMutualsResponseSchema>;

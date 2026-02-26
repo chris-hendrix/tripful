@@ -138,6 +138,8 @@ export {
 export {
   getMutualsQuerySchema,
   getMutualSuggestionsQuerySchema,
+  getMutualsResponseSchema,
   type GetMutualsQueryInput,
   type GetMutualSuggestionsQueryInput,
+  type GetMutualsResponse,
 } from "./mutuals";

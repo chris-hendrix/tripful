@@ -59,7 +59,7 @@
   - Test: Verify search length validation rejects strings > 100 chars
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 2.3: Add response schemas to remaining routes and OpenAPI/Swagger integration
+- [x] Task 2.3: Add response schemas to remaining routes and OpenAPI/Swagger integration
   - Implement: Add Zod response schemas for `DELETE /trips/:tripId/members/:memberId` in `invitation.routes.ts`
   - Implement: Add Zod response schemas for `GET /mutuals` and `GET /trips/:tripId/mutual-suggestions` in `mutuals.routes.ts`
   - Implement: Install `@fastify/swagger` and `@fastify/swagger-ui` packages
