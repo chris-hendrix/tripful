@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 // Plugins
 import configPlugin from "./plugins/config.js";
 import databasePlugin from "./plugins/database.js";
+import { createPgRateLimitStoreClass } from "./plugins/pg-rate-limit-store.js";
 import queuePlugin from "./plugins/queue.js";
 import authServicePlugin from "./plugins/auth-service.js";
 import permissionsServicePlugin from "./plugins/permissions-service.js";
@@ -140,14 +141,15 @@ export async function buildApp(
     },
   });
 
-  // Register rate limit plugin
+  // Register rate limit plugin with PostgreSQL-backed store
+  const PgRateLimitStore = createPgRateLimitStoreClass(app.db);
   await app.register(rateLimit, {
     global: opts.rateLimit?.global ?? true,
     max: 100,
     timeWindow: "15 minutes",
-    cache: 10000,
     allowList: ["127.0.0.1"],
     skipOnError: false,
+    store: PgRateLimitStore,
   });
 
   // Register multipart plugin (for file uploads)

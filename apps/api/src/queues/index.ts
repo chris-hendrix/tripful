@@ -1,5 +1,6 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
+import { sql } from "drizzle-orm";
 import {
   QUEUE,
   type WorkerDeps,
@@ -110,6 +111,34 @@ export default fp(
         await handleDailyItineraries(jobs[0]!, deps);
       },
     );
+
+    // --- Cleanup queues ---
+
+    // Rate limit cleanup (hourly)
+    await boss.createQueue(QUEUE.RATE_LIMIT_CLEANUP);
+    await boss.schedule(QUEUE.RATE_LIMIT_CLEANUP, "0 * * * *");
+    await boss.work(QUEUE.RATE_LIMIT_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM rate_limit_entries WHERE expires_at < now()
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "rate-limit cleanup completed",
+      );
+    });
+
+    // Auth attempts cleanup (hourly)
+    await boss.createQueue(QUEUE.AUTH_ATTEMPTS_CLEANUP);
+    await boss.schedule(QUEUE.AUTH_ATTEMPTS_CLEANUP, "0 * * * *");
+    await boss.work(QUEUE.AUTH_ATTEMPTS_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM auth_attempts WHERE last_failed_at < now() - interval '24 hours'
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "auth-attempts cleanup completed",
+      );
+    });
 
     fastify.log.info("queue workers registered");
   },

@@ -11,7 +11,7 @@
   - Test: Verify schema compiles with `pnpm typecheck`
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 1.2: Implement PostgreSQL-backed rate limit store with cleanup job
+- [x] Task 1.2: Implement PostgreSQL-backed rate limit store with cleanup job
   - Implement: Create `apps/api/src/plugins/pg-rate-limit-store.ts` — custom store class with `incr` (atomic UPSERT with window reset) and `child` methods
   - Implement: Update `apps/api/src/app.ts` to pass PG store to `@fastify/rate-limit` registration
   - Implement: Add `RATE_LIMIT_CLEANUP` and `AUTH_ATTEMPTS_CLEANUP` queue names to `apps/api/src/queues/types.ts`

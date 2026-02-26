@@ -10,6 +10,8 @@ export const QUEUE = {
   INVITATION_SEND: "invitation/send",
   INVITATION_SEND_DLQ: "invitation/send/dlq",
   DAILY_ITINERARIES: "daily-itineraries",
+  RATE_LIMIT_CLEANUP: "rate-limit/cleanup",
+  AUTH_ATTEMPTS_CLEANUP: "auth-attempts/cleanup",
 } as const;
 
 export interface NotificationBatchPayload {
