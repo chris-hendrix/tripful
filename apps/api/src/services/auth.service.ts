@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { users, blacklistedTokens, type User } from "@/db/schema/index.js";
+import {
+  users,
+  blacklistedTokens,
+  authAttempts,
+  type User,
+} from "@/db/schema/index.js";
 import type { JWTPayload, AppDatabase } from "@/types/index.js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { AccountLockedError } from "../errors.js";
 
 /**
  * Authentication Service Interface
@@ -69,7 +75,35 @@ export interface IAuthService {
    * @returns True if the token is blacklisted, false otherwise
    */
   isBlacklisted(jti: string): Promise<boolean>;
+
+  /**
+   * Checks if an account is locked due to too many failed attempts
+   * @param phoneNumber - The phone number to check (E.164 format)
+   * @throws AccountLockedError if the account is currently locked
+   */
+  checkAccountLocked(phoneNumber: string): Promise<void>;
+
+  /**
+   * Records a failed verification attempt and locks the account after 5 failures
+   * @param phoneNumber - The phone number that failed verification (E.164 format)
+   * @returns Object indicating if the account is now locked and the current failure count
+   */
+  recordFailedAttempt(
+    phoneNumber: string,
+  ): Promise<{ locked: boolean; failedCount: number }>;
+
+  /**
+   * Resets the failed attempt counter after a successful verification
+   * @param phoneNumber - The phone number to reset (E.164 format)
+   */
+  resetFailedAttempts(phoneNumber: string): Promise<void>;
 }
+
+/** Maximum number of failed verification attempts before lockout */
+const MAX_FAILED_ATTEMPTS = 5;
+
+/** Duration of account lockout in minutes after exceeding max failed attempts */
+export const LOCKOUT_DURATION_MINUTES = 15;
 
 /**
  * Authentication Service Implementation
@@ -247,5 +281,79 @@ export class AuthService implements IAuthService {
       .limit(1);
 
     return result.length > 0;
+  }
+
+  /**
+   * Checks if an account is locked due to too many failed verification attempts
+   * Queries the authAttempts table and throws if lockedUntil is in the future
+   * @param phoneNumber - The phone number to check (E.164 format)
+   * @throws AccountLockedError if the account is currently locked
+   */
+  async checkAccountLocked(phoneNumber: string): Promise<void> {
+    const result = await this.db
+      .select()
+      .from(authAttempts)
+      .where(eq(authAttempts.phoneNumber, phoneNumber))
+      .limit(1);
+
+    const record = result[0];
+    if (record?.lockedUntil && record.lockedUntil > new Date()) {
+      const remainingMs = record.lockedUntil.getTime() - Date.now();
+      const remainingMinutes = Math.ceil(remainingMs / 60000);
+      throw new AccountLockedError(
+        `Account is locked. Try again in ${remainingMinutes} minute(s).`,
+      );
+    }
+  }
+
+  /**
+   * Records a failed verification attempt using upsert
+   * Locks the account after MAX_FAILED_ATTEMPTS (5) failures for LOCKOUT_DURATION_MINUTES (15)
+   * @param phoneNumber - The phone number that failed verification (E.164 format)
+   * @returns Object indicating if the account is now locked and the current failure count
+   */
+  async recordFailedAttempt(
+    phoneNumber: string,
+  ): Promise<{ locked: boolean; failedCount: number }> {
+    const now = new Date();
+    const lockedUntil = new Date(
+      now.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000,
+    );
+
+    // Single atomic upsert: increments the counter and conditionally sets lockout.
+    // Refreshes lockout window on continued failures past threshold (intentional anti-abuse behavior)
+    const result = await this.db
+      .insert(authAttempts)
+      .values({
+        phoneNumber,
+        failedCount: 1,
+        lastFailedAt: now,
+        lockedUntil: null,
+      })
+      .onConflictDoUpdate({
+        target: authAttempts.phoneNumber,
+        set: {
+          failedCount: sql`${authAttempts.failedCount} + 1`,
+          lastFailedAt: now,
+          lockedUntil: sql`CASE WHEN ${authAttempts.failedCount} + 1 >= ${MAX_FAILED_ATTEMPTS} THEN ${lockedUntil}::timestamptz ELSE ${authAttempts.lockedUntil} END`,
+        },
+      })
+      .returning();
+
+    const record = result[0]!;
+    const failedCount = record.failedCount;
+
+    return { locked: failedCount >= MAX_FAILED_ATTEMPTS, failedCount };
+  }
+
+  /**
+   * Resets the failed attempt counter after a successful verification
+   * Deletes the row from authAttempts for the given phone number
+   * @param phoneNumber - The phone number to reset (E.164 format)
+   */
+  async resetFailedAttempts(phoneNumber: string): Promise<void> {
+    await this.db
+      .delete(authAttempts)
+      .where(eq(authAttempts.phoneNumber, phoneNumber));
   }
 }

@@ -30,7 +30,7 @@
   - Test: Write integration tests — logout invalidates token (subsequent request returns 401), non-blacklisted token works, re-login after logout gets fresh token
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 1.4: Implement account lockout after failed verification attempts
+- [x] Task 1.4: Implement account lockout after failed verification attempts
   - Implement: Update verify-code logic in `apps/api/src/services/auth.service.ts` to check lockout before verification
   - Implement: On failed verify: upsert auth_attempts row (increment failedCount, set lastFailedAt, set lockedUntil after 5 failures)
   - Implement: On successful verify: delete auth_attempts row for that phone number

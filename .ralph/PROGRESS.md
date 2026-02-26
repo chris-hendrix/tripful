@@ -111,3 +111,40 @@
 - The `trusted` callback in `@fastify/jwt` config is an alternative approach for blacklist checks, but using the service layer in middleware is more consistent with the codebase patterns
 - Test cleanup order matters with FK constraints — delete child records (blacklisted_tokens) before parent records (users)
 - Pre-existing flaky `pg-rate-limit-store` tests (concurrent access race condition) are a known issue from Task 1.2 — unrelated to token blacklist work
+
+## Iteration 4 — Task 1.4: Implement account lockout after failed verification attempts
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/services/auth.service.ts` — Added 3 new methods to `IAuthService` interface and `AuthService` class: `checkAccountLocked(phoneNumber)`, `recordFailedAttempt(phoneNumber)`, `resetFailedAttempts(phoneNumber)`. Exported `LOCKOUT_DURATION_MINUTES` constant. Imported `authAttempts` schema and `AccountLockedError`.
+- `apps/api/src/controllers/auth.controller.ts` — Modified `verifyCode` to: (1) check account lockout before code verification, (2) record failed attempts on invalid codes, (3) reset attempts on success, (4) set `Retry-After` header when locked. Imported `LOCKOUT_DURATION_MINUTES` from auth service.
+- `apps/api/tests/setup.ts` — Added `DELETE FROM auth_attempts` in `beforeAll` alongside existing `rate_limit_entries` and `blacklisted_tokens` cleanup.
+
+**Files created:**
+- `apps/api/tests/unit/account-lockout.test.ts` — 9 unit tests covering checkAccountLocked (3), recordFailedAttempt (4), resetFailedAttempts (2)
+- `apps/api/tests/integration/account-lockout.test.ts` — 6 integration tests covering full verify-code flow with lockout behavior
+
+### Key Design Decisions
+1. **Single atomic upsert** — `recordFailedAttempt` uses `INSERT...ON CONFLICT DO UPDATE` with a SQL `CASE` expression to atomically increment the counter and conditionally set `lockedUntil` in one statement, eliminating race conditions under concurrent requests
+2. **Exported lockout constants** — `MAX_FAILED_ATTEMPTS = 5` and `LOCKOUT_DURATION_MINUTES = 15` are module-level constants; `LOCKOUT_DURATION_MINUTES` is exported and used by the controller to compute `Retry-After` header, maintaining a single source of truth
+3. **Intentional lockout extension** — Continued failures past the threshold refresh the lockout window (documented in code comment) as anti-abuse behavior
+4. **Lockout check before code verification** — `checkAccountLocked` runs before `verificationService.checkCode()` to avoid leaking valid codes during lockout
+5. **`Retry-After` header on both lockout paths** — Set when `checkAccountLocked` throws (pre-check) and when `recordFailedAttempt` triggers lockout (5th failure), computed as `LOCKOUT_DURATION_MINUTES * 60` seconds
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Unit Tests**: PASS — 9 new account-lockout unit tests all pass
+- **Integration Tests**: PASS — 6 new account-lockout integration tests all pass
+- **Full Suite**: PASS — 1 pre-existing flaky failure (pg-rate-limit-store concurrent access, known from Task 1.2)
+- **Reviewer**: APPROVED (after one round of feedback — 4 items fixed: atomic upsert, unused import, exported constants, documented lockout extension)
+
+### Learnings
+- Drizzle `onConflictDoUpdate` supports SQL `CASE` expressions in the `set` clause for conditional updates within a single atomic upsert — much safer than separate upsert + update for security-critical paths
+- `@fastify/error` errors (like `AccountLockedError`) can have headers set on the reply before throwing — the error middleware preserves headers already set on the reply object
+- MockVerificationService accepts "123456" and rejects everything else — integration tests use "654321" as the wrong code to trigger failures
+- Integration tests can simulate lockout expiry by directly updating `lockedUntil` in the DB to a past timestamp, avoiding time mocking complexity
+- Exporting constants from service files and importing in controllers keeps configuration DRY and prevents stale hardcoded values (e.g., Retry-After header staying in sync with lockout duration)

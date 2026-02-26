@@ -37,6 +37,13 @@ beforeAll(async () => {
   } catch {
     // Table may not exist yet if migrations haven't run
   }
+
+  // Clean up auth attempts from previous test runs
+  try {
+    await testPool.query("DELETE FROM auth_attempts");
+  } catch {
+    // Table may not exist yet if migrations haven't run
+  }
 });
 
 afterAll(async () => {
