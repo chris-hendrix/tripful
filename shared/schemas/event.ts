@@ -26,7 +26,7 @@ const baseEventSchema = z.object({
   eventType: z.enum(["travel", "meal", "activity"], {
     message: "Event type must be one of: travel, meal, activity",
   }),
-  location: z.string().optional(),
+  location: z.string().max(500).optional(),
   meetupLocation: z.string().max(200).optional(),
   meetupTime: z.string().datetime().optional(),
   startTime: z.string().datetime(),
@@ -43,7 +43,7 @@ const baseEventSchema = z.object({
       message: "Links must not exceed 10 items",
     })
     .optional(),
-  timezone: z.string().optional(),
+  timezone: z.string().max(100).optional(),
 });
 
 /**

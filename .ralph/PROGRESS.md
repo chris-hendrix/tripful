@@ -189,3 +189,59 @@
 - pg-boss queue-workers plugin is skipped in test environment (`NODE_ENV === "test"`), so DLQ integration tests directly invoke the handler function rather than testing through the full pg-boss lifecycle
 - A single generic `handleDlq` function serves all 4 DLQ queues since the behavior is identical (log at error level) — `job.name` distinguishes which queue the failed job came from
 - The pre-existing pg-rate-limit-store concurrent access test failure is a race condition flaky test (produces different wrong orderings each run: `[1,1,1,2,3]`, `[1,1,2,2,3]`, etc.) — unrelated to any DLQ work
+
+## Iteration 6 — Task 2.2: Add Drizzle query logging plugin and input length validation
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created:**
+- `apps/api/src/plugins/query-logger.ts` — `PinoDrizzleLogger` class implementing Drizzle's `Logger` interface with deferred pino wiring, `instrumentPool` function that wraps `pool.query` for slow query detection (>500ms), and module-level `queryLogger` singleton
+- `apps/api/tests/unit/query-logger.test.ts` — 11 unit tests covering PinoDrizzleLogger (logQuery with/without logger, warnSlowQuery with string/object/null/undefined inputs) and instrumentPool (fast vs slow queries, callback vs promise, result preservation)
+- `shared/__tests__/input-validation.test.ts` — 20 tests verifying all new `.max()` constraints accept at-limit strings and reject over-limit strings
+
+**Files modified:**
+- `apps/api/src/config/database.ts` — Added import of `queryLogger` from `@/plugins/query-logger.js`, passed `logger: queryLogger` to `drizzle()` config
+- `apps/api/src/plugins/database.ts` — Added imports for `queryLogger`, `instrumentPool`, and `pool`; wires pino logger via `setLogger()` and instruments pool for slow query detection on plugin boot
+- `shared/schemas/mutuals.ts` — Added `.max(500)` to both `cursor` fields (search already had `.max(100)`)
+- `shared/schemas/trip.ts` — Added `.max(255)` to `destination`, `.max(2048)` to `coverImageUrl`
+- `shared/schemas/event.ts` — Added `.max(500)` to `location`, `.max(100)` to `timezone`
+- `shared/schemas/accommodation.ts` — Added `.max(500)` to `address`
+- `shared/schemas/member-travel.ts` — Added `.max(500)` to `location`
+- `shared/schemas/auth.ts` — Added `.max(100)` to `timezone` in `completeProfileSchema`
+- `shared/schemas/user.ts` — Added `.max(100)` to `timezone` in `updateProfileSchema`
+
+### Query Logger Architecture
+
+The Drizzle db singleton is created at module-level in `config/database.ts` before Fastify boots, so the pino logger is unavailable at initialization. Solution: deferred logger pattern — `PinoDrizzleLogger` is instantiated at module level (no-ops until pino is wired in), then the database plugin calls `setLogger(fastify.log)` when Fastify boots. For slow query detection, `instrumentPool` monkey-patches `pool.query` to time both promise-based and callback-based calls, emitting warn-level logs for queries exceeding 500ms. The rejection path is also handled — slow queries that error still trigger warnings.
+
+### Input Length Constraints Added
+
+| Schema | Field | Max |
+|--------|-------|-----|
+| `mutuals.ts` | `cursor` (both schemas) | 500 |
+| `trip.ts` | `destination` | 255 |
+| `trip.ts` | `coverImageUrl` | 2048 |
+| `event.ts` | `location` | 500 |
+| `event.ts` | `timezone` | 100 |
+| `accommodation.ts` | `address` | 500 |
+| `member-travel.ts` | `location` | 500 |
+| `auth.ts` | `timezone` | 100 |
+| `user.ts` | `timezone` | 100 |
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in verification.service.test.ts)
+- **Shared Tests**: PASS — 251 tests including 20 new input-validation tests
+- **Web Tests**: PASS — 1169 tests
+- **API Tests**: PASS — 1094/1095 tests; 1 pre-existing flaky failure (pg-rate-limit-store concurrent access from Task 1.2)
+- **Task 2.2 Tests**: All 31 new tests pass (11 query-logger + 20 input-validation)
+- **Reviewer**: APPROVED — two LOW-severity items fixed (promise rejection path for slow queries, import alias consistency)
+
+### Learnings
+- Drizzle's `Logger.logQuery()` is called BEFORE query execution in `drizzle-orm/node-postgres` 0.36.4, so actual execution timing must be measured at the pg Pool level, not within the Drizzle Logger
+- The deferred logger pattern (module-level singleton that no-ops until wired) cleanly solves the initialization order problem where the database is created before Fastify boots
+- When monkey-patching `pool.query` for timing, both promise-based `.then()` AND rejection paths need handling — a slow query that errors is arguably more important to log than a slow success
+- The `search` field in `getMutualsQuerySchema` already had `.max(100)` from a previous implementation — always check before adding constraints
+- `.max()` constraints must be placed BEFORE `.optional()`, `.nullable()`, `.transform()`, and `.refine()` in the Zod chain for correct validation order

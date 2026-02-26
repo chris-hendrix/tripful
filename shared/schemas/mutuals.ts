@@ -12,7 +12,7 @@ import { z } from "zod";
 export const getMutualsQuerySchema = z.object({
   tripId: z.string().uuid().optional(),
   search: z.string().max(100).optional(),
-  cursor: z.string().optional(),
+  cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
 });
 
@@ -24,7 +24,7 @@ export const getMutualsQuerySchema = z.object({
  */
 export const getMutualSuggestionsQuerySchema = z.object({
   search: z.string().max(100).optional(),
-  cursor: z.string().optional(),
+  cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().positive().max(50).optional().default(20),
 });
 

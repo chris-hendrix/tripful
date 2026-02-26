@@ -17,7 +17,7 @@ const baseAccommodationSchema = z.object({
       message: "Accommodation name must not exceed 255 characters",
     })
     .transform(stripControlChars),
-  address: z.string().optional(),
+  address: z.string().max(500).optional(),
   description: z
     .string()
     .max(2000, {

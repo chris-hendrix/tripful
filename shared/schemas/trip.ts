@@ -34,6 +34,9 @@ const baseTripSchema = z.object({
     .min(1, {
       message: "Destination is required",
     })
+    .max(255, {
+      message: "Destination must not exceed 255 characters",
+    })
     .transform(stripControlChars),
   startDate: z.string().date().optional(),
   endDate: z.string().date().optional(),
@@ -47,6 +50,9 @@ const baseTripSchema = z.object({
     .optional(),
   coverImageUrl: z
     .string()
+    .max(2048, {
+      message: "Cover image URL must not exceed 2048 characters",
+    })
     .refine(
       (val) => {
         // Allow paths starting with / (but not protocol-relative URLs like //example.com)

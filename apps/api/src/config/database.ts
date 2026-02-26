@@ -4,6 +4,7 @@ import { env } from "./env.js";
 import * as schema from "@/db/schema/index.js";
 import * as relations from "@/db/schema/relations.js";
 import type { Logger } from "@/types/logger.js";
+import { queryLogger } from "@/plugins/query-logger.js";
 
 const fullSchema = { ...schema, ...relations };
 
@@ -17,7 +18,7 @@ export const pool = new Pool({
 });
 
 // Initialize Drizzle with pool and schema (enables db.query.* relational API)
-export const db = drizzle(pool, { schema: fullSchema });
+export const db = drizzle(pool, { schema: fullSchema, logger: queryLogger });
 
 // Test connection
 export async function testConnection(logger?: Logger): Promise<boolean> {

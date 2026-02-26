@@ -41,7 +41,7 @@ export const updateProfileSchema = z.object({
     })
     .transform(stripControlChars)
     .optional(),
-  timezone: z.string().nullable().optional(),
+  timezone: z.string().max(100).nullable().optional(),
   handles: userHandlesSchema,
 });
 

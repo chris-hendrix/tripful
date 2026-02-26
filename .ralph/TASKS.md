@@ -50,7 +50,7 @@
   - Test: Write integration test — simulate job failure, verify job lands in DLQ
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 2.2: Add Drizzle query logging plugin and input length validation
+- [x] Task 2.2: Add Drizzle query logging plugin and input length validation
   - Implement: Create `apps/api/src/plugins/query-logger.ts` — Drizzle-compatible logger that integrates with pino, warns on slow queries (>500ms)
   - Implement: Update `apps/api/src/plugins/database.ts` to pass query logger to Drizzle initialization
   - Implement: Add `.max(100)` to search field in `shared/schemas/mutuals.ts` `getMutualsQuerySchema`

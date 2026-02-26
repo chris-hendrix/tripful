@@ -11,7 +11,7 @@ const baseMemberTravelSchema = z.object({
     message: "Travel type must be one of: arrival, departure",
   }),
   time: z.string().datetime(),
-  location: z.string().optional(),
+  location: z.string().max(500).optional(),
   details: z
     .string()
     .max(500, {
