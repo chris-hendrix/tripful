@@ -1,4 +1,4 @@
 # Ralph Config
 
-- description: mutuals-invite
+- description: skill-audit-remediation
 - mode: branch

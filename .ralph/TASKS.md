@@ -2,7 +2,7 @@
 
 ## Phase 1: Database Schema & Infrastructure
 
-- [ ] Task 1.1: Create security and rate limiting database tables with partial indexes
+- [x] Task 1.1: Create security and rate limiting database tables with partial indexes
   - Implement: Add `blacklisted_tokens` table to `apps/api/src/db/schema/index.ts` (id, jti unique, userId FK, expiresAt, createdAt) with indexes on jti and expiresAt
   - Implement: Add `auth_attempts` table (phoneNumber PK, failedCount, lastFailedAt, lockedUntil)
   - Implement: Add `rate_limit_entries` table (key PK, count, expiresAt) with index on expiresAt
