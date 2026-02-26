@@ -27,7 +27,12 @@ export default fp(
         AWS_DEFAULT_REGION,
       } = fastify.config;
 
-      if (!AWS_ENDPOINT_URL || !AWS_S3_BUCKET_NAME || !AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
+      if (
+        !AWS_ENDPOINT_URL ||
+        !AWS_S3_BUCKET_NAME ||
+        !AWS_ACCESS_KEY_ID ||
+        !AWS_SECRET_ACCESS_KEY
+      ) {
         throw new Error(
           "S3 storage requires AWS_ENDPOINT_URL, AWS_S3_BUCKET_NAME, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY",
         );

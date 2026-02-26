@@ -47,6 +47,8 @@ import {
   updateRsvpSchema,
   updateMySettingsSchema,
   mySettingsResponseSchema,
+  getMutualsQuerySchema,
+  getMutualSuggestionsQuerySchema,
 } from "../schemas/index.js";
 
 describe("Package Exports", () => {
@@ -82,6 +84,11 @@ describe("Package Exports", () => {
     expect(updateRsvpSchema).toBeDefined();
     expect(updateMySettingsSchema).toBeDefined();
     expect(mySettingsResponseSchema).toBeDefined();
+  });
+
+  it("should export all mutuals schemas", () => {
+    expect(getMutualsQuerySchema).toBeDefined();
+    expect(getMutualSuggestionsQuerySchema).toBeDefined();
   });
 
   it("should export existing schemas", () => {
@@ -190,6 +197,7 @@ describe("Package Exports", () => {
 
     const createInvitationsInput: CreateInvitationsInput = {
       phoneNumbers: ["+14155552671"],
+      userIds: [],
     };
     expect(createInvitationsInput).toBeDefined();
 
@@ -226,6 +234,7 @@ describe("Package Exports", () => {
 
     const invitationInput: CreateInvitationsInput = {
       phoneNumbers: ["+14155552671"],
+      userIds: [],
     };
     const validatedInvitation = createInvitationsSchema.parse(invitationInput);
     expect(validatedInvitation.phoneNumbers).toHaveLength(1);

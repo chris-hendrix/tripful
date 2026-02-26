@@ -1,355 +1,570 @@
-# Progress: E2E Test Simplification
+# Progress: Mutuals Invite
 
-## Iteration 1 — Task 1.1: Delete files and remove individual tests covered by unit tests
+## Iteration 1 — Task 1.1: Add mutuals types/schemas and update notification/invitation shared code
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and all 23 E2E tests pass
-**Reviewer**: APPROVED
+**Status**: ✅ COMPLETE
 
-### Changes Made
+### What was done
 
-**Files deleted (2):**
-- `apps/web/tests/e2e/app-shell.spec.ts` (1 test — covered by `app-header.test.tsx` and `skip-link.test.tsx`)
-- `apps/web/tests/e2e/invitation-helpers.spec.ts` (2 tests — internal helper verification, not user flows)
+**New files created:**
 
-**Tests removed from existing files (6):**
-- `trip-journey.spec.ts`: "trip form validation" — covered by `trip-schemas.test.ts` and `create-trip-dialog.test.tsx`
-- `itinerary-journey.spec.ts`: "itinerary permissions and validation" — covered by `event-schemas.test.ts` and event dialog tests
-- `itinerary-journey.spec.ts`: "meetup location and time on event card" — covered by `event-card.test.tsx`
-- `itinerary-journey.spec.ts`: "multi-day event badge" — covered by `event-card.test.tsx`
-- `messaging.spec.ts`: "restricted states journey" — edge case covered by unit tests
-- `notifications.spec.ts`: "notification preferences journey" — covered by `notification-preferences.test.tsx`
+- `shared/types/mutuals.ts` — `Mutual` interface and `GetMutualsResponse` type with full JSDoc
+- `shared/schemas/mutuals.ts` — `getMutualsQuerySchema` and `getMutualSuggestionsQuerySchema` with cursor pagination, search, and limit support; inferred types exported
 
-**Orphaned imports cleaned:**
-- `itinerary-journey.spec.ts`: Removed `TripsPage`, `TripDetailPage` (from `./helpers/pages`), `pickDate` (from `./helpers/date-pickers`)
-- `notifications.spec.ts`: Removed `dismissToast` (from `./helpers/toast`)
+**Modified files:**
 
-### Verification Results
+- `shared/types/notification.ts` — Added `"mutual_invite"` and `"sms_invite"` to `NotificationType` union
+- `shared/types/invitation.ts` — Added optional `addedMembers?: { userId: string; displayName: string }[]` to `CreateInvitationsResponse`
+- `shared/types/index.ts` — Added re-exports for `Mutual` and `GetMutualsResponse`
+- `shared/schemas/notification.ts` — Added `"mutual_invite"` and `"sms_invite"` to notification type `z.enum`
+- `shared/schemas/invitation.ts` — Rewrote `createInvitationsSchema` to accept optional `phoneNumbers` + optional `userIds` with `.refine()` requiring at least one; added `addedMembers` (`.optional().default([])`) to `createInvitationsResponseSchema`
+- `shared/schemas/index.ts` — Added re-exports for mutuals schemas and inferred types
+- `apps/web/src/components/notifications/notification-item.tsx` — Added `UserPlus` icon for `mutual_invite` and `sms_invite` in `typeIcons` Record (pulled forward from Task 4.1 to prevent TypeScript error from exhaustive Record)
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 23 tests in 7 files |
-| Deleted files confirmed gone | PASS |
-| `helpers/invitations.ts` preserved | PASS |
+**Tests updated:**
 
-### Notes
+- `shared/__tests__/invitation-schemas.test.ts` — Rewrote `createInvitationsSchema` tests: 14 cases covering phone-only, userId-only, mixed, empty-both-rejected, boundary limits, invalid formats (5 E.164 edge cases), non-array rejection, and default value application
+- `shared/__tests__/exports.test.ts` — Updated `CreateInvitationsInput` usage, added mutuals schema export tests
 
-- **Test count is 23, not 24** as predicted in TASKS.md. The planning doc assumed `invitation-helpers.spec.ts` had 1 test, but it had 2, so 9 tests were removed (32 − 9 = 23). Task 1.2 merges will bring this to 21 (not 22). Downstream task verification milestones should use actual counts.
-- **Reviewer suggestion (LOW)**: JSDoc comments in `notifications.spec.ts` and `messaging.spec.ts` say "3 journey tests" but now have 2. Non-blocking — can be addressed in Task 1.3 cleanup.
+### Verification results
 
-## Iteration 2 — Task 1.2: Merge auth tests and notification tests
+- Shared package build: PASS
+- Tests: 2364 total (shared: 231, api: 1004, web: 1129) — all passing
+- Lint: PASS (1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass (3 verification rounds)
-**Reviewer**: APPROVED
+### Design decisions
 
-### Changes Made
+- `addedMembers` made optional in both TypeScript type and Zod response schema (`.optional().default([])`) because the backend controller doesn't return it yet — Task 2.2 will populate it
+- `notification-item.tsx` updated early (Task 4.1 scope) to prevent `Record<NotificationType, ElementType>` compile error when NotificationType union expanded
+- `createInvitationsSchema` uses `.optional().default([])` on both arrays so consumers can omit either field; the `.refine()` ensures at least one has entries
 
-**`auth-journey.spec.ts`** (3 tests → 2 tests):
-- Merged "auth guards" + "authenticated user redirects away from public pages" → "auth redirects and guards"
-- Combined flow: unauthenticated redirect to /login → authenticateUser (single call) → existing user skips complete-profile → / redirects to /trips → /login redirects to /trips
-- Saves one `authenticateUser` call (API user creation + browser login cycle)
-- "complete auth journey" (@smoke) left unchanged
+### Learnings for future iterations
 
-**`notifications.spec.ts`** (2 tests → 1 test):
-- Merged "notification bell and dropdown journey" + "mark all as read and trip notification bell journey" → "notification flow"
-- Combined flow: setup organizer + member + trip + 2 messages → poll for 2 unread → verify global bell shows 2 unread → click bell dropdown → verify 2 notification items → click one notification → navigate to trip → verify trip bell shows 1 unread → open trip dialog (shows 2 items: read + unread) → mark all as read → verify both trip and global bells show zero
-- Tag: @smoke + @slow (covers the critical notification path)
-- Eliminates full duplicate setup cycle (2 user creations, 1 trip creation, 1 invite, 1 RSVP, message posting)
-- Updated JSDoc to reflect single-test structure
+- When adding members to a union type used in a `Record<UnionType, ...>`, ALL downstream exhaustive records must be updated in the same task to keep typecheck passing
+- The `turbo run test` command may fail API tests due to transient DB connection timing — running `pnpm --filter @tripful/api test` individually works; this is a pre-existing devcontainer issue
+- Test imports in the shared package use `.js` extension: `from "../schemas/index.js"`
 
-### Verification Results
+## Iteration 2 — Task 2.1: Implement mutuals service, controller, and routes with tests
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 21 tests in 7 files |
-| Test count: auth-journey.spec.ts | 2 tests (was 3) |
-| Test count: notifications.spec.ts | 1 test (was 2) |
+**Status**: ✅ COMPLETE
 
-### Fix Log
-
-- **Fix 1**: Trip notification dialog shows ALL notifications (read + unread), not just unread. Changed `toHaveCount(1)` to `toHaveCount(2)` in the trip dialog assertion step.
-- **Fix 2**: `page.getByText("New message")` strict mode violation — resolved to 2 elements with 2 notifications. Changed to `.first()` since the count is already verified separately.
+### What was done
 
-### Notes
+**New files created:**
 
-- **Test count is 21** (23 − 2 merges = 21). TASKS.md predicted 22 but that was based on the original 32 − 8 = 24 estimate. Actual: 32 − 9 = 23 after Task 1.1, then 23 − 2 = 21 after Task 1.2. Downstream tasks should use 21 as the baseline.
-- **Reviewer suggestion (LOW)**: The auth-journey file uses hardcoded `timeout: 5000` instead of imported timeout constants. Pre-existing, not introduced by this change. Can be addressed in a future consistency pass.
-- **Reviewer confirmed**: The soft assertion `expect.soft(page.getByText(/Alice:.*First message from Alice/))` was restored in the merged notification test, preserving notification content rendering coverage.
+- `apps/api/src/services/mutuals.service.ts` — `IMutualsService` interface and `MutualsService` class with `getMutuals` and `getMutualSuggestions` methods. Core query uses Drizzle `sql` template tag for self-join on `members` table to find users sharing trips. Keyset cursor pagination on `(shared_trip_count DESC, display_name ASC, id ASC)` with base64-encoded JSON cursor. Batch-loads shared trips in a single query to avoid N+1. Supports `search` prefix filter and `tripId` filter.
+- `apps/api/src/controllers/mutuals.controller.ts` — Controller object with `getMutuals` and `getMutualSuggestions` handlers following existing pattern (typed error re-throw, unknown error logging + 500)
+- `apps/api/src/routes/mutuals.routes.ts` — Route definitions for `GET /mutuals` (auth + rate limit) and `GET /trips/:tripId/mutual-suggestions` (auth + complete profile + rate limit) with Zod schema validation
+- `apps/api/src/plugins/mutuals-service.ts` — Fastify plugin using `fastify-plugin` with dependencies on `database` and `permissions-service`
+- `apps/api/tests/unit/mutuals.service.test.ts` — 9 unit tests covering core query sorting, cursor pagination, search filtering, trip filtering, empty results, shared trips population, suggestions exclusion, permission denied, and suggestion search
+- `apps/api/tests/integration/mutuals.routes.test.ts` — 8 integration tests covering auth requirements (401), paginated response shape, search/trip filters, empty results, suggestion exclusion, and organizer-only access (403)
 
-## Iteration 3 — Task 1.3: Phase 1 cleanup
+**Modified files:**
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass
-**Reviewer**: APPROVED
+- `apps/api/src/types/index.ts` — Added `IMutualsService` import and `mutualsService` property to `FastifyInstance` module augmentation
+- `apps/api/src/app.ts` — Imported and registered `mutualsServicePlugin` (after permissions-service) and `mutualsRoutes` (with `/api` prefix)
 
-### Changes Made
+### Verification results
 
-**Deferred items from Task 1.1 — fixed:**
-- `messaging.spec.ts` line 25: JSDoc said "3 journey tests" → corrected to "2 journey tests" (the "restricted states journey" was removed in Task 1.1)
+- Tests: 2381 total (shared: 231, api: 1021, web: 1129) — all passing
+- Mutuals-specific: 17 tests (9 unit + 8 integration) — all passing
+- Lint: PASS (no new errors; 1 pre-existing warning in unrelated file)
+- Typecheck: PASS (all 3 packages)
 
-**Deferred items from Task 1.2 — fixed:**
-- `auth-journey.spec.ts`: Added `import { NAVIGATION_TIMEOUT } from "./helpers/timeouts"` and replaced 4 hardcoded `timeout: 5000` values with `timeout: NAVIGATION_TIMEOUT` (lines 86, 97, 109, 115). This aligns with the pattern used by other spec files.
+### Reviewer assessment
 
-**Test count corrections across .ralph/ docs:**
-- TASKS.md: Updated 6 downstream task references from "22 tests" to "21 tests"; corrected Task 1.1 verify from "24 (32 - 8)" to "23 (32 - 9)"; corrected Task 2.1 regression count from "16" to "15"
-- VERIFICATION.md: Updated 3 milestone references from "22" to "21"; corrected Task 1.1 milestone from "24 (8 removed)" to "23 (9 removed)"
-- ARCHITECTURE.md: Updated target state from "22 tests" to "21 tests" (2 lines); corrected @regression count from "16" to "15"; corrected notifications.spec.ts entry from "(2: ...)" to "(1: notification flow @smoke)"
+- **APPROVED** — Excellent pattern consistency with existing codebase
+- SQL correctness verified: self-join, GROUP BY, keyset pagination all correct
+- No SQL injection risk (all inputs parameterized via Drizzle `sql` tag)
+- Security: proper organizer permission check in `getMutualSuggestions`
+- No `any` casts anywhere; clean type safety
+- Two LOW severity notes (non-blocking): cursor decode could return 400 instead of 500 on malformed input; `shared_trip_count` always 1 when `tripId` filter is active (intentional per architecture)
 
-### Verification Results
+### Design decisions
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 21 tests in 7 files |
-| `playwright test --list` | 21 tests confirmed |
+- First cursor-based pagination in the codebase — used keyset approach with base64 JSON encoding for the 3-part cursor `{count, name, id}`
+- Used Drizzle `sql` template tag for complex self-join query rather than the query builder, as the self-join with aliased tables and HAVING clause is more naturally expressed in raw SQL
+- `getMutualSuggestions` checks organizer permission via `permissionsService.isOrganizer()` before executing query
+- Batch-loaded shared trips in a single query for all mutuals on the page, avoiding N+1
+- Used `exactOptionalPropertyTypes`-safe conditional spread for optional query params in controller
 
-### Notes
+### Learnings for future iterations
 
-- **No new tasks needed**: All deferred items from Phase 1 were simple fixes addressed directly in this cleanup.
-- **Out-of-scope pre-existing issues identified but not fixed**: (1) `trip-journey.spec.ts` JSDoc says "3 journey tests" but has 6 — pre-existing before this branch. (2) Dead auth helper functions (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`) in `helpers/auth.ts` — pre-existing. (3) Mixed hardcoded/constant timeouts in other spec files — pre-existing.
-- **Phase 1 is now complete**. All 3 tasks done, 21 tests passing across 7 files. Ready for Phase 2.
+- Drizzle's `db.execute<T>()` returns rows typed as `T` — use this for complex raw SQL queries where the query builder would be unwieldy
+- PostgreSQL `COUNT` returns `bigint` which node-postgres serializes as string — must convert with `Number()` before use
+- The `HAVING` clause must use the full aggregate expression (e.g., `COUNT(DISTINCT ...)`) not a column alias, as PostgreSQL doesn't allow aliases in HAVING
+- The turbo parallel runner flakiness persists (pre-existing) — running per-package tests individually is reliable
 
-## Iteration 4 — Task 2.1: Update smoke/regression tags, optimize helpers, and increase workers
+## Iteration 3 — Task 2.2: Extend invitation service for mutual invites and sms_invite notifications with tests
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, 21 E2E tests pass, 6 smoke tests pass
-**Reviewer**: APPROVED
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/api/src/errors.ts` — Added `NotAMutualError` error class (403 status) for rejecting non-mutual userId invites
+- `apps/api/src/services/invitation.service.ts` — Extended `IInvitationService` interface and `createInvitations` implementation:
+  - Added `userIds` parameter (optional, defaults to `[]`) for backwards compatibility
+  - Fetches inviter display name and trip name for notification body text
+  - **userIds flow**: Verifies each userId is a mutual via `members` self-join query, rejects non-mutuals with `NotAMutualError`, skips existing trip members, creates `members` records with `status: 'no_response'`, sends `mutual_invite` notification
+  - **phoneNumbers flow enhancement**: Sends `sms_invite` notification for existing users who get auto-added as members
+  - Member limit enforcement counts both phone + userId flows combined
+  - Returns `addedMembers` array containing both mutual-invited and phone-auto-added users
+  - Notifications sent outside transaction with try/catch (best-effort, don't break invitation on notification failure)
+- `apps/api/src/controllers/invitation.controller.ts` — Updated `createInvitations` handler to extract `userIds` from body, pass to service, include `addedMembers` in 201 response
+- `apps/web/tests/e2e/notifications.spec.ts` — Updated notification count assertions from 2→3 to account for new `sms_invite` notification (1 sms_invite + 2 trip_message = 3 total)
+
+**Tests added:**
+
+- `apps/api/tests/unit/invitation.service.test.ts` — 8 new unit tests in `createInvitations (mutual invites via userIds)` describe block:
+  1. Mutual invite creates member record + `mutual_invite` notification
+  2. SMS invite creates `sms_invite` notification for existing user auto-added via phone
+  3. Mixed invites (both userIds and phoneNumbers)
+  4. Member limit enforcement across combined flows
+  5. Non-mutual userId rejected with `NotAMutualError`
+  6. Skip existing members for userIds
+  7. `addedMembers` includes both mutual-added and phone-auto-added users
+  8. Backwards compatibility (phone-only returns empty `addedMembers`)
+- `apps/api/tests/integration/invitation.routes.test.ts` — 5 new integration tests in `POST /api/trips/:tripId/invitations (mutual invites)` describe block:
+  1. Mutual-only payload returns 201 with member record and notification
+  2. Phone-only payload (backwards compat)
+  3. Mixed payload with both phones and userIds
+  4. `sms_invite` notification verification for phone auto-added users
+  5. Non-mutual userId returns 403
+
+### Verification results
+
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1129 passing (62 files)
+- E2E tests: 21 passing (all green)
+- Total: 2394 unit/integration + 21 E2E = 2415 tests — all passing
+- Lint: PASS (0 errors, 1 pre-existing warning)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** — Clean separation of flows, parameterized queries (no SQL injection), proper backwards compatibility, notification body matches spec exactly, comprehensive test coverage
+- Four LOW severity notes (all non-blocking):
+  1. `NotAMutualError` message includes target userId — low risk since caller already knows the ID
+  2. Inviter/trip lookups outside transaction — acceptable with fallback values
+  3. Integration tests don't explicitly clean up (matches existing pattern)
+  4. `phoneNumbers` destructuring relies on schema `.default([])` — correct since Fastify validates body through schema
+
+### Design decisions
 
-### Changes Made
+- `userIds` parameter defaults to `[]` for full backwards compatibility — no changes needed to existing callers
+- Mutual verification uses a self-join on `members` table (same pattern as mutuals service) rather than importing the mutuals service
+- Notifications sent outside the DB transaction to avoid holding locks, with try/catch to prevent notification failures from breaking the invitation flow
+- `addedMembers` response includes users from BOTH flows (mutual-invited and phone-auto-added)
+- E2E notification test updated to expect 3 unread notifications (was 2) — the `sms_invite` adds 1 notification when a user is invited via phone
+
+### Learnings for future iterations
 
-**Tag assignments (all 21 tests now explicitly tagged):**
-- 6 tests tagged `@smoke`: complete auth journey, trip CRUD journey, invitation and RSVP journey, itinerary CRUD journey, messaging CRUD journey, notification flow
-- 15 tests tagged `@regression`: all remaining tests
-- `profile page navigation and editing` changed from `@smoke` to `@regression` (not in the specified 6 smoke tests; matches ARCHITECTURE.md target state)
-- `organizer actions journey` already had `@regression` — no change needed
+- When adding new notification types that fire during existing flows (e.g., `sms_invite` during phone invites), check ALL E2E tests that count notifications — they will need count adjustments
+- The turbo runner still fails with `DATABASE_URL` not being passed through — this is a pre-existing `turbo.json` configuration issue (`passThroughEnv` missing). Run tests per-package to avoid this
+- The `members` self-join pattern for mutual verification is efficient: `SELECT user_id FROM members m1 JOIN members m2 ON m1.trip_id = m2.trip_id WHERE m1.user_id = :inviter AND m2.user_id IN (:userIds)` — reusable for any mutual check
+
+## Iteration 4 — Task 3.1: Implement mutuals page with query hooks, search, filter, and infinite scroll
+
+**Status**: ✅ COMPLETE
 
-**Files modified for tags:**
-- `auth-journey.spec.ts`: Added `{ tag: "@regression" }` to "auth redirects and guards"
-- `trip-journey.spec.ts`: Added `{ tag: "@regression" }` to 5 tests (permissions, auto-lock, remove member, promote/demote, delegation)
-- `invitation-journey.spec.ts`: Added `{ tag: "@regression" }` to 4 tests (RSVP status, uninvited access, member list, onboarding wizard)
-- `itinerary-journey.spec.ts`: Added `{ tag: "@regression" }` to 2 tests (view modes, deleted items)
-- `profile-journey.spec.ts`: Changed "profile page navigation and editing" from `@smoke` to `@regression`; added `{ tag: "@regression" }` to "profile photo upload and remove"
+### What was done
 
-**`inviteAndAcceptViaAPI` cookie optimization:**
-- Added optional `inviterCookie?: string` parameter (6th positional arg) to `helpers/invitations.ts`
-- When provided, skips `createUserViaAPI(request, inviterPhone)` re-auth (saves 3 API calls per invocation)
-- Uses `const resolvedInviterCookie = inviterCookie ?? (await createUserViaAPI(request, inviterPhone))` for backward compatibility
-- Updated JSDoc to document the optional cookie path
-- Updated all 5 callers to pass existing `organizerCookie`:
-  - `trip-journey.spec.ts`: 3 call sites (remove member, promote/demote, delegation)
-  - `invitation-journey.spec.ts`: 2 call sites (RSVP status, member list)
-- Note: `messaging.spec.ts` and `notifications.spec.ts` do NOT call `inviteAndAcceptViaAPI` (they use `inviteViaAPI` + `rsvpViaAPI` directly), so no changes were needed despite TASKS.md listing them
+**New files created:**
 
-**Infrastructure:**
-- `playwright.config.ts`: Changed CI workers from 2 to 4 (`workers: process.env.CI ? 4 : 1`)
-- `apps/web/package.json`: Added `"test:e2e:smoke": "playwright test --grep @smoke"` script
+- `apps/web/src/hooks/mutuals-queries.ts` — Query key factory (`mutualKeys`) with hierarchical keys (`all`, `lists`, `list`, `suggestions`, `suggestion`) and two query option factories: `mutualsQueryOptions` using `infiniteQueryOptions` (first infinite query in the codebase) with cursor-based pagination, and `mutualSuggestionsQueryOptions` using regular `queryOptions` with `enabled: !!tripId` guard
+- `apps/web/src/hooks/use-mutuals.ts` — `"use client"` hook file exporting `useMutuals(params)` wrapping `useInfiniteQuery` and `useMutualSuggestions(tripId)` wrapping `useQuery`. Re-exports keys and options for convenience
+- `apps/web/src/app/(app)/mutuals/page.tsx` — Server component page with metadata `{ title: "My Mutuals | Tripful" }`, renders `<MutualsContent />` (no server prefetch for infinite queries)
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Client component with search input (300ms debounce via `useState`/`useEffect`), trip filter dropdown (populated from `useTrips()`), avatar grid of mutual cards, loading skeletons, error state with retry button, empty state, infinite scroll via `IntersectionObserver` sentinel div, and proper pluralization
+- `apps/web/src/hooks/__tests__/use-mutuals.test.tsx` — 8 hook tests covering: first page fetch, cursor-based pagination with `fetchNextPage`, search parameter passing, tripId filter, API error handling, empty results, suggestions fetch, disabled state when tripId is empty
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — 8 component tests covering: loading skeletons, no count during loading, mutuals grid rendering, singular/plural text, empty state, error state with retry, retry click handler, debounced search input
 
-**test.slow() review:**
-- All 11 `test.slow()` calls confirmed in active tests — none orphaned from deleted tests
+### Verification results
 
-### Verification Results
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1145 passing (64 files), including 16 new tests (8 hook + 8 component)
+- E2E tests: 21 passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated file)
+- Typecheck: PASS (all 3 packages)
+- Shared package build: PASS
+
+### Reviewer assessment
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 21 tests in 7 files (2.8m) |
-| `pnpm test:e2e:smoke` | PASS — 6 tests (57.2s) |
-| `playwright test --list` | 21 tests in 7 files confirmed |
-| `--grep @smoke --list` | 6 smoke tests confirmed |
-| `inviterCookie` backward compat | PASS — optional param, falls back to re-auth |
-| CI workers | 4 (was 2) |
+- **APPROVED** — Excellent pattern consistency with existing codebase
+- Three LOW severity notes (all non-blocking):
+  1. No server-side prefetch in page component — acceptable given infinite query hydration complexity; task spec only requires "server component with metadata"
+  2. `mutualCount` shows count of currently-loaded mutuals, not server total — minor UX concern, non-blocking
+  3. `"use client"` in hook file technically redundant but consistent with existing `use-trips.ts` pattern
+- Optional suggestions: consider `useMemo` for page flattening, add trip filter dropdown test, add keyboard accessibility to cards when click handler is added in Task 3.2
+
+### Design decisions
+
+- First `useInfiniteQuery` / `infiniteQueryOptions` usage in the codebase — used TanStack Query v5 API with `initialPageParam: undefined as string | undefined` and `getNextPageParam` returning `nextCursor ?? undefined`
+- No server-side prefetch for the mutuals page — infinite query hydration requires special handling that isn't worth the complexity for this page. Client-side fetch with skeleton loading provides good UX
+- Search uses local state debounce (not URL sync) because infinite queries reset on parameter change — URL sync would cause unnecessary refetches on browser back/forward
+- Trip filter dropdown uses `"all"` as sentinel value since Radix UI Select doesn't support empty string values; handler converts back to `""`
+- IntersectionObserver sentinel div at bottom of grid triggers `fetchNextPage()` when visible — guards with `hasNextPage && !isFetchingNextPage` to prevent duplicate fetches
+- Mutual cards have `cursor-pointer` but no click handler yet — Task 3.2 will add the profile sheet click handler with keyboard accessibility
+
+### Learnings for future iterations
+
+- TanStack Query v5's `infiniteQueryOptions()` is the analog of `queryOptions()` for infinite queries — must provide `initialPageParam` and `getNextPageParam` as required generic parameters
+- When using `useInfiniteQuery`, flatten pages for rendering with `data?.pages.flatMap((page) => page.items) ?? []` — consider wrapping in `useMemo` for performance if the component has frequent unrelated re-renders
+- IntersectionObserver in tests requires a mock since jsdom doesn't provide it — mock at module level in `beforeEach` and store the callback to manually trigger intersection in tests
+- The `Select` component from Radix UI does not support empty string as a value — use a sentinel string like `"all"` and convert in the change handler
+- Pre-existing turbo parallel runner flakiness continues — run per-package tests individually for reliable results
+
+## Iteration 5 — Task 3.2: Implement mutual profile sheet and app header menu item
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**New files created:**
 
-### Notes
+- `apps/web/src/components/mutuals/mutual-profile-sheet.tsx` — Sheet component showing large avatar (size-20), display name as SheetTitle with Playfair font, shared trip count subtitle, and list of shared trips as clickable `<Link>` elements to `/trips/:id`. Props: `{ mutual: Mutual | null; open: boolean; onOpenChange: (open: boolean) => void }`. Follows the ProfileDialog pattern exactly.
+- `apps/web/src/components/mutuals/__tests__/mutual-profile-sheet.test.tsx` — 8 tests covering: display name rendering, large avatar with initials, avatar fallback when no photo, plural/singular trip count text, shared trip link hrefs, null mutual state, and closed state.
 
-- **TASKS.md inaccuracy**: Task listed `messaging.spec.ts` and `notifications.spec.ts` as callers of `inviteAndAcceptViaAPI`, but they use `inviteViaAPI` + `rsvpViaAPI` directly. Only `trip-journey.spec.ts` and `invitation-journey.spec.ts` call `inviteAndAcceptViaAPI`.
-- **Reviewer suggestion (LOW, addressed)**: JSDoc for `inviteAndAcceptViaAPI` step 1 updated from "Re-authenticate inviter" to "Use provided cookie or re-authenticate inviter" to reflect the optional cookie path.
-- **Savings**: 5 call sites × 3 API calls skipped = 15 fewer API round trips across the test suite.
+**Modified files:**
 
-## Iteration 5 — Task 2.2: Phase 2 cleanup
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Added `selectedMutual` state (`useState<Mutual | null>`), click handler and keyboard accessibility (`role="button"`, `tabIndex={0}`, `onKeyDown` for Enter/Space) to mutual card divs, and rendered `<MutualProfileSheet>` at the bottom of the component with controlled open/close state.
+- `apps/web/src/components/app-header.tsx` — Added `Users` icon import from lucide-react, added "My Mutuals" `DropdownMenuItem` with `asChild` wrapping a `<Link href="/mutuals">` with `data-testid="mutuals-menu-item"`, placed between profile item and separator.
+- `apps/web/src/components/__tests__/app-header.test.tsx` — Added 2 tests: "shows My Mutuals link in dropdown" and "My Mutuals link points to /mutuals".
+- `turbo.json` — Added `passThroughEnv` for `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV` to the test pipeline to fix environment variable passthrough in Turborepo.
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass
-**Reviewer**: APPROVED
+### Verification results
 
-### Review of Phase 2 (Task 2.1)
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1155 passing (65 files), including 10 new tests (8 profile sheet + 2 app header)
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
 
-**FAILURE / BLOCKED items**: None. Task 2.1 completed successfully with all checks passing.
+### Reviewer assessment
 
-**Reviewer caveats from Task 2.1**: One LOW suggestion (JSDoc for `inviteAndAcceptViaAPI`) was already addressed during Task 2.1 itself.
+- **APPROVED** — Clean component design, correct type usage, proper null handling, keyboard accessibility on cards
+- Two LOW severity notes (both non-blocking):
+  1. Redundant icon classes on Users icon in app-header — FIXED post-review (removed `className="mr-2 h-4 w-4"` to match LogOut icon pattern)
+  2. Missing test for card click opening profile sheet in mutuals-content — noted as non-blocking since the sheet itself is well-tested independently
+- Optional suggestion: consider auto-closing sheet on trip link navigation (UX polish, not a bug)
+
+### Design decisions
 
-**Deferred items from Task 2.1**: The TASKS.md inaccuracy about `messaging.spec.ts` and `notifications.spec.ts` being callers of `inviteAndAcceptViaAPI` was already documented in PROGRESS.md Iteration 4. No code fix needed — the actual implementation correctly only updated real callers.
+- MutualProfileSheet follows the ProfileDialog pattern exactly: controlled `open`/`onOpenChange` props, same Sheet structure, same Playfair font title, same size-20 avatar
+- Card keyboard accessibility follows event-card.tsx/accommodation-card.tsx pattern: `role="button"`, `tabIndex={0}`, `onKeyDown` with Enter/Space handling and `e.preventDefault()`
+- No dynamic import for the sheet — it's only used on the mutuals page (already mutuals-specific), so code splitting benefit is minimal
+- Sheet displays data from the already-fetched Mutual object (no additional API call needed since `sharedTrips` is included in the list response)
+- `Users` icon in dropdown uses no explicit size classes, matching the `LogOut` icon pattern (shadcn DropdownMenuItem auto-sizes SVG children via CSS)
+
+### Learnings for future iterations
 
-### Changes Made
+- shadcn `DropdownMenuItem` applies `gap-2` and `[&_svg:not([class*='size-'])]:size-4` automatically — adding `mr-2 h-4 w-4` to icons is redundant and creates double spacing
+- Radix `Avatar` doesn't render `<img>` in jsdom (images don't load in test environment) — test avatar via the fallback initials and size class assertions instead
+- For controlled Sheet components receiving nullable data, use `{data && (...)}` conditional rendering inside `SheetContent` rather than conditionally rendering the entire `Sheet` — this keeps the close animation working smoothly
+- The `turbo.json` `passThroughEnv` configuration resolves the long-standing turbo runner flakiness — environment variables like `DATABASE_URL` were being stripped in parallel runs
 
-**JSDoc corrections (2 files):**
-- `trip-journey.spec.ts` line 17: Changed "Consolidates 10 individual trip tests into 3 journey tests" → "6 journey tests" (file has 6 tests, not 3; pre-existing inaccuracy flagged in Iteration 3)
-- `profile-journey.spec.ts` line 12: Changed "in a single journey test" → "in 2 journey tests" (file has 2 tests, not 1; newly identified)
+## Iteration 6 — Task 4.1: Update invite dialog with mutuals picker and notification icons
+
+**Status**: ✅ COMPLETE
 
-**Researcher false positive**: Researcher 2 flagged `authenticateViaAPI` as an unused import in `trip-journey.spec.ts`, but coder verified it IS used on line 30 in the "trip CRUD journey" test. No change made.
+### What was done
 
-### Verification Results
+**Modified files:**
+- `apps/web/src/components/trip/invite-members-dialog.tsx` — Major update: added two-section layout with mutuals picker at top and phone input below. Mutuals section includes searchable checkbox list with avatars, selected mutual badge chips, and "Or invite by phone number" separator. Only rendered when `useMutualSuggestions(tripId)` returns non-empty suggestions. Updated form defaults to include `userIds: []`, submit button enabled when either array is non-empty, success toast includes addedMembers count. Uses `useMemo` for filtered suggestions and selected mutuals lookup.
+- `apps/web/src/hooks/use-invitations.ts` — Added `mutualKeys` import from `./mutuals-queries`. Updated `useInviteMembers` `onSettled` to also invalidate `mutualKeys.suggestion(tripId)`, `tripKeys.detail(tripId)`, and `tripKeys.all` (the trip detail invalidation was critical — `trip.memberCount` is rendered from the trip detail query, not the members list query).
+- `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — Updated mocks: added `getUploadUrl` to `@/lib/api` mock, `getInitials` to `@/lib/format` mock, new `@/hooks/use-mutuals` mock with `mockUseMutualSuggestions`. Added 10 new tests in "Mutuals section" describe block covering: show/hide based on suggestions, selecting/deselecting mutuals with chip verification, submit with only userIds, submit with both userIds and phoneNumbers, phone-only backwards compatibility, search filtering, success toast with addedMembers count, and form reset on dialog close. Updated mock data to use valid UUIDs for Zod schema validation.
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 21 tests in 7 files (3.2m) |
-| `playwright test --list` | 21 tests confirmed |
+**New files created:**
+- `apps/web/tests/e2e/mutuals-journey.spec.ts` — E2E test with 3 steps: (1) view mutuals page and verify mutual is listed, (2) open invite dialog on a second trip and verify mutual suggestions appear, select a mutual, submit, verify toast, (3) verify mutual was added as trip member (member count increases to 2). Uses `inviteAndAcceptViaAPI` helper to establish mutual relationship in setup.
 
-### Notes
+**No changes needed:**
+- `apps/web/src/components/notifications/notification-item.tsx` — Already had `UserPlus` icon for `mutual_invite` and `sms_invite` types (done in Task 1.1)
 
-- **No new tasks needed**: All Phase 2 deferred items were either already addressed or required only simple JSDoc fixes.
-- **Pre-existing out-of-scope issues confirmed unchanged**: (1) Dead auth helpers in `helpers/auth.ts` (`authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone`). (2) Hardcoded timeouts in `trip-journey.spec.ts`, `itinerary-journey.spec.ts`, `profile-journey.spec.ts`, and partially `invitation-journey.spec.ts`. (3) Hardcoded `http://localhost:8000` in 8 locations across 3 spec files instead of `API_BASE`. All pre-existing before this branch.
-- **Phase 2 is now complete**. All 2 tasks done, 21 tests passing across 7 files, 6 smoke / 15 regression. Ready for Phase 3.
+### Verification results
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1166 passing (65 files), including 10 new invite dialog tests
+- E2E tests: 22 passing (including 1 new mutuals-journey test)
+- Total: 2431 unit/integration + 22 E2E = 2453 tests — all passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
 
-## Iteration 6 — Task 3.1: Add CI smoke job, sharding, and report merging
+### Reviewer assessment
+- **APPROVED** — Consistent chip pattern matching phone chips, correct Avatar usage with getUploadUrl/getInitials, clean form data flow, comprehensive test coverage, proper accessibility (aria-labels on checkboxes and remove buttons), well-structured E2E test following established patterns
+- Two LOW severity notes (both non-blocking):
+  1. Missing empty state for filtered results when search text matches no mutuals — scrollable container renders empty. Could add "No mutuals found" text.
+  2. Conditional AvatarImage rendering (`{mutual.profilePhotoUrl && ...}`) differs from members-list.tsx pattern which always renders AvatarImage — both approaches work, the always-render pattern is simpler.
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and YAML validation all pass
-**Reviewer**: APPROVED (one LOW-severity finding addressed inline)
+### Design decisions
+- Mutuals section is conditionally rendered based on `hasMutuals` boolean (`suggestions?.mutuals && suggestions.mutuals.length > 0`), keeping the phone-only experience unchanged when no suggestions exist
+- Client-side search filtering via `useMemo` — appropriate since `useMutualSuggestions` returns all suggestions in a single non-paginated response
+- `toggleMutual` handler manages `userIds` form array imperatively with `form.getValues`/`form.setValue`, matching the existing phone number management pattern
+- Success toast uses `parts[]` array with `join(", ")` for clean comma-separated message: "X invitations sent, Y members added, Z already invited"
+- Cache invalidation for `useInviteMembers` now includes `tripKeys.detail(tripId)` and `tripKeys.all` — this was the critical fix that resolved the E2E failure where `trip.memberCount` wasn't updating after mutual invite
+- E2E test phone numbers use offset `+7000` to avoid collisions with other E2E tests that use 1000-6000
 
-### Changes Made
+### Bug found and fixed during verification
+- **Member count not updating after mutual invite**: Initial implementation only invalidated `memberKeys.list(tripId)` and `mutualKeys.suggestion(tripId)` after invitation. The trip detail page displays member count from `trip.memberCount` which comes from the trip detail query, not the members list. Fixed by also invalidating `tripKeys.detail(tripId)` and `tripKeys.all` in the `useInviteMembers` `onSettled` callback.
 
-**`apps/web/playwright.config.ts`** (1 change):
-- Line 20: Changed `reporter: "html"` to `reporter: process.env.CI ? "blob" : "html"`. Blob reporter in CI enables shard report merging; HTML reporter preserved for local development. Follows the existing `process.env.CI` ternary pattern used for `forbidOnly` (line 15), `workers` (line 17), and `reuseExistingServer` (lines 59, 67).
+### Learnings for future iterations
+- When a mutation changes data that appears on the trip detail page (like member count), always invalidate `tripKeys.detail(tripId)` and `tripKeys.all` — the trip detail endpoint aggregates data (memberCount, etc.) that isn't reflected in list queries
+- Zod schema validation runs during form submission even in tests — mock data must use valid UUIDs (e.g., `00000000-0000-4000-8000-000000000001`) when the schema validates with `z.string().uuid()`
+- The `useMutualSuggestions` hook returns a non-paginated response (all suggestions at once), so client-side search filtering with `useMemo` is the right approach rather than passing search params to the API
+- E2E tests for UI mutations need the relevant cache invalidation to be in place before the test will pass — if a mutation result isn't visible in the UI, check what query feeds the display
 
-**`.github/workflows/ci.yml`** (3 jobs added/modified):
+## Iteration 7 — Task 5.1: Triage PROGRESS.md for unaddressed items
 
-1. **`e2e-smoke` job (NEW, lines 173-233)**: Runs only `@smoke`-tagged E2E tests on PRs.
-   - Condition: `github.event_name == 'pull_request'` AND (api/web/shared changes detected)
-   - Same postgres service, browser install, and migration steps as existing e2e job
-   - Command: `playwright test --grep @smoke` (6 tests)
-   - Timeout: 30 minutes
-   - Uploads blob report as `smoke-report` artifact (7-day retention)
+**Status**: ✅ COMPLETE
 
-2. **`e2e-tests` job (MODIFIED, lines 235-298)**: Runs full suite on main branch only, with 2-shard matrix.
-   - Condition changed from changes-based (api/web/shared) to main-only: `github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'`
-   - Added matrix strategy: `shardIndex: [1, 2]`, `shardTotal: [2]`, `fail-fast: false`
-   - Command: `playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}`
-   - Artifact: per-shard blob reports (`blob-report-1`, `blob-report-2`) with 1-day retention
+### What was done
 
-3. **`merge-e2e-reports` job (NEW, lines 300-337)**: Merges sharded blob reports into single HTML report.
-   - Depends on `e2e-tests`
-   - Condition: `!cancelled() && needs.e2e-tests.result != 'skipped'` (prevents running on PRs where e2e-tests is skipped)
-   - Downloads all `blob-report-*` artifacts with `merge-multiple: true`
-   - Runs `npx playwright merge-reports --reporter html ./all-blob-reports`
-   - Uploads merged HTML report as `playwright-report` (30-day retention)
+Performed a comprehensive triage of all 6 iterations in PROGRESS.md, cataloguing every reviewer note, optional suggestion, deferred item, and bug across all phases. Classified each item as ACTIONABLE, INTENTIONAL, or COSMETIC.
 
-### Reviewer Finding (addressed)
+**ACTIONABLE items — fix tasks created in TASKS.md:**
 
-- **[LOW, FIXED]**: The reviewer identified that `if: ${{ !cancelled() }}` on `merge-e2e-reports` would cause the job to run and fail on PRs (where `e2e-tests` is skipped, producing no blob artifacts). Fixed by adding `needs.e2e-tests.result != 'skipped'` guard to the condition.
+1. **Task 5.2: Return 400 instead of 500 for malformed cursor** (from Iteration 2 reviewer, LOW)
+   - `decodeCursor` in `apps/api/src/services/mutuals.service.ts` throws unhandled SyntaxError on malformed base64/JSON input, which the controller catches as a generic 500. Should throw a 400 `InvalidCursorError` instead.
 
-### Verification Results
+2. **Task 5.3: Add empty state for filtered mutuals in invite dialog** (from Iteration 6 reviewer, LOW)
+   - When mutual search in the invite dialog matches no results, the scrollable container renders as an empty bordered box with no feedback message. Should show "No mutuals found" text.
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| YAML syntax validation | PASS |
-| Job dependencies correct | PASS (`merge-e2e-reports` → `e2e-tests`, both smoke/e2e → `changes`) |
-| Artifact names unique | PASS (`smoke-report`, `blob-report-1`, `blob-report-2`, `playwright-report`) |
-| Action versions consistent | PASS (checkout@v6, setup-node@v6, upload-artifact@v6, download-artifact@v6, pnpm/action-setup@v4) |
+3. **Task 5.4: Add missing mutuals page test coverage** (from Iterations 4 & 5 reviewers, LOW)
+   - No test for clicking a mutual card and verifying the profile sheet opens (Iteration 5 gap).
+   - No test for trip filter dropdown rendering and selection behavior (Iteration 4 gap). Combined into one task since both target the same test file.
 
-### Notes
+**INTENTIONAL/COSMETIC items — no fix task needed (9 items):**
 
-- **Cannot validate CI pipeline locally**: GitHub Actions workflows can only be fully validated when running in GitHub. The YAML structure, job dependencies, conditions, and action versions have been reviewed for correctness. Actual CI execution will be validated when code is pushed.
-- **Reporter strategy**: Both `e2e-smoke` and `e2e-tests` use `blob` reporter in CI (from the `process.env.CI` config). The smoke job uploads its blob directly (no merge needed for a single run). Only the sharded `e2e-tests` has a merge step.
-- **Phase 3 progress**: Task 3.1 complete. Task 3.2 (Phase 3 cleanup) remains.
+- `shared_trip_count` always 1 with `tripId` filter (Iteration 2) — intentional per architecture; when filtering by trip, count reflects the filter
+- `NotAMutualError` message includes target userId (Iteration 3) — reviewer confirmed low risk, caller already knows the ID
+- Inviter/trip lookups outside transaction (Iteration 3) — reviewer confirmed acceptable with fallback values
+- Integration tests don't explicitly clean up (Iteration 3) — matches existing test patterns
+- `phoneNumbers` destructuring relies on schema `.default([])` (Iteration 3) — correct, Fastify validates body through schema
+- No server-side prefetch in mutuals page (Iteration 4) — acceptable given infinite query hydration complexity
+- `mutualCount` shows loaded count, not server total (Iteration 4) — cursor pagination doesn't produce total count; would require extra COUNT query
+- `useMemo` for page flattening (Iteration 4) — negligible performance impact, flatMapping <100 items is microseconds
+- `"use client"` redundant in hook file (Iteration 4) — consistent with existing `use-trips.ts` pattern
+- Auto-closing sheet on trip link navigation (Iteration 5) — non-issue, page unmounts on navigate
+- AvatarImage conditional vs always-render (Iteration 6) — cosmetic inconsistency, both produce identical behavior
+- Pre-existing `as any` lint warning in `verification.service.test.ts` — not part of mutuals feature
 
-## Iteration 7 — Task 3.2: Phase 3 cleanup
+**ALREADY RESOLVED items (no action needed):**
 
-**Status**: COMPLETED
-**Verifier**: PASS — lint, typecheck, and all 21 E2E tests pass (2 verification rounds)
-**Reviewer**: APPROVED (one MEDIUM finding fixed in re-review)
+- Redundant icon classes on Users icon in app-header (Iteration 5) — fixed during that iteration
+- Keyboard accessibility on mutual cards (Iteration 4 suggestion) — implemented in Iteration 5
+- Turbo runner flakiness (Iterations 1-4) — fixed in Iteration 5 via `turbo.json` `passThroughEnv`
+- Member count not updating after mutual invite (Iteration 6) — found and fixed during that iteration
 
-### Review of Phase 3 (Task 3.1)
+**No FAILURE or BLOCKED statuses exist** — all 6 iterations completed successfully.
 
-**FAILURE / BLOCKED items**: None. Task 3.1 completed successfully with all checks passing.
+### Verification results
 
-**Reviewer caveats from Task 3.1**: One LOW finding (`merge-e2e-reports` skipped guard) was already addressed during Task 3.1 itself. No deferred items.
+- Shared tests: 231 passing (12 files)
+- API tests: 1034 passing (48 files)
+- Web tests: 1166 passing (65 files)
+- E2E tests: 22 passing
+- Total: 2431 unit/integration + 22 E2E = 2453 tests — all passing
+- Lint: PASS (1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
 
-### Issues Found and Fixed
+### Reviewer assessment
 
-**Issue 1 (MEDIUM): Accidentally committed blob-report artifact**
-- `apps/web/blob-report/report-f59bbac.zip` was committed to git during Task 3.1
-- Removed from git tracking via `git rm --cached`
-- Added `blob-report/` and `all-blob-reports/` to `apps/web/.gitignore` (alongside existing Playwright entries: `test-results/`, `playwright-report/`, `playwright-screenshots/`, `playwright/.cache/`)
+- **APPROVED** — All genuinely actionable items identified and given fix tasks with accurate file paths and line numbers. ACTIONABLE vs COSMETIC/INTENTIONAL classification is sound. Fix tasks are well-specified with clear Fix/Test/Verify structure.
+- One LOW severity note: Iteration 3's four reviewer notes and two Iteration 4 notes were not explicitly listed in the dismissed items enumeration, though they were all correctly excluded from fix tasks since the reviewer had explicitly marked each as acceptable/correct. Addressed by including them in the INTENTIONAL/COSMETIC list above.
 
-**Issue 2 (LOW): `.github/GITHUB_ACTIONS_SETUP.md` outdated**
-- Updated Jobs section from 4 jobs to 6 jobs (added E2E Smoke Tests, E2E Tests with sharding, Merge E2E Reports)
-- Added Test Tiers section documenting @smoke (6 tests) and @regression (15 tests) split
-- Updated Conditional Execution, Required Status Checks, CI Performance, Download Reports, Run Locally, and Troubleshooting sections
-- Removed emoji checkmarks for consistency
+### Learnings for future iterations
 
-**Issue 3 (MEDIUM, from reviewer): Smoke report download instructions inaccurate**
-- Original text told users to "Extract and open `index.html` in browser" for the smoke report
-- However, the smoke job uploads blob format (not HTML) — there is no merge step for smoke tests
-- Fixed: Updated instructions to explain it's a blob report and provide commands to convert to HTML locally (`npx playwright merge-reports --reporter html .`)
+- Triage tasks should explicitly enumerate ALL dismissed reviewer notes, even when the reviewer marked them as acceptable — this creates a complete audit trail
+- The turbo runner flakiness from Iterations 1-4 was definitively resolved in Iteration 5 via `passThroughEnv` in `turbo.json` — this is no longer an issue
+- When triaging, items already resolved in a previous iteration (e.g., "FIXED post-review") should be noted as "ALREADY RESOLVED" to distinguish from items dismissed as cosmetic
 
-### Verification Results
+## Iteration 8 — Task 5.2: Return 400 instead of 500 for malformed cursor
 
-| Check | Result |
-|-------|--------|
-| `pnpm lint` | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm test:e2e` | PASS — 21 tests in 7 files (3.0m) |
-| `blob-report/` gitignored | PASS — `git ls-files` returns empty, `git check-ignore` confirms |
-| `GITHUB_ACTIONS_SETUP.md` updated | PASS — reflects current CI pipeline |
+**Status**: ✅ COMPLETE
 
-### Notes
+### What was done
 
-- **No new tasks needed**: All issues from Phase 3 were fixed directly in this cleanup task.
-- **Pre-existing out-of-scope issues unchanged**: (1) Dead auth helpers in `helpers/auth.ts`. (2) Hardcoded timeouts in multiple spec files. (3) Hardcoded `http://localhost:8000/api` in 3 spec files. (4) `shared/` directory not included in CI change detection filter (pre-existing).
-- **Phase 3 is now complete**. All 2 tasks done, 21 tests passing across 7 files. Ready for Phase 4.
+**Modified files:**
 
-## Iteration 8 — Task 4.1: Full regression check
+- `apps/api/src/errors.ts` — Added `InvalidCursorError` export (line 71): `createError("INVALID_CURSOR", "%s", 400)`, following the exact `InvalidDateRangeError` pattern
+- `apps/api/src/services/mutuals.service.ts` — Added `InvalidCursorError` to import (line 6), wrapped `decodeCursor` method (lines 80-88) in try/catch that catches any parsing error and throws `new InvalidCursorError("Invalid cursor format")`
+- `apps/api/tests/unit/mutuals.service.test.ts` — Added `InvalidCursorError` to imports, added unit test "should throw InvalidCursorError for malformed cursor" verifying `getMutuals({ userId, cursor: "not-valid-base64!!!" })` rejects with `InvalidCursorError`
+- `apps/api/tests/integration/mutuals.routes.test.ts` — Added integration test "should return 400 for malformed cursor" verifying `GET /api/mutuals?cursor=garbage` with valid auth returns HTTP 400
 
-**Status**: COMPLETED
-**Verifier**: PASS — all 7 verification checks pass
-**Reviewer**: APPROVED
+**No changes needed (correct by design):**
 
-### Verification Results
+- `apps/api/src/controllers/mutuals.controller.ts` — Existing `if ("statusCode" in error) throw error` pattern already correctly re-throws `@fastify/error` instances to the global error handler
+- `apps/api/src/middleware/error.middleware.ts` — Existing handler already correctly maps `@fastify/error` instances with `statusCode < 500` to proper HTTP responses
 
-| Check | Result | Details |
-|-------|--------|---------|
-| `pnpm lint` | PASS | All 3 packages (shared, web, api) clean |
-| `pnpm typecheck` | PASS | All 3 packages pass `tsc --noEmit` |
-| `pnpm test` | PASS | 120 test files, 2391 tests passed (shared: 226, api: 1036, web: 1129) |
-| `pnpm test:e2e` | PASS | 21 tests in 7 files (2.8 minutes) |
-| `pnpm test:e2e:smoke` | PASS | 6 smoke tests (58.7 seconds) |
-| `playwright test --list` | PASS | 21 tests in 7 files confirmed |
-| `playwright test --grep @smoke --list` | PASS | 6 smoke tests in 6 files confirmed |
+### Verification results
 
-### File Count Verification (7 spec files)
+- Shared tests: 231 passing (12 files)
+- API tests: 1036 passing (48 files), including 2 new tests (1 unit + 1 integration)
+- Web tests: 1166 passing (cached)
+- E2E tests: 22 passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
 
-| File | Tests | Smoke | Regression |
-|------|-------|-------|------------|
-| `auth-journey.spec.ts` | 2 | 1 | 1 |
-| `trip-journey.spec.ts` | 6 | 1 | 5 |
-| `invitation-journey.spec.ts` | 5 | 1 | 4 |
-| `itinerary-journey.spec.ts` | 3 | 1 | 2 |
-| `profile-journey.spec.ts` | 2 | 0 | 2 |
-| `messaging.spec.ts` | 2 | 1 | 1 |
-| `notifications.spec.ts` | 1 | 1 | 0 |
-| **Total** | **21** | **6** | **15** |
+### Reviewer assessment
 
-### Import/Helper Analysis
+- **APPROVED** — Minimal, focused change with correct error propagation chain. Pattern consistency with existing `InvalidDateRangeError`. try/catch covers all failure modes (invalid base64 → garbage bytes → JSON parse fails; valid base64 → non-JSON string → JSON parse fails). Import style uses `.js` extension per project convention.
+- Two LOW severity notes (both non-blocking):
+  1. Could add additional test with valid-base64-but-invalid-JSON cursor to explicitly document both failure modes (current test already exercises the JSON parse throw path)
+  2. Integration test could also assert error body shape (`{ code: "INVALID_CURSOR" }`) in addition to status code
 
-- **All 7 spec files**: Zero unused imports
-- **All helper exports**: Every exported function is used by at least one spec file
-- **3 pre-existing orphaned auth helpers**: `authenticateUserWithPhone`, `authenticateUserViaBrowser`, `authenticateUserViaBrowserWithPhone` in `helpers/auth.ts` — confirmed pre-existing (auth.ts not modified on this branch), documented as out-of-scope in iterations 3, 5, 7
-- **11 `test.slow()` calls**: All within active test bodies, none orphaned
+### Design decisions
 
-### Notes
+- Wrapped the entire `decodeCursor` method body in a single try/catch rather than catching at each call site — this is cleaner since `decodeCursor` is called from both `getMutuals` and `getMutualSuggestions`, fixing both paths with one change
+- Used generic `catch` (not `catch (error)`) since we always want to throw `InvalidCursorError` regardless of the specific parsing failure type — this matches modern TypeScript catch handling
+- The error message "Invalid cursor format" is generic and does not leak internal details (no base64/JSON implementation details exposed to the client)
 
-- **No code changes made**: Task 4.1 is purely verification — all checks passed without requiring any fixes.
-- **Smoke script location**: `test:e2e:smoke` is defined in `apps/web/package.json` (not root). Invoked via `pnpm --filter @tripful/web test:e2e:smoke` from the devcontainer.
-- **Reviewer suggestions (LOW, non-blocking)**: (1) Clean up 3 orphaned auth helpers in a future PR. (2) Consider de-exporting `loginViaBrowser` since it's only used internally.
-- **Phase 4 and the E2E Test Simplification project are now complete.** Final state: 21 tests / 7 files (reduced from 32 tests / 9 files), 6 smoke / 15 regression, CI pipeline with PR smoke job + main branch sharded regression + report merging.
+### Learnings for future iterations
+
+- `@fastify/error` instances automatically get a `statusCode` property, which the controller's duck-typing check `"statusCode" in error` uses to distinguish typed errors from unexpected errors — this means adding a new error class requires zero controller changes
+- `Buffer.from(str, "base64")` does NOT throw on invalid base64 — it silently ignores invalid characters and produces garbage bytes. The failure always comes from `JSON.parse()` on the resulting garbage string
+- For fix tasks from reviewer triage, the implementation is often very surgical (4 lines of production code + 2 test cases) — these are fast iterations
+
+## Iteration 9 — Task 5.3: Add empty state for filtered mutuals in invite dialog
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/web/src/components/trip/invite-members-dialog.tsx` — Inside the scrollable checkbox list container (lines 244-277), wrapped `filteredSuggestions.map(...)` in a ternary. When `filteredSuggestions.length === 0 && mutualSearch.trim()` is truthy, renders a centered empty state with a `Search` icon and "No mutuals found" text. Otherwise renders the existing mutual list unchanged. Follows the `deleted-items-dialog.tsx` inline empty state pattern exactly: `py-6 text-center text-sm text-muted-foreground` wrapper, `w-8 h-8 mx-auto mb-2 text-muted-foreground/50` icon.
+- `apps/web/src/components/trip/__tests__/invite-members-dialog.test.tsx` — Added test "shows empty state when search matches no mutuals" in the "Mutuals section" describe block. Sets up mock suggestions with Alice Smith and Bob Jones, types non-matching search "Zzzznonexistent", asserts both mutuals are hidden and "No mutuals found" text is visible.
+
+### Verification results
+
+- Shared tests: 231 passing (12 files)
+- API tests: cached (all passing)
+- Web tests: 1167 passing (65 files), including 1 new test
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** — Pattern matches deleted-items-dialog exactly, correct condition logic (`filteredSuggestions.length === 0 && mutualSearch.trim()`), no regressions in the else branch, contextually appropriate Search icon choice, well-structured test
+- One optional suggestion (non-blocking): test could additionally verify clearing search restores full list, but existing "filters mutuals by search text" test already exercises the filtering path
+
+### Design decisions
+
+- Used `Search` icon (already imported) instead of `Users` or `Trash2` since this is a "no search results" state, consistent with how trips-content.tsx uses `Search` for filtered empty states
+- Condition guards on `mutualSearch.trim()` to prevent showing the empty state when the search field is blank (the outer `hasMutuals` conditional already handles the "no suggestions at all" case)
+- No new imports needed — `Search` was already imported at line 40
+
+### Learnings for future iterations
+
+- Inline empty states inside scrollable containers should follow the compact `deleted-items-dialog.tsx` pattern (`py-6`, `w-8 h-8` icon, `text-sm`), not the full-page empty state pattern (`p-12`, `w-12 h-12` icon, `text-2xl` heading)
+- When adding empty state for filtered lists, always guard the condition with a check that the search/filter is active — otherwise the empty state would flash when the parent data hasn't loaded yet or when the list is naturally empty
+
+## Iteration 10 — Task 5.4: Add missing mutuals page test coverage
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Modified files:**
+
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — Added 3 new `vi.mock` calls (`next/link`, `@/lib/api`, `@/lib/format`) needed because the new tests render `MutualProfileSheet` with real data (previous tests never triggered this code path since the sheet was always rendered with `open={false}`). Added `React` import for JSX in the `next/link` mock. Added 2 new test `describe` blocks:
+  1. **"Mutual profile sheet"** — Clicks the Alice Johnson mutual card via `getByRole("button", { name: /Alice Johnson/ })`, waits for the sheet to open, verifies display name appears in both card and sheet (`getAllByText("Alice Johnson").toHaveLength(2)`), verifies "Shared Trips" heading, all three trip names ("Summer Vacation", "Ski Weekend", "Beach Party"), and all three trip link hrefs (`/trips/trip-1`, `/trips/trip-2`, `/trips/trip-3`)
+  2. **"Trip filter"** — Stubs `Element.prototype.hasPointerCapture/setPointerCapture/releasePointerCapture/scrollIntoView` in `beforeEach`/`afterEach` for safe cleanup (required for Radix Select in jsdom), mocks `useTrips` with trips ("Paris Adventure", "Tokyo Explorer" — distinct names to avoid collision with mock mutual data), renders component, clicks the combobox trigger, selects "Paris Adventure", asserts `mockUseMutuals` was called with `{ search: undefined, tripId: "filter-trip-1" }`
+
+### Verification results
+
+- Specific test file: 10/10 tests passed (8 pre-existing + 2 new)
+- Full test suite: 2436 tests passed (shared: 231, api: 1036, web: 1169) — all passing
+- Lint: PASS (0 new errors; 1 pre-existing warning in unrelated API test file)
+- Typecheck: PASS (all 3 packages)
+
+### Reviewer assessment
+
+- **APPROVED** (after one round of fixes)
+- First review returned NEEDS_WORK with 2 issues:
+  1. MEDIUM: Element.prototype stubs were in the test body with manual restore at end — if test failed before restore, stubs would leak. Fixed by moving to `beforeEach`/`afterEach` scoped to the "Trip filter" describe block.
+  2. LOW: Missing explicit display name assertion in the sheet test. Fixed by adding `expect(screen.getAllByText("Alice Johnson")).toHaveLength(2)` to verify name appears in both card and sheet title.
+- Second review confirmed both fixes correct and complete, no new issues.
+
+### Design decisions
+
+- Used `getAllByText("Alice Johnson").toHaveLength(2)` to verify display name renders in both the card and the sheet title — cleaner than DOM traversal to find the specific `SheetTitle` element
+- Used distinct trip names ("Paris Adventure", "Tokyo Explorer") for the Select test to avoid text collisions with `mockMutuals[0].sharedTrips` which include "Summer Vacation" and "Ski Weekend"
+- Element.prototype stubs scoped to the "Trip filter" describe block using the save-stub-restore pattern (same approach as `IntersectionObserver` mock in the module-level `beforeEach`)
+- `pointerEventsCheck: 0` on `userEvent.setup()` needed for Radix Select because it sets `pointer-events: none` during transitions
+
+### Learnings for future iterations
+
+- Radix Select in jsdom requires `Element.prototype` stubs for `hasPointerCapture`, `setPointerCapture`, `releasePointerCapture`, and `scrollIntoView` — jsdom does not provide these APIs
+- Always put prototype stubs in `beforeEach`/`afterEach` rather than inline in the test body — if the test throws before the manual restore, the stubs leak and pollute subsequent tests
+- When testing that a modal/sheet opens with content that duplicates the trigger element's text, use `getAllByText().toHaveLength(N)` to verify the text appears in both locations
+- When a child component (like `MutualProfileSheet`) renders in integration tests but not in unit-style tests, additional `vi.mock` calls may be needed for the child's imports (`next/link`, utility libraries) — the child's code paths are only exercised when it receives real (non-null) data
+
+## Iteration 11 — Task 6.1: Full regression check
+
+**Status**: ✅ COMPLETE
+
+### What was done
+
+**Verification-only task** — no code was written or modified. Ran all automated checks and performed comprehensive manual testing.
+
+### Automated check results
+
+- **Unit/integration tests**: 2436 passing (shared: 231, api: 1036, web: 1169) — 0 failures
+- **E2E tests**: 22 passing — 0 failures
+- **Lint**: 0 errors (1 pre-existing warning in unrelated `verification.service.test.ts`)
+- **Typecheck**: All 3 packages pass (shared, api, web)
+
+### Manual testing results
+
+Created test data via API (two users, one shared trip for mutual relationship, one separate trip for invite testing). Performed full manual testing using `playwright-cli` inside the devcontainer.
+
+**Mutuals page** (screenshot: `.ralph/screenshots/task-6.1-mutuals-page.png`):
+- ✅ "My Mutuals" heading with "1 mutual" count
+- ✅ Search input with "Search mutuals..." placeholder
+- ✅ "All trips" filter dropdown
+- ✅ Bob Manual card with "BM" avatar initials and "1 shared trip"
+
+**Profile sheet** (screenshot: `.ralph/screenshots/task-6.1-profile-sheet.png`):
+- ✅ Side sheet with "Bob Manual" title in Playfair font
+- ✅ "1 shared trip" subtitle
+- ✅ Large "BM" avatar (size-20)
+- ✅ "SHARED TRIPS" heading with "Paris Adventure" link
+
+**Invite dialog** (screenshots: `.ralph/screenshots/task-6.1-invite-dialog.png`, `task-6.1-invite-dialog-selected.png`):
+- ✅ Two-section layout: "Suggest from mutuals" section at top with search and checkboxes
+- ✅ "Or invite by phone number" separator
+- ✅ Phone input section below
+- ✅ Selecting Bob shows blue checkbox and badge chip "Bob Manual ×"
+- ✅ "Send invitations" button enabled after selection
+
+**Invite success** (screenshot: `.ralph/screenshots/task-6.1-invite-success.png`):
+- ✅ Dialog closed after submission
+- ✅ Trip member count updated from "1 member" to "2 members"
+
+**App header menu** (screenshot: `.ralph/screenshots/task-6.1-app-header-menu.png`):
+- ✅ "My Mutuals" menu item with Users icon between profile and "Log out"
+
+**Notification** (verified via API):
+- ✅ Bob received `mutual_invite` notification: "Alice Manual invited you to Tokyo Explorer"
+- ✅ Unread count: 1
+
+### Reviewer assessment
+
+- **APPROVED** — All 5 verification criteria satisfied. Comprehensive manual testing with 6 screenshots covering all required features. Test counts consistent with incremental additions tracked across all 10 previous iterations. No issues found.
+- One LOW severity observation: the invite success screenshot shows the trip page after dialog close but at lower resolution — member count update "2 members" was confirmed in snapshot data and E2E test
+
+### Summary
+
+All tasks in the Mutuals Invite feature are now complete:
+- Phase 1 (Shared Types & Schemas): Task 1.1 ✅
+- Phase 2 (Backend API): Tasks 2.1, 2.2 ✅
+- Phase 3 (Frontend — Mutuals Page): Tasks 3.1, 3.2 ✅
+- Phase 4 (Frontend — Invite Dialog & Notifications): Task 4.1 ✅
+- Phase 5 (Cleanup): Tasks 5.1, 5.2, 5.3, 5.4 ✅
+- Phase 6 (Final Verification): Task 6.1 ✅
+
+Final test count: 2436 unit/integration + 22 E2E = 2458 tests — all passing

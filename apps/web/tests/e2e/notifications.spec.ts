@@ -46,8 +46,12 @@ test.describe("Notification Journey", () => {
       let tripId: string;
       let organizerCookie: string;
 
-      await test.step("setup: create users, trip, and seed 2 notifications", async () => {
-        organizerCookie = await createUserViaAPI(request, organizerPhone, "Alice");
+      await test.step("setup: create users, trip, and seed 3 notifications", async () => {
+        organizerCookie = await createUserViaAPI(
+          request,
+          organizerPhone,
+          "Alice",
+        );
 
         tripId = await createTripViaAPI(request, organizerCookie, {
           name: `Notif Trip ${timestamp}`,
@@ -56,7 +60,11 @@ test.describe("Notification Journey", () => {
           endDate: "2026-06-22",
         });
 
-        const memberCookie = await createUserViaAPI(request, memberPhone, "Bob");
+        const memberCookie = await createUserViaAPI(
+          request,
+          memberPhone,
+          "Bob",
+        );
         await inviteViaAPI(request, tripId, organizerCookie, [memberPhone]);
         await rsvpViaAPI(request, tripId, memberCookie, "going");
 
@@ -79,7 +87,7 @@ test.describe("Notification Journey", () => {
         );
         expect(msg2Response.ok()).toBeTruthy();
 
-        // Poll until both notifications are ready
+        // Poll until all notifications are ready (1 sms_invite + 2 trip_message = 3)
         await expect
           .poll(
             async () => {
@@ -90,28 +98,31 @@ test.describe("Notification Journey", () => {
               const json = await res.json();
               return json.count;
             },
-            { timeout: NAVIGATION_TIMEOUT, message: "Waiting for 2 unread notifications" },
+            {
+              timeout: NAVIGATION_TIMEOUT,
+              message: "Waiting for 3 unread notifications",
+            },
           )
-          .toBe(2);
+          .toBe(3);
       });
 
       await test.step("authenticate as member and navigate to trips", async () => {
         await authenticateViaAPIWithPhone(page, request, memberPhone, "Bob");
       });
 
-      await test.step("verify global notification bell shows 2 unread", async () => {
+      await test.step("verify global notification bell shows 3 unread", async () => {
         await page.reload();
         await page.waitForLoadState("domcontentloaded");
 
         const bell = page.getByRole("button", {
-          name: /Notifications, 2 unread/,
+          name: /Notifications, 3 unread/,
         });
         await expect(bell).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("click bell and verify dropdown with notifications", async () => {
         const bell = page.getByRole("button", {
-          name: /Notifications, 2 unread/,
+          name: /Notifications, 3 unread/,
         });
         await bell.click();
 
@@ -151,16 +162,16 @@ test.describe("Notification Journey", () => {
 
       await snap(page, "51-notification-after-click");
 
-      await test.step("verify per-trip notification bell shows 1 unread", async () => {
+      await test.step("verify per-trip notification bell shows 2 unread", async () => {
         const tripBell = page.getByRole("button", {
-          name: /Trip notifications, 1 unread/,
+          name: /Trip notifications, 2 unread/,
         });
         await expect(tripBell).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("click trip bell and verify dialog with notifications", async () => {
         const tripBell = page.getByRole("button", {
-          name: /Trip notifications, 1 unread/,
+          name: /Trip notifications, 2 unread/,
         });
         await tripBell.click();
 

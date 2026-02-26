@@ -134,7 +134,10 @@ export function EditAccommodationDialog({
     if (checkInValue) {
       const currentOut = form.getValues("checkOut");
       if (!currentOut || new Date(currentOut) <= new Date(checkInValue)) {
-        form.setValue("checkOut", addDays(new Date(checkInValue), 1).toISOString());
+        form.setValue(
+          "checkOut",
+          addDays(new Date(checkInValue), 1).toISOString(),
+        );
       }
     }
   }, [checkInValue, form]);

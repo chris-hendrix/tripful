@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
-const apiUrl = process.env.API_URL?.replace(/\/api$/, "") || "http://localhost:8000";
+const apiUrl =
+  process.env.API_URL?.replace(/\/api$/, "") || "http://localhost:8000";
 
 const nextConfig: NextConfig = {
   output: "standalone",

@@ -7,6 +7,7 @@ import {
   invitations,
   events,
   notificationPreferences,
+  notifications,
 } from "@/db/schema/index.js";
 import { eq, or, and } from "drizzle-orm";
 import { InvitationService } from "@/services/invitation.service.js";
@@ -22,6 +23,7 @@ import {
   MemberNotFoundError,
   CannotRemoveCreatorError,
   LastOrganizerError,
+  NotAMutualError,
 } from "@/errors.js";
 import { QUEUE } from "@/queues/types.js";
 import type { PgBoss } from "pg-boss";
@@ -53,6 +55,9 @@ describe("invitation.service", () => {
   const cleanup = async () => {
     // Delete in reverse order of foreign key dependencies
     if (testTripId) {
+      await db
+        .delete(notifications)
+        .where(eq(notifications.tripId, testTripId));
       await db
         .delete(notificationPreferences)
         .where(eq(notificationPreferences.tripId, testTripId));
@@ -1424,6 +1429,303 @@ describe("invitation.service", () => {
 
       // Clean up
       await db.delete(invitations).where(eq(invitations.tripId, testTripId));
+    });
+  });
+
+  describe("createInvitations (mutual invites via userIds)", () => {
+    let mutualUserPhone: string;
+    let mutualUserId: string;
+    let sharedTripId: string;
+
+    beforeEach(async () => {
+      // Create a mutual user (shares another trip with the organizer)
+      mutualUserPhone = generateUniquePhone();
+      const [mutualUser] = await db
+        .insert(users)
+        .values({
+          phoneNumber: mutualUserPhone,
+          displayName: "Mutual Friend",
+          timezone: "UTC",
+        })
+        .returning();
+      mutualUserId = mutualUser.id;
+
+      // Create a shared trip where both organizer and mutual are members
+      const [sharedTrip] = await db
+        .insert(trips)
+        .values({
+          name: "Shared Trip",
+          destination: "Shared Destination",
+          preferredTimezone: "UTC",
+          createdBy: testOrganizerId,
+        })
+        .returning();
+      sharedTripId = sharedTrip.id;
+
+      await db.insert(members).values([
+        {
+          tripId: sharedTripId,
+          userId: testOrganizerId,
+          status: "going",
+          isOrganizer: true,
+        },
+        {
+          tripId: sharedTripId,
+          userId: mutualUserId,
+          status: "going",
+          isOrganizer: false,
+        },
+      ]);
+    });
+
+    afterEach(async () => {
+      // Clean up shared trip and mutual user
+      if (sharedTripId) {
+        await db
+          .delete(notifications)
+          .where(eq(notifications.tripId, sharedTripId));
+        await db.delete(members).where(eq(members.tripId, sharedTripId));
+        await db.delete(trips).where(eq(trips.id, sharedTripId));
+      }
+      if (mutualUserPhone) {
+        await db.delete(users).where(eq(users.phoneNumber, mutualUserPhone));
+      }
+    });
+
+    it("should create member record and send mutual_invite notification for mutual user", async () => {
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [],
+        [mutualUserId],
+      );
+
+      // No phone-based invitations created
+      expect(result.invitations).toHaveLength(0);
+      expect(result.skipped).toHaveLength(0);
+
+      // addedMembers should include the mutual
+      expect(result.addedMembers).toHaveLength(1);
+      expect(result.addedMembers[0].userId).toBe(mutualUserId);
+      expect(result.addedMembers[0].displayName).toBe("Mutual Friend");
+
+      // Verify member record was created in DB
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(
+          and(eq(members.tripId, testTripId), eq(members.userId, mutualUserId)),
+        );
+      expect(memberRecords).toHaveLength(1);
+      expect(memberRecords[0].status).toBe("no_response");
+      expect(memberRecords[0].isOrganizer).toBe(false);
+
+      // Verify mutual_invite notification was created
+      const notificationRecords = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, mutualUserId),
+            eq(notifications.tripId, testTripId),
+            eq(notifications.type, "mutual_invite"),
+          ),
+        );
+      expect(notificationRecords).toHaveLength(1);
+      expect(notificationRecords[0].title).toBe("Trip invitation");
+      expect(notificationRecords[0].body).toContain("Test Organizer");
+      expect(notificationRecords[0].body).toContain("Test Trip");
+    });
+
+    it("should send sms_invite notification for existing user auto-added via phone", async () => {
+      // Invite the mutual user via their phone number (existing user gets auto-added)
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [mutualUserPhone],
+      );
+
+      // Phone-based invitation should be created
+      expect(result.invitations).toHaveLength(1);
+
+      // addedMembers should include the auto-added user
+      expect(result.addedMembers).toHaveLength(1);
+      expect(result.addedMembers[0].userId).toBe(mutualUserId);
+
+      // Verify sms_invite notification was created
+      const notificationRecords = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, mutualUserId),
+            eq(notifications.tripId, testTripId),
+            eq(notifications.type, "sms_invite"),
+          ),
+        );
+      expect(notificationRecords).toHaveLength(1);
+      expect(notificationRecords[0].title).toBe("Trip invitation");
+      expect(notificationRecords[0].body).toContain("Test Organizer");
+      expect(notificationRecords[0].body).toContain("Test Trip");
+    });
+
+    it("should handle mixed invites (both userIds and phoneNumbers)", async () => {
+      const newPhone = generateUniquePhone();
+
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [newPhone],
+        [mutualUserId],
+      );
+
+      // Phone-based invitation created for the new phone
+      expect(result.invitations).toHaveLength(1);
+
+      // Mutual user added via userId
+      expect(result.addedMembers).toHaveLength(1);
+      expect(result.addedMembers[0].userId).toBe(mutualUserId);
+
+      expect(result.skipped).toHaveLength(0);
+
+      // Verify member record for mutual
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(
+          and(eq(members.tripId, testTripId), eq(members.userId, mutualUserId)),
+        );
+      expect(memberRecords).toHaveLength(1);
+    });
+
+    it("should enforce member limit across combined phone and mutual flows", async () => {
+      // We already have 2 members (organizer + member). Add 22 more to reach 24.
+      const extraPhones: string[] = [];
+      for (let i = 0; i < 22; i++) {
+        const phone = generateUniquePhone();
+        extraPhones.push(phone);
+        const [user] = await db
+          .insert(users)
+          .values({
+            phoneNumber: phone,
+            displayName: `Filler User ${i}`,
+            timezone: "UTC",
+          })
+          .returning();
+        await db.insert(members).values({
+          tripId: testTripId,
+          userId: user.id,
+          status: "going",
+        });
+      }
+
+      // Now we have 24 members. Try to invite 1 phone + 1 mutual (would be 26)
+      const newPhone = generateUniquePhone();
+
+      await expect(
+        invitationService.createInvitations(
+          testOrganizerId,
+          testTripId,
+          [newPhone],
+          [mutualUserId],
+        ),
+      ).rejects.toThrow(MemberLimitExceededError);
+
+      // Clean up extra users
+      await db
+        .delete(users)
+        .where(or(...extraPhones.map((phone) => eq(users.phoneNumber, phone))));
+    });
+
+    it("should reject non-mutual userId with NotAMutualError", async () => {
+      // testNonMemberId is not a mutual of testOrganizerId (doesn't share any trip)
+      await expect(
+        invitationService.createInvitations(
+          testOrganizerId,
+          testTripId,
+          [],
+          [testNonMemberId],
+        ),
+      ).rejects.toThrow(NotAMutualError);
+    });
+
+    it("should skip userIds that are already members of the trip", async () => {
+      // testMemberId is already a member of testTripId, but IS a mutual
+      // (shares testTripId with organizer). Let's make them share sharedTripId too.
+      await db.insert(members).values({
+        tripId: sharedTripId,
+        userId: testMemberId,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [],
+        [testMemberId],
+      );
+
+      expect(result.invitations).toHaveLength(0);
+      expect(result.addedMembers).toHaveLength(0);
+      expect(result.skipped).toHaveLength(1);
+      expect(result.skipped[0]).toBe(testMemberId);
+    });
+
+    it("should return addedMembers for both mutual-added and phone-auto-added users", async () => {
+      // Create another mutual user to invite via phone
+      const mutualUser2Phone = generateUniquePhone();
+      const [mutualUser2] = await db
+        .insert(users)
+        .values({
+          phoneNumber: mutualUser2Phone,
+          displayName: "Mutual Friend 2",
+          timezone: "UTC",
+        })
+        .returning();
+
+      // Add mutualUser2 to the shared trip to make them a mutual
+      await db.insert(members).values({
+        tripId: sharedTripId,
+        userId: mutualUser2.id,
+        status: "going",
+        isOrganizer: false,
+      });
+
+      // Invite mutualUser1 via userId, mutualUser2 via phone
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [mutualUser2Phone],
+        [mutualUserId],
+      );
+
+      // Should have 1 phone invitation (for mutualUser2Phone)
+      expect(result.invitations).toHaveLength(1);
+
+      // Should have 2 addedMembers (one mutual, one phone auto-added)
+      expect(result.addedMembers).toHaveLength(2);
+      const addedUserIds = result.addedMembers.map((m) => m.userId);
+      expect(addedUserIds).toContain(mutualUserId);
+      expect(addedUserIds).toContain(mutualUser2.id);
+
+      // Clean up
+      await db.delete(users).where(eq(users.phoneNumber, mutualUser2Phone));
+    });
+
+    it("should return addedMembers in response for phone-only backwards compatibility", async () => {
+      // Phone-only call should include addedMembers (empty if no existing users)
+      const newPhone = generateUniquePhone();
+
+      const result = await invitationService.createInvitations(
+        testOrganizerId,
+        testTripId,
+        [newPhone],
+      );
+
+      expect(result.invitations).toHaveLength(1);
+      expect(result.addedMembers).toHaveLength(0);
+      expect(result.skipped).toHaveLength(0);
     });
   });
 });

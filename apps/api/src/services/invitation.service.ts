@@ -6,7 +6,7 @@ import {
   mutedMembers,
   type Invitation as DBInvitation,
 } from "@/db/schema/index.js";
-import { eq, and, inArray, count } from "drizzle-orm";
+import { eq, and, inArray, count, sql } from "drizzle-orm";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import type { ISMSService } from "./sms.service.js";
@@ -26,6 +26,7 @@ import {
   CannotDemoteCreatorError,
   CannotModifyOwnRoleError,
   LastOrganizerError,
+  NotAMutualError,
 } from "../errors.js";
 
 /**
@@ -38,13 +39,19 @@ export interface IInvitationService {
    * @param userId - The ID of the user creating invitations (must be organizer)
    * @param tripId - The ID of the trip
    * @param phoneNumbers - Array of phone numbers to invite
-   * @returns Created invitations and skipped phone numbers
+   * @param userIds - Array of mutual user IDs to invite directly
+   * @returns Created invitations, skipped entries, and added members
    */
   createInvitations(
     userId: string,
     tripId: string,
     phoneNumbers: string[],
-  ): Promise<{ invitations: DBInvitation[]; skipped: string[] }>;
+    userIds?: string[],
+  ): Promise<{
+    invitations: DBInvitation[];
+    skipped: string[];
+    addedMembers: { userId: string; displayName: string }[];
+  }>;
 
   /**
    * Gets all invitations for a trip
@@ -162,12 +169,18 @@ export class InvitationService implements IInvitationService {
    * Creates batch invitations for a trip
    * Skips already-invited and already-member phone numbers
    * Creates member records for phones that belong to existing users
+   * Also supports direct mutual invites via userIds
    */
   async createInvitations(
     userId: string,
     tripId: string,
     phoneNumbers: string[],
-  ): Promise<{ invitations: DBInvitation[]; skipped: string[] }> {
+    userIds: string[] = [],
+  ): Promise<{
+    invitations: DBInvitation[];
+    skipped: string[];
+    addedMembers: { userId: string; displayName: string }[];
+  }> {
     // Check permission
     const canInvite = await this.permissionsService.canInviteMembers(
       userId,
@@ -190,9 +203,28 @@ export class InvitationService implements IInvitationService {
       );
     }
 
+    // Fetch inviter display name and trip name for notification bodies
+    const [inviterRow] = await this.db
+      .select({ displayName: users.displayName })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const inviterDisplayName = inviterRow?.displayName ?? "Someone";
+
+    const [tripRow] = await this.db
+      .select({ name: trips.name })
+      .from(trips)
+      .where(eq(trips.id, tripId))
+      .limit(1);
+    const tripName = tripRow?.name ?? "a trip";
+
     let createdInvitations: DBInvitation[] = [];
     let skipped: string[] = [];
     let newPhones: string[] = [];
+    const addedMembers: { userId: string; displayName: string }[] = [];
+
+    // Track phone-based auto-added users for sms_invite notifications
+    const phoneAutoAddedUserIds: string[] = [];
 
     await this.db.transaction(async (tx) => {
       // Count current members
@@ -202,117 +234,208 @@ export class InvitationService implements IInvitationService {
         .where(eq(members.tripId, tripId));
       const currentMemberCount = countResult[0]!.value;
 
-      // Check initial limit (before dedup)
-      if (currentMemberCount + phoneNumbers.length > 25) {
+      // Check initial limit (before dedup) including both phone and userId invites
+      if (currentMemberCount + phoneNumbers.length + userIds.length > 25) {
         throw new MemberLimitExceededError(
-          `Member limit exceeded: current ${currentMemberCount} + ${phoneNumbers.length} invites would exceed 25`,
+          `Member limit exceeded: current ${currentMemberCount} + ${phoneNumbers.length + userIds.length} invites would exceed 25`,
         );
       }
 
-      // Get already-invited phones
-      const alreadyInvited = await tx
-        .select({ inviteePhone: invitations.inviteePhone })
-        .from(invitations)
-        .where(
-          and(
-            eq(invitations.tripId, tripId),
-            inArray(invitations.inviteePhone, phoneNumbers),
-          ),
+      // === Phone-based invitation flow ===
+      if (phoneNumbers.length > 0) {
+        // Get already-invited phones
+        const alreadyInvited = await tx
+          .select({ inviteePhone: invitations.inviteePhone })
+          .from(invitations)
+          .where(
+            and(
+              eq(invitations.tripId, tripId),
+              inArray(invitations.inviteePhone, phoneNumbers),
+            ),
+          );
+        const alreadyInvitedPhones = new Set(
+          alreadyInvited.map((r) => r.inviteePhone),
         );
-      const alreadyInvitedPhones = new Set(
-        alreadyInvited.map((r) => r.inviteePhone),
-      );
 
-      // Get phones that are already members
-      const existingUsers = await tx
-        .select({ id: users.id, phoneNumber: users.phoneNumber })
-        .from(users)
-        .where(inArray(users.phoneNumber, phoneNumbers));
+        // Get phones that are already members
+        const existingUsers = await tx
+          .select({
+            id: users.id,
+            phoneNumber: users.phoneNumber,
+            displayName: users.displayName,
+          })
+          .from(users)
+          .where(inArray(users.phoneNumber, phoneNumbers));
 
-      const phoneToUserMap = new Map(
-        existingUsers.map((u) => [u.phoneNumber, u.id]),
-      );
+        const phoneToUserMap = new Map(
+          existingUsers.map((u) => [u.phoneNumber, u]),
+        );
 
-      const existingUserIds = existingUsers.map((u) => u.id);
-      let alreadyMemberUserIds = new Set<string>();
+        const existingUserIds = existingUsers.map((u) => u.id);
+        let alreadyMemberUserIds = new Set<string>();
 
-      if (existingUserIds.length > 0) {
-        const existingMembers = await tx
+        if (existingUserIds.length > 0) {
+          const existingMembers = await tx
+            .select({ userId: members.userId })
+            .from(members)
+            .where(
+              and(
+                eq(members.tripId, tripId),
+                inArray(members.userId, existingUserIds),
+              ),
+            );
+          alreadyMemberUserIds = new Set(existingMembers.map((m) => m.userId));
+        }
+
+        // Build skipped list for phones
+        const alreadyMemberPhones = new Set<string>();
+        for (const [phone, user] of phoneToUserMap) {
+          if (alreadyMemberUserIds.has(user.id)) {
+            alreadyMemberPhones.add(phone);
+          }
+        }
+
+        const phoneSkipped = phoneNumbers.filter(
+          (phone) =>
+            alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
+        );
+        skipped.push(...phoneSkipped);
+
+        // Build newPhones
+        const skippedSet = new Set(phoneSkipped);
+        newPhones = phoneNumbers.filter((phone) => !skippedSet.has(phone));
+
+        if (newPhones.length > 0) {
+          // Batch insert invitations
+          createdInvitations = await tx
+            .insert(invitations)
+            .values(
+              newPhones.map((phone) => ({
+                tripId,
+                inviterId: userId,
+                inviteePhone: phone,
+                status: "pending" as const,
+              })),
+            )
+            .returning();
+
+          // Create member records for phones that belong to existing users
+          const newMemberValues: {
+            tripId: string;
+            userId: string;
+            status: "no_response";
+            isOrganizer: boolean;
+          }[] = [];
+
+          for (const phone of newPhones) {
+            const existingUser = phoneToUserMap.get(phone);
+            if (existingUser && !alreadyMemberUserIds.has(existingUser.id)) {
+              newMemberValues.push({
+                tripId,
+                userId: existingUser.id,
+                status: "no_response",
+                isOrganizer: false,
+              });
+              addedMembers.push({
+                userId: existingUser.id,
+                displayName: existingUser.displayName,
+              });
+              phoneAutoAddedUserIds.push(existingUser.id);
+            }
+          }
+
+          if (newMemberValues.length > 0) {
+            await tx.insert(members).values(newMemberValues);
+          }
+        }
+      }
+
+      // === Mutual (userId) invitation flow ===
+      if (userIds.length > 0) {
+        // Verify each userId is a mutual of the inviter (shares at least one trip)
+        const mutualCheckResult = await tx.execute<{
+          user_id: string;
+        }>(sql`
+          SELECT m2.user_id
+          FROM members m1
+          JOIN members m2 ON m1.trip_id = m2.trip_id AND m1.user_id != m2.user_id
+          WHERE m1.user_id = ${userId}
+            AND m2.user_id IN (${sql.join(
+              userIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})
+          GROUP BY m2.user_id
+        `);
+
+        const verifiedMutualIds = new Set(
+          mutualCheckResult.rows.map((r) => r.user_id),
+        );
+
+        // Reject any non-mutual userIds
+        for (const uid of userIds) {
+          if (!verifiedMutualIds.has(uid)) {
+            throw new NotAMutualError(
+              `User ${uid} is not a mutual and cannot be invited directly`,
+            );
+          }
+        }
+
+        // Check which userIds are already members of this trip
+        const existingTripMembers = await tx
           .select({ userId: members.userId })
           .from(members)
           .where(
-            and(
-              eq(members.tripId, tripId),
-              inArray(members.userId, existingUserIds),
-            ),
+            and(eq(members.tripId, tripId), inArray(members.userId, userIds)),
           );
-        alreadyMemberUserIds = new Set(existingMembers.map((m) => m.userId));
-      }
-
-      // Build skipped list
-      const alreadyMemberPhones = new Set<string>();
-      for (const [phone, uid] of phoneToUserMap) {
-        if (alreadyMemberUserIds.has(uid)) {
-          alreadyMemberPhones.add(phone);
-        }
-      }
-
-      skipped = phoneNumbers.filter(
-        (phone) =>
-          alreadyInvitedPhones.has(phone) || alreadyMemberPhones.has(phone),
-      );
-
-      // Build newPhones
-      const skippedSet = new Set(skipped);
-      newPhones = phoneNumbers.filter((phone) => !skippedSet.has(phone));
-
-      // Re-check limit after filtering
-      if (currentMemberCount + newPhones.length > 25) {
-        throw new MemberLimitExceededError(
-          `Member limit exceeded: current ${currentMemberCount} + ${newPhones.length} new invites would exceed 25`,
+        const alreadyMemberMutualIds = new Set(
+          existingTripMembers.map((m) => m.userId),
         );
-      }
 
-      if (newPhones.length === 0) {
-        createdInvitations = [];
-        return;
-      }
+        // Filter out already-member userIds
+        const newMutualUserIds = userIds.filter(
+          (uid) => !alreadyMemberMutualIds.has(uid),
+        );
+        const skippedMutualUserIds = userIds.filter((uid) =>
+          alreadyMemberMutualIds.has(uid),
+        );
+        skipped.push(...skippedMutualUserIds);
 
-      // Batch insert invitations
-      createdInvitations = await tx
-        .insert(invitations)
-        .values(
-          newPhones.map((phone) => ({
-            tripId,
-            inviterId: userId,
-            inviteePhone: phone,
-            status: "pending" as const,
-          })),
-        )
-        .returning();
-
-      // Create member records for phones that belong to existing users
-      const newMemberValues: {
-        tripId: string;
-        userId: string;
-        status: "no_response";
-        isOrganizer: boolean;
-      }[] = [];
-
-      for (const phone of newPhones) {
-        const existingUserId = phoneToUserMap.get(phone);
-        if (existingUserId && !alreadyMemberUserIds.has(existingUserId)) {
-          newMemberValues.push({
-            tripId,
-            userId: existingUserId,
-            status: "no_response",
-            isOrganizer: false,
-          });
+        // Re-check limit after filtering both phone and mutual dedup
+        const totalNew = newPhones.length + newMutualUserIds.length;
+        if (currentMemberCount + totalNew > 25) {
+          throw new MemberLimitExceededError(
+            `Member limit exceeded: current ${currentMemberCount} + ${totalNew} new invites would exceed 25`,
+          );
         }
-      }
 
-      if (newMemberValues.length > 0) {
-        await tx.insert(members).values(newMemberValues);
+        if (newMutualUserIds.length > 0) {
+          // Fetch display names for the new mutual invitees
+          const mutualUsers = await tx
+            .select({ id: users.id, displayName: users.displayName })
+            .from(users)
+            .where(inArray(users.id, newMutualUserIds));
+          const mutualUserMap = new Map(
+            mutualUsers.map((u) => [u.id, u.displayName]),
+          );
+
+          // Create member records for mutual invitees
+          await tx.insert(members).values(
+            newMutualUserIds.map((uid) => ({
+              tripId,
+              userId: uid,
+              status: "no_response" as const,
+              isOrganizer: false,
+            })),
+          );
+
+          // Build addedMembers entries for mutual invitees
+          for (const uid of newMutualUserIds) {
+            addedMembers.push({
+              userId: uid,
+              displayName: mutualUserMap.get(uid) ?? "Unknown",
+            });
+          }
+        }
       }
     });
 
@@ -336,7 +459,43 @@ export class InvitationService implements IInvitationService {
       }
     }
 
-    return { invitations: createdInvitations, skipped };
+    // Send sms_invite notifications for existing users auto-added via phone
+    for (const autoAddedUserId of phoneAutoAddedUserIds) {
+      try {
+        await this.notificationService.createNotification({
+          userId: autoAddedUserId,
+          tripId,
+          type: "sms_invite",
+          title: "Trip invitation",
+          body: `${inviterDisplayName} invited you to ${tripName}`,
+          data: { inviterId: userId },
+        });
+      } catch (err) {
+        this.logger?.error(err, "Failed to send sms_invite notification");
+      }
+    }
+
+    // Send mutual_invite notifications for userId-based invitees
+    for (const added of addedMembers) {
+      // Skip phone-auto-added users (they already got sms_invite above)
+      if (phoneAutoAddedUserIds.includes(added.userId)) {
+        continue;
+      }
+      try {
+        await this.notificationService.createNotification({
+          userId: added.userId,
+          tripId,
+          type: "mutual_invite",
+          title: "Trip invitation",
+          body: `${inviterDisplayName} invited you to ${tripName}`,
+          data: { inviterId: userId },
+        });
+      } catch (err) {
+        this.logger?.error(err, "Failed to send mutual_invite notification");
+      }
+    }
+
+    return { invitations: createdInvitations, skipped, addedMembers };
   }
 
   /**

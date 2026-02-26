@@ -31,7 +31,7 @@ export const invitationController = {
   ) {
     // Params and body are validated by Fastify route schema
     const { tripId } = request.params;
-    const { phoneNumbers } = request.body;
+    const { phoneNumbers, userIds } = request.body;
 
     try {
       const { invitationService } = request.server;
@@ -44,18 +44,23 @@ export const invitationController = {
         userId,
         tripId,
         phoneNumbers,
+        userIds,
       );
 
       auditLog(request, "invitation.created", {
         resourceType: "trip",
         resourceId: tripId,
-        metadata: { count: result.invitations.length },
+        metadata: {
+          count: result.invitations.length,
+          addedMembersCount: result.addedMembers.length,
+        },
       });
 
       // Return success response with 201 status
       return reply.status(201).send({
         success: true,
         invitations: result.invitations,
+        addedMembers: result.addedMembers,
         skipped: result.skipped,
       });
     } catch (error) {

@@ -20,7 +20,9 @@ interface DatePickerProps {
   disabled?: boolean;
   "aria-label"?: string;
   defaultMonth?: Date | undefined;
-  tripRange?: { start?: string | null | undefined; end?: string | null | undefined } | undefined;
+  tripRange?:
+    | { start?: string | null | undefined; end?: string | null | undefined }
+    | undefined;
 }
 
 export function DatePicker({

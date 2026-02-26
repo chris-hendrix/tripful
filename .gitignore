@@ -16,6 +16,7 @@ coverage/
 .nyc_output/
 *.lcov
 .playwright-cli/
+auth-*.json
 
 # Next.js
 .next/

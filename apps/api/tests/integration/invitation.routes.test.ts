@@ -2,7 +2,13 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
-import { users, trips, members, invitations } from "@/db/schema/index.js";
+import {
+  users,
+  trips,
+  members,
+  invitations,
+  notifications,
+} from "@/db/schema/index.js";
 import { and, eq } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
@@ -2362,6 +2368,418 @@ describe("Invitation Routes", () => {
           and(eq(members.tripId, trip.id), eq(members.userId, testUser.id)),
         );
       expect(memberRecord.sharePhone).toBe(true);
+    });
+  });
+
+  describe("POST /api/trips/:tripId/invitations (mutual invites)", () => {
+    it("should create invitation with mutual-only payload", async () => {
+      app = await buildApp();
+
+      // Create organizer
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      const organizer = organizerResult[0];
+
+      // Create mutual user
+      const mutualResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Mutual Friend",
+          timezone: "UTC",
+        })
+        .returning();
+      const mutual = mutualResult[0];
+
+      // Create target trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Target Trip",
+          destination: "Paris",
+          preferredTimezone: "Europe/Paris",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const trip = tripResult[0];
+
+      // Add organizer as member
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create a shared trip to make mutual a mutual
+      const sharedTripResult = await db
+        .insert(trips)
+        .values({
+          name: "Shared Trip",
+          destination: "London",
+          preferredTimezone: "Europe/London",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const sharedTrip = sharedTripResult[0];
+
+      await db.insert(members).values([
+        {
+          tripId: sharedTrip.id,
+          userId: organizer.id,
+          status: "going",
+          isOrganizer: true,
+        },
+        {
+          tripId: sharedTrip.id,
+          userId: mutual.id,
+          status: "going",
+          isOrganizer: false,
+        },
+      ]);
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/invitations`,
+        cookies: { auth_token: token },
+        payload: {
+          userIds: [mutual.id],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.invitations).toHaveLength(0); // no phone invitations
+      expect(body.addedMembers).toHaveLength(1);
+      expect(body.addedMembers[0].userId).toBe(mutual.id);
+      expect(body.addedMembers[0].displayName).toBe("Mutual Friend");
+      expect(body.skipped).toHaveLength(0);
+
+      // Verify member record created
+      const memberRecords = await db
+        .select()
+        .from(members)
+        .where(and(eq(members.tripId, trip.id), eq(members.userId, mutual.id)));
+      expect(memberRecords).toHaveLength(1);
+      expect(memberRecords[0].status).toBe("no_response");
+
+      // Verify mutual_invite notification created
+      const notificationRecords = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, mutual.id),
+            eq(notifications.tripId, trip.id),
+            eq(notifications.type, "mutual_invite"),
+          ),
+        );
+      expect(notificationRecords).toHaveLength(1);
+      expect(notificationRecords[0].title).toBe("Trip invitation");
+    });
+
+    it("should handle phone-only payload for backwards compatibility", async () => {
+      app = await buildApp();
+
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      const organizer = organizerResult[0];
+
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Tokyo",
+          preferredTimezone: "Asia/Tokyo",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        name: organizer.displayName,
+      });
+
+      const phone = generateUniquePhone();
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/invitations`,
+        cookies: { auth_token: token },
+        payload: {
+          phoneNumbers: [phone],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.invitations).toHaveLength(1);
+      expect(body.addedMembers).toHaveLength(0);
+      expect(body.skipped).toHaveLength(0);
+    });
+
+    it("should handle mixed payload with both phones and userIds", async () => {
+      app = await buildApp();
+
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      const organizer = organizerResult[0];
+
+      const mutualResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Mutual User",
+          timezone: "UTC",
+        })
+        .returning();
+      const mutual = mutualResult[0];
+
+      // Create target trip
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Mixed Trip",
+          destination: "Berlin",
+          preferredTimezone: "Europe/Berlin",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      // Create shared trip for mutual relationship
+      const sharedTripResult = await db
+        .insert(trips)
+        .values({
+          name: "Shared Trip",
+          destination: "Rome",
+          preferredTimezone: "Europe/Rome",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const sharedTrip = sharedTripResult[0];
+
+      await db.insert(members).values([
+        {
+          tripId: sharedTrip.id,
+          userId: organizer.id,
+          status: "going",
+          isOrganizer: true,
+        },
+        {
+          tripId: sharedTrip.id,
+          userId: mutual.id,
+          status: "going",
+          isOrganizer: false,
+        },
+      ]);
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        name: organizer.displayName,
+      });
+
+      const newPhone = generateUniquePhone();
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/invitations`,
+        cookies: { auth_token: token },
+        payload: {
+          phoneNumbers: [newPhone],
+          userIds: [mutual.id],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty("success", true);
+      expect(body.invitations).toHaveLength(1); // phone invitation
+      expect(body.addedMembers).toHaveLength(1); // mutual invite
+      expect(body.addedMembers[0].userId).toBe(mutual.id);
+      expect(body.skipped).toHaveLength(0);
+    });
+
+    it("should send sms_invite notification for existing user auto-added via phone", async () => {
+      app = await buildApp();
+
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      const organizer = organizerResult[0];
+
+      // Create existing user with a known phone
+      const existingUserPhone = generateUniquePhone();
+      const existingUserResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: existingUserPhone,
+          displayName: "Existing User",
+          timezone: "UTC",
+        })
+        .returning();
+      const existingUser = existingUserResult[0];
+
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Notification Trip",
+          destination: "Madrid",
+          preferredTimezone: "Europe/Madrid",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/invitations`,
+        cookies: { auth_token: token },
+        payload: {
+          phoneNumbers: [existingUserPhone],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+
+      const body = JSON.parse(response.body);
+      expect(body.addedMembers).toHaveLength(1);
+      expect(body.addedMembers[0].userId).toBe(existingUser.id);
+
+      // Verify sms_invite notification created
+      const notificationRecords = await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, existingUser.id),
+            eq(notifications.tripId, trip.id),
+            eq(notifications.type, "sms_invite"),
+          ),
+        );
+      expect(notificationRecords).toHaveLength(1);
+      expect(notificationRecords[0].title).toBe("Trip invitation");
+      expect(notificationRecords[0].body).toContain("Organizer");
+      expect(notificationRecords[0].body).toContain("Notification Trip");
+    });
+
+    it("should return 403 for non-mutual userId", async () => {
+      app = await buildApp();
+
+      const organizerResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Organizer",
+          timezone: "UTC",
+        })
+        .returning();
+      const organizer = organizerResult[0];
+
+      // Create a random user who is NOT a mutual
+      const randomResult = await db
+        .insert(users)
+        .values({
+          phoneNumber: generateUniquePhone(),
+          displayName: "Random User",
+          timezone: "UTC",
+        })
+        .returning();
+      const randomUser = randomResult[0];
+
+      const tripResult = await db
+        .insert(trips)
+        .values({
+          name: "Test Trip",
+          destination: "Sydney",
+          preferredTimezone: "Australia/Sydney",
+          createdBy: organizer.id,
+        })
+        .returning();
+      const trip = tripResult[0];
+
+      await db.insert(members).values({
+        tripId: trip.id,
+        userId: organizer.id,
+        status: "going",
+        isOrganizer: true,
+      });
+
+      const token = app.jwt.sign({
+        sub: organizer.id,
+        name: organizer.displayName,
+      });
+
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/trips/${trip.id}/invitations`,
+        cookies: { auth_token: token },
+        payload: {
+          userIds: [randomUser.id],
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
     });
   });
 });

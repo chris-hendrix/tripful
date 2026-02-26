@@ -327,7 +327,11 @@ export function CreateMemberTravelDialog({
                         placeholder="Select date & time"
                         aria-label="Travel time"
                         disabled={isPending}
-                        defaultMonth={travelType === "departure" ? tripEndMonth : tripStartMonth}
+                        defaultMonth={
+                          travelType === "departure"
+                            ? tripEndMonth
+                            : tripStartMonth
+                        }
                         tripRange={tripRange}
                       />
                     </FormControl>

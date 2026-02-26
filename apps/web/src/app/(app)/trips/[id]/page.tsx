@@ -14,7 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   try {
     const response = await serverApiRequest<GetTripResponse>(`/trips/${id}`);
-    return { title: response.trip.name, robots: { index: false, follow: false } };
+    return {
+      title: response.trip.name,
+      robots: { index: false, follow: false },
+    };
   } catch {
     return { title: "Trip", robots: { index: false, follow: false } };
   }

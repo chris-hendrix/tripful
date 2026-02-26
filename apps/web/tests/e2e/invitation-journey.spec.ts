@@ -193,173 +193,181 @@ test.describe("Invitation Journey", () => {
     },
   );
 
-  test("RSVP status change and member indicator", { tag: "@regression" }, async ({ page, request }) => {
-    test.slow();
+  test(
+    "RSVP status change and member indicator",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      test.slow();
 
-    const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const inviteePhone = `+1555${(parseInt(shortTimestamp) + 2000).toString()}`;
+      const timestamp = Date.now();
+      const shortTimestamp = timestamp.toString().slice(-10);
+      const organizerPhone = `+1555${shortTimestamp}`;
+      const inviteePhone = `+1555${(parseInt(shortTimestamp) + 2000).toString()}`;
 
-    let tripId: string;
+      let tripId: string;
 
-    // Setup: create organizer, trip, and invite+accept a member
-    const organizerCookie = await createUserViaAPI(
-      request,
-      organizerPhone,
-      "Organizer Beta",
-    );
-
-    tripId = await createTripViaAPI(request, organizerCookie, {
-      name: `RSVP Change Trip ${timestamp}`,
-      destination: "Denver, CO",
-      startDate: "2026-11-10",
-      endDate: "2026-11-14",
-    });
-
-    await inviteAndAcceptViaAPI(
-      request,
-      tripId,
-      organizerPhone,
-      inviteePhone,
-      "Member Beta",
-      organizerCookie,
-    );
-
-    const eventName = `Test Event ${timestamp}`;
-
-    await test.step("member creates an event via API", async () => {
-      // Auth as member in browser
-      await authenticateViaAPIWithPhone(
-        page,
-        request,
-        inviteePhone,
-        "Member Beta",
-      );
-
-      // Create event via API (member has canAddEvent permission)
-      const eventResponse = await page.request.post(
-        `http://localhost:8000/api/trips/${tripId}/events`,
-        {
-          data: {
-            name: eventName,
-            eventType: "activity",
-            startTime: "2026-11-11T10:00:00.000Z",
-          },
-        },
-      );
-      expect(eventResponse.ok()).toBeTruthy();
-
-      // Navigate to trip to verify event is visible
-      await page.goto(`/trips/${tripId}`);
-      await expect(page.getByText(eventName)).toBeVisible({ timeout: 15000 });
-    });
-
-    await test.step("member changes RSVP to Maybe", async () => {
-      // Use API shortcut to change RSVP
-      const inviteeCookie = await createUserViaAPI(
-        request,
-        inviteePhone,
-        "Member Beta",
-      );
-      await rsvpViaAPI(request, tripId, inviteeCookie, "maybe");
-
-      // Refresh page
-      await page.reload();
-
-      // Since member is now "maybe" (non-Going), they should see preview
-      await expect(page.getByText("You've been invited!")).toBeVisible({
-        timeout: 15000,
-      });
-      await snap(page, "15-rsvp-changed-to-maybe");
-    });
-
-    await test.step("organizer sees member no longer attending indicator", async () => {
-      await page.context().clearCookies();
-      await authenticateViaAPIWithPhone(
-        page,
+      // Setup: create organizer, trip, and invite+accept a member
+      const organizerCookie = await createUserViaAPI(
         request,
         organizerPhone,
         "Organizer Beta",
       );
 
-      await page.goto(`/trips/${tripId}`);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: `RSVP Change Trip ${timestamp}`,
-        }),
-      ).toBeVisible({ timeout: 15000 });
-
-      // Verify "Member no longer attending" badge is visible
-      await expect(page.getByText("Member no longer attending")).toBeVisible({
-        timeout: 10000,
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `RSVP Change Trip ${timestamp}`,
+        destination: "Denver, CO",
+        startDate: "2026-11-10",
+        endDate: "2026-11-14",
       });
-      await snap(page, "16-member-not-attending-indicator");
-    });
 
-    await test.step("member RSVPs Going again, indicator removed", async () => {
-      // Use API shortcut to change RSVP back to going
-      const inviteeCookie = await createUserViaAPI(
+      await inviteAndAcceptViaAPI(
         request,
+        tripId,
+        organizerPhone,
         inviteePhone,
         "Member Beta",
+        organizerCookie,
       );
-      await rsvpViaAPI(request, tripId, inviteeCookie, "going");
 
-      // Reload organizer's page
-      await page.reload();
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: `RSVP Change Trip ${timestamp}`,
-        }),
-      ).toBeVisible({ timeout: 15000 });
+      const eventName = `Test Event ${timestamp}`;
 
-      // Verify badge is gone
-      await expect(
-        page.getByText("Member no longer attending"),
-      ).not.toBeVisible();
-    });
-  });
+      await test.step("member creates an event via API", async () => {
+        // Auth as member in browser
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          inviteePhone,
+          "Member Beta",
+        );
 
-  test("uninvited user access", { tag: "@regression" }, async ({ page, request }) => {
-    const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const uninvitedPhone = `+1555${(parseInt(shortTimestamp) + 3000).toString()}`;
+        // Create event via API (member has canAddEvent permission)
+        const eventResponse = await page.request.post(
+          `http://localhost:8000/api/trips/${tripId}/events`,
+          {
+            data: {
+              name: eventName,
+              eventType: "activity",
+              startTime: "2026-11-11T10:00:00.000Z",
+            },
+          },
+        );
+        expect(eventResponse.ok()).toBeTruthy();
 
-    let tripId: string;
+        // Navigate to trip to verify event is visible
+        await page.goto(`/trips/${tripId}`);
+        await expect(page.getByText(eventName)).toBeVisible({ timeout: 15000 });
+      });
 
-    // Setup: create organizer and trip
-    const organizerCookie = await createUserViaAPI(
-      request,
-      organizerPhone,
-      "Organizer Gamma",
-    );
+      await test.step("member changes RSVP to Maybe", async () => {
+        // Use API shortcut to change RSVP
+        const inviteeCookie = await createUserViaAPI(
+          request,
+          inviteePhone,
+          "Member Beta",
+        );
+        await rsvpViaAPI(request, tripId, inviteeCookie, "maybe");
 
-    tripId = await createTripViaAPI(request, organizerCookie, {
-      name: `Private Trip ${timestamp}`,
-      destination: "Aspen, CO",
-    });
+        // Refresh page
+        await page.reload();
 
-    await test.step("uninvited user cannot access trip", async () => {
-      await authenticateViaAPIWithPhone(
-        page,
+        // Since member is now "maybe" (non-Going), they should see preview
+        await expect(page.getByText("You've been invited!")).toBeVisible({
+          timeout: 15000,
+        });
+        await snap(page, "15-rsvp-changed-to-maybe");
+      });
+
+      await test.step("organizer sees member no longer attending indicator", async () => {
+        await page.context().clearCookies();
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          organizerPhone,
+          "Organizer Beta",
+        );
+
+        await page.goto(`/trips/${tripId}`);
+        await expect(
+          page.getByRole("heading", {
+            level: 1,
+            name: `RSVP Change Trip ${timestamp}`,
+          }),
+        ).toBeVisible({ timeout: 15000 });
+
+        // Verify "Member no longer attending" badge is visible
+        await expect(page.getByText("Member no longer attending")).toBeVisible({
+          timeout: 10000,
+        });
+        await snap(page, "16-member-not-attending-indicator");
+      });
+
+      await test.step("member RSVPs Going again, indicator removed", async () => {
+        // Use API shortcut to change RSVP back to going
+        const inviteeCookie = await createUserViaAPI(
+          request,
+          inviteePhone,
+          "Member Beta",
+        );
+        await rsvpViaAPI(request, tripId, inviteeCookie, "going");
+
+        // Reload organizer's page
+        await page.reload();
+        await expect(
+          page.getByRole("heading", {
+            level: 1,
+            name: `RSVP Change Trip ${timestamp}`,
+          }),
+        ).toBeVisible({ timeout: 15000 });
+
+        // Verify badge is gone
+        await expect(
+          page.getByText("Member no longer attending"),
+        ).not.toBeVisible();
+      });
+    },
+  );
+
+  test(
+    "uninvited user access",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      const timestamp = Date.now();
+      const shortTimestamp = timestamp.toString().slice(-10);
+      const organizerPhone = `+1555${shortTimestamp}`;
+      const uninvitedPhone = `+1555${(parseInt(shortTimestamp) + 3000).toString()}`;
+
+      let tripId: string;
+
+      // Setup: create organizer and trip
+      const organizerCookie = await createUserViaAPI(
         request,
-        uninvitedPhone,
-        "Uninvited User",
+        organizerPhone,
+        "Organizer Gamma",
       );
 
-      await page.goto(`/trips/${tripId}`);
+      tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Private Trip ${timestamp}`,
+        destination: "Aspen, CO",
+      });
 
-      // Verify 404 page
-      await expect(
-        page.getByRole("heading", { name: "Trip not found" }),
-      ).toBeVisible({ timeout: 15000 });
-      await snap(page, "17-uninvited-user-404");
-    });
-  });
+      await test.step("uninvited user cannot access trip", async () => {
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          uninvitedPhone,
+          "Uninvited User",
+        );
+
+        await page.goto(`/trips/${tripId}`);
+
+        // Verify 404 page
+        await expect(
+          page.getByRole("heading", { name: "Trip not found" }),
+        ).toBeVisible({ timeout: 15000 });
+        await snap(page, "17-uninvited-user-404");
+      });
+    },
+  );
 
   test("member list", { tag: "@regression" }, async ({ page, request }) => {
     test.slow();
@@ -464,193 +472,194 @@ test.describe("Invitation Journey", () => {
     });
   });
 
-  test("member completes onboarding wizard after RSVP", { tag: "@regression" }, async ({
-    page,
-    request,
-  }) => {
-    test.slow();
+  test(
+    "member completes onboarding wizard after RSVP",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      test.slow();
 
-    const timestamp = Date.now();
-    const shortTimestamp = timestamp.toString().slice(-10);
-    const organizerPhone = `+1555${shortTimestamp}`;
-    const inviteePhone = `+1555${(parseInt(shortTimestamp) + 6000).toString()}`;
+      const timestamp = Date.now();
+      const shortTimestamp = timestamp.toString().slice(-10);
+      const organizerPhone = `+1555${shortTimestamp}`;
+      const inviteePhone = `+1555${(parseInt(shortTimestamp) + 6000).toString()}`;
 
-    // Setup: create organizer and trip with dates
-    const organizerCookie = await createUserViaAPI(
-      request,
-      organizerPhone,
-      "Organizer Epsilon",
-    );
-
-    const tripId = await createTripViaAPI(request, organizerCookie, {
-      name: `Wizard Trip ${timestamp}`,
-      destination: "Portland, OR",
-      startDate: "2026-10-01",
-      endDate: "2026-10-05",
-    });
-
-    // Invite member via API
-    await inviteViaAPI(request, tripId, organizerCookie, [inviteePhone]);
-
-    await test.step("member authenticates and navigates to trip", async () => {
-      await authenticateViaAPIWithPhone(
-        page,
+      // Setup: create organizer and trip with dates
+      const organizerCookie = await createUserViaAPI(
         request,
-        inviteePhone,
-        "Wizard Member",
+        organizerPhone,
+        "Organizer Epsilon",
       );
 
-      await page.goto(`/trips/${tripId}`);
-
-      // Verify preview mode
-      await expect(page.getByText("You've been invited!")).toBeVisible({
-        timeout: NAVIGATION_TIMEOUT,
-      });
-    });
-
-    await test.step("member RSVPs Going and wizard opens", async () => {
-      // Click "Going" button
-      await page
-        .locator('[data-testid="rsvp-buttons"]')
-        .getByRole("button", { name: "Going", exact: true })
-        .click();
-
-      // Verify toast
-      await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
-        timeout: TOAST_TIMEOUT,
+      const tripId = await createTripViaAPI(request, organizerCookie, {
+        name: `Wizard Trip ${timestamp}`,
+        destination: "Portland, OR",
+        startDate: "2026-10-01",
+        endDate: "2026-10-05",
       });
 
-      // Dismiss toast before interacting with wizard elements
-      await dismissToast(page);
+      // Invite member via API
+      await inviteViaAPI(request, tripId, organizerCookie, [inviteePhone]);
 
-      // Wait for the onboarding wizard to appear (dynamically imported)
-      const dialog = page.getByRole("dialog");
+      await test.step("member authenticates and navigates to trip", async () => {
+        await authenticateViaAPIWithPhone(
+          page,
+          request,
+          inviteePhone,
+          "Wizard Member",
+        );
 
-      // Step 0: phone sharing step appears first
-      await expect(dialog.getByText("Share your phone number?")).toBeVisible({
-        timeout: NAVIGATION_TIMEOUT,
-      });
-      await expect.soft(dialog.getByText("Step 1 of 5")).toBeVisible();
+        await page.goto(`/trips/${tripId}`);
 
-      // Skip past the phone sharing step
-      await dialog.getByRole("button", { name: "Skip" }).click();
-
-      // Step 1: arrival step
-      await expect(dialog.getByText("When are you arriving?")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-      await expect.soft(dialog.getByText("Step 2 of 5")).toBeVisible();
-      await snap(page, "20-wizard-arrival-step");
-    });
-
-    await test.step("fill arrival step and advance", async () => {
-      const dialog = page.getByRole("dialog");
-
-      // Pick arrival date and time
-      const arrivalTrigger = page.getByLabel("Arrival date and time");
-      await pickDateTime(page, arrivalTrigger, "2026-10-01T14:00");
-
-      // Enter arrival location
-      await page.locator("#arrival-location").fill("PDX Airport");
-
-      await snap(page, "21-wizard-arrival-filled");
-
-      // Click "Next" to advance to departure step
-      await dialog.getByRole("button", { name: "Next" }).click();
-
-      // Wait for departure step to appear
-      await expect(dialog.getByText("When are you leaving?")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
-      });
-      await expect.soft(dialog.getByText("Step 3 of 5")).toBeVisible();
-    });
-
-    await test.step("verify departure pre-fill and fill departure step", async () => {
-      const dialog = page.getByRole("dialog");
-
-      // Verify departure location is pre-filled from arrival
-      await expect(page.locator("#departure-location")).toHaveValue(
-        "PDX Airport",
-      );
-
-      // Pick departure date and time
-      const departureTrigger = page.getByLabel("Departure date and time");
-      await pickDateTime(page, departureTrigger, "2026-10-05T10:00");
-
-      await snap(page, "22-wizard-departure-filled");
-
-      // Click "Next" to advance to events step
-      await dialog.getByRole("button", { name: "Next" }).click();
-
-      // Wait for events step to appear
-      await expect(
-        dialog.getByText("Want to suggest any activities?"),
-      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
-      await expect.soft(dialog.getByText("Step 4 of 5")).toBeVisible();
-    });
-
-    await test.step("add an event and advance", async () => {
-      const dialog = page.getByRole("dialog");
-
-      // Fill event name
-      await page.locator("#event-name").fill("Hiking Mt. Hood");
-
-      // Pick event date and time
-      const eventTrigger = page.getByLabel("Event date and time");
-      await pickDateTime(page, eventTrigger, "2026-10-02T09:00");
-
-      // Click "Add" to save the event
-      await dialog.getByRole("button", { name: "Add" }).click();
-
-      // Verify the event chip appears
-      await expect(dialog.getByText("Hiking Mt. Hood")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
+        // Verify preview mode
+        await expect(page.getByText("You've been invited!")).toBeVisible({
+          timeout: NAVIGATION_TIMEOUT,
+        });
       });
 
-      await snap(page, "23-wizard-event-added");
+      await test.step("member RSVPs Going and wizard opens", async () => {
+        // Click "Going" button
+        await page
+          .locator('[data-testid="rsvp-buttons"]')
+          .getByRole("button", { name: "Going", exact: true })
+          .click();
 
-      // Click "Next" to advance to done step
-      await dialog.getByRole("button", { name: "Next" }).click();
+        // Verify toast
+        await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
+          timeout: TOAST_TIMEOUT,
+        });
 
-      // Wait for done step to appear
-      await expect(dialog.getByText("You're all set!")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
+        // Dismiss toast before interacting with wizard elements
+        await dismissToast(page);
+
+        // Wait for the onboarding wizard to appear (dynamically imported)
+        const dialog = page.getByRole("dialog");
+
+        // Step 0: phone sharing step appears first
+        await expect(dialog.getByText("Share your phone number?")).toBeVisible({
+          timeout: NAVIGATION_TIMEOUT,
+        });
+        await expect.soft(dialog.getByText("Step 1 of 5")).toBeVisible();
+
+        // Skip past the phone sharing step
+        await dialog.getByRole("button", { name: "Skip" }).click();
+
+        // Step 1: arrival step
+        await expect(dialog.getByText("When are you arriving?")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        await expect.soft(dialog.getByText("Step 2 of 5")).toBeVisible();
+        await snap(page, "20-wizard-arrival-step");
       });
-      await expect.soft(dialog.getByText("Step 5 of 5")).toBeVisible();
-    });
 
-    await test.step("verify done step summary and close wizard", async () => {
-      const dialog = page.getByRole("dialog");
+      await test.step("fill arrival step and advance", async () => {
+        const dialog = page.getByRole("dialog");
 
-      // Verify summary shows arrival info
-      await expect(dialog.getByText("Arrival")).toBeVisible();
+        // Pick arrival date and time
+        const arrivalTrigger = page.getByLabel("Arrival date and time");
+        await pickDateTime(page, arrivalTrigger, "2026-10-01T14:00");
 
-      // Verify summary shows departure info
-      await expect(dialog.getByText("Departure")).toBeVisible();
+        // Enter arrival location
+        await page.locator("#arrival-location").fill("PDX Airport");
 
-      // Verify summary shows activities count
-      await expect(dialog.getByText("1 activity added")).toBeVisible();
+        await snap(page, "21-wizard-arrival-filled");
 
-      await snap(page, "24-wizard-done-summary");
+        // Click "Next" to advance to departure step
+        await dialog.getByRole("button", { name: "Next" }).click();
 
-      // Click "View Itinerary" to close the wizard
-      await dialog.getByRole("button", { name: "View Itinerary" }).click();
-
-      // Wizard should close
-      await expect(dialog).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
-    });
-
-    await test.step("full trip view is shown after wizard", async () => {
-      // Verify full trip view is displayed
-      await expect(page.getByText("Portland, OR")).toBeVisible({
-        timeout: ELEMENT_TIMEOUT,
+        // Wait for departure step to appear
+        await expect(dialog.getByText("When are you leaving?")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        await expect.soft(dialog.getByText("Step 3 of 5")).toBeVisible();
       });
-      await expect(page.getByText(/\d+ members?/)).toBeVisible();
 
-      // Preview should not be visible
-      await expect(page.getByText("You've been invited!")).not.toBeVisible();
+      await test.step("verify departure pre-fill and fill departure step", async () => {
+        const dialog = page.getByRole("dialog");
 
-      await snap(page, "25-wizard-complete-full-view");
-    });
-  });
+        // Verify departure location is pre-filled from arrival
+        await expect(page.locator("#departure-location")).toHaveValue(
+          "PDX Airport",
+        );
+
+        // Pick departure date and time
+        const departureTrigger = page.getByLabel("Departure date and time");
+        await pickDateTime(page, departureTrigger, "2026-10-05T10:00");
+
+        await snap(page, "22-wizard-departure-filled");
+
+        // Click "Next" to advance to events step
+        await dialog.getByRole("button", { name: "Next" }).click();
+
+        // Wait for events step to appear
+        await expect(
+          dialog.getByText("Want to suggest any activities?"),
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+        await expect.soft(dialog.getByText("Step 4 of 5")).toBeVisible();
+      });
+
+      await test.step("add an event and advance", async () => {
+        const dialog = page.getByRole("dialog");
+
+        // Fill event name
+        await page.locator("#event-name").fill("Hiking Mt. Hood");
+
+        // Pick event date and time
+        const eventTrigger = page.getByLabel("Event date and time");
+        await pickDateTime(page, eventTrigger, "2026-10-02T09:00");
+
+        // Click "Add" to save the event
+        await dialog.getByRole("button", { name: "Add" }).click();
+
+        // Verify the event chip appears
+        await expect(dialog.getByText("Hiking Mt. Hood")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+
+        await snap(page, "23-wizard-event-added");
+
+        // Click "Next" to advance to done step
+        await dialog.getByRole("button", { name: "Next" }).click();
+
+        // Wait for done step to appear
+        await expect(dialog.getByText("You're all set!")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        await expect.soft(dialog.getByText("Step 5 of 5")).toBeVisible();
+      });
+
+      await test.step("verify done step summary and close wizard", async () => {
+        const dialog = page.getByRole("dialog");
+
+        // Verify summary shows arrival info
+        await expect(dialog.getByText("Arrival")).toBeVisible();
+
+        // Verify summary shows departure info
+        await expect(dialog.getByText("Departure")).toBeVisible();
+
+        // Verify summary shows activities count
+        await expect(dialog.getByText("1 activity added")).toBeVisible();
+
+        await snap(page, "24-wizard-done-summary");
+
+        // Click "View Itinerary" to close the wizard
+        await dialog.getByRole("button", { name: "View Itinerary" }).click();
+
+        // Wizard should close
+        await expect(dialog).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
+      });
+
+      await test.step("full trip view is shown after wizard", async () => {
+        // Verify full trip view is displayed
+        await expect(page.getByText("Portland, OR")).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
+        await expect(page.getByText(/\d+ members?/)).toBeVisible();
+
+        // Preview should not be visible
+        await expect(page.getByText("You've been invited!")).not.toBeVisible();
+
+        await snap(page, "25-wizard-complete-full-view");
+      });
+    },
+  );
 });

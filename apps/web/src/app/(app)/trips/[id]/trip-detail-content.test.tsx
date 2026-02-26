@@ -383,7 +383,9 @@ describe("TripDetailContent", () => {
       );
 
       // Check for skeleton loading state
-      const skeletonElements = document.querySelectorAll('[data-slot="skeleton"]');
+      const skeletonElements = document.querySelectorAll(
+        '[data-slot="skeleton"]',
+      );
       expect(skeletonElements.length).toBeGreaterThan(0);
     });
 

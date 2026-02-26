@@ -39,9 +39,7 @@ async function cleanupStaleData() {
   }
 
   if (staleUsers.length > 0) {
-    await db
-      .delete(users)
-      .where(eq(users.displayName, "Itinerary Organizer"));
+    await db.delete(users).where(eq(users.displayName, "Itinerary Organizer"));
   }
 }
 

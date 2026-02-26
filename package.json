@@ -39,11 +39,16 @@
     "typescript": "^5.7.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"],
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ],
     "overrides": {
       "minimatch": ">=10.2.1",
       "esbuild": ">=0.25.0",
-      "ajv@>=8": ">=8.18.0"
+      "ajv@>=8": ">=8.18.0",
+      "rollup": ">=4.59.0"
     }
   },
   "packageManager": "pnpm@10.30.1",

@@ -117,3 +117,6 @@ export type {
   GetNotificationPreferencesResponse,
   UpdateNotificationPreferencesResponse,
 } from "./notification";
+
+// Re-export mutuals types
+export type { Mutual, GetMutualsResponse } from "./mutuals";

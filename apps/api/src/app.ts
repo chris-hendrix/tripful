@@ -31,6 +31,7 @@ import verificationServicePlugin from "./plugins/verification-service.js";
 import healthServicePlugin from "./plugins/health-service.js";
 import messageServicePlugin from "./plugins/message-service.js";
 import notificationServicePlugin from "./plugins/notification-service.js";
+import mutualsServicePlugin from "./plugins/mutuals-service.js";
 import queueWorkersPlugin from "./queues/index.js";
 
 // Middleware
@@ -46,6 +47,7 @@ import { memberTravelRoutes } from "./routes/member-travel.routes.js";
 import { invitationRoutes } from "./routes/invitation.routes.js";
 import { messageRoutes } from "./routes/message.routes.js";
 import { notificationRoutes } from "./routes/notification.routes.js";
+import { mutualsRoutes } from "./routes/mutuals.routes.js";
 import { userRoutes } from "./routes/user.routes.js";
 
 // Config
@@ -190,6 +192,7 @@ export async function buildApp(
   await app.register(memberTravelServicePlugin);
   await app.register(uploadServicePlugin);
   await app.register(notificationServicePlugin);
+  await app.register(mutualsServicePlugin);
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
   await app.register(queueWorkersPlugin);
@@ -207,6 +210,7 @@ export async function buildApp(
   await app.register(invitationRoutes, { prefix: "/api" });
   await app.register(messageRoutes, { prefix: "/api" });
   await app.register(notificationRoutes, { prefix: "/api" });
+  await app.register(mutualsRoutes, { prefix: "/api" });
   await app.register(userRoutes, { prefix: "/api/users" });
 
   // Not-found handler for unmatched routes

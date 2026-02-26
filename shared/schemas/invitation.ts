@@ -5,18 +5,30 @@ import { phoneNumberSchema } from "./phone";
 
 /**
  * Validates batch invitation creation data
- * - phoneNumbers: array of E.164 phone numbers, min 1, max 25
+ * - phoneNumbers: optional array of E.164 phone numbers, max 25
+ * - userIds: optional array of user UUIDs (mutual invites), max 25
+ * At least one phone number or user ID is required
  */
-export const createInvitationsSchema = z.object({
-  phoneNumbers: z
-    .array(phoneNumberSchema)
-    .min(1, {
-      message: "At least one phone number is required",
-    })
-    .max(25, {
-      message: "Cannot invite more than 25 members at once",
-    }),
-});
+export const createInvitationsSchema = z
+  .object({
+    phoneNumbers: z
+      .array(phoneNumberSchema)
+      .max(25, {
+        message: "Cannot invite more than 25 members at once",
+      })
+      .optional()
+      .default([]),
+    userIds: z
+      .array(z.string().uuid({ message: "Each user ID must be a valid UUID" }))
+      .max(25, {
+        message: "Cannot invite more than 25 members at once",
+      })
+      .optional()
+      .default([]),
+  })
+  .refine((data) => data.phoneNumbers.length > 0 || data.userIds.length > 0, {
+    message: "At least one phone number or user ID is required",
+  });
 
 /**
  * Validates RSVP status update data
@@ -65,6 +77,15 @@ const memberWithProfileSchema = z.object({
 export const createInvitationsResponseSchema = z.object({
   success: z.literal(true),
   invitations: z.array(invitationEntitySchema),
+  addedMembers: z
+    .array(
+      z.object({
+        userId: z.string(),
+        displayName: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
   skipped: z.array(z.string()),
 });
 

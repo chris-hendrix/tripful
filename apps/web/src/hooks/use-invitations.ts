@@ -31,6 +31,9 @@ import { tripKeys } from "./trip-queries";
 // Import event keys for cache invalidation on member removal (creatorAttending depends on member existence)
 import { eventKeys } from "./event-queries";
 
+// Import mutual keys for cache invalidation on invite (suggestions may change)
+import { mutualKeys } from "./mutuals-queries";
+
 // Re-export for backward compatibility
 export {
   invitationKeys,
@@ -99,6 +102,14 @@ export function useInviteMembers(tripId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: invitationKeys.list(tripId) });
       queryClient.invalidateQueries({ queryKey: memberKeys.list(tripId) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+      queryClient.invalidateQueries({
+        queryKey: tripKeys.all,
+        exact: true,
+      });
+      queryClient.invalidateQueries({
+        queryKey: mutualKeys.suggestion(tripId),
+      });
     },
   });
 }

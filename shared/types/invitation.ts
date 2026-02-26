@@ -42,6 +42,8 @@ export interface MemberWithProfile {
 export interface CreateInvitationsResponse {
   success: true;
   invitations: Invitation[];
+  /** Members added via mutual invite (userId-based, added in Task 2.2) */
+  addedMembers?: { userId: string; displayName: string }[];
   skipped: string[];
 }
 

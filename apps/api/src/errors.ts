@@ -68,6 +68,7 @@ export const InvalidDateRangeError = createError(
   "%s",
   400,
 );
+export const InvalidCursorError = createError("INVALID_CURSOR", "%s", 400);
 
 // Upload errors
 export const FileTooLargeError = createError("FILE_TOO_LARGE", "%s", 400);
@@ -79,6 +80,7 @@ export const InvitationNotFoundError = createError(
   "Invitation not found",
   404,
 );
+export const NotAMutualError = createError("NOT_A_MUTUAL", "%s", 403);
 
 // Member removal errors
 export const MemberNotFoundError = createError(

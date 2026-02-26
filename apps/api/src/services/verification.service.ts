@@ -40,7 +40,8 @@ export class TwilioVerificationService implements IVerificationService {
     logger?: Logger;
     client?: Twilio.Twilio;
   }) {
-    this.client = opts.client ?? new Twilio.Twilio(opts.accountSid, opts.authToken);
+    this.client =
+      opts.client ?? new Twilio.Twilio(opts.accountSid, opts.authToken);
     this.verifyServiceSid = opts.verifyServiceSid;
     this.logger = opts.logger;
   }

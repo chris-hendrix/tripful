@@ -1,7 +1,7 @@
 "use client";
 
 import type { ElementType } from "react";
-import { Bell, Calendar, MessageCircle } from "lucide-react";
+import { Bell, Calendar, MessageCircle, UserPlus } from "lucide-react";
 import type { Notification, NotificationType } from "@tripful/shared/types";
 import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ const typeIcons: Record<NotificationType, ElementType> = {
   daily_itinerary: Calendar,
   trip_message: MessageCircle,
   trip_update: Bell,
+  mutual_invite: UserPlus,
+  sms_invite: UserPlus,
 };
 
 interface NotificationItemProps {
