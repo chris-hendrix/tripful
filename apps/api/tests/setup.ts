@@ -30,6 +30,13 @@ beforeAll(async () => {
   } catch {
     // Table may not exist yet if migrations haven't run
   }
+
+  // Clean up blacklisted tokens from previous test runs
+  try {
+    await testPool.query("DELETE FROM blacklisted_tokens");
+  } catch {
+    // Table may not exist yet if migrations haven't run
+  }
 });
 
 afterAll(async () => {

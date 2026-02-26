@@ -341,6 +341,15 @@ export const authController = {
    */
   async logout(request: FastifyRequest, reply: FastifyReply) {
     try {
+      // Blacklist the token so it cannot be reused
+      if (request.user?.jti) {
+        await request.server.authService.blacklistToken(
+          request.user.jti,
+          request.user.sub,
+          new Date(request.user.exp * 1000),
+        );
+      }
+
       auditLog(request, "auth.logout");
 
       // Clear the auth_token cookie

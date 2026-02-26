@@ -72,3 +72,42 @@
 - `Record<string, unknown>` is NOT a supertype of TypeScript interfaces (interfaces lack index signatures) — use `object` type when needing a general object supertype
 - PG-backed rate limit stores persist state between test runs — test setup must clean the table to avoid 429s leaking across test suites
 - The `cache` option on `@fastify/rate-limit` only applies to the built-in `LocalStore` and is silently ignored with custom stores
+
+## Iteration 3 — Task 1.3: Implement token blacklist with JWT jti claim and auth middleware check
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/types/index.ts` — Added `jti?: string` to `JWTPayload` interface (optional for backward compatibility with pre-existing tokens)
+- `apps/api/src/services/auth.service.ts` — Added `import { randomUUID } from "node:crypto"` and `blacklistedTokens` import; added `jti: randomUUID()` to `generateToken()` payload; added `blacklistToken(jti, userId, expiresAt)` and `isBlacklisted(jti)` methods to both `IAuthService` interface and `AuthService` class; `blacklistToken` uses `.onConflictDoNothing()` for idempotent double-logout
+- `apps/api/src/middleware/auth.middleware.ts` — Added blacklist check after `jwtVerify()` using `request.server.authService.isBlacklisted()` — returns 401 "Token has been revoked" if blacklisted; tokens without `jti` skip the check for backward compatibility
+- `apps/api/src/controllers/auth.controller.ts` — Updated `logout()` to call `authService.blacklistToken()` before clearing the cookie, extracting `jti`, `sub`, and `exp` from the verified token
+- `apps/api/src/queues/types.ts` — Added `TOKEN_BLACKLIST_CLEANUP: "token-blacklist/cleanup"` to QUEUE constants
+- `apps/api/src/queues/index.ts` — Added daily cleanup cron job (3am) that deletes expired blacklisted tokens, following existing rate-limit cleanup pattern
+- `apps/api/tests/setup.ts` — Added `blacklisted_tokens` table cleanup in `beforeAll` alongside existing `rate_limit_entries` cleanup
+
+**Files created:**
+- `apps/api/tests/unit/token-blacklist.test.ts` — 7 unit tests: generateToken includes jti UUID, unique jti per token, blacklistToken inserts record, isBlacklisted returns true/false, expired cleanup removes entries, non-expired entries survive cleanup
+- `apps/api/tests/integration/token-blacklist.test.ts` — 5 integration tests: logout invalidates token (401 with same token), non-blacklisted token works (200), re-login after logout gets fresh working token, backward compat (tokens without jti), double-logout idempotency (no 500)
+
+### Key Design Decisions
+1. **Service layer delegation** — Controller and middleware call `authService.blacklistToken()` / `authService.isBlacklisted()` instead of direct DB access, consistent with codebase patterns
+2. **Optional `jti` in JWTPayload** — Made `jti?: string` for backward compatibility with tokens issued before this change; middleware skips blacklist check when jti is absent
+3. **`.onConflictDoNothing()`** — Makes double-logout idempotent; the unique constraint on `jti` prevents duplicates without throwing errors
+4. **Daily cleanup (3am)** — Expired blacklisted tokens are cleaned daily, keeping the table small for fast indexed lookups
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning)
+- **Unit/Integration Tests**: PASS — 12 new token-blacklist tests (7 unit + 5 integration) all pass; 2 pre-existing flaky failures in `pg-rate-limit-store` tests (Task 1.2 race condition, unrelated)
+- **Reviewer**: APPROVED (after one round of feedback — 5 items fixed: service layer delegation, onConflictDoNothing, test cleanup, double-logout test)
+
+### Learnings
+- Controllers should delegate to service methods rather than doing direct DB operations — reviewer caught this pattern violation immediately
+- `.onConflictDoNothing()` on Drizzle inserts is the correct way to make upserts idempotent when a unique constraint exists
+- `@fastify/jwt` populates `request.user` with the full decoded payload after `jwtVerify()`, so `request.user.jti` is available directly
+- The `trusted` callback in `@fastify/jwt` config is an alternative approach for blacklist checks, but using the service layer in middleware is more consistent with the codebase patterns
+- Test cleanup order matters with FK constraints — delete child records (blacklisted_tokens) before parent records (users)
+- Pre-existing flaky `pg-rate-limit-store` tests (concurrent access race condition) are a known issue from Task 1.2 — unrelated to token blacklist work

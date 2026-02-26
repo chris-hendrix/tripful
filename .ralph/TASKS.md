@@ -20,7 +20,7 @@
   - Test: Write integration test verifying rate limiting works with PG store (hit endpoint beyond limit, verify 429)
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 1.3: Implement token blacklist with JWT jti claim and auth middleware check
+- [x] Task 1.3: Implement token blacklist with JWT jti claim and auth middleware check
   - Implement: Update JWT signing in `apps/api/src/services/auth.service.ts` to include `jti: randomUUID()` claim
   - Implement: Create token blacklist service or add methods to auth service — `blacklistToken(jti, userId, expiresAt)` and `isBlacklisted(jti)`
   - Implement: Update logout endpoint to decode token, extract jti + exp, insert into blacklisted_tokens

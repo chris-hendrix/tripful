@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { users, type User } from "@/db/schema/index.js";
+import { users, blacklistedTokens, type User } from "@/db/schema/index.js";
 import type { JWTPayload, AppDatabase } from "@/types/index.js";
 import { eq } from "drizzle-orm";
 
@@ -53,6 +54,21 @@ export interface IAuthService {
    * @throws Error if token is invalid or expired
    */
   verifyToken(token: string): JWTPayload;
+
+  /**
+   * Blacklists a token by its JTI claim so it can no longer be used
+   * @param jti - The JWT ID to blacklist
+   * @param userId - The user ID who owns the token
+   * @param expiresAt - When the token would naturally expire (for cleanup)
+   */
+  blacklistToken(jti: string, userId: string, expiresAt: Date): Promise<void>;
+
+  /**
+   * Checks if a token has been blacklisted
+   * @param jti - The JWT ID to check
+   * @returns True if the token is blacklisted, false otherwise
+   */
+  isBlacklisted(jti: string): Promise<boolean>;
 }
 
 /**
@@ -170,6 +186,7 @@ export class AuthService implements IAuthService {
 
     const payload = {
       sub: user.id,
+      jti: randomUUID(),
       ...(user.displayName && { name: user.displayName }),
     };
 
@@ -196,5 +213,39 @@ export class AuthService implements IAuthService {
       }
       throw new Error("Token verification failed");
     }
+  }
+
+  /**
+   * Blacklists a token by its JTI claim so it can no longer be used
+   * Inserts a record into the blacklisted_tokens table
+   * @param jti - The JWT ID to blacklist
+   * @param userId - The user ID who owns the token
+   * @param expiresAt - When the token would naturally expire (for cleanup)
+   */
+  async blacklistToken(
+    jti: string,
+    userId: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.db.insert(blacklistedTokens).values({
+      jti,
+      userId,
+      expiresAt,
+    }).onConflictDoNothing();
+  }
+
+  /**
+   * Checks if a token has been blacklisted
+   * @param jti - The JWT ID to check
+   * @returns True if the token is blacklisted, false otherwise
+   */
+  async isBlacklisted(jti: string): Promise<boolean> {
+    const result = await this.db
+      .select({ jti: blacklistedTokens.jti })
+      .from(blacklistedTokens)
+      .where(eq(blacklistedTokens.jti, jti))
+      .limit(1);
+
+    return result.length > 0;
   }
 }

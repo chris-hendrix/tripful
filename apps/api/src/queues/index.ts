@@ -140,6 +140,19 @@ export default fp(
       );
     });
 
+    // Token blacklist cleanup (daily at 3am)
+    await boss.createQueue(QUEUE.TOKEN_BLACKLIST_CLEANUP);
+    await boss.schedule(QUEUE.TOKEN_BLACKLIST_CLEANUP, "0 3 * * *");
+    await boss.work(QUEUE.TOKEN_BLACKLIST_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM blacklisted_tokens WHERE expires_at < now()
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "token-blacklist cleanup completed",
+      );
+    });
+
     fastify.log.info("queue workers registered");
   },
   {

@@ -12,6 +12,7 @@ export const QUEUE = {
   DAILY_ITINERARIES: "daily-itineraries",
   RATE_LIMIT_CLEANUP: "rate-limit/cleanup",
   AUTH_ATTEMPTS_CLEANUP: "auth-attempts/cleanup",
+  TOKEN_BLACKLIST_CLEANUP: "token-blacklist/cleanup",
 } as const;
 
 export interface NotificationBatchPayload {
