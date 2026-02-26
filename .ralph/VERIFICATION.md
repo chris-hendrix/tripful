@@ -1,4 +1,4 @@
-# Verification: Mutuals Invite
+# Verification: Skill Audit Remediation
 
 ## Environment Setup
 
@@ -25,6 +25,26 @@ make test-down      # Tear down when done
 - Devcontainer is running (verify with `make test-status`)
 - If not running: `make test-up` from the workspace root
 
+### After Adding New Packages
+
+When new npm packages are added (e.g., `@fastify/swagger`, `@fastify/swagger-ui`):
+
+```bash
+make test-exec CMD="pnpm install"
+```
+
+### After Schema Changes / New Migrations
+
+When database schema changes are made:
+
+```bash
+# Generate migration from schema changes
+make test-exec CMD="cd apps/api && pnpm db:generate"
+
+# Apply migration
+make test-exec CMD="cd apps/api && pnpm db:migrate"
+```
+
 ## Test Commands
 
 ### Unit / integration tests (primary verification)
@@ -37,6 +57,17 @@ make test-exec CMD="pnpm test"
 
 ```bash
 make test-exec CMD="pnpm test:e2e"
+```
+
+### E2E specific project (cross-browser)
+
+```bash
+# Run E2E on specific browser project
+make test-exec CMD="pnpm --filter @tripful/web exec playwright test --project=chromium"
+make test-exec CMD="pnpm --filter @tripful/web exec playwright test --project=firefox"
+make test-exec CMD="pnpm --filter @tripful/web exec playwright test --project=webkit"
+make test-exec CMD="pnpm --filter @tripful/web exec playwright test --project=iphone"
+make test-exec CMD="pnpm --filter @tripful/web exec playwright test --project=ipad"
 ```
 
 ### Linting
@@ -60,14 +91,26 @@ make test-exec CMD="pnpm --filter @tripful/shared build"
 ### Run specific test file
 
 ```bash
-make test-exec CMD="pnpm --filter @tripful/api test -- src/services/__tests__/mutuals.service.test.ts"
-make test-exec CMD="pnpm --filter @tripful/web test -- src/hooks/__tests__/use-mutuals.test.ts"
+# API tests
+make test-exec CMD="pnpm --filter @tripful/api test -- src/services/__tests__/<file>"
+
+# Web component tests
+make test-exec CMD="pnpm --filter @tripful/web test -- src/components/<path>/<file>"
+
+# Shared package tests
+make test-exec CMD="pnpm --filter @tripful/shared test -- __tests__/<file>"
 ```
 
 ### List E2E tests
 
 ```bash
 make test-exec CMD="pnpm --filter @tripful/web exec playwright test --list"
+```
+
+### Install Playwright browsers (after adding Firefox/WebKit)
+
+```bash
+make test-exec CMD="pnpm --filter @tripful/web exec playwright install firefox webkit"
 ```
 
 ## Manual Testing (Playwright CLI)
@@ -101,6 +144,7 @@ Screenshots saved to `.playwright-cli/` and viewable with the Read tool.
 | ------------- | -------------- | ---------------------------------------- |
 | Web (Next.js) | 3000           | `http://localhost:3000` inside container |
 | API (Fastify) | 8000           | `http://localhost:8000` inside container |
+| API Docs      | 8000           | `http://localhost:8000/docs` (after OpenAPI task) |
 | PostgreSQL    | 5432           | Internal only                            |
 
 Host ports vary — use `make test-status` to see assigned ports.
@@ -113,31 +157,43 @@ For manual testing:
 
 - Create users via the auth flow (phone + verification code `123456` in test mode)
 - Create trips and invite members to establish mutual relationships
+- Use `pnpm --filter @tripful/api db:seed` for seed data if available
 
 ## Feature Flags
 
-None — this feature has no feature flags.
+None — no feature flags are used for this work.
 
-## Seed Data
+## New Dependencies (to be installed)
 
-For manual testing of mutuals, you need at least 2 users who share a trip:
-
-1. Create User A, create a trip
-2. Create User B, invite them to the trip via phone number
-3. User B accepts (RSVP as "going")
-4. Now User A and User B are mutuals
-
-The database seed script (`pnpm --filter @tripful/api db:seed`) may create test data with mutual relationships. Check `apps/api/src/db/seed.ts` for available seed data.
+| Package | Workspace | Purpose |
+|---------|-----------|---------|
+| `@fastify/swagger` | `apps/api` | OpenAPI spec generation |
+| `@fastify/swagger-ui` | `apps/api` | Swagger UI at `/docs` |
 
 ## Verification Milestones
 
-| After Task | Expected State                                                                              |
-| ---------- | ------------------------------------------------------------------------------------------- |
-| 1.1        | Shared types/schemas build, schema unit tests pass, lint + typecheck pass                   |
-| 2.1        | Mutuals API endpoints work, unit + integration tests pass                                   |
-| 2.2        | Extended invitations accept userIds, notifications created, unit + integration tests pass   |
-| 3.1        | Mutuals page renders, query hooks work, component tests pass                                |
-| 3.2        | Profile sheet works, app header has "My Mutuals" link, component tests pass                 |
-| 4.1        | Invite dialog has mutuals section, E2E tests pass, manual testing verified with screenshots |
-| 5.1        | All cleanup items addressed                                                                 |
-| 6.1        | All checks green: lint, typecheck, unit, E2E                                                |
+| After Task | Expected State |
+| ---------- | -------------- |
+| 1.1 | New tables created, migration applied, schema compiles |
+| 1.2 | Rate limiting works with PG store, cleanup job registered |
+| 1.3 | Token blacklist on logout, 401 on blacklisted token |
+| 1.4 | Account locks after 5 failures, resets on success |
+| 2.1 | pg-boss queues have expiration + DLQ, DLQ workers log errors |
+| 2.2 | Query logging visible at debug level, slow query warnings |
+| 2.3 | All routes have response schemas, `/docs` serves OpenAPI UI |
+| 2.4 | No bare select() calls, all services use column selection |
+| 3.1 | Backend cursor pagination working for trips, notifications, messages |
+| 3.2 | Frontend infinite scroll with cursors, placeholderData prevents flash |
+| 4.1 | enabled at call sites, global mutation indicator, error boundary reset |
+| 4.2 | No useEffect dep warnings, endDate auto-fill works, parallel fetching |
+| 5.1 | Theme tokens everywhere, WCAG AA contrast passing, Button in ErrorBoundary |
+| 5.2 | Loading skeletons for mutuals + auth, timezone list expanded |
+| 6.1 | Space Grotesk rendering correctly across key pages |
+| 6.2 | Scroll animations, staggered reveals, page transitions working |
+| 6.3 | Gradient mesh backgrounds, asymmetric grid, card hover effects |
+| 7.1 | Dialogs → bottom-sheets on mobile, Dialog on desktop |
+| 7.2 | Hamburger menu on mobile, hover guards on touch devices |
+| 8.1 | E2E tests pass across Chromium, Firefox, WebKit, iPhone, iPad |
+| 8.2 | Zero inline timeout numbers in E2E tests |
+| 9.1 | All PROGRESS.md issues triaged and fixed |
+| 10.1 | All checks green: lint, typecheck, unit, integration, E2E (all browsers) |
