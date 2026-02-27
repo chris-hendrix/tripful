@@ -339,3 +339,89 @@ Two categories of fix applied:
 - The `{ columnName: table.columnName }` naming convention (no aliases) is consistent across the entire codebase
 - `notification-batch.worker.ts` was not in the original task description but was discovered by researchers — always search broadly for the pattern being fixed
 - No test modifications were needed — all 2,520 tests pass unchanged, confirming that downstream code only accesses columns that were included in the narrowed selects
+
+## Iteration 9 — Task 3.1: Convert backend OFFSET pagination to cursor-based (trips, notifications, messages)
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created:**
+- `apps/api/src/utils/pagination.ts` — Shared `encodeCursor` (base64url-encoded JSON) and `decodeCursor` (with defensive parsing, rejects non-objects, throws `InvalidCursorError` 400) utilities
+- `apps/api/tests/unit/pagination.test.ts` — 14 unit tests covering round-trip encoding (simple objects, UUIDs, nulls, numbers, timestamps, URL-safety) and error handling (malformed base64, non-JSON, JSON primitives, arrays, empty string)
+
+**Shared schema/type changes:**
+- `shared/schemas/trip.ts` — Added `cursorPaginationSchema` (`cursor?: string, limit: number`) and `CursorPaginationInput` type; updated `tripListResponseSchema` meta from `{total, page, limit, totalPages}` to `{total, limit, hasMore, nextCursor}`
+- `shared/schemas/notification.ts` — Updated `notificationListResponseSchema` meta to cursor-based shape
+- `shared/schemas/message.ts` — Updated `messageListResponseSchema` meta to cursor-based shape
+- `shared/schemas/index.ts` — Added exports for `cursorPaginationSchema` and `CursorPaginationInput`
+- `shared/types/trip.ts` — Updated `GetTripsResponse.meta` to `{total, limit, hasMore, nextCursor: string | null}`
+- `shared/types/notification.ts` — Updated `GetNotificationsResponse.meta` similarly
+- `shared/types/message.ts` — Updated `GetMessagesResponse.meta` similarly
+
+**Backend service changes (3 services converted):**
+- `apps/api/src/services/trip.service.ts` — Converted `getUserTrips` from OFFSET to cursor-based with `startDate ASC NULLS LAST, id ASC` sort key. Cursor encodes `{startDate, id}` with three-way OR for null-safe keyset pagination. Uses "fetch limit+1" pattern.
+- `apps/api/src/services/notification.service.ts` — Converted `getNotifications` from OFFSET to cursor-based with `createdAt DESC, id DESC` sort key. Cursor encodes `{createdAt, id}`. Preserved `unreadCount`.
+- `apps/api/src/services/message.service.ts` — Converted `getMessages` from OFFSET to cursor-based with `createdAt DESC, id DESC` sort key. Cursor encodes `{createdAt, id}`.
+
+**Controller/route changes:**
+- `apps/api/src/controllers/trip.controller.ts` — Changed from `PaginationInput` to `CursorPaginationInput`, extracts `{cursor, limit}`
+- `apps/api/src/controllers/notification.controller.ts` — Changed from `page` to `cursor` param
+- `apps/api/src/controllers/message.controller.ts` — Changed from `{page, limit}` to `{cursor?, limit}`
+- `apps/api/src/routes/trip.routes.ts` — Changed querystring from `paginationSchema` to `cursorPaginationSchema`
+- `apps/api/src/routes/notification.routes.ts` — Changed `page` to `cursor: z.string().max(500).optional()`
+- `apps/api/src/routes/message.routes.ts` — Changed `page` to `cursor`
+
+**Backend test updates (6 test files):**
+- `apps/api/tests/unit/trip.service.test.ts` — Updated meta assertions from `totalPages` to `hasMore`/`nextCursor`
+- `apps/api/tests/unit/notification.service.test.ts` — Removed `page` params, updated meta assertions
+- `apps/api/tests/unit/message.service.test.ts` — Changed call signatures and meta assertions
+- `apps/api/tests/integration/trip.routes.test.ts` — Updated meta assertion
+- `apps/api/tests/integration/notification.routes.test.ts` — Removed `?page=1` from URLs, updated meta assertions
+- `apps/api/tests/integration/message.routes.test.ts` — Removed `?page=1` from URLs, updated meta assertions
+- `apps/api/tests/integration/drizzle-improvements.test.ts` — Updated pagination tests to use cursor-based flow
+
+**Frontend hook changes (minimal, for typecheck passing):**
+- `apps/web/src/hooks/notification-queries.ts` — Removed `page` from params interface and URL query param construction
+- `apps/web/src/hooks/use-notifications.ts` — Removed `page` from options interface
+
+**Frontend test mock updates (6 files):**
+- `apps/web/src/components/messaging/__tests__/trip-messages.test.tsx` — Updated all mock meta objects
+- `apps/web/src/components/notifications/__tests__/notification-bell.test.tsx` — Updated all mock meta objects
+- `apps/web/src/components/notifications/__tests__/trip-notification-bell.test.tsx` — Updated all mock meta objects
+- `apps/web/src/components/notifications/__tests__/trip-notification-dialog.test.tsx` — Updated all mock meta objects
+- `apps/web/src/app/(app)/trips/page.test.tsx` — Updated mock trips response meta
+- `apps/web/src/hooks/__tests__/use-trips.test.tsx` — Updated all mock response meta objects
+
+### Key Design Decisions
+
+1. **"Fetch limit+1" pattern** — Instead of a separate COUNT query for `hasMore`, fetch one extra row and check if results exceed the limit. The total count is still performed separately (kept for UI badge display).
+2. **Trips use `startDate ASC NULLS LAST` cursor** — The most complex of the three conversions. Cursor encodes `{startDate: string | null, id: string}` and the WHERE clause has three branches: (1) non-null cursor startDate with progression through dates, (2) non-null cursor startDate transitioning to null section, (3) null cursor startDate within the null section.
+3. **Preserved `total` in meta** — The frontend uses `total` for display purposes (badges, "X messages" labels). Cursor pagination doesn't need it, but keeping it avoids frontend breakage.
+4. **`base64url` encoding** — Used `base64url` (not plain `base64` like mutuals service) for URL-safe cursor strings in query parameters.
+5. **Kept old `paginationSchema`** — The old page-based schema is preserved in shared/schemas/trip.ts for backward compatibility, though no routes reference it anymore.
+
+### Reviewer Feedback (1 round)
+1. **HIGH — Missing `desc(id)` tiebreaker in notification ORDER BY**: Fixed by adding `desc(notifications.id)` as second ORDER BY column. Without it, rows sharing the same `createdAt` could be returned in non-deterministic order, causing cursor pagination to skip or duplicate items.
+2. **HIGH — Missing `desc(id)` tiebreaker in message ORDER BY**: Same fix — added `desc(messages.id)` as second ORDER BY column.
+3. **LOW (non-blocking) — Pre-existing `isNull(messages.deletedAt)` omission in message data query**: Not introduced by this PR. The count query filters deleted messages but the data query doesn't. Left as-is since it's a pre-existing inconsistency.
+4. **LOW (non-blocking) — Mutuals service still uses private encode/decode**: Could be migrated to shared pagination utils in a follow-up.
+5. **LOW (non-blocking) — Per-service cursor field validation**: Currently casts decoded fields with `as string`. Low risk since cursors are opaque.
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Shared Tests**: PASS — 251 tests
+- **Web Tests**: PASS — 1169 tests
+- **API Tests**: PASS — 1114 tests; 5 pre-existing flaky failures (pg-rate-limit-store concurrent access, account-lockout timing, auth request-code rate limiting, security rate limiting, transient 503s from connection pool contention)
+- **Pagination Utility Tests**: All 14 pass
+- **Cursor Pagination Service/Route Tests**: All 324 tests pass across 8 files (trip, notification, message unit + integration tests)
+- **Reviewer**: APPROVED (after 1 round of feedback — 2 HIGH items fixed: ORDER BY tiebreakers)
+
+### Learnings
+- Cursor-based pagination ORDER BY must include ALL cursor key columns — if the cursor WHERE clause uses `(createdAt, id)`, the ORDER BY must also sort by `(createdAt, id)`. Missing the tiebreaker column causes non-deterministic ordering within groups of equal primary sort values, leading to skipped or duplicated rows.
+- The "fetch limit+1" pattern eliminates the need for a separate COUNT query to determine `hasMore`. Fetch `limit + 1` rows, check if the result exceeds `limit`, slice to `limit`, and encode the last row as `nextCursor`.
+- For `ASC NULLS LAST` cursor pagination, the WHERE clause needs three branches: (1) cursor sortKey is NOT NULL → rows with greater sortKey OR same sortKey + greater id OR NULL sortKey, (2) cursor sortKey IS NULL → rows with NULL sortKey + greater id. This is significantly more complex than simple DESC ordering.
+- `base64url` vs `base64`: The mutuals service uses plain `base64` which works because query string values are URL-encoded. `base64url` is safer for cursors that might be used in URLs without additional encoding.
+- When changing shared types (shared/types/), both backend AND frontend code must be updated to pass typecheck. Even for a "backend-only" task, changing the API contract types affects frontend compilation. Frontend test mocks with hardcoded response shapes also break.
+- The old `paginationSchema` export should be preserved even when no routes use it — external consumers or tests may still import it. Adding `cursorPaginationSchema` alongside is safer than modifying the existing one.

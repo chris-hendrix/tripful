@@ -1,4 +1,4 @@
-import { eq, and, count, isNull, desc, sql } from "drizzle-orm";
+import { eq, and, count, isNull, desc, sql, lt, or } from "drizzle-orm";
 import {
   notifications,
   notificationPreferences,
@@ -7,6 +7,7 @@ import {
 } from "@/db/schema/index.js";
 import type { AppDatabase } from "@/types/index.js";
 import { NotificationNotFoundError } from "@/errors.js";
+import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
 import type { PgBoss } from "pg-boss";
 import { QUEUE } from "@/queues/types.js";
 import type { NotificationBatchPayload } from "@/queues/types.js";
@@ -35,14 +36,19 @@ export interface INotificationService {
   getNotifications(
     userId: string,
     opts: {
-      page: number;
+      cursor?: string;
       limit: number;
       unreadOnly?: boolean;
       tripId?: string;
     },
   ): Promise<{
     data: NotificationResult[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
+    meta: {
+      total: number;
+      limit: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+    };
     unreadCount: number;
   }>;
   getUnreadCount(userId: string): Promise<number>;
@@ -103,22 +109,27 @@ export class NotificationService implements INotificationService {
   ) {}
 
   /**
-   * Gets paginated notifications for a user with optional filters
+   * Gets cursor-paginated notifications for a user with optional filters
    */
   async getNotifications(
     userId: string,
     opts: {
-      page: number;
+      cursor?: string;
       limit: number;
       unreadOnly?: boolean;
       tripId?: string;
     },
   ): Promise<{
     data: NotificationResult[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
+    meta: {
+      total: number;
+      limit: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+    };
     unreadCount: number;
   }> {
-    const { page, limit, unreadOnly, tripId } = opts;
+    const { cursor, limit, unreadOnly, tripId } = opts;
 
     // Build base conditions (including unreadOnly filter so count and data queries match)
     const conditions = [eq(notifications.userId, userId)];
@@ -143,10 +154,24 @@ export class NotificationService implements INotificationService {
     const total = counts?.total ?? 0;
     const unreadCount = counts?.unread ?? 0;
 
-    const totalPages = Math.ceil(total / limit) || 1;
-    const offset = (page - 1) * limit;
+    // Build cursor WHERE clause for keyset pagination (createdAt DESC, id DESC)
+    const cursorConditions = [...conditions];
+    if (cursor) {
+      const decoded = decodeCursor(cursor);
+      const cursorCreatedAt = new Date(decoded.createdAt as string);
+      const cursorId = decoded.id as string;
+      cursorConditions.push(
+        or(
+          lt(notifications.createdAt, cursorCreatedAt),
+          and(
+            eq(notifications.createdAt, cursorCreatedAt),
+            lt(notifications.id, cursorId),
+          ),
+        )!,
+      );
+    }
 
-    // Query notifications
+    // Fetch limit+1 to detect if there's a next page
     const rows = await this.db
       .select({
         id: notifications.id,
@@ -160,14 +185,26 @@ export class NotificationService implements INotificationService {
         createdAt: notifications.createdAt,
       })
       .from(notifications)
-      .where(and(...conditions))
-      .orderBy(desc(notifications.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .where(and(...cursorConditions))
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
+      .limit(limit + 1);
+
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+    // Build next cursor from the last row if there are more results
+    let nextCursor: string | null = null;
+    if (hasMore && pageRows.length > 0) {
+      const lastRow = pageRows[pageRows.length - 1]!;
+      nextCursor = encodeCursor({
+        createdAt: lastRow.createdAt.toISOString(),
+        id: lastRow.id,
+      });
+    }
 
     return {
-      data: rows,
-      meta: { total, page, limit, totalPages },
+      data: pageRows,
+      meta: { total, limit, hasMore, nextCursor },
       unreadCount,
     };
   }

@@ -84,15 +84,15 @@ const messageWithRepliesEntitySchema = messageEntitySchema.extend({
   replyCount: z.number(),
 });
 
-/** GET /api/trips/:tripId/messages - Paginated message list */
+/** GET /api/trips/:tripId/messages - Paginated message list (cursor-based) */
 export const messageListResponseSchema = z.object({
   success: z.literal(true),
   messages: z.array(messageWithRepliesEntitySchema),
   meta: z.object({
     total: z.number(),
-    page: z.number(),
     limit: z.number(),
-    totalPages: z.number(),
+    hasMore: z.boolean(),
+    nextCursor: z.string().nullable(),
   }),
 });
 

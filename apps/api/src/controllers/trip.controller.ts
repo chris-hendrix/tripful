@@ -3,7 +3,7 @@ import type {
   CreateTripInput,
   UpdateTripInput,
   AddCoOrganizerInput,
-  PaginationInput,
+  CursorPaginationInput,
   UpdateMemberRoleInput,
 } from "@tripful/shared/schemas";
 import { TripNotFoundError, PermissionDeniedError } from "../errors.js";
@@ -85,7 +85,7 @@ export const tripController = {
    * @returns Success response with user's trips
    */
   async getUserTrips(
-    request: FastifyRequest<{ Querystring: PaginationInput }>,
+    request: FastifyRequest<{ Querystring: CursorPaginationInput }>,
     reply: FastifyReply,
   ) {
     try {
@@ -93,9 +93,9 @@ export const tripController = {
       const userId = request.user.sub;
 
       // Pagination params are validated and coerced by Fastify route schema
-      const { page, limit } = request.query;
+      const { cursor, limit } = request.query;
 
-      const result = await tripService.getUserTrips(userId, page, limit);
+      const result = await tripService.getUserTrips(userId, cursor, limit);
 
       return reply.status(200).send({
         success: true,

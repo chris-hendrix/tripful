@@ -51,7 +51,7 @@ const mockTripsResponse = {
       eventCount: 0,
     },
   ],
-  meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+  meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
 };
 
 describe("TripsPage (RSC)", () => {

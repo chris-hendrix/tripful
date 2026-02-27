@@ -79,12 +79,11 @@ export function useTripUnreadCount(tripId: string) {
  * - Returns full response with notifications, pagination meta, and unreadCount
  * - No polling: user navigates to see notifications
  *
- * @param options - Optional filter parameters (tripId, page, limit, unreadOnly)
+ * @param options - Optional filter parameters (tripId, limit, unreadOnly)
  * @returns Query object with notifications data and pagination info
  */
 export function useNotifications(options?: {
   tripId?: string;
-  page?: number;
   limit?: number;
   unreadOnly?: boolean;
 }) {

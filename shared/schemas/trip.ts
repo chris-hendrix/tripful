@@ -131,13 +131,24 @@ export const addCoOrganizerSchema = z.object({
 });
 
 /**
- * Validates pagination query parameters
+ * Validates pagination query parameters (legacy offset-based)
  * - page: integer >= 1, defaults to 1
  * - limit: integer 1-100, defaults to 20
  * Uses z.coerce to handle string query params from URLs
  */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+/**
+ * Validates cursor-based pagination query parameters
+ * - cursor: opaque base64url-encoded string (optional, omit for first page)
+ * - limit: integer 1-100, defaults to 20
+ * Uses z.coerce for limit to handle string query params from URLs
+ */
+export const cursorPaginationSchema = z.object({
+  cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
@@ -214,15 +225,15 @@ const tripDetailSchema = tripEntitySchema
     memberCount: z.number(),
   });
 
-/** GET /api/trips - Paginated trip list */
+/** GET /api/trips - Paginated trip list (cursor-based) */
 export const tripListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(tripSummarySchema),
   meta: z.object({
     total: z.number(),
-    page: z.number(),
     limit: z.number(),
-    totalPages: z.number(),
+    hasMore: z.boolean(),
+    nextCursor: z.string().nullable(),
   }),
 });
 
@@ -248,3 +259,4 @@ export type CreateTripInput = z.infer<typeof createTripSchema>;
 export type UpdateTripInput = z.infer<typeof updateTripSchema>;
 export type AddCoOrganizerInput = z.infer<typeof addCoOrganizerSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
+export type CursorPaginationInput = z.infer<typeof cursorPaginationSchema>;

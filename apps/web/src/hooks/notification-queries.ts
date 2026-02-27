@@ -15,7 +15,6 @@ export const notificationKeys = {
   lists: () => ["notifications", "list"] as const,
   list: (params?: {
     tripId?: string;
-    page?: number;
     limit?: number;
     unreadOnly?: boolean;
   }) => ["notifications", "list", params] as const,
@@ -35,12 +34,11 @@ export const notificationKeys = {
  * If tripId is provided, fetches trip-specific notifications.
  * Otherwise fetches all notifications for the current user.
  *
- * @param params - Optional filter parameters (tripId, page, limit, unreadOnly)
+ * @param params - Optional filter parameters (tripId, limit, unreadOnly)
  * @returns Query options for use with useQuery or prefetchQuery
  */
 export const notificationsQueryOptions = (params?: {
   tripId?: string;
-  page?: number;
   limit?: number;
   unreadOnly?: boolean;
 }) =>
@@ -49,8 +47,6 @@ export const notificationsQueryOptions = (params?: {
     staleTime: 30 * 1000,
     queryFn: async ({ signal }) => {
       const searchParams = new URLSearchParams();
-      if (params?.page !== undefined)
-        searchParams.set("page", String(params.page));
       if (params?.limit !== undefined)
         searchParams.set("limit", String(params.limit));
       if (params?.unreadOnly !== undefined)

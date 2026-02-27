@@ -129,7 +129,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -159,7 +159,7 @@ describe("TripNotificationBell", () => {
           }),
         ],
         unreadCount: 2,
-        meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -185,7 +185,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+        meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -208,7 +208,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -240,7 +240,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -276,7 +276,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -309,7 +309,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -337,7 +337,7 @@ describe("TripNotificationBell", () => {
       data: {
         notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });

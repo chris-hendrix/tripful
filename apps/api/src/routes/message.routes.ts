@@ -43,9 +43,9 @@ const muteParamsSchema = z.object({
   memberId: z.string().uuid({ message: "Invalid member ID format" }),
 });
 
-// Pagination query schema
+// Cursor-based pagination query schema
 const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+  cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 
@@ -67,7 +67,7 @@ export async function messageRoutes(fastify: FastifyInstance) {
    */
   fastify.get<{
     Params: { tripId: string };
-    Querystring: { page: number; limit: number };
+    Querystring: { cursor?: string; limit: number };
   }>(
     "/trips/:tripId/messages",
     {

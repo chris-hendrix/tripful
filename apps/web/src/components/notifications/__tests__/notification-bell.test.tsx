@@ -116,7 +116,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -144,7 +144,7 @@ describe("NotificationBell", () => {
           }),
         ],
         unreadCount: 2,
-        meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 2, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -168,7 +168,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -189,7 +189,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -215,7 +215,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+        meta: { total: 0, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -242,7 +242,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -286,7 +286,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -317,7 +317,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [notification],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -343,7 +343,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -366,7 +366,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
       },
       isLoading: false,
     });
@@ -387,7 +387,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -410,7 +410,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+        meta: { total: 0, limit: 10, hasMore: false, nextCursor: null },
       },
       isLoading: false,
     });
@@ -434,7 +434,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
       },
       isLoading: false,
     });
@@ -482,7 +482,7 @@ describe("NotificationBell", () => {
       data: {
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
       },
       isLoading: false,
     });

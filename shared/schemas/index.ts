@@ -41,6 +41,7 @@ export {
   updateTripSchema,
   addCoOrganizerSchema,
   paginationSchema,
+  cursorPaginationSchema,
   successResponseSchema,
   tripListResponseSchema,
   tripDetailResponseSchema,
@@ -49,6 +50,7 @@ export {
   type UpdateTripInput,
   type AddCoOrganizerInput,
   type PaginationInput,
+  type CursorPaginationInput,
 } from "./trip";
 
 // Re-export event schemas

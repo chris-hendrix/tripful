@@ -111,7 +111,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -141,7 +141,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: [],
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+        meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -158,7 +158,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
       });
 
       renderHook(() => useTrips(), { wrapper });
@@ -207,7 +207,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -223,7 +223,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: [mockTrips[0]],
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       });
 
       // Trigger refetch

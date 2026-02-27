@@ -792,9 +792,9 @@ describe("GET /api/trips", () => {
       expect(body.data).toEqual([]);
       expect(body.meta).toEqual({
         total: 0,
-        page: 1,
         limit: 20,
-        totalPages: 0,
+        hasMore: false,
+        nextCursor: null,
       });
     });
 

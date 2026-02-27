@@ -16,7 +16,7 @@ export const notificationController = {
   async listNotifications(
     request: FastifyRequest<{
       Querystring: {
-        page: number;
+        cursor?: string;
         limit: number;
         unreadOnly: boolean;
         tripId?: string;
@@ -26,11 +26,11 @@ export const notificationController = {
   ) {
     const { notificationService } = request.server;
     const userId = request.user.sub;
-    const { page, limit, unreadOnly, tripId } = request.query;
+    const { cursor, limit, unreadOnly, tripId } = request.query;
 
     const { data, meta, unreadCount } =
       await notificationService.getNotifications(userId, {
-        page,
+        ...(cursor != null ? { cursor } : {}),
         limit,
         unreadOnly,
         ...(tripId != null ? { tripId } : {}),
@@ -121,18 +121,18 @@ export const notificationController = {
   async listTripNotifications(
     request: FastifyRequest<{
       Params: { tripId: string };
-      Querystring: { page: number; limit: number; unreadOnly: boolean };
+      Querystring: { cursor?: string; limit: number; unreadOnly: boolean };
     }>,
     reply: FastifyReply,
   ) {
     const { notificationService } = request.server;
     const userId = request.user.sub;
     const { tripId } = request.params;
-    const { page, limit, unreadOnly } = request.query;
+    const { cursor, limit, unreadOnly } = request.query;
 
     const { data, meta, unreadCount } =
       await notificationService.getNotifications(userId, {
-        page,
+        ...(cursor != null ? { cursor } : {}),
         limit,
         unreadOnly,
         tripId,

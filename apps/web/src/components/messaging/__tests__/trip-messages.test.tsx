@@ -108,7 +108,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -120,7 +120,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     const { container } = render(
@@ -134,7 +134,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [makeMessage()],
-      meta: { total: 5, page: 1, limit: 20, totalPages: 1 },
+      meta: { total: 5, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -156,7 +156,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -173,7 +173,7 @@ describe("TripMessages", () => {
         makeMessage({ id: "msg-1", content: "First message" }),
         makeMessage({ id: "msg-2", content: "Second message" }),
       ],
-      meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+      meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -186,7 +186,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} disabled />);
@@ -198,7 +198,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} isMuted />);
@@ -210,7 +210,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -222,7 +222,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -236,7 +236,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -250,7 +250,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [makeMessage()],
-      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
     };
 
     const { container } = render(
@@ -266,7 +266,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -278,7 +278,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -291,7 +291,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [makeMessage({ id: "msg-1" })],
-      meta: { total: 25, page: 1, limit: 20, totalPages: 2 },
+      meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -305,7 +305,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [makeMessage({ id: "msg-1" })],
-      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -319,7 +319,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [makeMessage({ id: "msg-1" })],
-      meta: { total: 25, page: 1, limit: 20, totalPages: 2 },
+      meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
@@ -340,7 +340,7 @@ describe("TripMessages", () => {
     mockData = {
       success: true,
       messages: [],
-      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+      meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);

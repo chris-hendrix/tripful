@@ -81,7 +81,7 @@
 
 ## Phase 3: Cursor Pagination
 
-- [ ] Task 3.1: Convert backend OFFSET pagination to cursor-based (trips, notifications, messages)
+- [x] Task 3.1: Convert backend OFFSET pagination to cursor-based (trips, notifications, messages)
   - Implement: Create `apps/api/src/utils/pagination.ts` with `encodeCursor` and `decodeCursor` utilities (base64url JSON with sort key + id)
   - Implement: Convert `trip.service.ts` (line 451) from OFFSET to cursor pagination keyed on `(createdAt DESC, id)`
   - Implement: Convert `notification.service.ts` (line 166) from OFFSET to cursor pagination

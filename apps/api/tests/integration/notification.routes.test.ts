@@ -90,7 +90,7 @@ describe("Notification Routes", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/api/notifications?page=1&limit=2",
+        url: "/api/notifications?limit=2",
         cookies: { auth_token: token },
       });
 
@@ -103,10 +103,10 @@ describe("Notification Routes", () => {
       expect(body).toHaveProperty("meta");
       expect(body.meta).toMatchObject({
         total: 3,
-        page: 1,
         limit: 2,
-        totalPages: 2,
+        hasMore: true,
       });
+      expect(body.meta.nextCursor).not.toBeNull();
       expect(body).toHaveProperty("unreadCount", 3);
     });
 

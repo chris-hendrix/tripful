@@ -64,16 +64,16 @@ export interface MessageWithReplies extends Message {
 }
 
 /**
- * API response for fetching paginated messages
+ * API response for fetching paginated messages (cursor-based)
  */
 export interface GetMessagesResponse {
   success: true;
   messages: MessageWithReplies[];
   meta: {
     total: number;
-    page: number;
     limit: number;
-    totalPages: number;
+    hasMore: boolean;
+    nextCursor: string | null;
   };
 }
 
