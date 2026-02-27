@@ -32,3 +32,23 @@ export const TOAST_TIMEOUT = 10_000;
  * Set to 5s as dialogs close synchronously via CSS transition (~200ms), with extra margin for CI.
  */
 export const DIALOG_TIMEOUT = 5_000;
+
+/**
+ * Extended navigation timeout for multi-step server operations (delete + redirect).
+ */
+export const SLOW_NAVIGATION_TIMEOUT = 20_000;
+
+/**
+ * Inner assertion timeout for .toPass() retry loops and menu retry probes.
+ */
+export const RETRY_INTERVAL = 3_000;
+
+/**
+ * Quick visibility probe for conditional UI checks that fall back gracefully.
+ */
+export const PROBE_TIMEOUT = 2_000;
+
+/**
+ * Fast timeout for verifying optimistic UI updates that should appear near-instantly.
+ */
+export const OPTIMISTIC_TIMEOUT = 1_000;

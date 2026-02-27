@@ -203,7 +203,7 @@
   - Test: Run a subset of E2E tests (auth-journey) across all 5 projects to verify they pass
   - Verify: all E2E projects launch and pass at least auth journey
 
-- [ ] Task 8.2: Replace hard-coded E2E timeouts with named constants
+- [x] Task 8.2: Replace hard-coded E2E timeouts with named constants
   - Implement: Add new timeout constants to `apps/web/tests/e2e/helpers/timeouts.ts` as needed (e.g., `INTERACTION_TIMEOUT`, `FORM_TIMEOUT`)
   - Implement: Replace ~28 inline timeout numbers in `trip-journey.spec.ts` with named constants
   - Implement: Replace ~10 inline timeouts in `profile-journey.spec.ts`

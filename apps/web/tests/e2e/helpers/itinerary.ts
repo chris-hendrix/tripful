@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { dismissToast } from "./toast";
 import { pickDateTime } from "./date-pickers";
+import { PROBE_TIMEOUT } from "./timeouts";
 
 /** Helper: open the FAB dropdown and click a menu item, or fall back to empty-state button. */
 export async function clickFabAction(page: Page, actionName: string) {
@@ -9,7 +10,7 @@ export async function clickFabAction(page: Page, actionName: string) {
   await dismissToast(page);
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
-  if (await fab.isVisible({ timeout: 2000 }).catch(() => false)) {
+  if (await fab.isVisible({ timeout: PROBE_TIMEOUT }).catch(() => false)) {
     await fab.click();
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {

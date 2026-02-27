@@ -10,6 +10,15 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
 import { dismissToast } from "./helpers/toast";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+  DIALOG_TIMEOUT,
+  SLOW_NAVIGATION_TIMEOUT,
+  RETRY_INTERVAL,
+  OPTIMISTIC_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Trip CRUD, Permissions, and Validation
@@ -38,9 +47,9 @@ test.describe("Trip Journey", () => {
       await expect(async () => {
         await trips.createTripButton.click();
         await expect(tripDetail.createDialogHeading).toBeVisible({
-          timeout: 3000,
+          timeout: RETRY_INTERVAL,
         });
-      }).toPass({ timeout: 10000 });
+      }).toPass({ timeout: ELEMENT_TIMEOUT });
       await expect(tripDetail.step1Indicator).toBeVisible();
       await expect(page.getByText("Basic information")).toBeVisible();
 
@@ -57,14 +66,14 @@ test.describe("Trip Journey", () => {
       await snap(page, "06-create-trip-step2");
       await tripDetail.createTripButton.click();
 
-      await page.waitForURL("**/trips/**", { timeout: 15000 });
+      await page.waitForURL("**/trips/**", { timeout: NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/trips/");
     });
 
     await test.step("verify trip detail page", async () => {
       await expect(
         page.getByRole("heading", { level: 1, name: tripName }),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       await expect.soft(page.getByText(tripDestination)).toBeVisible();
       await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
       await expect.soft(page.getByText(tripDescription)).toBeVisible();
@@ -117,7 +126,7 @@ test.describe("Trip Journey", () => {
     await test.step("verify optimistic update and success", async () => {
       await expect(
         page.locator("h1").filter({ hasText: updatedName }),
-      ).toBeVisible({ timeout: 1000 });
+      ).toBeVisible({ timeout: OPTIMISTIC_TIMEOUT });
       await expect(page.getByText("Trip updated successfully")).toBeVisible();
       await expect(tripDetail.editDialogHeading).not.toBeVisible();
 
@@ -160,7 +169,7 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("trip removed from trips list", async () => {
-      await page.waitForURL("**/trips", { timeout: 20000 });
+      await page.waitForURL("**/trips", { timeout: SLOW_NAVIGATION_TIMEOUT });
       await expect(page.getByText(updatedName)).not.toBeVisible();
 
       await expect(trips.emptyStateHeading).toBeVisible();
@@ -197,9 +206,9 @@ test.describe("Trip Journey", () => {
         await expect(async () => {
           await trips.createTripButton.click();
           await expect(tripDetail.createDialogHeading).toBeVisible({
-            timeout: 3000,
+            timeout: RETRY_INTERVAL,
           });
-        }).toPass({ timeout: 10000 });
+        }).toPass({ timeout: ELEMENT_TIMEOUT });
 
         await tripDetail.nameInput.fill(tripName);
         await tripDetail.destinationInput.fill(tripDestination);
@@ -297,7 +306,7 @@ test.describe("Trip Journey", () => {
 
         await expect(
           page.getByRole("heading", { level: 1, name: updatedTripName }),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
         await expect(page.getByText("Trip updated successfully")).toBeVisible();
       });
 
@@ -384,13 +393,13 @@ test.describe("Trip Journey", () => {
             level: 1,
             name: `Past Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("verify read-only banner is visible", async () => {
         await expect(
           page.getByText("This trip has ended. The itinerary is read-only."),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
         await snap(page, "22-past-trip-read-only-banner");
       });
 
@@ -498,10 +507,10 @@ test.describe("Trip Journey", () => {
             level: 1,
             name: `Remove Member Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         await expect(page.getByText("Member's Dinner Plan")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
       });
 
@@ -539,7 +548,7 @@ test.describe("Trip Journey", () => {
       await test.step("confirm removal", async () => {
         const toastPromise = page
           .getByText(/Test Member has been removed/)
-          .waitFor({ state: "visible", timeout: 15000 });
+          .waitFor({ state: "visible", timeout: NAVIGATION_TIMEOUT });
 
         await page.getByRole("button", { name: "Remove", exact: true }).click();
 
@@ -550,23 +559,23 @@ test.describe("Trip Journey", () => {
 
       await test.step("verify member count updated", async () => {
         await expect(page.getByText("Test Member")).not.toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         await page.keyboard.press("Escape");
 
         await expect(page.getByText(/1 member(?!s)/)).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
       });
 
       await test.step("verify member's event shows 'no longer attending' badge", async () => {
         await expect(page.getByText("Member's Dinner Plan")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         await expect(page.getByText("Member no longer attending")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         await snap(page, "25-member-no-longer-attending");
@@ -625,7 +634,7 @@ test.describe("Trip Journey", () => {
             level: 1,
             name: `Promote Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         await expect(page.getByText(/2 members?/)).toBeVisible();
         await page.getByText(/2 members?/).click();
@@ -657,7 +666,7 @@ test.describe("Trip Journey", () => {
         // Verify toast success message
         await expect(
           page.getByText("Test Promotee is now a co-organizer"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: TOAST_TIMEOUT });
 
         // Verify "Organizer" badge appears on that member in the dialog
         // The dialog should still be open and now show the badge
@@ -666,7 +675,7 @@ test.describe("Trip Journey", () => {
         });
         await expect(
           promoteeNameEl.locator("..").getByText("Organizer"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await test.step("demote member from co-organizer", async () => {
@@ -687,7 +696,7 @@ test.describe("Trip Journey", () => {
         // Verify toast success message
         await expect(
           page.getByText("Test Promotee is no longer a co-organizer"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: TOAST_TIMEOUT });
 
         // Verify "Organizer" badge is removed from that member
         // Wait for the UI to update
@@ -696,7 +705,7 @@ test.describe("Trip Journey", () => {
         });
         await expect(
           demoteeNameEl.locator("..").getByText("Organizer"),
-        ).not.toBeVisible({ timeout: 10000 });
+        ).not.toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
     },
   );
@@ -771,14 +780,14 @@ test.describe("Trip Journey", () => {
             level: 1,
             name: `Delegation Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("open My Travel dialog via FAB", async () => {
         await dismissToast(page);
 
         const fab = page.getByRole("button", { name: "Add to itinerary" });
-        await expect(fab).toBeVisible({ timeout: 10000 });
+        await expect(fab).toBeVisible({ timeout: ELEMENT_TIMEOUT });
         await fab.click();
         await page.getByRole("menuitem", { name: "My Travel" }).click();
 
@@ -806,7 +815,7 @@ test.describe("Trip Journey", () => {
         const delegatedOption = page.getByRole("option", {
           name: /Delegated Member/,
         });
-        await expect(delegatedOption).toBeVisible({ timeout: 5000 });
+        await expect(delegatedOption).toBeVisible({ timeout: DIALOG_TIMEOUT });
 
         // Select the delegated member
         await delegatedOption.click();
@@ -834,14 +843,14 @@ test.describe("Trip Journey", () => {
         // Wait for success toast
         await expect(
           page.getByText("Travel details added successfully"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: TOAST_TIMEOUT });
       });
 
       await test.step("verify delegated travel appears with correct member name", async () => {
         // The travel card shows "Name · Time · Location" format
         // Verify the delegated member's name appears on the travel card
         await expect(page.getByText("Delegated Member").first()).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         // Location should also be visible (compact view truncates > 20 chars)

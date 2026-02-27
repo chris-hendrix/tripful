@@ -1,4 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
+import { ELEMENT_TIMEOUT } from "../timeouts";
 
 export class ProfilePage {
   readonly page: Page;
@@ -51,6 +52,6 @@ export class ProfilePage {
       await this.page.getByRole("button", { name: "User menu" }).click();
       await this.page.getByTestId("profile-menu-item").click();
     }
-    await this.heading.waitFor({ state: "visible", timeout: 10000 });
+    await this.heading.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
   }
 }

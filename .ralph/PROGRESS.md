@@ -1130,3 +1130,57 @@ All 12 dialogs converted from `Sheet`/`SheetContent`/`SheetHeader`/`SheetBody`/`
 - Playwright device presets like `iPhone 14` include `isMobile: true` and `hasTouch: true`, which affects both viewport size and user agent. The `iPad Mini` preset has a viewport wide enough (1024px) to trigger the `md:` CSS breakpoint, meaning it uses the desktop nav layout.
 - The Dockerfile has separate browser install phases: `install-deps` (as root, for OS-level libraries like libgtk, libwoff2) and `install` (as node user, for browser binaries). Both must be updated together when adding new browser engines.
 - CI shard count (currently 2) may need increasing as the test matrix grows from 1→5 projects. This is not blocking but worth monitoring CI runtimes.
+
+## Iteration 21 — Task 8.2: Replace hard-coded E2E timeouts with named constants
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/tests/e2e/helpers/timeouts.ts` — Added 4 new named constants with JSDoc: `SLOW_NAVIGATION_TIMEOUT` (20_000), `RETRY_INTERVAL` (3_000), `PROBE_TIMEOUT` (2_000), `OPTIMISTIC_TIMEOUT` (1_000)
+- `apps/web/tests/e2e/trip-journey.spec.ts` — Added import for 7 timeout constants, replaced 27 inline timeout numbers
+- `apps/web/tests/e2e/profile-journey.spec.ts` — Added import for 3 timeout constants, replaced 10 inline timeout numbers
+- `apps/web/tests/e2e/invitation-journey.spec.ts` — Replaced 12 inline timeout numbers (import already existed)
+- `apps/web/tests/e2e/itinerary-journey.spec.ts` — Added import for 4 timeout constants, replaced 12 inline timeout numbers
+- `apps/web/tests/e2e/helpers/trips.ts` — Added import for `ELEMENT_TIMEOUT`, `NAVIGATION_TIMEOUT`, replaced 2 inline timeout numbers
+- `apps/web/tests/e2e/helpers/pages/trips.page.ts` — Added import for `DIALOG_TIMEOUT`, `RETRY_INTERVAL`, replaced 2 inline timeout numbers
+- `apps/web/tests/e2e/helpers/pages/profile.page.ts` — Added import for `ELEMENT_TIMEOUT`, replaced 1 inline timeout number
+- `apps/web/tests/e2e/helpers/itinerary.ts` — Added import for `PROBE_TIMEOUT`, replaced 1 inline timeout number
+
+### New Constants Added to timeouts.ts
+
+| Constant | Value | Purpose |
+|---|---|---|
+| `SLOW_NAVIGATION_TIMEOUT` | `20_000` | Extended navigation for multi-step server operations (delete + redirect) |
+| `RETRY_INTERVAL` | `3_000` | Inner assertion timeout for `.toPass()` retry loops and menu retry probes |
+| `PROBE_TIMEOUT` | `2_000` | Quick visibility probe for conditional UI checks that fall back gracefully |
+| `OPTIMISTIC_TIMEOUT` | `1_000` | Fast timeout for verifying optimistic UI updates |
+
+### Timeout Mapping Summary
+
+| Inline Value | Constant Used | Count |
+|---|---|---|
+| `15000` | `NAVIGATION_TIMEOUT` | 17 |
+| `10000`/`10_000` (element) | `ELEMENT_TIMEOUT` | 28 |
+| `10000`/`10_000` (toast) | `TOAST_TIMEOUT` | 10 |
+| `5000` | `DIALOG_TIMEOUT` | 4 |
+| `3000` | `RETRY_INTERVAL` | 3 |
+| `20000` | `SLOW_NAVIGATION_TIMEOUT` | 1 |
+| `2000` | `PROBE_TIMEOUT` | 1 |
+| `1000` | `OPTIMISTIC_TIMEOUT` | 1 |
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning)
+- **Grep verification**: PASS — `grep -rn 'timeout:\s*[0-9]' apps/web/tests/e2e/ --include='*.ts'` returns zero results
+- **E2E tests (chromium)**: PASS (22/22 tests passed)
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- The constant value hierarchy forms a logical progression: `OPTIMISTIC_TIMEOUT` (1s) < `PROBE_TIMEOUT` (2s) < `RETRY_INTERVAL` (3s) < `DIALOG_TIMEOUT` (5s) < `ELEMENT_TIMEOUT`/`TOAST_TIMEOUT` (10s) < `NAVIGATION_TIMEOUT` (15s) < `SLOW_NAVIGATION_TIMEOUT` (20s). This makes it easy to pick the right constant for new tests.
+- `TOAST_TIMEOUT` and `ELEMENT_TIMEOUT` have the same numeric value (10_000) but serve different semantic purposes. Using distinct constants makes the test intent clear even when values happen to match.
+- When verifying "no inline timeouts remain", the grep pattern `timeout:\s*[0-9]` is sufficient because the constant definitions in `timeouts.ts` use underscore-separated numbers like `15_000` which don't match `[0-9]` after the underscore.
+- Existing files that already imported some constants (like `invitation-journey.spec.ts`) don't need import changes — just replace the inline values with the already-imported constant names.

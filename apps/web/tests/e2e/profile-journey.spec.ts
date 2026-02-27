@@ -4,6 +4,11 @@ import fs from "fs";
 import { authenticateViaAPI } from "./helpers/auth";
 import { TripsPage, ProfilePage } from "./helpers/pages";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Profile Management
@@ -76,9 +81,9 @@ test.describe("Profile Journey", () => {
         const profileButton = (await trips.mobileProfileButton.isVisible())
           ? trips.mobileProfileButton
           : trips.profileItem;
-        await expect(profileButton).toBeVisible({ timeout: 10000 });
+        await expect(profileButton).toBeVisible({ timeout: ELEMENT_TIMEOUT });
         await profileButton.click();
-        await expect(profile.heading).toBeVisible({ timeout: 10000 });
+        await expect(profile.heading).toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await test.step("profile form shows current user data", async () => {
@@ -94,7 +99,7 @@ test.describe("Profile Journey", () => {
 
         await expect(
           page.getByText("Profile updated successfully"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: TOAST_TIMEOUT });
       });
 
       await test.step("updated name persists after page reload", async () => {
@@ -102,7 +107,7 @@ test.describe("Profile Journey", () => {
         await profile.openDialog();
         await expect(profile.displayNameInput).toHaveValue(
           "Updated Profile Name",
-          { timeout: 10000 },
+          { timeout: ELEMENT_TIMEOUT },
         );
       });
 
@@ -113,17 +118,17 @@ test.describe("Profile Journey", () => {
 
         await expect(
           page.getByText("Profile updated successfully"),
-        ).toBeVisible({ timeout: 10000 });
+        ).toBeVisible({ timeout: TOAST_TIMEOUT });
       });
 
       await test.step("handles persist after page reload", async () => {
         await page.reload();
         await profile.openDialog();
         await expect(profile.venmoInput).toHaveValue("@testvenmo", {
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         await expect(profile.instagramInput).toHaveValue("@testinsta", {
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
       });
     },
@@ -136,7 +141,7 @@ test.describe("Profile Journey", () => {
       const profile = new ProfilePage(page);
       await authenticateViaAPI(page, request, "Photo Test User");
       await profile.goto();
-      await expect(profile.heading).toBeVisible({ timeout: 10000 });
+      await expect(profile.heading).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       await test.step("upload photo button is visible", async () => {
         await expect(profile.uploadPhotoButton).toBeVisible();
@@ -157,7 +162,7 @@ test.describe("Profile Journey", () => {
 
         // Wait for upload success toast
         await expect(page.getByText("Profile photo updated")).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
 
         // Button text should change to "Change photo"
@@ -174,7 +179,7 @@ test.describe("Profile Journey", () => {
         await profile.removePhotoButton.click();
 
         await expect(page.getByText("Profile photo removed")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
 
         // Button text should revert to "Upload photo"

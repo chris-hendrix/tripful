@@ -1,4 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
+import { DIALOG_TIMEOUT, RETRY_INTERVAL } from "../timeouts";
 
 export class TripsPage {
   readonly page: Page;
@@ -51,7 +52,7 @@ export class TripsPage {
       await this.mobileMenuButton.click();
       await this.mobileLogoutButton.waitFor({
         state: "visible",
-        timeout: 5000,
+        timeout: DIALOG_TIMEOUT,
       });
     } else {
       // Radix DropdownMenu can sometimes fail to stay open on the first click
@@ -59,7 +60,7 @@ export class TripsPage {
       for (let attempt = 0; attempt < 3; attempt++) {
         await this.userMenuButton.click();
         const opened = await this.logoutItem
-          .waitFor({ state: "visible", timeout: 3000 })
+          .waitFor({ state: "visible", timeout: RETRY_INTERVAL })
           .then(() => true)
           .catch(() => false);
         if (opened) return;

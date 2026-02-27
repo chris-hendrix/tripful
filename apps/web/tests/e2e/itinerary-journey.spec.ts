@@ -5,6 +5,12 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDateTime } from "./helpers/date-pickers";
 import { createTrip } from "./helpers/trips";
 import { clickFabAction, createEvent } from "./helpers/itinerary";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+  DIALOG_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -98,7 +104,7 @@ test.describe("Itinerary Journey", () => {
             hasText: new RegExp(accommodationName.replace(/\d+/g, "\\d+")),
           })
           .first();
-        await expect(accommodationCard).toBeVisible({ timeout: 10000 });
+        await expect(accommodationCard).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
         // Address should be a Google Maps link (scoped to first card instance)
         // Compact view truncates addresses > 20 chars: "123 Main St, San Die…"
@@ -205,7 +211,7 @@ test.describe("Itinerary Journey", () => {
         }
         await expect(
           page.locator('button[title="Edit event"]').first(),
-        ).toBeVisible({ timeout: 5000 });
+        ).toBeVisible({ timeout: DIALOG_TIMEOUT });
         await page.locator('button[title="Edit event"]').first().click();
         await expect(
           page.getByRole("heading", { name: "Edit event" }),
@@ -227,11 +233,11 @@ test.describe("Itinerary Journey", () => {
 
         // Wait for the delete toast, then reload to ensure fresh state
         await expect(page.getByText("Event deleted")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
         await page.reload();
         await expect(page.getByText(/Updated Dinner/)).not.toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
       });
     },
@@ -284,13 +290,13 @@ test.describe("Itinerary Journey", () => {
 
         // Wait for success toast confirming API call completed (refetch follows)
         await expect(page.getByText(/travel details added/i)).toBeVisible({
-          timeout: 10_000,
+          timeout: TOAST_TIMEOUT,
         });
 
         // Travel card shows member name (appears after refetch with JOIN data;
         // optimistic update lacks memberName so the real name loads on refetch)
         await expect(page.getByText(/View Mode User/).first()).toBeVisible({
-          timeout: 10_000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         // Location is a Google Maps link
@@ -436,7 +442,7 @@ test.describe("Itinerary Journey", () => {
       await test.step("reload and verify event is visible", async () => {
         await page.reload();
         await expect(page.getByText("Dinner at Joe's")).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
       });
 
@@ -454,7 +460,7 @@ test.describe("Itinerary Journey", () => {
         // Click the Edit button, then Delete event in the edit dialog
         await expect(
           page.locator('button[title="Edit event"]').first(),
-        ).toBeVisible({ timeout: 5000 });
+        ).toBeVisible({ timeout: DIALOG_TIMEOUT });
         await page.locator('button[title="Edit event"]').first().click();
         await expect(
           page.getByRole("heading", { name: "Edit event" }),
@@ -467,7 +473,7 @@ test.describe("Itinerary Journey", () => {
 
       await test.step("verify event deleted and toast shown", async () => {
         await expect(page.getByText("Event deleted")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
       });
 
@@ -481,7 +487,7 @@ test.describe("Itinerary Journey", () => {
         const viewDeletedBtn = page.getByRole("button", {
           name: "View deleted items",
         });
-        await expect(viewDeletedBtn).toBeVisible({ timeout: 15000 });
+        await expect(viewDeletedBtn).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
         await viewDeletedBtn.click();
 
         // Verify dialog opens with the deleted event
@@ -499,7 +505,7 @@ test.describe("Itinerary Journey", () => {
         await restoreButton.click();
 
         await expect(page.getByText("Event restored")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
       });
 
@@ -508,7 +514,7 @@ test.describe("Itinerary Journey", () => {
         await page.keyboard.press("Escape");
 
         await expect(page.getByText("Dinner at Joe's")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         await snap(page, "21-event-restored");
