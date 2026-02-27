@@ -6,14 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ResponsiveDialog,
+  ResponsiveDialogBody,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import {
   useEventsWithDeleted,
   useRestoreEvent,
@@ -104,20 +104,20 @@ export function DeletedItemsDialog({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Deleted items
-          </SheetTitle>
-          <SheetDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             {totalDeleted === 0
               ? "No deleted items."
               : "Restore items to bring them back to your itinerary."}
-          </SheetDescription>
-        </SheetHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <SheetBody>
+        <ResponsiveDialogBody>
           {totalDeleted === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
               <Trash2 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
@@ -192,11 +192,11 @@ export function DeletedItemsDialog({
               )}
             </div>
           )}
-        </SheetBody>
+        </ResponsiveDialogBody>
 
-        <SheetFooter showCloseButton />
-      </SheetContent>
-    </Sheet>
+        <ResponsiveDialogFooter showCloseButton />
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 

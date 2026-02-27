@@ -175,7 +175,7 @@
 
 ## Phase 7: Mobile UX
 
-- [ ] Task 7.1: Create responsive dialog system and convert all dialogs
+- [x] Task 7.1: Create responsive dialog system and convert all dialogs
   - Implement: Create `apps/web/src/hooks/use-media-query.ts` — SSR-safe media query hook
   - Implement: Create `apps/web/src/components/ui/responsive-dialog.tsx` — switches between Dialog (desktop ≥768px) and Sheet side="bottom" (mobile)
   - Implement: Export ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter

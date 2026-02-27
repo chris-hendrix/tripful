@@ -11,13 +11,13 @@ import {
   type CreateAccommodationInput,
 } from "@tripful/shared/schemas";
 import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ResponsiveDialog,
+  ResponsiveDialogBody,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import {
   Form,
   FormControl,
@@ -179,18 +179,18 @@ export function CreateAccommodationDialog({
   const links = form.watch("links") || [];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Create a new accommodation
-          </SheetTitle>
-          <SheetDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Add an accommodation to your trip itinerary
-          </SheetDescription>
-        </SheetHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <SheetBody>
+        <ResponsiveDialogBody>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
@@ -452,8 +452,8 @@ export function CreateAccommodationDialog({
               </div>
             </form>
           </Form>
-        </SheetBody>
-      </SheetContent>
-    </Sheet>
+        </ResponsiveDialogBody>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

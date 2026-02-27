@@ -39,13 +39,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  ResponsiveDialog,
+  ResponsiveDialogBody,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -179,18 +179,18 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
   const isPhotoLoading = uploadPhoto.isPending || removePhoto.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Profile
-          </SheetTitle>
-          <SheetDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Manage your account details and preferences
-          </SheetDescription>
-        </SheetHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <SheetBody>
+        <ResponsiveDialogBody>
           {loading ? (
             <div className="space-y-6 pb-6">
               <div className="flex items-center gap-4">
@@ -446,8 +446,8 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
               </Form>
             </div>
           ) : null}
-        </SheetBody>
-      </SheetContent>
-    </Sheet>
+        </ResponsiveDialogBody>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

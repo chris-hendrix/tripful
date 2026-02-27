@@ -938,3 +938,76 @@ All animations use `motion-safe:` prefix. Only `opacity` and `transform` propert
 - For asymmetric grids with `lg:row-span-2`, the TripCard needs a `className` prop to accept `lg:h-full` from the parent — this allows the card to fill the full height of the 2-row span. The `cn()` merging pattern from shadcn/ui components works cleanly for this.
 - Empty state containers need `relative overflow-hidden` for the `TopoPattern` absolute positioning, with a separate `relative` inner div to create a stacking context above the decorative background. This 3-layer approach (container → decorative → content) is clean and reusable.
 - The `pointer-events: none` on both `card-noise::after` and `TopoPattern` is essential to prevent decorative layers from intercepting clicks on buttons and links within the cards/empty states.
+
+## Iteration 18 — Task 7.1: Create responsive dialog system and convert all dialogs
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created (4):**
+
+1. **`apps/web/src/hooks/use-media-query.ts`** — SSR-safe `useMediaQuery` hook that defaults to `false` (mobile-first), syncs with `window.matchMedia` after hydration, and updates on media query changes. Cleans up event listeners on unmount.
+
+2. **`apps/web/src/components/ui/responsive-dialog.tsx`** — Responsive dialog component using React context to share `isDesktop` state (from `useMediaQuery("(min-width: 768px)")`). `ResponsiveDialogContent` renders a centered modal with fade/zoom animations on desktop (≥768px) and a bottom-sheet with slide-up animation on mobile (<768px). Exports: `ResponsiveDialog`, `ResponsiveDialogContent`, `ResponsiveDialogHeader`, `ResponsiveDialogBody`, `ResponsiveDialogFooter`, `ResponsiveDialogTitle`, `ResponsiveDialogDescription`.
+
+3. **`apps/web/src/hooks/__tests__/use-media-query.test.ts`** — 6 tests: SSR-safe default (false), matching query returns true, change event updates state, cleanup removes event listener on unmount, query string passthrough, re-evaluation on query change.
+
+4. **`apps/web/src/components/ui/__tests__/responsive-dialog.test.tsx`** — 11 tests: sub-component rendering, mobile bottom-sheet classes (bottom-0, rounded-t-2xl, slide-in-from-bottom, max-h-[85vh]), desktop centered dialog classes (top-[50%], left-[50%], max-h-[calc(100vh-4rem)]), overlay z-50, portal rendering, close button visibility, scrollable body, footer close button, data-slot attributes, onOpenChange callback.
+
+**Files modified (12 dialog conversions):**
+
+All 12 dialogs converted from `Sheet`/`SheetContent`/`SheetHeader`/`SheetBody`/`SheetTitle`/`SheetDescription`/`SheetFooter` to `ResponsiveDialog`/`ResponsiveDialogContent`/`ResponsiveDialogHeader`/`ResponsiveDialogBody`/`ResponsiveDialogTitle`/`ResponsiveDialogDescription`/`ResponsiveDialogFooter`:
+
+1. `apps/web/src/components/trip/create-trip-dialog.tsx`
+2. `apps/web/src/components/trip/edit-trip-dialog.tsx`
+3. `apps/web/src/components/trip/invite-members-dialog.tsx`
+4. `apps/web/src/components/itinerary/create-event-dialog.tsx`
+5. `apps/web/src/components/itinerary/edit-event-dialog.tsx`
+6. `apps/web/src/components/itinerary/create-accommodation-dialog.tsx`
+7. `apps/web/src/components/itinerary/edit-accommodation-dialog.tsx`
+8. `apps/web/src/components/itinerary/create-member-travel-dialog.tsx`
+9. `apps/web/src/components/itinerary/edit-member-travel-dialog.tsx`
+10. `apps/web/src/components/itinerary/deleted-items-dialog.tsx` (includes SheetFooter → ResponsiveDialogFooter)
+11. `apps/web/src/components/notifications/trip-notification-dialog.tsx`
+12. `apps/web/src/components/profile/profile-dialog.tsx`
+
+**Files NOT converted (intentionally excluded):** `member-onboarding-wizard.tsx`, `trip-settings-button.tsx`, `mutual-profile-sheet.tsx`, `trip-detail-content.tsx` — these continue using Sheet as appropriate.
+
+### Key Design Decisions
+
+1. **React context for mode switching** — `ResponsiveDialogContext` shares `{ isDesktop: boolean }` state so child components know which CSS classes to apply. The context is set in `ResponsiveDialog` root and read in `ResponsiveDialogContent`.
+
+2. **Mobile-first SSR default** — `useMediaQuery` returns `false` during SSR, so the server renders the mobile (bottom-sheet) layout. The actual viewport is synced in `useEffect` after hydration, preventing mismatches.
+
+3. **Desktop = centered dialog, Mobile = bottom sheet** — Desktop uses `fixed top-[50%] left-[50%]` with fade+zoom (duration-200); Mobile uses `fixed inset-x-0 bottom-0` with fade+slide-up (duration-300). The longer mobile duration feels more natural for the slide animation.
+
+4. **Scrollable body in both modes** — `ResponsiveDialogBody` provides `flex-1 overflow-y-auto` with `max-h-[calc(100vh-4rem)]` (desktop) and `max-h-[85vh]` (mobile) on the content wrapper, ensuring long forms scroll properly.
+
+5. **Direct Radix import** — The component imports `Dialog as DialogPrimitive` from `"radix-ui"` directly, same as both the existing Dialog and Sheet components, keeping the dependency chain clean.
+
+### Reviewer Notes (all LOW severity, non-blocking)
+
+- No drag-to-dismiss handle for mobile bottom sheet (relies on overlay click/Escape/X button — standard Radix behavior)
+- `data-slot` on Root component is silently dropped since Radix Root renders no DOM element (matches existing Dialog/Sheet pattern)
+- `ResponsiveDialogTrigger`/`ResponsiveDialogClose` not exported (not needed — all 12 dialogs use controlled `open`/`onOpenChange` pattern)
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in `verification.service.test.ts`)
+- **Web Tests**: PASS — 72 test files, 1219 tests, 0 failures
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: Pre-existing flaky failures in pg-rate-limit-store, account-lockout, invitation.routes (unrelated to Task 7.1)
+- **New Hook Tests**: 6/6 pass
+- **New Component Tests**: 11/11 pass
+- **Existing Dialog Tests**: All pass after conversion (e.g., create-trip-dialog: 59 tests pass)
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- All 12 "dialog" components in the codebase actually used `Sheet` (not `Dialog`). The Dialog component existed but was unused by any application code. The responsive dialog replaces Sheet usage for these 12 components.
+- Both Sheet and Dialog are built on the same Radix `Dialog` primitive, making them interchangeable at the API level. The only differences are CSS (positioning, animation, layout).
+- The `useMediaQuery` hook pattern of `useState(false)` + `useEffect` sync is the standard SSR-safe approach for Next.js App Router. The `useEffect` only runs client-side, so the initial render always matches between server and client.
+- The global `matchMedia` mock in `vitest.setup.ts` (returns `matches: false`) means all existing tests run in "mobile" (bottom-sheet) mode by default, which is functionally equivalent to the old Sheet behavior — no existing tests needed updating.
+- Radix `DialogPrimitive.Root` does not render a DOM element (it's a context provider), so `data-slot` attributes on it are silently dropped. This matches the existing Dialog and Sheet patterns.
