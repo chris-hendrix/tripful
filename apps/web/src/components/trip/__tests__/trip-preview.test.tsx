@@ -174,7 +174,7 @@ describe("TripPreview", () => {
     render(<TripPreview trip={tripMaybe} tripId="trip-1" />);
 
     const maybeButton = screen.getByRole("button", { name: "Maybe" });
-    expect(maybeButton.className).toContain("bg-amber-500");
+    expect(maybeButton.className).toContain("bg-warning");
   });
 
   it("highlights current RSVP status button as active (not_going)", () => {

@@ -141,7 +141,7 @@ export const EventCard = memo(function EventCard({
             {event.creatorAttending === false && (
               <Badge
                 variant="outline"
-                className="text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"
+                className="text-xs bg-warning/15 text-warning border-warning/30"
               >
                 Member no longer attending
               </Badge>

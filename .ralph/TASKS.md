@@ -243,7 +243,7 @@
   - Test: Run the full API test suite 3+ times to confirm flaky tests now pass consistently
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 9.1.4: FIX: Replace remaining hardcoded amber colors with theme tokens
+- [x] Task 9.1.4: FIX: Replace remaining hardcoded amber colors with theme tokens
   - Priority: LOW — design system consistency
   - Source: Iteration 13 (Task 5.1) learnings section
   - Fix: After Task 5.1 replaced hardcoded amber colors in rsvp-badge.tsx and trip-card.tsx, three files still have hardcoded Tailwind amber color classes instead of theme tokens: `apps/web/src/components/messaging/message-input.tsx`, `apps/web/src/components/itinerary/event-card.tsx`, `apps/web/src/components/trip/trip-preview.tsx`. Replace hardcoded amber/emerald color classes with `warning`/`success` theme tokens, following the same pattern established in Task 5.1.

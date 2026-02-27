@@ -1422,3 +1422,58 @@ The flakiness had **three distinct causes**:
 - A `let setupDone = false` module-level guard only works within a single thread's module cache. With multiple threads, each thread has its own module scope, so the guard provides no cross-thread protection.
 - `@fastify/rate-limit` with a custom store does NOT prefix keys with namespace or route IDs — the raw `keyGenerator` result is passed directly to the store's `incr()` method. Cleanup `WHERE key = ${phone}` correctly matches the stored keys.
 - Pre-existing flaky timestamp test (`trip.service.test.ts > should update the updatedAt timestamp`) uses a 10ms delay that occasionally fails under load — this is a separate issue unrelated to rate-limiting/lockout.
+
+## Iteration 26 — Task 9.1.4: FIX: Replace remaining hardcoded amber colors with theme tokens
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (3 source files):**
+
+1. **`apps/web/src/components/messaging/message-input.tsx`** — Replaced `"text-amber-600"` with `"text-warning"` (line 151) for the character count warning color when approaching the message length limit.
+
+2. **`apps/web/src/components/itinerary/event-card.tsx`** — Replaced `"text-xs bg-amber-500/15 text-amber-600 border-amber-500/30"` with `"text-xs bg-warning/15 text-warning border-warning/30"` (line 144) on the "Member no longer attending" badge.
+
+3. **`apps/web/src/components/trip/trip-preview.tsx`** — Replaced all amber classes in the "Maybe" RSVP button (lines 186-187):
+   - Active state: `"bg-amber-500 hover:bg-amber-500/90 text-white shadow-md shadow-amber-500/25"` → `"bg-warning hover:bg-warning/90 text-white shadow-md shadow-warning/25"`
+   - Inactive state: `"bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30"` → `"bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30"`
+
+**Files modified (3 test files):**
+
+4. **`apps/web/src/components/messaging/__tests__/message-input.test.tsx`** — Updated assertion from `"text-amber-600"` to `"text-warning"` (line 206).
+
+5. **`apps/web/src/components/itinerary/__tests__/event-card.test.tsx`** — Three changes:
+   - Renamed test from `"uses amber badge styling"` to `"uses warning badge styling"` and updated 3 assertions: `"bg-amber-500/15"` → `"bg-warning/15"`, `"text-amber-600"` → `"text-warning"`, `"border-amber-500/30"` → `"border-warning/30"`
+   - Fixed 3 stale event-type color selectors that queried for old hardcoded classes no longer in the component: `.text-blue-600` → `.text-\[var\(--color-event-travel\)\]`, `.text-amber-600` → `.text-\[var\(--color-event-meal\)\]`, `.text-emerald-600` → `.text-\[var\(--color-event-activity\)\]`
+   - Changed assertions from `toBeDefined()` to `not.toBeNull()` for `querySelector` results (since `querySelector` returns `null` on no match, and `toBeDefined()` passes on `null`)
+
+6. **`apps/web/src/components/trip/__tests__/trip-preview.test.tsx`** — Updated assertion from `"bg-amber-500"` to `"bg-warning"` (line 177).
+
+### Key Design Decisions
+
+1. **Only amber → warning replacements needed**: No emerald replacements were necessary in the 3 source files. The event-type colors in `EVENT_TYPE_CONFIG` already used CSS variable classes (`text-[var(--color-event-meal)]` etc.), not hardcoded emerald classes.
+
+2. **Stale test selectors fixed as bonus**: The event-card test had 3 `querySelector` calls using old hardcoded color class names (`.text-blue-600`, `.text-amber-600`, `.text-emerald-600`) that didn't match any element in the component (which already used CSS variable classes). These were updated to use properly escaped CSS selectors matching the actual classes. The `toBeDefined()` assertion was also upgraded to `not.toBeNull()` since `querySelector` returns `null` (not `undefined`) on no match — the old assertions were vacuously true.
+
+3. **Semantic correctness preserved**: The "Member no longer attending" badge and character count warning are genuine warning semantics (correctly using `warning` token). The event-type meal/activity/travel colors are category differentiators (correctly left as CSS variable tokens, NOT converted to warning/success).
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in `verification.service.test.ts`)
+- **Unit/Integration Tests**: PASS — 145 test files, 2603 tests, 0 failures
+- **Grep verification**: Zero `amber` or `emerald` references remain in any of the 3 source files
+- **Reviewer**: APPROVED — all changes follow established patterns, semantically correct
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — `--color-event-meal: #d97706` is literally Tailwind's amber-600**: This is correct behavior — it's an event-type color token, not a warning token, so it stays as a distinct CSS variable despite being the same hue.
+2. **LOW — Documentation reference to amber in `trip/README.md`**: Non-blocking documentation text describing the old color scheme.
+
+### Learnings
+
+- `querySelector` returns `null` (not `undefined`) when no element matches, so `toBeDefined()` assertions on `querySelector` results are vacuously true and don't actually test anything. Always use `not.toBeNull()` or `toBeTruthy()` for `querySelector` results.
+- CSS class names containing brackets and parentheses (like `text-[var(--color-event-meal)]`) require escaping in `querySelector` selectors: `.text-\[var\(--color-event-meal\)\]`. The backslashes escape the special CSS selector characters `[`, `]`, `(`, `)`.
+- Event-type colors and semantic warning/success colors can have the same hue (amber-600 ≈ #d97706, warning ≈ #c78d29) but serve completely different purposes. They should use different token paths (CSS variables for event types, theme tokens for semantics) even when visually similar.
+- After Task 5.1 migrated `rsvp-badge.tsx` and `trip-card.tsx`, three files remained with hardcoded amber classes because they weren't identified in the original task scope. Systematic grep sweeps (`amber-` across all `.tsx` files) should follow any theme token migration to catch stragglers.

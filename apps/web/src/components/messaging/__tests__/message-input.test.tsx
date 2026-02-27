@@ -203,7 +203,7 @@ describe("MessageInput", () => {
     await waitFor(() => {
       const charCount = screen.getByText(/1800\/2000/);
       expect(charCount).toBeDefined();
-      expect(charCount.className).toContain("text-amber-600");
+      expect(charCount.className).toContain("text-warning");
     });
   });
 

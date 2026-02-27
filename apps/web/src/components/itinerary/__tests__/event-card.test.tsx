@@ -93,8 +93,10 @@ describe("EventCard", () => {
         />,
       );
 
-      const iconContainer = container.querySelector(".text-blue-600");
-      expect(iconContainer).toBeDefined();
+      const iconContainer = container.querySelector(
+        ".text-\\[var\\(--color-event-travel\\)\\]",
+      );
+      expect(iconContainer).not.toBeNull();
     });
 
     it("shows correct icon and color for meal event", () => {
@@ -107,8 +109,10 @@ describe("EventCard", () => {
         />,
       );
 
-      const iconContainer = container.querySelector(".text-amber-600");
-      expect(iconContainer).toBeDefined();
+      const iconContainer = container.querySelector(
+        ".text-\\[var\\(--color-event-meal\\)\\]",
+      );
+      expect(iconContainer).not.toBeNull();
     });
 
     it("shows correct icon and color for activity event", () => {
@@ -122,8 +126,10 @@ describe("EventCard", () => {
         />,
       );
 
-      const iconContainer = container.querySelector(".text-emerald-600");
-      expect(iconContainer).toBeDefined();
+      const iconContainer = container.querySelector(
+        ".text-\\[var\\(--color-event-activity\\)\\]",
+      );
+      expect(iconContainer).not.toBeNull();
     });
   });
 
@@ -360,7 +366,7 @@ describe("EventCard", () => {
       expect(creatorElement.className).not.toContain("opacity-50");
     });
 
-    it("uses amber badge styling", () => {
+    it("uses warning badge styling", () => {
       const event = { ...baseEvent, creatorAttending: false };
       render(
         <EventCard
@@ -374,9 +380,9 @@ describe("EventCard", () => {
       const badgeText = screen.getByText("Member no longer attending");
       const badge = badgeText.closest('[data-slot="badge"]');
       expect(badge).not.toBeNull();
-      expect(badge?.className).toContain("bg-amber-500/15");
-      expect(badge?.className).toContain("text-amber-600");
-      expect(badge?.className).toContain("border-amber-500/30");
+      expect(badge?.className).toContain("bg-warning/15");
+      expect(badge?.className).toContain("text-warning");
+      expect(badge?.className).toContain("border-warning/30");
     });
   });
 
