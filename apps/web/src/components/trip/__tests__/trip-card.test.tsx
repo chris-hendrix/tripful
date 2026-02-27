@@ -42,6 +42,11 @@ vi.mock("@/hooks/use-trips", () => ({
   usePrefetchTrip: () => mockPrefetch,
 }));
 
+// Mock supportsHover to true so onMouseEnter handlers fire in tests
+vi.mock("@/lib/supports-hover", () => ({
+  supportsHover: true,
+}));
+
 describe("TripCard", () => {
   beforeEach(() => {
     mockPrefetch.mockClear();

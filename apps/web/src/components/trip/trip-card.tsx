@@ -9,6 +9,7 @@ import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { usePrefetchTrip } from "@/hooks/use-trips";
+import { supportsHover } from "@/lib/supports-hover";
 import { cn } from "@/lib/utils";
 
 interface TripCardProps {
@@ -52,7 +53,8 @@ export const TripCard = memo(function TripCard({
   return (
     <Link
       href={`/trips/${trip.id}`}
-      onMouseEnter={prefetchTrip}
+      {...(supportsHover ? { onMouseEnter: prefetchTrip } : {})}
+      onTouchStart={prefetchTrip}
       onFocus={prefetchTrip}
       className={cn(
         "block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg motion-safe:active:scale-[0.98] transition-all cursor-pointer motion-safe:animate-[staggerIn_500ms_ease-out_both] motion-safe:hover:-translate-y-1 card-noise",

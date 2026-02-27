@@ -185,7 +185,7 @@
   - Verify: run full test suite, lint, and typecheck pass
   - Verify: manual testing with screenshots — dialog on desktop vs bottom-sheet on mobile viewport
 
-- [ ] Task 7.2: Add responsive hamburger menu and fix hover-dependent interactions
+- [x] Task 7.2: Add responsive hamburger menu and fix hover-dependent interactions
   - Implement: Create `apps/web/src/components/mobile-nav.tsx` — Sheet side="left" with user info, navigation links (Trips, Mutuals), profile, logout
   - Implement: Update `apps/web/src/components/app-header.tsx` — show hamburger + brand + notification on mobile (<md), current layout on desktop (≥md)
   - Implement: Add `@media (hover: hover)` guards around hover-dependent preload interactions (onMouseEnter on trip cards, dialog triggers)

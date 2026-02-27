@@ -1011,3 +1011,76 @@ All 12 dialogs converted from `Sheet`/`SheetContent`/`SheetHeader`/`SheetBody`/`
 - The `useMediaQuery` hook pattern of `useState(false)` + `useEffect` sync is the standard SSR-safe approach for Next.js App Router. The `useEffect` only runs client-side, so the initial render always matches between server and client.
 - The global `matchMedia` mock in `vitest.setup.ts` (returns `matches: false`) means all existing tests run in "mobile" (bottom-sheet) mode by default, which is functionally equivalent to the old Sheet behavior — no existing tests needed updating.
 - Radix `DialogPrimitive.Root` does not render a DOM element (it's a context provider), so `data-slot` attributes on it are silently dropped. This matches the existing Dialog and Sheet patterns.
+
+## Iteration 19 — Task 7.2: Add responsive hamburger menu and fix hover-dependent interactions
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created (3):**
+
+1. **`apps/web/src/components/mobile-nav.tsx`** — Extracted mobile navigation component using `Sheet` with `side="left"`. Accepts controlled `open`/`onOpenChange` props plus `user`, `onLogout`, and `onProfileOpen` callbacks. Contains user avatar + info section, navigation links (My Trips `/trips`, My Mutuals `/mutuals`), Profile button, and Log out button. All actions close the sheet via `onOpenChange(false)`. Uses `font-accent` on nav labels, `data-testid` attributes for testing, and proper accessibility (`SheetTitle`/`SheetDescription` with `sr-only`).
+
+2. **`apps/web/src/lib/supports-hover.ts`** — JS-level equivalent of CSS `@media (hover: hover)`. Exports a `supportsHover` constant computed via `window.matchMedia("(hover: hover)").matches`, defaulting to `true` during SSR. Used to conditionally apply `onMouseEnter` handlers only on hover-capable devices.
+
+3. **`apps/web/src/components/__tests__/mobile-nav.test.tsx`** — 10 test cases: renders My Trips and My Mutuals links with correct hrefs, shows user info (name + phone), hides user info when user is null, calls onLogout, calls onOpenChange(false) on logout/profile/link clicks, calls onProfileOpen, does not render content when closed, shows user initials in avatar fallback.
+
+**Files modified (5):**
+
+4. **`apps/web/src/components/ui/sheet.tsx`** — Added `side` prop (`"left" | "right"`, default `"right"`) to `SheetContent`. Conditionally applies positioning (`left-0`/`right-0`), border direction (`border-l`/`border-r`), and slide animation direction (`slide-in-from-left`/`slide-in-from-right`) based on the `side` value. Backward-compatible: all existing Sheet usages default to right-side.
+
+5. **`apps/web/src/components/app-header.tsx`** — Added responsive layout: hamburger button (`md:hidden`) with `Menu` icon and `aria-label="Open menu"` on mobile, desktop dropdown (`hidden md:flex`) on ≥768px. Imported and renders `<MobileNav>` component with Sheet side="left". Added `supportsHover` guard on 2 `onMouseEnter` preload handlers. Added `onTouchStart` for touch-device preloading. `NotificationBell` remains always visible.
+
+6. **`apps/web/src/components/trip/trip-card.tsx`** — Added `supportsHover` guard on `onMouseEnter={prefetchTrip}` (uses spread syntax for Next.js Link compatibility with `exactOptionalPropertyTypes`). Added `onTouchStart={prefetchTrip}` for touch-device preloading.
+
+7. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`** — Added `supportsHover` guard on 2 `onMouseEnter` preload handlers (Invite Members and Edit Trip buttons). Added `onTouchStart` handlers for touch-device preloading.
+
+8. **`apps/web/src/components/__tests__/app-header.test.tsx`** — Added 7 new mobile menu tests: hamburger renders with `md:hidden`, desktop dropdown hidden with `hidden md:flex`, sheet opens on hamburger click, navigation links present, user info displayed, sheet closes on link click, logout works from mobile menu. Added `supportsHover` mock. Updated 3 existing tests for dual-rendering (mobile + desktop).
+
+9. **`apps/web/src/components/trip/__tests__/trip-card.test.tsx`** — Added `supportsHover` mock so existing hover-based test assertions continue to work.
+
+### Key Design Decisions
+
+1. **CSS responsive classes (`md:hidden`, `hidden md:flex`) over `useMediaQuery`**: Avoids hydration mismatches since both mobile and desktop DOM elements are rendered server-side but only the correct one is visible via CSS. The `useMediaQuery` hook (used by `ResponsiveDialog`) requires client-side hydration which can cause a flash.
+
+2. **Sheet `side` prop**: Added to the shared Sheet component rather than creating a separate left-side sheet. Default `"right"` ensures backward compatibility. The close button position (`right-4`) works for both sides since the X is always in the top-right of the panel content.
+
+3. **`supportsHover` as module-level constant**: Evaluated once at module load via `window.matchMedia("(hover: hover)")`. This is pragmatic — it avoids re-renders and React hook overhead. On touch-only devices, `onMouseEnter` handlers are completely omitted (not just no-ops), and `onTouchStart` fires instead. On hybrid devices (tablet with mouse), the value reflects the initial input mode.
+
+4. **Extracted `MobileNav` as prop-driven component**: All state (`open`, `user`, `logout`, `profileOpen`) is injected via props from `AppHeader`, making the component easily testable without needing auth context mocks. The AppHeader retains ownership of the `mobileMenuOpen` state and the `ProfileDialog` lazy import.
+
+5. **`onTouchStart` for touch preloading**: Added alongside `onFocus` (which was already present). On touch devices, `onTouchStart` fires before `onClick`, giving time for dynamic imports to resolve before the tap action completes. This is the JS equivalent of `@media (hover: hover)` — hover-capable devices get `onMouseEnter`, touch devices get `onTouchStart`.
+
+### Reviewer Feedback (2 rounds)
+
+**Round 1** — NEEDS_WORK (2 MEDIUM issues):
+1. **MEDIUM — No separate `mobile-nav.tsx` file**: Mobile nav was inlined in `app-header.tsx`. Fixed by extracting into standalone component with props interface.
+2. **MEDIUM — No `@media (hover: hover)` guards**: Only `onTouchStart` was added without guarding `onMouseEnter`. Fixed by creating `supports-hover.ts` utility and conditionally applying `onMouseEnter` handlers.
+
+**Round 2** — APPROVED. All 6 task requirements met.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in `verification.service.test.ts`)
+- **Web Tests**: PASS — 73 test files, 1237 tests, 0 failures
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: Pre-existing flaky failures (pg-rate-limit-store concurrent access, account-lockout counter — unrelated to Task 7.2)
+- **New MobileNav Tests**: 10/10 pass
+- **New AppHeader Mobile Tests**: 7/7 pass
+- **Existing AppHeader Tests**: All pass (updated for dual-rendering)
+- **Reviewer**: APPROVED (after 1 round of feedback — 2 MEDIUM items fixed)
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — `supportsHover` evaluated once at load time**: Won't update if user connects/disconnects mouse on hybrid device mid-session. Acceptable for a trip planning app — the constant avoids re-renders and hook overhead.
+2. **LOW — Spread syntax in trip-card.tsx differs from ternary pattern**: `{...(supportsHover ? { onMouseEnter: fn } : {})}` vs `onMouseEnter={supportsHover ? fn : undefined}` elsewhere. The spread is required due to Next.js Link's `exactOptionalPropertyTypes` constraint.
+
+### Learnings
+
+- CSS `@media (hover: hover)` is a CSS-only construct that cannot directly guard JavaScript event handlers. The JS equivalent is `window.matchMedia("(hover: hover)").matches`, which returns `true` for devices with a primary hover-capable input (mouse/trackpad) and `false` for touch-only devices.
+- The spread syntax `{...(condition ? { prop: value } : {})}` is needed when a component type uses `exactOptionalPropertyTypes: true` (like Next.js `Link`), because `prop={undefined}` is rejected while omitting the prop entirely is valid. Other React elements accept `undefined` values fine.
+- For responsive show/hide of navigation elements, CSS classes (`md:hidden`, `hidden md:flex`) are preferable to `useMediaQuery` + conditional rendering because both elements exist in the server-rendered HTML, avoiding hydration mismatches and layout flash.
+- The `vitest.setup.ts` global `matchMedia` mock returns `matches: false` for all queries, which means `supportsHover` evaluates to `false` in tests. Test files must mock the module (`vi.mock("@/lib/supports-hover")`) to return `true` for hover-related test assertions to work.
+- Extracting `MobileNav` as a prop-driven component (rather than using auth context internally) makes it significantly easier to test — no need to set up `AuthProvider` wrapper or mock `useAuth()` in the test file. The parent (`AppHeader`) handles the auth integration.

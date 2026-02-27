@@ -59,6 +59,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { supportsHover } from "@/lib/supports-hover";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -308,7 +309,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               <span className="text-border">|</span>
               <button
                 onClick={() => setIsInviteOpen(true)}
-                onMouseEnter={preloadInviteMembersDialog}
+                onMouseEnter={supportsHover ? preloadInviteMembersDialog : undefined}
+                onTouchStart={preloadInviteMembersDialog}
                 onFocus={preloadInviteMembersDialog}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
               >
@@ -317,7 +319,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </button>
               <button
                 onClick={() => setIsEditOpen(true)}
-                onMouseEnter={preloadEditTripDialog}
+                onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
+                onTouchStart={preloadEditTripDialog}
                 onFocus={preloadEditTripDialog}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
               >
