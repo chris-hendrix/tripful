@@ -113,7 +113,7 @@
   - Test: Verify existing query tests pass with enabled moved to call sites
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 4.2: Fix React patterns and React Hook Form invitation schema
+- [x] Task 4.2: Fix React patterns and React Hook Form invitation schema
   - Implement: Fix useEffect deps in `apps/web/src/app/(app)/trips/trips-content.tsx` (lines 48-65) — remove router, searchParams, pathname from deps
   - Implement: Extract SkeletonCard to module level in `trips-content.tsx` (lines 13-37)
   - Implement: Move endDate auto-fill from useEffect to onChange handler in `apps/web/src/components/trip/create-trip-dialog.tsx` (lines 79-83)

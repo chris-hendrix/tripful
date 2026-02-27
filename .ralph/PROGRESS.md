@@ -560,3 +560,51 @@ Two categories of fix applied:
 - `select` on `useInfiniteQuery` transforms the full `InfiniteData<T>` shape. For mutuals-content, the select transform maps over `pages.flatMap(p => p.data)` to narrow the data.
 - The `motion-safe:` Tailwind prefix maps to `@media (prefers-reduced-motion: no-preference)` and should be used on all non-essential animations in the codebase. Only skeleton shimmer is exempt (loading placeholder).
 - `QueryErrorResetBoundary` provides a render prop `{ reset }` that should be passed as `onReset` to ErrorBoundary. Calling `reset()` before the ErrorBoundary re-renders children ensures TanStack Query retries failed queries on the next render.
+
+## Iteration 12 — Task 4.2: Fix React patterns and React Hook Form invitation schema
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (5 files):**
+
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — Added `useRef` import; created `searchParamsRef`, `routerRef`, `pathnameRef` refs with dedicated sync effects; replaced direct `searchParams`, `router`, `pathname` usage in the debounced URL sync `useEffect` with ref reads, reducing the dependency array from `[searchQuery, router, searchParams, pathname]` to `[searchQuery]` only. This eliminates unnecessary timer re-allocations caused by `searchParams` returning a new object reference on every URL change.
+
+- `apps/web/src/components/trip/create-trip-dialog.tsx` — Removed `useEffect` import; removed `form.watch("startDate")` and the `useEffect` that auto-filled endDate when startDate changed. Moved the auto-fill logic inline into the startDate `DatePicker`'s `onChange` handler: `(value) => { field.onChange(value); if (value && !form.getValues("endDate")) { form.setValue("endDate", value); } }`. This eliminates an unnecessary render cycle (watch → state update → re-render → effect → setValue → re-render) and is a more predictable event-driven pattern.
+
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Removed `{ enabled: !trip?.isPreview }` from `useEvents(tripId)` call, allowing events to fetch in parallel with trip details instead of waiting in a sequential waterfall. The `isPreview` guard is still applied at the rendering level (TripPreview component is shown when `trip?.isPreview` is true, events are not rendered). Trade-off: one potentially unnecessary events API call for preview users (minority case) vs faster loading for non-preview users (majority case).
+
+- `shared/schemas/invitation.ts` — Added `path: ["phoneNumbers"]` to the `.refine()` call on `createInvitationsSchema`, matching the established pattern in `trip.ts`, `event.ts`, and `accommodation.ts` schemas. This enables React Hook Form's `zodResolver` to associate the "At least one phone number or user ID is required" error with the `phoneNumbers` field, making it visible via `<FormMessage />` in `invite-members-dialog.tsx`.
+
+- `shared/__tests__/invitation-schemas.test.ts` — Added `expect(result.error.issues[0]?.path).toContain("phoneNumbers")` assertions to both the "should reject when both arrays are empty" and "should reject when neither field is provided" test cases, following the pattern from trip/event schema tests.
+
+### Key Design Decisions
+
+1. **Ref pattern for useEffect deps** — Using `useRef` + sync effects for `searchParams`, `router`, and `pathname` is the cleanest way to access latest values without triggering the debounce effect. Alternative approaches (reading `window.location.search` directly) would bypass Next.js's router state. The ref pattern keeps the component fully integrated with Next.js while eliminating unnecessary deps.
+
+2. **SkeletonCard already at module level** — Research confirmed `SkeletonCard` was already defined at module level (lines 13-38, before `TripsContent` at line 40). No extraction needed. The task description may have been written against an older version of the code.
+
+3. **Event-driven auto-fill over useEffect+watch** — Placing auto-fill logic in the `onChange` handler eliminates the `form.watch("startDate")` subscription (which causes re-renders on every startDate change) and the effect lifecycle. The logic runs synchronously in the same event handler call, avoiding an extra render cycle.
+
+4. **Parallel events fetch trade-off** — Removing `enabled: !trip?.isPreview` trades one unnecessary API call for preview users against faster parallel loading for the majority of users (actual trip members). The `GET /trips/:tripId/events` endpoint only requires `authenticate` middleware (not membership), so it won't error for preview users.
+
+5. **`path: ["phoneNumbers"]` over `path: ["userIds"]`** — Chose `phoneNumbers` because the `<FormField>` for `phoneNumbers` in `invite-members-dialog.tsx` always renders with a `<FormMessage />`, while the `userIds` field (mutuals section) is conditionally rendered. This ensures the error is always visible.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, zero react-hooks/exhaustive-deps warnings, 1 pre-existing warning in verification.service.test.ts)
+- **Shared Tests**: PASS — 251 tests including 28 invitation-specific tests with new path assertions
+- **Web Tests**: PASS — 66 test files, 1177 tests, 0 failures (includes trips-content: 25 tests, trip-detail-content: 66 tests, create-trip-dialog: 59 tests)
+- **API Tests**: PASS — 1114 tests; 6 pre-existing flaky failures (pg-rate-limit-store concurrent access, account-lockout timing, rate limiting race conditions — all from Tasks 1.2/1.4, unrelated)
+- **E2E Tests**: PASS — 22 tests
+- **Reviewer**: APPROVED — all requirements met, no blocking issues
+
+### Learnings
+
+- In Next.js App Router, `useSearchParams()` returns a new `ReadonlyURLSearchParams` object on every URL change. Including it as a `useEffect` dependency creates a feedback loop when the effect itself updates the URL. The ref pattern breaks this cycle while still accessing the latest value.
+- `form.watch()` from React Hook Form creates a subscription that triggers re-renders on every field change. For one-time auto-fill logic (set endDate when startDate is first set), placing the logic in the `onChange` handler is more efficient — it runs once per user interaction instead of on every render.
+- The `enabled` option in TanStack Query hooks creates a sequential waterfall when one query's `enabled` depends on another query's data. Removing it enables parallel fetching at the cost of potentially unnecessary requests. The right trade-off depends on the ratio of users who benefit from parallel loading vs those who incur wasted requests.
+- Zod's `.refine()` without a `path` option places errors at the root level (path `[]`), which React Hook Form's `zodResolver` cannot map to any `FormField`/`FormMessage`. Adding `path: ["fieldName"]` is required for cross-field validation errors to be visible in forms. All other schemas in the codebase already had this — `invitation.ts` was the outlier.
+- When a task item says "extract X to module level" but it's already at module level, verify the current state before making changes. Research confirmed `SkeletonCard` was already correctly extracted.

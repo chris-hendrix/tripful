@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
@@ -44,10 +44,24 @@ export function TripsContent() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 
+  // Refs for values used inside the debounced effect to avoid unnecessary re-fires
+  const searchParamsRef = useRef(searchParams);
+  const routerRef = useRef(router);
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
   // Sync search query to URL with debounce
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParamsRef.current.toString());
       if (searchQuery) {
         params.set("q", searchQuery);
       } else {
@@ -55,14 +69,18 @@ export function TripsContent() {
       }
       const queryString = params.toString();
       // Only replace URL if the query string actually changed
-      if (queryString !== searchParams.toString()) {
-        router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-          scroll: false,
-        });
+      if (queryString !== searchParamsRef.current.toString()) {
+        const path = pathnameRef.current;
+        routerRef.current.replace(
+          queryString ? `${path}?${queryString}` : path,
+          {
+            scroll: false,
+          },
+        );
       }
     }, 300);
     return () => clearTimeout(timeout);
-  }, [searchQuery, router, searchParams, pathname]);
+  }, [searchQuery]);
 
   const {
     data,

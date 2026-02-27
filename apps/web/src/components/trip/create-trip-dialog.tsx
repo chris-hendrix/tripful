@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -73,14 +73,6 @@ export function CreateTripDialog({
       coOrganizerPhones: [],
     },
   });
-
-  // Auto-fill endDate when startDate is set and endDate is empty
-  const startDateValue = form.watch("startDate");
-  useEffect(() => {
-    if (startDateValue && !form.getValues("endDate")) {
-      form.setValue("endDate", startDateValue);
-    }
-  }, [startDateValue, form]);
 
   const handleContinue = async () => {
     // Validate Step 1 fields before proceeding
@@ -286,7 +278,12 @@ export function CreateTripDialog({
                           <FormControl>
                             <DatePicker
                               value={field.value ?? ""}
-                              onChange={field.onChange}
+                              onChange={(value) => {
+                                field.onChange(value);
+                                if (value && !form.getValues("endDate")) {
+                                  form.setValue("endDate", value);
+                                }
+                              }}
                               placeholder="Start date"
                               aria-label="Start date"
                             />

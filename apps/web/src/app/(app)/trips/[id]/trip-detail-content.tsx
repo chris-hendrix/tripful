@@ -123,7 +123,7 @@ function SkeletonDetail() {
 
 export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: trip, isPending, isError } = useTripDetail(tripId);
-  const { data: events } = useEvents(tripId, { enabled: !trip?.isPreview });
+  const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
