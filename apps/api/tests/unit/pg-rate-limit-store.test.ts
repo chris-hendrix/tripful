@@ -86,9 +86,19 @@ describe("PgRateLimitStore", () => {
     const promises = Array.from({ length: 5 }, () => incrAsync(store, key));
     const results = await Promise.all(promises);
 
-    // Each should get a unique count from 1 to 5
-    const counts = results.map((r) => r.current).sort((a, b) => a - b);
-    expect(counts).toEqual([1, 2, 3, 4, 5]);
+    // All 5 promises resolved successfully with valid counts and TTLs
+    expect(results).toHaveLength(5);
+    for (const result of results) {
+      expect(result.current).toBeGreaterThanOrEqual(1);
+      expect(result.current).toBeLessThanOrEqual(5);
+      expect(result.ttl).toBeGreaterThan(0);
+    }
+
+    // The final count in the database must be exactly 5
+    const dbResult = await db.execute(
+      sql`SELECT count FROM rate_limit_entries WHERE key = ${key}`,
+    );
+    expect(Number(dbResult.rows[0].count)).toBe(5);
   });
 
   it("should create child store with custom timeWindow", async () => {

@@ -228,7 +228,7 @@
   - Test: Verify existing message tests pass; add test that soft-deleted messages are excluded from data results
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 9.1.2: FIX: Fix flaky pg-rate-limit-store concurrent access test
+- [x] Task 9.1.2: FIX: Fix flaky pg-rate-limit-store concurrent access test
   - Priority: MEDIUM — flaky test mentioned in 17+ iterations
   - Source: First identified in Task 1.2, mentioned in every iteration since
   - Fix: In `apps/api/tests/unit/pg-rate-limit-store.test.ts`, the "should handle concurrent access correctly" test fires 5 parallel increments and expects sorted results `[1,2,3,4,5]`, but PostgreSQL READ COMMITTED isolation does not guarantee this serialization. Change the assertion to verify: (a) all 5 promises resolve successfully, (b) each result has `current >= 1`, (c) the final count in the database is 5 (query after all promises resolve). Do NOT change the production UPSERT implementation.

@@ -26,7 +26,7 @@ beforeAll(async () => {
   // Clean up rate limit entries from previous test runs to prevent
   // stale PG-backed rate limit state causing unexpected 429 responses
   try {
-    await testPool.query("DELETE FROM rate_limit_entries");
+    await testPool.query("DELETE FROM rate_limit_entries WHERE key NOT LIKE 'test-%'");
   } catch {
     // Table may not exist yet if migrations haven't run
   }
