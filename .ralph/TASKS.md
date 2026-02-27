@@ -215,11 +215,54 @@
 
 ## Phase 9: Cleanup
 
-- [ ] Task 9.1: Triage PROGRESS.md for unaddressed items
+- [x] Task 9.1: Triage PROGRESS.md for unaddressed items
   - Review: Read entire PROGRESS.md
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
+
+- [ ] Task 9.1.1: FIX: Add missing `isNull(messages.deletedAt)` filter to message data query
+  - Priority: HIGH — data correctness bug
+  - Source: Iteration 9 (Task 3.1) reviewer feedback item 3
+  - Fix: In `apps/api/src/services/message.service.ts`, the `getMessages` count query filters `isNull(messages.deletedAt)` but the data query does NOT — soft-deleted messages are returned to users. Add `isNull(messages.deletedAt)` to the WHERE clause in the data query.
+  - Test: Verify existing message tests pass; add test that soft-deleted messages are excluded from data results
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 9.1.2: FIX: Fix flaky pg-rate-limit-store concurrent access test
+  - Priority: MEDIUM — flaky test mentioned in 17+ iterations
+  - Source: First identified in Task 1.2, mentioned in every iteration since
+  - Fix: In `apps/api/tests/unit/pg-rate-limit-store.test.ts`, the "should handle concurrent access correctly" test fires 5 parallel increments and expects sorted results `[1,2,3,4,5]`, but PostgreSQL READ COMMITTED isolation does not guarantee this serialization. Change the assertion to verify: (a) all 5 promises resolve successfully, (b) each result has `current >= 1`, (c) the final count in the database is 5 (query after all promises resolve). Do NOT change the production UPSERT implementation.
+  - Test: Run the fixed test 5+ times to confirm it no longer flakes
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 9.1.3: FIX: Fix flaky rate-limiting and account lockout test isolation
+  - Priority: MEDIUM — flaky tests affecting 3+ test files
+  - Source: Iterations 7-19, recurring
+  - Fix: Multiple integration test files share PG rate limit state via `rate_limit_entries` table. The table is cleaned in `beforeAll` (in `apps/api/tests/setup.ts`) but not between individual test files running in parallel. Rate limit keys derived from IP (`127.0.0.1`) collide across test files. Additionally, `apps/api/tests/integration/security.test.ts` uses a hardcoded phone number `+19876543210` instead of `generateUniquePhone()`. (a) Add `rate_limit_entries` cleanup to each affected test file's `beforeAll`/`beforeEach`, (b) Replace hardcoded phone number in security.test.ts with `generateUniquePhone()`, (c) Consider adding `rate_limit_entries` cleanup to the shared test helpers.
+  - Files: `apps/api/tests/integration/account-lockout.test.ts`, `apps/api/tests/integration/auth.request-code.test.ts` (Rate Limiting section), `apps/api/tests/integration/security.test.ts`
+  - Test: Run the full API test suite 3+ times to confirm flaky tests now pass consistently
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 9.1.4: FIX: Replace remaining hardcoded amber colors with theme tokens
+  - Priority: LOW — design system consistency
+  - Source: Iteration 13 (Task 5.1) learnings section
+  - Fix: After Task 5.1 replaced hardcoded amber colors in rsvp-badge.tsx and trip-card.tsx, three files still have hardcoded Tailwind amber color classes instead of theme tokens: `apps/web/src/components/messaging/message-input.tsx`, `apps/web/src/components/itinerary/event-card.tsx`, `apps/web/src/components/trip/trip-preview.tsx`. Replace hardcoded amber/emerald color classes with `warning`/`success` theme tokens, following the same pattern established in Task 5.1.
+  - Test: Update any affected tests, verify existing tests pass
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 9.1.5: FIX: Migrate mutuals cursor encode/decode to shared pagination utils
+  - Priority: LOW — code DRY consistency
+  - Source: Iteration 9 (Task 3.1) reviewer feedback item 4
+  - Fix: `apps/api/src/services/mutuals.service.ts` has private `encodeCursor`/`decodeCursor` functions instead of using the shared utilities in `apps/api/src/utils/pagination.ts`. Replace private encode/decode with imports from shared pagination utils. Ensure the encoding format is compatible (both use base64/JSON but verify mutuals cursor fields work with the shared utility).
+  - Test: Verify existing mutuals tests pass with shared utils
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 9.1.6: FIX: Fix pre-existing lint warning in verification.service.test.ts
+  - Priority: LOW — lint cleanliness
+  - Source: Mentioned as "1 pre-existing warning" in every single iteration (1-21)
+  - Fix: A lint warning in `apps/api/tests/unit/verification.service.test.ts` has persisted through the entire project. Identify and fix the lint warning.
+  - Test: Verify `pnpm lint` shows 0 warnings
+  - Verify: run full test suite, lint, and typecheck pass
 
 ## Phase 10: Final Verification
 

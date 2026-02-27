@@ -1184,3 +1184,75 @@ All 12 dialogs converted from `Sheet`/`SheetContent`/`SheetHeader`/`SheetBody`/`
 - `TOAST_TIMEOUT` and `ELEMENT_TIMEOUT` have the same numeric value (10_000) but serve different semantic purposes. Using distinct constants makes the test intent clear even when values happen to match.
 - When verifying "no inline timeouts remain", the grep pattern `timeout:\s*[0-9]` is sufficient because the constant definitions in `timeouts.ts` use underscore-separated numbers like `15_000` which don't match `[0-9]` after the underscore.
 - Existing files that already imported some constants (like `invitation-journey.spec.ts`) don't need import changes — just replace the inline values with the already-imported constant names.
+
+## Iteration 22 — Task 9.1: Triage PROGRESS.md for unaddressed items
+
+**Status**: ✅ COMPLETE
+
+### Triage Methodology
+
+Read the entire PROGRESS.md (21 iterations, 1187 lines) with 3 parallel researchers:
+1. **Researcher 1 (LOCATING)**: Identified all FAILURE, BLOCKED, reviewer caveats, and deferred items across all phases
+2. **Researcher 2 (ANALYZING)**: Traced all "pre-existing flaky" test mentions, analyzed root causes in actual test files
+3. **Researcher 3 (PATTERNS)**: Extracted all LOW/non-blocking reviewer notes, searched for TODO/FIXME/HACK comments
+
+### Issues Found and Categorized
+
+**HIGH Priority (1 item):**
+- Missing `isNull(messages.deletedAt)` filter in message data query — soft-deleted messages returned to users (Iteration 9, Task 3.1 reviewer feedback)
+
+**MEDIUM Priority (2 items):**
+- Flaky pg-rate-limit-store concurrent access test — mentioned in 17+ iterations, caused by PostgreSQL READ COMMITTED isolation not guaranteeing serialized increment ordering
+- Flaky rate-limiting and account lockout test isolation — shared PG rate limit state across parallel test files, hardcoded phone number in security.test.ts
+
+**LOW Priority (3 items):**
+- Remaining hardcoded amber colors in `message-input.tsx`, `event-card.tsx`, `trip-preview.tsx` (Task 5.1 missed files)
+- Mutuals service cursor encode/decode not using shared pagination utils (code duplication)
+- Pre-existing lint warning in `verification.service.test.ts` — `@typescript-eslint/no-explicit-any` on line 56, mentioned in all 21 iterations
+
+**Intentional/Non-Issues Correctly Excluded (13 items):**
+- `placeholderData` location in infiniteQueryOptions (functionally equivalent)
+- No "Load more" for trips (MVP acceptable)
+- Notification dropdown UX (intentional design)
+- Per-service cursor `as string` cast (low risk, opaque cursors)
+- Font weight specification (reviewer said "fine")
+- Per-element font-accent on dropdown (small menu, explicit is fine)
+- No drag-to-dismiss on mobile bottom sheet (standard Radix behavior)
+- `data-slot` on Radix Root (by design, no DOM element)
+- `ResponsiveDialogTrigger/Close` not exported (all dialogs use controlled pattern)
+- `supportsHover` once at load time (acceptable trade-off)
+- Spread vs ternary syntax in trip-card (required by `exactOptionalPropertyTypes`)
+- `isMobileViewport()` duplication in E2E helpers (extracting shared base class would be over-engineering)
+- Ambiguous "CST" timezone abbreviation (labels disambiguated by full name)
+
+### Fix Tasks Created in TASKS.md
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| 9.1.1 | HIGH | Add missing `isNull(messages.deletedAt)` filter to message data query |
+| 9.1.2 | MEDIUM | Fix flaky pg-rate-limit-store concurrent access test assertion |
+| 9.1.3 | MEDIUM | Fix flaky rate-limiting and account lockout test isolation |
+| 9.1.4 | LOW | Replace remaining hardcoded amber colors with theme tokens |
+| 9.1.5 | LOW | Migrate mutuals cursor encode/decode to shared pagination utils |
+| 9.1.6 | LOW | Fix pre-existing lint warning in verification.service.test.ts |
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning — now has fix task 9.1.6)
+- **Shared Tests**: PASS — 251 tests
+- **Web Tests**: PASS — 73 test files, 1237 tests, 0 failures
+- **API Tests**: PASS — 1110 tests; 4 pre-existing flaky failures (pg-rate-limit-store concurrent access → Task 9.1.2, security rate limiting → Task 9.1.3, account-lockout timing x2 → Task 9.1.3)
+- **Reviewer**: APPROVED — all requirements met, file locations verified correct, priority levels appropriate, excluded items confirmed as intentional/non-issues
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Task 9.1.5 could explicitly note base64 vs base64url encoding difference**: The shared pagination utils use `base64url` while mutuals uses `base64`. The task description acknowledges encoding compatibility as a concern but doesn't call out the specific difference. Non-blocking since cursors are ephemeral and the implementer will discover it during migration.
+
+### Learnings
+
+- Systematic triage across 21 iterations reveals clear patterns: the most impactful items are those mentioned repeatedly (flaky tests mentioned in 17+ iterations, lint warning in all 21 iterations), not necessarily the ones initially flagged as highest severity
+- The 3 categories of flaky test root causes are: (a) test logic bugs (wrong assertion for the isolation level), (b) test isolation issues (shared state across parallel tests), (c) infrastructure issues (connection pool exhaustion) — each requires a different fix approach
+- Reviewer LOW/non-blocking items fall into two categories: (1) items that are genuinely intentional design decisions (should be documented but not fixed), and (2) items that represent real code quality gaps deferred for scope reasons (should become fix tasks). Distinguishing between these is the core skill of triage
+- No TODO/FIXME/HACK comments were found in the codebase — all deferred work was captured in PROGRESS.md reviewer notes rather than inline code markers
+- The pre-existing lint warning (`@typescript-eslint/no-explicit-any` in verification.service.test.ts) was mentioned in every single iteration but never addressed because it was always "unrelated to the current task" — triage surfaces these chronic low-priority items that accumulate over time
