@@ -367,7 +367,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={baseTrip} index={3} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card.style.animationDelay).toBe("300ms");
+      expect(card.style.animationDelay).toBe("240ms");
     });
 
     it("defaults to 0ms delay when index not provided", () => {
@@ -424,7 +424,7 @@ describe("TripCard", () => {
 
       const card = container.firstChild as HTMLElement;
       expect(card.className).toContain(
-        "motion-safe:animate-[slideUp_500ms_ease-out_both]",
+        "motion-safe:animate-[staggerIn_500ms_ease-out_both]",
       );
       expect(card.className).toContain("motion-safe:hover:-translate-y-0.5");
     });

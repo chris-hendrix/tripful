@@ -152,7 +152,7 @@
   - Verify: run full test suite, lint, and typecheck pass
   - Verify: manual testing with screenshots — font rendering across key pages
 
-- [ ] Task 6.2: Add scroll-triggered animations, staggered reveals, and page transitions
+- [x] Task 6.2: Add scroll-triggered animations, staggered reveals, and page transitions
   - Implement: Create `apps/web/src/hooks/use-scroll-reveal.ts` — IntersectionObserver hook with one-shot reveal
   - Implement: Add `revealUp`, `revealScale`, `staggerIn` keyframes to `apps/web/src/app/globals.css`
   - Implement: Apply scroll-reveal to card grids (trips, mutuals, events) with staggered `animation-delay` based on index

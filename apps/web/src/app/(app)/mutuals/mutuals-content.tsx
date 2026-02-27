@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { Search, Users, AlertCircle, Loader2 } from "lucide-react";
 import type { Mutual } from "@tripful/shared/types";
 import { useMutuals } from "@/hooks/use-mutuals";
@@ -20,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 function MutualCardSkeleton() {
   return (
@@ -41,6 +48,7 @@ export function MutualsContent() {
   const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [selectedMutual, setSelectedMutual] = useState<Mutual | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const { ref: gridRevealRef, isRevealed: gridRevealed } = useScrollReveal();
 
   // Debounce search input by 300ms
   useEffect(() => {
@@ -93,7 +101,7 @@ export function MutualsContent() {
   const mutualCount = mutuals.length;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -194,15 +202,21 @@ export function MutualsContent() {
         {/* Mutuals Grid */}
         {!isPending && !isError && mutuals.length > 0 && (
           <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            ref={gridRevealRef as RefObject<HTMLDivElement>}
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${gridRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}`}
             aria-live="polite"
           >
-            {mutuals.map((mutual) => (
+            {mutuals.map((mutual, index) => (
               <div
                 key={mutual.id}
                 role="button"
                 tabIndex={0}
-                className="bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-colors cursor-pointer"
+                className={`bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-colors cursor-pointer ${gridRevealed ? "motion-safe:animate-[staggerIn_500ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+                style={
+                  gridRevealed
+                    ? { animationDelay: `${index * 80}ms` }
+                    : undefined
+                }
                 onClick={() => setSelectedMutual(mutual)}
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter" || e.key === " ") {

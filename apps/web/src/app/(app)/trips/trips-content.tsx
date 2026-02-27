@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type RefObject } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
@@ -9,6 +9,7 @@ import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 function SkeletonCard() {
   return (
@@ -43,6 +44,9 @@ export function TripsContent() {
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const { ref: upcomingSectionRef, isRevealed: upcomingRevealed } =
+    useScrollReveal();
+  const { ref: pastSectionRef, isRevealed: pastRevealed } = useScrollReveal();
 
   // Refs for values used inside the debounced effect to avoid unnecessary re-fires
   const searchParamsRef = useRef(searchParams);
@@ -132,7 +136,7 @@ export function TripsContent() {
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -229,7 +233,12 @@ export function TripsContent() {
           <div aria-live="polite">
             {/* Upcoming Trips */}
             {upcomingTrips.length > 0 && (
-              <section className="mb-12">
+              <section
+                ref={
+                  upcomingSectionRef as RefObject<HTMLElement>
+                }
+                className={`mb-12 ${upcomingRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+              >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Upcoming trips
                 </h2>
@@ -243,7 +252,12 @@ export function TripsContent() {
 
             {/* Past Trips */}
             {pastTrips.length > 0 && (
-              <section>
+              <section
+                ref={
+                  pastSectionRef as RefObject<HTMLElement>
+                }
+                className={pastRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}
+              >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Past trips
                 </h2>

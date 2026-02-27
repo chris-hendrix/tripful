@@ -16,6 +16,14 @@ vi.mock("@/hooks/use-mutuals", () => ({
   },
 }));
 
+// Mock useScrollReveal — always return revealed for test simplicity
+vi.mock("@/hooks/use-scroll-reveal", () => ({
+  useScrollReveal: () => ({
+    ref: { current: null },
+    isRevealed: true,
+  }),
+}));
+
 const mockUseTrips = vi.fn();
 vi.mock("@/hooks/use-trips", () => ({
   tripsQueryOptions: {

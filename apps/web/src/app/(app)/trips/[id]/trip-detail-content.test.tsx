@@ -121,6 +121,14 @@ vi.mock("@/hooks/use-invitations", () => ({
   getUpdateMemberRoleErrorMessage: () => null,
 }));
 
+// Mock useScrollReveal — always return revealed for test simplicity
+vi.mock("@/hooks/use-scroll-reveal", () => ({
+  useScrollReveal: () => ({
+    ref: { current: null },
+    isRevealed: true,
+  }),
+}));
+
 // Mock invitation-queries for membersQueryOptions used directly by the component
 vi.mock("@/hooks/invitation-queries", () => ({
   membersQueryOptions: (tripId: string) => ({

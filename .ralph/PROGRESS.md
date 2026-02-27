@@ -796,3 +796,92 @@ Two categories of fix applied:
 - Empty state headings are semantically different from page titles — they're functional UI messages, not editorial content. Using a geometric sans-serif (Space Grotesk) instead of a serif (Playfair Display) better communicates their informational purpose.
 - `cva()` base classes in shadcn/ui badge component are the right place to add `font-accent` — it applies to all variants automatically without duplicating the class across each variant definition.
 - `display: "swap"` on `next/font/google` prevents FOIT (Flash of Invisible Text) and FOUT is minimal since the fallback system font has similar metrics to Space Grotesk. No additional `size-adjust` or `font-display` tuning was needed.
+
+## Iteration 16 — Task 6.2: Add scroll-triggered animations, staggered reveals, and page transitions
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created (2 files):**
+
+- `apps/web/src/hooks/use-scroll-reveal.ts` — `"use client"` hook that returns `{ ref, isRevealed }`. Uses `IntersectionObserver` with configurable `threshold` (default 0.1) and `rootMargin` (default "0px"). One-shot pattern: once the element intersects, `isRevealed` becomes `true` and the observer disconnects. Proper cleanup on unmount via effect return. JSDoc with `@param` and `@returns`.
+
+- `apps/web/src/hooks/__tests__/use-scroll-reveal.test.tsx` — 12 tests using callback-capturing IntersectionObserver mock: initial state (ref + isRevealed=false), observer attachment, intersection trigger, non-intersecting case, one-shot disconnect, unmount cleanup, default threshold (0.1), default rootMargin ("0px"), custom threshold, custom rootMargin, no re-observation after reveal.
+
+**Files modified (8 files):**
+
+- `apps/web/src/app/globals.css` — Added 3 new `@keyframes` after `mutation-slide`:
+  - `revealUp`: opacity 0→1, translateY(24px)→0 (page/section entrance)
+  - `revealScale`: opacity 0→1, scale(0.95)→1 (itinerary section entrance)
+  - `staggerIn`: opacity 0→1, translateY(16px) scale(0.98)→translateY(0) scale(1) (card stagger)
+
+- `apps/web/src/components/trip/trip-card.tsx` — Changed animation from `slideUp_500ms` to `staggerIn_500ms` (`motion-safe:animate-[staggerIn_500ms_ease-out_both]`). Changed stagger delay from `index * 100ms` to `index * 80ms` per architecture spec.
+
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — Imported `useScrollReveal`. Added 2 scroll-reveal instances (upcoming + past sections). Page container changed from `motion-safe:animate-[fadeIn_500ms_ease-out]` to `motion-safe:animate-[revealUp_400ms_ease-out_both]`. Sections apply `motion-safe:animate-[revealUp_400ms_ease-out_both]` when revealed, `motion-safe:opacity-0` when not.
+
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Imported `useScrollReveal`. Added scroll-reveal on mutuals grid. Added `(mutual, index)` to `.map()` callback. Individual mutual cards now have `motion-safe:animate-[staggerIn_500ms_ease-out_both]` with `animationDelay: index * 80ms` when grid is revealed. Page container changed from `fadeIn` to `revealUp`.
+
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Imported `useScrollReveal`. Added scroll-reveal on itinerary section (`#itinerary` div). Itinerary uses `revealScale_500ms_ease-out_both` when revealed. Page container changed from `fadeIn` to `revealUp`.
+
+- `apps/web/src/components/trip/__tests__/trip-card.test.tsx` — Updated animation class assertion from `slideUp` to `staggerIn`. Updated delay assertion from `300ms` (3×100) to `240ms` (3×80).
+
+- `apps/web/src/app/(app)/trips/trips-content.test.tsx` — Added `useScrollReveal` mock returning `isRevealed: true`.
+
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — Added `useScrollReveal` mock returning `isRevealed: true`.
+
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — Added `useScrollReveal` mock returning `isRevealed: true`.
+
+### Animation Strategy
+
+Three-tier animation approach:
+1. **Page containers**: `revealUp_400ms` on mount (immediate page transition for above-the-fold content)
+2. **Section containers**: `revealUp_400ms` or `revealScale_500ms` gated by `useScrollReveal` (below-fold sections animate when scrolled into view)
+3. **Individual cards**: `staggerIn_500ms` with `index * 80ms` delay (stagger within revealed sections)
+
+All animations use `motion-safe:` prefix. Only `opacity` and `transform` properties are animated (no layout-triggering properties, preventing CLS). Animation fill mode `both` ensures elements start at `from` state and end at `to` state.
+
+### Key Design Decisions
+
+1. **Grid-level scroll reveal, not per-card**: Applied `useScrollReveal` to section/grid containers rather than individual cards. One IntersectionObserver per section is more performant than per-card. Cards within a revealed section animate with stagger delays.
+
+2. **`revealScale` for itinerary, `revealUp` for lists**: Provides visual variety — list sections (trips, mutuals) slide up, while the itinerary section scales in. This differentiates content types visually.
+
+3. **TripCard `slideUp` → `staggerIn`**: The new `staggerIn` combines translateY(16px) with scale(0.98) for a more polished entrance. Delay reduced from 100ms to 80ms per card for slightly faster cascade.
+
+4. **Mutuals cards get stagger animation**: Previously had no entrance animation. Now `staggerIn` with 80ms delay per card, gated behind scroll-reveal.
+
+5. **`motion-safe:opacity-0` for unrevealed state**: When a section is not yet revealed, it's hidden via `motion-safe:opacity-0`. This means users with `prefers-reduced-motion: reduce` see full-opacity content immediately (since `motion-safe:` only applies when motion is safe), avoiding accessibility issues.
+
+6. **`fadeIn` keyframe preserved**: The existing `fadeIn` keyframe is no longer used by trips/mutuals/trip-detail pages (replaced by `revealUp`), but it's kept since other components may still reference it. Not removed to avoid breaking changes.
+
+### Reviewer Feedback (2 rounds)
+
+**Round 1** — NEEDS_WORK (2 MEDIUM issues):
+1. **MEDIUM — `revealScale` defined but unused**: Fixed by applying it to the itinerary section in trip-detail-content.tsx
+2. **MEDIUM — Event cards missing scroll-reveal**: Fixed by adding `useScrollReveal` to the itinerary section, which gates the day-by-day and group-by-type views that already have staggered animations internally
+
+**Round 2** — APPROVED. All requirements met.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Web Tests**: PASS — 70 test files, 1202 tests, 0 failures
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: Pre-existing flaky failures (pg-rate-limit-store, account-lockout — unrelated to Task 6.2 frontend changes)
+- **Hook Tests**: All 12 pass
+- **TripCard Tests**: All 33 pass (updated assertions)
+- **Trips Content Tests**: All 25 pass (mock added)
+- **Mutuals Content Tests**: All 10 pass (mock added)
+- **Trip Detail Tests**: All 66 pass (mock added)
+- **Reviewer**: APPROVED (after 1 round of feedback — 2 MEDIUM items fixed)
+
+### Learnings
+
+- `useScrollReveal` at the section/grid container level is more performant than per-card — one IntersectionObserver per section with staggered child animations provides the same visual effect with fewer observers.
+- `motion-safe:opacity-0` is the correct way to hide unrevealed content while respecting `prefers-reduced-motion`. Users with reduced motion preferences see content immediately (full opacity) since the `motion-safe:` prefix means the class only applies when motion is acceptable.
+- The `both` fill mode in `animate-[keyframe_duration_easing_both]` is critical for reveal animations — it keeps elements at the `from` state (invisible) before animation starts, preventing a flash of visible content that then disappears and re-animates.
+- When converting existing on-mount animations (like `fadeIn`) to scroll-triggered patterns, the existing keyframe should be preserved if other components still reference it. Removal should be a separate cleanup task.
+- Test mocking for `useScrollReveal` is straightforward: mock it to return `{ ref: { current: null }, isRevealed: true }` so tests render the revealed state without needing IntersectionObserver simulation. The hook itself is tested in isolation with a proper IntersectionObserver mock.
+- The callback-capturing IntersectionObserver mock pattern (from trip-messages.test.tsx) is ideal for hook tests — it allows simulating intersection events programmatically by invoking the captured callback with `isIntersecting: true/false`.

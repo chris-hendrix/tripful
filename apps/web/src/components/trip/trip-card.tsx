@@ -51,8 +51,8 @@ export const TripCard = memo(function TripCard({
       href={`/trips/${trip.id}`}
       onMouseEnter={prefetchTrip}
       onFocus={prefetchTrip}
-      className="block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md motion-safe:active:scale-[0.98] transition-all cursor-pointer motion-safe:animate-[slideUp_500ms_ease-out_both] motion-safe:hover:-translate-y-0.5"
-      style={{ animationDelay: `${index * 100}ms` }}
+      className="block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md motion-safe:active:scale-[0.98] transition-all cursor-pointer motion-safe:animate-[staggerIn_500ms_ease-out_both] motion-safe:hover:-translate-y-0.5"
+      style={{ animationDelay: `${index * 80}ms` }}
     >
       {/* Cover image or placeholder */}
       {trip.coverImageUrl ? (

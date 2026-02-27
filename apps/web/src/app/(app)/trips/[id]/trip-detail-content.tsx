@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -58,6 +58,7 @@ import {
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -143,6 +144,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       data.map((m) => ({ id: m.id, userId: m.userId, isMuted: m.isMuted })),
   });
   const currentMember = members?.find((m) => m.userId === user?.id);
+  const { ref: itineraryRef, isRevealed: itineraryRevealed } =
+    useScrollReveal();
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -216,7 +219,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-background motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
       {/* Breadcrumb navigation */}
       <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
         <BreadcrumbList>
@@ -403,7 +406,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Itinerary */}
-        <div id="itinerary" className="scroll-mt-14">
+        <div
+          id="itinerary"
+          ref={itineraryRef as RefObject<HTMLDivElement>}
+          className={`scroll-mt-14 ${itineraryRevealed ? "motion-safe:animate-[revealScale_500ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+        >
           <ItineraryView
             tripId={tripId}
             onAddTravel={() => setShowOnboarding(true)}

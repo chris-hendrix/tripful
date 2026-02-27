@@ -28,6 +28,14 @@ vi.mock("@/hooks/use-trips", () => ({
   useTrips: () => mockUseTrips(),
 }));
 
+// Mock useScrollReveal — always return revealed for test simplicity
+vi.mock("@/hooks/use-scroll-reveal", () => ({
+  useScrollReveal: () => ({
+    ref: { current: null },
+    isRevealed: true,
+  }),
+}));
+
 // Mock next/navigation
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
