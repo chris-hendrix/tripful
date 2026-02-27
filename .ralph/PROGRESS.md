@@ -885,3 +885,56 @@ All animations use `motion-safe:` prefix. Only `opacity` and `transform` propert
 - When converting existing on-mount animations (like `fadeIn`) to scroll-triggered patterns, the existing keyframe should be preserved if other components still reference it. Removal should be a separate cleanup task.
 - Test mocking for `useScrollReveal` is straightforward: mock it to return `{ ref: { current: null }, isRevealed: true }` so tests render the revealed state without needing IntersectionObserver simulation. The hook itself is tested in isolation with a proper IntersectionObserver mock.
 - The callback-capturing IntersectionObserver mock pattern (from trip-messages.test.tsx) is ideal for hook tests — it allows simulating intersection events programmatically by invoking the captured callback with `isIntersecting: true/false`.
+
+## Iteration 17 — Task 6.3: Add gradient mesh backgrounds, textures, asymmetric layouts, and card effects
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (8) + new file (1):**
+
+1. **`apps/web/src/app/globals.css`** — Added `.gradient-mesh` CSS class (multi-layer radial gradients with `#1a5c9e10`, `#d1643d08`, `#497e5a08` at 3-6% opacity) and `.card-noise` class with `::after` pseudo-element using SVG `feTurbulence` fractal noise at 3% opacity with `pointer-events: none` and `border-radius: inherit`.
+
+2. **`apps/web/src/components/ui/topo-pattern.tsx`** — **New file.** Reusable `TopoPattern` component rendering decorative topographic contour-line SVG (5 organic paths) at 6% opacity with `aria-hidden="true"` and `pointer-events-none`.
+
+3. **`apps/web/src/components/trip/trip-card.tsx`** — Enhanced hover effect from `hover:shadow-md` → `hover:shadow-lg` and `motion-safe:hover:-translate-y-0.5` → `motion-safe:hover:-translate-y-1` (4px). Added `card-noise` class. Added `className` prop with `cn()` merging for parent-driven sizing (used for asymmetric grid).
+
+4. **`apps/web/src/components/itinerary/event-card.tsx`** — Enhanced hover effect to match TripCard: `hover:shadow-lg` and `motion-safe:hover:-translate-y-1`.
+
+5. **`apps/web/src/app/(app)/trips/trips-content.tsx`** — Applied `gradient-mesh` to page container. Implemented asymmetric grid with `lg:row-span-2` on first upcoming trip card. Added `TopoPattern` + `card-noise` to both empty states ("No trips yet" and "No trips found"). Empty state containers use `relative overflow-hidden` with a `relative` inner div for proper z-stacking.
+
+6. **`apps/web/src/app/(app)/mutuals/mutuals-content.tsx`** — Applied `gradient-mesh` to page container. Added `TopoPattern` + `card-noise` to "No mutuals yet" empty state.
+
+7. **`apps/web/src/app/(auth)/layout.tsx`** — Applied `gradient-mesh` to page container (alongside existing compass rose decorations).
+
+8. **`apps/web/src/components/itinerary/itinerary-view.tsx`** — Added `TopoPattern` + `card-noise` to "No itinerary yet" empty state.
+
+9. **`apps/web/src/components/trip/__tests__/trip-card.test.tsx`** — Updated 2 assertions: `hover:shadow-md` → `hover:shadow-lg`, `motion-safe:hover:-translate-y-0.5` → `motion-safe:hover:-translate-y-1`.
+
+### Reviewer Feedback (2 rounds)
+
+**Round 1** — NEEDS_WORK (1 MEDIUM issue):
+1. **MEDIUM — Indentation inconsistency in `itinerary-view.tsx`**: Content inside `<div className="relative">` wrapper was not indented. Fixed by adding 2 spaces to lines 203-234 to match the pattern in `trips-content.tsx` and `mutuals-content.tsx`.
+
+**Round 2** — APPROVED. All 6 deliverables implemented correctly.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in `verification.service.test.ts`)
+- **Web Tests**: PASS — 70 test files, 1202 tests, 0 failures
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: Pre-existing flaky failures (pg-rate-limit-store, account-lockout — unrelated to Task 6.3 frontend changes)
+- **Itinerary View Tests**: 12 tests passed
+- **TripCard Tests**: All pass (updated assertions)
+- **Trips Content Tests**: 25 tests passed
+- **Mutuals Content Tests**: 10 tests passed
+
+### Learnings
+
+- The `.gradient-mesh` class uses hex colors with alpha (`#1a5c9e10`) rather than CSS variable references inside gradients, avoiding both the Tailwind v4 `hsl()` bug and potential variable resolution issues in gradient contexts.
+- The `card-noise` CSS pseudo-element approach with `feTurbulence` SVG creates a performant noise texture without external image assets. The `border-radius: inherit` on the pseudo-element ensures it clips to the card's rounded corners.
+- For asymmetric grids with `lg:row-span-2`, the TripCard needs a `className` prop to accept `lg:h-full` from the parent — this allows the card to fill the full height of the 2-row span. The `cn()` merging pattern from shadcn/ui components works cleanly for this.
+- Empty state containers need `relative overflow-hidden` for the `TopoPattern` absolute positioning, with a separate `relative` inner div to create a stacking context above the decorative background. This 3-layer approach (container → decorative → content) is clean and reusable.
+- The `pointer-events: none` on both `card-noise::after` and `TopoPattern` is essential to prevent decorative layers from intercepting clicks on buttons and links within the cards/empty states.

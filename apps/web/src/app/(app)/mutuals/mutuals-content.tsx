@@ -27,6 +27,7 @@ import {
 import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { TopoPattern } from "@/components/ui/topo-pattern";
 
 function MutualCardSkeleton() {
   return (
@@ -101,7 +102,7 @@ export function MutualsContent() {
   const mutualCount = mutuals.length;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both] gradient-mesh">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -185,8 +186,9 @@ export function MutualsContent() {
 
         {/* Empty State */}
         {isEmpty && (
-          <div className="bg-card rounded-2xl border border-border p-12 text-center">
-            <div className="max-w-md mx-auto">
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-12 text-center card-noise">
+            <TopoPattern />
+            <div className="relative max-w-md mx-auto">
               <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
                 No mutuals yet

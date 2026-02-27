@@ -162,7 +162,7 @@
   - Verify: run full test suite, lint, and typecheck pass
   - Verify: manual testing with screenshots — animation behavior on trips page, mutuals page
 
-- [ ] Task 6.3: Add gradient mesh backgrounds, textures, asymmetric layouts, and card effects
+- [x] Task 6.3: Add gradient mesh backgrounds, textures, asymmetric layouts, and card effects
   - Implement: Add `.gradient-mesh` CSS class to `globals.css` — multi-layer radial gradients using primary/accent/success colors
   - Implement: Apply gradient mesh to page containers (trips list, mutuals, auth pages)
   - Implement: Add subtle noise texture overlay (CSS pseudo-element, ~3% opacity) to card backgrounds

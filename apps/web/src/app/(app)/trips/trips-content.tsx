@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { TopoPattern } from "@/components/ui/topo-pattern";
 
 function SkeletonCard() {
   return (
@@ -136,7 +137,7 @@ export function TripsContent() {
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both] gradient-mesh">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -195,8 +196,9 @@ export function TripsContent() {
 
         {/* Empty State (no trips at all) */}
         {isEmpty && (
-          <div className="bg-card rounded-2xl border border-border p-12 text-center">
-            <div className="max-w-md mx-auto">
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-12 text-center card-noise">
+            <TopoPattern />
+            <div className="relative max-w-md mx-auto">
               <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
                 No trips yet
               </h2>
@@ -217,14 +219,17 @@ export function TripsContent() {
 
         {/* No Search Results */}
         {noResults && (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2 font-accent">
-              No trips found
-            </h2>
-            <p className="text-muted-foreground">
-              Try searching with different keywords
-            </p>
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-8 text-center card-noise">
+            <TopoPattern />
+            <div className="relative">
+              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2 font-accent">
+                No trips found
+              </h2>
+              <p className="text-muted-foreground">
+                Try searching with different keywords
+              </p>
+            </div>
           </div>
         )}
 
@@ -244,7 +249,16 @@ export function TripsContent() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcomingTrips.map((trip, index) => (
-                    <TripCard key={trip.id} trip={trip} index={index} />
+                    <div
+                      key={trip.id}
+                      className={index === 0 ? "lg:row-span-2" : ""}
+                    >
+                      <TripCard
+                        trip={trip}
+                        index={index}
+                        className={index === 0 ? "lg:h-full" : ""}
+                      />
+                    </div>
                   ))}
                 </div>
               </section>

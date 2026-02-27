@@ -414,7 +414,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={baseTrip} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card.className).toContain("hover:shadow-md");
+      expect(card.className).toContain("hover:shadow-lg");
       expect(card.className).toContain("motion-safe:active:scale-[0.98]");
       expect(card.className).toContain("transition-all");
     });
@@ -426,7 +426,7 @@ describe("TripCard", () => {
       expect(card.className).toContain(
         "motion-safe:animate-[staggerIn_500ms_ease-out_both]",
       );
-      expect(card.className).toContain("motion-safe:hover:-translate-y-0.5");
+      expect(card.className).toContain("motion-safe:hover:-translate-y-1");
     });
   });
 });

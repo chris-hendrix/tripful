@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background">
+    <div className="relative min-h-screen w-full overflow-hidden bg-background gradient-mesh">
       {/* Decorative compass rose pattern */}
       <div className="absolute inset-0 opacity-[0.08]" aria-hidden="true">
         <svg
