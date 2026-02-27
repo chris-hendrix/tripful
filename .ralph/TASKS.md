@@ -124,7 +124,7 @@
 
 ## Phase 5: UI Component Fixes
 
-- [ ] Task 5.1: Fix shadcn/ui token violations and WCAG AA color contrast
+- [x] Task 5.1: Fix shadcn/ui token violations and WCAG AA color contrast
   - Implement: Replace hardcoded amber colors with `warning` theme tokens in `apps/web/src/components/ui/rsvp-badge.tsx` (defaultStyles and overlayStyles)
   - Implement: Replace raw `<button>` with `<Button>` component in `apps/web/src/components/error-boundary.tsx`, add `onReset` prop support
   - Implement: Fix inline link classes in `apps/web/src/components/mutuals/mutual-profile-sheet.tsx` (line 71) — use `cn()` utility

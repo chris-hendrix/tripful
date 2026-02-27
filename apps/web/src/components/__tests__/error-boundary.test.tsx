@@ -122,6 +122,18 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Child content")).toBeDefined();
   });
 
+  it("renders Try again button using shadcn Button component", () => {
+    throwOnRender = true;
+    render(
+      <ErrorBoundary>
+        <ConditionalThrow />
+      </ErrorBoundary>,
+    );
+    const button = screen.getByText("Try again");
+    // Button component from shadcn renders with data-slot="button"
+    expect(button.getAttribute("data-slot")).toBe("button");
+  });
+
   it("works without onReset prop (backward compatibility)", async () => {
     const user = userEvent.setup();
     throwOnRender = true;

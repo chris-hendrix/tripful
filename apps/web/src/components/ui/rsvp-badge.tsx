@@ -9,18 +9,18 @@ interface RsvpBadgeProps {
 
 const defaultStyles: Record<RsvpStatus, string> = {
   going: "bg-success/15 text-success border-success/30",
-  maybe: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  maybe: "bg-warning/15 text-warning border-warning/30",
   not_going: "bg-destructive/15 text-destructive border-destructive/30",
   no_response: "bg-muted text-muted-foreground border-border",
 };
 
 const overlayStyles: Record<RsvpStatus, string> = {
   going:
-    "bg-black/50 backdrop-blur-md text-emerald-300 border-white/20 shadow-sm",
+    "bg-black/50 backdrop-blur-md text-overlay-success border-white/20 shadow-sm",
   maybe:
-    "bg-black/50 backdrop-blur-md text-amber-300 border-white/20 shadow-sm",
+    "bg-black/50 backdrop-blur-md text-overlay-warning border-white/20 shadow-sm",
   not_going:
-    "bg-black/50 backdrop-blur-md text-neutral-300 border-white/20 shadow-sm",
+    "bg-black/50 backdrop-blur-md text-overlay-muted border-white/20 shadow-sm",
   no_response: "",
 };
 

@@ -12,7 +12,7 @@
   --color-secondary: #eee9e2;
   --color-secondary-foreground: #3a2d22;
   --color-muted: #eee9e2;
-  --color-muted-foreground: #6b6054;
+  --color-muted-foreground: #5a5046;
   --color-accent: #d1643d;
   --color-accent-foreground: #ffffff;
   --color-destructive: #c6372a;
@@ -43,6 +43,11 @@
   --color-member-travel: #6b7280;
   --color-member-travel-light: #f9fafb;
   --color-member-travel-border: #e5e7eb;
+
+  /* Overlay text colors (bright on dark backgrounds like bg-black/50) */
+  --color-overlay-success: #6ee7b7;
+  --color-overlay-warning: #fcd34d;
+  --color-overlay-muted: #d4d4d4;
 }
 
 @layer base {
