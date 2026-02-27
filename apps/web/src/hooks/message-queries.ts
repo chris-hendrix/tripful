@@ -1,4 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+} from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import type {
   GetMessagesResponse,
@@ -25,18 +29,25 @@ export const messageKeys = {
 };
 
 /**
- * Query options for fetching paginated messages for a trip
+ * Infinite query options for fetching paginated messages for a trip (cursor-based)
  */
-export const messagesQueryOptions = (tripId: string, limit?: number) =>
-  queryOptions({
+export const messagesQueryOptions = (tripId: string) =>
+  infiniteQueryOptions({
     queryKey: messageKeys.list(tripId),
     staleTime: 30 * 1000,
-    queryFn: async ({ signal }) => {
-      const url = limit
-        ? `/trips/${tripId}/messages?limit=${limit}`
-        : `/trips/${tripId}/messages`;
-      const response = await apiRequest<GetMessagesResponse>(url, { signal });
-      return response;
+    placeholderData: keepPreviousData,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: GetMessagesResponse) =>
+      lastPage.meta.nextCursor ?? undefined,
+    queryFn: async ({ signal, pageParam }) => {
+      const searchParams = new URLSearchParams();
+      searchParams.set("limit", "20");
+      if (pageParam) searchParams.set("cursor", pageParam);
+
+      const query = searchParams.toString();
+      const url = `/trips/${tripId}/messages?${query}`;
+
+      return apiRequest<GetMessagesResponse>(url, { signal });
     },
     enabled: !!tripId,
   });

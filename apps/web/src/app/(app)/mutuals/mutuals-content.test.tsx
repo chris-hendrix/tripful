@@ -105,9 +105,12 @@ describe("MutualsContent", () => {
 
     vi.clearAllMocks();
 
-    // Default: trips hook returns empty
+    // Default: trips hook returns empty (InfiniteData shape)
     mockUseTrips.mockReturnValue({
-      data: [],
+      data: {
+        pages: [{ success: true, data: [], meta: { total: 0, limit: 20, hasMore: false, nextCursor: null } }],
+        pageParams: [undefined],
+      },
       isPending: false,
       isError: false,
       error: null,
@@ -429,10 +432,19 @@ describe("MutualsContent", () => {
       const user = userEvent.setup({ pointerEventsCheck: 0 });
 
       mockUseTrips.mockReturnValue({
-        data: [
-          { id: "filter-trip-1", name: "Paris Adventure" },
-          { id: "filter-trip-2", name: "Tokyo Explorer" },
-        ],
+        data: {
+          pages: [
+            {
+              success: true,
+              data: [
+                { id: "filter-trip-1", name: "Paris Adventure" },
+                { id: "filter-trip-2", name: "Tokyo Explorer" },
+              ],
+              meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
+            },
+          ],
+          pageParams: [undefined],
+        },
         isPending: false,
         isError: false,
         error: null,

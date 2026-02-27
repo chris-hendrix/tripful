@@ -91,7 +91,7 @@
   - Test: Update existing integration tests for all 3 endpoints to use cursor-based params
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 3.2: Update frontend consumers for cursor pagination (trips, notifications, messages)
+- [x] Task 3.2: Update frontend consumers for cursor pagination (trips, notifications, messages)
   - Implement: Update `apps/web/src/hooks/trip-queries.ts` — convert trips list to useInfiniteQuery with getNextPageParam extracting nextCursor
   - Implement: Update `apps/web/src/hooks/notification-queries.ts` — update cursor param handling
   - Implement: Update `apps/web/src/hooks/message-queries.ts` — update cursor param handling

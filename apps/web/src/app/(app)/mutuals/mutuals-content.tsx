@@ -83,7 +83,7 @@ export function MutualsContent() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const mutuals = data?.pages.flatMap((page) => page.mutuals) ?? [];
-  const trips = tripsData ?? [];
+  const trips = tripsData?.pages.flatMap((p) => p.data) ?? [];
   const isEmpty = mutuals.length === 0 && !isPending && !isError;
   const mutualCount = mutuals.length;
 

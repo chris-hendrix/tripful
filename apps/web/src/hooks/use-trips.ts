@@ -1,6 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, APIError } from "@/lib/api";
@@ -9,6 +15,7 @@ import type {
   Trip,
   TripSummary,
   TripDetail,
+  GetTripsResponse,
   CreateTripResponse,
   UpdateTripResponse,
 } from "@tripful/shared/types";
@@ -57,7 +64,7 @@ interface CancelTripResponse {
  * ```
  */
 export function useTrips() {
-  return useQuery(tripsQueryOptions);
+  return useInfiniteQuery(tripsQueryOptions);
 }
 
 /**
@@ -123,7 +130,7 @@ export function usePrefetchTrip(tripId: string) {
  * Contains previous state for rollback on error
  */
 interface CreateTripContext {
-  previousTrips: Trip[] | undefined;
+  previousTrips: InfiniteData<GetTripsResponse> | undefined;
 }
 
 export function useCreateTrip() {
@@ -146,7 +153,8 @@ export function useCreateTrip() {
       await queryClient.cancelQueries({ queryKey: tripKeys.all });
 
       // Snapshot the previous value for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
+      const previousTrips =
+        queryClient.getQueryData<InfiniteData<GetTripsResponse>>(tripKeys.all);
 
       // Optimistically update the cache with a temporary trip
       // Note: We create a temporary ID and placeholder data since we don't have the real ID yet
@@ -167,12 +175,24 @@ export function useCreateTrip() {
         updatedAt: new Date(),
       };
 
-      // Add optimistic trip to the cache if trips list exists
+      // Add optimistic trip to the first page if trips list exists
       if (previousTrips) {
-        queryClient.setQueryData<Trip[]>(tripKeys.all, [
-          optimisticTrip,
-          ...previousTrips,
-        ]);
+        queryClient.setQueryData<InfiniteData<GetTripsResponse>>(
+          tripKeys.all,
+          {
+            ...previousTrips,
+            pages: previousTrips.pages.map((page, i) => {
+              if (i === 0) {
+                return {
+                  ...page,
+                  data: [optimisticTrip as unknown as TripSummary, ...page.data],
+                  meta: { ...page.meta, total: page.meta.total + 1 },
+                };
+              }
+              return page;
+            }),
+          },
+        );
       }
 
       // Return context with previous data for rollback
@@ -242,7 +262,7 @@ export function getCreateTripErrorMessage(error: Error | null): string | null {
  * Contains previous state for rollback on error
  */
 interface UpdateTripContext {
-  previousTrips: Trip[] | undefined;
+  previousTrips: InfiniteData<GetTripsResponse> | undefined;
   previousTrip: Trip | undefined;
 }
 
@@ -294,7 +314,8 @@ export function useUpdateTrip() {
       await queryClient.cancelQueries({ queryKey: tripKeys.detail(tripId) });
 
       // Snapshot the previous values for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
+      const previousTrips =
+        queryClient.getQueryData<InfiniteData<GetTripsResponse>>(tripKeys.all);
       const previousTrip = queryClient.getQueryData<Trip>(
         tripKeys.detail(tripId),
       );
@@ -332,13 +353,21 @@ export function useUpdateTrip() {
 
         queryClient.setQueryData<Trip>(tripKeys.detail(tripId), optimisticTrip);
 
-        // Also update the trip in the trips list cache
+        // Also update the trip in the trips list cache (across all pages)
         if (previousTrips) {
-          queryClient.setQueryData<Trip[]>(
+          queryClient.setQueryData<InfiniteData<GetTripsResponse>>(
             tripKeys.all,
-            previousTrips.map((trip) =>
-              trip.id === tripId ? optimisticTrip : trip,
-            ),
+            {
+              ...previousTrips,
+              pages: previousTrips.pages.map((page) => ({
+                ...page,
+                data: page.data.map((trip) =>
+                  trip.id === tripId
+                    ? (optimisticTrip as unknown as TripSummary)
+                    : trip,
+                ),
+              })),
+            },
           );
         }
       }
@@ -408,7 +437,7 @@ export function getUpdateTripErrorMessage(error: Error | null): string | null {
  * Contains previous state for rollback on error
  */
 interface CancelTripContext {
-  previousTrips: Trip[] | undefined;
+  previousTrips: InfiniteData<GetTripsResponse> | undefined;
 }
 
 /**
@@ -449,13 +478,21 @@ export function useCancelTrip() {
       await queryClient.cancelQueries({ queryKey: tripKeys.all });
 
       // Snapshot the previous value for rollback
-      const previousTrips = queryClient.getQueryData<Trip[]>(tripKeys.all);
+      const previousTrips =
+        queryClient.getQueryData<InfiniteData<GetTripsResponse>>(tripKeys.all);
 
-      // Optimistically remove the trip from the cache
+      // Optimistically remove the trip from the cache (across all pages)
       if (previousTrips) {
-        queryClient.setQueryData<Trip[]>(
+        queryClient.setQueryData<InfiniteData<GetTripsResponse>>(
           tripKeys.all,
-          previousTrips.filter((trip) => trip.id !== tripId),
+          {
+            ...previousTrips,
+            pages: previousTrips.pages.map((page) => ({
+              ...page,
+              data: page.data.filter((trip) => trip.id !== tripId),
+              meta: { ...page.meta, total: Math.max(0, page.meta.total - 1) },
+            })),
+          },
         );
       }
 

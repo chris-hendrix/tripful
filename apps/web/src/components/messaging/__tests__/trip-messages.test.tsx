@@ -53,13 +53,29 @@ const makeMessage = (
 let mockData: GetMessagesResponse | undefined;
 let mockIsPending = false;
 let lastUseMessagesEnabled: boolean | undefined;
-let lastUseMessagesLimit: number | undefined;
+const mockFetchNextPage = vi.fn();
+let mockHasNextPage = false;
+let mockIsFetchingNextPage = false;
+
+/** Wrap a GetMessagesResponse into InfiniteData shape for the hook mock */
+function wrapMessages(response: GetMessagesResponse | undefined) {
+  if (!response) return undefined;
+  return {
+    pages: [response],
+    pageParams: [undefined],
+  };
+}
 
 vi.mock("@/hooks/use-messages", () => ({
-  useMessages: (_tripId: string, enabled?: boolean, limit?: number) => {
+  useMessages: (_tripId: string, enabled?: boolean) => {
     lastUseMessagesEnabled = enabled;
-    lastUseMessagesLimit = limit;
-    return { data: mockData, isPending: mockIsPending };
+    return {
+      data: wrapMessages(mockData),
+      isPending: mockIsPending,
+      hasNextPage: mockHasNextPage,
+      fetchNextPage: mockFetchNextPage,
+      isFetchingNextPage: mockIsFetchingNextPage,
+    };
   },
   useCreateMessage: () => ({ mutate: vi.fn(), isPending: false }),
   useToggleReaction: () => ({ mutate: vi.fn(), isPending: false }),
@@ -94,7 +110,9 @@ describe("TripMessages", () => {
     mockData = undefined;
     mockIsPending = false;
     lastUseMessagesEnabled = undefined;
-    lastUseMessagesLimit = undefined;
+    mockHasNextPage = false;
+    mockIsFetchingNextPage = false;
+    mockFetchNextPage.mockClear();
     mockObserve.mockClear();
     mockDisconnect.mockClear();
     intersectionCallback = null;
@@ -293,6 +311,7 @@ describe("TripMessages", () => {
       messages: [makeMessage({ id: "msg-1" })],
       meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
     };
+    mockHasNextPage = true;
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
@@ -307,6 +326,7 @@ describe("TripMessages", () => {
       messages: [makeMessage({ id: "msg-1" })],
       meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
     };
+    mockHasNextPage = false;
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 
@@ -315,25 +335,23 @@ describe("TripMessages", () => {
     ).toBeNull();
   });
 
-  it("increases limit when 'Load earlier messages' is clicked", () => {
+  it("calls fetchNextPage when 'Load earlier messages' is clicked", () => {
     mockData = {
       success: true,
       messages: [makeMessage({ id: "msg-1" })],
       meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
     };
+    mockHasNextPage = true;
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
-
-    // Initially limit should be PAGE_SIZE (20)
-    expect(lastUseMessagesLimit).toBe(20);
 
     const button = screen.getByRole("button", {
       name: "Load earlier messages",
     });
     fireEvent.click(button);
 
-    // After click, limit should increase to 40 (PAGE_SIZE * 2)
-    expect(lastUseMessagesLimit).toBe(40);
+    // fetchNextPage should be called instead of incrementing limit
+    expect(mockFetchNextPage).toHaveBeenCalledOnce();
   });
 
   it("does not show 'Load earlier messages' in empty state", () => {
@@ -342,6 +360,7 @@ describe("TripMessages", () => {
       messages: [],
       meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
     };
+    mockHasNextPage = false;
 
     render(<TripMessages tripId="trip-1" isOrganizer={false} />);
 

@@ -65,13 +65,15 @@ export function TripsContent() {
   }, [searchQuery, router, searchParams, pathname]);
 
   const {
-    data: trips = [],
+    data,
     isPending,
     isError,
     error,
     refetch,
     isFetching,
   } = useTrips();
+
+  const trips = data?.pages.flatMap((p) => p.data) ?? [];
 
   // Filter trips by search query (case-insensitive, searches name and destination)
   const filteredTrips = useMemo(() => {

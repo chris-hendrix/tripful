@@ -1,4 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+} from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import type {
   GetNotificationsResponse,
@@ -15,7 +19,6 @@ export const notificationKeys = {
   lists: () => ["notifications", "list"] as const,
   list: (params?: {
     tripId?: string;
-    limit?: number;
     unreadOnly?: boolean;
   }) => ["notifications", "list", params] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
@@ -29,26 +32,29 @@ export const notificationKeys = {
 };
 
 /**
- * Query options for fetching paginated notifications
+ * Infinite query options for fetching paginated notifications (cursor-based)
  *
  * If tripId is provided, fetches trip-specific notifications.
  * Otherwise fetches all notifications for the current user.
  *
- * @param params - Optional filter parameters (tripId, limit, unreadOnly)
- * @returns Query options for use with useQuery or prefetchQuery
+ * @param params - Optional filter parameters (tripId, unreadOnly)
+ * @returns Infinite query options for use with useInfiniteQuery
  */
 export const notificationsQueryOptions = (params?: {
   tripId?: string;
-  limit?: number;
   unreadOnly?: boolean;
 }) =>
-  queryOptions({
+  infiniteQueryOptions({
     queryKey: notificationKeys.list(params),
     staleTime: 30 * 1000,
-    queryFn: async ({ signal }) => {
+    placeholderData: keepPreviousData,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: GetNotificationsResponse) =>
+      lastPage.meta.nextCursor ?? undefined,
+    queryFn: async ({ signal, pageParam }) => {
       const searchParams = new URLSearchParams();
-      if (params?.limit !== undefined)
-        searchParams.set("limit", String(params.limit));
+      searchParams.set("limit", "20");
+      if (pageParam) searchParams.set("cursor", pageParam);
       if (params?.unreadOnly !== undefined)
         searchParams.set("unreadOnly", String(params.unreadOnly));
 

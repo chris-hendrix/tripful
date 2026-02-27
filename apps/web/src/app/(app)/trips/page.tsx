@@ -13,7 +13,10 @@ export default async function TripsPage() {
 
   try {
     const response = await serverApiRequest<GetTripsResponse>("/trips");
-    queryClient.setQueryData(tripKeys.all, response.data);
+    queryClient.setQueryData(tripKeys.all, {
+      pages: [response],
+      pageParams: [undefined],
+    });
   } catch {
     // Prefetch failed (e.g., server-side cookie not available)
     // Client component will fetch on mount

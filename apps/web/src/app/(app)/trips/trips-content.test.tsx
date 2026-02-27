@@ -69,6 +69,25 @@ vi.mock("@/components/trip/create-trip-dialog", () => ({
   },
 }));
 
+/** Wrap a flat TripSummary[] into the InfiniteData shape that useTrips() returns */
+function wrapTrips(trips: TripSummary[]) {
+  return {
+    pages: [
+      {
+        success: true as const,
+        data: trips,
+        meta: {
+          total: trips.length,
+          limit: 20,
+          hasMore: false,
+          nextCursor: null,
+        },
+      },
+    ],
+    pageParams: [undefined],
+  };
+}
+
 describe("TripsContent", () => {
   let queryClient: QueryClient;
 
@@ -163,7 +182,7 @@ describe("TripsContent", () => {
   describe("Loading state", () => {
     it("shows loading skeletons while fetching trips", () => {
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: true,
         isError: false,
         error: null,
@@ -179,7 +198,7 @@ describe("TripsContent", () => {
 
     it("does not show trip count during loading", () => {
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: true,
         isError: false,
         error: null,
@@ -197,7 +216,7 @@ describe("TripsContent", () => {
     it("shows error message with retry button", () => {
       const mockRefetch = vi.fn();
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: true,
         error: new Error("Network error"),
@@ -215,7 +234,7 @@ describe("TripsContent", () => {
       const user = userEvent.setup();
       const mockRefetch = vi.fn();
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: true,
         error: new Error("Network error"),
@@ -232,7 +251,7 @@ describe("TripsContent", () => {
 
     it("shows generic error message when error has no message", () => {
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: true,
         error: null,
@@ -248,7 +267,7 @@ describe("TripsContent", () => {
   describe("Empty state", () => {
     it("shows empty state when no trips exist", () => {
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: false,
         error: null,
@@ -269,7 +288,7 @@ describe("TripsContent", () => {
     it("opens create dialog when empty state button is clicked", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: false,
         error: null,
@@ -290,7 +309,7 @@ describe("TripsContent", () => {
   describe("Trips display", () => {
     it("renders trips correctly", () => {
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -308,7 +327,7 @@ describe("TripsContent", () => {
 
     it("shows singular 'trip' for one trip", () => {
       mockUseTrips.mockReturnValue({
-        data: [mockTrips[0]],
+        data: wrapTrips([mockTrips[0]]),
         isPending: false,
         isError: false,
         error: null,
@@ -322,7 +341,7 @@ describe("TripsContent", () => {
 
     it("splits trips into upcoming and past sections", () => {
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -337,7 +356,7 @@ describe("TripsContent", () => {
 
     it("passes correct index to TripCard for animations", () => {
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -358,7 +377,7 @@ describe("TripsContent", () => {
     it("filters trips by name", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -380,7 +399,7 @@ describe("TripsContent", () => {
     it("filters trips by destination", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -401,7 +420,7 @@ describe("TripsContent", () => {
     it("is case-insensitive", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -421,7 +440,7 @@ describe("TripsContent", () => {
     it("shows no results message when search has no matches", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -444,7 +463,7 @@ describe("TripsContent", () => {
     it("shows all trips when search is cleared", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -473,7 +492,7 @@ describe("TripsContent", () => {
     it("initializes search from URL query parameter", () => {
       mockSearchParams = new URLSearchParams("q=Summer");
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -497,7 +516,7 @@ describe("TripsContent", () => {
         advanceTimers: vi.advanceTimersByTime,
       });
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -529,7 +548,7 @@ describe("TripsContent", () => {
         advanceTimers: vi.advanceTimersByTime,
       });
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -563,7 +582,7 @@ describe("TripsContent", () => {
       };
 
       mockUseTrips.mockReturnValue({
-        data: [tripWithoutDate],
+        data: wrapTrips([tripWithoutDate]),
         isPending: false,
         isError: false,
         error: null,
@@ -579,7 +598,7 @@ describe("TripsContent", () => {
 
     it("only shows upcoming section when no past trips", () => {
       mockUseTrips.mockReturnValue({
-        data: [mockTrips[0], mockTrips[1]],
+        data: wrapTrips([mockTrips[0], mockTrips[1]]),
         isPending: false,
         isError: false,
         error: null,
@@ -594,7 +613,7 @@ describe("TripsContent", () => {
 
     it("only shows past section when no upcoming trips", () => {
       mockUseTrips.mockReturnValue({
-        data: [mockTrips[2]],
+        data: wrapTrips([mockTrips[2]]),
         isPending: false,
         isError: false,
         error: null,
@@ -611,7 +630,7 @@ describe("TripsContent", () => {
   describe("Floating Action Button (FAB)", () => {
     it("renders FAB button", () => {
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -627,7 +646,7 @@ describe("TripsContent", () => {
     it("opens create dialog when FAB is clicked", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: mockTrips,
+        data: wrapTrips(mockTrips),
         isPending: false,
         isError: false,
         error: null,
@@ -649,7 +668,7 @@ describe("TripsContent", () => {
     it("passes dialog state correctly", async () => {
       const user = userEvent.setup();
       mockUseTrips.mockReturnValue({
-        data: [],
+        data: wrapTrips([]),
         isPending: false,
         isError: false,
         error: null,

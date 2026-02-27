@@ -425,3 +425,67 @@ Two categories of fix applied:
 - `base64url` vs `base64`: The mutuals service uses plain `base64` which works because query string values are URL-encoded. `base64url` is safer for cursors that might be used in URLs without additional encoding.
 - When changing shared types (shared/types/), both backend AND frontend code must be updated to pass typecheck. Even for a "backend-only" task, changing the API contract types affects frontend compilation. Frontend test mocks with hardcoded response shapes also break.
 - The old `paginationSchema` export should be preserved even when no routes use it — external consumers or tests may still import it. Adding `cursorPaginationSchema` alongside is safer than modifying the existing one.
+
+## Iteration 10 — Task 3.2: Update frontend consumers for cursor pagination (trips, notifications, messages)
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Query factories converted (3 files):**
+- `apps/web/src/hooks/trip-queries.ts` — Converted `tripsQueryOptions` from `queryOptions` to `infiniteQueryOptions` with `initialPageParam: undefined as string | undefined`, `getNextPageParam: (lastPage) => lastPage.meta.nextCursor ?? undefined`, cursor passed via `searchParams.set("cursor", pageParam)`. Added `placeholderData: keepPreviousData`. Changed queryFn to return full `GetTripsResponse` (previously unwrapped to just the array).
+- `apps/web/src/hooks/notification-queries.ts` — Converted `notificationsQueryOptions` from `queryOptions` to `infiniteQueryOptions`. Removed `limit` from params (now fixed per-page). Added cursor support and `placeholderData: keepPreviousData`.
+- `apps/web/src/hooks/message-queries.ts` — Converted `messagesQueryOptions` from `queryOptions` to `infiniteQueryOptions`. Removed optional `limit` parameter. Added cursor support and `placeholderData: keepPreviousData`.
+
+**Hooks with mutation updates (3 files):**
+- `apps/web/src/hooks/use-trips.ts` — Changed `useTrips()` from `useQuery` to `useInfiniteQuery`. Updated 3 mutation optimistic updates (`useCreateTrip`, `useUpdateTrip`, `useCancelTrip`) to work with `InfiniteData<GetTripsResponse>` by mapping over `pages` array.
+- `apps/web/src/hooks/use-notifications.ts` — Changed `useNotifications()` to `useInfiniteQuery`. Removed `limit` param. Updated `useMarkAsRead` and `useMarkAllAsRead` optimistic updates for `InfiniteData<GetNotificationsResponse>` pages structure.
+- `apps/web/src/hooks/use-messages.ts` — Changed `useMessages()` to `useInfiniteQuery`. Removed `limit` param. Updated all 5 mutation optimistic updates (`useCreateMessage`, `useEditMessage`, `useDeleteMessage`, `useToggleReaction`, `usePinMessage`) for `InfiniteData<GetMessagesResponse>`.
+
+**UI components updated (6 files):**
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — Changed data access from `data: trips = []` to `data?.pages.flatMap((p) => p.data) ?? []`
+- `apps/web/src/app/(app)/trips/page.tsx` — SSR prefetch now sets `InfiniteData` shape: `{ pages: [response], pageParams: [undefined] }`
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Changed trip data access to `tripsData?.pages.flatMap((p) => p.data) ?? []`
+- `apps/web/src/components/notifications/notification-dropdown.tsx` — Flattens pages for notification list, uses `hasNextPage` for "View all" link
+- `apps/web/src/components/notifications/trip-notification-dialog.tsx` — Removed `page` state and `PAGE_SIZE * page` pattern; uses `fetchNextPage`/`hasNextPage`/`isFetchingNextPage` from hook
+- `apps/web/src/components/messaging/trip-messages.tsx` — Removed `page` state and `PAGE_SIZE * page` pattern; uses `fetchNextPage`/`hasNextPage`/`isFetchingNextPage` from hook
+
+**Test files updated (8 files):**
+- `apps/web/src/hooks/__tests__/use-trips.test.tsx` — Mock data in `InfiniteData` shape, assertions use `pages.flatMap(p => p.data)`, added async flush in `afterEach`
+- `apps/web/src/app/(app)/trips/page.test.tsx` — Updated `setQueryData` assertion to verify `InfiniteData` shape
+- `apps/web/src/app/(app)/trips/trips-content.test.tsx` — Added `wrapTrips()` helper, updated all mock return values
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — Updated `mockUseTrips` mock to `InfiniteData` shape
+- `apps/web/src/components/messaging/__tests__/trip-messages.test.tsx` — Added `wrapMessages()` helper, "Load earlier messages" test verifies `fetchNextPage` is called
+- `apps/web/src/components/notifications/__tests__/notification-bell.test.tsx` — Added `wrapNotifications()` helper, updated all mocks
+- `apps/web/src/components/notifications/__tests__/trip-notification-bell.test.tsx` — Added `wrapNotifications()` helper, updated all mocks
+- `apps/web/src/components/notifications/__tests__/trip-notification-dialog.test.tsx` — Added `wrapNotifications()` helper, "Load more" test verifies `fetchNextPage` is called
+
+### Key Design Decisions
+
+1. **All three domains converted to `useInfiniteQuery`** — Follows the existing mutuals reference implementation. Trips, notifications, and messages all use `infiniteQueryOptions` with `getNextPageParam` extracting `meta.nextCursor ?? undefined`.
+2. **Response envelope difference handled** — Mutuals has `nextCursor` at top level; trips/notifications/messages have it inside `meta`. The `getNextPageParam` functions correctly adapt to each domain's response shape.
+3. **SSR prefetch for trips wraps response in InfiniteData** — `page.tsx` sets `{ pages: [response], pageParams: [undefined] }` to match `useInfiniteQuery`'s expected cache shape.
+4. **All 10 optimistic updates rewritten for InfiniteData** — Each mutation maps over the `pages` array. Create operations prepend to `pages[0]`, update/delete operations map across ALL pages to find the target item.
+5. **Message polling preserved** — `refetchInterval: 5000` kept on `useInfiniteQuery` for messages. TanStack Query v5 handles infinite query refetch correctly.
+6. **"Load more" UIs converted from limit-multiplication to fetchNextPage** — Both `trip-notification-dialog.tsx` and `trip-messages.tsx` removed the `page` state + `PAGE_SIZE * page` anti-pattern and now call `fetchNextPage()` directly.
+7. **Test helpers (`wrapTrips`, `wrapMessages`, `wrapNotifications`)** — Each test file that mocks paginated data uses a helper function to wrap raw data into `InfiniteData` shape, keeping tests DRY and consistent.
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Web Tests**: PASS — 65 test files, 1169 tests, 0 failures
+- **API Tests**: 6 pre-existing flaky failures (pg-rate-limit-store concurrent access, rate limiting race conditions, pg-boss 503 transients) — none related to Task 3.2
+- **Reviewer**: APPROVED — all requirements met, consistent pattern, no old pagination patterns remain
+
+### Reviewer Feedback (LOW, non-blocking)
+1. **LOW — `placeholderData` location**: `keepPreviousData` is placed inside `infiniteQueryOptions` rather than at hook level. This is more encapsulated than the mutuals reference (which omits it), but functionally equivalent. Kept as-is per task requirement.
+2. **LOW — No "Load more" for trips**: Trips page loads only the first page with no sentinel/button for additional pages. Acceptable for MVP (users typically have <50 trips), but could be added in a follow-up if needed.
+3. **LOW — Notification dropdown does not use fetchNextPage**: The dropdown navigates to a full page view via "View all" link rather than loading more inline. This is intentional UX design.
+
+### Learnings
+- When converting from `useQuery` to `useInfiniteQuery`, the cache shape changes from `ResponseType` to `InfiniteData<ResponseType>` (`{pages: ResponseType[], pageParams: (string | undefined)[]}`). ALL optimistic updates that use `getQueryData`/`setQueryData` must be rewritten to map over the `pages` array.
+- SSR prefetch with `setQueryData` must match the infinite query cache shape — `{ pages: [serverResponse], pageParams: [undefined] }`. Setting a flat response will cause a hydration mismatch.
+- The "increasing limit" anti-pattern (`PAGE_SIZE * page`) re-fetches ALL data on each "load more" click. Converting to `useInfiniteQuery` with cursor-based `fetchNextPage` is both more efficient (only fetches the next page) and more correct (guaranteed no skips/duplicates).
+- TanStack Query v5's `useInfiniteQuery` with `refetchInterval` refetches all loaded pages by default. For message polling, this is acceptable at current scale since most users will only have 1-2 pages loaded.
+- Test helpers that wrap raw data into `InfiniteData` shape (`wrapTrips`, `wrapMessages`, `wrapNotifications`) keep test code DRY and make the shape change visible in one place per test file.
+- When a `queryFn` previously unwrapped the response (e.g., `return response.data`), converting to infinite query requires returning the full response so `getNextPageParam` can access the meta/cursor fields.

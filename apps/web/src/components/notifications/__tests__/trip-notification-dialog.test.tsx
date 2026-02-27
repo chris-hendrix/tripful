@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Notification, NotificationType } from "@tripful/shared/types";
+import type {
+  Notification,
+  NotificationType,
+  GetNotificationsResponse,
+} from "@tripful/shared/types";
 
 // Mocks
 const mockPush = vi.fn();
@@ -21,6 +25,23 @@ vi.mock("@/hooks/use-notifications", () => ({
 }));
 
 import { TripNotificationDialog } from "../trip-notification-dialog";
+
+/** Wrap a flat notification response into InfiniteData shape */
+function wrapNotifications(
+  response: GetNotificationsResponse,
+  hasNextPage = false,
+) {
+  return {
+    data: {
+      pages: [response],
+      pageParams: [undefined],
+    },
+    hasNextPage,
+    fetchNextPage: vi.fn(),
+    isFetchingNextPage: false,
+    isLoading: false,
+  };
+}
 
 function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
@@ -49,6 +70,9 @@ describe("TripNotificationDialog", () => {
     mockUseNotifications.mockReturnValue({
       data: undefined,
       isLoading: false,
+      hasNextPage: false,
+      fetchNextPage: vi.fn(),
+      isFetchingNextPage: false,
     });
   });
 
@@ -59,14 +83,14 @@ describe("TripNotificationDialog", () => {
   });
 
   it("shows empty state when no notifications", () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [],
         unreadCount: 0,
         meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -90,8 +114,9 @@ describe("TripNotificationDialog", () => {
   });
 
   it("shows notifications list", () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [
           makeNotification({ title: "Event Added", body: "Beach party" }),
           makeNotification({
@@ -102,9 +127,8 @@ describe("TripNotificationDialog", () => {
         ],
         unreadCount: 2,
         meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -115,14 +139,14 @@ describe("TripNotificationDialog", () => {
   });
 
   it('shows "Mark all as read" when there are unread notifications', () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -130,14 +154,14 @@ describe("TripNotificationDialog", () => {
   });
 
   it('hides "Mark all as read" when all are read', () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -146,14 +170,14 @@ describe("TripNotificationDialog", () => {
 
   it("calls markAllAsRead with tripId", async () => {
     const user = userEvent.setup();
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -169,14 +193,14 @@ describe("TripNotificationDialog", () => {
       readAt: null,
     });
 
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -197,14 +221,14 @@ describe("TripNotificationDialog", () => {
       readAt: null,
     });
 
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -220,14 +244,14 @@ describe("TripNotificationDialog", () => {
       tripId: "trip-1",
     });
 
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 0,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -238,14 +262,14 @@ describe("TripNotificationDialog", () => {
 
   it("closes dialog on notification click", async () => {
     const user = userEvent.setup();
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [makeNotification({ tripId: "trip-1" })],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -267,14 +291,22 @@ describe("TripNotificationDialog", () => {
   });
 
   it('shows "Load more" button when there are more notifications', () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
-        notifications: [makeNotification()],
-        unreadCount: 1,
-        meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
-      },
-      isLoading: false,
-    });
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications(
+        {
+          success: true,
+          notifications: [makeNotification()],
+          unreadCount: 1,
+          meta: {
+            total: 25,
+            limit: 20,
+            hasMore: true,
+            nextCursor: "some-cursor",
+          },
+        },
+        true,
+      ),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
@@ -282,44 +314,42 @@ describe("TripNotificationDialog", () => {
   });
 
   it('does not show "Load more" when all notifications are loaded', () => {
-    mockUseNotifications.mockReturnValue({
-      data: {
+    mockUseNotifications.mockReturnValue(
+      wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
         meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
-      },
-      isLoading: false,
-    });
+      }),
+    );
 
     render(<TripNotificationDialog {...defaultProps} />);
 
     expect(screen.queryByText("Load more")).toBeNull();
   });
 
-  it("requests more notifications when Load more is clicked", async () => {
+  it("calls fetchNextPage when Load more is clicked", async () => {
     const user = userEvent.setup();
-    mockUseNotifications.mockReturnValue({
-      data: {
+    const mockValue = wrapNotifications(
+      {
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 25, limit: 20, hasMore: true, nextCursor: "some-cursor" },
+        meta: {
+          total: 25,
+          limit: 20,
+          hasMore: true,
+          nextCursor: "some-cursor",
+        },
       },
-      isLoading: false,
-    });
+      true,
+    );
+    mockUseNotifications.mockReturnValue(mockValue);
 
     render(<TripNotificationDialog {...defaultProps} />);
 
     await user.click(screen.getByText("Load more"));
 
-    // After clicking Load more, the hook should be called with increased limit
-    await waitFor(() => {
-      const lastCall =
-        mockUseNotifications.mock.calls[
-          mockUseNotifications.mock.calls.length - 1
-        ];
-      expect(lastCall[0]).toEqual(
-        expect.objectContaining({ tripId: "trip-1", limit: 40 }),
-      );
-    });
+    expect(mockValue.fetchNextPage).toHaveBeenCalled();
   });
 });

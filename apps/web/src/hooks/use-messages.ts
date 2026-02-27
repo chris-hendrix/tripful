@@ -1,6 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { apiRequest, APIError } from "@/lib/api";
 
 const POLLING_ENABLED = process.env.NEXT_PUBLIC_ENABLE_POLLING !== "false";
@@ -54,9 +60,9 @@ export type { Message, MessageWithReplies, ReactionSummary };
  * @param enabled - Whether polling and fetching are active (default: true)
  * @returns Query object with data, loading, and error state
  */
-export function useMessages(tripId: string, enabled?: boolean, limit?: number) {
-  return useQuery({
-    ...messagesQueryOptions(tripId, limit),
+export function useMessages(tripId: string, enabled?: boolean) {
+  return useInfiniteQuery({
+    ...messagesQueryOptions(tripId),
     refetchInterval: POLLING_ENABLED ? 5000 : false,
     enabled: (enabled ?? true) && !!tripId,
   });
@@ -105,7 +111,7 @@ export function useLatestMessage(tripId: string) {
  * Contains previous state for rollback on error
  */
 interface CreateMessageContext {
-  previousMessages: GetMessagesResponse | undefined;
+  previousMessages: InfiniteData<GetMessagesResponse> | undefined;
   previousCount: number | undefined;
   previousLatest: Message | null | undefined;
 }
@@ -152,9 +158,10 @@ export function useCreateMessage(tripId: string) {
       });
 
       // Snapshot the previous values for rollback
-      const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-        messageKeys.list(tripId),
-      );
+      const previousMessages =
+        queryClient.getQueryData<InfiniteData<GetMessagesResponse>>(
+          messageKeys.list(tripId),
+        );
       const previousCount = queryClient.getQueryData<number>(
         messageKeys.count(tripId),
       );
@@ -185,17 +192,22 @@ export function useCreateMessage(tripId: string) {
         replyCount: 0,
       };
 
-      // Add optimistic message to the cache if messages list exists
+      // Add optimistic message to first page if messages list exists
       if (previousMessages) {
-        queryClient.setQueryData<GetMessagesResponse>(
+        queryClient.setQueryData<InfiniteData<GetMessagesResponse>>(
           messageKeys.list(tripId),
           {
             ...previousMessages,
-            messages: [optimisticMessage, ...previousMessages.messages],
-            meta: {
-              ...previousMessages.meta,
-              total: previousMessages.meta.total + 1,
-            },
+            pages: previousMessages.pages.map((page, i) => {
+              if (i === 0) {
+                return {
+                  ...page,
+                  messages: [optimisticMessage, ...page.messages],
+                  meta: { ...page.meta, total: page.meta.total + 1 },
+                };
+              }
+              return page;
+            }),
           },
         );
       }
@@ -306,7 +318,7 @@ export function getCreateMessageErrorMessage(
  * Contains previous state for rollback on error
  */
 interface EditMessageContext {
-  previousMessages: GetMessagesResponse | undefined;
+  previousMessages: InfiniteData<GetMessagesResponse> | undefined;
 }
 
 /**
@@ -344,30 +356,34 @@ export function useEditMessage(tripId: string) {
     onMutate: async ({ messageId, data }) => {
       await queryClient.cancelQueries({ queryKey: messageKeys.list(tripId) });
 
-      const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-        messageKeys.list(tripId),
-      );
+      const previousMessages =
+        queryClient.getQueryData<InfiniteData<GetMessagesResponse>>(
+          messageKeys.list(tripId),
+        );
 
       if (previousMessages) {
         const now = new Date().toISOString();
-        queryClient.setQueryData<GetMessagesResponse>(
+        queryClient.setQueryData<InfiniteData<GetMessagesResponse>>(
           messageKeys.list(tripId),
           {
             ...previousMessages,
-            messages: previousMessages.messages.map((msg) => {
-              if (msg.id === messageId) {
-                return { ...msg, content: data.content, editedAt: now };
-              }
-              // Also check replies
-              return {
-                ...msg,
-                replies: msg.replies.map((reply) =>
-                  reply.id === messageId
-                    ? { ...reply, content: data.content, editedAt: now }
-                    : reply,
-                ),
-              };
-            }),
+            pages: previousMessages.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) => {
+                if (msg.id === messageId) {
+                  return { ...msg, content: data.content, editedAt: now };
+                }
+                // Also check replies
+                return {
+                  ...msg,
+                  replies: msg.replies.map((reply) =>
+                    reply.id === messageId
+                      ? { ...reply, content: data.content, editedAt: now }
+                      : reply,
+                  ),
+                };
+              }),
+            })),
           },
         );
       }
@@ -439,7 +455,7 @@ export function getEditMessageErrorMessage(error: Error | null): string | null {
  * Contains previous state for rollback on error
  */
 interface DeleteMessageContext {
-  previousMessages: GetMessagesResponse | undefined;
+  previousMessages: InfiniteData<GetMessagesResponse> | undefined;
   previousCount: number | undefined;
   previousLatest: Message | null | undefined;
 }
@@ -481,9 +497,10 @@ export function useDeleteMessage(tripId: string) {
           queryKey: messageKeys.latest(tripId),
         });
 
-        const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-          messageKeys.list(tripId),
-        );
+        const previousMessages =
+          queryClient.getQueryData<InfiniteData<GetMessagesResponse>>(
+            messageKeys.list(tripId),
+          );
         const previousCount = queryClient.getQueryData<number>(
           messageKeys.count(tripId),
         );
@@ -494,24 +511,27 @@ export function useDeleteMessage(tripId: string) {
         // Mark message as soft-deleted (set deletedAt, clear content)
         if (previousMessages) {
           const now = new Date().toISOString();
-          queryClient.setQueryData<GetMessagesResponse>(
+          queryClient.setQueryData<InfiniteData<GetMessagesResponse>>(
             messageKeys.list(tripId),
             {
               ...previousMessages,
-              messages: previousMessages.messages.map((msg) => {
-                if (msg.id === messageId) {
-                  return { ...msg, content: "", deletedAt: now };
-                }
-                // Also check replies
-                return {
-                  ...msg,
-                  replies: msg.replies.map((reply) =>
-                    reply.id === messageId
-                      ? { ...reply, content: "", deletedAt: now }
-                      : reply,
-                  ),
-                };
-              }),
+              pages: previousMessages.pages.map((page) => ({
+                ...page,
+                messages: page.messages.map((msg) => {
+                  if (msg.id === messageId) {
+                    return { ...msg, content: "", deletedAt: now };
+                  }
+                  // Also check replies
+                  return {
+                    ...msg,
+                    replies: msg.replies.map((reply) =>
+                      reply.id === messageId
+                        ? { ...reply, content: "", deletedAt: now }
+                        : reply,
+                    ),
+                  };
+                }),
+              })),
             },
           );
         }
@@ -600,7 +620,7 @@ export function getDeleteMessageErrorMessage(
  * Contains previous state for rollback on error
  */
 interface ToggleReactionContext {
-  previousMessages: GetMessagesResponse | undefined;
+  previousMessages: InfiniteData<GetMessagesResponse> | undefined;
 }
 
 /**
@@ -640,38 +660,42 @@ export function useToggleReaction(tripId: string) {
     onMutate: async ({ messageId, data }) => {
       await queryClient.cancelQueries({ queryKey: messageKeys.list(tripId) });
 
-      const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-        messageKeys.list(tripId),
-      );
+      const previousMessages =
+        queryClient.getQueryData<InfiniteData<GetMessagesResponse>>(
+          messageKeys.list(tripId),
+        );
 
       if (previousMessages) {
-        queryClient.setQueryData<GetMessagesResponse>(
+        queryClient.setQueryData<InfiniteData<GetMessagesResponse>>(
           messageKeys.list(tripId),
           {
             ...previousMessages,
-            messages: previousMessages.messages.map((msg) => {
-              if (msg.id === messageId) {
+            pages: previousMessages.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) => {
+                if (msg.id === messageId) {
+                  return {
+                    ...msg,
+                    reactions: toggleReactionInList(msg.reactions, data.emoji),
+                  };
+                }
+                // Also check replies
                 return {
                   ...msg,
-                  reactions: toggleReactionInList(msg.reactions, data.emoji),
+                  replies: msg.replies.map((reply) =>
+                    reply.id === messageId
+                      ? {
+                          ...reply,
+                          reactions: toggleReactionInList(
+                            reply.reactions,
+                            data.emoji,
+                          ),
+                        }
+                      : reply,
+                  ),
                 };
-              }
-              // Also check replies
-              return {
-                ...msg,
-                replies: msg.replies.map((reply) =>
-                  reply.id === messageId
-                    ? {
-                        ...reply,
-                        reactions: toggleReactionInList(
-                          reply.reactions,
-                          data.emoji,
-                        ),
-                      }
-                    : reply,
-                ),
-              };
-            }),
+              }),
+            })),
           },
         );
       }
@@ -794,7 +818,7 @@ export function getToggleReactionErrorMessage(
  * Contains previous state for rollback on error
  */
 interface PinMessageContext {
-  previousMessages: GetMessagesResponse | undefined;
+  previousMessages: InfiniteData<GetMessagesResponse> | undefined;
 }
 
 /**
@@ -832,18 +856,22 @@ export function usePinMessage(tripId: string) {
     onMutate: async ({ messageId, data }) => {
       await queryClient.cancelQueries({ queryKey: messageKeys.list(tripId) });
 
-      const previousMessages = queryClient.getQueryData<GetMessagesResponse>(
-        messageKeys.list(tripId),
-      );
+      const previousMessages =
+        queryClient.getQueryData<InfiniteData<GetMessagesResponse>>(
+          messageKeys.list(tripId),
+        );
 
       if (previousMessages) {
-        queryClient.setQueryData<GetMessagesResponse>(
+        queryClient.setQueryData<InfiniteData<GetMessagesResponse>>(
           messageKeys.list(tripId),
           {
             ...previousMessages,
-            messages: previousMessages.messages.map((msg) =>
-              msg.id === messageId ? { ...msg, isPinned: data.pinned } : msg,
-            ),
+            pages: previousMessages.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) =>
+                msg.id === messageId ? { ...msg, isPinned: data.pinned } : msg,
+              ),
+            })),
           },
         );
       }
