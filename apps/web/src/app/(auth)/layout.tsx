@@ -4,7 +4,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background">
       {/* Decorative compass rose pattern */}
-      <div className="absolute inset-0 opacity-[0.04]" aria-hidden="true">
+      <div className="absolute inset-0 opacity-[0.08]" aria-hidden="true">
         <svg
           className="absolute top-12 right-12 w-64 h-64 text-primary hidden sm:block"
           viewBox="0 0 200 200"

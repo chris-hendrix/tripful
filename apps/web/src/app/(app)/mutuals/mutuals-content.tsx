@@ -157,7 +157,7 @@ export function MutualsContent() {
         {isError && (
           <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
               Failed to load mutuals
             </h2>
             <p className="text-muted-foreground mb-6">
@@ -180,7 +180,7 @@ export function MutualsContent() {
           <div className="bg-card rounded-2xl border border-border p-12 text-center">
             <div className="max-w-md mx-auto">
               <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+              <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
                 No mutuals yet
               </h2>
               <p className="text-muted-foreground">

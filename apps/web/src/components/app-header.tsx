@@ -86,7 +86,7 @@ export function AppHeader() {
                       onSelect={() => setProfileDialogOpen(true)}
                       onMouseEnter={preloadProfileDialog}
                       onFocus={preloadProfileDialog}
-                      className="flex flex-col items-start gap-0"
+                      className="flex flex-col items-start gap-0 font-accent"
                       data-testid="profile-menu-item"
                     >
                       <p className="text-sm font-medium">{user.displayName}</p>
@@ -95,7 +95,7 @@ export function AppHeader() {
                       </p>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild data-testid="mutuals-menu-item">
-                      <Link href="/mutuals">
+                      <Link href="/mutuals" className="font-accent">
                         <Users />
                         My Mutuals
                       </Link>
@@ -103,7 +103,7 @@ export function AppHeader() {
                     <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuItem onClick={logout}>
+                <DropdownMenuItem onClick={logout} className="font-accent">
                   <LogOut />
                   Log out
                 </DropdownMenuItem>

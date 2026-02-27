@@ -26,6 +26,7 @@
   --color-ring: #1a5c9e;
   --radius: 0.5rem;
   --font-sans: var(--font-plus-jakarta);
+  --font-accent: var(--font-space-grotesk);
 
   /* Event type colors */
   --color-event-travel: #2563eb;

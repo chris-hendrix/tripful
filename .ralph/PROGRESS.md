@@ -722,3 +722,77 @@ Two categories of fix applied:
 - `aria-hidden="true"` on a parent element hides the entire subtree from assistive technology — no need to mark each child element individually.
 - The TIMEZONES constant is the single source of truth for all timezone selectors (9+ consumers). Expanding it automatically propagates to all consumers via the `TIMEZONES.map()` pattern.
 - Backend timezone validation uses `Intl.supportedValuesOf("timeZone")` which accepts all valid IANA identifiers — the frontend TIMEZONES list is purely a UX convenience and doesn't need to be exhaustive.
+
+## Iteration 15 — Task 6.1: Add Space Grotesk accent font and apply across UI
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created (1 file):**
+
+- `apps/web/src/components/ui/__tests__/badge.test.tsx` — 6 tests: `badgeVariants` includes `font-accent` in base classes, all 6 variants include `font-accent`, rendered Badge component has `font-accent` class, variant classes applied correctly, data-slot attribute set, custom className support.
+
+**Files modified (12 files):**
+
+- `apps/web/src/lib/fonts.ts` — Added `Space_Grotesk` import from `next/font/google` with `subsets: ["latin"]`, `variable: "--font-space-grotesk"`, `display: "swap"`, and `weight: ["400", "500", "600", "700"]`.
+
+- `apps/web/src/app/layout.tsx` — Imported `spaceGrotesk` from `@/lib/fonts`, added `spaceGrotesk.variable` to the `cn()` call on `<html>` className, making `--font-space-grotesk` available globally.
+
+- `apps/web/src/app/global-error.tsx` — Imported `spaceGrotesk` from `@/lib/fonts`, added `spaceGrotesk.variable` to `<html>` className for consistency with main layout.
+
+- `apps/web/src/app/globals.css` — Added `--font-accent: var(--font-space-grotesk);` to the `@theme` block, which auto-generates the `font-accent` Tailwind utility class in Tailwind v4.
+
+- `apps/web/src/components/app-header.tsx` — Added `font-accent` class to 3 navigation elements: Profile dropdown menu item, My Mutuals link, and Log out dropdown menu item.
+
+- `apps/web/src/components/ui/badge.tsx` — Added `font-accent` to the base classes in the `cva()` call, applying Space Grotesk to all badge variants (default, secondary, destructive, outline, success, warning).
+
+- `apps/web/src/app/page.tsx` — Added `font-accent` to: feature `<h3>` titles (section subheadings), step number circles (hero numbers), step `<h3>` titles (section subheadings), and both "Get started" and "Start planning" CTA buttons.
+
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — Replaced `font-[family-name:var(--font-playfair)]` with `font-accent` on 3 empty state headings: "Failed to load trips", "No trips yet", "No trips found".
+
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Replaced `font-[family-name:var(--font-playfair)]` with `font-accent` on 2 empty state headings: "Failed to load mutuals", "No mutuals yet".
+
+- `apps/web/src/components/itinerary/itinerary-view.tsx` — Replaced `font-[family-name:var(--font-playfair)]` with `font-accent` on 2 empty state headings: "Failed to load itinerary", "No itinerary yet".
+
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Replaced `font-[family-name:var(--font-playfair)]` with `font-accent` on "Trip not found" empty state heading.
+
+- `apps/web/src/app/(auth)/layout.tsx` — Increased decorative compass SVG wrapper opacity from `opacity-[0.04]` to `opacity-[0.08]`, making the compass rose decoration more visible on auth pages.
+
+### Key Design Decisions
+
+1. **3-layer font registration pattern**: Followed the established pattern exactly — `fonts.ts` (load font) → `layout.tsx` (inject CSS variable on `<html>`) → `globals.css` (map to `@theme` for Tailwind utility). This creates a clean `font-accent` utility class instead of the verbose `font-[family-name:var(--font-space-grotesk)]` arbitrary value syntax.
+
+2. **Accent font vs heading font distinction**: `font-accent` (Space Grotesk, geometric sans-serif) is applied to secondary/functional UI elements — badges, nav labels, CTAs, subheadings, empty states. Primary page titles (h1) retain Playfair Display (editorial serif). Dialog/sheet titles also retain Playfair. This creates a clear typographic hierarchy: Playfair for headings, Space Grotesk for accent text, Plus Jakarta Sans for body.
+
+3. **Empty state headings switched from Playfair to accent**: These are functional UI messages ("No trips yet", "Failed to load"), not editorial headings. Space Grotesk's geometric style better suits informational content, while Playfair is reserved for decorative page titles.
+
+4. **Badge base styles**: `font-accent` was added to the CVA base classes in `badge.tsx` rather than per-badge-variant, ensuring all badge variants (default, secondary, destructive, outline, success, warning) get the accent font automatically.
+
+5. **Opacity 0.08**: Chose the lower end of the 0.08-0.12 range for the decorative compass to maintain subtlety while increasing visibility from the barely-visible 0.04.
+
+6. **`global-error.tsx` consistency**: Added `spaceGrotesk.variable` to the global error boundary's `<html>` to ensure the accent font is available even in error states.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Web Tests**: PASS — 69 test files, 1190 tests, 0 failures (includes 6 new badge tests)
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: PASS — 2 pre-existing flaky failures (pg-rate-limit-store and auth rate-limiting race conditions, unrelated to Task 6.1)
+- **E2E Tests**: PASS — 22 tests
+- **Reviewer**: APPROVED — all requirements met, clean implementation following established patterns
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Explicit weight specification**: Space Grotesk specifies `weight: ["400", "500", "600", "700"]` while other fonts (Playfair, Plus Jakarta Sans) rely on variable font behavior without explicit weights. Both approaches work; the explicit form is actually clearer about what's available.
+2. **LOW — Per-element font-accent on dropdown**: Each `DropdownMenuItem` in the header gets `font-accent` individually rather than on the `DropdownMenuContent` container. The current approach is explicit and the menu is small (3 items), so this is fine.
+
+### Learnings
+
+- In Tailwind v4, adding `--font-accent: var(--font-space-grotesk);` to `@theme` automatically generates the `font-accent` utility class. No additional configuration or `extend` setup is needed — `@theme` is the single source of truth for design tokens.
+- The `font-accent` utility class approach is significantly cleaner than the `font-[family-name:var(--font-playfair)]` arbitrary value syntax used for Playfair Display throughout the codebase (50+ instances). Future tasks could consider registering `--font-heading` in `@theme` to simplify those too.
+- Space Grotesk is a variable font, but specifying explicit weights `["400", "500", "600", "700"]` in `next/font/google` is valid and self-documenting. The other fonts in the codebase omit this, relying on default variable font behavior.
+- Empty state headings are semantically different from page titles — they're functional UI messages, not editorial content. Using a geometric sans-serif (Space Grotesk) instead of a serif (Playfair Display) better communicates their informational purpose.
+- `cva()` base classes in shadcn/ui badge component are the right place to add `font-accent` — it applies to all variants automatically without duplicating the class across each variant definition.
+- `display: "swap"` on `next/font/google` prevents FOIT (Flash of Invisible Text) and FOUT is minimal since the fallback system font has similar metrics to Space Grotesk. No additional `size-adjust` or `font-display` tuning was needed.

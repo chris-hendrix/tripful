@@ -163,7 +163,7 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+          <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
             Failed to load itinerary
           </h2>
           <p className="text-muted-foreground mb-6">
@@ -198,7 +198,7 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="bg-card rounded-2xl border border-border p-8 text-center">
             <CalendarX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
               No itinerary yet
             </h2>
             <p className="text-muted-foreground mb-6">

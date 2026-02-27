@@ -84,7 +84,7 @@ export default async function Home() {
           <Button
             variant="gradient"
             size="lg"
-            className="rounded-xl px-10"
+            className="rounded-xl px-10 font-accent"
             asChild
           >
             <Link href="/login">Get started</Link>
@@ -104,7 +104,7 @@ export default async function Home() {
                   className="rounded-xl border border-border bg-card p-6"
                 >
                   <feature.icon className="mb-3 h-6 w-6 text-accent" />
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground font-accent">
                     {feature.title}
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -125,10 +125,10 @@ export default async function Home() {
             <div className="grid gap-8 sm:grid-cols-3">
               {steps.map((step) => (
                 <div key={step.number} className="text-center">
-                  <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+                  <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground font-accent">
                     {step.number}
                   </div>
-                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground font-accent">
                     {step.title}
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
@@ -153,7 +153,7 @@ export default async function Home() {
           <Button
             variant="gradient"
             size="lg"
-            className="rounded-xl px-10"
+            className="rounded-xl px-10 font-accent"
             asChild
           >
             <Link href="/login">Start planning</Link>

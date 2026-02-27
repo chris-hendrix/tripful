@@ -190,7 +190,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+          <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
             Trip not found
           </h2>
           <p className="text-muted-foreground mb-6">

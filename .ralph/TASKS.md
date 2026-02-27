@@ -143,7 +143,7 @@
 
 ## Phase 6: Design System Refresh
 
-- [ ] Task 6.1: Add Space Grotesk accent font and apply across UI
+- [x] Task 6.1: Add Space Grotesk accent font and apply across UI
   - Implement: Add `Space_Grotesk` import in `apps/web/src/app/layout.tsx` via `next/font/google` with weights 400-700
   - Implement: Add `--font-accent` CSS variable to `@theme` in `apps/web/src/app/globals.css`
   - Implement: Apply `font-accent` to navigation labels in app header, badge/tag text, hero numbers, primary CTA button labels, section subheadings, empty state headings
