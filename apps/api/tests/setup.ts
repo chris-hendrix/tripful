@@ -23,27 +23,12 @@ beforeAll(async () => {
     throw error;
   }
 
-  // Clean up rate limit entries from previous test runs to prevent
-  // stale PG-backed rate limit state causing unexpected 429 responses
-  try {
-    await testPool.query("DELETE FROM rate_limit_entries WHERE key NOT LIKE 'test-%'");
-  } catch {
-    // Table may not exist yet if migrations haven't run
-  }
-
-  // Clean up blacklisted tokens from previous test runs
-  try {
-    await testPool.query("DELETE FROM blacklisted_tokens");
-  } catch {
-    // Table may not exist yet if migrations haven't run
-  }
-
-  // Clean up auth attempts from previous test runs
-  try {
-    await testPool.query("DELETE FROM auth_attempts");
-  } catch {
-    // Table may not exist yet if migrations haven't run
-  }
+  // NOTE: No blanket DELETE statements here.
+  // With pool: "threads" and fileParallelism: true, Vitest creates multiple
+  // worker threads, each running setup.ts independently. Blanket DELETEs
+  // would race with tests in other threads, wiping auth_attempts and
+  // rate_limit_entries mid-test. Instead, each test file handles its own
+  // cleanup via scoped afterEach hooks using unique phone numbers.
 });
 
 afterAll(async () => {

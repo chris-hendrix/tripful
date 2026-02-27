@@ -235,7 +235,7 @@
   - Test: Run the fixed test 5+ times to confirm it no longer flakes
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 9.1.3: FIX: Fix flaky rate-limiting and account lockout test isolation
+- [x] Task 9.1.3: FIX: Fix flaky rate-limiting and account lockout test isolation
   - Priority: MEDIUM — flaky tests affecting 3+ test files
   - Source: Iterations 7-19, recurring
   - Fix: Multiple integration test files share PG rate limit state via `rate_limit_entries` table. The table is cleaned in `beforeAll` (in `apps/api/tests/setup.ts`) but not between individual test files running in parallel. Rate limit keys derived from IP (`127.0.0.1`) collide across test files. Additionally, `apps/api/tests/integration/security.test.ts` uses a hardcoded phone number `+19876543210` instead of `generateUniquePhone()`. (a) Add `rate_limit_entries` cleanup to each affected test file's `beforeAll`/`beforeEach`, (b) Replace hardcoded phone number in security.test.ts with `generateUniquePhone()`, (c) Consider adding `rate_limit_entries` cleanup to the shared test helpers.

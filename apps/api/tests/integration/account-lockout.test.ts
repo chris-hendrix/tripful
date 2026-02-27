@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
 import { users, authAttempts } from "@/db/schema/index.js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { generateUniquePhone } from "../test-utils.js";
 
 describe("Account Lockout Integration", () => {
@@ -33,12 +33,15 @@ describe("Account Lockout Integration", () => {
   }
 
   afterEach(async () => {
-    // Clean up auth attempts and users for test phones
+    // Clean up auth attempts, users, and rate limit entries for test phones
     for (const phone of testPhones) {
       await db
         .delete(authAttempts)
         .where(eq(authAttempts.phoneNumber, phone));
       await db.delete(users).where(eq(users.phoneNumber, phone));
+      await db.execute(
+        sql`DELETE FROM rate_limit_entries WHERE key = ${phone}`,
+      );
     }
     testPhones.length = 0;
     if (app) {
