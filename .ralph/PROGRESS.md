@@ -1084,3 +1084,49 @@ All 12 dialogs converted from `Sheet`/`SheetContent`/`SheetHeader`/`SheetBody`/`
 - For responsive show/hide of navigation elements, CSS classes (`md:hidden`, `hidden md:flex`) are preferable to `useMediaQuery` + conditional rendering because both elements exist in the server-rendered HTML, avoiding hydration mismatches and layout flash.
 - The `vitest.setup.ts` global `matchMedia` mock returns `matches: false` for all queries, which means `supportsHover` evaluates to `false` in tests. Test files must mock the module (`vi.mock("@/lib/supports-hover")`) to return `true` for hover-related test assertions to work.
 - Extracting `MobileNav` as a prop-driven component (rather than using auth context internally) makes it significantly easier to test — no need to set up `AuthProvider` wrapper or mock `useAuth()` in the test file. The parent (`AppHeader`) handles the auth integration.
+
+## Iteration 20 — Task 8.1: Add Firefox, WebKit, and mobile viewport Playwright projects
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/playwright.config.ts` — Added 4 new projects to `projects` array: `firefox` (Desktop Firefox), `webkit` (Desktop Safari), `iphone` (iPhone 14), `ipad` (iPad Mini). Existing `chromium` project unchanged with its viewport override.
+- `.devcontainer/Dockerfile` — Updated `npx playwright install-deps` (root layer) and `npx playwright install` (node user layer) to include `firefox webkit` alongside `chromium`. Updated comment to reflect all-browser installation.
+- `apps/web/tests/e2e/README.md` — Updated browser install instruction from `chromium` to `chromium firefox webkit`.
+- `apps/web/tests/e2e/helpers/pages/trips.page.ts` — Added mobile viewport support: `mobileMenuButton`, `mobileLogoutButton`, `mobileProfileButton` locators; `isMobileViewport()` method; updated `openUserMenu()` and `logout()` to handle mobile hamburger menu. The `logout()` method checks `mobileLogoutButton.isVisible()` after menu is open (not `isMobileViewport()`, because the hamburger button is hidden behind the Sheet overlay).
+- `apps/web/tests/e2e/helpers/pages/profile.page.ts` — Added `isMobileViewport()` method; updated `openDialog()` to detect mobile viewports and use hamburger menu → profile button path.
+- `apps/web/tests/e2e/profile-journey.spec.ts` — Updated "navigate to profile from header menu" step to detect mobile/desktop and click the appropriate profile button. Uses `mobileProfileButton.isVisible()` check (not hamburger button) to avoid Sheet overlay obscuring issue.
+
+### Key Design Decisions
+
+1. **No viewport override on new projects**: Firefox, WebKit, iPhone 14, and iPad Mini all use their Playwright device preset defaults. Only Chromium retains the custom `{ width: 1280, height: 1080 }` viewport override. This matches the architecture spec exactly.
+
+2. **No CI workflow changes needed**: The CI uses `playwright install --with-deps` without a browser filter, so it automatically installs whatever browsers the config references.
+
+3. **`mobileLogoutButton.isVisible()` instead of `isMobileViewport()` in `logout()`**: After `openUserMenu()` opens the Sheet dialog on mobile, the hamburger button is hidden behind the Sheet overlay. Playwright's `isVisible()` returns `false` for the obscured button. Checking the already-visible logout button inside the open Sheet avoids this issue entirely.
+
+4. **iPad uses desktop code path**: iPad Mini viewport (1024×1366) is wide enough that the `md:` breakpoint CSS shows the desktop nav, not the hamburger menu. The `isMobileViewport()` check correctly returns `false` for iPad.
+
+### Verification
+
+- **auth-journey chromium**: PASS (2/2)
+- **auth-journey firefox**: PASS (2/2)
+- **auth-journey webkit**: PASS (2/2)
+- **auth-journey iphone**: PASS (2/2)
+- **auth-journey ipad**: PASS (2/2)
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning)
+- **Reviewer**: APPROVED (2 rounds — first approved config, second approved E2E fixes)
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Minor `isMobileViewport()` duplication**: Both `TripsPage` and `ProfilePage` define the same method. `TripsPage` uses a stored locator, `ProfilePage` creates it inline. Acceptable for test helpers — extracting a shared base class would be over-engineering.
+
+### Learnings
+
+- When a Sheet/Dialog overlay is open, Playwright's `isVisible()` returns `false` for elements hidden behind the overlay. After opening a menu, check the menu *content* elements (logout/profile buttons) for visibility, not the trigger button (hamburger) that's now obscured.
+- Playwright device presets like `iPhone 14` include `isMobile: true` and `hasTouch: true`, which affects both viewport size and user agent. The `iPad Mini` preset has a viewport wide enough (1024px) to trigger the `md:` CSS breakpoint, meaning it uses the desktop nav layout.
+- The Dockerfile has separate browser install phases: `install-deps` (as root, for OS-level libraries like libgtk, libwoff2) and `install` (as node user, for browser binaries). Both must be updated together when adding new browser engines.
+- CI shard count (currently 2) may need increasing as the test matrix grows from 1→5 projects. This is not blocking but worth monitoring CI runtimes.

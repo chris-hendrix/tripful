@@ -35,10 +35,22 @@ export class ProfilePage {
     await this.openDialog();
   }
 
-  /** Open the profile dialog from the header dropdown (assumes header is visible) */
+  /** Returns true if the mobile hamburger menu is visible (small viewport). */
+  private async isMobileViewport(): Promise<boolean> {
+    return this.page
+      .getByRole("button", { name: "Open menu" })
+      .isVisible();
+  }
+
+  /** Open the profile dialog from the header dropdown or mobile nav (adapts to viewport) */
   async openDialog() {
-    await this.page.getByRole("button", { name: "User menu" }).click();
-    await this.page.getByTestId("profile-menu-item").click();
+    if (await this.isMobileViewport()) {
+      await this.page.getByRole("button", { name: "Open menu" }).click();
+      await this.page.getByTestId("mobile-menu-profile-button").click();
+    } else {
+      await this.page.getByRole("button", { name: "User menu" }).click();
+      await this.page.getByTestId("profile-menu-item").click();
+    }
     await this.heading.waitFor({ state: "visible", timeout: 10000 });
   }
 }

@@ -47,6 +47,22 @@ export default defineConfig({
         viewport: { width: 1280, height: 1080 }, // Increased from 720 to 1080 for better E2E reliability
       },
     },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "iphone",
+      use: { ...devices["iPhone 14"] },
+    },
+    {
+      name: "ipad",
+      use: { ...devices["iPad Mini"] },
+    },
   ],
 
   // Auto-start servers for e2e tests

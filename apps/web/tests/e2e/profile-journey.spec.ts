@@ -69,10 +69,15 @@ test.describe("Profile Journey", () => {
       const profile = new ProfilePage(page);
       await authenticateViaAPI(page, request, "Profile Test User");
 
-      await test.step("navigate to profile from header dropdown", async () => {
+      await test.step("navigate to profile from header menu", async () => {
         await trips.openUserMenu();
-        await expect(trips.profileItem).toBeVisible({ timeout: 10000 });
-        await trips.profileItem.click();
+        // After openUserMenu(), check the actual menu content (not the hamburger button,
+        // which may be hidden behind the Sheet overlay on mobile)
+        const profileButton = (await trips.mobileProfileButton.isVisible())
+          ? trips.mobileProfileButton
+          : trips.profileItem;
+        await expect(profileButton).toBeVisible({ timeout: 10000 });
+        await profileButton.click();
         await expect(profile.heading).toBeVisible({ timeout: 10000 });
       });
 

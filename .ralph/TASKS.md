@@ -197,7 +197,7 @@
 
 ## Phase 8: Testing Infrastructure
 
-- [ ] Task 8.1: Add Firefox, WebKit, and mobile viewport Playwright projects
+- [x] Task 8.1: Add Firefox, WebKit, and mobile viewport Playwright projects
   - Implement: Update `apps/web/playwright.config.ts` — add firefox, webkit, iPhone 14, iPad Mini projects
   - Implement: Ensure Playwright browsers are installed in devcontainer (Firefox + WebKit)
   - Test: Run a subset of E2E tests (auth-journey) across all 5 projects to verify they pass
