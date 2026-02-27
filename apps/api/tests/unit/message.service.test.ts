@@ -714,6 +714,24 @@ describe("message.service", () => {
         messageService.getMessages(testTripId, testNonMemberId, undefined, 20),
       ).rejects.toThrow(PermissionDeniedError);
     });
+
+    it("should exclude soft-deleted messages from results", async () => {
+      await messageService.deleteMessage(
+        testMessageId,
+        testOrganizerId,
+        testTripId,
+      );
+
+      const result = await messageService.getMessages(
+        testTripId,
+        testOrganizerId,
+        undefined,
+        20,
+      );
+
+      expect(result.data).toHaveLength(0);
+      expect(result.meta.total).toBe(0);
+    });
   });
 
   describe("getMessageCount", () => {

@@ -221,7 +221,7 @@
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
 
-- [ ] Task 9.1.1: FIX: Add missing `isNull(messages.deletedAt)` filter to message data query
+- [x] Task 9.1.1: FIX: Add missing `isNull(messages.deletedAt)` filter to message data query
   - Priority: HIGH — data correctness bug
   - Source: Iteration 9 (Task 3.1) reviewer feedback item 3
   - Fix: In `apps/api/src/services/message.service.ts`, the `getMessages` count query filters `isNull(messages.deletedAt)` but the data query does NOT — soft-deleted messages are returned to users. Add `isNull(messages.deletedAt)` to the WHERE clause in the data query.

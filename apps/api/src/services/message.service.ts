@@ -193,6 +193,7 @@ export class MessageService implements IMessageService {
     const baseConditions = [
       eq(messages.tripId, tripId),
       isNull(messages.parentId),
+      isNull(messages.deletedAt),
     ];
     if (cursor) {
       const decoded = decodeCursor(cursor);

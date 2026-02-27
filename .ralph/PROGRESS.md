@@ -1256,3 +1256,54 @@ Read the entire PROGRESS.md (21 iterations, 1187 lines) with 3 parallel research
 - Reviewer LOW/non-blocking items fall into two categories: (1) items that are genuinely intentional design decisions (should be documented but not fixed), and (2) items that represent real code quality gaps deferred for scope reasons (should become fix tasks). Distinguishing between these is the core skill of triage
 - No TODO/FIXME/HACK comments were found in the codebase — all deferred work was captured in PROGRESS.md reviewer notes rather than inline code markers
 - The pre-existing lint warning (`@typescript-eslint/no-explicit-any` in verification.service.test.ts) was mentioned in every single iteration but never addressed because it was always "unrelated to the current task" — triage surfaces these chronic low-priority items that accumulate over time
+
+## Iteration 23 — Task 9.1.1: FIX: Add missing `isNull(messages.deletedAt)` filter to message data query
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/services/message.service.ts` — Added `isNull(messages.deletedAt)` to the `baseConditions` array (line 196) in the `getMessages` method. This aligns the data query's WHERE clause with the count query (lines 180-189), which already correctly filtered out soft-deleted messages.
+- `apps/api/tests/unit/message.service.test.ts` — Added test `"should exclude soft-deleted messages from results"` (lines 718-734) to the `getMessages` describe block.
+
+### Bug Description
+
+In `message.service.ts`, the `getMessages` method had a count/data query mismatch:
+- **Count query** (lines 180-189): Correctly filtered with `isNull(messages.deletedAt)` — reported accurate total excluding deleted messages
+- **Data query** (lines 193-196 `baseConditions`): Missing `isNull(messages.deletedAt)` — soft-deleted top-level messages were returned in paginated results
+
+This caused: (a) deleted messages appearing in API responses as placeholder rows, (b) `meta.total` being lower than actual returned items, (c) deleted messages consuming pagination slots, displacing real messages, (d) data query not utilizing the partial indexes `messages_trip_toplevel_idx` and `messages_trip_id_not_deleted_idx` which both require `deletedAt IS NULL`.
+
+### Fix Applied
+
+Single-line addition of `isNull(messages.deletedAt)` to the `baseConditions` array, making the data query predicate identical to the count query. This also enables PostgreSQL to use the existing partial indexes for the data query.
+
+### Test Added
+
+New unit test in `getMessages` describe block:
+1. Soft-deletes the test message via `messageService.deleteMessage()`
+2. Queries messages via `messageService.getMessages()`
+3. Asserts `result.data` has length 0 (deleted message excluded)
+4. Asserts `result.meta.total` is 0 (count and data consistent)
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in verification.service.test.ts)
+- **Shared Tests**: PASS — 251 tests
+- **Web Tests**: PASS — 73 test files, 1237 tests, 0 failures
+- **API Tests**: PASS — 1112 tests passed, 3 known flaky failures (pg-rate-limit-store concurrent access → Task 9.1.2, account-lockout timing x2 → Task 9.1.3)
+- **E2E Tests**: Firefox passed all 22 tests; chromium 20/22 passed (2 messaging delete timing flakes); webkit/iphone/ipad had API server crash cascade (infrastructure, not code regression)
+- **Reviewer**: APPROVED — fix is correct, complete, well-tested, no regressions, index-aligned
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Consider testing with a mix of deleted and non-deleted messages**: Current test deletes the only message and checks for empty results. A stronger test would create two messages, soft-delete one, and verify only the surviving message is returned. Non-blocking since the existing test adequately verifies the fix and the boundary case is covered by other tests.
+
+### Learnings
+
+- The `buildMessageResult` method (line 993) already had defensive logic to return placeholder content for deleted messages, but this was defense-in-depth — the correct behavior is to exclude deleted messages at the query level
+- When a count query and data query have different WHERE clauses, the inconsistency manifests as pagination bugs (total doesn't match returned items) — always keep count and data predicates synchronized
+- Partial indexes in PostgreSQL are only used when the query's WHERE clause matches the index predicate — adding the `isNull(messages.deletedAt)` filter enables use of the existing partial indexes, providing a performance improvement alongside the correctness fix
+- E2E test infrastructure (API server stability under concurrent browser load) remains the primary source of E2E flakiness — most failures across iterations are ECONNREFUSED cascades, not code regressions
