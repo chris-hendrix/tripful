@@ -715,7 +715,7 @@ describe("message.service", () => {
       ).rejects.toThrow(PermissionDeniedError);
     });
 
-    it("should exclude soft-deleted messages from results", async () => {
+    it("should return soft-deleted messages as placeholders", async () => {
       await messageService.deleteMessage(
         testMessageId,
         testOrganizerId,
@@ -729,7 +729,12 @@ describe("message.service", () => {
         20,
       );
 
-      expect(result.data).toHaveLength(0);
+      // Soft-deleted messages are still returned so the UI can show
+      // "This message was deleted" placeholder
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].deletedAt).not.toBeNull();
+      expect(result.data[0].content).toBe("");
+      // But they don't count toward the total
       expect(result.meta.total).toBe(0);
     });
   });

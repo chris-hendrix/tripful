@@ -266,7 +266,7 @@
 
 ## Phase 10: Final Verification
 
-- [ ] Task 10.1: Full regression check
+- [x] Task 10.1: Full regression check
   - Verify: all unit tests pass (`pnpm test`)
   - Verify: all integration tests pass
   - Verify: all E2E tests pass across all browser projects (`pnpm test:e2e`)

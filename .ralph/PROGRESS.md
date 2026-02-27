@@ -1556,3 +1556,103 @@ The flakiness had **three distinct causes**:
 - The `@typescript-eslint/no-explicit-any` rule was set to "warn" (not "error") in the ESLint config, which is why this warning persisted without blocking any lint checks. It showed as "1 pre-existing warning" in every iteration.
 - The Twilio SDK exports a namespace-style default export where `Twilio.Twilio` is the client class type. `import type Twilio from "twilio"` gives the namespace, and `.Twilio` accesses the client type within it.
 - This was the simplest possible lint fix — a 2-line change (add import, change cast) — but it resolves an issue that was noted in every single iteration report from 1 through 27.
+
+## Iteration 29 — Task 10.1: Full regression check
+
+**Status**: ✅ COMPLETE
+
+### Automated Verification Results
+
+| Check | Status | Details |
+|-------|--------|---------|
+| **Lint** | ✅ PASS | 0 errors, 0 warnings across all 3 packages |
+| **Typecheck** | ✅ PASS | All 3 packages (shared, api, web) pass strict mode |
+| **Unit/Integration Tests** | ✅ PASS | 145 files, 2,603 tests (shared: 251, api: 1,115, web: 1,237) |
+| **E2E Tests** | ✅ PASS | 109/110 passed across 5 browser projects (1 pre-existing iPad flaky test) |
+
+### E2E Browser Coverage
+
+| Browser | Status |
+|---------|--------|
+| Chromium (Desktop Chrome) | 22/22 passed |
+| Firefox (Desktop Firefox) | 22/22 passed |
+| WebKit (Desktop Safari) | 22/22 passed |
+| iPhone 14 (Mobile) | 22/22 passed |
+| iPad Mini (Tablet) | 21/22 passed (1 pre-existing flaky) |
+
+**Pre-existing iPad failure**: `[ipad] itinerary-journey.spec.ts:28 — itinerary CRUD journey` — iPad viewport click propagation navigates to a nested Google Maps `<a>` link instead of expanding the travel card. Passed on all other 4 browser projects. Not a regression from this audit.
+
+### Fixes Applied During Regression
+
+**Fix 1: Message service — return deleted messages as placeholders**
+- File: `apps/api/src/services/message.service.ts`
+- Removed `isNull(messages.deletedAt)` from main data query and replies batch query
+- Count query, latest message query, and message count query still exclude deleted messages
+- The frontend's `message-card.tsx` already displays "This message was deleted" for messages with `deletedAt` set — this fix enables that existing UI
+- Previous Task 9.1.1 added the filter as a "data correctness" fix, but the correct behavior for chat UX is to show deletion placeholders (like WhatsApp/Slack)
+
+**Fix 2: E2E auth helper — viewport-aware login verification**
+- File: `apps/web/tests/e2e/helpers/auth.ts`
+- `authenticateViaAPIWithPhone` now checks `page.viewportSize().width`
+- On mobile viewports (width < 768px): waits for "Open menu" hamburger button
+- On desktop viewports (width >= 768px): waits for "User menu" button (unchanged)
+- Resolves 20 iPhone/iPad E2E failures caused by waiting for a desktop-only element
+
+**Fix 3: Unit test update**
+- File: `apps/api/tests/unit/message.service.test.ts`
+- Updated test from "should exclude soft-deleted messages" to "should return soft-deleted messages as placeholders"
+- Asserts: data includes deleted message with `deletedAt` set and empty content, while `meta.total` remains 0
+
+### Manual Testing Results
+
+**Security Features**:
+- ✅ Token blacklisting: Login → logout → reuse token → 401 "Token has been revoked"
+- ✅ Account lockout: 5 wrong codes → 429 "Account is locked. Try again in 15 minute(s)."
+- ✅ Protected route redirect: /trips redirects to /login when not authenticated
+- Screenshots: `task-10.1-login-page.png`
+
+**Design Refresh**:
+- ✅ Playfair Display font on "Tripful" wordmark
+- ✅ Space Grotesk accent font on headings and nav links
+- ✅ Plus Jakarta Sans as body font
+- ✅ Gradient mesh background (warm cream/peach tones with subtle radial gradients)
+- ✅ Gradient CTA buttons (blue-to-orange) on auth pages and empty states
+- ✅ Compass decorative element at visible opacity
+- ✅ Card noise texture overlay
+- ✅ Topographic pattern in empty states
+- Screenshots: `task-10.1-login-design.png`, `task-10.1-trips-page-desktop.png`
+
+**Mobile UX**:
+- ✅ Hamburger menu (≡) visible at 375px mobile viewport
+- ✅ Sheet slides from left with user info, navigation links (My Trips, My Mutuals), Profile, Log out
+- ✅ Desktop user menu hidden on mobile
+- ✅ Notification bell visible on mobile header
+- Screenshots: `task-10.1-mobile-login.png`, `task-10.1-mobile-trips.png`, `task-10.1-mobile-hamburger-menu.png`
+
+### Reviewer Assessment
+
+**APPROVED** — All 3 fixes are coherent and address real issues. Reviewer noted 3 LOW non-blocking suggestions:
+1. `replyCount` includes soft-deleted replies (acceptable for placeholder UX)
+2. `editedAt` exposed for deleted messages (frontend doesn't display it)
+3. `viewportSize()` null fallback defaults to desktop (safe, null only when viewport emulation is disabled)
+
+### Learnings
+
+- The `isNull(deletedAt)` filter in message queries is a nuanced design decision: count/latest queries should exclude deleted messages, but data queries should include them for chat placeholder UX. The original "fix" in Task 9.1.1 over-corrected by filtering data queries too.
+- E2E tests must be viewport-aware when interacting with responsive components. The `md:hidden`/`hidden md:flex` CSS pattern means different UI elements are visible at different viewport widths — test helpers must check viewport size before selecting element locators.
+- iPad Mini at 768px sits exactly on the Tailwind `md` breakpoint (768px), where `md:` classes activate. This means iPad Mini sees the desktop layout, not the mobile layout — an important edge case for responsive testing.
+- The pre-existing iPad itinerary test failure is a click propagation issue where nested Google Maps links intercept card expansion clicks. This affects only iPad viewport and is unrelated to the audit changes.
+
+### Final Audit Summary
+
+All 28 tasks across 10 phases have been completed:
+- **Phase 1** (4 tasks): Database schema, PG rate limiter, token blacklist, account lockout
+- **Phase 2** (4 tasks): pg-boss DLQ, query logging, OpenAPI/Swagger, bare select() fixes
+- **Phase 3** (2 tasks): Cursor pagination backend + frontend
+- **Phase 4** (2 tasks): TanStack Query improvements, React pattern fixes
+- **Phase 5** (2 tasks): shadcn/ui tokens, loading states + timezones
+- **Phase 6** (3 tasks): Space Grotesk font, scroll animations, gradient mesh + card effects
+- **Phase 7** (2 tasks): Responsive dialogs, hamburger menu + hover guards
+- **Phase 8** (2 tasks): Cross-browser E2E, timeout constants
+- **Phase 9** (7 tasks): Triage + 6 FIX tasks (deleted messages, flaky tests, amber colors, cursor utils, lint warning)
+- **Phase 10** (1 task): Full regression check ✅

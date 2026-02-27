@@ -190,10 +190,12 @@ export class MessageService implements IMessageService {
     const total = totalResult?.value ?? 0;
 
     // Build cursor WHERE conditions for keyset pagination (createdAt DESC, id DESC)
+    // NOTE: We intentionally do NOT filter out soft-deleted messages here.
+    // Soft-deleted messages are returned as placeholders (empty content, deletedAt set)
+    // so the UI can display "This message was deleted" in place.
     const baseConditions = [
       eq(messages.tripId, tripId),
       isNull(messages.parentId),
-      isNull(messages.deletedAt),
     ];
     if (cursor) {
       const decoded = decodeCursor(cursor);
@@ -248,7 +250,9 @@ export class MessageService implements IMessageService {
     // Collect all top-level message IDs
     const messageIds = pageRows.map((r) => r.message.id);
 
-    // Batch fetch ALL non-deleted replies for all top-level messages
+    // Batch fetch ALL replies for all top-level messages (including soft-deleted)
+    // Soft-deleted replies are returned as placeholders so the UI can show
+    // "This message was deleted" in place.
     const allReplyRows = await this.db
       .select({
         message: messages,
@@ -258,9 +262,7 @@ export class MessageService implements IMessageService {
       })
       .from(messages)
       .leftJoin(users, eq(messages.authorId, users.id))
-      .where(
-        and(inArray(messages.parentId, messageIds), isNull(messages.deletedAt)),
-      )
+      .where(and(inArray(messages.parentId, messageIds)))
       .orderBy(desc(messages.createdAt));
 
     // Group replies by parentId and compute counts
