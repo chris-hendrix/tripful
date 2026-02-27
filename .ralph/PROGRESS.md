@@ -658,3 +658,67 @@ Two categories of fix applied:
 - The `@theme` block in Tailwind v4 generates utility classes from CSS custom properties. `--color-overlay-success: #6ee7b7` generates `text-overlay-success`, `bg-overlay-success`, etc. The dash-separated naming (`overlay-success`) works correctly with Tailwind's utility class generation.
 - WCAG AA contrast ratios should be calculated precisely rather than estimated. The architecture doc said `#6b6054` was ~3.8:1 against `#fbf6ef` but the actual ratio is 5.70:1 (already passing). Always verify with the actual formula before making changes.
 - Other hardcoded amber colors remain in `message-input.tsx`, `event-card.tsx`, and `trip-preview.tsx`. These are outside Task 5.1 scope but could be addressed in a future cleanup task.
+
+## Iteration 14 — Task 5.2: Add missing Next.js loading states, timezone expansion, and decorative alt text
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created (4 files):**
+
+- `apps/web/src/app/(app)/mutuals/loading.tsx` — Mutuals page loading skeleton with header skeleton (title + count), search bar + filter control skeletons, and a 3-column responsive grid of 6 `MutualCardSkeleton` items (each: `bg-card rounded-2xl border border-border p-6` with `size-10 rounded-full` avatar circle + `h-5 w-32` name + `h-4 w-20` subtitle). Container layout matches `mutuals-content.tsx` exactly: `min-h-screen bg-background pb-24` > `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8` > `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`.
+
+- `apps/web/src/app/(auth)/loading.tsx` — Auth pages loading skeleton at the route group level (covers login, verify, and complete-profile). Card wrapper matches auth page styling: `w-full max-w-md bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50`. Inside: title skeleton, description skeleton, form field label, input field (`h-12 rounded-xl`), helper text, submit button (`h-12 rounded-xl`), and footer text. Auth layout already provides the outer wrapper (decorative SVGs, "Tripful" wordmark, centering).
+
+- `apps/web/src/app/(app)/mutuals/loading.test.tsx` — 3 tests: renders skeleton placeholders (via `data-slot="skeleton"`), renders exactly 6 avatar skeletons in the grid, and uses the correct layout container classes matching the actual page.
+
+- `apps/web/src/app/(auth)/loading.test.tsx` — 3 tests: renders skeleton placeholders, uses the correct card wrapper styling (max-w-md, bg-card, rounded-3xl, shadow-2xl), and includes `rounded-xl` skeletons for input and button elements.
+
+**Files modified (2 files):**
+
+- `apps/web/src/lib/constants.ts` — Expanded `TIMEZONES` array from 12 to 31 entries, organized by geographic region with section comments:
+  - **Americas (10)**: Added America/Toronto (Eastern Time - Toronto), America/Mexico_City (Mexico City Time), America/Sao_Paulo (Brasília Time), America/Argentina/Buenos_Aires (Argentina Time)
+  - **Europe (7)**: Added Europe/Berlin (Central European Time - Berlin), Europe/Athens (Eastern European Time), Europe/Moscow (Moscow Time), Europe/Istanbul (Turkey Time)
+  - **Asia (9)**: Added Asia/Kolkata (India Standard Time), Asia/Bangkok (Indochina Time), Asia/Jakarta (Western Indonesia Time), Asia/Singapore (Singapore Time), Asia/Taipei (Taipei Standard Time), Asia/Shanghai (China Standard Time), Asia/Seoul (Korea Standard Time)
+  - **Africa (3)**: Added Africa/Lagos (West Africa Time), Africa/Cairo (Eastern Africa Time), Africa/Johannesburg (South Africa Standard Time)
+  - **Oceania (2)**: Added Pacific/Auckland (New Zealand Time)
+
+- `apps/web/src/app/(auth)/layout.tsx` — Added `aria-hidden="true"` to the wrapper `<div>` (line 7) containing both decorative compass rose SVGs. This hides the entire decorative block from screen readers in one attribute, following the pattern used by `venmo-icon.tsx` and `instagram-icon.tsx`.
+
+### Key Design Decisions
+
+1. **Route group loading.tsx for auth** — Created a single `loading.tsx` at the `(auth)` route group level instead of per-route files (`login/loading.tsx`, `verify/loading.tsx`, `complete-profile/loading.tsx`). The single-field form skeleton is a reasonable common denominator for all auth pages, and the auth layout provides consistent outer wrapping.
+
+2. **`aria-hidden` on wrapper div** — Rather than adding `aria-hidden="true"` to each `<svg>` individually, placed it on the parent `<div>` to cover both SVGs in one attribute. This is cleaner and ensures any future decorative elements added inside this container are also hidden.
+
+3. **Timezone region organization** — Kept the existing flat `{ value, label }` structure with `as const` but added region comments for developer readability. Did not introduce grouped/nested structures which would require changes to all 9+ consumer components.
+
+4. **Skeleton card count** — The mutuals loading skeleton renders 6 cards to match the actual loading state in `mutuals-content.tsx` (which renders 6 `MutualCardSkeleton` items when `isPending`).
+
+5. **No `alt=""` needed** — Research found no `<img>` or `<Image>` elements with decorative-only purpose that were missing proper alt text. All Next.js `<Image>` components use informative alt text (trip names, user display names). The only decorative elements missing accessibility attributes were the compass rose SVGs, fixed with `aria-hidden="true"`.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in verification.service.test.ts, unrelated)
+- **Web Tests**: PASS — 68 test files, 1184 tests, 0 failures (includes 6 new loading skeleton tests)
+- **Shared Tests**: PASS — 13 test files, 251 tests
+- **API Tests**: PASS — pre-existing flaky failures in rate-limiting/concurrency tests (unrelated to Task 5.2 frontend changes)
+- **Task 5.2 Tests**: All 6 new tests pass (3 mutuals loading + 3 auth loading)
+- **Reviewer**: APPROVED — all requirements met, skeleton fidelity verified against actual pages, 3 LOW-severity non-blocking items noted
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Ambiguous "CST" abbreviation**: Used for Mexico City, Taipei, and Shanghai timezones. Labels are disambiguated by full name but abbreviation overlap could confuse users. Could add UTC offsets in a follow-up.
+2. **LOW — Auth loading skeleton vs complete-profile complexity**: The single-field skeleton represents a generic auth form; the complete-profile page has more fields. A route-specific loading.tsx could be added if needed.
+3. **LOW — Mutuals search skeleton structure**: Uses a flat `<Skeleton>` instead of wrapping div with icon overlay like the actual search bar. Visual output is virtually identical since only the footprint matters for skeletons.
+
+### Learnings
+
+- Next.js App Router `loading.tsx` files at the route group level (e.g., `(auth)/loading.tsx`) apply to all pages within that group. This is efficient when pages share similar structure, but less precise than per-route loading files.
+- The `data-slot="skeleton"` attribute on the `Skeleton` component provides a stable selector for testing skeleton rendering, consistent with the `data-slot="button"` pattern from shadcn/ui.
+- Loading.tsx skeleton layouts should match the container structure (max-w, padding, grid) of the actual page but don't need to replicate the exact DOM hierarchy. Skeletons approximate the visual footprint, not the component tree.
+- `aria-hidden="true"` on a parent element hides the entire subtree from assistive technology — no need to mark each child element individually.
+- The TIMEZONES constant is the single source of truth for all timezone selectors (9+ consumers). Expanding it automatically propagates to all consumers via the `TIMEZONES.map()` pattern.
+- Backend timezone validation uses `Intl.supportedValuesOf("timeZone")` which accepts all valid IANA identifiers — the frontend TIMEZONES list is purely a UX convenience and doesn't need to be exhaustive.

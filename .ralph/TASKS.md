@@ -133,7 +133,7 @@
   - Test: Verify ErrorBoundary renders Button component with correct variant
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 5.2: Add missing Next.js loading states, timezone expansion, and decorative alt text
+- [x] Task 5.2: Add missing Next.js loading states, timezone expansion, and decorative alt text
   - Implement: Create `apps/web/src/app/(app)/mutuals/loading.tsx` with skeleton matching mutuals page layout
   - Implement: Create `apps/web/src/app/(auth)/loading.tsx` with skeleton for auth pages
   - Implement: Expand timezone options beyond 6 US entries to include major international timezones
