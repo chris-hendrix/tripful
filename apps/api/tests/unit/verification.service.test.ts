@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type Twilio from "twilio";
 import {
   MockVerificationService,
   TwilioVerificationService,
@@ -53,7 +54,7 @@ describe("TwilioVerificationService", () => {
           }),
         },
       },
-    } as any;
+    } as unknown as Twilio.Twilio;
 
     return new TwilioVerificationService({
       accountSid: "AC_test",

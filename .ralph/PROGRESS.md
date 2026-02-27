@@ -1522,3 +1522,37 @@ The flakiness had **three distinct causes**:
 - When migrating from private to shared utility functions, round-trip tests (encode→decode) are robust against encoding format changes. Tests that hardcode specific encoded strings would break, highlighting the importance of black-box testing for opaque tokens like cursors.
 - The shared `decodeCursor` utility provides stricter validation (non-null, non-array object check) than the old private method (only caught JSON parse errors with blind type cast). The migration improves validation without any additional code.
 - All 4 services (trip, notification, message, mutuals) now use the same cursor encode/decode pattern, completing the DRY consistency goal from the Phase 3 cursor pagination work.
+
+## Iteration 28 — Task 9.1.6: FIX: Fix pre-existing lint warning in verification.service.test.ts
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (1):**
+
+1. **`apps/api/tests/unit/verification.service.test.ts`**:
+   - Added `import type Twilio from "twilio";` (type-only import, line 2)
+   - Replaced `} as any;` (line 56) with `} as unknown as Twilio.Twilio;` (line 57)
+
+### Key Design Decisions
+
+1. **`as unknown as Twilio.Twilio` pattern**: Follows the established codebase convention used in 25+ locations across test files. The `as any` in this file was the ONLY remaining instance in the entire test suite.
+
+2. **Type correctness**: `Twilio.Twilio` exactly matches the type used in `TwilioVerificationService` — the constructor accepts `client?: Twilio.Twilio` and the private field is `private client: Twilio.Twilio`. The type comes from Twilio's type definitions (`node_modules/twilio/lib/index.d.ts`).
+
+3. **`import type` usage**: Since the import is only used for the type assertion and is erased at compile time, `import type` is the correct and idiomatic choice, adding zero runtime overhead.
+
+### Verification
+
+- **Lint**: PASS — 0 warnings, 0 errors across all 3 packages (the pre-existing warning that persisted through iterations 1-27 is now resolved)
+- **TypeCheck**: PASS (all 3 packages)
+- **Unit/Integration Tests**: PASS — 1366 tests (251 shared + 1115 api), 0 failures
+- **Specific File Tests**: PASS — 7/7 tests in verification.service.test.ts passed
+- **Reviewer**: APPROVED — correct type, follows conventions, no issues
+
+### Learnings
+
+- The `@typescript-eslint/no-explicit-any` rule was set to "warn" (not "error") in the ESLint config, which is why this warning persisted without blocking any lint checks. It showed as "1 pre-existing warning" in every iteration.
+- The Twilio SDK exports a namespace-style default export where `Twilio.Twilio` is the client class type. `import type Twilio from "twilio"` gives the namespace, and `.Twilio` accesses the client type within it.
+- This was the simplest possible lint fix — a 2-line change (add import, change cast) — but it resolves an issue that was noted in every single iteration report from 1 through 27.

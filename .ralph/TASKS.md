@@ -257,7 +257,7 @@
   - Test: Verify existing mutuals tests pass with shared utils
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 9.1.6: FIX: Fix pre-existing lint warning in verification.service.test.ts
+- [x] Task 9.1.6: FIX: Fix pre-existing lint warning in verification.service.test.ts
   - Priority: LOW — lint cleanliness
   - Source: Mentioned as "1 pre-existing warning" in every single iteration (1-21)
   - Fix: A lint warning in `apps/api/tests/unit/verification.service.test.ts` has persisted through the entire project. Identify and fix the lint warning.
