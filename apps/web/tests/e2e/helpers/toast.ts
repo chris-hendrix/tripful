@@ -7,14 +7,17 @@ import { TOAST_TIMEOUT } from "./timeouts";
  * (to unpause auto-dismiss) and waiting for all toasts to disappear.
  */
 export async function dismissToast(page: Page): Promise<void> {
-  const toasts = page.locator("[data-sonner-toast]");
-  // If no toast is visible, return immediately
-  const count = await toasts.count();
-  if (count === 0) return;
+  const selector = "[data-sonner-toast]";
+  if ((await page.locator(selector).count()) === 0) return;
 
   // Move mouse away from toast area to unpause Sonner's auto-dismiss timer
   await page.mouse.move(0, 0);
 
-  // Wait for all toasts to auto-dismiss
-  await expect(toasts).toHaveCount(0, { timeout: TOAST_TIMEOUT });
+  // Poll until toasts disappear. We avoid expect(locator).toHaveCount(0)
+  // because it can return "undefined" in Firefox/WebKit when Sonner's toast
+  // portal remounts, causing flaky failures.
+  await expect(async () => {
+    await page.mouse.move(0, 0);
+    expect(await page.locator(selector).count()).toBe(0);
+  }).toPass({ timeout: TOAST_TIMEOUT });
 }

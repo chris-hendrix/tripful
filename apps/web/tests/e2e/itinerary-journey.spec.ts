@@ -393,10 +393,15 @@ test.describe("Itinerary Journey", () => {
           page.getByRole("heading", { name: "Create a new event" }),
         ).toBeVisible();
         await page.keyboard.press("Escape");
+        await expect(
+          page.getByRole("heading", { name: "Create a new event" }),
+        ).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
 
         // Restore desktop viewport
         await page.setViewportSize({ width: 1280, height: 720 });
-        await expect(page.getByText(/Lunch/)).toBeVisible();
+        await expect(page.getByText(/Lunch/)).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
       });
     },
   );

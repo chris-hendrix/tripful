@@ -32,11 +32,14 @@ test.describe("Auth Journey", () => {
 
     await test.step("enter phone and submit", async () => {
       await loginPage.phoneInput.fill(phone);
-      await loginPage.continueButton.click();
+      // Retry click — on slow CI the first click can be swallowed during React hydration
+      await expect(async () => {
+        await loginPage.continueButton.click();
+        await expect(page).toHaveURL(/verify/, { timeout: 3000 });
+      }).toPass({ timeout: NAVIGATION_TIMEOUT });
     });
 
     await test.step("verify code page shows phone number", async () => {
-      await page.waitForURL("**/verify**");
       expect(page.url()).toContain("/verify?phone=");
       await expect(loginPage.verifyHeading).toBeVisible();
       await expect(page.getByText(formatPhoneNumber(phone))).toBeVisible();

@@ -89,6 +89,7 @@ test.describe("Trip Journey", () => {
       await expect(trips.upcomingTripsHeading).toBeVisible();
       await snap(page, "08-trips-list");
 
+      await dismissToast(page);
       await page.getByText(tripName).click();
       await page.waitForURL("**/trips/**");
       await expect(
@@ -101,6 +102,7 @@ test.describe("Trip Journey", () => {
     const updatedDescription = "Updated description with new information";
 
     await test.step("edit trip with pre-populated form", async () => {
+      await dismissToast(page);
       await tripDetail.editButton.click();
       await expect(tripDetail.editDialogHeading).toBeVisible();
 
@@ -143,6 +145,7 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("delete trip with cancel then confirm", async () => {
+      await dismissToast(page);
       await page.getByText(updatedName).click();
       await page.waitForURL("**/trips/**");
 
