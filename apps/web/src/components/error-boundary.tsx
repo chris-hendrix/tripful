@@ -5,6 +5,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  onReset?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -43,7 +44,10 @@ export class ErrorBoundary extends Component<
               An unexpected error occurred. Please try again.
             </p>
             <button
-              onClick={() => this.setState({ hasError: false, error: null })}
+              onClick={() => {
+                this.props.onReset?.();
+                this.setState({ hasError: false, error: null });
+              }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Try again

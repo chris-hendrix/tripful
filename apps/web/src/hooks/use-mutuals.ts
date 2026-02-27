@@ -34,5 +34,8 @@ export function useMutuals(params?: {
  * @returns Query object with mutual suggestions
  */
 export function useMutualSuggestions(tripId: string) {
-  return useQuery(mutualSuggestionsQueryOptions(tripId));
+  return useQuery({
+    ...mutualSuggestionsQueryOptions(tripId),
+    enabled: !!tripId,
+  });
 }

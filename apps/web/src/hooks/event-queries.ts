@@ -34,7 +34,6 @@ export const eventsQueryOptions = (tripId: string) =>
       );
       return response.events;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -51,7 +50,6 @@ export const eventsWithDeletedQueryOptions = (tripId: string) =>
       );
       return response.events;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -70,5 +68,4 @@ export const eventDetailQueryOptions = (eventId: string) =>
       );
       return response.event;
     },
-    enabled: !!eventId,
   });

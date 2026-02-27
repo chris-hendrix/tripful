@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { Search, Users, AlertCircle, Loader2 } from "lucide-react";
 import type { Mutual } from "@tripful/shared/types";
 import { useMutuals } from "@/hooks/use-mutuals";
-import { useTrips } from "@/hooks/use-trips";
+import { tripsQueryOptions } from "@/hooks/use-trips";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { MutualProfileSheet } from "@/components/mutuals/mutual-profile-sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,11 @@ export function MutualsContent() {
     tripId: selectedTripId || undefined,
   });
 
-  const { data: tripsData } = useTrips();
+  const { data: tripsData } = useInfiniteQuery({
+    ...tripsQueryOptions,
+    select: (data) =>
+      data.pages.flatMap((p) => p.data.map((t) => ({ id: t.id, name: t.name }))),
+  });
 
   // Infinite scroll via IntersectionObserver
   useEffect(() => {
@@ -83,7 +88,7 @@ export function MutualsContent() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const mutuals = data?.pages.flatMap((page) => page.mutuals) ?? [];
-  const trips = tripsData?.pages.flatMap((p) => p.data) ?? [];
+  const trips = tripsData ?? [];
   const isEmpty = mutuals.length === 0 && !isPending && !isError;
   const mutualCount = mutuals.length;
 

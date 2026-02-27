@@ -106,7 +106,6 @@ export const tripUnreadCountQueryOptions = (tripId: string) =>
       );
       return response.count;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -126,5 +125,4 @@ export const notificationPreferencesQueryOptions = (tripId: string) =>
       );
       return response.preferences;
     },
-    enabled: !!tripId,
   });

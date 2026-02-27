@@ -22,8 +22,9 @@ import {
   getRemoveMemberErrorMessage,
   useUpdateMemberRole,
   getUpdateMemberRoleErrorMessage,
-  useMembers,
 } from "@/hooks/use-invitations";
+import { membersQueryOptions } from "@/hooks/invitation-queries";
+import { useQuery } from "@tanstack/react-query";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
   const { user } = useAuth();
-  const { data: members } = useMembers(tripId);
+  const { data: members } = useQuery({
+    ...membersQueryOptions(tripId),
+    enabled: !!tripId,
+    select: (data) =>
+      data.map((m) => ({ id: m.id, userId: m.userId, isMuted: m.isMuted })),
+  });
   const currentMember = members?.find((m) => m.userId === user?.id);
 
   const handleUpdateRole = (

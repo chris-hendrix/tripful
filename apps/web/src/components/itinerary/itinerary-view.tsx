@@ -12,7 +12,8 @@ import {
   useMemberTravels,
   useMemberTravelsWithDeleted,
 } from "@/hooks/use-member-travel";
-import { useMembers } from "@/hooks/use-invitations";
+import { membersQueryOptions } from "@/hooks/invitation-queries";
+import { useQuery } from "@tanstack/react-query";
 import { useTripDetail } from "@/hooks/use-trips";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,7 +58,16 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
     isError: memberTravelsError,
     refetch: refetchMemberTravels,
   } = useMemberTravels(tripId);
-  const { data: members = [] } = useMembers(tripId);
+  const { data: members = [] } = useQuery({
+    ...membersQueryOptions(tripId),
+    enabled: !!tripId,
+    select: (data) =>
+      data.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        displayName: m.displayName,
+      })),
+  });
 
   // Fetch all items (including deleted) to check if deleted items exist
   const { data: allEvents = [] } = useEventsWithDeleted(tripId);

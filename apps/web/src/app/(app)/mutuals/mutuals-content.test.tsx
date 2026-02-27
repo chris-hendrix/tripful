@@ -18,8 +18,29 @@ vi.mock("@/hooks/use-mutuals", () => ({
 
 const mockUseTrips = vi.fn();
 vi.mock("@/hooks/use-trips", () => ({
-  useTrips: () => mockUseTrips(),
+  tripsQueryOptions: {
+    queryKey: ["trips"],
+  },
 }));
+
+// Mock useInfiniteQuery from @tanstack/react-query for direct usage in the component
+vi.mock("@tanstack/react-query", async () => {
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-query")>(
+      "@tanstack/react-query",
+    );
+  return {
+    ...actual,
+    useInfiniteQuery: (options: any) => {
+      // Route trips queries to our mock
+      if (options.queryKey?.[0] === "trips") {
+        return mockUseTrips();
+      }
+      // Fall through to actual (should not happen in this test since useMutuals is mocked)
+      return { data: undefined, isPending: false, isError: false };
+    },
+  };
+});
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -105,12 +126,9 @@ describe("MutualsContent", () => {
 
     vi.clearAllMocks();
 
-    // Default: trips hook returns empty (InfiniteData shape)
+    // Default: trips hook returns empty (already select-transformed to flat array)
     mockUseTrips.mockReturnValue({
-      data: {
-        pages: [{ success: true, data: [], meta: { total: 0, limit: 20, hasMore: false, nextCursor: null } }],
-        pageParams: [undefined],
-      },
+      data: [],
       isPending: false,
       isError: false,
       error: null,
@@ -432,19 +450,10 @@ describe("MutualsContent", () => {
       const user = userEvent.setup({ pointerEventsCheck: 0 });
 
       mockUseTrips.mockReturnValue({
-        data: {
-          pages: [
-            {
-              success: true,
-              data: [
-                { id: "filter-trip-1", name: "Paris Adventure" },
-                { id: "filter-trip-2", name: "Tokyo Explorer" },
-              ],
-              meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
-            },
-          ],
-          pageParams: [undefined],
-        },
+        data: [
+          { id: "filter-trip-1", name: "Paris Adventure" },
+          { id: "filter-trip-2", name: "Tokyo Explorer" },
+        ],
         isPending: false,
         isError: false,
         error: null,

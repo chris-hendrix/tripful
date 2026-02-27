@@ -89,7 +89,7 @@ export function useTrips() {
  * ```
  */
 export function useTripDetail(tripId: string) {
-  return useQuery(tripDetailQueryOptions(tripId));
+  return useQuery({ ...tripDetailQueryOptions(tripId), enabled: !!tripId });
 }
 
 /**

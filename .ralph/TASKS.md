@@ -102,7 +102,7 @@
 
 ## Phase 4: Frontend Data Layer
 
-- [ ] Task 4.1: TanStack Query improvements (enabled, useMutationState, select, QueryErrorResetBoundary)
+- [x] Task 4.1: TanStack Query improvements (enabled, useMutationState, select, QueryErrorResetBoundary)
   - Implement: Remove `enabled` from all 19 query factory call sites across 8 files (`trip-queries.ts`, `accommodation-queries.ts`, `invitation-queries.ts`, `member-travel-queries.ts`, `message-queries.ts`, `event-queries.ts`, `mutuals-queries.ts`, `notification-queries.ts`)
   - Implement: Add `enabled: !!id` at each corresponding `useQuery()` call site in `use-*.ts` hook files
   - Implement: Create `apps/web/src/components/global-mutation-indicator.tsx` using `useMutationState` — thin progress bar when mutations pending

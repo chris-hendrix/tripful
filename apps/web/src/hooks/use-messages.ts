@@ -82,6 +82,7 @@ export function useMessageCount(tripId: string) {
   return useQuery({
     ...messageCountQueryOptions(tripId),
     refetchInterval: POLLING_ENABLED ? 30000 : false,
+    enabled: !!tripId,
   });
 }
 
@@ -99,6 +100,7 @@ export function useLatestMessage(tripId: string) {
   return useQuery({
     ...latestMessageQueryOptions(tripId),
     refetchInterval: POLLING_ENABLED ? 30000 : false,
+    enabled: !!tripId,
   });
 }
 

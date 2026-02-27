@@ -49,7 +49,6 @@ export const messagesQueryOptions = (tripId: string) =>
 
       return apiRequest<GetMessagesResponse>(url, { signal });
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -66,7 +65,6 @@ export const messageCountQueryOptions = (tripId: string) =>
       );
       return response.count;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -83,5 +81,4 @@ export const latestMessageQueryOptions = (tripId: string) =>
       );
       return response.message;
     },
-    enabled: !!tripId,
   });

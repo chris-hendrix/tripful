@@ -489,3 +489,74 @@ Two categories of fix applied:
 - TanStack Query v5's `useInfiniteQuery` with `refetchInterval` refetches all loaded pages by default. For message polling, this is acceptable at current scale since most users will only have 1-2 pages loaded.
 - Test helpers that wrap raw data into `InfiniteData` shape (`wrapTrips`, `wrapMessages`, `wrapNotifications`) keep test code DRY and make the shape change visible in one place per test file.
 - When a `queryFn` previously unwrapped the response (e.g., `return response.data`), converting to infinite query requires returning the full response so `getNextPageParam` can access the meta/cursor fields.
+
+## Iteration 11 — Task 4.1: TanStack Query improvements (enabled, useMutationState, select, QueryErrorResetBoundary)
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Query factory files (8 files — removed `enabled` from 19 occurrences):**
+- `apps/web/src/hooks/trip-queries.ts` — Removed `enabled: !!tripId` from `tripDetailQueryOptions`
+- `apps/web/src/hooks/event-queries.ts` — Removed `enabled` from `eventsQueryOptions`, `eventsWithDeletedQueryOptions`, `eventDetailQueryOptions`
+- `apps/web/src/hooks/accommodation-queries.ts` — Removed `enabled` from `accommodationsQueryOptions`, `accommodationsWithDeletedQueryOptions`, `accommodationDetailQueryOptions`
+- `apps/web/src/hooks/invitation-queries.ts` — Removed `enabled` from `invitationsQueryOptions`, `membersQueryOptions`, `mySettingsQueryOptions`
+- `apps/web/src/hooks/member-travel-queries.ts` — Removed `enabled` from `memberTravelsQueryOptions`, `memberTravelsWithDeletedQueryOptions`, `memberTravelDetailQueryOptions`
+- `apps/web/src/hooks/message-queries.ts` — Removed `enabled` from `messagesQueryOptions`, `messageCountQueryOptions`, `latestMessageQueryOptions`
+- `apps/web/src/hooks/mutuals-queries.ts` — Removed `enabled` from `mutualSuggestionsQueryOptions`
+- `apps/web/src/hooks/notification-queries.ts` — Removed `enabled` from `tripUnreadCountQueryOptions`, `notificationPreferencesQueryOptions`
+
+**Hook files (8 files — added `enabled` at call sites):**
+- `apps/web/src/hooks/use-trips.ts` — Added `enabled: !!tripId` to `useTripDetail`
+- `apps/web/src/hooks/use-accommodations.ts` — Added `enabled: !!tripId` to `useAccommodations`, `useAccommodationsWithDeleted`; added `enabled: !!accommodationId` to `useAccommodationDetail`
+- `apps/web/src/hooks/use-invitations.ts` — Added `enabled: !!tripId` to `useMembers`, `useMySettings`
+- `apps/web/src/hooks/use-member-travel.ts` — Added `enabled: !!tripId` to `useMemberTravels`, `useMemberTravelsWithDeleted`; added `enabled: !!memberTravelId` to `useMemberTravelDetail`
+- `apps/web/src/hooks/use-events.ts` — Added `enabled: !!tripId` to `useEventsWithDeleted`; added `enabled: !!eventId` to `useEventDetail`
+- `apps/web/src/hooks/use-messages.ts` — Added `enabled: !!tripId` to `useMessageCount`, `useLatestMessage`
+- `apps/web/src/hooks/use-mutuals.ts` — Added `enabled: !!tripId` to `useMutualSuggestions`
+- `apps/web/src/hooks/use-notifications.ts` — Added `enabled: !!tripId` to `useTripUnreadCount`, `useNotificationPreferences`
+
+**New components created:**
+- `apps/web/src/components/global-mutation-indicator.tsx` — Thin animated progress bar using `useMutationState({ filters: { status: "pending" } })`, fixed at top of viewport (z-[45]), with `role="progressbar"` and `aria-label="Saving changes"`. Uses `motion-safe:` prefix for prefers-reduced-motion respect. Returns null when no pending mutations.
+- `apps/web/src/components/query-error-boundary-wrapper.tsx` — Client component combining `QueryErrorResetBoundary` with `ErrorBoundary`, passing `reset` as `onReset` prop.
+
+**Modified components:**
+- `apps/web/src/components/error-boundary.tsx` — Added optional `onReset?: () => void` prop. Called before `setState` reset in "Try again" button handler.
+- `apps/web/src/app/(app)/layout.tsx` — Added `GlobalMutationIndicator` above `<AppHeader />` and wrapped `{children}` with `QueryErrorBoundaryWrapper`.
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Added `select` to trips infinite query, narrowing to `{ id, name }[]` for the trip selector dropdown.
+- `apps/web/src/components/itinerary/itinerary-view.tsx` — Added `select` to members query, narrowing to `{ id, userId, displayName }[]` for the user name map.
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — Added `select` to members query, narrowing to `{ id, userId, isMuted }[]` for mute status check.
+- `apps/web/src/app/globals.css` — Added `mutation-slide` keyframe animation for the progress bar.
+
+**Test files:**
+- `apps/web/src/components/__tests__/global-mutation-indicator.test.tsx` — 6 tests: no mutations (null), pending mutations (renders bar), ARIA attributes, filter arguments, multiple mutations, cleanup on completion.
+- `apps/web/src/components/__tests__/error-boundary.test.tsx` — Added 2 tests: `onReset` callback invocation, backward compatibility without `onReset`.
+- `apps/web/src/app/(app)/mutuals/mutuals-content.test.tsx` — Updated mocks for query factory imports and `useInfiniteQuery` select pattern.
+- `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` — Updated mocks for query factory imports and `useQuery` select pattern.
+- `apps/web/src/app/(app)/layout.test.tsx` — Added mocks for `GlobalMutationIndicator` and `QueryErrorBoundaryWrapper`.
+
+### Key Design Decisions
+
+1. **Factory purity**: Removing `enabled` from query factories makes them reusable with `prefetchQuery` and `ensureQueryData`, which don't accept the `enabled` option. Factories now define *what* to fetch; hooks define *when*.
+2. **Pattern A/B split**: Three hooks (`useEvents`, `useInvitations`, `useMessages`) already merged `enabled` with an optional consumer prop. These only needed factory removal. All other hooks needed Pattern B (spread + add enabled).
+3. **GlobalMutationIndicator positioning**: z-[45] sits between header (z-40) and overlays (z-50). The 2px height (h-0.5) is subtle and non-intrusive.
+4. **`select` at component level**: Rather than modifying hook signatures to accept `select`, the 3 components that benefit from data narrowing use the query factory directly with spread + select. This avoids propagating generics through hook signatures.
+5. **QueryErrorBoundaryWrapper as separate component**: Since the app layout is a server component, the client-side `QueryErrorResetBoundary` + `ErrorBoundary` composition is extracted into a client component that the layout imports.
+6. **`onReset` called before setState**: In ErrorBoundary, `onReset?.()` is called before `setState({ hasError: false })` so TanStack Query resets its error state before the boundary re-renders children.
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 new errors, 1 pre-existing warning in verification.service.test.ts)
+- **Web Tests**: PASS — 66 test files, 1177 tests, 0 failures
+- **API Tests**: PASS (3 pre-existing flaky failures: account-lockout timing, message route 503, pg-rate-limit-store race condition — all from earlier tasks)
+- **E2E Tests**: PASS — 22 tests
+- **Task 4.1 Specific Tests**: All 8 new tests pass (6 GlobalMutationIndicator + 2 ErrorBoundary onReset)
+- **Reviewer**: APPROVED — 1 LOW suggestion fixed (added `motion-safe:` prefix to animation)
+
+### Learnings
+- Removing `enabled` from query factory options improves reusability with `prefetchQuery` and `ensureQueryData`, which don't accept `enabled`. This is the recommended TanStack Query v5 pattern: factories for cache key + fetch config, hooks for execution policy.
+- Three hooks already had call-site `enabled` logic with a merge pattern (`(options?.enabled ?? true) && !!id`). When removing `enabled` from the factory, these hooks are already correct — only the factory needed changing.
+- `useMutationState` with `{ filters: { status: "pending" } }` returns an array of `MutationState` objects, not a count. The array length determines if mutations are in flight.
+- `select` on `useInfiniteQuery` transforms the full `InfiniteData<T>` shape. For mutuals-content, the select transform maps over `pages.flatMap(p => p.data)` to narrow the data.
+- The `motion-safe:` Tailwind prefix maps to `@media (prefers-reduced-motion: no-preference)` and should be used on all non-essential animations in the codebase. Only skeleton shimmer is exempt (loading placeholder).
+- `QueryErrorResetBoundary` provides a render prop `{ reset }` that should be passed as `onReset` to ErrorBoundary. Calling `reset()` before the ErrorBoundary re-renders children ensures TanStack Query retries failed queries on the next render.

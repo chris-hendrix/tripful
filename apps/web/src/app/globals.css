@@ -114,6 +114,15 @@
   }
 }
 
+@keyframes mutation-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

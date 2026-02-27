@@ -98,4 +98,49 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Child content")).toBeDefined();
     expect(screen.queryByText("Something went wrong")).toBeNull();
   });
+
+  it("calls onReset when Try again is clicked", async () => {
+    const user = userEvent.setup();
+    const onReset = vi.fn();
+    throwOnRender = true;
+
+    render(
+      <ErrorBoundary onReset={onReset}>
+        <ConditionalThrow />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText("Something went wrong")).toBeDefined();
+
+    // Stop throwing before clicking retry
+    throwOnRender = false;
+
+    await user.click(screen.getByText("Try again"));
+
+    expect(onReset).toHaveBeenCalledTimes(1);
+    // Children should also re-render after reset
+    expect(screen.getByText("Child content")).toBeDefined();
+  });
+
+  it("works without onReset prop (backward compatibility)", async () => {
+    const user = userEvent.setup();
+    throwOnRender = true;
+
+    render(
+      <ErrorBoundary>
+        <ConditionalThrow />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText("Something went wrong")).toBeDefined();
+
+    // Stop throwing before clicking retry
+    throwOnRender = false;
+
+    // Should not throw even without onReset prop
+    await user.click(screen.getByText("Try again"));
+
+    expect(screen.getByText("Child content")).toBeDefined();
+    expect(screen.queryByText("Something went wrong")).toBeNull();
+  });
 });

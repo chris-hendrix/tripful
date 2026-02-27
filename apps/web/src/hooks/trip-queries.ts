@@ -74,5 +74,4 @@ export const tripDetailQueryOptions = (tripId: string) =>
       };
       return result;
     },
-    enabled: !!tripId,
   });

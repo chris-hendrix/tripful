@@ -74,6 +74,7 @@ export function useTripUnreadCount(tripId: string) {
   return useQuery({
     ...tripUnreadCountQueryOptions(tripId),
     refetchInterval: POLLING_ENABLED ? 30000 : false,
+    enabled: !!tripId,
   });
 }
 
@@ -106,6 +107,7 @@ export function useNotifications(options?: {
 export function useNotificationPreferences(tripId: string) {
   return useQuery({
     ...notificationPreferencesQueryOptions(tripId),
+    enabled: !!tripId,
   });
 }
 

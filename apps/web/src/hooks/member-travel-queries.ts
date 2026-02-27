@@ -34,7 +34,6 @@ export const memberTravelsQueryOptions = (tripId: string) =>
       );
       return response.memberTravels;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -51,7 +50,6 @@ export const memberTravelsWithDeletedQueryOptions = (tripId: string) =>
       );
       return response.memberTravels;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -70,5 +68,4 @@ export const memberTravelDetailQueryOptions = (memberTravelId: string) =>
       );
       return response.memberTravel;
     },
-    enabled: !!memberTravelId,
   });
