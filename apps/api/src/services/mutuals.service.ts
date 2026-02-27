@@ -3,17 +3,8 @@ import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
 import type { Logger } from "@/types/logger.js";
 import type { Mutual } from "@tripful/shared/types";
-import { PermissionDeniedError, InvalidCursorError } from "../errors.js";
-
-/**
- * Cursor structure for keyset pagination on mutuals
- * Sorted by (sharedTripCount DESC, displayName ASC, id ASC)
- */
-interface MutualsCursor {
-  count: number;
-  name: string;
-  id: string;
-}
+import { PermissionDeniedError } from "../errors.js";
+import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
 
 /**
  * Mutuals Service Interface
@@ -67,26 +58,6 @@ export class MutualsService implements IMutualsService {
     _logger?: Logger,
   ) {}
 
-  /**
-   * Encodes a cursor from pagination state
-   */
-  private encodeCursor(cursor: MutualsCursor): string {
-    return Buffer.from(JSON.stringify(cursor)).toString("base64");
-  }
-
-  /**
-   * Decodes a cursor string into pagination state
-   */
-  private decodeCursor(cursor: string): MutualsCursor {
-    try {
-      return JSON.parse(
-        Buffer.from(cursor, "base64").toString(),
-      ) as MutualsCursor;
-    } catch {
-      throw new InvalidCursorError("Invalid cursor format");
-    }
-  }
-
   async getMutuals(params: {
     userId: string;
     tripId?: string;
@@ -116,11 +87,14 @@ export class MutualsService implements IMutualsService {
     // Build HAVING clause for cursor (since count is an aggregate)
     let havingClause = sql``;
     if (cursor) {
-      const decoded = this.decodeCursor(cursor);
+      const decoded = decodeCursor(cursor);
+      const cursorCount = decoded.count as number;
+      const cursorName = decoded.name as string;
+      const cursorId = decoded.id as string;
       havingClause = sql`HAVING (
-        COUNT(DISTINCT m2.trip_id) < ${decoded.count}
-        OR (COUNT(DISTINCT m2.trip_id) = ${decoded.count} AND u.display_name > ${decoded.name})
-        OR (COUNT(DISTINCT m2.trip_id) = ${decoded.count} AND u.display_name = ${decoded.name} AND u.id > ${decoded.id})
+        COUNT(DISTINCT m2.trip_id) < ${cursorCount}
+        OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name > ${cursorName})
+        OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name = ${cursorName} AND u.id > ${cursorId})
       )`;
     }
 
@@ -152,7 +126,7 @@ export class MutualsService implements IMutualsService {
     let nextCursor: string | null = null;
     if (hasMore && pageRows.length > 0) {
       const lastRow = pageRows[pageRows.length - 1]!;
-      nextCursor = this.encodeCursor({
+      nextCursor = encodeCursor({
         count: Number(lastRow.shared_trip_count),
         name: lastRow.display_name,
         id: lastRow.id,
@@ -214,11 +188,14 @@ export class MutualsService implements IMutualsService {
     // Build HAVING clause for cursor
     let havingClause = sql``;
     if (cursor) {
-      const decoded = this.decodeCursor(cursor);
+      const decoded = decodeCursor(cursor);
+      const cursorCount = decoded.count as number;
+      const cursorName = decoded.name as string;
+      const cursorId = decoded.id as string;
       havingClause = sql`HAVING (
-        COUNT(DISTINCT m2.trip_id) < ${decoded.count}
-        OR (COUNT(DISTINCT m2.trip_id) = ${decoded.count} AND u.display_name > ${decoded.name})
-        OR (COUNT(DISTINCT m2.trip_id) = ${decoded.count} AND u.display_name = ${decoded.name} AND u.id > ${decoded.id})
+        COUNT(DISTINCT m2.trip_id) < ${cursorCount}
+        OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name > ${cursorName})
+        OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name = ${cursorName} AND u.id > ${cursorId})
       )`;
     }
 
@@ -248,7 +225,7 @@ export class MutualsService implements IMutualsService {
     let nextCursor: string | null = null;
     if (hasMore && pageRows.length > 0) {
       const lastRow = pageRows[pageRows.length - 1]!;
-      nextCursor = this.encodeCursor({
+      nextCursor = encodeCursor({
         count: Number(lastRow.shared_trip_count),
         name: lastRow.display_name,
         id: lastRow.id,

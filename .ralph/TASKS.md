@@ -250,7 +250,7 @@
   - Test: Update any affected tests, verify existing tests pass
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 9.1.5: FIX: Migrate mutuals cursor encode/decode to shared pagination utils
+- [x] Task 9.1.5: FIX: Migrate mutuals cursor encode/decode to shared pagination utils
   - Priority: LOW — code DRY consistency
   - Source: Iteration 9 (Task 3.1) reviewer feedback item 4
   - Fix: `apps/api/src/services/mutuals.service.ts` has private `encodeCursor`/`decodeCursor` functions instead of using the shared utilities in `apps/api/src/utils/pagination.ts`. Replace private encode/decode with imports from shared pagination utils. Ensure the encoding format is compatible (both use base64/JSON but verify mutuals cursor fields work with the shared utility).

@@ -1477,3 +1477,48 @@ The flakiness had **three distinct causes**:
 - CSS class names containing brackets and parentheses (like `text-[var(--color-event-meal)]`) require escaping in `querySelector` selectors: `.text-\[var\(--color-event-meal\)\]`. The backslashes escape the special CSS selector characters `[`, `]`, `(`, `)`.
 - Event-type colors and semantic warning/success colors can have the same hue (amber-600 ≈ #d97706, warning ≈ #c78d29) but serve completely different purposes. They should use different token paths (CSS variables for event types, theme tokens for semantics) even when visually similar.
 - After Task 5.1 migrated `rsvp-badge.tsx` and `trip-card.tsx`, three files remained with hardcoded amber classes because they weren't identified in the original task scope. Systematic grep sweeps (`amber-` across all `.tsx` files) should follow any theme token migration to catch stragglers.
+
+## Iteration 27 — Task 9.1.5: FIX: Migrate mutuals cursor encode/decode to shared pagination utils
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified (1):**
+
+1. **`apps/api/src/services/mutuals.service.ts`**:
+   - Added import: `import { encodeCursor, decodeCursor } from "@/utils/pagination.js";`
+   - Removed `InvalidCursorError` from `../errors.js` import (no longer directly used — the shared `decodeCursor` throws it internally)
+   - Removed `MutualsCursor` interface (lines 12-16)
+   - Removed private `encodeCursor` and `decodeCursor` methods from `MutualsService` class
+   - Updated `getMutuals` decode call site: `decodeCursor(cursor)` with type assertions (`decoded.count as number`, `decoded.name as string`, `decoded.id as string`)
+   - Updated `getMutuals` encode call site: `encodeCursor({...})` (removed `this.` prefix)
+   - Updated `getMutualSuggestions` decode call site: same pattern as `getMutuals`
+   - Updated `getMutualSuggestions` encode call site: same pattern as `getMutuals`
+
+### Key Design Decisions
+
+1. **Encoding format change (base64 → base64url)**: The private methods used standard `base64` encoding; the shared utility uses `base64url`. This is a behavioral change but has no practical impact because cursors are opaque and ephemeral — never persisted across sessions. All tests use round-trip patterns (encode on page 1, decode on page 2), so the format change is transparent.
+
+2. **No test changes needed**: All 19 mutuals tests (10 unit, 9 integration) pass without modification because they test cursor round-trip behavior, not hardcoded cursor strings. The malformed cursor test still works because the shared utility throws the same `InvalidCursorError`.
+
+3. **Type assertion pattern**: Following the established pattern from trip.service.ts, notification.service.ts, and message.service.ts, decoded cursor fields are extracted with `as` type assertions from the `Record<string, unknown>` return type.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in `verification.service.test.ts`)
+- **Unit/Integration Tests**: PASS — 145 test files, 2603 tests, 0 failures
+- **Mutuals Unit Tests**: PASS — 10 tests
+- **Mutuals Integration Tests**: PASS — 9 tests
+- **Reviewer**: APPROVED — clean migration, consistent with other services, no dead code
+
+### Reviewer Notes (LOW, non-blocking)
+
+1. **LOW — Duplicated cursor extraction blocks**: Both `getMutuals` and `getMutualSuggestions` contain identical cursor decoding + type assertion logic. This is pre-existing duplication not introduced by this change. Could be extracted to a helper in a future refactor.
+
+### Learnings
+
+- When migrating from private to shared utility functions, round-trip tests (encode→decode) are robust against encoding format changes. Tests that hardcode specific encoded strings would break, highlighting the importance of black-box testing for opaque tokens like cursors.
+- The shared `decodeCursor` utility provides stricter validation (non-null, non-array object check) than the old private method (only caught JSON parse errors with blind type cast). The migration improves validation without any additional code.
+- All 4 services (trip, notification, message, mutuals) now use the same cursor encode/decode pattern, completing the DRY consistency goal from the Phase 3 cursor pagination work.
