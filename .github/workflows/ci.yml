@@ -260,7 +260,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download Blob Reports
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           path: apps/web/all-blob-reports
           pattern: blob-report-*
