@@ -32,8 +32,11 @@ test.describe("Auth Journey", () => {
 
     await test.step("enter phone and submit", async () => {
       await loginPage.phoneInput.fill(phone);
-      // Retry click — on mobile WebKit the first click can be swallowed during React hydration
+      // Retry — on mobile WebKit the click can be swallowed during React hydration,
+      // or the input may lose focus. Re-fill and re-click on each attempt.
       await expect(async () => {
+        await loginPage.phoneInput.fill(phone);
+        await loginPage.continueButton.waitFor({ state: "visible" });
         await loginPage.continueButton.click();
         await expect(page).toHaveURL(/verify/, { timeout: DIALOG_TIMEOUT });
       }).toPass({ timeout: NAVIGATION_TIMEOUT });

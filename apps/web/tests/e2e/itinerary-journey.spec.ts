@@ -294,9 +294,10 @@ test.describe("Itinerary Journey", () => {
         });
 
         // Travel card shows member name (appears after refetch with JOIN data;
-        // optimistic update lacks memberName so the real name loads on refetch)
+        // optimistic update lacks memberName so the real name loads on refetch).
+        // Use NAVIGATION_TIMEOUT — refetch can be slow on CI after toast + API round-trip.
         await expect(page.getByText(/View Mode User/).first()).toBeVisible({
-          timeout: ELEMENT_TIMEOUT,
+          timeout: NAVIGATION_TIMEOUT,
         });
 
         // Location is a Google Maps link
