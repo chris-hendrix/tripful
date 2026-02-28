@@ -437,7 +437,8 @@ describe("EditEventDialog", () => {
       );
 
       const linkInput = screen.getByLabelText(/link url/i);
-      await user.type(linkInput, "https://newlink.com");
+      await user.click(linkInput);
+      await user.paste("https://newlink.com");
 
       const addButton = screen.getByRole("button", { name: "" });
       await user.click(addButton);

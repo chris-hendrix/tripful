@@ -65,6 +65,8 @@ export interface BuildAppOptions {
   rateLimit?: {
     global?: boolean;
   };
+  /** Disable @fastify/under-pressure health monitoring (useful in tests) */
+  disableUnderPressure?: boolean;
 }
 
 /**
@@ -175,13 +177,16 @@ export async function buildApp(
     });
   }
 
-  // Register under-pressure (health monitoring)
-  await app.register(underPressure, {
-    maxEventLoopDelay: 1000,
-    maxHeapUsedBytes: 1_000_000_000,
-    maxRssBytes: 1_500_000_000,
-    retryAfter: 50,
-  });
+  // Register under-pressure (health monitoring) — skip in test environments
+  // to avoid spurious 503s from event loop delays during DB setup/teardown
+  if (!opts.disableUnderPressure) {
+    await app.register(underPressure, {
+      maxEventLoopDelay: 1000,
+      maxHeapUsedBytes: 1_000_000_000,
+      maxRssBytes: 1_500_000_000,
+      retryAfter: 50,
+    });
+  }
 
   // Register service plugins
   await app.register(smsServicePlugin);

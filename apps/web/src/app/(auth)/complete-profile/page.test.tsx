@@ -126,7 +126,8 @@ describe("CompleteProfilePage", () => {
     const button = screen.getByRole("button", { name: /complete profile/i });
 
     const longName = "a".repeat(51);
-    await user.type(input, longName);
+    await user.click(input);
+    await user.paste(longName);
     await user.click(button);
 
     await waitFor(() => {
