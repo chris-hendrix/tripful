@@ -3,7 +3,7 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { NAVIGATION_TIMEOUT, DIALOG_TIMEOUT } from "./helpers/timeouts";
+import { NAVIGATION_TIMEOUT, RETRY_INTERVAL } from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
@@ -38,7 +38,7 @@ test.describe("Auth Journey", () => {
         await loginPage.phoneInput.fill(phone);
         await loginPage.continueButton.waitFor({ state: "visible" });
         await loginPage.continueButton.click();
-        await expect(page).toHaveURL(/verify/, { timeout: DIALOG_TIMEOUT });
+        await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
       }).toPass({ timeout: NAVIGATION_TIMEOUT });
     });
 
