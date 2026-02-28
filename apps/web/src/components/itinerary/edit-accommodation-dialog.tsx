@@ -12,13 +12,13 @@ import {
 } from "@tripful/shared/schemas";
 import type { Accommodation } from "@tripful/shared/types";
 import {
-  ResponsiveDialog,
-  ResponsiveDialogBody,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/components/ui/responsive-dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -224,16 +224,16 @@ export function EditAccommodationDialog({
   const links = form.watch("links") || [];
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit accommodation
-          </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>Update your accommodation details</ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+          </SheetTitle>
+          <SheetDescription>Update your accommodation details</SheetDescription>
+        </SheetHeader>
 
-        <ResponsiveDialogBody>
+        <SheetBody>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
@@ -536,8 +536,8 @@ export function EditAccommodationDialog({
               </div>
             </form>
           </Form>
-        </ResponsiveDialogBody>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  ResponsiveDialog,
-  ResponsiveDialogBody,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/components/ui/responsive-dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Notification } from "@tripful/shared/types";
@@ -66,18 +66,18 @@ export function TripNotificationDialog({
   }
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Notifications
-          </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="sr-only">
+          </SheetTitle>
+          <SheetDescription className="sr-only">
             View notifications for this trip
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
-        <ResponsiveDialogBody>
+        <SheetBody>
           {isLoading ? (
             <div className="py-4">
               <div className="mb-3 flex items-center justify-between">
@@ -147,8 +147,8 @@ export function TripNotificationDialog({
               )}
             </div>
           )}
-        </ResponsiveDialogBody>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }

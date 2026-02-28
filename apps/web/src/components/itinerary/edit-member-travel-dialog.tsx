@@ -12,13 +12,13 @@ import {
 } from "@tripful/shared/schemas";
 import type { MemberTravel } from "@tripful/shared/types";
 import {
-  ResponsiveDialog,
-  ResponsiveDialogBody,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/components/ui/responsive-dialog";
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -164,16 +164,16 @@ export function EditMemberTravelDialog({
   };
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent>
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit travel details
-          </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>Update your travel information</ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
+          </SheetTitle>
+          <SheetDescription>Update your travel information</SheetDescription>
+        </SheetHeader>
 
-        <ResponsiveDialogBody>
+        <SheetBody>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
@@ -406,8 +406,8 @@ export function EditMemberTravelDialog({
               </div>
             </form>
           </Form>
-        </ResponsiveDialogBody>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
   );
 }

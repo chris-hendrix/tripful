@@ -366,7 +366,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
 
           {/* Stats */}
-          <div className="flex items-center gap-6 mb-6">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
             <button
               onClick={() => setIsMembersOpen(true)}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
