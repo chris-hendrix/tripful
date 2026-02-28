@@ -3,7 +3,7 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { NAVIGATION_TIMEOUT } from "./helpers/timeouts";
+import { NAVIGATION_TIMEOUT, DIALOG_TIMEOUT } from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
@@ -32,10 +32,10 @@ test.describe("Auth Journey", () => {
 
     await test.step("enter phone and submit", async () => {
       await loginPage.phoneInput.fill(phone);
-      // Retry click — on slow CI the first click can be swallowed during React hydration
+      // Retry click — on mobile WebKit the first click can be swallowed during React hydration
       await expect(async () => {
         await loginPage.continueButton.click();
-        await expect(page).toHaveURL(/verify/, { timeout: 3000 });
+        await expect(page).toHaveURL(/verify/, { timeout: DIALOG_TIMEOUT });
       }).toPass({ timeout: NAVIGATION_TIMEOUT });
     });
 

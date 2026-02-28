@@ -49,11 +49,15 @@ export class TripsPage {
 
   async openUserMenu() {
     if (await this.isMobileViewport()) {
-      await this.mobileMenuButton.click();
-      await this.mobileLogoutButton.waitFor({
-        state: "visible",
-        timeout: DIALOG_TIMEOUT,
-      });
+      // Retry click — on mobile WebKit the Sheet can fail to open on first click
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await this.mobileMenuButton.click();
+        const opened = await this.mobileLogoutButton
+          .waitFor({ state: "visible", timeout: RETRY_INTERVAL })
+          .then(() => true)
+          .catch(() => false);
+        if (opened) return;
+      }
     } else {
       // Radix DropdownMenu can sometimes fail to stay open on the first click
       // due to pointer event timing in Playwright. Retry if menu doesn't appear.

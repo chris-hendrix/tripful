@@ -103,8 +103,13 @@ test.describe("Trip Journey", () => {
 
     await test.step("edit trip with pre-populated form", async () => {
       await dismissToast(page);
-      await tripDetail.editButton.click();
-      await expect(tripDetail.editDialogHeading).toBeVisible();
+      // Retry click — on mobile WebKit the button click can be swallowed
+      await expect(async () => {
+        await tripDetail.editButton.click();
+        await expect(tripDetail.editDialogHeading).toBeVisible({
+          timeout: RETRY_INTERVAL,
+        });
+      }).toPass({ timeout: ELEMENT_TIMEOUT });
 
       // Edit dialog is a single form (no stepper)
       await expect.soft(tripDetail.nameInput).toHaveValue(tripName);
@@ -149,8 +154,12 @@ test.describe("Trip Journey", () => {
       await page.getByText(updatedName).click();
       await page.waitForURL("**/trips/**");
 
-      await tripDetail.editButton.click();
-      await expect(tripDetail.editDialogHeading).toBeVisible();
+      await expect(async () => {
+        await tripDetail.editButton.click();
+        await expect(tripDetail.editDialogHeading).toBeVisible({
+          timeout: RETRY_INTERVAL,
+        });
+      }).toPass({ timeout: ELEMENT_TIMEOUT });
 
       // Delete button is at the bottom of the single form
       await tripDetail.deleteTripButton.click();

@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { TripsPage, TripDetailPage } from "./pages";
 import { pickDate } from "./date-pickers";
 import { dismissToast } from "./toast";
-import { ELEMENT_TIMEOUT, NAVIGATION_TIMEOUT } from "./timeouts";
+import { ELEMENT_TIMEOUT, RETRY_INTERVAL } from "./timeouts";
 
 /** Create a trip via the UI and land on the trip detail page. */
 export async function createTrip(
@@ -19,10 +19,13 @@ export async function createTrip(
   // Dismiss any Sonner toast that could intercept the FAB click
   await dismissToast(page);
 
-  // Ensure the FAB is visible and stable before clicking
-  await trips.createTripButton.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
-  await trips.createTripButton.click();
-  await expect(tripDetail.createDialogHeading).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
+  // Retry click — on mobile WebKit the first click can be swallowed during React hydration
+  await expect(async () => {
+    await trips.createTripButton.click();
+    await expect(tripDetail.createDialogHeading).toBeVisible({
+      timeout: RETRY_INTERVAL,
+    });
+  }).toPass({ timeout: ELEMENT_TIMEOUT });
   await tripDetail.nameInput.fill(tripName);
   await tripDetail.destinationInput.fill(destination);
   await pickDate(page, tripDetail.startDateButton, startDate);

@@ -356,14 +356,20 @@ test.describe("Itinerary Journey", () => {
         await expect(tzTrigger).toBeVisible();
         await expect(tzTrigger).toContainText("Trip");
 
+        // Radix Select on mobile WebKit can be slow to position the listbox.
+        // Wait for the option to be visible before clicking.
         await tzTrigger.click();
-        await page.getByRole("option", { name: /Current/ }).click();
+        const currentOption = page.getByRole("option", { name: /Current/ });
+        await currentOption.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
+        await currentOption.click();
         await expect(tzTrigger).toContainText("Current");
         await expect(page.getByText(/Lunch/)).toBeVisible();
 
         // Switch back to trip timezone
         await tzTrigger.click();
-        await page.getByRole("option", { name: /Trip/ }).click();
+        const tripOption = page.getByRole("option", { name: /Trip/ });
+        await tripOption.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
+        await tripOption.click();
         await expect(tzTrigger).toContainText("Trip");
       });
 
