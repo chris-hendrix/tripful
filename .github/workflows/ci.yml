@@ -231,7 +231,7 @@ jobs:
         run: pnpm --filter @tripful/web exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload Blob Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: blob-report-${{ matrix.shardIndex }}
@@ -270,7 +270,7 @@ jobs:
         run: pnpm --filter @tripful/web exec npx playwright merge-reports --reporter html ./all-blob-reports
 
       - name: Upload HTML Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: apps/web/playwright-report/
