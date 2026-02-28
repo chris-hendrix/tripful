@@ -1,5 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
-import { DIALOG_TIMEOUT, RETRY_INTERVAL } from "../timeouts";
+import { RETRY_INTERVAL } from "../timeouts";
 
 export class TripsPage {
   readonly page: Page;
