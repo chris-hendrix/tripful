@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
@@ -286,16 +287,19 @@ export function TripsContent() {
         )}
       </div>
 
-      {/* Floating Action Button (FAB) */}
-      <Button
-        onClick={() => setCreateDialogOpen(true)}
-        variant="gradient"
-        size="icon"
-        className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
-        aria-label="Create new trip"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </Button>
+      {/* Floating Action Button (FAB) — portaled to body to escape ancestor transforms that break position:fixed */}
+      {createPortal(
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          variant="gradient"
+          size="icon"
+          className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
+          aria-label="Create new trip"
+        >
+          <Plus className="w-6 h-6" strokeWidth={2.5} />
+        </Button>,
+        document.body,
+      )}
 
       {/* Create Trip Dialog */}
       <CreateTripDialog

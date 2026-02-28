@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,46 +170,49 @@ export function ItineraryHeader({
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      {hasAnyAction && !isLocked && (
-        <DropdownMenu open={fabOpen} onOpenChange={setFabOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="gradient"
-              className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 z-50 rounded-full w-14 h-14 shadow-lg"
-              aria-label="Add to itinerary"
-            >
-              <Plus
-                className={`w-6 h-6 transition-transform duration-200 ${fabOpen ? "rotate-45" : ""}`}
-              />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="w-48">
-            {canAddEvent && (
-              <DropdownMenuItem onSelect={() => setIsCreateEventOpen(true)}>
-                <Plus className="w-4 h-4" />
-                Event
-              </DropdownMenuItem>
-            )}
-            {isOrganizer && (
-              <DropdownMenuItem
-                onSelect={() => setIsCreateAccommodationOpen(true)}
+      {/* Floating Action Button — portaled to body to escape ancestor transforms that break position:fixed */}
+      {hasAnyAction &&
+        !isLocked &&
+        createPortal(
+          <DropdownMenu open={fabOpen} onOpenChange={setFabOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="gradient"
+                className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 z-50 rounded-full w-14 h-14 shadow-lg"
+                aria-label="Add to itinerary"
               >
-                <Building2 className="w-4 h-4" />
-                Accommodation
-              </DropdownMenuItem>
-            )}
-            {isMember && (
-              <DropdownMenuItem
-                onSelect={() => setIsCreateMemberTravelOpen(true)}
-              >
-                <Plane className="w-4 h-4" />
-                My Travel
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+                <Plus
+                  className={`w-6 h-6 transition-transform duration-200 ${fabOpen ? "rotate-45" : ""}`}
+                />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="end" className="w-48">
+              {canAddEvent && (
+                <DropdownMenuItem onSelect={() => setIsCreateEventOpen(true)}>
+                  <Plus className="w-4 h-4" />
+                  Event
+                </DropdownMenuItem>
+              )}
+              {isOrganizer && (
+                <DropdownMenuItem
+                  onSelect={() => setIsCreateAccommodationOpen(true)}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Accommodation
+                </DropdownMenuItem>
+              )}
+              {isMember && (
+                <DropdownMenuItem
+                  onSelect={() => setIsCreateMemberTravelOpen(true)}
+                >
+                  <Plane className="w-4 h-4" />
+                  My Travel
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>,
+          document.body,
+        )}
 
       {/* Dialogs */}
       <CreateEventDialog
