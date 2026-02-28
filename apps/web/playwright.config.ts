@@ -14,7 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI, // Fail if test.only is left in CI
   retries: 0, // Fail fast — no retries
-  workers: process.env.CI ? 4 : 1, // 1 locally to reduce memory pressure, 4 in CI
+  workers: process.env.CI ? 4 : 2, // 2 locally, 4 in CI
 
   // Reporter to use
   reporter: process.env.CI ? "blob" : "html",
@@ -38,30 +38,19 @@ export default defineConfig({
     video: "retain-on-failure",
   },
 
-  // Configure projects for different browsers
+  // Configure projects: chromium (primary) + iphone (mobile viewport + WebKit engine)
+  // Dropped firefox, webkit, ipad — they caught flakiness, not real bugs (see 1f7fa72)
   projects: [
     {
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { width: 1280, height: 1080 }, // Increased from 720 to 1080 for better E2E reliability
+        viewport: { width: 1280, height: 1080 },
       },
-    },
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
     },
     {
       name: "iphone",
       use: { ...devices["iPhone 14"] },
-    },
-    {
-      name: "ipad",
-      use: { ...devices["iPad Mini"] },
     },
   ],
 
