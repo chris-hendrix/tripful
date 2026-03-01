@@ -36,7 +36,13 @@ import {
   CannotMuteOrganizerError,
   DailyMessageLimitError,
 } from "../errors.js";
-import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const timestampCursorSchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+});
 
 /**
  * Internal result types for message service responses.
@@ -198,9 +204,9 @@ export class MessageService implements IMessageService {
       isNull(messages.parentId),
     ];
     if (cursor) {
-      const decoded = decodeCursor(cursor);
-      const cursorCreatedAt = new Date(decoded.createdAt as string);
-      const cursorId = decoded.id as string;
+      const decoded = decodeCursorAs(cursor, timestampCursorSchema);
+      const cursorCreatedAt = new Date(decoded.createdAt);
+      const cursorId = decoded.id;
       baseConditions.push(
         or(
           lt(messages.createdAt, cursorCreatedAt),

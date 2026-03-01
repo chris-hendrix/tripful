@@ -181,6 +181,39 @@ describe("Account Lockout Integration", () => {
     expect(response.headers["retry-after"]).toBe("900");
   });
 
+  it("re-locks immediately if wrong code is submitted after lockout expires", async () => {
+    app = await buildApp();
+    const phone = newPhone();
+
+    await requestCode(phone);
+
+    // Lock the account with 5 failed attempts
+    for (let i = 0; i < 5; i++) {
+      await verifyCode(phone, "000000");
+    }
+
+    // Verify it's locked
+    const lockedResponse = await verifyCode(phone, "000000");
+    expect(lockedResponse.statusCode).toBe(429);
+
+    // Simulate lockout expiry by setting lockedUntil to the past
+    await db
+      .update(authAttempts)
+      .set({ lockedUntil: new Date(Date.now() - 1000) })
+      .where(eq(authAttempts.phoneNumber, phone));
+
+    // Submit wrong code after expiry — should immediately re-lock
+    const response = await verifyCode(phone, "000000");
+    expect(response.statusCode).toBe(429);
+
+    const body = JSON.parse(response.body);
+    expect(body).toMatchObject({
+      success: false,
+      error: { code: "ACCOUNT_LOCKED" },
+    });
+    expect(response.headers["retry-after"]).toBe("900");
+  });
+
   it("lockout expires and allows correct code after lockedUntil passes", async () => {
     app = await buildApp();
     const phone = newPhone();

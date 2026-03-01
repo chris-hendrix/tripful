@@ -545,7 +545,6 @@ export const blacklistedTokens = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    jtiIdx: index("blacklisted_tokens_jti_idx").on(table.jti),
     expiresAtIdx: index("blacklisted_tokens_expires_at_idx").on(
       table.expiresAt,
     ),

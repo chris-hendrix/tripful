@@ -40,7 +40,6 @@ export {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
-  paginationSchema,
   cursorPaginationSchema,
   successResponseSchema,
   tripListResponseSchema,
@@ -49,7 +48,6 @@ export {
   type CreateTripInput,
   type UpdateTripInput,
   type AddCoOrganizerInput,
-  type PaginationInput,
   type CursorPaginationInput,
 } from "./trip";
 

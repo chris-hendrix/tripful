@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursor, decodeCursorAs } from "@/utils/pagination.js";
 import { InvalidCursorError } from "@/errors.js";
 
 describe("pagination utils", () => {
@@ -94,6 +95,57 @@ describe("pagination utils", () => {
 
     it("should throw InvalidCursorError for empty string", () => {
       expect(() => decodeCursor("")).toThrow(InvalidCursorError);
+    });
+  });
+
+  describe("decodeCursorAs", () => {
+    const schema = z.object({
+      id: z.string(),
+      createdAt: z.string(),
+    });
+
+    it("should decode and validate a matching cursor", () => {
+      const data = { id: "abc-123", createdAt: "2026-01-01T00:00:00.000Z" };
+      const encoded = encodeCursor(data);
+      const decoded = decodeCursorAs(encoded, schema);
+      expect(decoded).toEqual(data);
+    });
+
+    it("should throw InvalidCursorError when cursor is missing required fields", () => {
+      const encoded = encodeCursor({ id: "abc-123" }); // missing createdAt
+      expect(() => decodeCursorAs(encoded, schema)).toThrow(InvalidCursorError);
+    });
+
+    it("should throw InvalidCursorError when cursor fields have wrong types", () => {
+      const encoded = encodeCursor({ id: 123, createdAt: "2026-01-01" });
+      expect(() => decodeCursorAs(encoded, schema)).toThrow(InvalidCursorError);
+    });
+
+    it("should strip extra fields via schema parsing", () => {
+      const encoded = encodeCursor({
+        id: "abc",
+        createdAt: "2026-01-01",
+        extra: "field",
+      });
+      const decoded = decodeCursorAs(encoded, schema);
+      expect(decoded).toEqual({ id: "abc", createdAt: "2026-01-01" });
+      expect(decoded).not.toHaveProperty("extra");
+    });
+
+    it("should support nullable fields in schema", () => {
+      const nullableSchema = z.object({
+        id: z.string(),
+        startDate: z.string().nullable(),
+      });
+      const encoded = encodeCursor({ id: "abc", startDate: null });
+      const decoded = decodeCursorAs(encoded, nullableSchema);
+      expect(decoded).toEqual({ id: "abc", startDate: null });
+    });
+
+    it("should propagate InvalidCursorError for malformed base64", () => {
+      expect(() => decodeCursorAs("!!!bad!!!", schema)).toThrow(
+        InvalidCursorError,
+      );
     });
   });
 });

@@ -32,7 +32,13 @@ import {
   CoOrganizerNotInTripError,
   DuplicateMemberError,
 } from "../errors.js";
-import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const tripCursorSchema = z.object({
+  id: z.string(),
+  startDate: z.string().nullable(),
+});
 
 /**
  * Trip Summary Type
@@ -463,9 +469,9 @@ export class TripService implements ITripService {
     ];
 
     if (cursor) {
-      const decoded = decodeCursor(cursor);
-      const cursorStartDate = decoded.startDate as string | null;
-      const cursorId = decoded.id as string;
+      const decoded = decodeCursorAs(cursor, tripCursorSchema);
+      const cursorStartDate = decoded.startDate;
+      const cursorId = decoded.id;
 
       if (cursorStartDate !== null) {
         // Cursor has a non-null startDate:

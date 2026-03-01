@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import { InvalidCursorError } from "@/errors.js";
 
 /**
@@ -30,4 +31,23 @@ export function decodeCursor(cursor: string): Record<string, unknown> {
     if (e instanceof InvalidCursorError) throw e;
     throw new InvalidCursorError("Invalid cursor format");
   }
+}
+
+/**
+ * Decodes a cursor and validates it against a Zod schema.
+ * Combines base64url decode + JSON parse + runtime type validation.
+ *
+ * @param cursor - The base64url-encoded cursor string
+ * @param schema - Zod schema describing the expected cursor shape
+ * @returns The decoded and validated cursor data
+ * @throws InvalidCursorError if the cursor is malformed or doesn't match the schema
+ */
+export function decodeCursorAs<T extends z.ZodType>(
+  cursor: string,
+  schema: T,
+): z.infer<T> {
+  const raw = decodeCursor(cursor);
+  const result = schema.safeParse(raw);
+  if (!result.success) throw new InvalidCursorError("Invalid cursor format");
+  return result.data;
 }

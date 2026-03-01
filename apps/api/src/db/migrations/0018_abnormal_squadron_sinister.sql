@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "blacklisted_tokens_jti_idx";

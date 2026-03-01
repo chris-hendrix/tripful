@@ -4,7 +4,14 @@ import type { IPermissionsService } from "./permissions.service.js";
 import type { Logger } from "@/types/logger.js";
 import type { Mutual } from "@tripful/shared/types";
 import { PermissionDeniedError } from "../errors.js";
-import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const mutualsCursorSchema = z.object({
+  count: z.number(),
+  name: z.string(),
+  id: z.string(),
+});
 
 /**
  * Mutuals Service Interface
@@ -87,10 +94,10 @@ export class MutualsService implements IMutualsService {
     // Build HAVING clause for cursor (since count is an aggregate)
     let havingClause = sql``;
     if (cursor) {
-      const decoded = decodeCursor(cursor);
-      const cursorCount = decoded.count as number;
-      const cursorName = decoded.name as string;
-      const cursorId = decoded.id as string;
+      const decoded = decodeCursorAs(cursor, mutualsCursorSchema);
+      const cursorCount = decoded.count;
+      const cursorName = decoded.name;
+      const cursorId = decoded.id;
       havingClause = sql`HAVING (
         COUNT(DISTINCT m2.trip_id) < ${cursorCount}
         OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name > ${cursorName})
@@ -188,10 +195,10 @@ export class MutualsService implements IMutualsService {
     // Build HAVING clause for cursor
     let havingClause = sql``;
     if (cursor) {
-      const decoded = decodeCursor(cursor);
-      const cursorCount = decoded.count as number;
-      const cursorName = decoded.name as string;
-      const cursorId = decoded.id as string;
+      const decoded = decodeCursorAs(cursor, mutualsCursorSchema);
+      const cursorCount = decoded.count;
+      const cursorName = decoded.name;
+      const cursorId = decoded.id;
       havingClause = sql`HAVING (
         COUNT(DISTINCT m2.trip_id) < ${cursorCount}
         OR (COUNT(DISTINCT m2.trip_id) = ${cursorCount} AND u.display_name > ${cursorName})

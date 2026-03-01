@@ -7,7 +7,13 @@ import {
 } from "@/db/schema/index.js";
 import type { AppDatabase } from "@/types/index.js";
 import { NotificationNotFoundError } from "@/errors.js";
-import { encodeCursor, decodeCursor } from "@/utils/pagination.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const timestampCursorSchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+});
 import type { PgBoss } from "pg-boss";
 import { QUEUE } from "@/queues/types.js";
 import type { NotificationBatchPayload } from "@/queues/types.js";
@@ -157,9 +163,9 @@ export class NotificationService implements INotificationService {
     // Build cursor WHERE clause for keyset pagination (createdAt DESC, id DESC)
     const cursorConditions = [...conditions];
     if (cursor) {
-      const decoded = decodeCursor(cursor);
-      const cursorCreatedAt = new Date(decoded.createdAt as string);
-      const cursorId = decoded.id as string;
+      const decoded = decodeCursorAs(cursor, timestampCursorSchema);
+      const cursorCreatedAt = new Date(decoded.createdAt);
+      const cursorId = decoded.id;
       cursorConditions.push(
         or(
           lt(notifications.createdAt, cursorCreatedAt),

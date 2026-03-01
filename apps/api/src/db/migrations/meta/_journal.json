@@ -127,6 +127,13 @@
       "when": 1772080735481,
       "tag": "0017_third_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1772321663513,
+      "tag": "0018_abnormal_squadron_sinister",
+      "breakpoints": true
     }
   ]
 }

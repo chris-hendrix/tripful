@@ -29,6 +29,7 @@ export async function dismissToast(page: Page): Promise<void> {
     // All browsers: dispatch mouseout on the Sonner toaster container.
     // React's root-level listener translates this to onMouseLeave when
     // relatedTarget is outside the container, unpausing auto-dismiss.
+    /* eslint-disable no-undef -- browser globals inside page.evaluate */
     await page.evaluate(() => {
       const toaster = document.querySelector("[data-sonner-toaster]");
       if (toaster) {
@@ -40,6 +41,7 @@ export async function dismissToast(page: Page): Promise<void> {
         );
       }
     });
+    /* eslint-enable no-undef */
   };
 
   await unpauseToasts();

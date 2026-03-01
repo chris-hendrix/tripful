@@ -132,7 +132,7 @@ export function TripsContent() {
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [filteredTrips]);
 
-  const tripCount = trips.length;
+  const tripCount = data?.pages[0]?.meta?.total ?? trips.length;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const noResults = filteredTrips.length === 0 && hasSearchQuery;
   const isEmpty = trips.length === 0 && !isPending;
