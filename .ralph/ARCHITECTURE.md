@@ -1,677 +1,313 @@
-# Architecture: Skill Audit Remediation
+# Architecture: Trip Themes
 
-Comprehensive remediation of all findings from the codebase skill audit across 13 skill areas (Next.js, TanStack Query, React Hook Form, API Security, Vercel React, Fastify, shadcn/ui, Playwright, Drizzle ORM, pg-boss, Web Design, Frontend Design, Mobile Design).
+Add a Partiful-style theme system. Templates (20 presets) are frontend-only and pre-fill visual properties. Users can also go fully custom. The DB stores the visual output (`theme_color`, `theme_icon`, `theme_font`), not the template ID.
 
 ---
 
-## 1. Security & Authentication
+## DB Schema
 
-### 1.1 Token Blacklist
-
-Add JWT blacklisting on logout. Since tokens are 7-day expiry, revocation is critical.
-
-**New schema** in `apps/api/src/db/schema/index.ts`:
+Add 3 nullable columns to `trips` table in `apps/api/src/db/schema/index.ts`:
 
 ```typescript
-export const blacklistedTokens = pgTable("blacklisted_tokens", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  jti: text("jti").notNull().unique(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [
-  index("blacklisted_tokens_jti_idx").on(t.jti),
-  index("blacklisted_tokens_expires_at_idx").on(t.expiresAt),
-]);
+themeColor: varchar("theme_color", { length: 7 }),
+themeIcon: varchar("theme_icon", { length: 10 }),
+themeFont: varchar("theme_font", { length: 30 }),
 ```
 
-**JWT signing changes** in `apps/api/src/services/auth.service.ts`:
+All nullable — existing trips keep current behavior. Generate migration via `cd apps/api && pnpm db:generate`.
 
-- Add `jti` (UUID) claim when signing tokens: `app.jwt.sign({ sub: userId, name: displayName, jti: randomUUID() })`
-- On logout (`POST /api/auth/logout`), decode token and insert `jti` + `expiresAt` into `blacklisted_tokens`
+---
 
-**Auth middleware changes** in `apps/api/src/middleware/auth.middleware.ts`:
+## Shared Types & Schemas
 
-- After `request.jwtVerify()`, check `blacklisted_tokens` for the token's `jti`
-- If found, throw 401 Unauthorized
-- This adds one indexed DB lookup per authenticated request — acceptable at current scale
+### `shared/types/trip.ts`
 
-**Cleanup job**: New pg-boss scheduled job `token-blacklist/cleanup` (daily cron) that deletes entries where `expiresAt < now()`.
-
-### 1.2 Account Lockout
-
-Prevent brute-force OTP attacks. Track failed verification attempts per phone number.
-
-**New schema** in `apps/api/src/db/schema/index.ts`:
+Add to `Trip`, `TripSummary`, and `TripDetail` interfaces:
 
 ```typescript
-export const authAttempts = pgTable("auth_attempts", {
-  phoneNumber: text("phone_number").primaryKey(),
-  failedCount: integer("failed_count").notNull().default(0),
-  lastFailedAt: timestamp("last_failed_at", { withTimezone: true }),
-  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+themeColor: string | null;
+themeIcon: string | null;
+themeFont: string | null;
+```
+
+### `shared/schemas/trip.ts`
+
+Add to `baseTripSchema` (used by create + update):
+
+```typescript
+themeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+themeIcon: z.string().max(10).nullable().optional(),
+themeFont: z.enum(['clean', 'bold-sans', 'elegant-serif', 'playful', 'handwritten', 'condensed']).nullable().optional(),
+```
+
+Add to response schemas (`tripEntitySchema`, `tripSummarySchema`, `tripDetailSchema`).
+
+---
+
+## API Service
+
+### `apps/api/src/services/trip.service.ts`
+
+- `createTrip()`: Accept and store `themeColor`, `themeIcon`, `themeFont` in insert
+- `getTripById()`: Return theme fields in response (both full and preview)
+- `getUserTrips()`: Return theme fields in trip summaries
+- `updateTrip()`: Accept theme field updates
+
+No new endpoints — theme fields ride on existing trip CRUD.
+
+### `apps/web/src/hooks/use-trips.ts`
+
+Add `themeColor`, `themeIcon`, `themeFont` to create/update mutation payloads. Fields map directly (Drizzle handles snake_case ↔ camelCase).
+
+---
+
+## Font Setup
+
+### Fonts to Load
+
+| ID | Font Family | Status |
+|----|-------------|--------|
+| `clean` | Plus Jakarta Sans (system default) | Already loaded |
+| `bold-sans` | Oswald | **New** |
+| `elegant-serif` | Playfair Display | Already loaded |
+| `playful` | Nunito | **New** |
+| `handwritten` | Caveat | **New** |
+| `condensed` | Barlow Condensed | **New** |
+
+### `apps/web/src/lib/fonts.ts`
+
+Add 4 new font imports via `next/font/google`:
+
+```typescript
+import { Oswald, Nunito, Caveat, Barlow_Condensed } from 'next/font/google';
+
+export const oswald = Oswald({ subsets: ['latin'], variable: '--font-oswald', display: 'swap' });
+export const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' });
+export const caveat = Caveat({ subsets: ['latin'], variable: '--font-caveat', display: 'swap' });
+export const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'], variable: '--font-barlow-condensed', display: 'swap',
+  weight: ['400', '600', '700'],
 });
 ```
 
-**Logic** in `apps/api/src/services/auth.service.ts`:
+### `apps/web/src/app/layout.tsx`
 
-- Before verify-code: check if `lockedUntil > now()` → return 429 with retry-after header
-- On failed verification: increment `failedCount`, set `lastFailedAt = now()`
-- On 5+ failures: set `lockedUntil = now() + 15 minutes`
-- On successful verification: delete the row (reset)
-- pg-boss cleanup job removes stale entries (older than 24 hours)
+Add new font variables to the root `<html>` className alongside existing ones.
 
-### 1.3 Input Length Validation
+### Font Mapping — `apps/web/src/config/theme-fonts.ts` (new)
 
-Add `max()` constraints to unbounded search inputs.
+```typescript
+export type ThemeFont = 'clean' | 'bold-sans' | 'elegant-serif' | 'playful' | 'handwritten' | 'condensed';
 
-- `shared/schemas/mutuals.ts`: Add `.max(100)` to `search` field in `getMutualsQuerySchema`
-- Review all other query schemas for unbounded string params and add appropriate `.max()` constraints
+export const THEME_FONTS: Record<ThemeFont, string> = {
+  'clean': 'var(--font-plus-jakarta)',
+  'bold-sans': 'var(--font-oswald)',
+  'elegant-serif': 'var(--font-playfair)',
+  'playful': 'var(--font-nunito)',
+  'handwritten': 'var(--font-caveat)',
+  'condensed': 'var(--font-barlow-condensed)',
+};
+```
+
+Font only applies to trip name / hero heading. Body text stays system font.
 
 ---
 
-## 2. PostgreSQL-Backed Rate Limiting
+## Color Utilities
 
-Replace the in-memory rate limit store with a PostgreSQL-backed custom store for `@fastify/rate-limit`.
+### `apps/web/src/lib/color-utils.ts` (new)
 
-**New schema** in `apps/api/src/db/schema/index.ts`:
+No external dependencies. ~40 lines of HSL math + WCAG contrast.
 
 ```typescript
-export const rateLimitEntries = pgTable("rate_limit_entries", {
-  key: text("key").primaryKey(),
-  count: integer("count").notNull().default(0),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-}, (t) => [
-  index("rate_limit_entries_expires_at_idx").on(t.expiresAt),
-]);
+// Core conversions
+function hexToHsl(hex: string): { h: number; s: number; l: number };
+function hslToHex(h: number, s: number, l: number): string;
+
+// Manipulation
+function darken(hex: string, amount: number): string;   // amount 0-1
+function lighten(hex: string, amount: number): string;   // amount 0-1
+function withAlpha(hex: string, alpha: number): string;  // returns rgba()
+
+// Accessibility (WCAG 2.0)
+function relativeLuminance(hex: string): number;         // 0-1
+function contrastRatio(hex1: string, hex2: string): number; // 1-21
+function readableForeground(bgHex: string): '#ffffff' | '#1a1a1a';
+
+// Theme derivation
+function deriveTheme(hex: string): {
+  accent: string;           // base color as-is
+  accentForeground: string; // white or dark via WCAG contrast
+  heroGradient: string;     // CSS gradient: darken(30%) → base → lighten(15%)
+  heroOverlay: string;      // base at 60% opacity
+  subtleBg: string;         // base at 8% opacity
+  border: string;           // base at 20% opacity
+};
 ```
 
-**Custom store** — new file `apps/api/src/plugins/pg-rate-limit-store.ts`:
+---
+
+## Template System (Frontend-Only)
+
+### `apps/web/src/config/trip-templates.ts` (new)
+
+20 templates. Each pre-fills `themeColor`, `themeIcon`, `themeFont`. Picker shows gradient cards derived from `color` — no stock images.
 
 ```typescript
-import { sql } from "drizzle-orm";
+export interface TripTemplate {
+  id: string;
+  label: string;
+  keywords: string[];
+  color: string;    // hex
+  icon: string;     // emoji
+  font: ThemeFont;
+}
 
-class PgRateLimitStore {
-  constructor(private db: DrizzleDB, private timeWindow: number) {}
+export const TRIP_TEMPLATES: TripTemplate[] = [
+  { id: 'bachelor-party', label: 'Bachelor Party', keywords: ['bachelor', 'stag', 'stag do'], color: '#e94560', icon: '🎰', font: 'bold-sans' },
+  { id: 'bachelorette-party', label: 'Bachelorette Party', keywords: ['bachelorette', 'hen do', 'hen party'], color: '#ff69b4', icon: '💅', font: 'playful' },
+  { id: 'wedding', label: 'Wedding', keywords: ['wedding', 'nuptials', 'ceremony', 'elopement'], color: '#d4a574', icon: '💒', font: 'elegant-serif' },
+  { id: 'honeymoon', label: 'Honeymoon', keywords: ['honeymoon'], color: '#e8a0bf', icon: '🌅', font: 'elegant-serif' },
+  { id: 'birthday', label: 'Birthday Trip', keywords: ['birthday', 'bday'], color: '#f59e0b', icon: '🎂', font: 'playful' },
+  { id: 'girls-trip', label: "Girls' Trip", keywords: ['girls trip', 'girls weekend', 'ladies'], color: '#a855f7', icon: '👯', font: 'playful' },
+  { id: 'guys-trip', label: "Guys' Trip", keywords: ['guys trip', 'boys trip', 'boys weekend'], color: '#3b82f6', icon: '🍻', font: 'bold-sans' },
+  { id: 'beach', label: 'Beach', keywords: ['beach', 'coast', 'shore', 'tropical', 'island'], color: '#06b6d4', icon: '🏖️', font: 'playful' },
+  { id: 'ski-trip', label: 'Ski Trip', keywords: ['ski', 'skiing', 'snowboard', 'slopes'], color: '#7dd3fc', icon: '⛷️', font: 'condensed' },
+  { id: 'lake-house', label: 'Lake House', keywords: ['lake', 'lakehouse', 'lake house'], color: '#0d9488', icon: '🏡', font: 'handwritten' },
+  { id: 'cabin', label: 'Cabin / Mountain', keywords: ['cabin', 'mountain', 'lodge', 'chalet'], color: '#78716c', icon: '🏔️', font: 'handwritten' },
+  { id: 'camping', label: 'Camping', keywords: ['camping', 'campsite', 'glamping', 'tent'], color: '#65a30d', icon: '⛺', font: 'handwritten' },
+  { id: 'city-break', label: 'City Break', keywords: ['city', 'downtown', 'urban', 'metro'], color: '#6366f1', icon: '🌃', font: 'clean' },
+  { id: 'road-trip', label: 'Road Trip', keywords: ['road trip', 'roadtrip', 'cross country'], color: '#ea580c', icon: '🚗', font: 'handwritten' },
+  { id: 'music-festival', label: 'Music Festival', keywords: ['festival', 'coachella', 'concert', 'bonnaroo'], color: '#d946ef', icon: '🎶', font: 'condensed' },
+  { id: 'sports-event', label: 'Sports Event', keywords: ['game', 'super bowl', 'march madness', 'world cup'], color: '#16a34a', icon: '🏟️', font: 'bold-sans' },
+  { id: 'wine-country', label: 'Wine Country', keywords: ['wine', 'vineyard', 'winery', 'napa', 'sonoma'], color: '#7f1d1d', icon: '🍷', font: 'elegant-serif' },
+  { id: 'golf-trip', label: 'Golf Trip', keywords: ['golf', 'tee time', 'links'], color: '#166534', icon: '⛳', font: 'clean' },
+  { id: 'spring-break', label: 'Spring Break', keywords: ['spring break', 'spring fling'], color: '#f472b6', icon: '🌴', font: 'condensed' },
+  { id: 'reunion', label: 'Reunion', keywords: ['reunion', 'get together', 'gathering'], color: '#f97316', icon: '🤝', font: 'clean' },
+];
+```
 
-  incr(key: string, cb: (err: Error | null, result?: { current: number; ttl: number }) => void) {
-    const now = new Date();
-    const windowEnd = new Date(now.getTime() + this.timeWindow);
+**Ordering matters**: `bachelorette` listed before `bachelor` so "bachelorette bash" doesn't match "bachelor".
 
-    this.db.execute(sql`
-      INSERT INTO rate_limit_entries (key, count, expires_at)
-      VALUES (${key}, 1, ${windowEnd})
-      ON CONFLICT (key) DO UPDATE SET
-        count = CASE
-          WHEN rate_limit_entries.expires_at <= ${now} THEN 1
-          ELSE rate_limit_entries.count + 1
-        END,
-        expires_at = CASE
-          WHEN rate_limit_entries.expires_at <= ${now} THEN ${windowEnd}
-          ELSE rate_limit_entries.expires_at
-        END
-      RETURNING count, EXTRACT(EPOCH FROM (expires_at - ${now}::timestamptz)) * 1000 AS ttl
-    `).then((result) => {
-      const row = result.rows[0] as { count: number; ttl: number };
-      cb(null, { current: row.count, ttl: row.ttl });
-    }).catch((err) => cb(err as Error));
-  }
+### `apps/web/src/lib/detect-template.ts` (new)
 
-  child(routeOptions: { timeWindow?: number }) {
-    return new PgRateLimitStore(this.db, routeOptions.timeWindow ?? this.timeWindow);
-  }
+```typescript
+export function detectTemplate(name: string): TripTemplate | null {
+  const lower = name.toLowerCase();
+  return TRIP_TEMPLATES.find(t => t.keywords.some(kw => lower.includes(kw))) ?? null;
 }
 ```
 
-**Registration** in `apps/api/src/app.ts`:
-
-- Pass `store: PgRateLimitStore` to `@fastify/rate-limit` registration
-- Store receives DB instance from the database plugin
-
-**Cleanup**: pg-boss job `rate-limit/cleanup` (hourly cron) deletes entries where `expiresAt < now()`.
+Runs when user clicks "Next" on Step 1 of trip creation.
 
 ---
 
-## 3. pg-boss Queue Fixes
+## UI Components
 
-All changes in `apps/api/src/queues/index.ts`:
+### Component Tree
 
-### 3.1 Add Expiration & DLQ
+```
+TemplatePicker (sheet/dialog overlay)
+├── TemplateGrid (20 template cards as gradient previews)
+│   └── TemplateCard (color gradient + icon + label)
+├── CustomThemeSection (when "Custom" selected)
+│   ├── ColorPicker (grid of 12-16 preset hex colors)
+│   ├── IconPicker (curated grid of 30-40 travel emojis)
+│   └── FontPicker (6 radio options with font preview text)
+└── Actions (confirm / clear / cancel)
 
-```typescript
-// notification/batch — add expiration and DLQ
-await boss.createQueue(QUEUE.NOTIFICATION_BATCH_DLQ);
-await boss.createQueue(QUEUE.NOTIFICATION_BATCH, {
-  retryLimit: 3,
-  retryDelay: 10,
-  retryBackoff: true,
-  expireInSeconds: 300,
-  deadLetter: QUEUE.NOTIFICATION_BATCH_DLQ,
-  deleteAfterSeconds: 3600,
-});
-
-// daily-itineraries — add expiration and DLQ
-await boss.createQueue(QUEUE.DAILY_ITINERARIES_DLQ);
-await boss.createQueue(QUEUE.DAILY_ITINERARIES, {
-  retryLimit: 2,
-  retryDelay: 30,
-  retryBackoff: true,
-  expireInSeconds: 600,
-  deadLetter: QUEUE.DAILY_ITINERARIES_DLQ,
-  deleteAfterSeconds: 3600,
-});
+ThemePreviewCard (compact inline: color swatch + icon + name + "Change theme" link)
 ```
 
-### 3.2 DLQ Workers
+### New files in `apps/web/src/components/trip/`
 
-New file `apps/api/src/queues/workers/dlq.worker.ts`:
-
-- Register workers for all 4 DLQ queues
-- Log failed jobs at `error` level with full payload for monitoring
-- In future: integrate with alerting (out of scope for now)
-
-### 3.3 Queue Constants
-
-Add new queue names to `apps/api/src/queues/types.ts`:
-
-```typescript
-export const QUEUE = {
-  // ... existing
-  NOTIFICATION_BATCH_DLQ: "notification/batch/dlq",
-  DAILY_ITINERARIES_DLQ: "daily-itineraries/dlq",
-  TOKEN_BLACKLIST_CLEANUP: "token-blacklist/cleanup",
-  RATE_LIMIT_CLEANUP: "rate-limit/cleanup",
-  AUTH_ATTEMPTS_CLEANUP: "auth-attempts/cleanup",
-} as const;
-```
-
----
-
-## 4. API Quality
-
-### 4.1 Response Schemas
-
-Add Zod response schemas to the 3 routes currently missing them:
-
-| Route | File | Line |
-|-------|------|------|
-| `DELETE /trips/:tripId/members/:memberId` | `invitation.routes.ts` | 152 |
-| `GET /mutuals` | `mutuals.routes.ts` | 29 |
-| `GET /trips/:tripId/mutual-suggestions` | `mutuals.routes.ts` | 45 |
-
-Define response schemas in `shared/schemas/` matching existing patterns, then reference in route `schema.response[200]`.
-
-### 4.2 OpenAPI / Swagger
-
-**New packages**: `@fastify/swagger`, `@fastify/swagger-ui`
-
-**New plugin** `apps/api/src/plugins/swagger.ts`:
-
-```typescript
-import fp from "fastify-plugin";
-import swagger from "@fastify/swagger";
-import swaggerUi from "@fastify/swagger-ui";
-
-export default fp(async function swaggerPlugin(fastify) {
-  await fastify.register(swagger, {
-    openapi: {
-      info: { title: "Tripful API", version: "1.0.0" },
-      servers: [{ url: `http://localhost:${fastify.config.PORT}` }],
-      components: {
-        securitySchemes: {
-          cookieAuth: { type: "apiKey", in: "cookie", name: "auth_token" },
-        },
-      },
-    },
-    transform: jsonSchemaTransform, // from fastify-type-provider-zod
-  });
-
-  await fastify.register(swaggerUi, { routePrefix: "/docs" });
-});
-```
-
-Register before routes in `apps/api/src/app.ts`. Only enabled when `NODE_ENV !== "production"` (or controlled via env var).
-
-### 4.3 Drizzle Query Logging
-
-**New plugin** `apps/api/src/plugins/query-logger.ts`:
-
-Create a Drizzle-compatible logger that integrates with Fastify's pino logger. Logs all queries at `debug` level. Warns on slow queries (>500ms).
-
-Pass logger to Drizzle initialization in `apps/api/src/plugins/database.ts`.
-
-### 4.4 Fix Bare `select()` Calls
-
-Add explicit column selection to all 20+ bare `select()` calls:
-
-| Service | Lines | Action |
-|---------|-------|--------|
-| `auth.service.ts` | 83, 117 | Select only id, phoneNumber, displayName, createdAt |
-| `trip.service.ts` | 236, 336, 443, 465, 707, 726, 817, 833 | Select columns needed per query context |
-| `invitation.service.ts` | 533, 595, 906, 992 | Select only required invitation/member fields |
-| `accommodation.service.ts` | 211, 279, 420 | Select accommodation detail fields |
-| `event.service.ts` | 208 | Select event detail fields |
-| `member-travel.service.ts` | 242, 439 | Select member travel fields |
-
-For each, identify what the consumer (route handler / response schema) actually needs and select only those columns.
-
-### 4.5 OFFSET → Cursor Pagination
-
-Convert 3 services from OFFSET to cursor-based pagination. Breaking API change — update frontend consumers simultaneously.
-
-**Cursor format**: Base64-encoded JSON with sort key + id for deterministic ordering.
-
-```typescript
-// Shared cursor utility — apps/api/src/utils/pagination.ts
-export function encodeCursor(data: Record<string, unknown>): string {
-  return Buffer.from(JSON.stringify(data)).toString("base64url");
-}
-
-export function decodeCursor(cursor: string): Record<string, unknown> {
-  return JSON.parse(Buffer.from(cursor, "base64url").toString());
-}
-```
-
-**Services to convert:**
-
-| Service | Line | Sort Key | Cursor Fields |
-|---------|------|----------|---------------|
-| `trip.service.ts` | 451 | `createdAt DESC` | `{ createdAt, id }` |
-| `notification.service.ts` | 166 | `createdAt DESC` | `{ createdAt, id }` |
-| `message.service.ts` | 185 | `createdAt DESC` | `{ createdAt, id }` |
-
-**Schema changes** in `shared/schemas/`:
-
-- Replace `page`/`offset` params with `cursor?: string` and `limit: number`
-- Response includes `nextCursor: string | null` instead of `totalPages`/`totalCount`
-
-**Frontend changes**:
-
-- `apps/web/src/hooks/trip-queries.ts` — switch to `useInfiniteQuery` with `getNextPageParam` extracting `nextCursor`
-- `apps/web/src/hooks/notification-queries.ts` — update cursor param
-- `apps/web/src/hooks/message-queries.ts` — update cursor param
-- Update all consuming components to use `data.pages.flatMap(p => p.items)` pattern
-
-### 4.6 Partial Indexes for Soft-Delete
-
-Add `WHERE "deleted_at" IS NULL` partial indexes on soft-delete tables. New migration.
-
-```sql
-CREATE INDEX IF NOT EXISTS events_trip_id_not_deleted_idx
-  ON events (trip_id) WHERE deleted_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS accommodations_trip_id_not_deleted_idx
-  ON accommodations (trip_id) WHERE deleted_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS member_travel_trip_id_not_deleted_idx
-  ON member_travel (trip_id) WHERE deleted_at IS NULL;
-
-CREATE INDEX IF NOT EXISTS messages_trip_id_not_deleted_idx
-  ON messages (trip_id) WHERE deleted_at IS NULL AND parent_id IS NULL;
-```
-
----
-
-## 5. Frontend Data Layer
-
-### 5.1 TanStack Query — Move `enabled` to Call Sites
-
-Move `enabled` from query factory options to `useQuery()` call sites in 8 files (19 occurrences):
-
-| Factory File | Lines |
-|-------------|-------|
-| `trip-queries.ts` | 63 |
-| `accommodation-queries.ts` | 37, 54, 73 |
-| `invitation-queries.ts` | 60, 77, 94 |
-| `member-travel-queries.ts` | 37, 54, 73 |
-| `message-queries.ts` | 41, 58, 75 |
-| `event-queries.ts` | 37, 54, 73 |
-| `mutuals-queries.ts` | 70 |
-| `notification-queries.ts` | 107, 127 |
-
-**Pattern**: Remove `enabled: !!id` from `queryOptions()` factory, add it at each `useQuery(factory(id), { enabled: !!id })` call site in the corresponding `use-*.ts` hook files.
-
-### 5.2 TanStack Query — Add Missing Features
-
-**`useMutationState` for global loading indicator:**
-
-New component `apps/web/src/components/global-mutation-indicator.tsx` — thin progress bar at top of viewport when any mutation is pending. Add to `apps/web/src/app/(app)/layout.tsx`.
-
-**`select` for partial data:**
-
-Add `select` option in components that only need subset of query data. Identify 3-5 key opportunities during implementation (e.g., member lists that only need name + avatar).
-
-**`placeholderData` for pagination:**
-
-In paginated queries (trips, messages, notifications), add `placeholderData: keepPreviousData` to prevent content flash during page transitions.
-
-**`QueryErrorResetBoundary`:**
-
-Wrap error-prone query sections with `QueryErrorResetBoundary` + React Error Boundary in `apps/web/src/app/(app)/layout.tsx`. Update `ErrorBoundary` component to accept `onReset` prop and call it on retry.
-
-### 5.3 React Hook Form Fix
-
-In `shared/schemas/invitation.ts`: Add `path: ["phoneNumbers"]` to the `.refine()` call that validates at least one of `phoneNumbers` or `userIds` is provided.
-
-### 5.4 React Pattern Fixes
-
-**Fix useEffect deps** in `apps/web/src/app/(app)/trips/trips-content.tsx`:
-
-- Remove `router`, `searchParams`, `pathname` from useEffect dependency array (lines 48-65)
-- Read `searchParams.toString()` inside the effect without listing it as a dep
-- Use a ref for `router` and `pathname` if needed
-
-**Extract SkeletonCard** in `apps/web/src/app/(app)/trips/trips-content.tsx`:
-
-- Move `SkeletonCard` component definition outside `TripsContent` to module level (around line 13-37)
-
-**Move endDate auto-fill** in `apps/web/src/components/trip/create-trip-dialog.tsx`:
-
-- Remove the `useEffect` (lines 79-83) that sets endDate when startDate changes
-- Move logic into the `onChange` handler of the startDate DatePicker
-
-**Parallelize trip detail fetching** in `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`:
-
-- Remove conditional `enabled` that sequences event loading after trip loading
-- Fetch trip details, events, members, accommodations in parallel (all have tripId from URL params)
-
----
-
-## 6. UI Component Fixes
-
-### 6.1 shadcn/ui Token Fixes
-
-**RsvpBadge** (`apps/web/src/components/ui/rsvp-badge.tsx`):
-
-Replace hardcoded colors with theme tokens:
-
-```typescript
-// Before: "bg-amber-500/15 text-amber-600 border-amber-500/30"
-// After:  "bg-warning/15 text-warning border-warning/30"
-
-// Before (overlay): "text-emerald-300", "text-amber-300", "text-neutral-300"
-// After: Use CSS custom properties or theme-aware overlay tokens
-```
-
-**ErrorBoundary** (`apps/web/src/components/error-boundary.tsx`):
-
-- Replace raw `<button>` with `<Button>` component from `@/components/ui/button`
-- Use appropriate variant (`default` or `gradient`)
-- Update `ErrorBoundary` to accept `onReset` prop for `QueryErrorResetBoundary` integration
-
-**MutualProfileSheet** (`apps/web/src/components/mutuals/mutual-profile-sheet.tsx`):
-
-- Replace inline link classes (line 71) with `cn()` utility and standard link patterns
-
-### 6.2 Next.js Route Improvements
-
-**Add `loading.tsx`:**
-
-| Path | Purpose |
+| File | Purpose |
 |------|---------|
-| `apps/web/src/app/(app)/mutuals/loading.tsx` | Mutuals page skeleton |
-| `apps/web/src/app/(auth)/loading.tsx` | Auth group loading state |
+| `template-picker.tsx` | Full overlay with template grid + custom section |
+| `color-picker.tsx` | Grid of 12-16 preset hex colors with selection state |
+| `icon-picker.tsx` | Grid of 30-40 curated travel emojis with selection state |
+| `font-picker.tsx` | 6 radio options, each rendering name in its own font |
+| `theme-preview-card.tsx` | Compact card with swatch, icon, name, "Change theme" link |
 
-Each `loading.tsx` renders a skeleton matching the page layout.
+### Color Picker Presets
 
-### 6.3 WCAG AA Color Contrast
+Deduplicated from the 20 template colors, plus a few neutrals. ~16 colors total.
 
-In `apps/web/src/app/globals.css`:
+### Icon Picker Curated Emojis
 
-Darken `--color-muted-foreground` from `#6b6054` to meet 4.5:1 contrast ratio against `--color-background` (`#fbf6ef`).
-
-Current: `#6b6054` → contrast ratio ~3.8:1 against `#fbf6ef` (fails AA for small text)
-Target: `#5a5046` or similar → contrast ratio ≥4.5:1 (passes AA)
-
-Verify all muted-foreground usage still looks good after the change.
-
----
-
-## 7. Design System Refresh — Adventurous / Exploratory
-
-### 7.1 Third Accent Font: Space Grotesk
-
-**Setup** in `apps/web/src/app/layout.tsx`:
-
-```typescript
-import { Space_Grotesk } from "next/font/google";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
-```
-
-Add `spaceGrotesk.variable` to the body className.
-
-**Add to theme** in `globals.css`:
-
-```css
-@theme {
-  --font-accent: var(--font-space-grotesk);
-}
-```
-
-**Usage**: Apply `font-accent` to:
-
-- Navigation labels in app header
-- Badge/tag text (RSVP status, event types)
-- Hero section numbers/stats (trip count, member count)
-- Button labels on primary CTAs
-- Section subheadings
-- Feature callouts and empty state headings
-
-### 7.2 Scroll-Triggered Animations
-
-Create a reusable `useScrollReveal` hook and CSS classes:
-
-**New hook** `apps/web/src/hooks/use-scroll-reveal.ts`:
-
-Uses IntersectionObserver (threshold: 0.1) to add a `revealed` class when element enters viewport. Observer disconnects after reveal (one-shot).
-
-**New animations** in `globals.css`:
-
-```css
-@keyframes revealUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes revealScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes staggerIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-```
-
-**Staggered card grids**: Apply `animation-delay` based on card index using inline style `style={{ animationDelay: `${index * 80}ms` }}` with the `staggerIn` animation. Use `motion-safe:` prefix.
-
-### 7.3 Gradient Mesh & Texture Backgrounds
-
-**Hero gradient mesh** — new CSS class in `globals.css`:
-
-```css
-.gradient-mesh {
-  background:
-    radial-gradient(ellipse at 20% 50%, #1a5c9e15 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, #d1643d10 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, #497e5a08 0%, transparent 50%),
-    var(--color-background);
-}
-```
-
-Apply to page-level containers (trips list, mutuals page, auth pages).
-
-**Noise texture overlay** — subtle grain via CSS pseudo-element on card/page backgrounds for depth (~3% opacity).
-
-### 7.4 Asymmetric Layouts
-
-**Trips list hero**: Instead of symmetric grid, use CSS Grid with named areas for featured/recent trip section:
-
-```css
-.trips-hero-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 1rem;
-}
-.trips-hero-grid > :first-child {
-  grid-row: span 2; /* Featured trip spans 2 rows */
-}
-```
-
-**Trip detail hero**: Offset trip image/header with angled clip-path or skew transform for dynamic visual.
-
-### 7.5 Enhanced Card & Interaction Effects
-
-**Hover lift** on TripCard, EventCard:
-
-```css
-.card-hover {
-  transition: transform 200ms ease, box-shadow 200ms ease;
-}
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12);
-}
-```
-
-**Active press** feedback: `motion-safe:active:scale-[0.98]` on interactive cards.
-
-### 7.6 Page Transition Orchestration
-
-Use `motion-safe:animate-[revealUp_400ms_ease-out_both]` on page content containers with staggered delays for header, main content, and sidebar sections.
-
-### 7.7 Decorative Elements
-
-Increase compass/decorative element opacity from `0.04` to `0.08-0.12` for more presence. Add topographic line pattern SVG as decorative background on empty states.
+~30-40 travel/party emojis organized by category:
+- **Celebrations**: 🎉 🎂 🎰 💅 💒 🤝 🎶
+- **Travel**: ✈️ 🚗 🏖️ ⛷️ 🌴 🏔️ 🌅 🌃
+- **Activities**: ⛳ 🍻 🏟️ ⛺ 👯 🍷
+- **Places**: 🏡 🏨 🏕️ 🎪 🛳️
+- **Nature**: 🌊 🌲 🌸 ☀️ ❄️
 
 ---
 
-## 8. Mobile UX
+## Integration: Create Trip Dialog
 
-### 8.1 Responsive Hamburger Menu
+### `apps/web/src/components/trip/create-trip-dialog.tsx`
 
-**New component** `apps/web/src/components/mobile-nav.tsx`:
+**Step 1 → Step 2 transition:**
+1. User fills name + destination + dates
+2. On "Next" click: run `detectTemplate(tripName)`
+3. If detected: store template values (`themeColor`, `themeIcon`, `themeFont`) in form state
+4. Proceed to Step 2
 
-- Visible only below `md` breakpoint (768px)
-- Hamburger icon button (Menu icon from lucide-react)
-- Opens Sheet (side="left") with navigation:
-  - User avatar + name at top
-  - Links: My Trips, My Mutuals
-  - Separator
-  - Profile, Log out
-
-**App Header changes** (`apps/web/src/components/app-header.tsx`):
-
-- Desktop (≥md): Current layout unchanged
-- Mobile (<md): Show hamburger + brand + notification bell only
-- Hide user avatar dropdown on mobile (moved into mobile nav sheet)
-
-### 8.2 Responsive Dialog Wrapper
-
-**New component** `apps/web/src/components/ui/responsive-dialog.tsx`:
-
-Uses `useMediaQuery("(min-width: 768px)")` to switch between Dialog (desktop) and Sheet side="bottom" (mobile).
-
-Exports: `ResponsiveDialog`, `ResponsiveDialogContent`, `ResponsiveDialogHeader`, `ResponsiveDialogTitle`, `ResponsiveDialogDescription`, `ResponsiveDialogFooter` — each maps to Dialog or Sheet equivalent.
-
-**New hook** `apps/web/src/hooks/use-media-query.ts`:
-
-SSR-safe media query hook using `window.matchMedia` with event listener for changes.
-
-**Convert dialogs** (15 components):
-
-- `create-trip-dialog.tsx`, `edit-trip-dialog.tsx`, `invite-members-dialog.tsx`
-- `create-event-dialog.tsx`, `edit-event-dialog.tsx`
-- `create-accommodation-dialog.tsx`, `edit-accommodation-dialog.tsx`
-- `create-member-travel-dialog.tsx`, `edit-member-travel-dialog.tsx`
-- `deleted-items-dialog.tsx`
-- `trip-notification-dialog.tsx`
-- `profile-dialog.tsx`
-
-Replace Dialog imports with ResponsiveDialog equivalents.
-
-### 8.3 Hover Media Query Fixes
-
-Add `@media (hover: hover)` guard around hover-dependent interactions:
-
-- Preload on `onMouseEnter` in trip cards, dialog triggers
-- For touch devices, use `onFocus` or `onTouchStart` instead
+**Step 2:**
+- If theme exists: show `ThemePreviewCard` (swatch + icon + name) with "Change theme" link
+- "Change theme" opens `TemplatePicker` as sheet overlay
+- If no theme: show "Add a theme" link → opens `TemplatePicker`
+- `TemplatePicker` has Custom option with color palette + emoji grid + font radio
+- Form state holds `themeColor`, `themeIcon`, `themeFont`
+- Submit sends theme fields to API
 
 ---
 
-## 9. Testing Infrastructure
+## Integration: Trip Detail Page
 
-### 9.1 Playwright Cross-Browser + Mobile
+### `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx`
 
-Update `apps/web/playwright.config.ts`:
+**Hero rendering:**
 
-```typescript
-projects: [
-  {
-    name: "chromium",
-    use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 1080 } },
-  },
-  {
-    name: "firefox",
-    use: { ...devices["Desktop Firefox"] },
-  },
-  {
-    name: "webkit",
-    use: { ...devices["Desktop Safari"] },
-  },
-  {
-    name: "iphone",
-    use: { ...devices["iPhone 14"] },
-  },
-  {
-    name: "ipad",
-    use: { ...devices["iPad Mini"] },
-  },
-],
+| State | Hero Background | Overlay | Title Font |
+|-------|----------------|---------|------------|
+| `themeColor` + no `coverImageUrl` | Gradient from `deriveTheme().heroGradient` + theme icon display | None | `THEME_FONTS[themeFont]` |
+| `themeColor` + `coverImageUrl` | Cover photo | **Theme-tinted** overlay (theme color at ~60% opacity) | `THEME_FONTS[themeFont]` |
+| No theme + `coverImageUrl` | Cover photo | Existing dark scrim (unchanged) | Current Playfair |
+| No theme + no cover | Current default gradient (unchanged) | Existing behavior | Current Playfair |
+
+**Accent overrides:**
+When `themeColor` exists, set CSS custom properties on the trip page wrapper:
+
+```tsx
+style={{
+  '--color-primary': themeColor,
+  '--color-primary-foreground': deriveTheme(themeColor).accentForeground,
+} as React.CSSProperties}
 ```
 
-### 9.2 Hard-Coded Timeout Cleanup
+This overrides the global accent (#d1643d) for buttons, badges, and links within trip pages. Scoped to the trip detail wrapper div — dashboard and navigation keep global accent.
 
-Replace all inline timeout numbers with named constants from `tests/e2e/helpers/timeouts.ts`.
+---
 
-Files with inline timeouts to fix:
+## Integration: Edit Trip Dialog
 
-| File | Approx Occurrences |
-|------|-------------------|
-| `trip-journey.spec.ts` | ~28 |
-| `profile-journey.spec.ts` | ~10 |
-| `invitation-journey.spec.ts` | ~12 |
-| `itinerary-journey.spec.ts` | ~12 |
-| `helpers/itinerary.ts` | 1 |
-| `helpers/pages/trips.page.ts` | 1 |
-| `helpers/pages/profile.page.ts` | 1 |
-| `helpers/trips.ts` | 2 |
+### `apps/web/src/components/trip/edit-trip-dialog.tsx`
 
-Add new constants as needed (e.g., `INTERACTION_TIMEOUT = 5_000` for click/fill waits).
-
-### 9.3 Web Design Fixes
-
-**Decorative image alt text**: Find images that are purely decorative and ensure they have `alt=""`.
-
-**Timezone list expansion**: If the timezone selector only has 6 US entries, expand to include major international timezones (Europe, Asia, Oceania).
+Add theme section:
+- `ThemePreviewCard` if theme exists, or "Add a theme" link
+- "Change theme" opens `TemplatePicker`
+- Theme fields included in update mutation
+- Can clear theme (set all to null)
 
 ---
 
 ## Testing Strategy
 
-| Layer | Tool | Scope |
-|-------|------|-------|
-| Unit | Vitest | Rate limit store, token blacklist service, account lockout logic, cursor pagination utils, query logging |
-| Integration | Vitest | Auth endpoints (blacklist, lockout), rate limiting behavior, cursor pagination endpoints, response schema validation |
-| E2E | Playwright | Cross-browser test suite, mobile viewport flows, design refresh visual checks |
-| Manual | Playwright CLI | Design refresh visual verification, mobile hamburger menu, bottom-sheet dialogs, animation behavior |
-| Type check | `pnpm typecheck` | All packages compile |
-| Lint | `pnpm lint` | No new lint errors |
+| Layer | Tool | What to Test |
+|-------|------|-------------|
+| Unit | Vitest | `color-utils.ts` (conversions, WCAG contrast, deriveTheme), `detect-template.ts` (keyword matching, ordering, no-match) |
+| Integration | Vitest | Trip CRUD with theme fields (create with theme, update, clear, get returns theme) |
+| E2E | Playwright | Theme selection during creation (auto-detect + custom), display on detail page, editing |
+| Manual | Playwright CLI | Visual verification of hero states, template picker, accent overrides, font rendering |
