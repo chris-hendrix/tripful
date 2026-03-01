@@ -1,11 +1,16 @@
+import { cn } from "@/lib/utils";
+
 /**
  * Decorative topographic contour-line SVG background pattern.
  * Renders at low opacity for use behind empty states.
  */
-export function TopoPattern() {
+export function TopoPattern({ className }: { className?: string }) {
   return (
     <div
-      className="absolute inset-0 opacity-[0.06] pointer-events-none text-muted-foreground"
+      className={cn(
+        "absolute inset-0 opacity-[0.06] pointer-events-none text-muted-foreground",
+        className,
+      )}
       aria-hidden="true"
     >
       <svg

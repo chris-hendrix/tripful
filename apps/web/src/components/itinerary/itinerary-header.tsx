@@ -95,7 +95,7 @@ export function ItineraryHeader({
         className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             {/* Left: View mode toggle + timezone */}
             <TooltipProvider>
               <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-xl border border-border">

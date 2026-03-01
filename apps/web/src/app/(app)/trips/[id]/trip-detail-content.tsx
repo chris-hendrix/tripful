@@ -14,6 +14,7 @@ import {
   ImagePlus,
   UserPlus,
   Pencil,
+  ChevronDown,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
@@ -32,13 +33,11 @@ import { Button } from "@/components/ui/button";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import { TopoPattern } from "@/components/ui/topo-pattern";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import {
@@ -88,27 +87,10 @@ const MemberOnboardingWizard = dynamic(() =>
 function SkeletonDetail() {
   return (
     <div>
-      {/* Breadcrumb skeleton */}
-      <div className="max-w-5xl mx-auto px-4 pt-6 pb-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-3" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      </div>
       {/* Hero image skeleton */}
-      <Skeleton className="h-80 w-full rounded-none" />
+      <Skeleton className="h-64 sm:h-80 w-full rounded-none" />
       {/* Content skeleton */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <Skeleton className="h-10 w-1/2" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-40" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-48" />
-        </div>
         <div className="flex items-center gap-3">
           <Skeleton className="h-6 w-16 rounded-full" />
           <Skeleton className="h-6 w-20 rounded-full" />
@@ -221,75 +203,85 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   return (
     <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
-      {/* Breadcrumb navigation */}
-      <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/trips">My Trips</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{trip.name}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      {/* Hero section with cover image */}
-      {trip.coverImageUrl ? (
-        <div className="relative h-80 overflow-hidden">
+      {/* Hero section with cover image + overlay */}
+      <div className="relative h-64 sm:h-80 overflow-hidden">
+        {/* Background: cover photo or default pattern */}
+        {trip.coverImageUrl ? (
           <Image
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
             fill
             priority
-            sizes="100vw"
+            sizes="(min-width: 1024px) 1024px, 100vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30">
+            <TopoPattern className="opacity-[0.12] text-white" />
+          </div>
+        )}
+
+        {/* Gradient scrim for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+        {/* Top-right: notification + settings */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+          <TripNotificationBell
+            tripId={tripId}
+            className="text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+          />
+          <TripSettingsButton
+            tripId={tripId}
+            className="text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+          />
         </div>
-      ) : (
-        <div className="relative w-full h-80 overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-secondary/20">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <ImagePlus className="w-12 h-12 text-white/40" />
-            {isOrganizer && (
-              <span className="text-sm text-white/60">Add cover photo</span>
-            )}
+
+        {/* Organizer: add cover photo button */}
+        {!trip.coverImageUrl && isOrganizer && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-4 left-4 z-10 text-white/60 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+            onClick={() => setIsEditOpen(true)}
+            onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
+            onFocus={preloadEditTripDialog}
+          >
+            <ImagePlus className="w-4 h-4" aria-hidden="true" />
+            Add cover photo
+          </Button>
+        )}
+
+        {/* Bottom: title + metadata overlay */}
+        <div className="absolute bottom-0 left-0 right-0 pb-5 sm:pb-6">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1
+              className="text-2xl sm:text-4xl font-bold text-white font-[family-name:var(--font-playfair)] line-clamp-2 drop-shadow-sm"
+            >
+              {trip.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm sm:text-base text-white/80 [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-white transition-colors min-w-0"
+              >
+                <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="truncate">{trip.destination}</span>
+              </a>
+              <span aria-hidden="true">&middot;</span>
+              <span className="inline-flex items-center gap-1.5 shrink-0">
+                <Calendar className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>{dateRange}</span>
+              </span>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Trip header */}
         <div className="mb-8">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-            <h1 className="text-2xl sm:text-4xl font-bold text-foreground font-[family-name:var(--font-playfair)]">
-              {trip.name}
-            </h1>
-            <div className="flex items-center gap-2 shrink-0">
-              <TripNotificationBell tripId={tripId} />
-              <TripSettingsButton tripId={tripId} />
-            </div>
-          </div>
-
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-lg text-muted-foreground hover:text-foreground transition-colors mb-4 w-fit"
-          >
-            <MapPin className="w-5 h-5 shrink-0" />
-            <span>{trip.destination}</span>
-          </a>
-
-          <div className="flex items-center gap-2 text-muted-foreground mb-4">
-            <Calendar className="w-5 h-5 shrink-0" />
-            <span>{dateRange}</span>
-          </div>
-
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2 mb-6">
             <RsvpBadge status={trip.userRsvpStatus} />
@@ -396,16 +388,24 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </div>
 
           {/* Description */}
-          {trip.description && (
-            <div className="bg-card rounded-2xl border border-border p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-2">
+          {trip.description ? (
+            <Collapsible defaultOpen className="mb-6">
+              <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
+                <ChevronDown
+                  className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+                  aria-hidden="true"
+                />
                 About this trip
-              </h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {trip.description}
-              </p>
-            </div>
-          )}
+              </CollapsibleTrigger>
+              <CollapsibleContent forceMount className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0">
+                <div className="mt-3 bg-card rounded-2xl border border-border p-6">
+                  <p className="text-muted-foreground whitespace-pre-wrap">
+                    {trip.description}
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : null}
         </div>
 
         {/* Itinerary */}

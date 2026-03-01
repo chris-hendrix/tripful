@@ -705,7 +705,8 @@ describe("TripDetailContent", () => {
       expect(badgeContainer!.className).toContain("flex-wrap");
     });
 
-    it("shows description when available", async () => {
+    it("shows description in collapsible when available", async () => {
+      const user = userEvent.setup();
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
         isPending: false,
@@ -720,8 +721,14 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
+      // Collapsible trigger should be visible (rendered as native button by CollapsibleTrigger)
+      const trigger = screen.getByRole("button", { name: /about this trip/i });
+      expect(trigger).toBeDefined();
+
+      // Click to expand
+      await user.click(trigger);
+
       await waitFor(() => {
-        expect(screen.getByText("About this trip")).toBeDefined();
         expect(
           screen.getByText("Epic bachelor party weekend with the crew!"),
         ).toBeDefined();
@@ -1121,8 +1128,8 @@ describe("TripDetailContent", () => {
     });
   });
 
-  describe("breadcrumb navigation", () => {
-    it("renders breadcrumbs with trip name", () => {
+  describe("hero overlay", () => {
+    it("renders trip name in the hero", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -1138,14 +1145,11 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
-      const breadcrumbNav = screen.getByLabelText("breadcrumb");
-      expect(within(breadcrumbNav).getByText("My Trips")).toBeDefined();
-      expect(
-        within(breadcrumbNav).getByText(mockTripDetail.name),
-      ).toBeDefined();
+      const heading = screen.getByRole("heading", { level: 1 });
+      expect(heading.textContent).toBe(mockTripDetail.name);
     });
 
-    it("has a link to trips in breadcrumbs", () => {
+    it("renders destination and date range in the hero", () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -1161,8 +1165,9 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
-      const myTripsLink = screen.getByText("My Trips");
-      expect(myTripsLink.closest("a")?.getAttribute("href")).toBe("/trips");
+      expect(screen.getByText(mockTripDetail.destination)).toBeDefined();
+      // Date range should be rendered (formatted — Jun 1-5, 2026)
+      expect(screen.getByText(/Jun/)).toBeDefined();
     });
   });
 

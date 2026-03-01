@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetBody,
@@ -15,9 +16,10 @@ import { NotificationPreferences } from "./notification-preferences";
 
 interface TripSettingsButtonProps {
   tripId: string;
+  className?: string;
 }
 
-export function TripSettingsButton({ tripId }: TripSettingsButtonProps) {
+export function TripSettingsButton({ tripId, className }: TripSettingsButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,7 +27,7 @@ export function TripSettingsButton({ tripId }: TripSettingsButtonProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="relative rounded-lg"
+        className={cn("relative rounded-lg", className)}
         aria-label="Trip settings"
         onClick={() => setOpen(true)}
       >
