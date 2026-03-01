@@ -37,12 +37,12 @@ test.describe("Auth Journey", () => {
     await test.step("enter phone and submit", async () => {
       // On iPhone WebKit, the Continue button click is occasionally swallowed —
       // the card's entrance animation (duration-700) and react-phone-number-input's
-      // event handling can prevent the click from triggering form submission.
-      // Retry the fill+click sequence — Playwright's default click() waits for
-      // animation stability, and the retry loop handles transient failures.
+      // event handling prevent the click from triggering form submission.
+      // Fill once (re-filling confuses react-phone-number-input's state), then
+      // retry only the click with force:true to bypass animation stability checks.
+      await loginPage.phoneInput.fill(phone);
       await expect(async () => {
-        await loginPage.phoneInput.fill(phone);
-        await loginPage.continueButton.click();
+        await loginPage.continueButton.click({ force: true });
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
       }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     });
