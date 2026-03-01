@@ -71,9 +71,11 @@ test.describe("Trip Journey", () => {
     });
 
     await test.step("verify trip detail page", async () => {
+      // Use NAVIGATION_TIMEOUT — on iPhone WebKit, SSR + hydration + data
+      // fetch after the create-trip redirect can take longer than ELEMENT_TIMEOUT.
       await expect(
         page.getByRole("heading", { level: 1, name: tripName }),
-      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       await expect.soft(page.getByText(tripDestination)).toBeVisible();
       await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
       await expect.soft(page.getByText(tripDescription)).toBeVisible();

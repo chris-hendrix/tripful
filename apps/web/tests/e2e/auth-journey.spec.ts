@@ -3,7 +3,11 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { NAVIGATION_TIMEOUT, RETRY_INTERVAL } from "./helpers/timeouts";
+import {
+  NAVIGATION_TIMEOUT,
+  SLOW_NAVIGATION_TIMEOUT,
+  RETRY_INTERVAL,
+} from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
@@ -34,12 +38,14 @@ test.describe("Auth Journey", () => {
       await loginPage.phoneInput.fill(phone);
       // Retry — on mobile WebKit the click can be swallowed during React hydration,
       // or the input may lose focus. Re-fill and re-click on each attempt.
+      // Use SLOW_NAVIGATION_TIMEOUT (20s) — iPhone WebKit hydration is slow enough
+      // that NAVIGATION_TIMEOUT (15s) only allows 2-3 attempts, not enough.
       await expect(async () => {
         await loginPage.phoneInput.fill(phone);
         await loginPage.continueButton.waitFor({ state: "visible" });
         await loginPage.continueButton.click();
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
-      }).toPass({ timeout: NAVIGATION_TIMEOUT });
+      }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     });
 
     await test.step("verify code page shows phone number", async () => {
@@ -89,7 +95,7 @@ test.describe("Auth Journey", () => {
 
     await test.step("cannot access protected route after logout", async () => {
       await page.goto("/trips");
-      await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
+      await page.waitForURL("**/login", { timeout: SLOW_NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/login");
     });
   });

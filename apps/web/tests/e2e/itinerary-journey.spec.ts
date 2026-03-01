@@ -142,11 +142,14 @@ test.describe("Itinerary Journey", () => {
         // Travel card shows member name
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
 
-        // Location should be a Google Maps link
+        // Location should be a Google Maps link (may take extra time on iPhone
+        // as the refetch after travel creation needs to complete with JOIN data).
         const travelLocationLink = page.getByRole("link", {
           name: "San Diego Airport",
         });
-        await expect(travelLocationLink).toBeVisible();
+        await expect(travelLocationLink).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
         await expect(travelLocationLink).toHaveAttribute(
           "href",
           /google\.com\/maps\/search/,
@@ -247,6 +250,7 @@ test.describe("Itinerary Journey", () => {
     "itinerary view modes",
     { tag: "@regression" },
     async ({ page, request }) => {
+      test.slow(); // Multiple FAB interactions + date pickers are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "View Mode User");
       const tripName = `View Mode Trip ${Date.now()}`;
 
