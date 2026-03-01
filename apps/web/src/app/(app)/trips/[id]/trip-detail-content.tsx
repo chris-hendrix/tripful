@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useState, type CSSProperties, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -40,6 +40,8 @@ import {
 import { TopoPattern } from "@/components/ui/topo-pattern";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
+import { deriveTheme } from "@/lib/color-utils";
+import { THEME_FONTS, type ThemeFont } from "@/config/theme-fonts";
 import {
   Sheet,
   SheetBody,
@@ -201,11 +203,23 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     );
   }
 
+  const theme = trip.themeColor ? deriveTheme(trip.themeColor) : null;
+
   return (
-    <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
+    <div
+      className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]"
+      {...(theme
+        ? {
+            style: {
+              "--color-primary": trip.themeColor,
+              "--color-primary-foreground": theme.accentForeground,
+            } as CSSProperties,
+          }
+        : {})}
+    >
       {/* Hero section with cover image + overlay */}
       <div className="relative h-64 sm:h-80 overflow-hidden">
-        {/* Background: cover photo or default pattern */}
+        {/* Background: cover photo or themed/default gradient */}
         {trip.coverImageUrl ? (
           <Image
             src={getUploadUrl(trip.coverImageUrl)!}
@@ -215,14 +229,40 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             sizes="(min-width: 1024px) 1024px, 100vw"
             className="object-cover"
           />
+        ) : theme ? (
+          <div
+            className="absolute inset-0"
+            style={{ background: theme.heroGradient }}
+          >
+            <TopoPattern className="opacity-[0.10] text-white" />
+            {trip.themeIcon && (
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                aria-hidden="true"
+              >
+                <span className="text-6xl sm:text-7xl opacity-30 select-none">
+                  {trip.themeIcon}
+                </span>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30">
             <TopoPattern className="opacity-[0.12] text-white" />
           </div>
         )}
 
-        {/* Gradient scrim for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        {/* Gradient scrim / themed overlay for text readability */}
+        {trip.coverImageUrl && theme ? (
+          <div
+            className="absolute inset-0"
+            style={{ background: theme.heroOverlay }}
+          />
+        ) : trip.coverImageUrl ? (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        )}
 
         {/* Top-right: notification + settings */}
         <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -255,7 +295,16 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         <div className="absolute bottom-0 left-0 right-0 pb-5 sm:pb-6">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1
-              className="text-2xl sm:text-4xl font-bold text-white font-[family-name:var(--font-playfair)] line-clamp-2 drop-shadow-sm"
+              className={`text-2xl sm:text-4xl font-bold text-white line-clamp-2 drop-shadow-sm${trip.themeFont ? "" : " font-[family-name:var(--font-playfair)]"}`}
+              {...(trip.themeFont
+                ? {
+                    style: {
+                      fontFamily:
+                        THEME_FONTS[trip.themeFont as ThemeFont] ??
+                        "var(--font-playfair)",
+                    },
+                  }
+                : {})}
             >
               {trip.name}
             </h1>

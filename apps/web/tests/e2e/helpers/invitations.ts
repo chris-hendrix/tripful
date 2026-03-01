@@ -16,6 +16,9 @@ export async function createTripViaAPI(
     startDate?: string;
     endDate?: string;
     description?: string;
+    themeColor?: string;
+    themeIcon?: string;
+    themeFont?: string;
   },
 ): Promise<string> {
   const response = await request.post(`${API_BASE}/trips`, {

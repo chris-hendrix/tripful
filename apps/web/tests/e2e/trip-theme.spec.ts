@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { authenticateViaAPI } from "./helpers/auth";
+import { authenticateViaAPI, createUserViaAPI, generateUniquePhone } from "./helpers/auth";
+import { createTripViaAPI } from "./helpers/invitations";
 import { TripsPage, TripDetailPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
@@ -15,6 +16,7 @@ import {
  *
  * Tests theme selection during trip creation — both auto-detected
  * templates (keyword match) and manual theme selection via the picker.
+ * Also tests themed trip display on the detail page.
  */
 
 test.describe("Trip Theme", () => {
@@ -162,6 +164,85 @@ test.describe("Trip Theme", () => {
         await expect(
           page.getByRole("heading", { level: 1, name: tripName }),
         ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
+      });
+    },
+  );
+
+  test(
+    "themed trip hero gradient renders without cover image",
+    { tag: "@regression" },
+    async ({ page, request }) => {
+      test.slow();
+      const tripDetail = new TripDetailPage(page);
+
+      // Create user and trip via API with theme fields
+      const phone = generateUniquePhone();
+      const cookie = await createUserViaAPI(request, phone, "Theme Hero User");
+      const tripName = `Vegas Trip ${Date.now()}`;
+      const tripId = await createTripViaAPI(request, cookie, {
+        name: tripName,
+        destination: "Las Vegas, NV",
+        startDate: "2026-11-20",
+        endDate: "2026-11-23",
+        themeColor: "#e94560",
+        themeIcon: "\uD83C\uDFB0",
+        themeFont: "bold-sans",
+      });
+
+      // Inject the trip creator's auth cookie into the browser
+      const token = cookie.match(/auth_token=([^;]+)/)?.[1] || "";
+      await page.context().addCookies([
+        {
+          name: "auth_token",
+          value: token,
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+        },
+      ]);
+
+      await tripDetail.goto(tripId);
+
+      await test.step("verify hero gradient background", async () => {
+        await expect(
+          page.getByRole("heading", { level: 1, name: tripName }),
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
+
+        // The hero section should have a gradient background (theme+no-cover state)
+        // The gradient div uses inline style with the heroGradient value
+        const heroGradient = page.locator(
+          '.relative.overflow-hidden > div[style*="linear-gradient"]',
+        );
+        await expect(heroGradient).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      });
+
+      await test.step("verify theme icon in hero", async () => {
+        // Theme icon should be visible as a decorative element
+        const themeIcon = page.getByText("\uD83C\uDFB0");
+        await expect(themeIcon).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+      });
+
+      await test.step("verify theme font on title", async () => {
+        const heading = page.getByRole("heading", {
+          level: 1,
+          name: tripName,
+        });
+        // The heading should have an inline style with fontFamily for "bold-sans" (Oswald)
+        await expect(heading).toHaveAttribute("style", /font-family/i);
+      });
+
+      await test.step("verify accent color override on wrapper", async () => {
+        // The outermost wrapper div should have CSS custom property overrides
+        const wrapper = page.locator(
+          'div[style*="--color-primary"]',
+        );
+        await expect(wrapper).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+
+        // Verify the custom property value contains the theme color
+        const style = await wrapper.getAttribute("style");
+        expect(style).toContain("#e94560");
+
+        await snap(page, "50-themed-trip-hero-gradient");
       });
     },
   );

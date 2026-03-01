@@ -56,7 +56,7 @@
 
 ## Phase 5: Trip Detail Theming
 
-- [ ] Task 5.1: Apply theme to trip detail hero and accent overrides
+- [x] Task 5.1: Apply theme to trip detail hero and accent overrides
   - Implement: Update hero section in `apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx` — when `themeColor` + no cover: render gradient from `deriveTheme().heroGradient` with theme icon display
   - Implement: When `themeColor` + cover image: replace dark scrim with theme-tinted overlay (theme color at ~60% opacity)
   - Implement: When `themeFont` exists: apply `THEME_FONTS[themeFont]` to trip title via inline style `fontFamily`
