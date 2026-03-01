@@ -47,12 +47,14 @@ export async function dismissToast(page: Page): Promise<void> {
   // Wait for toast exit animations to complete
   await expect(async () => {
     // Re-dismiss in case new toasts appeared during the wait
+    /* eslint-disable no-undef -- browser globals inside page.evaluate */
     await page.evaluate(() => {
       const win = window as unknown as Record<string, unknown>;
       if (typeof win.__e2eDismissToasts === "function") {
         (win.__e2eDismissToasts as () => void)();
       }
     });
+    /* eslint-enable no-undef */
     expect(await page.locator(selector).count()).toBe(0);
   }).toPass({ timeout: TOAST_TIMEOUT });
 }
