@@ -46,6 +46,11 @@ export function TripsContent() {
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const { ref: upcomingSectionRef, isRevealed: upcomingRevealed } =
     useScrollReveal();
   const { ref: pastSectionRef, isRevealed: pastRevealed } = useScrollReveal();
@@ -288,18 +293,19 @@ export function TripsContent() {
       </div>
 
       {/* Floating Action Button (FAB) — portaled to body to escape ancestor transforms that break position:fixed */}
-      {createPortal(
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          variant="gradient"
-          size="icon"
-          className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
-          aria-label="Create new trip"
-        >
-          <Plus className="w-6 h-6" strokeWidth={2.5} />
-        </Button>,
-        document.body,
-      )}
+      {mounted &&
+        createPortal(
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            variant="gradient"
+            size="icon"
+            className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
+            aria-label="Create new trip"
+          >
+            <Plus className="w-6 h-6" strokeWidth={2.5} />
+          </Button>,
+          document.body,
+        )}
 
       {/* Create Trip Dialog */}
       <CreateTripDialog
