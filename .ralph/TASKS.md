@@ -70,7 +70,7 @@
 
 ## Phase 6: Edit Trip
 
-- [ ] Task 6.1: Add theme editing to edit trip dialog
+- [x] Task 6.1: Add theme editing to edit trip dialog
   - Implement: Add theme section to `apps/web/src/components/trip/edit-trip-dialog.tsx` — show `ThemePreviewCard` if theme exists, or "Add a theme" link
   - Implement: "Change theme" opens `TemplatePicker` sheet
   - Implement: Wire selection to form state, include theme fields in update mutation

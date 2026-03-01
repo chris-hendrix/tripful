@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
@@ -54,8 +54,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Palette } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
+import { ThemePreviewCard } from "@/components/trip/theme-preview-card";
+import { TemplatePicker } from "@/components/trip/template-picker";
+import type { ThemeFont } from "@/config/theme-fonts";
 
 interface EditTripDialogProps {
   open: boolean;
@@ -72,6 +75,7 @@ export function EditTripDialog({
 }: EditTripDialogProps) {
   const { mutate: updateTrip, isPending } = useUpdateTrip();
   const { mutate: cancelTrip, isPending: isDeleting } = useCancelTrip();
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   const form = useForm<UpdateTripInput>({
     resolver: zodResolver(updateTripSchema),
@@ -83,6 +87,9 @@ export function EditTripDialog({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       description: "",
       coverImageUrl: null,
+      themeColor: null,
+      themeIcon: null,
+      themeFont: null,
       allowMembersToAddEvents: true,
       showAllMembers: false,
     },
@@ -102,6 +109,9 @@ export function EditTripDialog({
         timezone: trip.preferredTimezone,
         description: trip.description || "",
         coverImageUrl: trip.coverImageUrl,
+        themeColor: trip.themeColor ?? null,
+        themeIcon: trip.themeIcon ?? null,
+        themeFont: (trip.themeFont as ThemeFont) ?? null,
         allowMembersToAddEvents: trip.allowMembersToAddEvents,
         showAllMembers: trip.showAllMembers,
       });
@@ -120,6 +130,25 @@ export function EditTripDialog({
       form.setValue("endDate", startDateValue);
     }
   }, [startDateValue, form]);
+
+  const themeColor = form.watch("themeColor");
+  const themeIcon = form.watch("themeIcon");
+  const themeFont = form.watch("themeFont");
+  const hasTheme = !!(themeColor && themeIcon && themeFont);
+
+  const handleThemeSelect = (
+    theme: { color: string; icon: string; font: ThemeFont } | null,
+  ) => {
+    if (theme) {
+      form.setValue("themeColor", theme.color);
+      form.setValue("themeIcon", theme.icon);
+      form.setValue("themeFont", theme.font);
+    } else {
+      form.setValue("themeColor", null);
+      form.setValue("themeIcon", null);
+      form.setValue("themeFont", null);
+    }
+  };
 
   const handleSubmit = (data: UpdateTripInput) => {
     updateTrip(
@@ -158,8 +187,9 @@ export function EditTripDialog({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent>
         <SheetHeader>
           <SheetTitle className="text-3xl font-[family-name:var(--font-playfair)] tracking-tight">
             Edit trip
@@ -379,6 +409,29 @@ export function EditTripDialog({
                 )}
               />
 
+              {/* Theme */}
+              <div className="space-y-2">
+                <p className="text-base font-semibold text-foreground">Theme</p>
+                {hasTheme ? (
+                  <ThemePreviewCard
+                    color={themeColor!}
+                    icon={themeIcon!}
+                    font={themeFont as ThemeFont}
+                    onChangeClick={() => setTemplatePickerOpen(true)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTemplatePickerOpen(true)}
+                    disabled={isPending || isDeleting}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Palette className="size-4" />
+                    Add a theme
+                  </button>
+                )}
+              </div>
+
               {/* Allow Members to Add Events */}
               <FormField
                 control={form.control}
@@ -497,7 +550,16 @@ export function EditTripDialog({
             </form>
           </Form>
         </SheetBody>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+      <TemplatePicker
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        onSelect={handleThemeSelect}
+        currentColor={themeColor ?? null}
+        currentIcon={themeIcon ?? null}
+        currentFont={(themeFont as ThemeFont) ?? null}
+      />
+    </>
   );
 }

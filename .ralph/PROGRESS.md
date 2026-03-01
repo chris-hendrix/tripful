@@ -151,3 +151,44 @@ Applied trip theme styling to the trip detail page hero section and scoped accen
 - The `heroOverlay` is a flat rgba color (not a gradient). For cover photos, a gradient-based overlay could provide better visual hierarchy (stronger at bottom where text sits), but the flat overlay matches the architecture spec.
 - E2E test for "theme + cover" state was intentionally omitted because programmatic cover image upload in E2E adds complexity. The tinted overlay logic is covered by the code structure and will be manually verified.
 - `createTripViaAPI` spreads `tripData` to the API, so theme fields pass through once the TS interface is updated — no runtime changes needed.
+
+## Iteration 6 — Task 6.1: Add theme editing to edit trip dialog
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (2645 tests, 0 failures; 54 E2E tests pass; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Added theme editing support to the edit trip dialog, allowing users to view, change, add, and remove trip themes when editing an existing trip.
+
+1. **Edit dialog theme section** (`apps/web/src/components/trip/edit-trip-dialog.tsx`): Added theme editing UI following the same pattern as the create trip dialog:
+   - Added imports: `useState`, `Palette` icon, `ThemePreviewCard`, `TemplatePicker`, `ThemeFont` type
+   - Added `templatePickerOpen` state for controlling the picker sheet
+   - Added `themeColor`, `themeIcon`, `themeFont` to form `defaultValues` (initialized to `null`)
+   - Added theme fields to `form.reset()` in the `useEffect` that pre-populates from trip data (`trip.themeColor ?? null`, etc.)
+   - Added `form.watch()` for all three theme fields plus `hasTheme` derived boolean
+   - Added `handleThemeSelect` callback that sets or clears all three theme fields via `form.setValue()`
+   - Added conditional theme UI section between Cover Image and Allow Members checkboxes: `ThemePreviewCard` when theme exists, dashed "Add a theme" button when no theme
+   - Wrapped return in Fragment (`<>...</>`) and placed `TemplatePicker` as sibling after `</Sheet>`
+   - Used `isPending || isDeleting` for disabled state (correct for edit dialog, unlike create dialog which only uses `isPending`)
+
+2. **Mock data update** (`apps/web/src/components/trip/__tests__/edit-trip-dialog.test.tsx`): Added `themeColor: null`, `themeIcon: null`, `themeFont: null` to `mockTrip` object to keep TypeScript satisfied.
+
+3. **E2E tests** (`apps/web/tests/e2e/trip-theme.spec.ts`): Added 2 new E2E tests:
+   - **"edit trip theme via edit dialog"**: Creates trip via API with Bachelor Party theme → navigates to detail → opens edit dialog → verifies `ThemePreviewCard` visible with "Change theme" → clicks "Change theme" → selects Bachelorette Party → verifies preview updates with "Playful" font → submits → verifies `--color-primary` contains `#ff69b4` (bachelorette pink)
+   - **"remove trip theme via edit dialog"**: Creates trip via API with theme → opens edit dialog → clicks "Change theme" → clicks "No theme" → verifies "Add a theme" button appears → submits → verifies `--color-primary` wrapper div is no longer visible
+
+4. **Manual verification**: Verifier performed end-to-end manual testing:
+   - Confirmed theme section visible in edit dialog with pre-populated theme
+   - Confirmed template picker opens from edit dialog
+   - Changed theme from Beach to Ski Trip, verified preview updated
+   - Submitted form, verified persistence via API (themeColor, themeIcon, themeFont all updated)
+   - Verified hero section visually updated with new theme
+
+### Learnings for future iterations
+
+- The edit dialog's `TemplatePicker` is placed outside `<Sheet>` as a Fragment sibling, while the create dialog places it inside `<Sheet>` between `</SheetContent>` and `</Sheet>`. Both work because `TemplatePicker` creates its own independent Sheet/Dialog.Root context. The Fragment approach is arguably cleaner.
+- No backend, schema, or hook changes were needed — Task 1.1 already set up `updateTripSchema` with theme fields and `useUpdateTrip` with optimistic update handling for theme fields. The edit dialog just needed to expose them in the UI.
+- The `as ThemeFont` cast on `trip.themeFont` (which is `string | null` from the API) appears in multiple places (form reset, ThemePreviewCard prop, TemplatePicker prop). A future improvement could narrow `Trip.themeFont` from `string | null` to `ThemeFont | null` in shared types to eliminate these casts.
+- E2E test total grew from 50 to 54 tests (2 new edit-theme tests + the 2 from Task 5.1 that were counted differently).
