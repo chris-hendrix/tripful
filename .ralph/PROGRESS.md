@@ -248,3 +248,25 @@ Extracted the duplicated `FONT_DISPLAY_NAMES` mapping from two component files i
 - `Object.entries()` on a `Record<K, V>` returns `[string, V][]` in TypeScript — the key type is widened to `string`, requiring a cast back to the original key type. This is a well-known TypeScript limitation.
 - `Object.entries()` preserves insertion order for string keys in modern JS engines, so the radio button rendering order in FontPicker is preserved as long as the Record key order matches the original array order.
 - The config file `theme-fonts.ts` now exports 3 items: `ThemeFont` type, `THEME_FONTS` (CSS variable mapping), and `FONT_DISPLAY_NAMES` (human-readable names). Task 7.4 will later move `ThemeFont` to the shared package.
+
+## Iteration 9 — Task 7.3: Replace isLightColor() in ColorPicker with readableForeground()
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (all tests pass; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Replaced the local `isLightColor()` helper in `color-picker.tsx` with the shared `readableForeground()` utility from `color-utils.ts`, upgrading from a simple BT.601 weighted luma formula to proper WCAG 2.0 sRGB linearization for checkmark contrast decisions.
+
+1. **Import added** (`apps/web/src/components/trip/color-picker.tsx`, line 6): `import { readableForeground } from "@/lib/color-utils";` — follows the same `@/lib/color-utils` import pattern used in `template-picker.tsx`.
+
+2. **Conditional replaced** (line 45): Changed `isLightColor(color) ? "text-gray-900" : "text-white"` to `readableForeground(color) === "#1a1a1a" ? "text-gray-900" : "text-white"`. Logic: `readableForeground` returns `"#1a1a1a"` for light backgrounds (luminance > 0.179), which maps to dark checkmark text; returns `"#ffffff"` for dark backgrounds, mapping to white checkmark text.
+
+3. **Function removed** (previously lines 55-61): Deleted the entire `isLightColor()` function definition. File went from 62 lines to 54 lines.
+
+### Learnings for future iterations
+
+- The BT.601 luma formula (`r * 0.299 + g * 0.587 + b * 0.114 > 150`) and WCAG 2.0 sRGB linearization (`relativeLuminance > 0.179`) produce the same result for most colors, but differ at boundary cases. The WCAG method is the accessibility standard.
+- `readableForeground()` has a strict return type `"#ffffff" | "#1a1a1a"` (TypeScript string literal union), so the `=== "#1a1a1a"` comparison is type-safe — any change to the return values would be caught at compile time.
+- Reviewer noted that `text-gray-900` (`#111827`) doesn't exactly match `#1a1a1a`, but the visual difference is negligible for a small checkmark icon overlay. Using inline `style={{ color: readableForeground(color) }}` would be more consistent but is a cosmetic consideration.

@@ -93,7 +93,7 @@
   - Implement: Update `apps/web/src/components/trip/theme-preview-card.tsx` to import `FONT_DISPLAY_NAMES` from config instead of defining locally
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 7.3: Replace isLightColor() in ColorPicker with readableForeground()
+- [x] Task 7.3: Replace isLightColor() in ColorPicker with readableForeground()
   - Implement: In `apps/web/src/components/trip/color-picker.tsx`, replace `isLightColor()` with `readableForeground()` from `@/lib/color-utils`
   - Implement: Change `isLightColor(color) ? "text-gray-900" : "text-white"` to `readableForeground(color) === "#1a1a1a" ? "text-gray-900" : "text-white"`
   - Implement: Remove the `isLightColor()` function definition

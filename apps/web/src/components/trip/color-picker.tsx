@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TRIP_TEMPLATES } from "@/config/trip-templates";
+import { readableForeground } from "@/lib/color-utils";
 
 interface ColorPickerProps {
   value: string | null;
@@ -41,7 +42,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
               <Check
                 className={cn(
                   "absolute inset-0 m-auto size-4",
-                  isLightColor(color) ? "text-gray-900" : "text-white",
+                  readableForeground(color) === "#1a1a1a" ? "text-gray-900" : "text-white",
                 )}
               />
             )}
@@ -50,12 +51,4 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
       })}
     </div>
   );
-}
-
-function isLightColor(hex: string): boolean {
-  const normalized = hex.replace("#", "");
-  const r = parseInt(normalized.slice(0, 2), 16);
-  const g = parseInt(normalized.slice(2, 4), 16);
-  const b = parseInt(normalized.slice(4, 6), 16);
-  return r * 0.299 + g * 0.587 + b * 0.114 > 150;
 }
