@@ -3,10 +3,10 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { fillPhoneInput } from "./helpers/phone-input";
 import {
   NAVIGATION_TIMEOUT,
   SLOW_NAVIGATION_TIMEOUT,
-  RETRY_INTERVAL,
 } from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
@@ -35,17 +35,15 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("enter phone and submit", async () => {
-      // On iPhone WebKit, the Continue button click is consistently swallowed —
-      // the card's entrance animation (duration-700) and react-phone-number-input's
-      // event handling prevent the click from triggering form submission.
-      // Use force:true to bypass Playwright's stability check on the animating card,
-      // and retry the whole fill+click sequence until the navigation succeeds.
-      // 30s gives ~10 retry attempts on slow iPhone WebKit CI runners.
-      await expect(async () => {
-        await loginPage.phoneInput.fill(phone);
-        await loginPage.continueButton.click({ force: true });
-        await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
-      }).toPass({ timeout: 30_000 });
+      // Use pressSequentially via fillPhoneInput — Playwright's fill() sets
+      // the value in one shot, but react-phone-number-input's input-format
+      // library processes input character-by-character. fill() desynchronizes
+      // the internal state from react-hook-form, silently breaking submission.
+      await fillPhoneInput(loginPage.phoneInput, phone);
+      await loginPage.continueButton.click();
+      await expect(page).toHaveURL(/verify/, {
+        timeout: SLOW_NAVIGATION_TIMEOUT,
+      });
     });
 
     await test.step("verify code page shows phone number", async () => {

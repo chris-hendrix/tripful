@@ -1,5 +1,6 @@
 import type { Page, APIRequestContext } from "@playwright/test";
 import { API_BASE, NAVIGATION_TIMEOUT, ELEMENT_TIMEOUT } from "./timeouts";
+import { fillPhoneInput } from "./phone-input";
 
 let phoneCounter = 0;
 
@@ -55,7 +56,7 @@ export async function loginViaBrowser(
   await page.goto("/login");
 
   const phoneInput = page.getByRole("textbox", { name: /phone/i });
-  await phoneInput.fill(phone);
+  await fillPhoneInput(phoneInput, phone);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");
@@ -176,7 +177,7 @@ export async function authenticateUserViaBrowserWithPhone(
   await page.goto("/login");
 
   const phoneInput = page.getByRole("textbox", { name: /phone/i });
-  await phoneInput.fill(phone);
+  await fillPhoneInput(phoneInput, phone);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");

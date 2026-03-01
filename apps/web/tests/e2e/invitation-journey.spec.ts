@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPIWithPhone, createUserViaAPI } from "./helpers/auth";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { fillPhoneInput } from "./helpers/phone-input";
 import { snap } from "./helpers/screenshots";
 import {
   createTripViaAPI,
@@ -105,7 +106,7 @@ test.describe("Invitation Journey", () => {
 
         // Fill phone input within the dialog
         const dialog = page.getByRole("dialog");
-        await dialog.locator('input[type="tel"]').fill(inviteePhone);
+        await fillPhoneInput(dialog.locator('input[type="tel"]'), inviteePhone);
 
         // Click "Add" button
         await dialog.getByRole("button", { name: "Add" }).click();
