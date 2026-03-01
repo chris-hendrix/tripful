@@ -124,6 +124,9 @@ export async function pickDateTime(
     await timeInput.fill(timePart);
   }
 
-  // Close the popover
-  await page.keyboard.press("Escape");
+  // Close the popover by re-clicking the trigger (toggle close).
+  // Do NOT use Escape — on iPhone WebKit it propagates past the Radix
+  // Popover and closes the parent Sheet/Dialog, silently destroying
+  // the form context so subsequent button clicks don't submit.
+  await trigger.click({ force: true });
 }
