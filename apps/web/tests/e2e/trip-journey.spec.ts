@@ -34,6 +34,7 @@ test.describe("Trip Journey", () => {
   });
 
   test("trip CRUD journey", { tag: "@smoke" }, async ({ page, request }) => {
+    test.slow(); // Create, verify, edit, delete flow is slow on iPhone WebKit
     const trips = new TripsPage(page);
     const tripDetail = new TripDetailPage(page);
     await authenticateViaAPI(page, request, "Trip Creator");

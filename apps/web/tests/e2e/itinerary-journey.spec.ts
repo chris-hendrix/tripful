@@ -29,6 +29,7 @@ test.describe("Itinerary Journey", () => {
     "itinerary CRUD journey",
     { tag: "@smoke" },
     async ({ page, request }) => {
+      test.slow(); // Many date pickers + FAB interactions are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "Itinerary Tester");
       const tripName = `Itinerary Trip ${Date.now()}`;
 
