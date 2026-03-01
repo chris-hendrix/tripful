@@ -1,36 +1,38 @@
 import type { Page } from "@playwright/test";
-import { expect } from "@playwright/test";
-import { TOAST_TIMEOUT } from "./timeouts";
 
 /**
- * Force-remove all Sonner toast elements from the DOM.
+ * Hide Sonner toast elements so they don't intercept clicks.
  *
  * On mobile WebKit, Sonner's auto-dismiss timer gets permanently stuck
  * because Playwright mouse events don't produce real pointer events on
  * touch devices. Neither mouse.move, mouseout dispatch, nor body clicks
- * reliably unpause the timer. Removing the DOM elements is the only
- * approach that works across all browsers.
+ * reliably unpause the timer.
  *
- * This is safe because Sonner recreates elements for each new toast
- * independently — removing old elements doesn't corrupt React state
- * or prevent future toasts from rendering.
+ * We hide the toaster container (pointer-events:none + opacity:0) instead
+ * of removing individual toast elements. Removing DOM elements that React
+ * still tracks corrupts the fiber tree — on WebKit this throws
+ * NotFoundError ("The object can not be found here") during the commit
+ * phase when React tries to unmount the already-removed nodes.
  */
 /* eslint-disable no-undef -- browser globals inside page.evaluate */
-async function forceRemoveToasts(page: Page): Promise<void> {
+async function hideToasts(page: Page): Promise<void> {
   await page.evaluate(() => {
     document
-      .querySelectorAll("[data-sonner-toast]")
-      .forEach((el) => el.remove());
+      .querySelectorAll<HTMLElement>("[data-sonner-toaster]")
+      .forEach((el) => {
+        el.style.pointerEvents = "none";
+        el.style.opacity = "0";
+      });
   });
 }
 /* eslint-enable no-undef */
 
 /**
- * Dismiss any visible Sonner toasts and wait for them to disappear.
+ * Dismiss any visible Sonner toasts so they don't intercept clicks.
  *
  * Strategy: try to unpause the auto-dismiss timer via mouseout dispatch
- * (works on desktop). If toasts persist after a short wait, force-remove
- * them from the DOM (needed on mobile WebKit).
+ * (works on desktop). Then hide the toaster container to prevent
+ * click interception (needed on mobile WebKit where timers stick).
  */
 export async function dismissToast(page: Page): Promise<void> {
   const selector = "[data-sonner-toast]";
@@ -52,10 +54,11 @@ export async function dismissToast(page: Page): Promise<void> {
   });
   /* eslint-enable no-undef */
 
-  // Wait for toasts to auto-dismiss. If they persist (mobile WebKit),
-  // force-remove them from the DOM.
-  await expect(async () => {
-    await forceRemoveToasts(page);
-    expect(await page.locator(selector).count()).toBe(0);
-  }).toPass({ timeout: TOAST_TIMEOUT });
+  // Hide toasts so they can't intercept subsequent clicks.
+  // The toaster container gets pointer-events:none + opacity:0.
+  // Sonner restores styles when it renders the next toast.
+  await hideToasts(page);
+
+  // Brief pause for any in-flight toast animations to settle
+  await page.waitForTimeout(200);
 }
