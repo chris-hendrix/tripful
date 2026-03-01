@@ -10,6 +10,7 @@ import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMounted } from "@/hooks/use-mounted";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { TopoPattern } from "@/components/ui/topo-pattern";
 
@@ -46,11 +47,7 @@ export function TripsContent() {
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
   const { ref: upcomingSectionRef, isRevealed: upcomingRevealed } =
     useScrollReveal();
   const { ref: pastSectionRef, isRevealed: pastRevealed } = useScrollReveal();

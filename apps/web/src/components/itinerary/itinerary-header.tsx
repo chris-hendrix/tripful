@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
+import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -77,6 +78,7 @@ export function ItineraryHeader({
     useState(false);
 
   const [fabOpen, setFabOpen] = useState(false);
+  const mounted = useMounted();
 
   // Build timezone options: trip first, then user (if different), then all others
   const pinnedValues = new Set([tripTimezone, userTimezone]);
@@ -171,7 +173,8 @@ export function ItineraryHeader({
       </div>
 
       {/* Floating Action Button — portaled to body to escape ancestor transforms that break position:fixed */}
-      {hasAnyAction &&
+      {mounted &&
+        hasAnyAction &&
         !isLocked &&
         createPortal(
           <DropdownMenu open={fabOpen} onOpenChange={setFabOpen}>

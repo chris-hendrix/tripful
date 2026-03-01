@@ -3,8 +3,8 @@ import { expect } from "@playwright/test";
 import { dismissToast } from "./toast";
 import { pickDateTime } from "./date-pickers";
 import {
+  ELEMENT_TIMEOUT,
   PROBE_TIMEOUT,
-  RETRY_INTERVAL,
   SLOW_NAVIGATION_TIMEOUT,
 } from "./timeouts";
 
@@ -29,12 +29,12 @@ export async function clickFabAction(page: Page, actionName: string) {
     // Retry: a late-arriving success toast from the previous action can
     // appear after dismissToast returns and intercept the FAB click.
     // Quick-dismiss on each attempt to clear any new toasts.
-    // Use SLOW_NAVIGATION_TIMEOUT (20s) — after event/accommodation creation,
-    // TanStack Query refetch can temporarily unmount/remount the FAB on
-    // iPhone WebKit, especially on slow CI runners.
+    // The FAB may temporarily unmount during React re-renders (TanStack Query
+    // refetch or portal remount after SSR recovery), so use a generous inner
+    // timeout to wait for it to reappear within each retry iteration.
     await expect(async () => {
       await forceRemoveToasts(page);
-      await fab.click({ timeout: RETRY_INTERVAL });
+      await fab.click({ timeout: ELEMENT_TIMEOUT });
     }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {
