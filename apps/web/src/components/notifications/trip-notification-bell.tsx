@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useTripUnreadCount } from "@/hooks/use-notifications";
 import { TripNotificationDialog } from "./trip-notification-dialog";
 
 interface TripNotificationBellProps {
   tripId: string;
+  className?: string;
 }
 
-export function TripNotificationBell({ tripId }: TripNotificationBellProps) {
+export function TripNotificationBell({ tripId, className }: TripNotificationBellProps) {
   const [open, setOpen] = useState(false);
   const { data: unreadCount } = useTripUnreadCount(tripId);
 
@@ -31,7 +33,7 @@ export function TripNotificationBell({ tripId }: TripNotificationBellProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="relative rounded-lg"
+        className={cn("relative rounded-lg", className)}
         aria-label={ariaLabel}
         onClick={() => setOpen(true)}
       >
