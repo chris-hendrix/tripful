@@ -5,7 +5,7 @@ import { pickDateTime } from "./date-pickers";
 import {
   PROBE_TIMEOUT,
   RETRY_INTERVAL,
-  NAVIGATION_TIMEOUT,
+  SLOW_NAVIGATION_TIMEOUT,
 } from "./timeouts";
 
 /** Force-remove any toast DOM elements so they don't intercept clicks. */
@@ -29,12 +29,13 @@ export async function clickFabAction(page: Page, actionName: string) {
     // Retry: a late-arriving success toast from the previous action can
     // appear after dismissToast returns and intercept the FAB click.
     // Quick-dismiss on each attempt to clear any new toasts.
-    // Use NAVIGATION_TIMEOUT (15s) — after event creation, TanStack Query
-    // refetch can temporarily unmount/remount the FAB on iPhone WebKit.
+    // Use SLOW_NAVIGATION_TIMEOUT (20s) — after event/accommodation creation,
+    // TanStack Query refetch can temporarily unmount/remount the FAB on
+    // iPhone WebKit, especially on slow CI runners.
     await expect(async () => {
       await forceRemoveToasts(page);
       await fab.click({ timeout: RETRY_INTERVAL });
-    }).toPass({ timeout: NAVIGATION_TIMEOUT });
+    }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {
     // Empty state has direct buttons like "Add Event", "Add Accommodation"

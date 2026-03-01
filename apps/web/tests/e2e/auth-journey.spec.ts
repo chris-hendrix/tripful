@@ -35,14 +35,14 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("enter phone and submit", async () => {
-      // On iPhone WebKit, the Continue button click is consistently swallowed —
-      // the card's entrance animation (duration-700) and react-phone-number-input's
-      // event handling prevent the click from triggering form submission.
-      // Use force:true to bypass Playwright's stability check on the animating card,
-      // and retry the whole fill+click sequence until the navigation succeeds.
+      // On iPhone WebKit, coordinate-based button clicks are unreliable due to
+      // the card's entrance animation (duration-700) and keyboard layout shifts.
+      // Use dispatchEvent to send a synthetic click directly to the button's DOM
+      // element, bypassing coordinate hit-testing entirely. Retry the entire
+      // fill+submit sequence until navigation succeeds.
       await expect(async () => {
         await loginPage.phoneInput.fill(phone);
-        await loginPage.continueButton.click({ force: true });
+        await loginPage.continueButton.dispatchEvent("click");
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
       }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     });
