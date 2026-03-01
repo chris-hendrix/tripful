@@ -192,3 +192,37 @@ Added theme editing support to the edit trip dialog, allowing users to view, cha
 - No backend, schema, or hook changes were needed — Task 1.1 already set up `updateTripSchema` with theme fields and `useUpdateTrip` with optimistic update handling for theme fields. The edit dialog just needed to expose them in the UI.
 - The `as ThemeFont` cast on `trip.themeFont` (which is `string | null` from the API) appears in multiple places (form reset, ThemePreviewCard prop, TemplatePicker prop). A future improvement could narrow `Trip.themeFont` from `string | null` to `ThemeFont | null` in shared types to eliminate these casts.
 - E2E test total grew from 50 to 54 tests (2 new edit-theme tests + the 2 from Task 5.1 that were counted differently).
+
+## Iteration 7 — Task 7.1: Triage PROGRESS.md for unaddressed items
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (2645 tests, 0 failures; 54 E2E tests pass; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Systematically reviewed all 6 iterations in PROGRESS.md to identify unaddressed issues (FAILURE, BLOCKED, reviewer caveats, deferred items). No code changes — only TASKS.md was updated with fix sub-tasks.
+
+### Issues identified and triaged
+
+**Created fix tasks for:**
+
+1. **Task 7.2 — FONT_DISPLAY_NAMES duplication** (Minor): Same font display name mapping duplicated in `font-picker.tsx` (as `FONT_OPTIONS` array, lines 12-19) and `theme-preview-card.tsx` (as `FONT_DISPLAY_NAMES` Record, lines 13-20). Fix: Extract to `apps/web/src/config/theme-fonts.ts` as single source of truth. First mentioned in Iteration 3 learnings.
+
+2. **Task 7.3 — isLightColor() duplication** (Minor): `color-picker.tsx` (lines 55-61) defines its own `isLightColor()` using BT.601 luma formula instead of reusing `readableForeground()` from `color-utils.ts` which uses proper WCAG 2.0 sRGB linearization. Fix: Replace inline function with import from color-utils. First mentioned in Iteration 3 learnings.
+
+3. **Task 7.4 — `as ThemeFont` casts** (Moderate): 7 instances of `as ThemeFont` across production code because `Trip.themeFont` is typed as `string | null` in shared types, and response Zod schemas use `z.string().nullable()` instead of the enum. Fix: Move `ThemeFont` type to shared package, narrow Trip/TripSummary types, update response schemas. Eliminates 6 of 7 casts (1 remains for RadioGroup boundary). First mentioned in Iteration 5 learnings, repeatedly noted in Iteration 6.
+
+**Reviewed and deemed NOT actionable:**
+
+- Missing E2E test for "theme + cover" state: Intentionally omitted per Iteration 5 — cover image upload in E2E adds significant complexity, and the code path is structurally simple (conditional branch).
+- No unit tests for picker components: 5 picker components (ColorPicker, IconPicker, FontPicker, TemplatePicker, ThemePreviewCard) have no unit tests but are covered by 5 E2E tests. Low risk for pure-UI components.
+- `as CSSProperties` cast for CSS custom properties: Idiomatic React pattern, not a code smell.
+- `ThemeFont` type duplication between `config/theme-fonts.ts` and Zod schema: Subsumed by Task 7.4 which moves `ThemeFont` to shared package.
+
+### Learnings for future iterations
+
+- All 6 prior iterations were COMPLETE/APPROVED with no FAILURES or BLOCKED items — the Trip Themes feature implementation was clean
+- The three fix tasks escalate in scope: constant extraction (7.2) → function replacement (7.3) → cross-package type narrowing (7.4). Recommend implementing in this order.
+- Task 7.4 is the most impactful but also the most complex — it touches shared types, Zod schemas, and multiple frontend consumers across 3 packages. The shared package must be rebuilt after changes.
+- The `font-picker.tsx` `as ThemeFont` cast on `RadioGroup.onValueChange` callback is an unavoidable Radix UI boundary issue — RadioGroup always returns `string`, not a narrower union.

@@ -81,11 +81,31 @@
 
 ## Phase 7: Cleanup
 
-- [ ] Task 7.1: Triage PROGRESS.md for unaddressed items
+- [x] Task 7.1: Triage PROGRESS.md for unaddressed items
   - Review: Read entire PROGRESS.md
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
+
+- [ ] Task 7.2: Extract FONT_DISPLAY_NAMES to shared config
+  - Implement: Add `FONT_DISPLAY_NAMES: Record<ThemeFont, string>` to `apps/web/src/config/theme-fonts.ts` with all 6 font display names
+  - Implement: Update `apps/web/src/components/trip/font-picker.tsx` to import `FONT_DISPLAY_NAMES` and derive `FONT_OPTIONS` array from it
+  - Implement: Update `apps/web/src/components/trip/theme-preview-card.tsx` to import `FONT_DISPLAY_NAMES` from config instead of defining locally
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 7.3: Replace isLightColor() in ColorPicker with readableForeground()
+  - Implement: In `apps/web/src/components/trip/color-picker.tsx`, replace `isLightColor()` with `readableForeground()` from `@/lib/color-utils`
+  - Implement: Change `isLightColor(color) ? "text-gray-900" : "text-white"` to `readableForeground(color) === "#1a1a1a" ? "text-gray-900" : "text-white"`
+  - Implement: Remove the `isLightColor()` function definition
+  - Verify: run full test suite, lint, and typecheck pass
+
+- [ ] Task 7.4: Narrow ThemeFont type through shared layer to eliminate casts
+  - Implement: Add `ThemeFont` type to `shared/types/trip.ts` as string literal union of 6 font values
+  - Implement: Update `Trip.themeFont` and `TripSummary.themeFont` types from `string | null` to `ThemeFont | null`
+  - Implement: Update `tripEntitySchema` and `tripSummarySchema` in `shared/schemas/trip.ts` to use `.enum([...]).nullable()` instead of `z.string().nullable()` for themeFont
+  - Implement: Remove `as ThemeFont` casts from `trip-detail-content.tsx`, `create-trip-dialog.tsx`, and `edit-trip-dialog.tsx` (keep the one in `font-picker.tsx` for RadioGroup boundary)
+  - Implement: Update `apps/web/src/config/theme-fonts.ts` to import `ThemeFont` from `@tripful/shared/types` instead of defining locally
+  - Verify: run full test suite, lint, and typecheck pass
 
 ## Phase 8: Final Verification
 
