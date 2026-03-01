@@ -87,7 +87,7 @@
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
 
-- [ ] Task 7.2: Extract FONT_DISPLAY_NAMES to shared config
+- [x] Task 7.2: Extract FONT_DISPLAY_NAMES to shared config
   - Implement: Add `FONT_DISPLAY_NAMES: Record<ThemeFont, string>` to `apps/web/src/config/theme-fonts.ts` with all 6 font display names
   - Implement: Update `apps/web/src/components/trip/font-picker.tsx` to import `FONT_DISPLAY_NAMES` and derive `FONT_OPTIONS` array from it
   - Implement: Update `apps/web/src/components/trip/theme-preview-card.tsx` to import `FONT_DISPLAY_NAMES` from config instead of defining locally

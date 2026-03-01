@@ -1,6 +1,10 @@
 "use client";
 
-import { type ThemeFont, THEME_FONTS } from "@/config/theme-fonts";
+import {
+  type ThemeFont,
+  THEME_FONTS,
+  FONT_DISPLAY_NAMES,
+} from "@/config/theme-fonts";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
@@ -9,14 +13,9 @@ interface FontPickerProps {
   onChange: (font: ThemeFont) => void;
 }
 
-const FONT_OPTIONS: { id: ThemeFont; displayName: string }[] = [
-  { id: "clean", displayName: "Clean Modern" },
-  { id: "bold-sans", displayName: "Bold Sans" },
-  { id: "elegant-serif", displayName: "Elegant Serif" },
-  { id: "playful", displayName: "Playful" },
-  { id: "handwritten", displayName: "Handwritten" },
-  { id: "condensed", displayName: "Condensed" },
-];
+const FONT_OPTIONS = Object.entries(FONT_DISPLAY_NAMES).map(
+  ([id, displayName]) => ({ id: id as ThemeFont, displayName }),
+);
 
 export function FontPicker({ value, onChange }: FontPickerProps) {
   return (

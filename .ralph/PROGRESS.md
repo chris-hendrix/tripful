@@ -226,3 +226,25 @@ Systematically reviewed all 6 iterations in PROGRESS.md to identify unaddressed 
 - The three fix tasks escalate in scope: constant extraction (7.2) → function replacement (7.3) → cross-package type narrowing (7.4). Recommend implementing in this order.
 - Task 7.4 is the most impactful but also the most complex — it touches shared types, Zod schemas, and multiple frontend consumers across 3 packages. The shared package must be rebuilt after changes.
 - The `font-picker.tsx` `as ThemeFont` cast on `RadioGroup.onValueChange` callback is an unavoidable Radix UI boundary issue — RadioGroup always returns `string`, not a narrower union.
+
+## Iteration 8 — Task 7.2: Extract FONT_DISPLAY_NAMES to shared config
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (2645 tests, 0 failures; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Extracted the duplicated `FONT_DISPLAY_NAMES` mapping from two component files into the shared config file, establishing a single source of truth for font display names.
+
+1. **Config file** (`apps/web/src/config/theme-fonts.ts`): Added `FONT_DISPLAY_NAMES: Record<ThemeFont, string>` export after the existing `THEME_FONTS` constant. Contains all 6 font display names: "Clean Modern", "Bold Sans", "Elegant Serif", "Playful", "Handwritten", "Condensed". Follows the same `Record<ThemeFont, string>` pattern as `THEME_FONTS`.
+
+2. **Font picker** (`apps/web/src/components/trip/font-picker.tsx`): Replaced the hardcoded local `FONT_OPTIONS` array (6 entries with `{ id, displayName }` objects) with a derived version using `Object.entries(FONT_DISPLAY_NAMES).map()`. Added `FONT_DISPLAY_NAMES` to the existing import from `@/config/theme-fonts`. The `as ThemeFont` cast on the `Object.entries` key is necessary because TypeScript widens `Object.entries` keys to `string`.
+
+3. **Theme preview card** (`apps/web/src/components/trip/theme-preview-card.tsx`): Removed the local `FONT_DISPLAY_NAMES` constant definition (8 lines). Added `FONT_DISPLAY_NAMES` to the value import from `@/config/theme-fonts`. Usage at line 32 (`{FONT_DISPLAY_NAMES[font]}`) remains unchanged.
+
+### Learnings for future iterations
+
+- `Object.entries()` on a `Record<K, V>` returns `[string, V][]` in TypeScript — the key type is widened to `string`, requiring a cast back to the original key type. This is a well-known TypeScript limitation.
+- `Object.entries()` preserves insertion order for string keys in modern JS engines, so the radio button rendering order in FontPicker is preserved as long as the Record key order matches the original array order.
+- The config file `theme-fonts.ts` now exports 3 items: `ThemeFont` type, `THEME_FONTS` (CSS variable mapping), and `FONT_DISPLAY_NAMES` (human-readable names). Task 7.4 will later move `ThemeFont` to the shared package.

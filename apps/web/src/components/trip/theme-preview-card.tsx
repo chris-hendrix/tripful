@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThemeFont } from "@/config/theme-fonts";
-import { THEME_FONTS } from "@/config/theme-fonts";
+import { THEME_FONTS, FONT_DISPLAY_NAMES } from "@/config/theme-fonts";
 
 interface ThemePreviewCardProps {
   color: string;
@@ -9,15 +9,6 @@ interface ThemePreviewCardProps {
   font: ThemeFont;
   onChangeClick: () => void;
 }
-
-const FONT_DISPLAY_NAMES: Record<ThemeFont, string> = {
-  clean: "Clean Modern",
-  "bold-sans": "Bold Sans",
-  "elegant-serif": "Elegant Serif",
-  playful: "Playful",
-  handwritten: "Handwritten",
-  condensed: "Condensed",
-};
 
 export function ThemePreviewCard({
   color,
