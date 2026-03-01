@@ -19,7 +19,7 @@
 
 ## Phase 2: Frontend Foundations
 
-- [ ] Task 2.1: Implement color utilities and font setup
+- [x] Task 2.1: Implement color utilities and font setup
   - Implement: Create `apps/web/src/lib/color-utils.ts` — hexToHsl, hslToHex, darken, lighten, withAlpha, relativeLuminance, contrastRatio, readableForeground, deriveTheme. No external dependencies.
   - Implement: Add 4 new font imports (Oswald, Nunito, Caveat, Barlow_Condensed) to `apps/web/src/lib/fonts.ts` via `next/font/google`
   - Implement: Add new font CSS variables to root `<html>` className in `apps/web/src/app/layout.tsx`
