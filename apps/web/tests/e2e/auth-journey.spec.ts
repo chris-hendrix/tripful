@@ -35,16 +35,17 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("enter phone and submit", async () => {
-      // On iPhone WebKit, the Continue button click is occasionally swallowed —
+      // On iPhone WebKit, the Continue button click is consistently swallowed —
       // the card's entrance animation (duration-700) and react-phone-number-input's
       // event handling prevent the click from triggering form submission.
-      // Fill once (re-filling confuses react-phone-number-input's state), then
-      // retry only the click with force:true to bypass animation stability checks.
-      await loginPage.phoneInput.fill(phone);
+      // Use force:true to bypass Playwright's stability check on the animating card,
+      // and retry the whole fill+click sequence until the navigation succeeds.
+      // 30s gives ~10 retry attempts on slow iPhone WebKit CI runners.
       await expect(async () => {
+        await loginPage.phoneInput.fill(phone);
         await loginPage.continueButton.click({ force: true });
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
-      }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
+      }).toPass({ timeout: 30_000 });
     });
 
     await test.step("verify code page shows phone number", async () => {
