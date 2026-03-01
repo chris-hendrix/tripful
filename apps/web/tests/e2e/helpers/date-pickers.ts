@@ -73,11 +73,14 @@ export async function pickDate(
 
   await navigateToMonth(calendar, year, month);
 
-  // Click the day button (exclude outside days from adjacent months)
+  // Click the day button (exclude outside days from adjacent months).
+  // Use force:true — on mobile WebKit the popover entrance animation can
+  // keep the calendar grid "unstable" indefinitely, blocking Playwright's
+  // stability check even though the correct day is fully visible.
   await calendar
     .locator('[role="gridcell"]:not([data-outside]) button')
     .getByText(String(day), { exact: true })
-    .click();
+    .click({ force: true });
 }
 
 /**
@@ -107,10 +110,11 @@ export async function pickDateTime(
 
   await navigateToMonth(calendar, year, month);
 
+  // force:true — see pickDate comment above
   await calendar
     .locator('[role="gridcell"]:not([data-outside]) button')
     .getByText(String(day), { exact: true })
-    .click();
+    .click({ force: true });
 
   // Fill the time input inside the open popover
   if (timePart) {
