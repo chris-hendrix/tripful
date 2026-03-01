@@ -1,10 +1,6 @@
-export type ThemeFont =
-  | "clean"
-  | "bold-sans"
-  | "elegant-serif"
-  | "playful"
-  | "handwritten"
-  | "condensed";
+import type { ThemeFont } from "@tripful/shared/types";
+
+export type { ThemeFont };
 
 export const THEME_FONTS: Record<ThemeFont, string> = {
   clean: "var(--font-plus-jakarta)",

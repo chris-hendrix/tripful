@@ -41,7 +41,7 @@ import { TopoPattern } from "@/components/ui/topo-pattern";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { deriveTheme } from "@/lib/color-utils";
-import { THEME_FONTS, type ThemeFont } from "@/config/theme-fonts";
+import { THEME_FONTS } from "@/config/theme-fonts";
 import {
   Sheet,
   SheetBody,
@@ -300,7 +300,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                 ? {
                     style: {
                       fontFamily:
-                        THEME_FONTS[trip.themeFont as ThemeFont] ??
+                        THEME_FONTS[trip.themeFont] ??
                         "var(--font-playfair)",
                     },
                   }

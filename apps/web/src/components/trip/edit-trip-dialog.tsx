@@ -111,7 +111,7 @@ export function EditTripDialog({
         coverImageUrl: trip.coverImageUrl,
         themeColor: trip.themeColor ?? null,
         themeIcon: trip.themeIcon ?? null,
-        themeFont: (trip.themeFont as ThemeFont) ?? null,
+        themeFont: trip.themeFont ?? null,
         allowMembersToAddEvents: trip.allowMembersToAddEvents,
         showAllMembers: trip.showAllMembers,
       });
@@ -416,7 +416,7 @@ export function EditTripDialog({
                   <ThemePreviewCard
                     color={themeColor!}
                     icon={themeIcon!}
-                    font={themeFont as ThemeFont}
+                    font={themeFont!}
                     onChangeClick={() => setTemplatePickerOpen(true)}
                   />
                 ) : (
@@ -558,7 +558,7 @@ export function EditTripDialog({
         onSelect={handleThemeSelect}
         currentColor={themeColor ?? null}
         currentIcon={themeIcon ?? null}
-        currentFont={(themeFont as ThemeFont) ?? null}
+        currentFont={themeFont ?? null}
       />
     </>
   );

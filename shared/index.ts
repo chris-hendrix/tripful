@@ -10,11 +10,14 @@ export type {
   Trip,
   TripSummary,
   TripDetail,
+  ThemeFont,
   GetTripsResponse,
   GetTripResponse,
   CreateTripResponse,
   UpdateTripResponse,
 } from "./types/index";
+
+export { THEME_FONT_VALUES } from "./types/index";
 
 // Schemas
 export {

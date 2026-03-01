@@ -270,3 +270,42 @@ Replaced the local `isLightColor()` helper in `color-picker.tsx` with the shared
 - The BT.601 luma formula (`r * 0.299 + g * 0.587 + b * 0.114 > 150`) and WCAG 2.0 sRGB linearization (`relativeLuminance > 0.179`) produce the same result for most colors, but differ at boundary cases. The WCAG method is the accessibility standard.
 - `readableForeground()` has a strict return type `"#ffffff" | "#1a1a1a"` (TypeScript string literal union), so the `=== "#1a1a1a"` comparison is type-safe — any change to the return values would be caught at compile time.
 - Reviewer noted that `text-gray-900` (`#111827`) doesn't exactly match `#1a1a1a`, but the visual difference is negligible for a small checkmark icon overlay. Using inline `style={{ color: readableForeground(color) }}` would be more consistent but is a cosmetic consideration.
+
+## Iteration 10 — Task 7.4: Narrow ThemeFont type through shared layer to eliminate casts
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (252 shared tests, 1266 web tests, 1128 API tests, 54 E2E tests; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Moved the `ThemeFont` type from a local frontend definition to the shared package, narrowing `Trip.themeFont` and `TripSummary.themeFont` from `string | null` to `ThemeFont | null`, and eliminating 6 unnecessary `as ThemeFont` casts across 3 frontend files.
+
+1. **Shared types** (`shared/types/trip.ts`): Added `THEME_FONT_VALUES` const array (`["clean", "bold-sans", "elegant-serif", "playful", "handwritten", "condensed"] as const`) and derived `ThemeFont` type via `(typeof THEME_FONT_VALUES)[number]`. Follows the same `as const` + derived type pattern used by `ALLOWED_REACTIONS`/`AllowedReaction` in `message.ts`. Narrowed `Trip.themeFont` and `TripSummary.themeFont` from `string | null` to `ThemeFont | null`.
+
+2. **Shared barrel exports** (`shared/types/index.ts`, `shared/index.ts`): Added `ThemeFont` to type re-exports and `THEME_FONT_VALUES` as a value re-export, following existing patterns (type exports use `export type {}`, value exports use `export {}`).
+
+3. **Shared schemas** (`shared/schemas/trip.ts`): Imported `THEME_FONT_VALUES` from `../types/trip` and replaced all three Zod schema locations with `z.enum(THEME_FONT_VALUES)`:
+   - `baseTripSchema` (input): `.enum(THEME_FONT_VALUES).nullable().optional()` (was inline array)
+   - `tripEntitySchema` (response): `.enum(THEME_FONT_VALUES).nullable()` (was `z.string().nullable()`)
+   - `tripSummarySchema` (response): `.enum(THEME_FONT_VALUES).nullable()` (was `z.string().nullable()`)
+
+4. **Frontend config** (`apps/web/src/config/theme-fonts.ts`): Replaced local `ThemeFont` type definition (7-line union) with `import type { ThemeFont } from "@tripful/shared/types"` + `export type { ThemeFont }` re-export. `THEME_FONTS` and `FONT_DISPLAY_NAMES` records unchanged.
+
+5. **Cast removal — trip-detail-content.tsx**: Removed `type ThemeFont` from import (no longer needed). Changed `THEME_FONTS[trip.themeFont as ThemeFont]` to `THEME_FONTS[trip.themeFont]` — works because the ternary guard (`trip.themeFont ? ...`) narrows `ThemeFont | null` to `ThemeFont`.
+
+6. **Cast removal — create-trip-dialog.tsx**: Removed 2 `as ThemeFont` casts. `font={themeFont as ThemeFont}` → `font={themeFont!}` (inside `hasTheme` guard). `currentFont={(themeFont as ThemeFont) ?? null}` → `currentFont={themeFont ?? null}`. Kept `ThemeFont` import (still used in `handleThemeSelect` parameter type).
+
+7. **Cast removal — edit-trip-dialog.tsx**: Removed 3 `as ThemeFont` casts. `themeFont: (trip.themeFont as ThemeFont) ?? null` → `themeFont: trip.themeFont ?? null` (in form reset). `font={themeFont as ThemeFont}` → `font={themeFont!}` (inside guard). `currentFont={(themeFont as ThemeFont) ?? null}` → `currentFont={themeFont ?? null}`. Kept `ThemeFont` import (still used in `handleThemeSelect` parameter type).
+
+8. **Intentionally kept** — `font-picker.tsx`: 2 `as ThemeFont` casts remain at `Object.entries()` key widening (line 17) and Radix `RadioGroup.onValueChange` boundary (line 24). These are unavoidable TypeScript/library limitations.
+
+9. **Export test** (`shared/__tests__/exports.test.ts`): Added `THEME_FONT_VALUES` and `ThemeFont` to imports. New test "should export trip theme font constants" verifies the constant is defined, contains "clean", has 6 entries, and that `ThemeFont` aligns with the constant (compile-time check via typed assignment).
+
+### Learnings for future iterations
+
+- The `as const` array + derived type pattern (`const VALUES = [...] as const; type T = (typeof VALUES)[number]`) is the established convention in this codebase for string literal unions that need both compile-time type checking and runtime validation (e.g., Zod enum). Prefer this over standalone `type` unions when a Zod schema also needs the values.
+- `THEME_FONT_VALUES` is now the single source of truth for font identifiers — used by `ThemeFont` type, all 3 Zod schemas, and indirectly by `THEME_FONTS`/`FONT_DISPLAY_NAMES` records (via their `Record<ThemeFont, string>` typing).
+- The API service's local `TripSummary` type in `trip.service.ts` still has `themeFont: string | null` (matching Drizzle's `varchar` inference). This is correct — the narrowing to `ThemeFont` happens at the Zod response schema level, not at the DB/ORM level.
+- Non-null assertions (`!`) inside `hasTheme` guards are safe but fragile — TypeScript's control flow analysis doesn't narrow through computed boolean variables. If `hasTheme` logic is refactored, the assertions could silently become unsafe.
+- `shared/types/index.ts` separates `export type { ... }` (type-only) and `export { ... }` (value) re-exports. When adding a const array + type pair, both forms are needed.

@@ -47,7 +47,6 @@ import { detectTemplate } from "@/lib/detect-template";
 import { ThemePreviewCard } from "@/components/trip/theme-preview-card";
 import { TemplatePicker } from "@/components/trip/template-picker";
 import type { ThemeFont } from "@/config/theme-fonts";
-
 interface CreateTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -474,7 +473,7 @@ export function CreateTripDialog({
                       <ThemePreviewCard
                         color={themeColor!}
                         icon={themeIcon!}
-                        font={themeFont as ThemeFont}
+                        font={themeFont!}
                         onChangeClick={() => setTemplatePickerOpen(true)}
                       />
                     ) : (
@@ -659,7 +658,7 @@ export function CreateTripDialog({
         onSelect={handleThemeSelect}
         currentColor={themeColor ?? null}
         currentIcon={themeIcon ?? null}
-        currentFont={(themeFont as ThemeFont) ?? null}
+        currentFont={themeFont ?? null}
       />
     </Sheet>
   );

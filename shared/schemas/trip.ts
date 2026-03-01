@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { phoneNumberSchema } from "./phone";
 import { stripControlChars } from "../utils/sanitize";
+import { THEME_FONT_VALUES } from "../types/trip";
 
 /**
  * Validates IANA timezone strings using Intl.supportedValuesOf
@@ -78,17 +79,7 @@ const baseTripSchema = z.object({
     .nullable()
     .optional(),
   themeIcon: z.string().max(10).nullable().optional(),
-  themeFont: z
-    .enum([
-      "clean",
-      "bold-sans",
-      "elegant-serif",
-      "playful",
-      "handwritten",
-      "condensed",
-    ])
-    .nullable()
-    .optional(),
+  themeFont: z.enum(THEME_FONT_VALUES).nullable().optional(),
   allowMembersToAddEvents: z.boolean().default(true),
   showAllMembers: z.boolean().default(false),
   coOrganizerPhones: z.array(phoneNumberSchema).optional(),
@@ -177,7 +168,7 @@ const tripEntitySchema = z.object({
   coverImageUrl: z.string().nullable(),
   themeColor: z.string().nullable(),
   themeIcon: z.string().nullable(),
-  themeFont: z.string().nullable(),
+  themeFont: z.enum(THEME_FONT_VALUES).nullable(),
   createdBy: z.string(),
   allowMembersToAddEvents: z.boolean(),
   showAllMembers: z.boolean(),
@@ -203,7 +194,7 @@ const tripSummarySchema = z.object({
   coverImageUrl: z.string().nullable(),
   themeColor: z.string().nullable(),
   themeIcon: z.string().nullable(),
-  themeFont: z.string().nullable(),
+  themeFont: z.enum(THEME_FONT_VALUES).nullable(),
   isOrganizer: z.boolean(),
   rsvpStatus: z.enum(["going", "not_going", "maybe", "no_response"]),
   organizerInfo: z.array(organizerInfoSchema),

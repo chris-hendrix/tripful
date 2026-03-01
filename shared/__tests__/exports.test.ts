@@ -5,6 +5,7 @@ import {
   // Types
   type User,
   type AuthResponse,
+  type ThemeFont,
   // Schema inferred types
   type RequestCodeInput,
   type VerifyCodeInput,
@@ -12,6 +13,8 @@ import {
   type CreateTripInput,
   type UpdateTripInput,
   type AddCoOrganizerInput,
+  // Constants
+  THEME_FONT_VALUES,
   // Schemas
   requestCodeSchema,
   verifyCodeSchema,
@@ -56,6 +59,15 @@ describe("Package Exports", () => {
     expect(requestCodeSchema).toBeDefined();
     expect(verifyCodeSchema).toBeDefined();
     expect(completeProfileSchema).toBeDefined();
+  });
+
+  it("should export trip theme font constants", () => {
+    expect(THEME_FONT_VALUES).toBeDefined();
+    expect(THEME_FONT_VALUES).toContain("clean");
+    expect(THEME_FONT_VALUES).toHaveLength(6);
+    // Verify ThemeFont type aligns with constants (compile-time check)
+    const font: ThemeFont = THEME_FONT_VALUES[0];
+    expect(font).toBe("clean");
   });
 
   it("should export all trip schemas", () => {

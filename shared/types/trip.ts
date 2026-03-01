@@ -1,6 +1,20 @@
 // Trip-related types for the Tripful platform
 
 /**
+ * Allowed font identifiers for trip themes
+ */
+export const THEME_FONT_VALUES = [
+  "clean",
+  "bold-sans",
+  "elegant-serif",
+  "playful",
+  "handwritten",
+  "condensed",
+] as const;
+
+export type ThemeFont = (typeof THEME_FONT_VALUES)[number];
+
+/**
  * Trip type from database schema
  * Matches the Trip type from apps/api/src/db/schema/index.ts
  */
@@ -26,7 +40,7 @@ export interface Trip {
   /** Emoji icon for the trip theme */
   themeIcon: string | null;
   /** Font identifier for the trip theme */
-  themeFont: string | null;
+  themeFont: ThemeFont | null;
   /** User ID of the trip creator */
   createdBy: string;
   /** Whether non-organizer members can add events */
@@ -63,7 +77,7 @@ export interface TripSummary {
   /** Emoji icon for the trip theme */
   themeIcon: string | null;
   /** Font identifier for the trip theme */
-  themeFont: string | null;
+  themeFont: ThemeFont | null;
   /** Whether the current user is an organizer of this trip */
   isOrganizer: boolean;
   /** Current user's RSVP status for this trip */

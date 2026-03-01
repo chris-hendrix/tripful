@@ -99,7 +99,7 @@
   - Implement: Remove the `isLightColor()` function definition
   - Verify: run full test suite, lint, and typecheck pass
 
-- [ ] Task 7.4: Narrow ThemeFont type through shared layer to eliminate casts
+- [x] Task 7.4: Narrow ThemeFont type through shared layer to eliminate casts
   - Implement: Add `ThemeFont` type to `shared/types/trip.ts` as string literal union of 6 font values
   - Implement: Update `Trip.themeFont` and `TripSummary.themeFont` types from `string | null` to `ThemeFont | null`
   - Implement: Update `tripEntitySchema` and `tripSummarySchema` in `shared/schemas/trip.ts` to use `.enum([...]).nullable()` instead of `z.string().nullable()` for themeFont
