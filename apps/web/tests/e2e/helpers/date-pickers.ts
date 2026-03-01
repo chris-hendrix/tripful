@@ -124,9 +124,9 @@ export async function pickDateTime(
     await timeInput.fill(timePart);
   }
 
-  // Close the popover by re-clicking the trigger (toggle close).
-  // Do NOT use Escape — on iPhone WebKit it propagates past the Radix
-  // Popover and closes the parent Sheet/Dialog, silently destroying
-  // the form context so subsequent button clicks don't submit.
-  await trigger.click({ force: true });
+  // Don't explicitly close the popover — the next form interaction
+  // (fill or click) will dismiss it via Radix's click-outside behavior.
+  // We can't use Escape (propagates to parent Sheet on iPhone WebKit)
+  // or trigger.click({ force: true }) (hits the popover overlay, not
+  // the trigger, causing the popover to stay open or reopen).
 }

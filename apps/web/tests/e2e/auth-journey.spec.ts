@@ -38,11 +38,11 @@ test.describe("Auth Journey", () => {
       // On iPhone WebKit, the Continue button click is consistently swallowed —
       // the card's entrance animation (duration-700) and react-phone-number-input's
       // event handling prevent the click from triggering form submission.
-      // Press Enter on the phone input instead, which triggers native form submit
-      // and bypasses the button entirely.
+      // Use force:true to bypass Playwright's stability check on the animating card,
+      // and retry the whole fill+click sequence until the navigation succeeds.
       await expect(async () => {
         await loginPage.phoneInput.fill(phone);
-        await loginPage.phoneInput.press("Enter");
+        await loginPage.continueButton.click({ force: true });
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
       }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     });
