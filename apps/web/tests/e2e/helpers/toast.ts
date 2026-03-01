@@ -3,54 +3,56 @@ import { expect } from "@playwright/test";
 import { TOAST_TIMEOUT } from "./timeouts";
 
 /**
- * Dismiss any visible Sonner toasts by unpausing auto-dismiss
- * and waiting for all toasts to disappear.
+ * Dismiss any visible Sonner toasts and wait for them to disappear.
  *
- * Sonner pauses its auto-dismiss timer on `onMouseEnter` of the toaster
- * `<ol>` container and resumes on `onMouseLeave`. React implements these
- * via native `mouseout`/`mouseover` events through its delegation system.
+ * Primary approach: call Sonner's `toast.dismiss()` API directly via a
+ * window global exposed by the `<Toaster>` component. This bypasses
+ * all mouse-event / timer issues and works reliably on every browser.
  *
- * On desktop, `page.mouse.move(0,0)` naturally triggers mouseleave. On
- * mobile WebKit, mouse events from Playwright don't produce real browser
- * pointer events (touch devices have no persistent pointer), so the timer
- * stays paused forever once accidentally triggered by a prior click action.
- *
- * The fix: dispatch a native `mouseout` event on the `[data-sonner-toaster]`
- * container with `relatedTarget` set outside it. React's event delegation
- * picks this up and fires Sonner's `onMouseLeave`, unpausing the timer.
+ * Fallback: dispatch a native `mouseout` event on the toaster container
+ * to unpause the auto-dismiss timer (works on desktop, unreliable on
+ * mobile WebKit where Playwright mouse events don't produce real pointer
+ * events on touch devices).
  */
 export async function dismissToast(page: Page): Promise<void> {
   const selector = "[data-sonner-toast]";
   if ((await page.locator(selector).count()) === 0) return;
 
-  const unpauseToasts = async () => {
-    // Desktop: move mouse away from toast area
-    await page.mouse.move(0, 0);
-    // All browsers: dispatch mouseout on the Sonner toaster container.
-    // React's root-level listener translates this to onMouseLeave when
-    // relatedTarget is outside the container, unpausing auto-dismiss.
-    /* eslint-disable no-undef -- browser globals inside page.evaluate */
+  // Primary: call Sonner's dismiss() API directly (all browsers)
+  /* eslint-disable no-undef -- browser globals inside page.evaluate */
+  await page.evaluate(() => {
+    const win = window as unknown as Record<string, unknown>;
+    if (typeof win.__e2eDismissToasts === "function") {
+      (win.__e2eDismissToasts as () => void)();
+    }
+  });
+  /* eslint-enable no-undef */
+
+  // Fallback: also unpause auto-dismiss timer via mouseout
+  await page.mouse.move(0, 0);
+  /* eslint-disable no-undef -- browser globals inside page.evaluate */
+  await page.evaluate(() => {
+    const toaster = document.querySelector("[data-sonner-toaster]");
+    if (toaster) {
+      toaster.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: document.documentElement,
+        }),
+      );
+    }
+  });
+  /* eslint-enable no-undef */
+
+  // Wait for toast exit animations to complete
+  await expect(async () => {
+    // Re-dismiss in case new toasts appeared during the wait
     await page.evaluate(() => {
-      const toaster = document.querySelector("[data-sonner-toaster]");
-      if (toaster) {
-        toaster.dispatchEvent(
-          new MouseEvent("mouseout", {
-            bubbles: true,
-            relatedTarget: document.documentElement,
-          }),
-        );
+      const win = window as unknown as Record<string, unknown>;
+      if (typeof win.__e2eDismissToasts === "function") {
+        (win.__e2eDismissToasts as () => void)();
       }
     });
-    /* eslint-enable no-undef */
-  };
-
-  await unpauseToasts();
-
-  // Poll until toasts disappear. We avoid expect(locator).toHaveCount(0)
-  // because it can return "undefined" in Firefox/WebKit when Sonner's toast
-  // portal remounts, causing flaky failures.
-  await expect(async () => {
-    await unpauseToasts();
     expect(await page.locator(selector).count()).toBe(0);
   }).toPass({ timeout: TOAST_TIMEOUT });
 }

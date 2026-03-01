@@ -8,7 +8,15 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { Toaster as Sonner, type ToasterProps, toast } from "sonner";
+
+// Expose toast.dismiss for E2E test automation — on mobile WebKit,
+// Sonner's auto-dismiss timer gets stuck paused and mouse events
+// cannot reliably unpause it.
+if (typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__e2eDismissToasts = () =>
+    toast.dismiss();
+}
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
