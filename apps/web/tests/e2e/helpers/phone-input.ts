@@ -10,8 +10,10 @@ import type { Locator } from "@playwright/test";
  * iPhone WebKit where event timing differs. The form then silently rejects
  * submission because react-hook-form never received the phone value.
  *
- * This helper types digits one-by-one via `pressSequentially()`, matching
- * the component's expected input model.
+ * This helper types the full E.164 value (e.g. "+15551234567") one character
+ * at a time via `pressSequentially()`, matching the component's expected
+ * input model. The component is in international mode, so it accepts the
+ * full value including "+" and country code.
  *
  * @param phoneInput - Locator for the phone text input
  * @param phone - E.164 phone number (e.g. "+15551234567")
@@ -20,11 +22,9 @@ export async function fillPhoneInput(
   phoneInput: Locator,
   phone: string,
 ): Promise<void> {
-  // The component is in international mode with defaultCountry="US",
-  // so the "+1" prefix is already displayed. Type only national digits.
-  const digits = phone.replace(/^\+1/, "");
-
   await phoneInput.click();
   await phoneInput.clear();
-  await phoneInput.pressSequentially(digits, { delay: 50 });
+  // Type the full E.164 value — the component in international mode
+  // parses the "+" and country code from the typed characters.
+  await phoneInput.pressSequentially(phone, { delay: 50 });
 }
