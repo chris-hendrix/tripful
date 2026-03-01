@@ -124,9 +124,10 @@ export async function pickDateTime(
     await timeInput.fill(timePart);
   }
 
-  // Don't explicitly close the popover — the next form interaction
-  // (fill or click) will dismiss it via Radix's click-outside behavior.
-  // We can't use Escape (propagates to parent Sheet on iPhone WebKit)
-  // or trigger.click({ force: true }) (hits the popover overlay, not
-  // the trigger, causing the popover to stay open or reopen).
+  // Close the popover by dispatching a synthetic click on the trigger.
+  // - Escape propagates to parent Sheet on iPhone WebKit (closes the form)
+  // - trigger.click({ force: true }) hits the popover overlay (coordinate-based)
+  // - dispatchEvent bypasses coordinate hit-testing, going directly to the
+  //   trigger's DOM element so Radix's onClick handler toggles it closed.
+  await trigger.dispatchEvent("click");
 }
