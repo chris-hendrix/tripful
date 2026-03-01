@@ -72,6 +72,23 @@ const baseTripSchema = z.object({
     )
     .nullable()
     .optional(),
+  themeColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Must be a valid hex color" })
+    .nullable()
+    .optional(),
+  themeIcon: z.string().max(10).nullable().optional(),
+  themeFont: z
+    .enum([
+      "clean",
+      "bold-sans",
+      "elegant-serif",
+      "playful",
+      "handwritten",
+      "condensed",
+    ])
+    .nullable()
+    .optional(),
   allowMembersToAddEvents: z.boolean().default(true),
   showAllMembers: z.boolean().default(false),
   coOrganizerPhones: z.array(phoneNumberSchema).optional(),
@@ -158,6 +175,9 @@ const tripEntitySchema = z.object({
   preferredTimezone: z.string(),
   description: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
+  themeColor: z.string().nullable(),
+  themeIcon: z.string().nullable(),
+  themeFont: z.string().nullable(),
   createdBy: z.string(),
   allowMembersToAddEvents: z.boolean(),
   showAllMembers: z.boolean(),
@@ -181,6 +201,9 @@ const tripSummarySchema = z.object({
   startDate: z.string().nullable(),
   endDate: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
+  themeColor: z.string().nullable(),
+  themeIcon: z.string().nullable(),
+  themeFont: z.string().nullable(),
   isOrganizer: z.boolean(),
   rsvpStatus: z.enum(["going", "not_going", "maybe", "no_response"]),
   organizerInfo: z.array(organizerInfoSchema),

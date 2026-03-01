@@ -21,6 +21,12 @@ export interface Trip {
   description: string | null;
   /** Optional cover image URL */
   coverImageUrl: string | null;
+  /** Hex color code for the trip theme (e.g. "#e94560") */
+  themeColor: string | null;
+  /** Emoji icon for the trip theme */
+  themeIcon: string | null;
+  /** Font identifier for the trip theme */
+  themeFont: string | null;
   /** User ID of the trip creator */
   createdBy: string;
   /** Whether non-organizer members can add events */
@@ -52,6 +58,12 @@ export interface TripSummary {
   endDate: string | null;
   /** Optional cover image URL */
   coverImageUrl: string | null;
+  /** Hex color code for the trip theme (e.g. "#e94560") */
+  themeColor: string | null;
+  /** Emoji icon for the trip theme */
+  themeIcon: string | null;
+  /** Font identifier for the trip theme */
+  themeFont: string | null;
   /** Whether the current user is an organizer of this trip */
   isOrganizer: boolean;
   /** Current user's RSVP status for this trip */

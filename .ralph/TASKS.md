@@ -2,7 +2,7 @@
 
 ## Phase 1: Data Layer & API
 
-- [ ] Task 1.1: Add theme columns to DB, shared types/schemas, and API service
+- [x] Task 1.1: Add theme columns to DB, shared types/schemas, and API service
   - Implement: Add `themeColor` (varchar 7), `themeIcon` (varchar 10), `themeFont` (varchar 30) nullable columns to `trips` table in `apps/api/src/db/schema/index.ts`
   - Implement: Run `cd apps/api && pnpm db:generate` to create migration, review generated SQL
   - Implement: Run `cd apps/api && pnpm db:migrate` to apply migration
