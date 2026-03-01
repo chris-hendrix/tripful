@@ -35,15 +35,14 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("enter phone and submit", async () => {
-      await loginPage.phoneInput.fill(phone);
-      // Retry — on mobile WebKit the click can be swallowed during React hydration,
-      // or the input may lose focus. Re-fill and re-click on each attempt.
-      // Use SLOW_NAVIGATION_TIMEOUT (20s) — iPhone WebKit hydration is slow enough
-      // that NAVIGATION_TIMEOUT (15s) only allows 2-3 attempts, not enough.
+      // On iPhone WebKit, the Continue button click is consistently swallowed —
+      // the card's entrance animation (duration-700) and react-phone-number-input's
+      // event handling prevent the click from triggering form submission.
+      // Press Enter on the phone input instead, which triggers native form submit
+      // and bypasses the button entirely.
       await expect(async () => {
         await loginPage.phoneInput.fill(phone);
-        await loginPage.continueButton.waitFor({ state: "visible" });
-        await loginPage.continueButton.click();
+        await loginPage.phoneInput.press("Enter");
         await expect(page).toHaveURL(/verify/, { timeout: RETRY_INTERVAL });
       }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     });

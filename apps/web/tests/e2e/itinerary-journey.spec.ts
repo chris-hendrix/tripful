@@ -422,6 +422,7 @@ test.describe("Itinerary Journey", () => {
     "deleted items and restore",
     { tag: "@regression" },
     async ({ page, request }) => {
+      test.slow(); // Trip creation + event CRUD + dialog interactions are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "Delete Restore User");
       const tripName = `Delete Restore Trip ${Date.now()}`;
       let tripId: string;
