@@ -80,3 +80,37 @@ Built the frontend-only template system with 20 presets, keyword detection, and 
 - All 20 template colors are unique (no deduplication needed), but `Set` is used defensively in case templates are modified later
 - Sheet component from Radix unmounts children when closed, so `useState` initial values re-initialize each open — no stale state concern
 - Template picker `onSelect` returns `{ color, icon, font } | null` — downstream consumers (Tasks 4.1, 6.1) will wire this to form state for `themeColor`/`themeIcon`/`themeFont`
+
+## Iteration 4 — Task 4.1: Integrate theme selection into create trip dialog
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (2645 tests, 0 failures; 48 E2E tests pass; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Integrated the theme system into the create trip dialog with auto-detection and manual selection:
+
+1. **Create Trip Dialog** (`apps/web/src/components/trip/create-trip-dialog.tsx`):
+   - Added imports for `detectTemplate`, `ThemePreviewCard`, `TemplatePicker`, `ThemeFont`, and `Palette` icon
+   - Added `templatePickerOpen` state for controlling the TemplatePicker Sheet overlay
+   - Added `themeColor: null`, `themeIcon: null`, `themeFont: null` to form `defaultValues`
+   - Added `form.watch()` for all three theme fields + derived `hasTheme` boolean
+   - Updated `handleContinue` to run `detectTemplate(tripName)` after Step 1 validation, auto-filling theme fields only if no theme is already set (preserves manual selections on back-and-forth navigation)
+   - Added `handleThemeSelect` callback that sets or clears all three theme fields via `form.setValue()`
+   - Added theme section to Step 2 UI between Cover Image and Allow Members checkbox: shows `ThemePreviewCard` with "Change theme" button when theme is set, or dashed "Add a theme" button (with Palette icon) when no theme is set
+   - Added `disabled={isPending}` to the "Add a theme" button for consistency with other Step 2 controls
+   - Rendered `TemplatePicker` as a sibling to `SheetContent` inside the outer `Sheet` — stacks correctly via Radix portals
+
+2. **E2E Tests** (`apps/web/tests/e2e/trip-theme.spec.ts`): 2 tests tagged `@regression`:
+   - **Auto-detected template**: Creates trip named "Bachelor Party ..." → verifies `ThemePreviewCard` auto-appears on Step 2 ("Change theme" visible, "Add a theme" not visible) → submits and verifies trip creation
+   - **Manual theme selection**: Creates trip named "Team Retreat ..." (no keyword match) → verifies "Add a theme" visible → opens TemplatePicker → selects "Bachelorette Party" template → verifies preview card appears → submits and verifies trip creation
+
+### Learnings for future iterations
+
+- `form.watch("themeColor")` returns `string | null | undefined` — use `?? null` when passing to components with `exactOptionalPropertyTypes` to convert `undefined` to `null`
+- Auto-detection guard `!form.getValues("themeColor")` prevents overwriting manual selections when user navigates back to Step 1 and returns to Step 2
+- Nested Sheets (create dialog Sheet + TemplatePicker Sheet) work correctly — Radix Dialog portals ensure independent z-stacking
+- The `as ThemeFont` cast on `themeFont` inside the `hasTheme` guard is safe because the truthiness check eliminates `null`/`undefined`, leaving only valid `ThemeFont` union members
+- E2E tests for cold-start Next.js compilation can be flaky on first run — `test.slow()` helps by extending the timeout
+- Task 6.1 (edit trip dialog) will follow the same pattern: `handleThemeSelect`, `templatePickerOpen` state, conditional ThemePreviewCard/"Add a theme" rendering

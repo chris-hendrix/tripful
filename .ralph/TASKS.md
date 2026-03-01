@@ -42,7 +42,7 @@
 
 ## Phase 4: Trip Creation Integration
 
-- [ ] Task 4.1: Integrate theme selection into create trip dialog
+- [x] Task 4.1: Integrate theme selection into create trip dialog
   - Implement: Update Step 1 → Step 2 transition in `apps/web/src/components/trip/create-trip-dialog.tsx` — on "Next" click, run `detectTemplate(tripName)`, store result in form state
   - Implement: Add theme form fields (`themeColor`, `themeIcon`, `themeFont`) to the create trip form state
   - Implement: On Step 2, if theme exists: show `ThemePreviewCard` with "Change theme" link that opens `TemplatePicker`
