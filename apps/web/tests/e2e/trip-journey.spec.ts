@@ -531,12 +531,15 @@ test.describe("Trip Journey", () => {
 
       await test.step("verify 2 members and open members dialog", async () => {
         await expect(page.getByText(/2 members?/)).toBeVisible();
-        await page.getByText(/2 members?/).click();
 
+        // Retry click — SSR text may be visible before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
-        await expect(
-          dialog.getByRole("heading", { name: "Members" }),
-        ).toBeVisible();
+        await expect(async () => {
+          await page.getByText(/2 members?/).click();
+          await expect(
+            dialog.getByRole("heading", { name: "Members" }),
+          ).toBeVisible({ timeout: RETRY_INTERVAL });
+        }).toPass({ timeout: ELEMENT_TIMEOUT });
 
         await expect(dialog.getByText("Remove Test Org")).toBeVisible();
         await expect(dialog.getByText("Test Member")).toBeVisible();
@@ -652,12 +655,15 @@ test.describe("Trip Journey", () => {
         ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         await expect(page.getByText(/2 members?/)).toBeVisible();
-        await page.getByText(/2 members?/).click();
 
+        // Retry click — heading may be server-rendered before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
-        await expect(
-          dialog.getByRole("heading", { name: "Members" }),
-        ).toBeVisible();
+        await expect(async () => {
+          await page.getByText(/2 members?/).click();
+          await expect(
+            dialog.getByRole("heading", { name: "Members" }),
+          ).toBeVisible({ timeout: RETRY_INTERVAL });
+        }).toPass({ timeout: ELEMENT_TIMEOUT });
 
         await expect(dialog.getByText("Promote Test Org")).toBeVisible();
         await expect(dialog.getByText("Test Promotee")).toBeVisible();
