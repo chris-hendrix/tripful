@@ -389,20 +389,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Description */}
           {trip.description ? (
-            <Collapsible className="mb-6">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 px-2 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px]"
-                >
-                  <ChevronDown
-                    className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
-                    aria-hidden="true"
-                  />
-                  About this trip
-                </Button>
+            <Collapsible defaultOpen className="mb-6">
+              <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
+                <ChevronDown
+                  className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+                  aria-hidden="true"
+                />
+                About this trip
               </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out]">
+              <CollapsibleContent forceMount className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0">
                 <div className="mt-3 bg-card rounded-2xl border border-border p-6">
                   <p className="text-muted-foreground whitespace-pre-wrap">
                     {trip.description}

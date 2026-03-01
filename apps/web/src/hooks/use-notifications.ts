@@ -384,6 +384,14 @@ export function useMarkAllAsRead() {
           notificationKeys.tripUnreadCount(params.tripId),
           0,
         );
+        // Also update global count: subtract trip unread from global
+        const globalCount =
+          queryClient.getQueryData<number>(notificationKeys.unreadCount()) ?? 0;
+        const tripCount = previousTripUnreadCount ?? 0;
+        queryClient.setQueryData<number>(
+          notificationKeys.unreadCount(),
+          Math.max(0, globalCount - tripCount),
+        );
       } else {
         queryClient.setQueryData<number>(notificationKeys.unreadCount(), 0);
       }

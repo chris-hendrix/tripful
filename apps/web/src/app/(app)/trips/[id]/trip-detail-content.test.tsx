@@ -721,7 +721,7 @@ describe("TripDetailContent", () => {
         </Suspense>,
       );
 
-      // Collapsible trigger should be visible
+      // Collapsible trigger should be visible (rendered as native button by CollapsibleTrigger)
       const trigger = screen.getByRole("button", { name: /about this trip/i });
       expect(trigger).toBeDefined();
 
