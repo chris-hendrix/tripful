@@ -12,6 +12,7 @@ import {
   pgEnum,
   unique,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 
 // Users table
@@ -222,6 +223,9 @@ export const events = pgTable(
       table.tripId,
       table.deletedAt,
     ),
+    tripIdNotDeletedIdx: index("events_trip_id_not_deleted_idx")
+      .on(table.tripId)
+      .where(sql`${table.deletedAt} IS NULL`),
   }),
 );
 
@@ -264,6 +268,9 @@ export const accommodations = pgTable(
       table.tripId,
       table.deletedAt,
     ),
+    tripIdNotDeletedIdx: index("accommodations_trip_id_not_deleted_idx")
+      .on(table.tripId)
+      .where(sql`${table.deletedAt} IS NULL`),
   }),
 );
 
@@ -308,6 +315,9 @@ export const memberTravel = pgTable(
       table.tripId,
       table.deletedAt,
     ),
+    tripIdNotDeletedIdx: index("member_travel_trip_id_not_deleted_idx")
+      .on(table.tripId)
+      .where(sql`${table.deletedAt} IS NULL`),
   }),
 );
 
@@ -351,6 +361,9 @@ export const messages = pgTable(
     tripTopLevelIdx: index("messages_trip_toplevel_idx")
       .on(table.tripId, table.createdAt)
       .where(sql`${table.parentId} IS NULL AND ${table.deletedAt} IS NULL`),
+    tripIdNotDeletedIdx: index("messages_trip_id_not_deleted_idx")
+      .on(table.tripId)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.parentId} IS NULL`),
   }),
 );
 
@@ -516,3 +529,56 @@ export const sentReminders = pgTable(
 
 export type SentReminder = typeof sentReminders.$inferSelect;
 export type NewSentReminder = typeof sentReminders.$inferInsert;
+
+// Token Blacklist
+export const blacklistedTokens = pgTable(
+  "blacklisted_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jti: text("jti").notNull().unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    expiresAtIdx: index("blacklisted_tokens_expires_at_idx").on(
+      table.expiresAt,
+    ),
+  }),
+);
+
+export type BlacklistedToken = typeof blacklistedTokens.$inferSelect;
+export type NewBlacklistedToken = typeof blacklistedTokens.$inferInsert;
+
+// Auth Attempts (Account Lockout)
+export const authAttempts = pgTable("auth_attempts", {
+  phoneNumber: text("phone_number").primaryKey(),
+  failedCount: integer("failed_count").notNull().default(0),
+  lastFailedAt: timestamp("last_failed_at", { withTimezone: true }),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+});
+
+export type AuthAttempt = typeof authAttempts.$inferSelect;
+export type NewAuthAttempt = typeof authAttempts.$inferInsert;
+
+// Rate Limit Entries
+export const rateLimitEntries = pgTable(
+  "rate_limit_entries",
+  {
+    key: text("key").primaryKey(),
+    count: integer("count").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    expiresAtIdx: index("rate_limit_entries_expires_at_idx").on(
+      table.expiresAt,
+    ),
+  }),
+);
+
+export type RateLimitEntry = typeof rateLimitEntries.$inferSelect;
+export type NewRateLimitEntry = typeof rateLimitEntries.$inferInsert;

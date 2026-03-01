@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Notification } from "@tripful/shared/types";
+import type { Notification, GetNotificationsResponse } from "@tripful/shared/types";
 
 // Mocks
 const mockPush = vi.fn();
@@ -24,6 +24,14 @@ vi.mock("@/hooks/use-notifications", () => ({
 }));
 
 import { NotificationBell } from "../notification-bell";
+
+/** Wrap a flat notification response into InfiniteData shape */
+function wrapNotifications(response: GetNotificationsResponse) {
+  return {
+    pages: [response],
+    pageParams: [undefined],
+  };
+}
 
 function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
@@ -113,11 +121,13 @@ describe("NotificationBell", () => {
   it("opens popover when bell is clicked", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -134,7 +144,8 @@ describe("NotificationBell", () => {
   it("shows notification items in popover", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [
           makeNotification({ title: "New Event", body: "Beach party added" }),
           makeNotification({
@@ -144,8 +155,9 @@ describe("NotificationBell", () => {
           }),
         ],
         unreadCount: 2,
-        meta: { total: 2, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 2, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -165,11 +177,13 @@ describe("NotificationBell", () => {
   it('shows "Mark all as read" button when there are unread notifications', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -186,11 +200,13 @@ describe("NotificationBell", () => {
   it('calls markAllAsRead when "Mark all as read" is clicked', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -212,11 +228,13 @@ describe("NotificationBell", () => {
   it("shows empty state when no notifications", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
-      },
+        meta: { total: 0, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -239,11 +257,13 @@ describe("NotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -283,11 +303,13 @@ describe("NotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -314,11 +336,13 @@ describe("NotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -340,11 +364,13 @@ describe("NotificationBell", () => {
   it('does not show "Mark all as read" when all notifications are read', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -363,11 +389,13 @@ describe("NotificationBell", () => {
   it('shows "View all notifications" when total > displayed count', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
-      },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
+      }),
+      hasNextPage: true,
       isLoading: false,
     });
 
@@ -384,11 +412,13 @@ describe("NotificationBell", () => {
   it('does not show "View all notifications" when total <= displayed count', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -407,11 +437,13 @@ describe("NotificationBell", () => {
   it('does not show "View all notifications" in empty state', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
-      },
+        meta: { total: 0, limit: 10, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
       isLoading: false,
     });
 
@@ -431,11 +463,13 @@ describe("NotificationBell", () => {
     const user = userEvent.setup();
     mockPathname.mockReturnValue("/trips");
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
-      },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
+      }),
+      hasNextPage: true,
       isLoading: false,
     });
 
@@ -479,11 +513,13 @@ describe("NotificationBell", () => {
     const user = userEvent.setup();
     mockPathname.mockReturnValue("/trips/trip-abc");
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 15, page: 1, limit: 10, totalPages: 2 },
-      },
+        meta: { total: 15, limit: 10, hasMore: true, nextCursor: "some-cursor" },
+      }),
+      hasNextPage: true,
       isLoading: false,
     });
 

@@ -13,7 +13,7 @@ export async function authenticate(
 ): Promise<void> {
   try {
     // Verify JWT token and populate request.user with JWTPayload
-    // After jwtVerify(), request.user contains { sub, name?, iat, exp }
+    // After jwtVerify(), request.user contains { sub, name?, jti?, iat, exp }
     await request.jwtVerify();
   } catch {
     // JWT verification failed (missing token, invalid signature, expired, etc.)
@@ -24,6 +24,17 @@ export async function authenticate(
         message: "Invalid or expired token",
       },
     });
+  }
+
+  // Check token blacklist (skip for tokens without jti for backward compat)
+  if (request.user.jti) {
+    const isRevoked = await request.server.authService.isBlacklisted(request.user.jti);
+    if (isRevoked) {
+      return reply.status(401).send({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Token has been revoked" },
+      });
+    }
   }
 }
 

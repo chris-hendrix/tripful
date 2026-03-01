@@ -40,7 +40,7 @@ export {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
-  paginationSchema,
+  cursorPaginationSchema,
   successResponseSchema,
   tripListResponseSchema,
   tripDetailResponseSchema,
@@ -48,7 +48,7 @@ export {
   type CreateTripInput,
   type UpdateTripInput,
   type AddCoOrganizerInput,
-  type PaginationInput,
+  type CursorPaginationInput,
 } from "./trip";
 
 // Re-export event schemas
@@ -138,6 +138,8 @@ export {
 export {
   getMutualsQuerySchema,
   getMutualSuggestionsQuerySchema,
+  getMutualsResponseSchema,
   type GetMutualsQueryInput,
   type GetMutualSuggestionsQueryInput,
+  type GetMutualsResponse,
 } from "./mutuals";

@@ -104,7 +104,7 @@ vi.mock("@/components/itinerary/itinerary-view", () => ({
   ),
 }));
 
-// Mock useRemoveMember, useUpdateMemberRole, and useMembers hooks
+// Mock useRemoveMember, useUpdateMemberRole hooks
 const mockRemoveMember = vi.hoisted(() => ({
   mutate: vi.fn(),
   isPending: false,
@@ -119,8 +119,43 @@ vi.mock("@/hooks/use-invitations", () => ({
   getRemoveMemberErrorMessage: () => null,
   useUpdateMemberRole: () => mockUpdateRole,
   getUpdateMemberRoleErrorMessage: () => null,
-  useMembers: (tripId: string) => mockUseMembers(tripId),
 }));
+
+// Mock useScrollReveal — always return revealed for test simplicity
+vi.mock("@/hooks/use-scroll-reveal", () => ({
+  useScrollReveal: () => ({
+    ref: { current: null },
+    isRevealed: true,
+  }),
+}));
+
+// Mock invitation-queries for membersQueryOptions used directly by the component
+vi.mock("@/hooks/invitation-queries", () => ({
+  membersQueryOptions: (tripId: string) => ({
+    queryKey: ["members", "list", tripId],
+  }),
+}));
+
+// Mock useQuery from @tanstack/react-query for direct usage in the component
+vi.mock("@tanstack/react-query", async () => {
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-query")>(
+      "@tanstack/react-query",
+    );
+  return {
+    ...actual,
+    useQuery: (options: any) => {
+      // Route members queries to our mock
+      if (
+        options.queryKey?.[0] === "members" &&
+        options.queryKey?.[1] === "list"
+      ) {
+        return mockUseMembers(options.queryKey[2]);
+      }
+      return { data: undefined, isPending: false, isError: false };
+    },
+  };
+});
 
 // Mock MembersList component
 vi.mock("@/components/trip/members-list", () => ({

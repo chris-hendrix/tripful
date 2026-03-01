@@ -9,6 +9,8 @@ import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { usePrefetchTrip } from "@/hooks/use-trips";
+import { supportsHover } from "@/lib/supports-hover";
+import { cn } from "@/lib/utils";
 
 interface TripCardProps {
   trip: {
@@ -29,11 +31,13 @@ interface TripCardProps {
     eventCount: number;
   };
   index?: number;
+  className?: string;
 }
 
 export const TripCard = memo(function TripCard({
   trip,
   index = 0,
+  className,
 }: TripCardProps) {
   const prefetchTrip = usePrefetchTrip(trip.id);
 
@@ -49,10 +53,14 @@ export const TripCard = memo(function TripCard({
   return (
     <Link
       href={`/trips/${trip.id}`}
-      onMouseEnter={prefetchTrip}
+      {...(supportsHover ? { onMouseEnter: prefetchTrip } : {})}
+      onTouchStart={prefetchTrip}
       onFocus={prefetchTrip}
-      className="block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-md motion-safe:active:scale-[0.98] transition-all cursor-pointer motion-safe:animate-[slideUp_500ms_ease-out_both] motion-safe:hover:-translate-y-0.5"
-      style={{ animationDelay: `${index * 100}ms` }}
+      className={cn(
+        "block bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg motion-safe:active:scale-[0.98] transition-all cursor-pointer motion-safe:animate-[staggerIn_500ms_ease-out_both] motion-safe:hover:-translate-y-1 card-noise",
+        className,
+      )}
+      style={{ animationDelay: `${index * 80}ms` }}
     >
       {/* Cover image or placeholder */}
       {trip.coverImageUrl ? (

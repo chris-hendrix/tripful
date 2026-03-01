@@ -221,15 +221,14 @@ describe("notification.service", () => {
       });
 
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 2,
       });
 
       expect(result.data).toHaveLength(2);
       expect(result.meta.total).toBe(3);
-      expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(2);
-      expect(result.meta.totalPages).toBe(2);
+      expect(result.meta.hasMore).toBe(true);
+      expect(result.meta.nextCursor).not.toBeNull();
     });
 
     it("should filter by tripId", async () => {
@@ -251,7 +250,6 @@ describe("notification.service", () => {
       });
 
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 20,
         tripId: testTripId,
       });
@@ -281,19 +279,18 @@ describe("notification.service", () => {
       await notificationService.markAsRead(n1.id, testMemberId);
 
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 20,
         unreadOnly: true,
       });
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].title).toBe("Unread One");
-      // meta.total and totalPages should reflect the unread-only count, not all notifications
+      // meta.total should reflect the unread-only count, not all notifications
       expect(result.meta.total).toBe(1);
-      expect(result.meta.totalPages).toBe(1);
+      expect(result.meta.hasMore).toBe(false);
     });
 
-    it("should return correct totalPages with unreadOnly and small limit", async () => {
+    it("should return hasMore with unreadOnly and small limit", async () => {
       // Create 5 notifications
       for (let i = 1; i <= 5; i++) {
         await notificationService.createNotification({
@@ -308,23 +305,23 @@ describe("notification.service", () => {
       // Mark 3 as read (notifications 1, 2, 3)
       const allResult = await notificationService.getNotifications(
         testMemberId,
-        { page: 1, limit: 20 },
+        { limit: 20 },
       );
       // Sorted DESC, so indices 2,3,4 correspond to notifications 1,2,3
       await notificationService.markAsRead(allResult.data[2].id, testMemberId);
       await notificationService.markAsRead(allResult.data[3].id, testMemberId);
       await notificationService.markAsRead(allResult.data[4].id, testMemberId);
 
-      // Query unreadOnly with limit=1 -- should show 2 unread total, 2 pages
+      // Query unreadOnly with limit=1 -- should show 2 unread total, hasMore=true
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 1,
         unreadOnly: true,
       });
 
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(2);
-      expect(result.meta.totalPages).toBe(2);
+      expect(result.meta.hasMore).toBe(true);
+      expect(result.meta.nextCursor).not.toBeNull();
       expect(result.unreadCount).toBe(2);
     });
 
@@ -348,7 +345,6 @@ describe("notification.service", () => {
       await notificationService.markAsRead(n1.id, testMemberId);
 
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 20,
       });
 
@@ -357,7 +353,6 @@ describe("notification.service", () => {
 
     it("should return empty when no notifications", async () => {
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 20,
       });
 
@@ -383,7 +378,6 @@ describe("notification.service", () => {
       });
 
       const result = await notificationService.getNotifications(testMemberId, {
-        page: 1,
         limit: 20,
       });
 

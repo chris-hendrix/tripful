@@ -2,11 +2,27 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { generateUniquePhone } from "../test-utils.js";
+import { db } from "@/config/database.js";
+import { sql } from "drizzle-orm";
 
 describe("POST /api/auth/request-code", () => {
   let app: FastifyInstance;
+  const testPhones: string[] = [];
+
+  function newPhone(): string {
+    const phone = generateUniquePhone();
+    testPhones.push(phone);
+    return phone;
+  }
 
   afterEach(async () => {
+    // Clean up rate limit entries for test phones
+    for (const phone of testPhones) {
+      await db.execute(
+        sql`DELETE FROM rate_limit_entries WHERE key = ${phone}`,
+      );
+    }
+    testPhones.length = 0;
     if (app) {
       await app.close();
     }
@@ -20,7 +36,7 @@ describe("POST /api/auth/request-code", () => {
         method: "POST",
         url: "/api/auth/request-code",
         payload: {
-          phoneNumber: generateUniquePhone(),
+          phoneNumber: newPhone(),
         },
       });
 
@@ -37,9 +53,9 @@ describe("POST /api/auth/request-code", () => {
       app = await buildApp();
 
       const validPhoneNumbers = [
-        generateUniquePhone(),
-        "+442071838750",
-        "+61291234567",
+        newPhone(),
+        newPhone(),
+        newPhone(),
       ];
 
       for (const phoneNumber of validPhoneNumbers) {
@@ -61,7 +77,7 @@ describe("POST /api/auth/request-code", () => {
     it("should handle resend for same phone number", async () => {
       app = await buildApp();
 
-      const phoneNumber = generateUniquePhone();
+      const phoneNumber = newPhone();
 
       const response1 = await app.inject({
         method: "POST",
@@ -200,7 +216,7 @@ describe("POST /api/auth/request-code", () => {
     it("should allow 5 requests per phone number within time window", async () => {
       app = await buildApp();
 
-      const phoneNumber = generateUniquePhone();
+      const phoneNumber = newPhone();
 
       for (let i = 0; i < 5; i++) {
         const response = await app.inject({
@@ -217,7 +233,7 @@ describe("POST /api/auth/request-code", () => {
     it("should reject 6th request with 429 RATE_LIMIT_EXCEEDED", async () => {
       app = await buildApp();
 
-      const phoneNumber = generateUniquePhone();
+      const phoneNumber = newPhone();
 
       for (let i = 0; i < 5; i++) {
         await app.inject({
@@ -249,8 +265,8 @@ describe("POST /api/auth/request-code", () => {
     it("should track rate limits independently per phone number", async () => {
       app = await buildApp();
 
-      const phoneNumber1 = generateUniquePhone();
-      const phoneNumber2 = generateUniquePhone();
+      const phoneNumber1 = newPhone();
+      const phoneNumber2 = newPhone();
 
       for (let i = 0; i < 5; i++) {
         await app.inject({

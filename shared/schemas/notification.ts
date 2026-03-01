@@ -33,15 +33,15 @@ const notificationEntitySchema = z.object({
   createdAt: z.date(),
 });
 
-/** GET /api/notifications - Paginated notification list */
+/** GET /api/notifications - Paginated notification list (cursor-based) */
 export const notificationListResponseSchema = z.object({
   success: z.literal(true),
   notifications: z.array(notificationEntitySchema),
   meta: z.object({
     total: z.number(),
-    page: z.number(),
     limit: z.number(),
-    totalPages: z.number(),
+    hasMore: z.boolean(),
+    nextCursor: z.string().nullable(),
   }),
   unreadCount: z.number(),
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,8 +22,9 @@ import {
   getRemoveMemberErrorMessage,
   useUpdateMemberRole,
   getUpdateMemberRoleErrorMessage,
-  useMembers,
 } from "@/hooks/use-invitations";
+import { membersQueryOptions } from "@/hooks/invitation-queries";
+import { useQuery } from "@tanstack/react-query";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,8 @@ import {
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { supportsHover } from "@/lib/supports-hover";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -122,7 +125,7 @@ function SkeletonDetail() {
 
 export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: trip, isPending, isError } = useTripDetail(tripId);
-  const { data: events } = useEvents(tripId, { enabled: !trip?.isPreview });
+  const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -135,8 +138,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
   const { user } = useAuth();
-  const { data: members } = useMembers(tripId);
+  const { data: members } = useQuery({
+    ...membersQueryOptions(tripId),
+    enabled: !!tripId,
+    select: (data) =>
+      data.map((m) => ({ id: m.id, userId: m.userId, isMuted: m.isMuted })),
+  });
   const currentMember = members?.find((m) => m.userId === user?.id);
+  const { ref: itineraryRef, isRevealed: itineraryRevealed } =
+    useScrollReveal();
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -184,7 +194,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+          <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
             Trip not found
           </h2>
           <p className="text-muted-foreground mb-6">
@@ -210,7 +220,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-background motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
       {/* Breadcrumb navigation */}
       <Breadcrumb className="max-w-5xl mx-auto px-4 pt-6 pb-4">
         <BreadcrumbList>
@@ -299,7 +309,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               <span className="text-border">|</span>
               <button
                 onClick={() => setIsInviteOpen(true)}
-                onMouseEnter={preloadInviteMembersDialog}
+                onMouseEnter={supportsHover ? preloadInviteMembersDialog : undefined}
+                onTouchStart={preloadInviteMembersDialog}
                 onFocus={preloadInviteMembersDialog}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
               >
@@ -308,7 +319,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </button>
               <button
                 onClick={() => setIsEditOpen(true)}
-                onMouseEnter={preloadEditTripDialog}
+                onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
+                onTouchStart={preloadEditTripDialog}
                 onFocus={preloadEditTripDialog}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
               >
@@ -354,7 +366,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           )}
 
           {/* Stats */}
-          <div className="flex items-center gap-6 mb-6">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
             <button
               onClick={() => setIsMembersOpen(true)}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -397,7 +409,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         </div>
 
         {/* Itinerary */}
-        <div id="itinerary" className="scroll-mt-14">
+        <div
+          id="itinerary"
+          ref={itineraryRef as RefObject<HTMLDivElement>}
+          className={`scroll-mt-14 ${itineraryRevealed ? "motion-safe:animate-[revealScale_500ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+        >
           <ItineraryView
             tripId={tripId}
             onAddTravel={() => setShowOnboarding(true)}

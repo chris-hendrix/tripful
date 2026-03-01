@@ -28,6 +28,7 @@ export const createInvitationsSchema = z
   })
   .refine((data) => data.phoneNumbers.length > 0 || data.userIds.length > 0, {
     message: "At least one phone number or user ID is required",
+    path: ["phoneNumbers"],
   });
 
 /**

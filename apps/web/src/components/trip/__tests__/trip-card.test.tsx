@@ -42,6 +42,11 @@ vi.mock("@/hooks/use-trips", () => ({
   usePrefetchTrip: () => mockPrefetch,
 }));
 
+// Mock supportsHover to true so onMouseEnter handlers fire in tests
+vi.mock("@/lib/supports-hover", () => ({
+  supportsHover: true,
+}));
+
 describe("TripCard", () => {
   beforeEach(() => {
     mockPrefetch.mockClear();
@@ -104,7 +109,7 @@ describe("TripCard", () => {
       const badge = screen.getByText("Going");
       expect(badge).toBeDefined();
       expect(badge.className).toContain("bg-black/50");
-      expect(badge.className).toContain("text-emerald-300");
+      expect(badge.className).toContain("text-overlay-success");
     });
 
     it("shows Maybe badge with warning styling for maybe status", () => {
@@ -114,7 +119,7 @@ describe("TripCard", () => {
       const badge = screen.getByText("Maybe");
       expect(badge).toBeDefined();
       expect(badge.className).toContain("bg-black/50");
-      expect(badge.className).toContain("text-amber-300");
+      expect(badge.className).toContain("text-overlay-warning");
     });
 
     it("shows Not Going badge with overlay styling for not_going status", () => {
@@ -123,7 +128,7 @@ describe("TripCard", () => {
 
       const badge = screen.getByText("Not Going");
       expect(badge).toBeDefined();
-      expect(badge.className).toContain("text-neutral-300");
+      expect(badge.className).toContain("text-overlay-muted");
     });
 
     it("does not show RSVP badge for no_response status", () => {
@@ -367,7 +372,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={baseTrip} index={3} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card.style.animationDelay).toBe("300ms");
+      expect(card.style.animationDelay).toBe("240ms");
     });
 
     it("defaults to 0ms delay when index not provided", () => {
@@ -414,7 +419,7 @@ describe("TripCard", () => {
       const { container } = render(<TripCard trip={baseTrip} />);
 
       const card = container.firstChild as HTMLElement;
-      expect(card.className).toContain("hover:shadow-md");
+      expect(card.className).toContain("hover:shadow-lg");
       expect(card.className).toContain("motion-safe:active:scale-[0.98]");
       expect(card.className).toContain("transition-all");
     });
@@ -424,9 +429,9 @@ describe("TripCard", () => {
 
       const card = container.firstChild as HTMLElement;
       expect(card.className).toContain(
-        "motion-safe:animate-[slideUp_500ms_ease-out_both]",
+        "motion-safe:animate-[staggerIn_500ms_ease-out_both]",
       );
-      expect(card.className).toContain("motion-safe:hover:-translate-y-0.5");
+      expect(card.className).toContain("motion-safe:hover:-translate-y-1");
     });
   });
 });

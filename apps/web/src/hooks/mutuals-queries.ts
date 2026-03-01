@@ -67,5 +67,4 @@ export const mutualSuggestionsQueryOptions = (tripId: string) =>
         { signal },
       );
     },
-    enabled: !!tripId,
   });

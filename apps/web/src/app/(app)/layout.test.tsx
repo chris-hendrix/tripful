@@ -23,6 +23,18 @@ vi.mock("@/components/app-header", () => ({
   AppHeader: () => <header data-testid="app-header">App Header</header>,
 }));
 
+// Mock GlobalMutationIndicator (client component using TanStack Query)
+vi.mock("@/components/global-mutation-indicator", () => ({
+  GlobalMutationIndicator: () => null,
+}));
+
+// Mock QueryErrorBoundaryWrapper (client component using TanStack Query)
+vi.mock("@/components/query-error-boundary-wrapper", () => ({
+  QueryErrorBoundaryWrapper: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 // Import AFTER mocks
 import ProtectedLayout from "./layout";
 

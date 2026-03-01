@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Notification, NotificationType } from "@tripful/shared/types";
+import type {
+  Notification,
+  NotificationType,
+  GetNotificationsResponse,
+} from "@tripful/shared/types";
 
 // Mocks
 const mockPush = vi.fn();
@@ -32,6 +36,14 @@ vi.mock("@/hooks/use-notifications", () => ({
 }));
 
 import { TripNotificationBell } from "../trip-notification-bell";
+
+/** Wrap a flat notification response into InfiniteData shape */
+function wrapNotifications(response: GetNotificationsResponse) {
+  return {
+    pages: [response],
+    pageParams: [undefined],
+  };
+}
 
 function makeNotification(overrides: Partial<Notification> = {}): Notification {
   return {
@@ -126,11 +138,15 @@ describe("TripNotificationBell", () => {
   it("opens dialog when bell is clicked", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification()],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -149,7 +165,8 @@ describe("TripNotificationBell", () => {
   it("shows notification items in dialog", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [
           makeNotification({ title: "New Event", body: "Pool party" }),
           makeNotification({
@@ -159,8 +176,11 @@ describe("TripNotificationBell", () => {
           }),
         ],
         unreadCount: 2,
-        meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 2, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -182,11 +202,15 @@ describe("TripNotificationBell", () => {
   it("shows empty state when no notifications", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [],
         unreadCount: 0,
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
-      },
+        meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -205,11 +229,15 @@ describe("TripNotificationBell", () => {
   it("calls markAllAsRead with tripId when clicking mark all as read", async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: null })],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -237,11 +265,15 @@ describe("TripNotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -273,11 +305,15 @@ describe("TripNotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 1,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -306,11 +342,15 @@ describe("TripNotificationBell", () => {
     });
 
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [notification],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 
@@ -334,11 +374,15 @@ describe("TripNotificationBell", () => {
   it('does not show "Mark all as read" when all are read', async () => {
     const user = userEvent.setup();
     mockUseNotifications.mockReturnValue({
-      data: {
+      data: wrapNotifications({
+        success: true,
         notifications: [makeNotification({ readAt: "2026-01-01T00:00:00Z" })],
         unreadCount: 0,
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
-      },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+      }),
+      hasNextPage: false,
+      fetchNextPage: () => {},
+      isFetchingNextPage: false,
       isLoading: false,
     });
 

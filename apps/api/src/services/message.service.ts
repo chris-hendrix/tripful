@@ -5,7 +5,18 @@ import {
   trips,
   mutedMembers,
 } from "@/db/schema/index.js";
-import { eq, and, isNull, count, desc, sql, inArray, gte } from "drizzle-orm";
+import {
+  eq,
+  and,
+  isNull,
+  count,
+  desc,
+  sql,
+  inArray,
+  gte,
+  lt,
+  or,
+} from "drizzle-orm";
 import type { CreateMessageInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -25,6 +36,13 @@ import {
   CannotMuteOrganizerError,
   DailyMessageLimitError,
 } from "../errors.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const timestampCursorSchema = z.object({
+  id: z.string(),
+  createdAt: z.string(),
+});
 
 /**
  * Internal result types for message service responses.
@@ -71,11 +89,16 @@ export interface IMessageService {
   getMessages(
     tripId: string,
     userId: string,
-    page: number,
+    cursor: string | undefined,
     limit: number,
   ): Promise<{
     data: MessageWithRepliesResult[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
+    meta: {
+      total: number;
+      limit: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+    };
   }>;
   getMessageCount(tripId: string): Promise<number>;
   getLatestMessage(
@@ -133,16 +156,21 @@ export class MessageService implements IMessageService {
   ) {}
 
   /**
-   * Gets paginated top-level messages for a trip with replies and reactions
+   * Gets cursor-paginated top-level messages for a trip with replies and reactions
    */
   async getMessages(
     tripId: string,
     userId: string,
-    page: number,
+    cursor: string | undefined,
     limit: number,
   ): Promise<{
     data: MessageWithRepliesResult[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
+    meta: {
+      total: number;
+      limit: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+    };
   }> {
     const canView = await this.permissionsService.canViewMessages(
       userId,
@@ -166,10 +194,31 @@ export class MessageService implements IMessageService {
         ),
       );
     const total = totalResult?.value ?? 0;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const offset = (page - 1) * limit;
 
-    // Query top-level messages with author info
+    // Build cursor WHERE conditions for keyset pagination (createdAt DESC, id DESC)
+    // NOTE: We intentionally do NOT filter out soft-deleted messages here.
+    // Soft-deleted messages are returned as placeholders (empty content, deletedAt set)
+    // so the UI can display "This message was deleted" in place.
+    const baseConditions = [
+      eq(messages.tripId, tripId),
+      isNull(messages.parentId),
+    ];
+    if (cursor) {
+      const decoded = decodeCursorAs(cursor, timestampCursorSchema);
+      const cursorCreatedAt = new Date(decoded.createdAt);
+      const cursorId = decoded.id;
+      baseConditions.push(
+        or(
+          lt(messages.createdAt, cursorCreatedAt),
+          and(
+            eq(messages.createdAt, cursorCreatedAt),
+            lt(messages.id, cursorId),
+          ),
+        )!,
+      );
+    }
+
+    // Query top-level messages with author info (fetch limit+1)
     const topLevelRows = await this.db
       .select({
         message: messages,
@@ -179,23 +228,37 @@ export class MessageService implements IMessageService {
       })
       .from(messages)
       .leftJoin(users, eq(messages.authorId, users.id))
-      .where(and(eq(messages.tripId, tripId), isNull(messages.parentId)))
-      .orderBy(desc(messages.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .where(and(...baseConditions))
+      .orderBy(desc(messages.createdAt), desc(messages.id))
+      .limit(limit + 1);
+
+    const hasMore = topLevelRows.length > limit;
+    const pageRows = hasMore ? topLevelRows.slice(0, limit) : topLevelRows;
 
     // Early return for empty results
-    if (topLevelRows.length === 0) {
+    if (pageRows.length === 0) {
       return {
         data: [],
-        meta: { total, page, limit, totalPages },
+        meta: { total, limit, hasMore: false, nextCursor: null },
       };
     }
 
-    // Collect all top-level message IDs
-    const messageIds = topLevelRows.map((r) => r.message.id);
+    // Build next cursor from the last row
+    let nextCursor: string | null = null;
+    if (hasMore) {
+      const lastRow = pageRows[pageRows.length - 1]!;
+      nextCursor = encodeCursor({
+        createdAt: lastRow.message.createdAt.toISOString(),
+        id: lastRow.message.id,
+      });
+    }
 
-    // Batch fetch ALL non-deleted replies for all top-level messages
+    // Collect all top-level message IDs
+    const messageIds = pageRows.map((r) => r.message.id);
+
+    // Batch fetch ALL replies for all top-level messages (including soft-deleted)
+    // Soft-deleted replies are returned as placeholders so the UI can show
+    // "This message was deleted" in place.
     const allReplyRows = await this.db
       .select({
         message: messages,
@@ -205,9 +268,7 @@ export class MessageService implements IMessageService {
       })
       .from(messages)
       .leftJoin(users, eq(messages.authorId, users.id))
-      .where(
-        and(inArray(messages.parentId, messageIds), isNull(messages.deletedAt)),
-      )
+      .where(and(inArray(messages.parentId, messageIds)))
       .orderBy(desc(messages.createdAt));
 
     // Group replies by parentId and compute counts
@@ -269,7 +330,7 @@ export class MessageService implements IMessageService {
     }
 
     // Assemble results using Map lookups
-    const data: MessageWithRepliesResult[] = topLevelRows.map((row) => {
+    const data: MessageWithRepliesResult[] = pageRows.map((row) => {
       const reactions = reactionsByMessage.get(row.message.id) ?? [];
       const replyCount = replyCountByParent.get(row.message.id) ?? 0;
 
@@ -297,7 +358,7 @@ export class MessageService implements IMessageService {
 
     return {
       data,
-      meta: { total, page, limit, totalPages },
+      meta: { total, limit, hasMore, nextCursor },
     };
   }
 

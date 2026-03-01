@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "./providers/providers";
-import { playfairDisplay, plusJakartaSans } from "@/lib/fonts";
+import { playfairDisplay, plusJakartaSans, spaceGrotesk } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { SkipLink } from "@/components/skip-link";
 
@@ -61,7 +61,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(playfairDisplay.variable, plusJakartaSans.variable)}
+      className={cn(playfairDisplay.variable, plusJakartaSans.variable, spaceGrotesk.variable)}
     >
       <body className="antialiased">
         <noscript>

@@ -23,13 +23,12 @@ interface NotificationDropdownProps {
 export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data, isLoading } = useNotifications({ limit: 10 });
+  const { data, isLoading, hasNextPage } = useNotifications();
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
 
-  const notifications = data?.notifications ?? [];
-  const totalCount = data?.meta?.total ?? 0;
-  const hasMore = notifications.length < totalCount;
+  const notifications = data?.pages.flatMap((p) => p.notifications) ?? [];
+  const hasMore = hasNextPage ?? false;
   const hasUnread = useMemo(
     () => notifications.some((n) => n.readAt === null),
     [notifications],

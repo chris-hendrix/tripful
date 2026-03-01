@@ -1,5 +1,6 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
+import { sql } from "drizzle-orm";
 import {
   QUEUE,
   type WorkerDeps,
@@ -11,6 +12,7 @@ import { handleNotificationDeliver } from "./workers/notification-deliver.worker
 import { handleInvitationSend } from "./workers/invitation-send.worker.js";
 import { handleNotificationBatch } from "./workers/notification-batch.worker.js";
 import { handleDailyItineraries } from "./workers/daily-itineraries.worker.js";
+import { handleDlq } from "./workers/dlq.worker.js";
 
 /**
  * Queue workers plugin
@@ -57,11 +59,23 @@ export default fp(
       deleteAfterSeconds: 604800,
     });
 
+    await boss.createQueue(QUEUE.NOTIFICATION_BATCH_DLQ);
     await boss.createQueue(QUEUE.NOTIFICATION_BATCH, {
+      retryLimit: 3,
+      retryDelay: 10,
+      retryBackoff: true,
+      expireInSeconds: 300,
+      deadLetter: QUEUE.NOTIFICATION_BATCH_DLQ,
       deleteAfterSeconds: 3600,
     });
 
+    await boss.createQueue(QUEUE.DAILY_ITINERARIES_DLQ);
     await boss.createQueue(QUEUE.DAILY_ITINERARIES, {
+      retryLimit: 2,
+      retryDelay: 30,
+      retryBackoff: true,
+      expireInSeconds: 600,
+      deadLetter: QUEUE.DAILY_ITINERARIES_DLQ,
       deleteAfterSeconds: 3600,
     });
 
@@ -110,6 +124,65 @@ export default fp(
         await handleDailyItineraries(jobs[0]!, deps);
       },
     );
+
+    // --- DLQ workers ---
+
+    await boss.work<unknown>(QUEUE.NOTIFICATION_DELIVER_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.INVITATION_SEND_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.NOTIFICATION_BATCH_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    await boss.work<unknown>(QUEUE.DAILY_ITINERARIES_DLQ, async (jobs) => {
+      await handleDlq(jobs[0]!, deps);
+    });
+
+    // --- Cleanup queues ---
+
+    // Rate limit cleanup (hourly)
+    await boss.createQueue(QUEUE.RATE_LIMIT_CLEANUP);
+    await boss.schedule(QUEUE.RATE_LIMIT_CLEANUP, "0 * * * *");
+    await boss.work(QUEUE.RATE_LIMIT_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM rate_limit_entries WHERE expires_at < now()
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "rate-limit cleanup completed",
+      );
+    });
+
+    // Auth attempts cleanup (hourly)
+    await boss.createQueue(QUEUE.AUTH_ATTEMPTS_CLEANUP);
+    await boss.schedule(QUEUE.AUTH_ATTEMPTS_CLEANUP, "0 * * * *");
+    await boss.work(QUEUE.AUTH_ATTEMPTS_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM auth_attempts WHERE last_failed_at < now() - interval '24 hours'
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "auth-attempts cleanup completed",
+      );
+    });
+
+    // Token blacklist cleanup (daily at 3am)
+    await boss.createQueue(QUEUE.TOKEN_BLACKLIST_CLEANUP);
+    await boss.schedule(QUEUE.TOKEN_BLACKLIST_CLEANUP, "0 3 * * *");
+    await boss.work(QUEUE.TOKEN_BLACKLIST_CLEANUP, async () => {
+      const result = await fastify.db.execute(sql`
+        DELETE FROM blacklisted_tokens WHERE expires_at < now()
+      `);
+      fastify.log.info(
+        { deleted: result.rowCount },
+        "token-blacklist cleanup completed",
+      );
+    });
 
     fastify.log.info("queue workers registered");
   },

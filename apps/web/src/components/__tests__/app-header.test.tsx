@@ -15,6 +15,27 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+// Mock profile dialog (uses QueryClient internally)
+vi.mock("@/components/profile/profile-dialog", () => ({
+  ProfileDialog: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div data-testid="profile-dialog" onClick={() => onOpenChange(false)}>
+        Profile Dialog Mock
+      </div>
+    ) : null,
+}));
+
+// Mock supportsHover to true so onMouseEnter handlers fire in tests
+vi.mock("@/lib/supports-hover", () => ({
+  supportsHover: true,
+}));
+
 // Mock notification hooks
 vi.mock("@/hooks/use-notifications", () => ({
   useUnreadCount: () => ({ data: 0, isLoading: false }),
@@ -105,7 +126,9 @@ describe("AppHeader", () => {
   it("renders user initials in avatar fallback", () => {
     render(<AppHeader />);
 
-    expect(screen.getByText("JD")).toBeDefined();
+    // There are multiple avatar fallbacks (desktop dropdown + mobile menu)
+    const initials = screen.getAllByText("JD");
+    expect(initials.length).toBeGreaterThan(0);
   });
 
   it("renders single initial for single-name user", () => {
@@ -117,7 +140,8 @@ describe("AppHeader", () => {
 
     render(<AppHeader />);
 
-    expect(screen.getByText("A")).toBeDefined();
+    const initials = screen.getAllByText("A");
+    expect(initials.length).toBeGreaterThan(0);
   });
 
   it("renders ? when user is null", () => {
@@ -129,7 +153,8 @@ describe("AppHeader", () => {
 
     render(<AppHeader />);
 
-    expect(screen.getByText("?")).toBeDefined();
+    const fallbacks = screen.getAllByText("?");
+    expect(fallbacks.length).toBeGreaterThan(0);
   });
 
   it("opens dropdown menu when avatar is clicked", async () => {
@@ -140,7 +165,7 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("John Doe")).toBeDefined();
+      expect(screen.getByTestId("profile-menu-item")).toBeDefined();
       expect(screen.getByText("Log out")).toBeDefined();
     });
   });
@@ -153,9 +178,14 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("John Doe")).toBeDefined();
-      expect(screen.getByText("+15551234567")).toBeDefined();
+      expect(screen.getByTestId("profile-menu-item")).toBeDefined();
     });
+
+    // Display name appears in both mobile menu and dropdown, phone in both too
+    const displayNames = screen.getAllByText("John Doe");
+    expect(displayNames.length).toBeGreaterThan(0);
+    const phones = screen.getAllByText("+15551234567");
+    expect(phones.length).toBeGreaterThan(0);
   });
 
   it("calls logout when Log out is clicked", async () => {
@@ -166,11 +196,13 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Log out")).toBeDefined();
+      expect(screen.getByTestId("profile-menu-item")).toBeDefined();
     });
 
-    const logoutItem = screen.getByText("Log out");
-    await user.click(logoutItem);
+    // Find the dropdown "Log out" specifically (not the mobile menu one)
+    const logoutItems = screen.getAllByText("Log out");
+    // The dropdown one is the last rendered
+    await user.click(logoutItems[logoutItems.length - 1]);
 
     expect(mockLogout).toHaveBeenCalledOnce();
   });
@@ -183,7 +215,7 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("My Mutuals")).toBeDefined();
+      expect(screen.getByTestId("mutuals-menu-item")).toBeDefined();
     });
   });
 
@@ -195,10 +227,115 @@ describe("AppHeader", () => {
     await user.click(avatarButton);
 
     await waitFor(() => {
-      expect(screen.getByText("My Mutuals")).toBeDefined();
+      expect(screen.getByTestId("mutuals-menu-item")).toBeDefined();
     });
 
-    const mutualsLink = screen.getByText("My Mutuals").closest("a");
+    const mutualsLink = screen.getByTestId("mutuals-menu-item").closest("a");
     expect(mutualsLink?.getAttribute("href")).toBe("/mutuals");
+  });
+
+  // Mobile menu tests
+
+  it("renders hamburger menu button on mobile", () => {
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    expect(hamburger).toBeDefined();
+    expect(hamburger.className).toContain("md:hidden");
+  });
+
+  it("hides desktop dropdown on mobile", () => {
+    render(<AppHeader />);
+
+    const userMenuButton = screen.getByRole("button", { name: "User menu" });
+    expect(userMenuButton.className).toContain("hidden");
+    expect(userMenuButton.className).toContain("md:flex");
+  });
+
+  it("opens mobile menu sheet when hamburger is tapped", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    await user.click(hamburger);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mobile-menu-trips-link")).toBeDefined();
+      expect(screen.getByTestId("mobile-menu-mutuals-link")).toBeDefined();
+    });
+  });
+
+  it("shows navigation links in mobile menu", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    await user.click(hamburger);
+
+    await waitFor(() => {
+      const tripsLink = screen.getByTestId("mobile-menu-trips-link");
+      expect(tripsLink).toBeDefined();
+      expect(tripsLink.textContent).toContain("My Trips");
+      expect(tripsLink.getAttribute("href")).toBe("/trips");
+
+      const mutualsLink = screen.getByTestId("mobile-menu-mutuals-link");
+      expect(mutualsLink).toBeDefined();
+      expect(mutualsLink.textContent).toContain("My Mutuals");
+      expect(mutualsLink.getAttribute("href")).toBe("/mutuals");
+    });
+  });
+
+  it("shows user info in mobile menu", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    await user.click(hamburger);
+
+    await waitFor(() => {
+      const userInfo = screen.getByTestId("mobile-menu-user-info");
+      expect(userInfo).toBeDefined();
+      expect(userInfo.textContent).toContain("John Doe");
+      expect(userInfo.textContent).toContain("+15551234567");
+    });
+  });
+
+  it("closes mobile menu when a link is clicked", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    await user.click(hamburger);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mobile-menu-trips-link")).toBeDefined();
+    });
+
+    const tripsLink = screen.getByTestId("mobile-menu-trips-link");
+    await user.click(tripsLink);
+
+    await waitFor(() => {
+      // Sheet content should be removed from DOM after closing animation
+      expect(
+        screen.queryByTestId("mobile-menu-trips-link"),
+      ).toBeNull();
+    });
+  });
+
+  it("calls logout from mobile menu", async () => {
+    const user = userEvent.setup();
+    render(<AppHeader />);
+
+    const hamburger = screen.getByRole("button", { name: "Open menu" });
+    await user.click(hamburger);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("mobile-menu-logout-button")).toBeDefined();
+    });
+
+    const logoutButton = screen.getByTestId("mobile-menu-logout-button");
+    await user.click(logoutButton);
+
+    expect(mockLogout).toHaveBeenCalledOnce();
   });
 });

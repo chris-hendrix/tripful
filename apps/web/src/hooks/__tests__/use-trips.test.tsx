@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import {
   useTrips,
@@ -13,6 +17,7 @@ import {
 } from "../use-trips";
 import { APIError } from "@/lib/api";
 import type { CreateTripInput } from "@tripful/shared/schemas";
+import type { GetTripsResponse } from "@tripful/shared/types";
 
 // Mock the API module
 vi.mock("@/lib/api", () => ({
@@ -101,8 +106,10 @@ describe("useTrips", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     queryClient.clear();
+    // Flush pending async operations (e.g., onSettled invalidateQueries)
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   describe("successful trips fetch", () => {
@@ -111,7 +118,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -125,13 +132,14 @@ describe("useTrips", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      // Verify data is correct
-      expect(result.current.data).toEqual(mockTrips);
+      // Verify data is correct (InfiniteData shape)
+      const trips = result.current.data?.pages.flatMap((p) => p.data) ?? [];
+      expect(trips).toEqual(mockTrips);
       expect(result.current.error).toBe(null);
 
       // Verify API was called correctly
       expect(apiRequest).toHaveBeenCalledWith(
-        "/trips",
+        expect.stringContaining("/trips"),
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
@@ -141,7 +149,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: [],
-        meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+        meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -150,22 +158,25 @@ describe("useTrips", () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data).toEqual([]);
+      const trips = result.current.data?.pages.flatMap((p) => p.data) ?? [];
+      expect(trips).toEqual([]);
     });
 
     it("uses correct query key for caching", async () => {
       const { apiRequest } = await import("@/lib/api");
-      vi.mocked(apiRequest).mockResolvedValueOnce({
-        success: true,
+      const mockResponse = {
+        success: true as const,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
-      });
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
+      };
+      vi.mocked(apiRequest).mockResolvedValueOnce(mockResponse);
 
       renderHook(() => useTrips(), { wrapper });
 
       await waitFor(() => {
-        const cachedData = queryClient.getQueryData(["trips"]);
-        expect(cachedData).toEqual(mockTrips);
+        const cachedData =
+          queryClient.getQueryData<InfiniteData<GetTripsResponse>>(["trips"]);
+        expect(cachedData?.pages[0]?.data).toEqual(mockTrips);
       });
     });
   });
@@ -207,7 +218,7 @@ describe("useTrips", () => {
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: mockTrips,
-        meta: { total: mockTrips.length, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: mockTrips.length, limit: 20, hasMore: false, nextCursor: null },
       });
 
       const { result } = renderHook(() => useTrips(), { wrapper });
@@ -217,13 +228,15 @@ describe("useTrips", () => {
       });
 
       // Verify initial data
-      expect(result.current.data).toEqual(mockTrips);
+      const initialTrips =
+        result.current.data?.pages.flatMap((p) => p.data) ?? [];
+      expect(initialTrips).toEqual(mockTrips);
 
       // Mock a different response for refetch
       vi.mocked(apiRequest).mockResolvedValueOnce({
         success: true,
         data: [mockTrips[0]],
-        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+        meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
       });
 
       // Trigger refetch
@@ -232,13 +245,17 @@ describe("useTrips", () => {
       // Wait for refetch to complete and data to update
       await waitFor(
         () => {
-          expect(result.current.data?.length).toBe(1);
+          const trips =
+            result.current.data?.pages.flatMap((p) => p.data) ?? [];
+          expect(trips.length).toBe(1);
         },
         { timeout: 3000 },
       );
 
       // Verify updated data
-      expect(result.current.data).toEqual([mockTrips[0]]);
+      const updatedTrips =
+        result.current.data?.pages.flatMap((p) => p.data) ?? [];
+      expect(updatedTrips).toEqual([mockTrips[0]]);
 
       // Verify API was called twice
       expect(apiRequest).toHaveBeenCalledTimes(2);
@@ -304,8 +321,10 @@ describe("useCreateTrip", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     queryClient.clear();
+    // Flush pending async operations (e.g., onSettled invalidateQueries)
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   describe("successful trip creation", () => {
@@ -367,8 +386,17 @@ describe("useCreateTrip", () => {
         trip: mockTripResponse,
       });
 
-      // Set initial query data
-      queryClient.setQueryData(["trips"], []);
+      // Set initial query data (InfiniteData shape)
+      queryClient.setQueryData(["trips"], {
+        pages: [
+          {
+            success: true,
+            data: [],
+            meta: { total: 0, limit: 20, hasMore: false, nextCursor: null },
+          },
+        ],
+        pageParams: [undefined],
+      });
 
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -404,7 +432,7 @@ describe("useCreateTrip", () => {
           }),
       );
 
-      // Set initial query data with existing trips
+      // Set initial query data with existing trips (InfiniteData shape)
       const existingTrip: Trip = {
         id: "existing-trip",
         name: "Existing Trip",
@@ -420,7 +448,16 @@ describe("useCreateTrip", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["trips"], [existingTrip]);
+      queryClient.setQueryData(["trips"], {
+        pages: [
+          {
+            success: true,
+            data: [existingTrip],
+            meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+          },
+        ],
+        pageParams: [undefined],
+      });
 
       const { result } = renderHook(() => useCreateTrip(), { wrapper });
 
@@ -428,11 +465,13 @@ describe("useCreateTrip", () => {
 
       // Check cache was updated optimistically (before API resolves)
       await waitFor(() => {
-        const cachedTrips = queryClient.getQueryData<Trip[]>(["trips"]);
+        const cachedData =
+          queryClient.getQueryData<InfiniteData<GetTripsResponse>>(["trips"]);
+        const cachedTrips = cachedData?.pages.flatMap((p) => p.data) ?? [];
         expect(cachedTrips).toHaveLength(2);
-        expect(cachedTrips![0].id).toMatch(/^temp-/); // Temporary ID
-        expect(cachedTrips![0].name).toBe(mockTripInput.name);
-        expect(cachedTrips![1]).toEqual(existingTrip);
+        expect(cachedTrips[0].id).toMatch(/^temp-/); // Temporary ID
+        expect(cachedTrips[0].name).toBe(mockTripInput.name);
+        expect(cachedTrips[1]).toEqual(existingTrip);
       });
     });
 
@@ -484,7 +523,7 @@ describe("useCreateTrip", () => {
       const apiError = new APIError("VALIDATION_ERROR", "Invalid request data");
       vi.mocked(apiRequest).mockRejectedValueOnce(apiError);
 
-      // Set initial query data
+      // Set initial query data (InfiniteData shape)
       const existingTrip: Trip = {
         id: "existing-trip",
         name: "Existing Trip",
@@ -500,7 +539,17 @@ describe("useCreateTrip", () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      queryClient.setQueryData(["trips"], [existingTrip]);
+      const initialData = {
+        pages: [
+          {
+            success: true as const,
+            data: [existingTrip],
+            meta: { total: 1, limit: 20, hasMore: false, nextCursor: null },
+          },
+        ],
+        pageParams: [undefined],
+      };
+      queryClient.setQueryData(["trips"], initialData);
 
       const { result } = renderHook(() => useCreateTrip(), { wrapper });
 
@@ -511,8 +560,9 @@ describe("useCreateTrip", () => {
       });
 
       // Verify cache was rolled back to original state
-      const cachedTrips = queryClient.getQueryData<Trip[]>(["trips"]);
-      expect(cachedTrips).toEqual([existingTrip]);
+      const cachedData =
+        queryClient.getQueryData<InfiniteData<GetTripsResponse>>(["trips"]);
+      expect(cachedData).toEqual(initialData);
     });
 
     it("handles network errors", async () => {
@@ -654,8 +704,10 @@ describe("useTripDetail", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     queryClient.clear();
+    // Flush pending async operations (e.g., onSettled invalidateQueries)
+    await new Promise((r) => setTimeout(r, 0));
   });
 
   describe("successful trip detail fetch", () => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
@@ -9,6 +10,9 @@ import { CreateTripDialog } from "@/components/trip/create-trip-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMounted } from "@/hooks/use-mounted";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { TopoPattern } from "@/components/ui/topo-pattern";
 
 function SkeletonCard() {
   return (
@@ -43,11 +47,29 @@ export function TripsContent() {
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const mounted = useMounted();
+  const { ref: upcomingSectionRef, isRevealed: upcomingRevealed } =
+    useScrollReveal();
+  const { ref: pastSectionRef, isRevealed: pastRevealed } = useScrollReveal();
+
+  // Refs for values used inside the debounced effect to avoid unnecessary re-fires
+  const searchParamsRef = useRef(searchParams);
+  const routerRef = useRef(router);
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   // Sync search query to URL with debounce
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParamsRef.current.toString());
       if (searchQuery) {
         params.set("q", searchQuery);
       } else {
@@ -55,23 +77,29 @@ export function TripsContent() {
       }
       const queryString = params.toString();
       // Only replace URL if the query string actually changed
-      if (queryString !== searchParams.toString()) {
-        router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-          scroll: false,
-        });
+      if (queryString !== searchParamsRef.current.toString()) {
+        const path = pathnameRef.current;
+        routerRef.current.replace(
+          queryString ? `${path}?${queryString}` : path,
+          {
+            scroll: false,
+          },
+        );
       }
     }, 300);
     return () => clearTimeout(timeout);
-  }, [searchQuery, router, searchParams, pathname]);
+  }, [searchQuery]);
 
   const {
-    data: trips = [],
+    data,
     isPending,
     isError,
     error,
     refetch,
     isFetching,
   } = useTrips();
+
+  const trips = data?.pages.flatMap((p) => p.data) ?? [];
 
   // Filter trips by search query (case-insensitive, searches name and destination)
   const filteredTrips = useMemo(() => {
@@ -106,13 +134,13 @@ export function TripsContent() {
     return { upcomingTrips: upcoming, pastTrips: past };
   }, [filteredTrips]);
 
-  const tripCount = trips.length;
+  const tripCount = data?.pages[0]?.meta?.total ?? trips.length;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const noResults = filteredTrips.length === 0 && hasSearchQuery;
   const isEmpty = trips.length === 0 && !isPending;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both] gradient-mesh">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -151,7 +179,7 @@ export function TripsContent() {
         {isError && (
           <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
               Failed to load trips
             </h2>
             <p className="text-muted-foreground mb-6">
@@ -171,9 +199,10 @@ export function TripsContent() {
 
         {/* Empty State (no trips at all) */}
         {isEmpty && (
-          <div className="bg-card rounded-2xl border border-border p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-12 text-center card-noise">
+            <TopoPattern />
+            <div className="relative max-w-md mx-auto">
+              <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
                 No trips yet
               </h2>
               <p className="text-muted-foreground mb-6">
@@ -193,14 +222,17 @@ export function TripsContent() {
 
         {/* No Search Results */}
         {noResults && (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center">
-            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
-              No trips found
-            </h2>
-            <p className="text-muted-foreground">
-              Try searching with different keywords
-            </p>
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-8 text-center card-noise">
+            <TopoPattern />
+            <div className="relative">
+              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2 font-accent">
+                No trips found
+              </h2>
+              <p className="text-muted-foreground">
+                Try searching with different keywords
+              </p>
+            </div>
           </div>
         )}
 
@@ -209,13 +241,27 @@ export function TripsContent() {
           <div aria-live="polite">
             {/* Upcoming Trips */}
             {upcomingTrips.length > 0 && (
-              <section className="mb-12">
+              <section
+                ref={
+                  upcomingSectionRef as RefObject<HTMLElement>
+                }
+                className={`mb-12 ${upcomingRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+              >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Upcoming trips
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {upcomingTrips.map((trip, index) => (
-                    <TripCard key={trip.id} trip={trip} index={index} />
+                    <div
+                      key={trip.id}
+                      className={index === 0 ? "lg:row-span-2" : ""}
+                    >
+                      <TripCard
+                        trip={trip}
+                        index={index}
+                        className={index === 0 ? "lg:h-full" : ""}
+                      />
+                    </div>
                   ))}
                 </div>
               </section>
@@ -223,7 +269,12 @@ export function TripsContent() {
 
             {/* Past Trips */}
             {pastTrips.length > 0 && (
-              <section>
+              <section
+                ref={
+                  pastSectionRef as RefObject<HTMLElement>
+                }
+                className={pastRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}
+              >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-[family-name:var(--font-playfair)]">
                   Past trips
                 </h2>
@@ -238,16 +289,20 @@ export function TripsContent() {
         )}
       </div>
 
-      {/* Floating Action Button (FAB) */}
-      <Button
-        onClick={() => setCreateDialogOpen(true)}
-        variant="gradient"
-        size="icon"
-        className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
-        aria-label="Create new trip"
-      >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </Button>
+      {/* Floating Action Button (FAB) — portaled to body to escape ancestor transforms that break position:fixed */}
+      {mounted &&
+        createPortal(
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            variant="gradient"
+            size="icon"
+            className="fixed bottom-safe-6 right-6 sm:bottom-safe-8 sm:right-8 w-14 h-14 rounded-full z-50"
+            aria-label="Create new trip"
+          >
+            <Plus className="w-6 h-6" strokeWidth={2.5} />
+          </Button>,
+          document.body,
+        )}
 
       {/* Create Trip Dialog */}
       <CreateTripDialog

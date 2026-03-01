@@ -148,7 +148,7 @@ export function MessageInput({
                   className={cn(
                     content.length >= CHAR_COUNT_WARNING &&
                       content.length < MAX_LENGTH &&
-                      "text-amber-600",
+                      "text-warning",
                     content.length >= MAX_LENGTH && "text-destructive",
                   )}
                 >

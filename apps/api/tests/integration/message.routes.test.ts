@@ -388,7 +388,7 @@ describe("Message Routes", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: `/api/trips/${trip.id}/messages?page=1&limit=2`,
+        url: `/api/trips/${trip.id}/messages?limit=2`,
         cookies: { auth_token: token },
       });
 
@@ -401,10 +401,10 @@ describe("Message Routes", () => {
       expect(body).toHaveProperty("meta");
       expect(body.meta).toMatchObject({
         total: 3,
-        page: 1,
         limit: 2,
-        totalPages: 2,
+        hasMore: true,
       });
+      expect(body.meta.nextCursor).toBeDefined();
     });
 
     it("should return empty list when no messages with 200", async () => {

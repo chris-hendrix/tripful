@@ -391,7 +391,8 @@ describe("CreateEventDialog", () => {
       );
 
       const linkInput = screen.getByLabelText(/link url/i);
-      await user.type(linkInput, "https://example.com");
+      await user.click(linkInput);
+      await user.paste("https://example.com");
 
       const addButton = screen.getByRole("button", { name: /add link/i });
       await user.click(addButton);

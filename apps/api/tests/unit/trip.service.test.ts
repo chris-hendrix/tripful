@@ -591,7 +591,8 @@ describe("trip.service", () => {
       expect(results.data).toHaveLength(0);
       expect(Array.isArray(results.data)).toBe(true);
       expect(results.meta.total).toBe(0);
-      expect(results.meta.totalPages).toBe(0);
+      expect(results.meta.hasMore).toBe(false);
+      expect(results.meta.nextCursor).toBeNull();
     });
 
     it("should return trip summary with all required fields", async () => {

@@ -1,4 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
+import { fillPhoneInput } from "../phone-input";
 
 export class LoginPage {
   readonly page: Page;
@@ -38,7 +39,7 @@ export class LoginPage {
   }
 
   async login(phone: string) {
-    await this.phoneInput.fill(phone);
+    await fillPhoneInput(this.phoneInput, phone);
     await this.continueButton.click();
     await this.page.waitForURL("**/verify**");
     await this.codeInput.fill("123456");

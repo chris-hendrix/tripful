@@ -629,7 +629,7 @@ describe("message.service", () => {
       const result = await messageService.getMessages(
         testTripId,
         testMemberId,
-        1,
+        undefined,
         20,
       );
 
@@ -640,9 +640,9 @@ describe("message.service", () => {
       expect(result.data[0].reactions).toHaveLength(1);
       expect(result.data[0].reactions[0].emoji).toBe("heart");
       expect(result.meta.total).toBe(1);
-      expect(result.meta.page).toBe(1);
       expect(result.meta.limit).toBe(20);
-      expect(result.meta.totalPages).toBe(1);
+      expect(result.meta.hasMore).toBe(false);
+      expect(result.meta.nextCursor).toBeNull();
     });
 
     it("should include reply count and 2 most recent replies", async () => {
@@ -663,7 +663,7 @@ describe("message.service", () => {
       const result = await messageService.getMessages(
         testTripId,
         testMemberId,
-        1,
+        undefined,
         20,
       );
 
@@ -697,7 +697,7 @@ describe("message.service", () => {
         const result = await messageService.getMessages(
           emptyTripId,
           testMemberId,
-          1,
+          undefined,
           20,
         );
 
@@ -711,8 +711,31 @@ describe("message.service", () => {
 
     it("should throw PermissionDeniedError for non-member", async () => {
       await expect(
-        messageService.getMessages(testTripId, testNonMemberId, 1, 20),
+        messageService.getMessages(testTripId, testNonMemberId, undefined, 20),
       ).rejects.toThrow(PermissionDeniedError);
+    });
+
+    it("should return soft-deleted messages as placeholders", async () => {
+      await messageService.deleteMessage(
+        testMessageId,
+        testOrganizerId,
+        testTripId,
+      );
+
+      const result = await messageService.getMessages(
+        testTripId,
+        testOrganizerId,
+        undefined,
+        20,
+      );
+
+      // Soft-deleted messages are still returned so the UI can show
+      // "This message was deleted" placeholder
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].deletedAt).not.toBeNull();
+      expect(result.data[0].content).toBe("");
+      // But they don't count toward the total
+      expect(result.meta.total).toBe(0);
     });
   });
 

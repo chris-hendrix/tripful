@@ -70,7 +70,10 @@ export function useEvents(tripId: string, options?: { enabled?: boolean }) {
  * @returns Query object with data, loading, and error state
  */
 export function useEventsWithDeleted(tripId: string) {
-  return useQuery(eventsWithDeletedQueryOptions(tripId));
+  return useQuery({
+    ...eventsWithDeletedQueryOptions(tripId),
+    enabled: !!tripId,
+  });
 }
 
 /**
@@ -95,7 +98,7 @@ export function useEventsWithDeleted(tripId: string) {
  * ```
  */
 export function useEventDetail(eventId: string) {
-  return useQuery(eventDetailQueryOptions(eventId));
+  return useQuery({ ...eventDetailQueryOptions(eventId), enabled: !!eventId });
 }
 
 /**

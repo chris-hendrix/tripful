@@ -5,6 +5,12 @@ import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDateTime } from "./helpers/date-pickers";
 import { createTrip } from "./helpers/trips";
 import { clickFabAction, createEvent } from "./helpers/itinerary";
+import {
+  NAVIGATION_TIMEOUT,
+  ELEMENT_TIMEOUT,
+  TOAST_TIMEOUT,
+  DIALOG_TIMEOUT,
+} from "./helpers/timeouts";
 
 /**
  * E2E Journey: Itinerary CRUD, View Modes, and Permissions
@@ -23,6 +29,7 @@ test.describe("Itinerary Journey", () => {
     "itinerary CRUD journey",
     { tag: "@smoke" },
     async ({ page, request }) => {
+      test.slow(); // Many date pickers + FAB interactions are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "Itinerary Tester");
       const tripName = `Itinerary Trip ${Date.now()}`;
 
@@ -98,7 +105,7 @@ test.describe("Itinerary Journey", () => {
             hasText: new RegExp(accommodationName.replace(/\d+/g, "\\d+")),
           })
           .first();
-        await expect(accommodationCard).toBeVisible({ timeout: 10000 });
+        await expect(accommodationCard).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
         // Address should be a Google Maps link (scoped to first card instance)
         // Compact view truncates addresses > 20 chars: "123 Main St, San Die…"
@@ -136,11 +143,14 @@ test.describe("Itinerary Journey", () => {
         // Travel card shows member name
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
 
-        // Location should be a Google Maps link
+        // Location should be a Google Maps link (may take extra time on iPhone
+        // as the refetch after travel creation needs to complete with JOIN data).
         const travelLocationLink = page.getByRole("link", {
           name: "San Diego Airport",
         });
-        await expect(travelLocationLink).toBeVisible();
+        await expect(travelLocationLink).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
         await expect(travelLocationLink).toHaveAttribute(
           "href",
           /google\.com\/maps\/search/,
@@ -205,7 +215,7 @@ test.describe("Itinerary Journey", () => {
         }
         await expect(
           page.locator('button[title="Edit event"]').first(),
-        ).toBeVisible({ timeout: 5000 });
+        ).toBeVisible({ timeout: DIALOG_TIMEOUT });
         await page.locator('button[title="Edit event"]').first().click();
         await expect(
           page.getByRole("heading", { name: "Edit event" }),
@@ -227,11 +237,11 @@ test.describe("Itinerary Journey", () => {
 
         // Wait for the delete toast, then reload to ensure fresh state
         await expect(page.getByText("Event deleted")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
         await page.reload();
         await expect(page.getByText(/Updated Dinner/)).not.toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
       });
     },
@@ -241,6 +251,7 @@ test.describe("Itinerary Journey", () => {
     "itinerary view modes",
     { tag: "@regression" },
     async ({ page, request }) => {
+      test.slow(); // Multiple FAB interactions + date pickers are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "View Mode User");
       const tripName = `View Mode Trip ${Date.now()}`;
 
@@ -284,13 +295,14 @@ test.describe("Itinerary Journey", () => {
 
         // Wait for success toast confirming API call completed (refetch follows)
         await expect(page.getByText(/travel details added/i)).toBeVisible({
-          timeout: 10_000,
+          timeout: TOAST_TIMEOUT,
         });
 
         // Travel card shows member name (appears after refetch with JOIN data;
-        // optimistic update lacks memberName so the real name loads on refetch)
+        // optimistic update lacks memberName so the real name loads on refetch).
+        // Use NAVIGATION_TIMEOUT — refetch can be slow on CI after toast + API round-trip.
         await expect(page.getByText(/View Mode User/).first()).toBeVisible({
-          timeout: 10_000,
+          timeout: NAVIGATION_TIMEOUT,
         });
 
         // Location is a Google Maps link
@@ -350,14 +362,20 @@ test.describe("Itinerary Journey", () => {
         await expect(tzTrigger).toBeVisible();
         await expect(tzTrigger).toContainText("Trip");
 
+        // Radix Select on mobile WebKit can be slow to position the listbox.
+        // Wait for the option to be visible before clicking.
         await tzTrigger.click();
-        await page.getByRole("option", { name: /Current/ }).click();
+        const currentOption = page.getByRole("option", { name: /Current/ });
+        await currentOption.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
+        await currentOption.click();
         await expect(tzTrigger).toContainText("Current");
         await expect(page.getByText(/Lunch/)).toBeVisible();
 
         // Switch back to trip timezone
         await tzTrigger.click();
-        await page.getByRole("option", { name: /Trip/ }).click();
+        const tripOption = page.getByRole("option", { name: /Trip/ });
+        await tripOption.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
+        await tripOption.click();
         await expect(tzTrigger).toContainText("Trip");
       });
 
@@ -387,10 +405,15 @@ test.describe("Itinerary Journey", () => {
           page.getByRole("heading", { name: "Create a new event" }),
         ).toBeVisible();
         await page.keyboard.press("Escape");
+        await expect(
+          page.getByRole("heading", { name: "Create a new event" }),
+        ).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
 
         // Restore desktop viewport
         await page.setViewportSize({ width: 1280, height: 720 });
-        await expect(page.getByText(/Lunch/)).toBeVisible();
+        await expect(page.getByText(/Lunch/)).toBeVisible({
+          timeout: ELEMENT_TIMEOUT,
+        });
       });
     },
   );
@@ -399,6 +422,7 @@ test.describe("Itinerary Journey", () => {
     "deleted items and restore",
     { tag: "@regression" },
     async ({ page, request }) => {
+      test.slow(); // Trip creation + event CRUD + dialog interactions are slow on iPhone WebKit
       await authenticateViaAPI(page, request, "Delete Restore User");
       const tripName = `Delete Restore Trip ${Date.now()}`;
       let tripId: string;
@@ -436,7 +460,7 @@ test.describe("Itinerary Journey", () => {
       await test.step("reload and verify event is visible", async () => {
         await page.reload();
         await expect(page.getByText("Dinner at Joe's")).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
       });
 
@@ -454,7 +478,7 @@ test.describe("Itinerary Journey", () => {
         // Click the Edit button, then Delete event in the edit dialog
         await expect(
           page.locator('button[title="Edit event"]').first(),
-        ).toBeVisible({ timeout: 5000 });
+        ).toBeVisible({ timeout: DIALOG_TIMEOUT });
         await page.locator('button[title="Edit event"]').first().click();
         await expect(
           page.getByRole("heading", { name: "Edit event" }),
@@ -467,7 +491,7 @@ test.describe("Itinerary Journey", () => {
 
       await test.step("verify event deleted and toast shown", async () => {
         await expect(page.getByText("Event deleted")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
       });
 
@@ -481,7 +505,7 @@ test.describe("Itinerary Journey", () => {
         const viewDeletedBtn = page.getByRole("button", {
           name: "View deleted items",
         });
-        await expect(viewDeletedBtn).toBeVisible({ timeout: 15000 });
+        await expect(viewDeletedBtn).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
         await viewDeletedBtn.click();
 
         // Verify dialog opens with the deleted event
@@ -499,7 +523,7 @@ test.describe("Itinerary Journey", () => {
         await restoreButton.click();
 
         await expect(page.getByText("Event restored")).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
       });
 
@@ -508,7 +532,7 @@ test.describe("Itinerary Journey", () => {
         await page.keyboard.press("Escape");
 
         await expect(page.getByText("Dinner at Joe's")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
 
         await snap(page, "21-event-restored");

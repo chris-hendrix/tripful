@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppHeader } from "@/components/app-header";
+import { GlobalMutationIndicator } from "@/components/global-mutation-indicator";
+import { QueryErrorBoundaryWrapper } from "@/components/query-error-boundary-wrapper";
 
 export default async function ProtectedLayout({
   children,
@@ -17,12 +19,13 @@ export default async function ProtectedLayout({
 
   return (
     <>
+      <GlobalMutationIndicator />
       <AppHeader />
       <main
         id="main-content"
         className="bg-gradient-to-b from-background via-background to-secondary/30 min-h-screen"
       >
-        {children}
+        <QueryErrorBoundaryWrapper>{children}</QueryErrorBoundaryWrapper>
       </main>
     </>
   );

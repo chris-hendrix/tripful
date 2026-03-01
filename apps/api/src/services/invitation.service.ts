@@ -530,7 +530,11 @@ export class InvitationService implements IInvitationService {
   async revokeInvitation(userId: string, invitationId: string): Promise<void> {
     // Look up invitation
     const [invitation] = await this.db
-      .select()
+      .select({
+        id: invitations.id,
+        tripId: invitations.tripId,
+        inviteePhone: invitations.inviteePhone,
+      })
       .from(invitations)
       .where(eq(invitations.id, invitationId))
       .limit(1);
@@ -592,7 +596,11 @@ export class InvitationService implements IInvitationService {
     // Load target member and trip creator in parallel
     const [memberResult, tripResult] = await Promise.all([
       this.db
-        .select()
+        .select({
+          id: members.id,
+          userId: members.userId,
+          isOrganizer: members.isOrganizer,
+        })
         .from(members)
         .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
         .limit(1),
@@ -903,7 +911,11 @@ export class InvitationService implements IInvitationService {
     // Load target member and trip creator in parallel
     const [memberResult, tripResult] = await Promise.all([
       this.db
-        .select()
+        .select({
+          id: members.id,
+          userId: members.userId,
+          isOrganizer: members.isOrganizer,
+        })
         .from(members)
         .where(and(eq(members.id, memberId), eq(members.tripId, tripId)))
         .limit(1),
@@ -989,7 +1001,7 @@ export class InvitationService implements IInvitationService {
   ): Promise<void> {
     // Find all pending invitations for this phone
     const pendingInvitations = await this.db
-      .select()
+      .select({ id: invitations.id, tripId: invitations.tripId })
       .from(invitations)
       .where(
         and(

@@ -1,5 +1,6 @@
 import type { Page, APIRequestContext } from "@playwright/test";
 import { API_BASE, NAVIGATION_TIMEOUT, ELEMENT_TIMEOUT } from "./timeouts";
+import { fillPhoneInput } from "./phone-input";
 
 let phoneCounter = 0;
 
@@ -55,7 +56,7 @@ export async function loginViaBrowser(
   await page.goto("/login");
 
   const phoneInput = page.getByRole("textbox", { name: /phone/i });
-  await phoneInput.fill(phone);
+  await fillPhoneInput(phoneInput, phone);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");
@@ -133,11 +134,21 @@ export async function authenticateViaAPIWithPhone(
   ]);
   await page.goto("/trips");
   await page.waitForURL("**/trips", { timeout: NAVIGATION_TIMEOUT });
-  // Ensure page is fully interactive — wait for client-rendered user menu
-  // which confirms React hydration and auth context are complete
-  await page
-    .getByRole("button", { name: "User menu" })
-    .waitFor({ timeout: ELEMENT_TIMEOUT });
+  // Ensure page is fully interactive — wait for client-rendered navigation
+  // which confirms React hydration and auth context are complete.
+  // On mobile viewports (< 768px / md breakpoint), the desktop "User menu"
+  // button is hidden and the hamburger menu button is shown instead.
+  const viewportSize = page.viewportSize();
+  const isMobile = viewportSize ? viewportSize.width < 768 : false;
+  if (isMobile) {
+    await page
+      .getByRole("button", { name: "Open menu" })
+      .waitFor({ timeout: ELEMENT_TIMEOUT });
+  } else {
+    await page
+      .getByRole("button", { name: "User menu" })
+      .waitFor({ timeout: ELEMENT_TIMEOUT });
+  }
 }
 
 /**
@@ -166,7 +177,7 @@ export async function authenticateUserViaBrowserWithPhone(
   await page.goto("/login");
 
   const phoneInput = page.getByRole("textbox", { name: /phone/i });
-  await phoneInput.fill(phone);
+  await fillPhoneInput(phoneInput, phone);
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.waitForURL("**/verify**");

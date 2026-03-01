@@ -51,7 +51,7 @@ const mockTripsResponse = {
       eventCount: 0,
     },
   ],
-  meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+  meta: { total: 1, limit: 10, hasMore: false, nextCursor: null },
 };
 
 describe("TripsPage (RSC)", () => {
@@ -66,10 +66,10 @@ describe("TripsPage (RSC)", () => {
     render(result as React.ReactElement);
 
     expect(mockServerApiRequest).toHaveBeenCalledWith("/trips");
-    expect(mockSetQueryData).toHaveBeenCalledWith(
-      ["trips"],
-      mockTripsResponse.data,
-    );
+    expect(mockSetQueryData).toHaveBeenCalledWith(["trips"], {
+      pages: [mockTripsResponse],
+      pageParams: [undefined],
+    });
   });
 
   it("renders HydrationBoundary with TripsContent even when prefetch fails", async () => {

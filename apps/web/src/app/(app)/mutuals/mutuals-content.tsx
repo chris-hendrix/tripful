@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { Search, Users, AlertCircle, Loader2 } from "lucide-react";
 import type { Mutual } from "@tripful/shared/types";
 import { useMutuals } from "@/hooks/use-mutuals";
-import { useTrips } from "@/hooks/use-trips";
+import { tripsQueryOptions } from "@/hooks/use-trips";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { MutualProfileSheet } from "@/components/mutuals/mutual-profile-sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { TopoPattern } from "@/components/ui/topo-pattern";
 
 function MutualCardSkeleton() {
   return (
@@ -40,6 +49,7 @@ export function MutualsContent() {
   const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [selectedMutual, setSelectedMutual] = useState<Mutual | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const { ref: gridRevealRef, isRevealed: gridRevealed } = useScrollReveal();
 
   // Debounce search input by 300ms
   useEffect(() => {
@@ -64,7 +74,11 @@ export function MutualsContent() {
     tripId: selectedTripId || undefined,
   });
 
-  const { data: tripsData } = useTrips();
+  const { data: tripsData } = useInfiniteQuery({
+    ...tripsQueryOptions,
+    select: (data) =>
+      data.pages.flatMap((p) => p.data.map((t) => ({ id: t.id, name: t.name }))),
+  });
 
   // Infinite scroll via IntersectionObserver
   useEffect(() => {
@@ -88,7 +102,7 @@ export function MutualsContent() {
   const mutualCount = mutuals.length;
 
   return (
-    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[fadeIn_500ms_ease-out]">
+    <div className="min-h-screen bg-background pb-24 motion-safe:animate-[revealUp_400ms_ease-out_both] gradient-mesh">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -152,7 +166,7 @@ export function MutualsContent() {
         {isError && (
           <div className="bg-card rounded-2xl border border-destructive/30 p-8 text-center">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+            <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
               Failed to load mutuals
             </h2>
             <p className="text-muted-foreground mb-6">
@@ -172,10 +186,11 @@ export function MutualsContent() {
 
         {/* Empty State */}
         {isEmpty && (
-          <div className="bg-card rounded-2xl border border-border p-12 text-center">
-            <div className="max-w-md mx-auto">
+          <div className="relative overflow-hidden bg-card rounded-2xl border border-border p-12 text-center card-noise">
+            <TopoPattern />
+            <div className="relative max-w-md mx-auto">
               <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-              <h2 className="text-2xl font-semibold text-foreground mb-2 font-[family-name:var(--font-playfair)]">
+              <h2 className="text-2xl font-semibold text-foreground mb-2 font-accent">
                 No mutuals yet
               </h2>
               <p className="text-muted-foreground">
@@ -189,15 +204,21 @@ export function MutualsContent() {
         {/* Mutuals Grid */}
         {!isPending && !isError && mutuals.length > 0 && (
           <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            ref={gridRevealRef as RefObject<HTMLDivElement>}
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${gridRevealed ? "motion-safe:animate-[revealUp_400ms_ease-out_both]" : "motion-safe:opacity-0"}`}
             aria-live="polite"
           >
-            {mutuals.map((mutual) => (
+            {mutuals.map((mutual, index) => (
               <div
                 key={mutual.id}
                 role="button"
                 tabIndex={0}
-                className="bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-colors cursor-pointer"
+                className={`bg-card rounded-2xl border border-border p-6 hover:border-primary/30 transition-colors cursor-pointer ${gridRevealed ? "motion-safe:animate-[staggerIn_500ms_ease-out_both]" : "motion-safe:opacity-0"}`}
+                style={
+                  gridRevealed
+                    ? { animationDelay: `${index * 80}ms` }
+                    : undefined
+                }
                 onClick={() => setSelectedMutual(mutual)}
                 onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter" || e.key === " ") {

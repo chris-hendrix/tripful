@@ -34,7 +34,6 @@ export const accommodationsQueryOptions = (tripId: string) =>
       );
       return response.accommodations;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -51,7 +50,6 @@ export const accommodationsWithDeletedQueryOptions = (tripId: string) =>
       );
       return response.accommodations;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -70,5 +68,4 @@ export const accommodationDetailQueryOptions = (accommodationId: string) =>
       );
       return response.accommodation;
     },
-    enabled: !!accommodationId,
   });

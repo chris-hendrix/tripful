@@ -2,11 +2,31 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { buildApp as buildAppDirect } from "@/app.js";
+import { generateUniquePhone } from "../test-utils.js";
+import { db } from "@/config/database.js";
+import { sql } from "drizzle-orm";
 
 describe("Security & Schema Validation", () => {
   let app: FastifyInstance;
+  const testPhones: string[] = [];
+
+  function newPhone(): string {
+    const phone = generateUniquePhone();
+    testPhones.push(phone);
+    return phone;
+  }
 
   afterEach(async () => {
+    // Clean up rate limit entries and auth attempts for test phones
+    for (const phone of testPhones) {
+      await db.execute(
+        sql`DELETE FROM rate_limit_entries WHERE key = ${phone}`,
+      );
+      await db.execute(
+        sql`DELETE FROM auth_attempts WHERE phone_number = ${phone}`,
+      );
+    }
+    testPhones.length = 0;
     if (app) {
       await app.close();
     }
@@ -58,7 +78,7 @@ describe("Security & Schema Validation", () => {
       const response = await app.inject({
         method: "POST",
         url: "/api/auth/verify-code",
-        payload: { phoneNumber: "+11234567890" },
+        payload: { phoneNumber: newPhone() },
       });
 
       expect(response.statusCode).toBe(400);
@@ -123,7 +143,7 @@ describe("Security & Schema Validation", () => {
       const response = await app.inject({
         method: "POST",
         url: "/api/auth/request-code",
-        payload: { phoneNumber: "+11234567890" },
+        payload: { phoneNumber: newPhone() },
       });
 
       expect(response.headers["cache-control"]).toBe(
@@ -182,6 +202,8 @@ describe("Security & Schema Validation", () => {
 
   describe("Rate Limiting", () => {
     it("should rate limit verify-code endpoint", async () => {
+      const rateLimitPhone = newPhone();
+
       // Build app with global rate limit disabled but route-specific enabled
       const rateLimitApp = await buildAppDirect({
         fastify: { logger: false },
@@ -195,7 +217,7 @@ describe("Security & Schema Validation", () => {
           await rateLimitApp.inject({
             method: "POST",
             url: "/api/auth/verify-code",
-            payload: { phoneNumber: "+19876543210", code: "000000" },
+            payload: { phoneNumber: rateLimitPhone, code: "000000" },
           });
         }
 
@@ -203,7 +225,7 @@ describe("Security & Schema Validation", () => {
         const response = await rateLimitApp.inject({
           method: "POST",
           url: "/api/auth/verify-code",
-          payload: { phoneNumber: "+19876543210", code: "000000" },
+          payload: { phoneNumber: rateLimitPhone, code: "000000" },
         });
 
         expect(response.statusCode).toBe(429);

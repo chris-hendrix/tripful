@@ -1,6 +1,7 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
-import { db } from "@/config/database.js";
+import { db, pool } from "@/config/database.js";
+import { queryLogger, instrumentPool } from "./query-logger.js";
 
 /**
  * Database plugin
@@ -13,6 +14,8 @@ import { db } from "@/config/database.js";
  */
 export default fp(
   async function databasePlugin(fastify: FastifyInstance) {
+    queryLogger.setLogger(fastify.log);
+    instrumentPool(pool, queryLogger);
     fastify.decorate("db", db);
   },
   {

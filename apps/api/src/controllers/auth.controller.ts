@@ -6,7 +6,8 @@ import type {
 } from "@tripful/shared/schemas";
 import { validatePhoneNumber } from "@/utils/phone.js";
 import { auditLog } from "@/utils/audit.js";
-import { InvalidCodeError } from "../errors.js";
+import { InvalidCodeError, AccountLockedError } from "../errors.js";
+import { LOCKOUT_DURATION_MINUTES } from "@/services/auth.service.js";
 
 /**
  * Authentication Controller
@@ -112,6 +113,17 @@ export const authController = {
     try {
       const { authService, verificationService } = request.server;
 
+      // Check if account is locked before attempting verification
+      const retryAfterSeconds = String(LOCKOUT_DURATION_MINUTES * 60);
+      try {
+        await authService.checkAccountLocked(e164PhoneNumber);
+      } catch (error) {
+        if (error instanceof AccountLockedError) {
+          reply.header("Retry-After", retryAfterSeconds);
+        }
+        throw error;
+      }
+
       // Check code via verification service
       const isValid = await verificationService.checkCode(
         e164PhoneNumber,
@@ -119,11 +131,26 @@ export const authController = {
       );
 
       if (!isValid) {
+        // Record the failed attempt
+        const attemptResult =
+          await authService.recordFailedAttempt(e164PhoneNumber);
+
         auditLog(request, "auth.login_failure", {
           metadata: { phoneNumber: e164PhoneNumber },
         });
+
+        if (attemptResult.locked) {
+          reply.header("Retry-After", retryAfterSeconds);
+          throw new AccountLockedError(
+            "Account is locked due to too many failed attempts. Try again in 15 minute(s).",
+          );
+        }
+
         throw new InvalidCodeError("Invalid or expired verification code");
       }
+
+      // Reset failed attempts on successful verification
+      await authService.resetFailedAttempts(e164PhoneNumber);
 
       // Get existing user or create new one
       const user = await authService.getOrCreateUser(e164PhoneNumber);
@@ -341,6 +368,15 @@ export const authController = {
    */
   async logout(request: FastifyRequest, reply: FastifyReply) {
     try {
+      // Blacklist the token so it cannot be reused
+      if (request.user?.jti) {
+        await request.server.authService.blacklistToken(
+          request.user.jti,
+          request.user.sub,
+          new Date(request.user.exp * 1000),
+        );
+      }
+
       auditLog(request, "auth.logout");
 
       // Clear the auth_token cookie

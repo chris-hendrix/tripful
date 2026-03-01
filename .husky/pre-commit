@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run GitGuardian secret scan using official Docker image
 # https://docs.gitguardian.com/ggshield-docs/integrations/git-hooks/pre-commit
 echo "🔍 Scanning for secrets with GitGuardian..."

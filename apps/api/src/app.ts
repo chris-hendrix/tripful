@@ -16,7 +16,9 @@ import { resolve } from "node:path";
 
 // Plugins
 import configPlugin from "./plugins/config.js";
+import swaggerPlugin from "./plugins/swagger.js";
 import databasePlugin from "./plugins/database.js";
+import { createPgRateLimitStoreClass } from "./plugins/pg-rate-limit-store.js";
 import queuePlugin from "./plugins/queue.js";
 import authServicePlugin from "./plugins/auth-service.js";
 import permissionsServicePlugin from "./plugins/permissions-service.js";
@@ -63,6 +65,8 @@ export interface BuildAppOptions {
   rateLimit?: {
     global?: boolean;
   };
+  /** Disable @fastify/under-pressure health monitoring (useful in tests) */
+  disableUnderPressure?: boolean;
 }
 
 /**
@@ -140,14 +144,15 @@ export async function buildApp(
     },
   });
 
-  // Register rate limit plugin
+  // Register rate limit plugin with PostgreSQL-backed store
+  const PgRateLimitStore = createPgRateLimitStoreClass(app.db);
   await app.register(rateLimit, {
     global: opts.rateLimit?.global ?? true,
     max: 100,
     timeWindow: "15 minutes",
-    cache: 10000,
     allowList: ["127.0.0.1"],
     skipOnError: false,
+    store: PgRateLimitStore,
   });
 
   // Register multipart plugin (for file uploads)
@@ -172,13 +177,16 @@ export async function buildApp(
     });
   }
 
-  // Register under-pressure (health monitoring)
-  await app.register(underPressure, {
-    maxEventLoopDelay: 1000,
-    maxHeapUsedBytes: 1_000_000_000,
-    maxRssBytes: 1_500_000_000,
-    retryAfter: 50,
-  });
+  // Register under-pressure (health monitoring) — skip in test environments
+  // to avoid spurious 503s from event loop delays during DB setup/teardown
+  if (!opts.disableUnderPressure) {
+    await app.register(underPressure, {
+      maxEventLoopDelay: 1000,
+      maxHeapUsedBytes: 1_000_000_000,
+      maxRssBytes: 1_500_000_000,
+      retryAfter: 50,
+    });
+  }
 
   // Register service plugins
   await app.register(smsServicePlugin);
@@ -196,6 +204,11 @@ export async function buildApp(
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
   await app.register(queueWorkersPlugin);
+
+  // Register Swagger/OpenAPI documentation (non-production only)
+  if (app.config.NODE_ENV !== "production") {
+    await app.register(swaggerPlugin);
+  }
 
   // Register error handler
   app.setErrorHandler(errorHandler);

@@ -88,13 +88,13 @@ describe("Drizzle ORM Improvements", () => {
       expect(body.data).toEqual([]);
       expect(body.meta).toEqual({
         total: 0,
-        page: 1,
         limit: 20,
-        totalPages: 0,
+        hasMore: false,
+        nextCursor: null,
       });
     });
 
-    it("should respect page and limit query params", async () => {
+    it("should respect cursor and limit query params", async () => {
       app = await buildApp();
 
       const [testUser] = await db
@@ -131,10 +131,10 @@ describe("Drizzle ORM Improvements", () => {
         name: testUser.displayName,
       });
 
-      // Request page 1, limit 2
+      // Request first page, limit 2
       const response = await app.inject({
         method: "GET",
-        url: "/api/trips?page=1&limit=2",
+        url: "/api/trips?limit=2",
         cookies: { auth_token: token },
       });
 
@@ -142,23 +142,21 @@ describe("Drizzle ORM Improvements", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
       expect(body.data).toHaveLength(2);
-      expect(body.meta).toEqual({
-        total: 3,
-        page: 1,
-        limit: 2,
-        totalPages: 2,
-      });
+      expect(body.meta.total).toBe(3);
+      expect(body.meta.limit).toBe(2);
+      expect(body.meta.hasMore).toBe(true);
+      expect(body.meta.nextCursor).toBeDefined();
 
-      // Request page 2, limit 2
+      // Request next page using cursor
       const response2 = await app.inject({
         method: "GET",
-        url: "/api/trips?page=2&limit=2",
+        url: `/api/trips?limit=2&cursor=${body.meta.nextCursor}`,
         cookies: { auth_token: token },
       });
 
       const body2 = JSON.parse(response2.body);
       expect(body2.data).toHaveLength(1);
-      expect(body2.meta.page).toBe(2);
+      expect(body2.meta.hasMore).toBe(false);
     });
   });
 

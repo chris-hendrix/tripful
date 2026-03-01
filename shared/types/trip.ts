@@ -94,7 +94,7 @@ export interface TripDetail extends Trip {
 }
 
 /**
- * API response type for fetching trips list (paginated)
+ * API response type for fetching trips list (cursor-based pagination)
  */
 export interface GetTripsResponse {
   /** Whether the request was successful */
@@ -105,12 +105,12 @@ export interface GetTripsResponse {
   meta: {
     /** Total number of trips */
     total: number;
-    /** Current page number */
-    page: number;
     /** Number of items per page */
     limit: number;
-    /** Total number of pages */
-    totalPages: number;
+    /** Whether more results exist beyond this page */
+    hasMore: boolean;
+    /** Opaque cursor for the next page, null if no more results */
+    nextCursor: string | null;
   };
 }
 

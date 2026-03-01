@@ -57,7 +57,6 @@ export const invitationsQueryOptions = (tripId: string) =>
       );
       return response.invitations;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -74,7 +73,6 @@ export const membersQueryOptions = (tripId: string) =>
       );
       return response.members;
     },
-    enabled: !!tripId,
   });
 
 /**
@@ -91,5 +89,4 @@ export const mySettingsQueryOptions = (tripId: string) =>
       );
       return response.sharePhone;
     },
-    enabled: !!tripId,
   });

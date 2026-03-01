@@ -183,8 +183,8 @@ export function TripPreview({
               size="lg"
               className={`flex-1 h-12 rounded-xl text-base font-semibold ${
                 trip.userRsvpStatus === "maybe"
-                  ? "bg-amber-500 hover:bg-amber-500/90 text-white shadow-md shadow-amber-500/25"
-                  : "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30"
+                  ? "bg-warning hover:bg-warning/90 text-white shadow-md shadow-warning/25"
+                  : "bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30"
               }`}
             >
               {isPending && trip.userRsvpStatus === "maybe" ? (

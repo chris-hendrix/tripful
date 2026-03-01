@@ -13,6 +13,7 @@ export async function buildTestApp(): Promise<FastifyInstance> {
     rateLimit: {
       global: false, // Allow route-specific rate limiting only
     },
+    disableUnderPressure: true, // Avoid spurious 503s from event loop delays
   });
 
   await app.ready();

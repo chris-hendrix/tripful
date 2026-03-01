@@ -5,11 +5,16 @@ import type { Logger } from "@/types/logger.js";
 
 export const QUEUE = {
   NOTIFICATION_BATCH: "notification/batch",
+  NOTIFICATION_BATCH_DLQ: "notification/batch/dlq",
   NOTIFICATION_DELIVER: "notification/deliver",
   NOTIFICATION_DELIVER_DLQ: "notification/deliver/dlq",
   INVITATION_SEND: "invitation/send",
   INVITATION_SEND_DLQ: "invitation/send/dlq",
   DAILY_ITINERARIES: "daily-itineraries",
+  DAILY_ITINERARIES_DLQ: "daily-itineraries/dlq",
+  RATE_LIMIT_CLEANUP: "rate-limit/cleanup",
+  AUTH_ATTEMPTS_CLEANUP: "auth-attempts/cleanup",
+  TOKEN_BLACKLIST_CLEANUP: "token-blacklist/cleanup",
 } as const;
 
 export interface NotificationBatchPayload {

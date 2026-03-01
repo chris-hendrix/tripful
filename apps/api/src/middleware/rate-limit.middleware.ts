@@ -8,12 +8,17 @@ import type { FastifyRequest } from "fastify";
  * to prevent abuse and reduce SMS costs. Uses IP address as fallback
  * when phone number is not provided in the request body.
  */
+/** Strip spaces, dashes, and parens from phone — keep leading + for E.164 */
+function normalizePhone(raw: string): string {
+  return raw.replace(/[\s\-()]/g, "");
+}
+
 export const smsRateLimitConfig: RateLimitOptions = {
   max: 5,
   timeWindow: "1 hour",
   keyGenerator: (request: FastifyRequest) => {
     const { phoneNumber } = request.body as { phoneNumber?: string };
-    return phoneNumber || request.ip;
+    return phoneNumber ? normalizePhone(phoneNumber) : request.ip;
   },
   errorResponseBuilder: (_request, context) => {
     const error = new Error(
@@ -43,7 +48,7 @@ export const verifyCodeRateLimitConfig: RateLimitOptions = {
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) => {
     const { phoneNumber } = request.body as { phoneNumber?: string };
-    return phoneNumber || request.ip;
+    return phoneNumber ? normalizePhone(phoneNumber) : request.ip;
   },
   errorResponseBuilder: (_request, context) => {
     const error = new Error(

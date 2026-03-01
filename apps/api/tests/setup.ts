@@ -22,6 +22,13 @@ beforeAll(async () => {
     console.error("✗ Test database connection failed:", error);
     throw error;
   }
+
+  // NOTE: No blanket DELETE statements here.
+  // With pool: "threads" and fileParallelism: true, Vitest creates multiple
+  // worker threads, each running setup.ts independently. Blanket DELETEs
+  // would race with tests in other threads, wiping auth_attempts and
+  // rate_limit_entries mid-test. Instead, each test file handles its own
+  // cleanup via scoped afterEach hooks using unique phone numbers.
 });
 
 afterAll(async () => {

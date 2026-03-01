@@ -14,7 +14,7 @@ End-to-end tests for the Tripful web application using Playwright.
 Install Playwright browsers (one-time setup):
 
 ```bash
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 ```
 
 ## Running Tests

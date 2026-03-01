@@ -55,7 +55,7 @@ export type { MemberTravel };
  * ```
  */
 export function useMemberTravels(tripId: string) {
-  return useQuery(memberTravelsQueryOptions(tripId));
+  return useQuery({ ...memberTravelsQueryOptions(tripId), enabled: !!tripId });
 }
 
 /**
@@ -67,7 +67,10 @@ export function useMemberTravels(tripId: string) {
  * @returns Query object with data, loading, and error state
  */
 export function useMemberTravelsWithDeleted(tripId: string) {
-  return useQuery(memberTravelsWithDeletedQueryOptions(tripId));
+  return useQuery({
+    ...memberTravelsWithDeletedQueryOptions(tripId),
+    enabled: !!tripId,
+  });
 }
 
 /**
@@ -92,7 +95,10 @@ export function useMemberTravelsWithDeleted(tripId: string) {
  * ```
  */
 export function useMemberTravelDetail(memberTravelId: string) {
-  return useQuery(memberTravelDetailQueryOptions(memberTravelId));
+  return useQuery({
+    ...memberTravelDetailQueryOptions(memberTravelId),
+    enabled: !!memberTravelId,
+  });
 }
 
 /**

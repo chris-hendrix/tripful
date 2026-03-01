@@ -55,7 +55,7 @@ export type { Accommodation };
  * ```
  */
 export function useAccommodations(tripId: string) {
-  return useQuery(accommodationsQueryOptions(tripId));
+  return useQuery({ ...accommodationsQueryOptions(tripId), enabled: !!tripId });
 }
 
 /**
@@ -67,7 +67,10 @@ export function useAccommodations(tripId: string) {
  * @returns Query object with data, loading, and error state
  */
 export function useAccommodationsWithDeleted(tripId: string) {
-  return useQuery(accommodationsWithDeletedQueryOptions(tripId));
+  return useQuery({
+    ...accommodationsWithDeletedQueryOptions(tripId),
+    enabled: !!tripId,
+  });
 }
 
 /**
@@ -92,7 +95,10 @@ export function useAccommodationsWithDeleted(tripId: string) {
  * ```
  */
 export function useAccommodationDetail(accommodationId: string) {
-  return useQuery(accommodationDetailQueryOptions(accommodationId));
+  return useQuery({
+    ...accommodationDetailQueryOptions(accommodationId),
+    enabled: !!accommodationId,
+  });
 }
 
 /**

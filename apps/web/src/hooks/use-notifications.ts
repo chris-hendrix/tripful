@@ -1,6 +1,12 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { apiRequest, APIError } from "@/lib/api";
 
 const POLLING_ENABLED = process.env.NEXT_PUBLIC_ENABLE_POLLING !== "false";
@@ -68,6 +74,7 @@ export function useTripUnreadCount(tripId: string) {
   return useQuery({
     ...tripUnreadCountQueryOptions(tripId),
     refetchInterval: POLLING_ENABLED ? 30000 : false,
+    enabled: !!tripId,
   });
 }
 
@@ -79,16 +86,14 @@ export function useTripUnreadCount(tripId: string) {
  * - Returns full response with notifications, pagination meta, and unreadCount
  * - No polling: user navigates to see notifications
  *
- * @param options - Optional filter parameters (tripId, page, limit, unreadOnly)
+ * @param options - Optional filter parameters (tripId, limit, unreadOnly)
  * @returns Query object with notifications data and pagination info
  */
 export function useNotifications(options?: {
   tripId?: string;
-  page?: number;
-  limit?: number;
   unreadOnly?: boolean;
 }) {
-  return useQuery({
+  return useInfiniteQuery({
     ...notificationsQueryOptions(options),
   });
 }
@@ -102,6 +107,7 @@ export function useNotifications(options?: {
 export function useNotificationPreferences(tripId: string) {
   return useQuery({
     ...notificationPreferencesQueryOptions(tripId),
+    enabled: !!tripId,
   });
 }
 
@@ -115,7 +121,7 @@ export function useNotificationPreferences(tripId: string) {
  */
 interface MarkAsReadContext {
   previousUnreadCount: number | undefined;
-  previousLists: Map<string, GetNotificationsResponse>;
+  previousLists: Map<string, InfiniteData<GetNotificationsResponse>>;
   tripId: string | null;
 }
 
@@ -158,11 +164,15 @@ export function useMarkAsRead() {
         notificationKeys.unreadCount(),
       );
 
-      // Snapshot all notification list queries
-      const previousLists = new Map<string, GetNotificationsResponse>();
-      const listQueries = queryClient.getQueriesData<GetNotificationsResponse>({
-        queryKey: notificationKeys.lists(),
-      });
+      // Snapshot all notification list queries (InfiniteData shape)
+      const previousLists = new Map<
+        string,
+        InfiniteData<GetNotificationsResponse>
+      >();
+      const listQueries =
+        queryClient.getQueriesData<InfiniteData<GetNotificationsResponse>>({
+          queryKey: notificationKeys.lists(),
+        });
       for (const [key, data] of listQueries) {
         if (data) {
           previousLists.set(JSON.stringify(key), data);
@@ -173,13 +183,16 @@ export function useMarkAsRead() {
       let tripId: string | null = null;
       for (const [, data] of listQueries) {
         if (data) {
-          const notification = data.notifications.find(
-            (n: Notification) => n.id === notificationId,
-          );
-          if (notification) {
-            tripId = notification.tripId;
-            break;
+          for (const page of data.pages) {
+            const notification = page.notifications.find(
+              (n: Notification) => n.id === notificationId,
+            );
+            if (notification) {
+              tripId = notification.tripId;
+              break;
+            }
           }
+          if (tripId) break;
         }
       }
 
@@ -195,16 +208,22 @@ export function useMarkAsRead() {
       const now = new Date().toISOString();
       for (const [key, data] of listQueries) {
         if (data) {
-          queryClient.setQueryData<GetNotificationsResponse>(key, {
-            ...data,
-            unreadCount: Math.max(0, data.unreadCount - 1),
-            notifications: data.notifications.map(
-              (notification: Notification) =>
-                notification.id === notificationId
-                  ? { ...notification, readAt: now }
-                  : notification,
-            ),
-          });
+          queryClient.setQueryData<InfiniteData<GetNotificationsResponse>>(
+            key,
+            {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                unreadCount: Math.max(0, page.unreadCount - 1),
+                notifications: page.notifications.map(
+                  (notification: Notification) =>
+                    notification.id === notificationId
+                      ? { ...notification, readAt: now }
+                      : notification,
+                ),
+              })),
+            },
+          );
         }
       }
 
@@ -286,7 +305,7 @@ export function getMarkAsReadErrorMessage(error: Error | null): string | null {
 interface MarkAllAsReadContext {
   previousUnreadCount: number | undefined;
   previousTripUnreadCount: number | undefined;
-  previousLists: Map<string, GetNotificationsResponse>;
+  previousLists: Map<string, InfiniteData<GetNotificationsResponse>>;
 }
 
 /**
@@ -344,11 +363,15 @@ export function useMarkAllAsRead() {
         );
       }
 
-      // Snapshot all notification list queries
-      const previousLists = new Map<string, GetNotificationsResponse>();
-      const listQueries = queryClient.getQueriesData<GetNotificationsResponse>({
-        queryKey: notificationKeys.lists(),
-      });
+      // Snapshot all notification list queries (InfiniteData shape)
+      const previousLists = new Map<
+        string,
+        InfiniteData<GetNotificationsResponse>
+      >();
+      const listQueries =
+        queryClient.getQueriesData<InfiniteData<GetNotificationsResponse>>({
+          queryKey: notificationKeys.lists(),
+        });
       for (const [key, data] of listQueries) {
         if (data) {
           previousLists.set(JSON.stringify(key), data);
@@ -369,16 +392,22 @@ export function useMarkAllAsRead() {
       const now = new Date().toISOString();
       for (const [key, data] of listQueries) {
         if (data) {
-          queryClient.setQueryData<GetNotificationsResponse>(key, {
-            ...data,
-            unreadCount: 0,
-            notifications: data.notifications.map(
-              (notification: Notification) =>
-                notification.readAt === null
-                  ? { ...notification, readAt: now }
-                  : notification,
-            ),
-          });
+          queryClient.setQueryData<InfiniteData<GetNotificationsResponse>>(
+            key,
+            {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                unreadCount: 0,
+                notifications: page.notifications.map(
+                  (notification: Notification) =>
+                    notification.readAt === null
+                      ? { ...notification, readAt: now }
+                      : notification,
+                ),
+              })),
+            },
+          );
         }
       }
 

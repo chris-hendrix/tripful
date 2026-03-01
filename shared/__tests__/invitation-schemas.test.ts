@@ -41,6 +41,7 @@ describe("createInvitationsSchema", () => {
       expect(result.error.issues[0]?.message).toContain(
         "At least one phone number or user ID is required",
       );
+      expect(result.error.issues[0]?.path).toContain("phoneNumbers");
     }
   });
 
@@ -51,6 +52,7 @@ describe("createInvitationsSchema", () => {
       expect(result.error.issues[0]?.message).toContain(
         "At least one phone number or user ID is required",
       );
+      expect(result.error.issues[0]?.path).toContain("phoneNumbers");
     }
   });
 

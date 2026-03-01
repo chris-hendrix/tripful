@@ -154,6 +154,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       {
         schema: {
           params: memberRemovalParamsSchema,
+          response: { 204: z.null().optional() },
         },
       },
       invitationController.removeMember,

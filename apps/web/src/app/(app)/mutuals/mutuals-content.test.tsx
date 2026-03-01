@@ -16,10 +16,39 @@ vi.mock("@/hooks/use-mutuals", () => ({
   },
 }));
 
+// Mock useScrollReveal — always return revealed for test simplicity
+vi.mock("@/hooks/use-scroll-reveal", () => ({
+  useScrollReveal: () => ({
+    ref: { current: null },
+    isRevealed: true,
+  }),
+}));
+
 const mockUseTrips = vi.fn();
 vi.mock("@/hooks/use-trips", () => ({
-  useTrips: () => mockUseTrips(),
+  tripsQueryOptions: {
+    queryKey: ["trips"],
+  },
 }));
+
+// Mock useInfiniteQuery from @tanstack/react-query for direct usage in the component
+vi.mock("@tanstack/react-query", async () => {
+  const actual =
+    await vi.importActual<typeof import("@tanstack/react-query")>(
+      "@tanstack/react-query",
+    );
+  return {
+    ...actual,
+    useInfiniteQuery: (options: any) => {
+      // Route trips queries to our mock
+      if (options.queryKey?.[0] === "trips") {
+        return mockUseTrips();
+      }
+      // Fall through to actual (should not happen in this test since useMutuals is mocked)
+      return { data: undefined, isPending: false, isError: false };
+    },
+  };
+});
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -105,7 +134,7 @@ describe("MutualsContent", () => {
 
     vi.clearAllMocks();
 
-    // Default: trips hook returns empty
+    // Default: trips hook returns empty (already select-transformed to flat array)
     mockUseTrips.mockReturnValue({
       data: [],
       isPending: false,

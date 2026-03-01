@@ -1,7 +1,14 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { users, type User } from "@/db/schema/index.js";
+import {
+  users,
+  blacklistedTokens,
+  authAttempts,
+  type User,
+} from "@/db/schema/index.js";
 import type { JWTPayload, AppDatabase } from "@/types/index.js";
-import { eq } from "drizzle-orm";
+import { eq, sql, getTableColumns } from "drizzle-orm";
+import { AccountLockedError } from "../errors.js";
 
 /**
  * Authentication Service Interface
@@ -53,7 +60,50 @@ export interface IAuthService {
    * @throws Error if token is invalid or expired
    */
   verifyToken(token: string): JWTPayload;
+
+  /**
+   * Blacklists a token by its JTI claim so it can no longer be used
+   * @param jti - The JWT ID to blacklist
+   * @param userId - The user ID who owns the token
+   * @param expiresAt - When the token would naturally expire (for cleanup)
+   */
+  blacklistToken(jti: string, userId: string, expiresAt: Date): Promise<void>;
+
+  /**
+   * Checks if a token has been blacklisted
+   * @param jti - The JWT ID to check
+   * @returns True if the token is blacklisted, false otherwise
+   */
+  isBlacklisted(jti: string): Promise<boolean>;
+
+  /**
+   * Checks if an account is locked due to too many failed attempts
+   * @param phoneNumber - The phone number to check (E.164 format)
+   * @throws AccountLockedError if the account is currently locked
+   */
+  checkAccountLocked(phoneNumber: string): Promise<void>;
+
+  /**
+   * Records a failed verification attempt and locks the account after 5 failures
+   * @param phoneNumber - The phone number that failed verification (E.164 format)
+   * @returns Object indicating if the account is now locked and the current failure count
+   */
+  recordFailedAttempt(
+    phoneNumber: string,
+  ): Promise<{ locked: boolean; failedCount: number }>;
+
+  /**
+   * Resets the failed attempt counter after a successful verification
+   * @param phoneNumber - The phone number to reset (E.164 format)
+   */
+  resetFailedAttempts(phoneNumber: string): Promise<void>;
 }
+
+/** Maximum number of failed verification attempts before lockout */
+const MAX_FAILED_ATTEMPTS = 5;
+
+/** Duration of account lockout in minutes after exceeding max failed attempts */
+export const LOCKOUT_DURATION_MINUTES = 15;
 
 /**
  * Authentication Service Implementation
@@ -80,7 +130,7 @@ export class AuthService implements IAuthService {
   async getOrCreateUser(phoneNumber: string): Promise<User> {
     // Try to find existing user
     const existingResult = await this.db
-      .select()
+      .select(getTableColumns(users))
       .from(users)
       .where(eq(users.phoneNumber, phoneNumber))
       .limit(1);
@@ -114,7 +164,7 @@ export class AuthService implements IAuthService {
    */
   async getUserById(userId: string): Promise<User | null> {
     const result = await this.db
-      .select()
+      .select(getTableColumns(users))
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -170,6 +220,7 @@ export class AuthService implements IAuthService {
 
     const payload = {
       sub: user.id,
+      jti: randomUUID(),
       ...(user.displayName && { name: user.displayName }),
     };
 
@@ -196,5 +247,113 @@ export class AuthService implements IAuthService {
       }
       throw new Error("Token verification failed");
     }
+  }
+
+  /**
+   * Blacklists a token by its JTI claim so it can no longer be used
+   * Inserts a record into the blacklisted_tokens table
+   * @param jti - The JWT ID to blacklist
+   * @param userId - The user ID who owns the token
+   * @param expiresAt - When the token would naturally expire (for cleanup)
+   */
+  async blacklistToken(
+    jti: string,
+    userId: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.db.insert(blacklistedTokens).values({
+      jti,
+      userId,
+      expiresAt,
+    }).onConflictDoNothing();
+  }
+
+  /**
+   * Checks if a token has been blacklisted
+   * @param jti - The JWT ID to check
+   * @returns True if the token is blacklisted, false otherwise
+   */
+  async isBlacklisted(jti: string): Promise<boolean> {
+    const result = await this.db
+      .select({ jti: blacklistedTokens.jti })
+      .from(blacklistedTokens)
+      .where(eq(blacklistedTokens.jti, jti))
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  /**
+   * Checks if an account is locked due to too many failed verification attempts
+   * Queries the authAttempts table and throws if lockedUntil is in the future
+   * @param phoneNumber - The phone number to check (E.164 format)
+   * @throws AccountLockedError if the account is currently locked
+   */
+  async checkAccountLocked(phoneNumber: string): Promise<void> {
+    const result = await this.db
+      .select({ lockedUntil: authAttempts.lockedUntil })
+      .from(authAttempts)
+      .where(eq(authAttempts.phoneNumber, phoneNumber))
+      .limit(1);
+
+    const record = result[0];
+    if (record?.lockedUntil && record.lockedUntil > new Date()) {
+      const remainingMs = record.lockedUntil.getTime() - Date.now();
+      const remainingMinutes = Math.ceil(remainingMs / 60000);
+      throw new AccountLockedError(
+        `Account is locked. Try again in ${remainingMinutes} minute(s).`,
+      );
+    }
+  }
+
+  /**
+   * Records a failed verification attempt using upsert
+   * Locks the account after MAX_FAILED_ATTEMPTS (5) failures for LOCKOUT_DURATION_MINUTES (15)
+   * @param phoneNumber - The phone number that failed verification (E.164 format)
+   * @returns Object indicating if the account is now locked and the current failure count
+   */
+  async recordFailedAttempt(
+    phoneNumber: string,
+  ): Promise<{ locked: boolean; failedCount: number }> {
+    const now = new Date();
+    const lockedUntil = new Date(
+      now.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000,
+    );
+
+    // Single atomic upsert: increments the counter and conditionally sets lockout.
+    // Refreshes lockout window on continued failures past threshold (intentional anti-abuse behavior)
+    const result = await this.db
+      .insert(authAttempts)
+      .values({
+        phoneNumber,
+        failedCount: 1,
+        lastFailedAt: now,
+        lockedUntil: null,
+      })
+      .onConflictDoUpdate({
+        target: authAttempts.phoneNumber,
+        set: {
+          failedCount: sql`${authAttempts.failedCount} + 1`,
+          lastFailedAt: now,
+          lockedUntil: sql`CASE WHEN ${authAttempts.failedCount} + 1 >= ${MAX_FAILED_ATTEMPTS} THEN ${lockedUntil}::timestamptz ELSE ${authAttempts.lockedUntil} END`,
+        },
+      })
+      .returning();
+
+    const record = result[0]!;
+    const failedCount = record.failedCount;
+
+    return { locked: failedCount >= MAX_FAILED_ATTEMPTS, failedCount };
+  }
+
+  /**
+   * Resets the failed attempt counter after a successful verification
+   * Deletes the row from authAttempts for the given phone number
+   * @param phoneNumber - The phone number to reset (E.164 format)
+   */
+  async resetFailedAttempts(phoneNumber: string): Promise<void> {
+    await this.db
+      .delete(authAttempts)
+      .where(eq(authAttempts.phoneNumber, phoneNumber));
   }
 }

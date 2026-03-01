@@ -83,7 +83,11 @@ export async function handleNotificationBatch(
 
   // 3. Batch query preferences
   const prefsRows = await deps.db
-    .select()
+    .select({
+      userId: notificationPreferences.userId,
+      dailyItinerary: notificationPreferences.dailyItinerary,
+      tripMessages: notificationPreferences.tripMessages,
+    })
     .from(notificationPreferences)
     .where(
       and(

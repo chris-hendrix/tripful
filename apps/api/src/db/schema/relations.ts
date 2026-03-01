@@ -13,6 +13,7 @@ import {
   notificationPreferences,
   mutedMembers,
   sentReminders,
+  blacklistedTokens,
 } from "./index.js";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -25,6 +26,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   messageReactions: many(messageReactions),
   notifications: many(notifications),
   notificationPreferences: many(notificationPreferences),
+  blacklistedTokens: many(blacklistedTokens),
 }));
 
 export const tripsRelations = relations(trips, ({ one, many }) => ({
@@ -158,3 +160,13 @@ export const sentRemindersRelations = relations(sentReminders, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const blacklistedTokensRelations = relations(
+  blacklistedTokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [blacklistedTokens.userId],
+      references: [users.id],
+    }),
+  }),
+);

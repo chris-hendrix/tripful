@@ -12,7 +12,7 @@
   --color-secondary: #eee9e2;
   --color-secondary-foreground: #3a2d22;
   --color-muted: #eee9e2;
-  --color-muted-foreground: #6b6054;
+  --color-muted-foreground: #5a5046;
   --color-accent: #d1643d;
   --color-accent-foreground: #ffffff;
   --color-destructive: #c6372a;
@@ -26,6 +26,7 @@
   --color-ring: #1a5c9e;
   --radius: 0.5rem;
   --font-sans: var(--font-plus-jakarta);
+  --font-accent: var(--font-space-grotesk);
 
   /* Event type colors */
   --color-event-travel: #2563eb;
@@ -43,6 +44,11 @@
   --color-member-travel: #6b7280;
   --color-member-travel-light: #f9fafb;
   --color-member-travel-border: #e5e7eb;
+
+  /* Overlay text colors (bright on dark backgrounds like bg-black/50) */
+  --color-overlay-success: #6ee7b7;
+  --color-overlay-warning: #fcd34d;
+  --color-overlay-muted: #d4d4d4;
 }
 
 @layer base {
@@ -112,6 +118,71 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+@keyframes mutation-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gradient-mesh {
+  background:
+    radial-gradient(ellipse at 20% 50%, #1a5c9e10 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, #d1643d08 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, #497e5a08 0%, transparent 50%);
+}
+
+.card-noise {
+  position: relative;
+}
+
+.card-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
 
 @utility pb-safe {

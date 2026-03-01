@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authenticateViaAPIWithPhone, createUserViaAPI } from "./helpers/auth";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { fillPhoneInput } from "./helpers/phone-input";
 import { snap } from "./helpers/screenshots";
 import {
   createTripViaAPI,
@@ -72,7 +73,7 @@ test.describe("Invitation Journey", () => {
             level: 1,
             name: `Invite Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         await snap(page, "09-trip-detail-invite-button");
 
@@ -105,7 +106,7 @@ test.describe("Invitation Journey", () => {
 
         // Fill phone input within the dialog
         const dialog = page.getByRole("dialog");
-        await dialog.locator('input[type="tel"]').fill(inviteePhone);
+        await fillPhoneInput(dialog.locator('input[type="tel"]'), inviteePhone);
 
         // Click "Add" button
         await dialog.getByRole("button", { name: "Add" }).click();
@@ -117,7 +118,7 @@ test.describe("Invitation Journey", () => {
 
         // Verify toast with "invitation" text appears
         await expect(page.getByText(/invitation/i)).toBeVisible({
-          timeout: 10000,
+          timeout: TOAST_TIMEOUT,
         });
         await snap(page, "12-invite-sent");
       });
@@ -135,7 +136,7 @@ test.describe("Invitation Journey", () => {
 
         // Verify preview mode
         await expect(page.getByText("You've been invited!")).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
         await expect(
           page.getByText("RSVP to see the full itinerary."),
@@ -255,7 +256,7 @@ test.describe("Invitation Journey", () => {
 
         // Navigate to trip to verify event is visible
         await page.goto(`/trips/${tripId}`);
-        await expect(page.getByText(eventName)).toBeVisible({ timeout: 15000 });
+        await expect(page.getByText(eventName)).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       });
 
       await test.step("member changes RSVP to Maybe", async () => {
@@ -272,7 +273,7 @@ test.describe("Invitation Journey", () => {
 
         // Since member is now "maybe" (non-Going), they should see preview
         await expect(page.getByText("You've been invited!")).toBeVisible({
-          timeout: 15000,
+          timeout: NAVIGATION_TIMEOUT,
         });
         await snap(page, "15-rsvp-changed-to-maybe");
       });
@@ -292,11 +293,11 @@ test.describe("Invitation Journey", () => {
             level: 1,
             name: `RSVP Change Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         // Verify "Member no longer attending" badge is visible
         await expect(page.getByText("Member no longer attending")).toBeVisible({
-          timeout: 10000,
+          timeout: ELEMENT_TIMEOUT,
         });
         await snap(page, "16-member-not-attending-indicator");
       });
@@ -317,7 +318,7 @@ test.describe("Invitation Journey", () => {
             level: 1,
             name: `RSVP Change Trip ${timestamp}`,
           }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
         // Verify badge is gone
         await expect(
@@ -363,7 +364,7 @@ test.describe("Invitation Journey", () => {
         // Verify 404 page
         await expect(
           page.getByRole("heading", { name: "Trip not found" }),
-        ).toBeVisible({ timeout: 15000 });
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
         await snap(page, "17-uninvited-user-404");
       });
     },
@@ -432,20 +433,20 @@ test.describe("Invitation Journey", () => {
           level: 1,
           name: `Members Trip ${timestamp}`,
         }),
-      ).toBeVisible({ timeout: 15000 });
+      ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
       // Click member count button to open members sheet
       const memberCountBtn = page
         .getByRole("button")
         .filter({ hasText: /\d+ members?/ });
-      await memberCountBtn.waitFor({ state: "visible", timeout: 10000 });
+      await memberCountBtn.waitFor({ state: "visible", timeout: ELEMENT_TIMEOUT });
       await memberCountBtn.click();
 
       // Wait for Members sheet to appear
       const dialog = page.getByRole("dialog");
       await expect(
         dialog.getByRole("heading", { name: "Members" }),
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
       // Verify organizer is listed with "Organizer" badge
       await expect(dialog.getByText("Organizer Delta")).toBeVisible();

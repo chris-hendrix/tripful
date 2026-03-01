@@ -71,7 +71,7 @@ export function useInvitations(
  * @returns Query object with data, loading, and error state
  */
 export function useMembers(tripId: string) {
-  return useQuery(membersQueryOptions(tripId));
+  return useQuery({ ...membersQueryOptions(tripId), enabled: !!tripId });
 }
 
 /**
@@ -434,7 +434,7 @@ export function getUpdateRsvpErrorMessage(error: Error | null): string | null {
  * @returns Query object with sharePhone boolean data
  */
 export function useMySettings(tripId: string) {
-  return useQuery(mySettingsQueryOptions(tripId));
+  return useQuery({ ...mySettingsQueryOptions(tripId), enabled: !!tripId });
 }
 
 /**

@@ -3,7 +3,11 @@ import { authenticateUser, generateUniquePhone } from "./helpers/auth";
 import { LoginPage, TripsPage } from "./helpers/pages";
 import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
-import { NAVIGATION_TIMEOUT } from "./helpers/timeouts";
+import { fillPhoneInput } from "./helpers/phone-input";
+import {
+  NAVIGATION_TIMEOUT,
+  SLOW_NAVIGATION_TIMEOUT,
+} from "./helpers/timeouts";
 import { formatPhoneNumber } from "../../src/lib/format";
 
 /**
@@ -31,12 +35,18 @@ test.describe("Auth Journey", () => {
     });
 
     await test.step("enter phone and submit", async () => {
-      await loginPage.phoneInput.fill(phone);
+      // Use pressSequentially via fillPhoneInput — Playwright's fill() sets
+      // the value in one shot, but react-phone-number-input's input-format
+      // library processes input character-by-character. fill() desynchronizes
+      // the internal state from react-hook-form, silently breaking submission.
+      await fillPhoneInput(loginPage.phoneInput, phone);
       await loginPage.continueButton.click();
+      await expect(page).toHaveURL(/verify/, {
+        timeout: SLOW_NAVIGATION_TIMEOUT,
+      });
     });
 
     await test.step("verify code page shows phone number", async () => {
-      await page.waitForURL("**/verify**");
       expect(page.url()).toContain("/verify?phone=");
       await expect(loginPage.verifyHeading).toBeVisible();
       await expect(page.getByText(formatPhoneNumber(phone))).toBeVisible();
@@ -83,7 +93,7 @@ test.describe("Auth Journey", () => {
 
     await test.step("cannot access protected route after logout", async () => {
       await page.goto("/trips");
-      await page.waitForURL("**/login", { timeout: NAVIGATION_TIMEOUT });
+      await page.waitForURL("**/login", { timeout: SLOW_NAVIGATION_TIMEOUT });
       expect(page.url()).toContain("/login");
     });
   });

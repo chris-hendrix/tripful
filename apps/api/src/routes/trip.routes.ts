@@ -13,7 +13,7 @@ import {
   createTripSchema,
   updateTripSchema,
   addCoOrganizerSchema,
-  paginationSchema,
+  cursorPaginationSchema,
   updateMemberRoleSchema,
   tripListResponseSchema,
   tripDetailResponseSchema,
@@ -22,7 +22,7 @@ import {
   updateRsvpResponseSchema,
 } from "@tripful/shared/schemas";
 import type {
-  PaginationInput,
+  CursorPaginationInput,
   CreateTripInput,
   UpdateTripInput,
   AddCoOrganizerInput,
@@ -60,11 +60,11 @@ export async function tripRoutes(fastify: FastifyInstance) {
    * Get user's trips
    * Requires authentication only (not complete profile)
    */
-  fastify.get<{ Querystring: PaginationInput }>(
+  fastify.get<{ Querystring: CursorPaginationInput }>(
     "/",
     {
       schema: {
-        querystring: paginationSchema,
+        querystring: cursorPaginationSchema,
         response: { 200: tripListResponseSchema },
       },
       preHandler: [fastify.rateLimit(defaultRateLimitConfig), authenticate],

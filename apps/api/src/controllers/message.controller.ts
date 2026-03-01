@@ -21,19 +21,19 @@ export const messageController = {
   async listMessages(
     request: FastifyRequest<{
       Params: { tripId: string };
-      Querystring: { page: number; limit: number };
+      Querystring: { cursor?: string; limit: number };
     }>,
     reply: FastifyReply,
   ) {
     const { messageService } = request.server;
     const { tripId } = request.params;
     const userId = request.user.sub;
-    const { page, limit } = request.query;
+    const { cursor, limit } = request.query;
 
     const { data, meta } = await messageService.getMessages(
       tripId,
       userId,
-      page,
+      cursor,
       limit,
     );
 

@@ -31,7 +31,7 @@ const notificationIdParamsSchema = z.object({
 
 // Query schemas
 const notificationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+  cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
   unreadOnly: z.coerce.boolean().optional().default(false),
 });
@@ -61,7 +61,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
    */
   fastify.get<{
     Querystring: {
-      page: number;
+      cursor?: string;
       limit: number;
       unreadOnly: boolean;
       tripId?: string;
@@ -101,7 +101,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
    */
   fastify.get<{
     Params: { tripId: string };
-    Querystring: { page: number; limit: number; unreadOnly: boolean };
+    Querystring: { cursor?: string; limit: number; unreadOnly: boolean };
   }>(
     "/trips/:tripId/notifications",
     {

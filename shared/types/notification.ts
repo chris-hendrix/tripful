@@ -34,16 +34,16 @@ export interface NotificationPreferences {
 }
 
 /**
- * API response for fetching paginated notifications
+ * API response for fetching paginated notifications (cursor-based)
  */
 export interface GetNotificationsResponse {
   success: true;
   notifications: Notification[];
   meta: {
     total: number;
-    page: number;
     limit: number;
-    totalPages: number;
+    hasMore: boolean;
+    nextCursor: string | null;
   };
   unreadCount: number;
 }

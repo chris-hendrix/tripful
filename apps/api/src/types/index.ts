@@ -33,6 +33,7 @@ export interface HealthCheckResponse {
 export interface JWTPayload {
   sub: string; // User ID
   name?: string; // Display name (optional)
+  jti?: string; // JWT ID for token blacklisting (optional for backward compat)
   iat: number; // Issued at
   exp: number; // Expires at
 }

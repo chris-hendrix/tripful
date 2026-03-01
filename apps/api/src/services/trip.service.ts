@@ -7,7 +7,19 @@ import {
   type Member,
   type User,
 } from "@/db/schema/index.js";
-import { eq, inArray, and, asc, sql, count, isNull } from "drizzle-orm";
+import {
+  eq,
+  inArray,
+  and,
+  asc,
+  sql,
+  count,
+  isNull,
+  getTableColumns,
+  gt,
+  isNotNull,
+  or,
+} from "drizzle-orm";
 import type { CreateTripInput, UpdateTripInput } from "@tripful/shared/schemas";
 import type { AppDatabase } from "@/types/index.js";
 import type { IPermissionsService } from "./permissions.service.js";
@@ -20,6 +32,13 @@ import {
   CoOrganizerNotInTripError,
   DuplicateMemberError,
 } from "../errors.js";
+import { z } from "zod";
+import { encodeCursor, decodeCursorAs } from "@/utils/pagination.js";
+
+const tripCursorSchema = z.object({
+  id: z.string(),
+  startDate: z.string().nullable(),
+});
 
 /**
  * Trip Summary Type
@@ -47,9 +66,9 @@ export type PaginatedTripsResult = {
   data: TripSummary[];
   meta: {
     total: number;
-    page: number;
     limit: number;
-    totalPages: number;
+    hasMore: boolean;
+    nextCursor: string | null;
   };
 };
 
@@ -121,13 +140,15 @@ export interface ITripService {
   getTripById(tripId: string, userId: string): Promise<TripDetailResult | null>;
 
   /**
-   * Gets all trips for a user with summary information
+   * Gets all trips for a user with summary information (cursor-based pagination)
    * @param userId - The UUID of the user
-   * @returns Promise that resolves to array of trip summaries
+   * @param cursor - Opaque pagination cursor (omit for first page)
+   * @param limit - Number of items per page (default 20)
+   * @returns Promise that resolves to array of trip summaries with cursor metadata
    */
   getUserTrips(
     userId: string,
-    page?: number,
+    cursor?: string,
     limit?: number,
   ): Promise<PaginatedTripsResult>;
 
@@ -233,7 +254,7 @@ export class TripService implements ITripService {
 
       // Lookup users by phone number
       const coOrganizerUsers = await this.db
-        .select()
+        .select({ id: users.id, phoneNumber: users.phoneNumber })
         .from(users)
         .where(inArray(users.phoneNumber, data.coOrganizerPhones));
 
@@ -333,7 +354,7 @@ export class TripService implements ITripService {
 
     // Load the trip
     const tripResult = await this.db
-      .select()
+      .select(getTableColumns(trips))
       .from(trips)
       .where(eq(trips.id, tripId))
       .limit(1);
@@ -399,14 +420,18 @@ export class TripService implements ITripService {
   }
 
   /**
-   * Gets all trips for a user with summary information
+   * Gets all trips for a user with summary information (cursor-based pagination)
    * Returns trip summaries for dashboard display
+   * Sort order: startDate ASC NULLS LAST, id ASC
+   *
    * @param userId - The UUID of the user
+   * @param cursor - Opaque pagination cursor (omit for first page)
+   * @param limit - Number of items per page (default 20)
    * @returns Promise that resolves to array of trip summaries ordered by start date
    */
   async getUserTrips(
     userId: string,
-    page = 1,
+    cursor?: string,
     limit = 20,
   ): Promise<PaginatedTripsResult> {
     // Get all trip memberships for user
@@ -423,7 +448,7 @@ export class TripService implements ITripService {
     if (userMemberships.length === 0) {
       return {
         data: [],
-        meta: { total: 0, page, limit, totalPages: 0 },
+        meta: { total: 0, limit, hasMore: false, nextCursor: null },
       };
     }
 
@@ -435,34 +460,93 @@ export class TripService implements ITripService {
       .from(trips)
       .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)));
     const total = totalResult?.value ?? 0;
-    const totalPages = Math.ceil(total / limit);
-    const offset = (page - 1) * limit;
 
-    // Load paginated trips
+    // Build cursor WHERE conditions for keyset pagination
+    // Sort order: startDate ASC NULLS LAST, id ASC
+    const baseConditions = [
+      inArray(trips.id, tripIds),
+      eq(trips.cancelled, false),
+    ];
+
+    if (cursor) {
+      const decoded = decodeCursorAs(cursor, tripCursorSchema);
+      const cursorStartDate = decoded.startDate;
+      const cursorId = decoded.id;
+
+      if (cursorStartDate !== null) {
+        // Cursor has a non-null startDate:
+        // Next rows are those with (startDate > cursorStartDate)
+        // OR (startDate == cursorStartDate AND id > cursorId)
+        // OR (startDate IS NULL) -- nulls come last
+        baseConditions.push(
+          or(
+            and(isNotNull(trips.startDate), gt(trips.startDate, cursorStartDate)),
+            and(
+              isNotNull(trips.startDate),
+              eq(trips.startDate, cursorStartDate),
+              gt(trips.id, cursorId),
+            ),
+            isNull(trips.startDate),
+          )!,
+        );
+      } else {
+        // Cursor has a null startDate (we're in the NULLS LAST section):
+        // Next rows are those with (startDate IS NULL AND id > cursorId)
+        baseConditions.push(
+          and(isNull(trips.startDate), gt(trips.id, cursorId))!,
+        );
+      }
+    }
+
+    // Load paginated trips (fetch limit+1)
     const userTrips = await this.db
-      .select()
+      .select({
+        id: trips.id,
+        name: trips.name,
+        destination: trips.destination,
+        startDate: trips.startDate,
+        endDate: trips.endDate,
+        coverImageUrl: trips.coverImageUrl,
+      })
       .from(trips)
-      .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)))
+      .where(and(...baseConditions))
       .orderBy(
         sql`CASE WHEN ${trips.startDate} IS NULL THEN 1 ELSE 0 END`,
         asc(trips.startDate),
+        asc(trips.id),
       )
-      .limit(limit)
-      .offset(offset);
+      .limit(limit + 1);
+
+    const hasMore = userTrips.length > limit;
+    const pageTrips = hasMore ? userTrips.slice(0, limit) : userTrips;
 
     // If no trips on this page, return empty
-    if (userTrips.length === 0) {
+    if (pageTrips.length === 0) {
       return {
         data: [],
-        meta: { total, page, limit, totalPages },
+        meta: { total, limit, hasMore: false, nextCursor: null },
       };
     }
 
+    // Build next cursor from the last row
+    let nextCursor: string | null = null;
+    if (hasMore) {
+      const lastTrip = pageTrips[pageTrips.length - 1]!;
+      nextCursor = encodeCursor({
+        startDate: lastTrip.startDate,
+        id: lastTrip.id,
+      });
+    }
+
     // Batch: get all members for all trips on this page (fix N+1)
-    const pageTripIds = userTrips.map((t) => t.id);
+    const pageTripIds = pageTrips.map((t) => t.id);
 
     const allMembers = await this.db
-      .select()
+      .select({
+        tripId: members.tripId,
+        userId: members.userId,
+        isOrganizer: members.isOrganizer,
+      })
       .from(members)
       .where(inArray(members.tripId, pageTripIds));
 
@@ -527,7 +611,7 @@ export class TripService implements ITripService {
       ]),
     );
 
-    const summaries: TripSummary[] = userTrips.map((trip) => {
+    const summaries: TripSummary[] = pageTrips.map((trip) => {
       const membership = membershipMap.get(trip.id);
       const rsvpStatus = membership?.status ?? "no_response";
       const isOrganizer = membership?.isOrganizer ?? false;
@@ -554,7 +638,7 @@ export class TripService implements ITripService {
 
     return {
       data: summaries,
-      meta: { total, page, limit, totalPages },
+      meta: { total, limit, hasMore, nextCursor },
     };
   }
 
@@ -704,7 +788,7 @@ export class TripService implements ITripService {
 
     // 2. Lookup users by phone numbers
     const newCoOrganizerUsers = await this.db
-      .select()
+      .select({ id: users.id, phoneNumber: users.phoneNumber })
       .from(users)
       .where(inArray(users.phoneNumber, phoneNumbers));
 
@@ -723,7 +807,7 @@ export class TripService implements ITripService {
     await this.db.transaction(async (tx) => {
       // 3-4. Get existing members (derive count from result length)
       const existingMembers = await tx
-        .select()
+        .select({ userId: members.userId })
         .from(members)
         .where(eq(members.tripId, tripId));
 
@@ -814,7 +898,7 @@ export class TripService implements ITripService {
 
     // 2. Load trip to check creator
     const [trip] = await this.db
-      .select()
+      .select({ id: trips.id, createdBy: trips.createdBy })
       .from(trips)
       .where(eq(trips.id, tripId))
       .limit(1);
@@ -830,7 +914,7 @@ export class TripService implements ITripService {
 
     // 4. Verify co-organizer is a member of the trip
     const [memberRecord] = await this.db
-      .select()
+      .select({ id: members.id })
       .from(members)
       .where(and(eq(members.tripId, tripId), eq(members.userId, coOrgUserId)))
       .limit(1);

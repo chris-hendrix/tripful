@@ -1,4 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+} from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import type {
   GetTripsResponse,
@@ -30,14 +34,24 @@ export const tripKeys = {
 };
 
 /**
- * Query options for fetching all trips
+ * Infinite query options for fetching all trips (cursor-based pagination)
  */
-export const tripsQueryOptions = queryOptions({
+export const tripsQueryOptions = infiniteQueryOptions({
   queryKey: tripKeys.all,
   staleTime: 2 * 60 * 1000,
-  queryFn: async ({ signal }) => {
-    const response = await apiRequest<GetTripsResponse>("/trips", { signal });
-    return response.data;
+  placeholderData: keepPreviousData,
+  initialPageParam: undefined as string | undefined,
+  getNextPageParam: (lastPage: GetTripsResponse) =>
+    lastPage.meta.nextCursor ?? undefined,
+  queryFn: async ({ signal, pageParam }) => {
+    const searchParams = new URLSearchParams();
+    if (pageParam) searchParams.set("cursor", pageParam);
+    searchParams.set("limit", "20");
+
+    const query = searchParams.toString();
+    const url = query ? `/trips?${query}` : "/trips";
+
+    return apiRequest<GetTripsResponse>(url, { signal });
   },
 });
 
@@ -60,5 +74,4 @@ export const tripDetailQueryOptions = (tripId: string) =>
       };
       return result;
     },
-    enabled: !!tripId,
   });

@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,6 @@ import {
 } from "@/hooks/use-notifications";
 import { NotificationItem } from "./notification-item";
 
-const PAGE_SIZE = 20;
-
 interface TripNotificationDialogProps {
   tripId: string;
   open: boolean;
@@ -36,22 +33,14 @@ export function TripNotificationDialog({
   onOpenChange,
 }: TripNotificationDialogProps) {
   const router = useRouter();
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = useNotifications({
-    tripId,
-    limit: PAGE_SIZE * page,
-  });
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useNotifications({ tripId });
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
 
-  const notifications = data?.notifications ?? [];
-  const totalCount = data?.meta?.total ?? 0;
-  const hasMore = notifications.length < totalCount;
+  const notifications = data?.pages.flatMap((p) => p.notifications) ?? [];
+  const hasMore = hasNextPage ?? false;
   const hasUnread = notifications.some((n) => n.readAt === null);
-
-  const handleLoadMore = useCallback(() => {
-    setPage((prev) => prev + 1);
-  }, []);
 
   function handleNotificationClick(notification: Notification) {
     if (notification.readAt === null) {
@@ -148,9 +137,10 @@ export function TripNotificationDialog({
                       variant="ghost"
                       size="sm"
                       className="text-sm text-muted-foreground"
-                      onClick={handleLoadMore}
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
                     >
-                      Load more
+                      {isFetchingNextPage ? "Loading..." : "Load more"}
                     </Button>
                   </div>
                 </>
