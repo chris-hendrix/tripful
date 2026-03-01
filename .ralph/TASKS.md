@@ -29,7 +29,7 @@
 
 ## Phase 3: Template System & Pickers
 
-- [ ] Task 3.1: Build template config, keyword detection, and all picker components
+- [x] Task 3.1: Build template config, keyword detection, and all picker components
   - Implement: Create `apps/web/src/config/trip-templates.ts` — TripTemplate interface and TRIP_TEMPLATES array (all 20 templates with id, label, keywords, color, icon, font). Ensure bachelorette before bachelor in array order.
   - Implement: Create `apps/web/src/lib/detect-template.ts` — `detectTemplate(name)` returns matching template or null
   - Implement: Create `apps/web/src/components/trip/template-picker.tsx` — sheet overlay with grid of 20 template cards (gradient backgrounds from deriveTheme, icon + label), "Custom" card, "No theme" option, selection callback

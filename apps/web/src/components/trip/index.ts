@@ -7,3 +7,8 @@ export { InviteMembersDialog } from "./invite-members-dialog";
 export { MembersList } from "./members-list";
 export { MemberOnboardingWizard } from "./member-onboarding-wizard";
 export { TravelReminderBanner } from "./travel-reminder-banner";
+export { TemplatePicker } from "./template-picker";
+export { ColorPicker } from "./color-picker";
+export { IconPicker } from "./icon-picker";
+export { FontPicker } from "./font-picker";
+export { ThemePreviewCard } from "./theme-preview-card";

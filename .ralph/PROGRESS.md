@@ -51,3 +51,32 @@ Created color conversion/manipulation utilities and set up 4 new Google fonts fo
 - `darken` uses multiplicative formula (`l * (1-amount)`) while `lighten` uses additive-toward-white (`l + (100-l) * amount`) — intentionally asymmetric for better gradient aesthetics
 - `readableForeground` uses luminance threshold 0.179 (standard WCAG midpoint) to pick `#ffffff` or `#1a1a1a`
 - Test file placed in `__tests__/` subdirectory pattern (consistent with newer tests in the codebase)
+
+## Iteration 3 — Task 3.1: Build template config, keyword detection, and all picker components
+
+**Status**: ✅ COMPLETE
+**Verifier**: PASS (2645 tests, 0 failures; lint clean; typecheck clean)
+**Reviewer**: APPROVED
+
+### What was done
+
+Built the frontend-only template system with 20 presets, keyword detection, and 5 picker UI components:
+
+1. **Trip Templates** (`apps/web/src/config/trip-templates.ts`): `TripTemplate` interface and `TRIP_TEMPLATES` array with all 20 templates. `bachelorette-party` placed before `bachelor-party` for first-match-wins ordering. Each template has id, label, keywords array, hex color, emoji icon, and ThemeFont.
+2. **Template Detection** (`apps/web/src/lib/detect-template.ts`): `detectTemplate(name)` function — case-insensitive substring matching via `.find()` + `.some()` + `.includes()`, returns matching `TripTemplate` or `null`.
+3. **Template Picker** (`apps/web/src/components/trip/template-picker.tsx`): Sheet overlay with grid of 20 template cards (gradient backgrounds via `deriveTheme().heroGradient`, text via `accentForeground`). Internal custom mode with individual color/icon/font pickers. "No theme" option returns `null`. Clean controlled API: `open`/`onOpenChange`/`onSelect`.
+4. **Color Picker** (`apps/web/src/components/trip/color-picker.tsx`): Grid of 23 preset colors (20 unique template colors + 3 neutrals) deduplicated via `Set`. Selected state with checkmark overlay. Helper `isLightColor()` for checkmark contrast.
+5. **Icon Picker** (`apps/web/src/components/trip/icon-picker.tsx`): 31 curated emojis organized into 5 categories (Celebrations, Travel, Activities, Places, Nature). Selected state with ring highlight.
+6. **Font Picker** (`apps/web/src/components/trip/font-picker.tsx`): 6 radio options using shadcn `RadioGroup`/`RadioGroupItem`. Each label rendered in its own font via `style={{ fontFamily: THEME_FONTS[fontId] }}`. Fixed `exactOptionalPropertyTypes` issue by using `value ?? ""` for null-to-empty-string conversion.
+7. **Theme Preview Card** (`apps/web/src/components/trip/theme-preview-card.tsx`): Compact inline card with color swatch circle, emoji icon, font display name (rendered in its own font), and "Change theme" button.
+8. **Unit Tests** (`apps/web/src/lib/__tests__/detect-template.test.ts`): 6 tests — exact keyword match, substring match, bachelorette-before-bachelor ordering, no-match returns null, case-insensitive, multi-word keywords.
+9. **Barrel File** (`apps/web/src/components/trip/index.ts`): Added exports for all 5 new components.
+
+### Learnings for future iterations
+
+- `RadioGroup` from Radix has `value?: string` (optional). With `exactOptionalPropertyTypes: true`, you cannot pass `null` — use `value ?? ""` to convert null to empty string (no RadioGroupItem matches "", so nothing is selected)
+- `FONT_DISPLAY_NAMES` record mapping ThemeFont IDs to human-readable names is duplicated between `font-picker.tsx` and `theme-preview-card.tsx` — consider extracting to shared config if more consumers appear
+- `ColorPicker` has its own `isLightColor()` helper instead of reusing `readableForeground()` from `color-utils.ts` — the simple formula is adequate for checkmark overlay contrast
+- All 20 template colors are unique (no deduplication needed), but `Set` is used defensively in case templates are modified later
+- Sheet component from Radix unmounts children when closed, so `useState` initial values re-initialize each open — no stale state concern
+- Template picker `onSelect` returns `{ color, icon, font } | null` — downstream consumers (Tasks 4.1, 6.1) will wire this to form state for `themeColor`/`themeIcon`/`themeFont`
