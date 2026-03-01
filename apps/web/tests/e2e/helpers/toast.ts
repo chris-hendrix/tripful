@@ -3,32 +3,40 @@ import { expect } from "@playwright/test";
 import { TOAST_TIMEOUT } from "./timeouts";
 
 /**
+ * Force-remove all Sonner toast elements from the DOM.
+ *
+ * On mobile WebKit, Sonner's auto-dismiss timer gets permanently stuck
+ * because Playwright mouse events don't produce real pointer events on
+ * touch devices. Neither mouse.move, mouseout dispatch, nor body clicks
+ * reliably unpause the timer. Removing the DOM elements is the only
+ * approach that works across all browsers.
+ *
+ * This is safe because Sonner recreates elements for each new toast
+ * independently — removing old elements doesn't corrupt React state
+ * or prevent future toasts from rendering.
+ */
+/* eslint-disable no-undef -- browser globals inside page.evaluate */
+async function forceRemoveToasts(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document
+      .querySelectorAll("[data-sonner-toast]")
+      .forEach((el) => el.remove());
+  });
+}
+/* eslint-enable no-undef */
+
+/**
  * Dismiss any visible Sonner toasts and wait for them to disappear.
  *
- * Primary approach: call Sonner's `toast.dismiss()` API directly via a
- * window global exposed by the `<Toaster>` component. This bypasses
- * all mouse-event / timer issues and works reliably on every browser.
- *
- * Fallback: dispatch a native `mouseout` event on the toaster container
- * to unpause the auto-dismiss timer (works on desktop, unreliable on
- * mobile WebKit where Playwright mouse events don't produce real pointer
- * events on touch devices).
+ * Strategy: try to unpause the auto-dismiss timer via mouseout dispatch
+ * (works on desktop). If toasts persist after a short wait, force-remove
+ * them from the DOM (needed on mobile WebKit).
  */
 export async function dismissToast(page: Page): Promise<void> {
   const selector = "[data-sonner-toast]";
   if ((await page.locator(selector).count()) === 0) return;
 
-  // Primary: call Sonner's dismiss() API directly (all browsers)
-  /* eslint-disable no-undef -- browser globals inside page.evaluate */
-  await page.evaluate(() => {
-    const win = window as unknown as Record<string, unknown>;
-    if (typeof win.__e2eDismissToasts === "function") {
-      (win.__e2eDismissToasts as () => void)();
-    }
-  });
-  /* eslint-enable no-undef */
-
-  // Fallback: also unpause auto-dismiss timer via mouseout
+  // Desktop: move mouse away + dispatch mouseout to unpause auto-dismiss
   await page.mouse.move(0, 0);
   /* eslint-disable no-undef -- browser globals inside page.evaluate */
   await page.evaluate(() => {
@@ -44,17 +52,10 @@ export async function dismissToast(page: Page): Promise<void> {
   });
   /* eslint-enable no-undef */
 
-  // Wait for toast exit animations to complete
+  // Wait for toasts to auto-dismiss. If they persist (mobile WebKit),
+  // force-remove them from the DOM.
   await expect(async () => {
-    // Re-dismiss in case new toasts appeared during the wait
-    /* eslint-disable no-undef -- browser globals inside page.evaluate */
-    await page.evaluate(() => {
-      const win = window as unknown as Record<string, unknown>;
-      if (typeof win.__e2eDismissToasts === "function") {
-        (win.__e2eDismissToasts as () => void)();
-      }
-    });
-    /* eslint-enable no-undef */
+    await forceRemoveToasts(page);
     expect(await page.locator(selector).count()).toBe(0);
   }).toPass({ timeout: TOAST_TIMEOUT });
 }
