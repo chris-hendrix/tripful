@@ -167,6 +167,8 @@ export function useCreateTrip() {
         preferredTimezone: newTrip.timezone,
         description: newTrip.description || null,
         coverImageUrl: newTrip.coverImageUrl || null,
+        themeId: newTrip.themeId ?? null,
+        themeFont: newTrip.themeFont ?? null,
         createdBy: "current-user", // Placeholder - will be replaced by server response
         allowMembersToAddEvents: newTrip.allowMembersToAddEvents ?? true,
         showAllMembers: newTrip.showAllMembers ?? false,
