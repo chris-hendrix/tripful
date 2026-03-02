@@ -42,3 +42,17 @@ export type {
 
 // Utils
 export { convertToUTC, formatInTimeZone } from "./utils/index";
+export {
+  hexToHsl,
+  hslToHex,
+  derivePaletteVariants,
+  readableForeground,
+} from "./utils/index";
+
+// Config
+export { THEME_PRESETS, THEME_IDS } from "./config/index";
+export { THEME_FONTS, FONT_DISPLAY_NAMES } from "./config/index";
+
+// Theme types (re-exported for convenience)
+export { THEME_FONT_VALUES } from "./types/index";
+export type { ThemeFont, ThemeBackground, ThemePreset } from "./types/index";

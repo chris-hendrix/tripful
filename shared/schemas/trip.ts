@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { phoneNumberSchema } from "./phone";
 import { stripControlChars } from "../utils/sanitize";
+import { THEME_IDS } from "../config/themes";
+import { THEME_FONT_VALUES } from "../types/theme";
 
 /**
  * Validates IANA timezone strings using Intl.supportedValuesOf
@@ -75,6 +77,8 @@ const baseTripSchema = z.object({
   allowMembersToAddEvents: z.boolean().default(true),
   showAllMembers: z.boolean().default(false),
   coOrganizerPhones: z.array(phoneNumberSchema).optional(),
+  themeId: z.enum(THEME_IDS).nullable().optional(),
+  themeFont: z.enum(THEME_FONT_VALUES).nullable().optional(),
 });
 
 /**
@@ -158,6 +162,8 @@ const tripEntitySchema = z.object({
   preferredTimezone: z.string(),
   description: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
+  themeId: z.string().nullable(),
+  themeFont: z.string().nullable(),
   createdBy: z.string(),
   allowMembersToAddEvents: z.boolean(),
   showAllMembers: z.boolean(),
@@ -181,6 +187,8 @@ const tripSummarySchema = z.object({
   startDate: z.string().nullable(),
   endDate: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
+  themeId: z.string().nullable(),
+  themeFont: z.string().nullable(),
   isOrganizer: z.boolean(),
   rsvpStatus: z.enum(["going", "not_going", "maybe", "no_response"]),
   organizerInfo: z.array(organizerInfoSchema),
