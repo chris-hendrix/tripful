@@ -57,6 +57,10 @@ import {
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
+import { TripThemeProvider } from "@/components/trip/trip-theme-provider";
+import { buildBackground } from "@/lib/theme-styles";
+import { THEME_PRESETS } from "@tripful/shared/config";
+import { THEME_FONTS } from "@tripful/shared/config";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { supportsHover } from "@/lib/supports-hover";
 
@@ -165,6 +169,12 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 
+  const preset = trip?.themeId
+    ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
+    : null;
+  const heroTextLight =
+    trip?.coverImageUrl || !preset || preset.background.isDark;
+
   // Loading state
   if (isPending) {
     return <SkeletonDetail />;
@@ -202,7 +212,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
+    <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont}>
+      <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
       {/* Hero section with cover image + overlay */}
       <div className="relative h-64 sm:h-80 overflow-hidden">
         {/* Background: cover photo or default pattern */}
@@ -215,6 +226,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             sizes="(min-width: 1024px) 1024px, 100vw"
             className="object-cover"
           />
+        ) : preset ? (
+          <div
+            className="absolute inset-0"
+            style={{ background: buildBackground(preset.background) }}
+          />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30">
             <TopoPattern className="opacity-[0.12] text-white" />
@@ -222,17 +238,19 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         )}
 
         {/* Gradient scrim for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        {trip.coverImageUrl && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        )}
 
         {/* Top-right: notification + settings */}
         <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
           <TripNotificationBell
             tripId={tripId}
-            className="text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+            className={heroTextLight ? "text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50" : "text-foreground/80 hover:text-foreground hover:bg-foreground/10 focus-visible:ring-foreground/50"}
           />
           <TripSettingsButton
             tripId={tripId}
-            className="text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+            className={heroTextLight ? "text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50" : "text-foreground/80 hover:text-foreground hover:bg-foreground/10 focus-visible:ring-foreground/50"}
           />
         </div>
 
@@ -241,7 +259,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-4 left-4 z-10 text-white/60 hover:text-white hover:bg-white/10 focus-visible:ring-white/50"
+            className={`absolute top-4 left-4 z-10 ${heroTextLight ? "text-white/60 hover:text-white hover:bg-white/10 focus-visible:ring-white/50" : "text-foreground/60 hover:text-foreground hover:bg-foreground/10 focus-visible:ring-foreground/50"}`}
             onClick={() => setIsEditOpen(true)}
             onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
             onFocus={preloadEditTripDialog}
@@ -255,16 +273,17 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         <div className="absolute bottom-0 left-0 right-0 pb-5 sm:pb-6">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1
-              className="text-2xl sm:text-4xl font-bold text-white font-[family-name:var(--font-playfair)] line-clamp-2 drop-shadow-sm"
+              className={`text-2xl sm:text-4xl font-bold ${heroTextLight ? "text-white" : "text-foreground"} font-[family-name:var(--font-playfair)] line-clamp-2 drop-shadow-sm`}
+              style={trip.themeFont ? { fontFamily: THEME_FONTS[trip.themeFont as keyof typeof THEME_FONTS] } : undefined}
             >
               {trip.name}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm sm:text-base text-white/80 [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]">
+            <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm sm:text-base ${heroTextLight ? "text-white/80 [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]" : "text-foreground/80"}`}>
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.destination)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 hover:text-white transition-colors min-w-0"
+                className={`inline-flex items-center gap-1.5 ${heroTextLight ? "hover:text-white" : "hover:text-foreground"} transition-colors min-w-0`}
               >
                 <MapPin className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{trip.destination}</span>
@@ -544,6 +563,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           trip={trip}
         />
       )}
-    </div>
+      </div>
+    </TripThemeProvider>
   );
 }
