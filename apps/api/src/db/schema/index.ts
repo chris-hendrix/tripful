@@ -82,6 +82,9 @@ export const trips = pgTable(
     preferredTimezone: varchar("preferred_timezone", { length: 100 }).notNull(),
     description: text("description"),
     coverImageUrl: text("cover_image_url"),
+    themeColor: varchar("theme_color", { length: 7 }),
+    themeIcon: varchar("theme_icon", { length: 10 }),
+    themeFont: varchar("theme_font", { length: 30 }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),

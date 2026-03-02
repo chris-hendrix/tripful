@@ -1,0 +1,173 @@
+import type { ThemeFont } from "@/config/theme-fonts";
+
+export interface TripTemplate {
+  id: string;
+  label: string;
+  keywords: string[];
+  color: string;
+  icon: string;
+  font: ThemeFont;
+}
+
+export const TRIP_TEMPLATES: TripTemplate[] = [
+  {
+    id: "bachelorette-party",
+    label: "Bachelorette Party",
+    keywords: ["bachelorette", "hen do", "hen party"],
+    color: "#ff69b4",
+    icon: "\u{1F485}",
+    font: "playful",
+  },
+  {
+    id: "bachelor-party",
+    label: "Bachelor Party",
+    keywords: ["bachelor", "stag", "stag do"],
+    color: "#e94560",
+    icon: "\u{1F3B0}",
+    font: "bold-sans",
+  },
+  {
+    id: "wedding",
+    label: "Wedding",
+    keywords: ["wedding", "nuptials", "ceremony", "elopement"],
+    color: "#d4a574",
+    icon: "\u{1F492}",
+    font: "elegant-serif",
+  },
+  {
+    id: "honeymoon",
+    label: "Honeymoon",
+    keywords: ["honeymoon"],
+    color: "#e8a0bf",
+    icon: "\u{1F305}",
+    font: "elegant-serif",
+  },
+  {
+    id: "birthday",
+    label: "Birthday Trip",
+    keywords: ["birthday", "bday"],
+    color: "#f59e0b",
+    icon: "\u{1F382}",
+    font: "playful",
+  },
+  {
+    id: "girls-trip",
+    label: "Girls' Trip",
+    keywords: ["girls trip", "girls weekend", "ladies"],
+    color: "#a855f7",
+    icon: "\u{1F46F}",
+    font: "playful",
+  },
+  {
+    id: "guys-trip",
+    label: "Guys' Trip",
+    keywords: ["guys trip", "boys trip", "boys weekend"],
+    color: "#3b82f6",
+    icon: "\u{1F37B}",
+    font: "bold-sans",
+  },
+  {
+    id: "beach",
+    label: "Beach",
+    keywords: ["beach", "coast", "shore", "tropical", "island"],
+    color: "#06b6d4",
+    icon: "\u{1F3D6}\u{FE0F}",
+    font: "playful",
+  },
+  {
+    id: "ski-trip",
+    label: "Ski Trip",
+    keywords: ["ski", "skiing", "snowboard", "slopes"],
+    color: "#7dd3fc",
+    icon: "\u{26F7}\u{FE0F}",
+    font: "condensed",
+  },
+  {
+    id: "lake-house",
+    label: "Lake House",
+    keywords: ["lake", "lakehouse", "lake house"],
+    color: "#0d9488",
+    icon: "\u{1F3E1}",
+    font: "handwritten",
+  },
+  {
+    id: "cabin",
+    label: "Cabin / Mountain",
+    keywords: ["cabin", "mountain", "lodge", "chalet"],
+    color: "#78716c",
+    icon: "\u{1F3D4}\u{FE0F}",
+    font: "handwritten",
+  },
+  {
+    id: "camping",
+    label: "Camping",
+    keywords: ["camping", "campsite", "glamping", "tent"],
+    color: "#65a30d",
+    icon: "\u{26FA}",
+    font: "handwritten",
+  },
+  {
+    id: "city-break",
+    label: "City Break",
+    keywords: ["city", "downtown", "urban", "metro"],
+    color: "#6366f1",
+    icon: "\u{1F303}",
+    font: "clean",
+  },
+  {
+    id: "road-trip",
+    label: "Road Trip",
+    keywords: ["road trip", "roadtrip", "cross country"],
+    color: "#ea580c",
+    icon: "\u{1F697}",
+    font: "handwritten",
+  },
+  {
+    id: "music-festival",
+    label: "Music Festival",
+    keywords: ["festival", "coachella", "concert", "bonnaroo"],
+    color: "#d946ef",
+    icon: "\u{1F3B6}",
+    font: "condensed",
+  },
+  {
+    id: "sports-event",
+    label: "Sports Event",
+    keywords: ["game", "super bowl", "march madness", "world cup"],
+    color: "#16a34a",
+    icon: "\u{1F3DF}\u{FE0F}",
+    font: "bold-sans",
+  },
+  {
+    id: "wine-country",
+    label: "Wine Country",
+    keywords: ["wine", "vineyard", "winery", "napa", "sonoma"],
+    color: "#7f1d1d",
+    icon: "\u{1F377}",
+    font: "elegant-serif",
+  },
+  {
+    id: "golf-trip",
+    label: "Golf Trip",
+    keywords: ["golf", "tee time", "links"],
+    color: "#166534",
+    icon: "\u{26F3}",
+    font: "clean",
+  },
+  {
+    id: "spring-break",
+    label: "Spring Break",
+    keywords: ["spring break", "spring fling"],
+    color: "#f472b6",
+    icon: "\u{1F334}",
+    font: "condensed",
+  },
+  {
+    id: "reunion",
+    label: "Reunion",
+    keywords: ["reunion", "get together", "gathering"],
+    color: "#f97316",
+    icon: "\u{1F91D}",
+    font: "clean",
+  },
+];

@@ -51,6 +51,9 @@ export type TripSummary = {
   startDate: string | null;
   endDate: string | null;
   coverImageUrl: string | null;
+  themeColor: string | null;
+  themeIcon: string | null;
+  themeFont: string | null;
   isOrganizer: boolean;
   rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
   organizerInfo: Array<{
@@ -107,6 +110,9 @@ type TripPreview = Pick<
   | "preferredTimezone"
   | "description"
   | "coverImageUrl"
+  | "themeColor"
+  | "themeIcon"
+  | "themeFont"
 >;
 
 /**
@@ -286,6 +292,9 @@ export class TripService implements ITripService {
           description: data.description || null,
           coverImageUrl:
             data.coverImageUrl === null ? null : data.coverImageUrl || null,
+          themeColor: data.themeColor ?? null,
+          themeIcon: data.themeIcon ?? null,
+          themeFont: data.themeFont ?? null,
           createdBy: userId,
           allowMembersToAddEvents: data.allowMembersToAddEvents,
         })
@@ -408,6 +417,9 @@ export class TripService implements ITripService {
         preferredTimezone: trip.preferredTimezone,
         description: trip.description,
         coverImageUrl: trip.coverImageUrl,
+        themeColor: trip.themeColor,
+        themeIcon: trip.themeIcon,
+        themeFont: trip.themeFont,
         ...meta,
       };
     }
@@ -507,6 +519,9 @@ export class TripService implements ITripService {
         startDate: trips.startDate,
         endDate: trips.endDate,
         coverImageUrl: trips.coverImageUrl,
+        themeColor: trips.themeColor,
+        themeIcon: trips.themeIcon,
+        themeFont: trips.themeFont,
       })
       .from(trips)
       .where(and(...baseConditions))
@@ -628,6 +643,9 @@ export class TripService implements ITripService {
         startDate: trip.startDate,
         endDate: trip.endDate,
         coverImageUrl: trip.coverImageUrl,
+        themeColor: trip.themeColor,
+        themeIcon: trip.themeIcon,
+        themeFont: trip.themeFont,
         isOrganizer,
         rsvpStatus,
         organizerInfo,

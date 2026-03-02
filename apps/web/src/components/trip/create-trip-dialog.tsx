@@ -41,9 +41,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Plus, X, Loader2 } from "lucide-react";
+import { Plus, X, Loader2, Palette } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
-
+import { detectTemplate } from "@/lib/detect-template";
+import { ThemePreviewCard } from "@/components/trip/theme-preview-card";
+import { TemplatePicker } from "@/components/trip/template-picker";
+import type { ThemeFont } from "@/config/theme-fonts";
 interface CreateTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,6 +59,7 @@ export function CreateTripDialog({
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [newCoOrganizerPhone, setNewCoOrganizerPhone] = useState("");
   const [coOrganizerError, setCoOrganizerError] = useState<string | null>(null);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   const { mutate: createTrip, isPending } = useCreateTrip();
 
@@ -69,10 +73,18 @@ export function CreateTripDialog({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       description: "",
       coverImageUrl: null,
+      themeColor: null,
+      themeIcon: null,
+      themeFont: null,
       allowMembersToAddEvents: true,
       coOrganizerPhones: [],
     },
   });
+
+  const themeColor = form.watch("themeColor");
+  const themeIcon = form.watch("themeIcon");
+  const themeFont = form.watch("themeFont");
+  const hasTheme = !!(themeColor && themeIcon && themeFont);
 
   const handleContinue = async () => {
     // Validate Step 1 fields before proceeding
@@ -87,6 +99,13 @@ export function CreateTripDialog({
     const isStep1Valid = await form.trigger(step1Fields);
 
     if (isStep1Valid) {
+      const tripName = form.getValues("name");
+      const template = detectTemplate(tripName);
+      if (template && !form.getValues("themeColor")) {
+        form.setValue("themeColor", template.color);
+        form.setValue("themeIcon", template.icon);
+        form.setValue("themeFont", template.font);
+      }
       setCurrentStep(2);
     }
   };
@@ -148,6 +167,20 @@ export function CreateTripDialog({
       "coOrganizerPhones",
       currentPhones.filter((phone) => phone !== phoneToRemove),
     );
+  };
+
+  const handleThemeSelect = (
+    theme: { color: string; icon: string; font: ThemeFont } | null,
+  ) => {
+    if (theme) {
+      form.setValue("themeColor", theme.color);
+      form.setValue("themeIcon", theme.icon);
+      form.setValue("themeFont", theme.font);
+    } else {
+      form.setValue("themeColor", null);
+      form.setValue("themeIcon", null);
+      form.setValue("themeFont", null);
+    }
   };
 
   return (
@@ -431,6 +464,31 @@ export function CreateTripDialog({
                     )}
                   />
 
+                  {/* Theme */}
+                  <div className="space-y-2">
+                    <p className="text-base font-semibold text-foreground">
+                      Theme
+                    </p>
+                    {hasTheme ? (
+                      <ThemePreviewCard
+                        color={themeColor!}
+                        icon={themeIcon!}
+                        font={themeFont!}
+                        onChangeClick={() => setTemplatePickerOpen(true)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setTemplatePickerOpen(true)}
+                        disabled={isPending}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Palette className="size-4" />
+                        Add a theme
+                      </button>
+                    )}
+                  </div>
+
                   {/* Allow Members to Add Events */}
                   <FormField
                     control={form.control}
@@ -593,6 +651,15 @@ export function CreateTripDialog({
           </Form>
         </SheetBody>
       </SheetContent>
+
+      <TemplatePicker
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        onSelect={handleThemeSelect}
+        currentColor={themeColor ?? null}
+        currentIcon={themeIcon ?? null}
+        currentFont={themeFont ?? null}
+      />
     </Sheet>
   );
 }

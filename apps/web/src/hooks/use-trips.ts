@@ -170,6 +170,9 @@ export function useCreateTrip() {
         createdBy: "current-user", // Placeholder - will be replaced by server response
         allowMembersToAddEvents: newTrip.allowMembersToAddEvents ?? true,
         showAllMembers: newTrip.showAllMembers ?? false,
+        themeColor: newTrip.themeColor ?? null,
+        themeIcon: newTrip.themeIcon ?? null,
+        themeFont: newTrip.themeFont ?? null,
         cancelled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -348,6 +351,18 @@ export function useUpdateTrip() {
             data.allowMembersToAddEvents ??
             previousTrip.allowMembersToAddEvents,
           showAllMembers: data.showAllMembers ?? previousTrip.showAllMembers,
+          themeColor:
+            data.themeColor !== undefined
+              ? (data.themeColor ?? null)
+              : previousTrip.themeColor,
+          themeIcon:
+            data.themeIcon !== undefined
+              ? (data.themeIcon ?? null)
+              : previousTrip.themeIcon,
+          themeFont:
+            data.themeFont !== undefined
+              ? (data.themeFont ?? null)
+              : previousTrip.themeFont,
           updatedAt: new Date(),
         };
 

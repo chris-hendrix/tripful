@@ -45,11 +45,14 @@ export type {
   Trip,
   TripSummary,
   TripDetail,
+  ThemeFont,
   GetTripsResponse,
   GetTripResponse,
   CreateTripResponse,
   UpdateTripResponse,
 } from "./trip";
+
+export { THEME_FONT_VALUES } from "./trip";
 
 // Re-export event-related types
 export type {

@@ -1,4 +1,4 @@
 # Ralph Config
 
-- description: skill-audit-remediation
+- description: trip-themes
 - mode: branch
