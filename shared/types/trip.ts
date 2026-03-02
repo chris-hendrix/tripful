@@ -27,6 +27,10 @@ export interface Trip {
   allowMembersToAddEvents: boolean;
   /** Whether all members are visible to each other (vs only organizers visible) */
   showAllMembers: boolean;
+  /** Theme preset ID (references THEME_PRESETS, not a DB FK) */
+  themeId: string | null;
+  /** Font choice, independent of theme */
+  themeFont: string | null;
   /** Whether the trip has been cancelled (soft delete) */
   cancelled: boolean;
   /** Trip creation timestamp */
@@ -52,6 +56,10 @@ export interface TripSummary {
   endDate: string | null;
   /** Optional cover image URL */
   coverImageUrl: string | null;
+  /** Theme preset ID */
+  themeId: string | null;
+  /** Font choice */
+  themeFont: string | null;
   /** Whether the current user is an organizer of this trip */
   isOrganizer: boolean;
   /** Current user's RSVP status for this trip */
