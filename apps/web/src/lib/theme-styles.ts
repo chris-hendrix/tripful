@@ -85,6 +85,7 @@ export function resolveThemeStyles(
 
   return {
     ...semantic,
+    "--theme-background": buildBackground(theme.background),
     "--color-event-travel": travel,
     "--color-event-travel-light": travelV.light,
     "--color-event-travel-border": travelV.border,
@@ -139,6 +140,51 @@ export function resolvePaletteStyles(
     "--color-primary": highlight,
   };
 }
+
+/**
+ * Every CSS custom property key that `resolveThemeStyles()` can produce
+ * (union of dark + light semantic keys, palette keys, and font).
+ * Used by `useThemePreview` to snapshot / restore inline styles.
+ */
+export const ALL_THEME_CSS_KEYS: readonly string[] = [
+  // Semantic UI tokens (both light and dark)
+  "--color-background",
+  "--color-foreground",
+  "--color-card",
+  "--color-card-foreground",
+  "--color-popover",
+  "--color-popover-foreground",
+  "--color-secondary",
+  "--color-secondary-foreground",
+  "--color-muted",
+  "--color-muted-foreground",
+  "--color-accent-foreground",
+  "--color-border",
+  "--color-input",
+  "--color-ring",
+  // Dark-only semantic tokens
+  "--color-member-travel",
+  "--color-member-travel-light",
+  "--color-member-travel-border",
+  // Palette tokens
+  "--color-event-travel",
+  "--color-event-travel-light",
+  "--color-event-travel-border",
+  "--color-event-meal",
+  "--color-event-meal-light",
+  "--color-event-meal-border",
+  "--color-event-activity",
+  "--color-event-activity-light",
+  "--color-event-activity-border",
+  "--color-accommodation",
+  "--color-accommodation-light",
+  "--color-accommodation-border",
+  "--color-primary",
+  // Full background (gradient/solid/image)
+  "--theme-background",
+  // Font
+  "--font-theme",
+] as const;
 
 /**
  * Build a CSS background value from a ThemeBackground discriminated union.

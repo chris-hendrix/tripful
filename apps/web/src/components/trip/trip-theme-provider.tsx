@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useLayoutEffect, type ReactNode } from "react";
 import { THEME_PRESETS } from "@tripful/shared/config";
 import { THEME_FONTS } from "@tripful/shared/config";
 import { resolveThemeStyles, resolvePaletteStyles } from "@/lib/theme-styles";
@@ -33,8 +33,8 @@ export function TripThemeProvider({
 }: TripThemeProviderProps) {
   const preset = THEME_PRESETS.find((p) => p.id === themeId) ?? null;
 
-  // Page-scoped: set all vars on document root
-  useEffect(() => {
+  // Page-scoped: set all vars on document root (layout effect to avoid flash)
+  useLayoutEffect(() => {
     if (scope !== "page" || !preset) return;
 
     const styles = resolveThemeStyles(preset);

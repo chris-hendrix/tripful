@@ -58,7 +58,6 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
 import { TripThemeProvider } from "@/components/trip/trip-theme-provider";
-import { buildBackground } from "@/lib/theme-styles";
 import { THEME_PRESETS } from "@tripful/shared/config";
 import { THEME_FONTS } from "@tripful/shared/config";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
@@ -215,7 +214,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont} scope="page">
       <div
         className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]"
-        style={preset ? { background: buildBackground(preset.background) } : undefined}
+        style={preset ? { background: "var(--theme-background)" } : undefined}
       >
       {/* Hero section with cover image + overlay */}
       <div className="relative h-64 sm:h-80 overflow-hidden">
@@ -232,7 +231,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         ) : preset ? (
           <div
             className="absolute inset-0"
-            style={{ background: buildBackground(preset.background) }}
+            style={{ background: "var(--theme-background)" }}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30">

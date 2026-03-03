@@ -42,6 +42,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { ThemePicker } from "@/components/trip/theme-picker";
 import { FontPicker } from "@/components/trip/font-picker";
+import { useThemePreview } from "@/hooks/use-theme-preview";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -76,6 +77,17 @@ export function CreateTripDialog({
       allowMembersToAddEvents: true,
       coOrganizerPhones: [],
     },
+  });
+
+  const watchedThemeId = form.watch("themeId");
+  const watchedThemeFont = form.watch("themeFont");
+
+  useThemePreview({
+    themeId: watchedThemeId ?? null,
+    themeFont: watchedThemeFont ?? null,
+    initialThemeId: null,
+    initialThemeFont: null,
+    enabled: open,
   });
 
   const handleContinue = async () => {

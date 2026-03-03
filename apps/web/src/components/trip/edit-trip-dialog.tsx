@@ -55,6 +55,7 @@ import {
 import { ImageUpload } from "@/components/trip/image-upload";
 import { ThemePicker } from "@/components/trip/theme-picker";
 import { FontPicker } from "@/components/trip/font-picker";
+import { useThemePreview } from "@/hooks/use-theme-preview";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Trash2, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -90,6 +91,17 @@ export function EditTripDialog({
       allowMembersToAddEvents: true,
       showAllMembers: false,
     },
+  });
+
+  const watchedThemeId = form.watch("themeId");
+  const watchedThemeFont = form.watch("themeFont");
+
+  const { commit: commitThemePreview } = useThemePreview({
+    themeId: watchedThemeId ?? null,
+    themeFont: watchedThemeFont ?? null,
+    initialThemeId: trip.themeId ?? null,
+    initialThemeFont: (trip.themeFont ?? null) as string | null,
+    enabled: open,
   });
 
   const isInitializing = useRef(false);
@@ -128,6 +140,7 @@ export function EditTripDialog({
   }, [startDateValue, form]);
 
   const handleSubmit = (data: UpdateTripInput) => {
+    commitThemePreview();
     updateTrip(
       { tripId: trip.id, data },
       {
