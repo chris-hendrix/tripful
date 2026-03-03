@@ -364,7 +364,7 @@ export function DayByDayView({
           >
             {/* Date gutter — outer cell stretches to row height so sticky works */}
             <div className="relative">
-              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3 bg-background">
+              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3">
                 <span
                   className={cn(
                     "text-xs font-medium uppercase",

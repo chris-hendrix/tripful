@@ -120,3 +120,11 @@ export type {
 
 // Re-export mutuals types
 export type { Mutual, GetMutualsResponse } from "./mutuals";
+
+// Re-export theme types
+export { THEME_FONT_VALUES } from "./theme";
+export type {
+  ThemeFont,
+  ThemeBackground,
+  ThemePreset,
+} from "./theme";

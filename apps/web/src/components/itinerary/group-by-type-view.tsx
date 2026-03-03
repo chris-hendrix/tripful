@@ -167,7 +167,7 @@ export function GroupByTypeView({
           >
             {/* Icon gutter — outer cell stretches to row height so sticky works */}
             <div className="relative">
-              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3 bg-background">
+              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full ${bgFor(section)} ${section.color}`}
                   title={section.title}

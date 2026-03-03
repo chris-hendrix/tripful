@@ -1,4 +1,7 @@
 import {
+  Caveat,
+  Nunito,
+  Oswald,
   Playfair_Display,
   Plus_Jakarta_Sans,
   Space_Grotesk,
@@ -21,4 +24,22 @@ export const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   display: "swap",
   weight: ["400", "500", "600", "700"],
+});
+
+export const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  display: "swap",
+});
+
+export const caveat = Caveat({
+  subsets: ["latin"],
+  variable: "--font-caveat",
+  display: "swap",
+});
+
+export const oswald = Oswald({
+  subsets: ["latin"],
+  variable: "--font-oswald",
+  display: "swap",
 });

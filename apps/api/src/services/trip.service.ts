@@ -51,6 +51,8 @@ export type TripSummary = {
   startDate: string | null;
   endDate: string | null;
   coverImageUrl: string | null;
+  themeId: string | null;
+  themeFont: string | null;
   isOrganizer: boolean;
   rsvpStatus: "going" | "not_going" | "maybe" | "no_response";
   organizerInfo: Array<{
@@ -107,6 +109,8 @@ type TripPreview = Pick<
   | "preferredTimezone"
   | "description"
   | "coverImageUrl"
+  | "themeId"
+  | "themeFont"
 >;
 
 /**
@@ -286,6 +290,8 @@ export class TripService implements ITripService {
           description: data.description || null,
           coverImageUrl:
             data.coverImageUrl === null ? null : data.coverImageUrl || null,
+          themeId: data.themeId ?? null,
+          themeFont: data.themeFont ?? null,
           createdBy: userId,
           allowMembersToAddEvents: data.allowMembersToAddEvents,
         })
@@ -408,6 +414,8 @@ export class TripService implements ITripService {
         preferredTimezone: trip.preferredTimezone,
         description: trip.description,
         coverImageUrl: trip.coverImageUrl,
+        themeId: trip.themeId,
+        themeFont: trip.themeFont,
         ...meta,
       };
     }
@@ -507,6 +515,8 @@ export class TripService implements ITripService {
         startDate: trips.startDate,
         endDate: trips.endDate,
         coverImageUrl: trips.coverImageUrl,
+        themeId: trips.themeId,
+        themeFont: trips.themeFont,
       })
       .from(trips)
       .where(and(...baseConditions))
@@ -628,6 +638,8 @@ export class TripService implements ITripService {
         startDate: trip.startDate,
         endDate: trip.endDate,
         coverImageUrl: trip.coverImageUrl,
+        themeId: trip.themeId,
+        themeFont: trip.themeFont,
         isOrganizer,
         rsvpStatus,
         organizerInfo,

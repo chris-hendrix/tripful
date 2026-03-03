@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { RsvpBadge } from "@/components/ui/rsvp-badge";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
+import { TripThemeProvider } from "@/components/trip/trip-theme-provider";
+import { buildBackground } from "@/lib/theme-styles";
+import { THEME_PRESETS } from "@tripful/shared/config";
+import { THEME_FONTS } from "@tripful/shared/config";
 import { usePrefetchTrip } from "@/hooks/use-trips";
 import { supportsHover } from "@/lib/supports-hover";
 import { cn } from "@/lib/utils";
@@ -29,6 +33,8 @@ interface TripCardProps {
     }>;
     memberCount: number;
     eventCount: number;
+    themeId?: string | null;
+    themeFont?: string | null;
   };
   index?: number;
   className?: string;
@@ -42,6 +48,9 @@ export const TripCard = memo(function TripCard({
   const prefetchTrip = usePrefetchTrip(trip.id);
 
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
+  const preset = trip.themeId
+    ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
+    : null;
 
   // Show up to 3 organizers
   const displayedOrganizers = (trip.organizerInfo ?? []).slice(0, 3);
@@ -51,7 +60,8 @@ export const TripCard = memo(function TripCard({
     : "";
 
   return (
-    <Link
+    <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont}>
+      <Link
       href={`/trips/${trip.id}`}
       {...(supportsHover ? { onMouseEnter: prefetchTrip } : {})}
       onTouchStart={prefetchTrip}
@@ -84,6 +94,20 @@ export const TripCard = memo(function TripCard({
             <RsvpBadge status={trip.rsvpStatus} variant="overlay" />
           </div>
         </div>
+      ) : preset ? (
+        <div className="relative h-48 overflow-hidden">
+          <div className="absolute inset-0" style={{ background: buildBackground(preset.background) }} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          {/* Badges overlay */}
+          <div className="absolute top-3 left-3 flex gap-2">
+            {trip.isOrganizer && (
+              <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 shadow-sm">
+                Organizing
+              </Badge>
+            )}
+            <RsvpBadge status={trip.rsvpStatus} variant="overlay" />
+          </div>
+        </div>
       ) : (
         <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-secondary/20">
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
@@ -106,7 +130,10 @@ export const TripCard = memo(function TripCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-1 truncate font-[family-name:var(--font-playfair)]">
+          <h3
+            className="text-lg font-semibold text-foreground mb-1 truncate font-[family-name:var(--font-playfair)]"
+            style={trip.themeFont ? { fontFamily: THEME_FONTS[trip.themeFont as keyof typeof THEME_FONTS] } : undefined}
+          >
             {trip.name}
           </h3>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -159,6 +186,7 @@ export const TripCard = memo(function TripCard({
           </div>
         </div>
       </div>
-    </Link>
+      </Link>
+    </TripThemeProvider>
   );
 });

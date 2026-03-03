@@ -40,6 +40,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/trip/image-upload";
+import { ThemePicker } from "@/components/trip/theme-picker";
+import { FontPicker } from "@/components/trip/font-picker";
+import { useThemePreview } from "@/hooks/use-theme-preview";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Plus, X, Loader2 } from "lucide-react";
 import { TIMEZONES } from "@/lib/constants";
@@ -69,9 +72,22 @@ export function CreateTripDialog({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       description: "",
       coverImageUrl: null,
+      themeId: null,
+      themeFont: null,
       allowMembersToAddEvents: true,
       coOrganizerPhones: [],
     },
+  });
+
+  const watchedThemeId = form.watch("themeId");
+  const watchedThemeFont = form.watch("themeFont");
+
+  useThemePreview({
+    themeId: watchedThemeId ?? null,
+    themeFont: watchedThemeFont ?? null,
+    initialThemeId: null,
+    initialThemeFont: null,
+    enabled: open,
   });
 
   const handleContinue = async () => {
@@ -427,6 +443,50 @@ export function CreateTripDialog({
                           Optional: Upload a cover image for your trip
                         </FormDescription>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Theme */}
+                  <FormField
+                    control={form.control}
+                    name="themeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-foreground">
+                          Theme
+                        </FormLabel>
+                        <FormControl>
+                          <ThemePicker
+                            value={field.value ?? null}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          Optional: Choose a visual theme for your trip
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Font */}
+                  <FormField
+                    control={form.control}
+                    name="themeFont"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-base font-semibold text-foreground">
+                          Title font
+                        </FormLabel>
+                        <FormControl>
+                          <FontPicker
+                            value={field.value ?? null}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          Optional: Choose a font for trip titles
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
