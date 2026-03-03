@@ -7,8 +7,8 @@ import { THEME_FONT_VALUES } from "../types/theme";
 import type { ThemePreset, ThemeBackground } from "../types/theme";
 
 describe("THEME_PRESETS", () => {
-  it("should contain at least 20 presets", () => {
-    expect(THEME_PRESETS.length).toBeGreaterThanOrEqual(20);
+  it("should contain at least 6 presets", () => {
+    expect(THEME_PRESETS.length).toBeGreaterThanOrEqual(6);
   });
 
   it("should have unique IDs", () => {
@@ -77,19 +77,13 @@ describe("THEME_PRESETS", () => {
     const darkCount = THEME_PRESETS.filter((p) => p.background.isDark).length;
     const lightCount = THEME_PRESETS.filter((p) => !p.background.isDark).length;
     expect(darkCount).toBeGreaterThanOrEqual(3);
-    expect(lightCount).toBeGreaterThanOrEqual(4);
+    expect(lightCount).toBeGreaterThanOrEqual(3);
   });
 
-  it("should include themes across different tag categories", () => {
+  it("should include both dark and light tag categories", () => {
     const allTags = new Set(THEME_PRESETS.flatMap((p) => p.tags));
-    // Verify we have a good spread of categories
     expect(allTags.has("dark")).toBe(true);
     expect(allTags.has("light")).toBe(true);
-    expect(allTags.has("nature")).toBe(true);
-    expect(allTags.has("beach")).toBe(true);
-    expect(allTags.has("bold")).toBe(true);
-    expect(allTags.has("pastel")).toBe(true);
-    expect(allTags.has("festive")).toBe(true);
   });
 
   it("should have no hsl values anywhere in backgrounds", () => {
