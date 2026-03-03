@@ -41,5 +41,6 @@ export {
   hexToHsl,
   hslToHex,
   derivePaletteVariants,
+  deriveDarkPaletteVariants,
   readableForeground,
 } from "./color-utils";

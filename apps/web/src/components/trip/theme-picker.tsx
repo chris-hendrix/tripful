@@ -6,24 +6,11 @@ import { buildBackground } from "@/lib/theme-styles";
 import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
 
-const TAG_ORDER = [
-  "dark",
-  "light",
-  "nature",
-  "beach",
-  "bold",
-  "pastel",
-  "festive",
-] as const;
+const TAG_ORDER = ["dark", "light"] as const;
 
 const TAG_LABELS: Record<string, string> = {
   dark: "Dark",
   light: "Light",
-  nature: "Nature & Earthy",
-  beach: "Beach & Tropical",
-  bold: "Bold & Vibrant",
-  pastel: "Pastel & Soft",
-  festive: "Festive & Seasonal",
 };
 
 /** Group presets by their first tag */

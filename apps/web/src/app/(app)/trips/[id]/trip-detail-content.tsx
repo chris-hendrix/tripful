@@ -212,8 +212,11 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }
 
   return (
-    <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont}>
-      <div className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]">
+    <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont} scope="page">
+      <div
+        className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]"
+        style={preset ? { background: buildBackground(preset.background) } : undefined}
+      >
       {/* Hero section with cover image + overlay */}
       <div className="relative h-64 sm:h-80 overflow-hidden">
         {/* Background: cover photo or default pattern */}

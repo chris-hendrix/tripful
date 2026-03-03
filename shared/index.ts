@@ -46,6 +46,7 @@ export {
   hexToHsl,
   hslToHex,
   derivePaletteVariants,
+  deriveDarkPaletteVariants,
   readableForeground,
 } from "./utils/index";
 

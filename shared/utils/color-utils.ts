@@ -132,6 +132,34 @@ export function derivePaletteVariants(hex: string): {
 }
 
 /**
+ * Derive dark background and border variants from a base color.
+ * Used for event cards on dark theme backgrounds.
+ * @param hex - Base hex color
+ * @returns { base, light, border } hex strings
+ */
+export function deriveDarkPaletteVariants(hex: string): {
+  base: string;
+  light: string;
+  border: string;
+} {
+  const [h] = hexToHsl(hex);
+
+  // light: same hue, moderate saturation, very low lightness
+  // Produces a subtle dark-tinted background
+  const light = hslToHex(h, 25, 14);
+
+  // border: same hue, moderate saturation, low-medium lightness
+  // Produces a slightly visible colored border
+  const border = hslToHex(h, 30, 25);
+
+  return {
+    base: hex.startsWith("#") ? hex : `#${hex}`,
+    light,
+    border,
+  };
+}
+
+/**
  * Calculate the WCAG 2.0 relative luminance of a color from RGB components (0-255).
  */
 function relativeLuminance(r: number, g: number, b: number): number {
