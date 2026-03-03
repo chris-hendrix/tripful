@@ -10,7 +10,7 @@ import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { TripThemeProvider } from "@/components/trip/trip-theme-provider";
 import { buildBackground } from "@/lib/theme-styles";
-import { THEME_PRESETS } from "@tripful/shared/config";
+import { THEME_PRESETS, POSTCARD_LAYOUTS } from "@tripful/shared/config";
 import { usePrefetchTrip } from "@/hooks/use-trips";
 import { supportsHover } from "@/lib/supports-hover";
 import { cn } from "@/lib/utils";
@@ -53,10 +53,17 @@ export const TripCard = memo(function TripCard({
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
     : null;
 
+  // Look up the postcard layout using themeFont as layout ID
+  const layout = trip.themeFont
+    ? (POSTCARD_LAYOUTS.find((l) => l.id === trip.themeFont) ?? null)
+    : null;
+
   // Show up to 3 organizers
   const displayedOrganizers = (trip.organizerInfo ?? []).slice(0, 3);
 
-  const rotation = rotations[index % 4];
+  const rotation = layout
+    ? layout.defaultRotation
+    : rotations[index % 4];
 
   return (
     <TripThemeProvider themeId={trip.themeId} themeFont={trip.themeFont}>
@@ -74,8 +81,21 @@ export const TripCard = memo(function TripCard({
           animationDelay: `${index * 80}ms`,
         }}
       >
-        {/* Pushpin attachment — top center */}
-        <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 z-10 pushpin rotate-[5deg]" />
+        {/* Attachment element — driven by layout config */}
+        {layout?.attachment.type === "pushpin" && (
+          <div
+            className="absolute z-10 pushpin"
+            style={{
+              top: layout.attachment.position.top,
+              left: layout.attachment.position.left,
+              right: layout.attachment.position.right,
+              transform: `translateX(-50%) rotate(${layout.attachment.rotation ?? 0}deg)`,
+            }}
+          />
+        )}
+        {!layout && (
+          <div className="absolute top-[-6px] left-1/2 -translate-x-1/2 z-10 pushpin rotate-[5deg]" />
+        )}
 
         {/* Background layer */}
         <div className="absolute inset-0">
@@ -135,10 +155,58 @@ export const TripCard = memo(function TripCard({
           </div>
         )}
 
-        {/* Overlaid text content — bottom left */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 z-[1]">
+        {/* Layout decorations */}
+        {layout?.decorations?.map((decoration, i) => {
+          if (decoration.type === "postmark") {
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "absolute z-[1] postmark",
+                  decoration.position === "top-right" && "top-3 right-3",
+                  decoration.position === "top-left" && "top-3 left-3",
+                  decoration.position === "bottom-right" && "bottom-3 right-3",
+                  decoration.position === "bottom-left" && "bottom-3 left-3",
+                )}
+                style={{ opacity: decoration.opacity }}
+              />
+            );
+          }
+          if (decoration.type === "airmail-stripe") {
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "absolute z-[1] airmail-stripe",
+                  decoration.position === "bottom" && "bottom-0 left-0 right-0 h-2",
+                  decoration.position === "top" && "top-0 left-0 right-0 h-2",
+                )}
+                style={{ opacity: decoration.opacity }}
+              />
+            );
+          }
+          return null;
+        })}
+
+        {/* Overlaid text content — positioned by layout */}
+        <div
+          className={cn(
+            "absolute p-4 z-[1]",
+            (!layout || layout.titlePlacement === "bottom-left") &&
+              "bottom-0 left-0 right-0",
+            layout?.titlePlacement === "bottom-center" &&
+              "bottom-0 left-0 right-0 text-center",
+            layout?.titlePlacement === "center" &&
+              "inset-0 flex flex-col items-center justify-center",
+            layout?.titlePlacement === "top-left" &&
+              "top-0 left-0 right-0",
+          )}
+        >
           <h3
-            className="text-lg font-semibold text-white mb-1 truncate font-[family-name:var(--font-righteous)] drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+            className="text-lg font-semibold text-white mb-1 truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+            style={{
+              fontFamily: layout?.font ?? "var(--font-righteous), system-ui, sans-serif",
+            }}
           >
             {trip.name}
           </h3>

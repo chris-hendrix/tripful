@@ -54,7 +54,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ImageUpload } from "@/components/trip/image-upload";
 import { ThemePicker } from "@/components/trip/theme-picker";
-import { FontPicker } from "@/components/trip/font-picker";
+import { LayoutPicker } from "@/components/trip/layout-picker";
 import { useThemePreview } from "@/hooks/use-theme-preview";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Trash2, Loader2 } from "lucide-react";
@@ -420,23 +420,23 @@ export function EditTripDialog({
                 )}
               />
 
-              {/* Font */}
+              {/* Postcard Layout */}
               <FormField
                 control={form.control}
                 name="themeFont"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-base font-semibold text-foreground">
-                      Title font
+                      Postcard layout
                     </FormLabel>
                     <FormControl>
-                      <FontPicker
+                      <LayoutPicker
                         value={field.value ?? null}
                         onChange={field.onChange}
                       />
                     </FormControl>
                     <FormDescription className="text-sm text-muted-foreground">
-                      Optional: Choose a font for trip titles
+                      Optional: Choose a postcard style for your trip card
                     </FormDescription>
                   </FormItem>
                 )}
