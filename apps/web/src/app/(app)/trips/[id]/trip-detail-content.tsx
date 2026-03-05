@@ -30,7 +30,7 @@ import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RsvpBadge } from "@/components/ui/rsvp-badge";
+import { RsvpBadgeDropdown } from "@/components/trip/rsvp-badge-dropdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible,
@@ -271,14 +271,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         )}
 
         {/* Badges overlay — top-left */}
-        <div className="absolute top-4 left-4 flex gap-2 z-10">
-          <RsvpBadge status={trip.userRsvpStatus} variant="overlay" />
-          {isOrganizer && (
+        {isOrganizer && (
+          <div className="absolute top-4 left-4 z-10">
             <Badge className="bg-black/50 backdrop-blur-md text-white border-white/20 shadow-sm">
               Organizing
             </Badge>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Bottom: title + metadata overlay */}
         <div className="absolute bottom-0 left-0 right-0 pb-5 sm:pb-6">
@@ -380,6 +379,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
           {/* Stats */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
+            <RsvpBadgeDropdown tripId={trip.id} status={trip.userRsvpStatus} />
             <button
               onClick={() => setIsMembersOpen(true)}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
