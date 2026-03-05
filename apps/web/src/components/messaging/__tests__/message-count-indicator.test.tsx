@@ -96,6 +96,6 @@ describe("MessageCountIndicator", () => {
       behavior: "smooth",
     });
 
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 });

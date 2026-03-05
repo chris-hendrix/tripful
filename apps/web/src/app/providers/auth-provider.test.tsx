@@ -26,7 +26,7 @@ describe("AuthProvider", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 
   it("renders children", () => {
