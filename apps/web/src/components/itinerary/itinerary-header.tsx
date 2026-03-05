@@ -92,7 +92,7 @@ export function ItineraryHeader({
     <>
       <div
         data-testid="itinerary-header"
-        className="sticky top-14 z-20 bg-background border-b border-border py-4 px-4 sm:px-6 lg:px-8"
+        className="sticky top-0 z-30 bg-background border-b border-border py-2 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between gap-3 flex-wrap">
