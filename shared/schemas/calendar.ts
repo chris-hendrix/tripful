@@ -32,3 +32,6 @@ export const calendarSuccessResponseSchema = z.object({
 // Inferred TypeScript types
 export type CalendarTokenParams = z.infer<typeof calendarTokenParamsSchema>;
 export type CalendarExcludedInput = z.infer<typeof calendarExcludedSchema>;
+export type CalendarStatusResponse = z.infer<typeof calendarStatusResponseSchema>;
+export type CalendarEnableResponse = z.infer<typeof calendarEnableResponseSchema>;
+export type CalendarSuccessResponse = z.infer<typeof calendarSuccessResponseSchema>;

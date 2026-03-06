@@ -4,28 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import type { APIError } from "@/lib/api";
 import { toast } from "sonner";
-
-interface CalendarStatusResponse {
-  success: true;
-  enabled: boolean;
-  calendarUrl?: string;
-}
-
-interface CalendarEnableResponse {
-  success: true;
-  calendarUrl: string;
-  calendarToken: string;
-}
-
-interface CalendarDisableResponse {
-  success: true;
-}
-
-interface CalendarRegenerateResponse {
-  success: true;
-  calendarUrl: string;
-  calendarToken: string;
-}
+import type {
+  CalendarStatusResponse,
+  CalendarEnableResponse,
+  CalendarSuccessResponse,
+} from "@tripful/shared/schemas";
 
 export function useCalendarStatus() {
   return useQuery<CalendarStatusResponse, APIError>({
@@ -59,10 +42,10 @@ export function useEnableCalendar() {
 export function useDisableCalendar() {
   const queryClient = useQueryClient();
 
-  return useMutation<CalendarDisableResponse, APIError, void>({
+  return useMutation<CalendarSuccessResponse, APIError, void>({
     mutationKey: ["disableCalendar"],
     mutationFn: async () => {
-      return apiRequest<CalendarDisableResponse>("/users/me/calendar", {
+      return apiRequest<CalendarSuccessResponse>("/users/me/calendar", {
         method: "DELETE",
       });
     },
@@ -79,10 +62,10 @@ export function useDisableCalendar() {
 export function useRegenerateCalendar() {
   const queryClient = useQueryClient();
 
-  return useMutation<CalendarRegenerateResponse, APIError, void>({
+  return useMutation<CalendarEnableResponse, APIError, void>({
     mutationKey: ["regenerateCalendar"],
     mutationFn: async () => {
-      return apiRequest<CalendarRegenerateResponse>(
+      return apiRequest<CalendarEnableResponse>(
         "/users/me/calendar/regenerate",
         {
           method: "POST",

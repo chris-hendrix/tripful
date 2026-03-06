@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, and, isNull, ne } from "drizzle-orm";
+import { eq, and, isNull, ne, inArray } from "drizzle-orm";
 import ical, {
   ICalCalendarMethod,
   ICalEventTransparency,
@@ -66,27 +66,36 @@ export class CalendarService implements ICalendarService {
 
     const tripIds = memberRows.map((m) => m.tripId);
 
-    // Fetch trips and their non-deleted events
-    const result: TripWithEvents[] = [];
+    // Batch-fetch all non-cancelled trips
+    const tripRows = await this.db
+      .select()
+      .from(trips)
+      .where(and(inArray(trips.id, tripIds), eq(trips.cancelled, false)));
 
-    for (const tripId of tripIds) {
-      const [trip] = await this.db
-        .select()
-        .from(trips)
-        .where(and(eq(trips.id, tripId), eq(trips.cancelled, false)))
-        .limit(1);
+    if (tripRows.length === 0) return [];
 
-      if (!trip) continue;
+    const activeTripIds = tripRows.map((t) => t.id);
 
-      const tripEvents = await this.db
-        .select()
-        .from(events)
-        .where(and(eq(events.tripId, tripId), isNull(events.deletedAt)));
+    // Batch-fetch all non-deleted events for those trips
+    const eventRows = await this.db
+      .select()
+      .from(events)
+      .where(
+        and(inArray(events.tripId, activeTripIds), isNull(events.deletedAt)),
+      );
 
-      result.push({ trip, events: tripEvents });
+    // Group events by tripId
+    const eventsByTrip = new Map<string, Event[]>();
+    for (const event of eventRows) {
+      const list = eventsByTrip.get(event.tripId) ?? [];
+      list.push(event);
+      eventsByTrip.set(event.tripId, list);
     }
 
-    return result;
+    return tripRows.map((trip) => ({
+      trip,
+      events: eventsByTrip.get(trip.id) ?? [],
+    }));
   }
 
   generateIcsFeed(tripsWithEvents: TripWithEvents[]): string {
@@ -209,12 +218,9 @@ export class CalendarService implements ICalendarService {
   }
 
   async enableCalendar(userId: string): Promise<string> {
-    const token = randomUUID();
-    await this.db
-      .update(users)
-      .set({ calendarToken: token, updatedAt: new Date() })
-      .where(eq(users.id, userId));
-    return token;
+    const existing = await this.getCalendarToken(userId);
+    if (existing) return existing;
+    return this.setCalendarToken(userId, randomUUID());
   }
 
   async disableCalendar(userId: string): Promise<void> {
@@ -225,7 +231,17 @@ export class CalendarService implements ICalendarService {
   }
 
   async regenerateCalendar(userId: string): Promise<string> {
-    const token = randomUUID();
+    const existing = await this.getCalendarToken(userId);
+    if (!existing) {
+      throw { statusCode: 409, message: "Calendar sync is not enabled" };
+    }
+    return this.setCalendarToken(userId, randomUUID());
+  }
+
+  private async setCalendarToken(
+    userId: string,
+    token: string,
+  ): Promise<string> {
     await this.db
       .update(users)
       .set({ calendarToken: token, updatedAt: new Date() })
@@ -247,9 +263,14 @@ export class CalendarService implements ICalendarService {
     tripId: string,
     excluded: boolean,
   ): Promise<void> {
-    await this.db
+    const result = await this.db
       .update(members)
       .set({ calendarExcluded: excluded, updatedAt: new Date() })
-      .where(and(eq(members.userId, userId), eq(members.tripId, tripId)));
+      .where(and(eq(members.userId, userId), eq(members.tripId, tripId)))
+      .returning({ id: members.id });
+
+    if (result.length === 0) {
+      throw { statusCode: 404, message: "Trip membership not found" };
+    }
   }
 }
