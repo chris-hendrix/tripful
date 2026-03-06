@@ -23,7 +23,7 @@
     "clean:cache": "rm -rf .turbo",
     "docker:up": "docker-compose up -d postgres minio minio-init",
     "docker:down": "docker-compose down",
-    "docker:restart": "docker-compose restart postgres minio",
+    "docker:restart": "docker-compose up -d postgres minio minio-init",
     "prepare": "husky"
   },
   "devDependencies": {
