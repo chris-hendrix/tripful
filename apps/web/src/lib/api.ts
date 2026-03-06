@@ -7,18 +7,20 @@ export const API_URL =
 
 /**
  * Normalize an upload path for use in <Image> and <img> tags.
- * Returns the path as-is so Next.js rewrites proxy the request
- * to the API in every environment.
+ * Prefixes relative paths with the API base URL so the browser
+ * hits the API directly (which redirects to S3 in production).
  *
  * Returns undefined for null/undefined input. Passes through absolute
  * URLs (http/https) and blob URLs unchanged.
  */
+const API_BASE = API_URL.replace(/\/api$/, "");
+
 export function getUploadUrl(
   path: string | null | undefined,
 ): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("http") || path.startsWith("blob:")) return path;
-  return path;
+  return `${API_BASE}${path}`;
 }
 
 /**
