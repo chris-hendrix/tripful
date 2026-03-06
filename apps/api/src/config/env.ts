@@ -2,7 +2,7 @@ import { z } from "zod";
 import { config } from "dotenv";
 
 // Load environment variables (.env.local takes precedence over .env)
-config({ path: [".env.local", ".env"] });
+config({ path: [".env.local", ".env"], quiet: true });
 
 const envSchema = z.object({
   // Server Configuration
@@ -13,13 +13,12 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/, "PORT must be a number")
     .transform(Number)
-    .default("8000"),
+    .default(8000),
   HOST: z.string().default("0.0.0.0"),
 
   // Database
   DATABASE_URL: z
-    .string()
-    .url("DATABASE_URL must be a valid PostgreSQL URL")
+    .url({ error: "DATABASE_URL must be a valid PostgreSQL URL" })
     .refine(
       (url) => url.startsWith("postgresql://"),
       "DATABASE_URL must start with postgresql://",
@@ -32,8 +31,7 @@ const envSchema = z.object({
 
   // Frontend
   FRONTEND_URL: z
-    .string()
-    .url("FRONTEND_URL must be a valid URL")
+    .url({ error: "FRONTEND_URL must be a valid URL" })
     .default("http://localhost:3000"),
 
   // Proxy
@@ -85,7 +83,7 @@ const envSchema = z.object({
     .regex(/^\d+$/, "MAX_FILE_SIZE must be a number")
     .transform(Number)
     .refine((n) => n > 0, "MAX_FILE_SIZE must be positive")
-    .default("5242880"),
+    .default(5242880),
   ALLOWED_MIME_TYPES: z
     .string()
     .transform((val) => val.split(",").map((type) => type.trim()))
@@ -93,7 +91,7 @@ const envSchema = z.object({
       (types) => types.every((type) => type.startsWith("image/")),
       "All ALLOWED_MIME_TYPES must start with 'image/'",
     )
-    .default("image/jpeg,image/png,image/webp"),
+    .default(["image/jpeg", "image/png", "image/webp"]),
 });
 
 export type Env = z.infer<typeof envSchema>;

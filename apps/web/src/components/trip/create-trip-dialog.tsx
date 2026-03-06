@@ -62,7 +62,7 @@ export function CreateTripDialog({
 
   const { mutate: createTrip, isPending } = useCreateTrip();
 
-  const form = useForm<CreateTripInput>({
+  const form = useForm({
     resolver: zodResolver(createTripSchema),
     defaultValues: {
       name: "",
@@ -499,7 +499,7 @@ export function CreateTripDialog({
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                         <FormControl>
                           <Checkbox
-                            checked={field.value}
+                            checked={field.value ?? true}
                             onCheckedChange={field.onChange}
                             ref={field.ref}
                             onBlur={field.onBlur}

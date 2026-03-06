@@ -24,7 +24,7 @@ describe("apiRequest", () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 
   it("makes a successful API call and returns typed data", async () => {

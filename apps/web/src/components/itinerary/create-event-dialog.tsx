@@ -66,7 +66,7 @@ export function CreateEventDialog({
   const [newLink, setNewLink] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  const form = useForm<CreateEventInput>({
+  const form = useForm({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       name: "",
@@ -454,7 +454,7 @@ export function CreateEventDialog({
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                     <FormControl>
                       <Checkbox
-                        checked={field.value}
+                        checked={field.value ?? false}
                         onCheckedChange={field.onChange}
                         ref={field.ref}
                         onBlur={field.onBlur}
@@ -483,7 +483,7 @@ export function CreateEventDialog({
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                     <FormControl>
                       <Checkbox
-                        checked={field.value}
+                        checked={field.value ?? false}
                         onCheckedChange={field.onChange}
                         ref={field.ref}
                         onBlur={field.onBlur}

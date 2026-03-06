@@ -59,7 +59,7 @@ export function InviteMembersDialog({
   const { mutate: inviteMembers, isPending } = useInviteMembers(tripId);
   const { data: suggestions } = useMutualSuggestions(tripId);
 
-  const form = useForm<CreateInvitationsInput>({
+  const form = useForm({
     resolver: zodResolver(createInvitationsSchema),
     defaultValues: {
       phoneNumbers: [],
@@ -156,8 +156,8 @@ export function InviteMembersDialog({
     });
   };
 
-  const phoneNumbers = form.watch("phoneNumbers");
-  const userIds = form.watch("userIds");
+  const phoneNumbers = form.watch("phoneNumbers") ?? [];
+  const userIds = form.watch("userIds") ?? [];
 
   const hasMutuals = suggestions?.mutuals && suggestions.mutuals.length > 0;
 
