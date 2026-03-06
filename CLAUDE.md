@@ -39,7 +39,7 @@ Use **pnpm** (required for workspace features). Never use `npm` or `yarn`.
 ```bash
 # Setup (host)
 pnpm install
-pnpm docker:up        # Start PostgreSQL for local dev
+pnpm docker:up        # Start PostgreSQL + MinIO for local dev
 
 # Development (host)
 pnpm dev              # Both servers (web:3000, api:8000)

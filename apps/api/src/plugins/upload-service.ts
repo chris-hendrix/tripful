@@ -47,15 +47,22 @@ export default fp(
       });
       storage = s3Storage;
 
-      // Register redirect route for serving S3 files via /uploads/:key
+      // Proxy S3 objects through /uploads/:key so Next.js image optimizer
+      // can fetch them directly (it can't follow 302 redirects to signed URLs)
       fastify.get<{ Params: { key: string } }>(
         "/uploads/:key",
         async (request, reply) => {
-          const signedUrl = await s3Storage.getSignedUrl(
-            request.params.key,
-            3600,
-          );
-          return reply.redirect(signedUrl);
+          try {
+            const { body, contentType } = await s3Storage.getObject(
+              request.params.key,
+            );
+            return reply
+              .header("Content-Type", contentType ?? "application/octet-stream")
+              .header("Cache-Control", "public, max-age=31536000, immutable")
+              .send(body);
+          } catch {
+            return reply.code(404).send({ error: "Not found" });
+          }
         },
       );
 

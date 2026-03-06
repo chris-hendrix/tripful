@@ -156,4 +156,19 @@ export class S3StorageService implements IStorageService {
       { expiresIn },
     );
   }
+
+  async getObject(
+    key: string,
+  ): Promise<{ body: ReadableStream; contentType: string | undefined }> {
+    const response = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+    );
+    return {
+      body: response.Body!.transformToWebStream(),
+      contentType: response.ContentType,
+    };
+  }
 }
