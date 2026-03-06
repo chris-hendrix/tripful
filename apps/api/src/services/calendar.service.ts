@@ -35,6 +35,16 @@ export interface ICalendarService {
   ): Promise<void>;
 }
 
+/**
+ * Convert a UTC Date to a "fake" Date whose local getters (getHours, etc.)
+ * return the wall-clock values in the target timezone. This is needed because
+ * ical-generator reads date components via local getters and stamps TZID on them.
+ */
+function toTimezoneDate(utcDate: Date, timezone: string): Date {
+  const local = utcDate.toLocaleString("en-US", { timeZone: timezone });
+  return new Date(local);
+}
+
 export class CalendarService implements ICalendarService {
   constructor(private db: AppDatabase) {}
 
@@ -196,15 +206,16 @@ export class CalendarService implements ICalendarService {
             x: [{ key: "X-TRIPFUL-TRIP", value: trip.name }],
           });
         } else {
+          const endTime =
+            event.endTime ||
+            new Date(event.startTime.getTime() + 60 * 60 * 1000);
           calendar.createEvent({
             id: `event-${event.id}@tripful.app`,
             summary: event.name,
             description,
             location,
-            start: event.startTime,
-            end:
-              event.endTime ||
-              new Date(event.startTime.getTime() + 60 * 60 * 1000),
+            start: toTimezoneDate(event.startTime, timezone),
+            end: toTimezoneDate(endTime, timezone),
             timezone,
             lastModified: event.updatedAt,
             categories: [{ name: event.eventType }],
