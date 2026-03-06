@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "docker-compose up -d && turbo run dev",
+    "dev": "pnpm docker:up && turbo run dev",
     "dev:web": "turbo run dev --filter=@tripful/web",
     "dev:api": "turbo run dev --filter=@tripful/api",
     "build": "turbo run build",
@@ -21,9 +21,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "clean:cache": "rm -rf .turbo",
-    "db:up": "docker-compose up -d",
-    "db:down": "docker-compose down",
-    "db:restart": "docker-compose restart",
+    "docker:up": "docker-compose up -d postgres minio minio-init",
+    "docker:down": "docker-compose down",
+    "docker:restart": "docker-compose up -d postgres minio minio-init",
     "prepare": "husky"
   },
   "devDependencies": {

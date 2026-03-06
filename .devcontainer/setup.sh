@@ -16,7 +16,12 @@ DATABASE_URL=postgresql://tripful:tripful_dev@db:5432/tripful
 JWT_SECRET=devcontainer-secret-key-minimum-32-characters-long
 FRONTEND_URL=http://localhost:3000
 LOG_LEVEL=info
-UPLOAD_DIR=uploads
+STORAGE_PROVIDER=s3
+AWS_ENDPOINT_URL=http://minio:9000
+AWS_S3_BUCKET_NAME=tripful-uploads
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin
+AWS_DEFAULT_REGION=us-east-1
 MAX_FILE_SIZE=5242880
 ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp
 EOF

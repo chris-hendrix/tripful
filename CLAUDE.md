@@ -39,7 +39,7 @@ Use **pnpm** (required for workspace features). Never use `npm` or `yarn`.
 ```bash
 # Setup (host)
 pnpm install
-pnpm docker:up        # Start PostgreSQL for local dev
+pnpm docker:up        # Start PostgreSQL + MinIO for local dev
 
 # Development (host)
 pnpm dev              # Both servers (web:3000, api:8000)
@@ -166,6 +166,8 @@ Always export through barrel files (`index.ts`).
 - Frontend: `3000` (Next.js dev server)
 - Backend: `8000` (Fastify API)
 - PostgreSQL: `5433` (external) → `5432` (container)
+- MinIO API: `9000` (S3-compatible endpoint)
+- MinIO Console: `9001` (web UI)
 - Playwright UI: `9323` (when using `pnpm test:e2e:ui`)
 
 ### Troubleshooting

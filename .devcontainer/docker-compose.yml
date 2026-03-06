@@ -6,6 +6,8 @@ services:
     environment:
       # Override .env DATABASE_URL — host uses localhost:5433, container uses db:5432
       DATABASE_URL: postgresql://tripful:tripful_dev@db:5432/tripful
+      # Override S3 endpoint — host uses localhost:9000, container uses minio:9000
+      AWS_ENDPOINT_URL: http://minio:9000
     volumes:
       - ..:/workspace:cached
       # Isolate node_modules so host and container don't conflict on pnpm store paths.
@@ -24,6 +26,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   db:
     image: postgres:16-alpine
@@ -39,8 +43,36 @@ services:
       timeout: 3s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/tripful-uploads &&
+      mc anonymous set download local/tripful-uploads &&
+      echo 'Bucket ready'
+      "
+
 volumes:
   postgres_data:
+  minio_data:
   node_modules:
   api_node_modules:
   web_node_modules:
