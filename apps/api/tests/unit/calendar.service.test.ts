@@ -189,6 +189,22 @@ describe("CalendarService.generateIcsFeed", () => {
       expect(ics).not.toMatch(/DTSTART;VALUE=DATE:\d{8}\r?\n/);
     });
 
+    it("should convert UTC times to trip timezone", () => {
+      // 2026-07-02T23:00:00Z = 6:00 PM CDT (America/Cancun is UTC-5 year-round)
+      const trip = makeTrip({ startDate: null, preferredTimezone: "America/Cancun" });
+      const event = makeEvent({
+        startTime: new Date("2026-07-02T23:00:00Z"),
+        endTime: new Date("2026-07-03T02:00:00Z"),
+        allDay: false,
+      });
+      const ics = unfold(service.generateIcsFeed([{ trip, events: [event] }]));
+
+      // Should contain 18:00 (6pm local), NOT 23:00 (UTC)
+      expect(ics).toContain("DTSTART;TZID=America/Cancun:20260702T180000");
+      // End: 02:00 UTC = 9:00 PM local
+      expect(ics).toContain("DTEND;TZID=America/Cancun:20260702T210000");
+    });
+
     it("should include X-TRIPFUL-TRIP custom property with trip name", () => {
       const trip = makeTrip({ startDate: null, name: "Beach Vacation" });
       const event = makeEvent({ allDay: false });
