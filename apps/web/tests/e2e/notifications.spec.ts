@@ -205,17 +205,18 @@ test.describe("Notification Journey", () => {
         await page.keyboard.press("Escape");
         await expect(dialog).not.toBeVisible({ timeout: DIALOG_TIMEOUT });
 
+        // Wait for bell to appear (may still show unread count briefly)
         const tripBell = page.getByRole("button", {
-          name: "Trip notifications",
-          exact: true,
+          name: /^Trip notifications/,
         });
         await expect(tripBell).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
+        // Wait for unread count to disappear after cache invalidation
         await expect(
           page.getByRole("button", {
             name: /Trip notifications, \d+ unread/,
           }),
-        ).not.toBeVisible();
+        ).not.toBeVisible({ timeout: ELEMENT_TIMEOUT });
       });
 
       await snap(page, "53-trip-notification-all-read");

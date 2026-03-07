@@ -135,7 +135,7 @@ test.describe("Invitation Journey", () => {
         await page.goto(`/trips/${tripId}`);
 
         // Verify preview mode
-        await expect(page.getByText("You've been invited!")).toBeVisible({
+        await expect(page.locator("#main-content").getByText("You've been invited!")).toBeVisible({
           timeout: NAVIGATION_TIMEOUT,
         });
         await expect(
@@ -182,7 +182,7 @@ test.describe("Invitation Journey", () => {
         });
 
         // Preview should disappear
-        await expect(page.getByText("You've been invited!")).not.toBeVisible({
+        await expect(page.locator("#main-content").getByText("You've been invited!")).not.toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
 
@@ -272,7 +272,7 @@ test.describe("Invitation Journey", () => {
         await page.reload();
 
         // Since member is now "maybe" (non-Going), they should see preview
-        await expect(page.getByText("You've been invited!")).toBeVisible({
+        await expect(page.locator("#main-content").getByText("You've been invited!")).toBeVisible({
           timeout: NAVIGATION_TIMEOUT,
         });
         await snap(page, "15-rsvp-changed-to-maybe");
@@ -554,7 +554,7 @@ test.describe("Invitation Journey", () => {
         await page.goto(`/trips/${tripId}`);
 
         // Verify preview mode
-        await expect(page.getByText("You've been invited!")).toBeVisible({
+        await expect(page.locator("#main-content").getByText("You've been invited!")).toBeVisible({
           timeout: NAVIGATION_TIMEOUT,
         });
       });
@@ -699,7 +699,7 @@ test.describe("Invitation Journey", () => {
         await expect(page.getByText(/\d+ members?/)).toBeVisible();
 
         // Preview should not be visible
-        await expect(page.getByText("You've been invited!")).not.toBeVisible();
+        await expect(page.locator("#main-content").getByText("You've been invited!")).not.toBeVisible();
 
         await snap(page, "25-wizard-complete-full-view");
       });
