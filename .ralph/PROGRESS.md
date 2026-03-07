@@ -1684,3 +1684,47 @@ All 28 tasks across 10 phases have been completed:
 - The `THEME_FONT_VALUES` array is the single source of truth for `ThemeFont` type — updating it automatically narrows the Zod schema and TypeScript `Record<ThemeFont, string>` maps
 - The 3 removed fonts had comments `// to add` in theme.ts, confirming they were never actually used in production
 - Pre-existing test failure in `invitation-schemas.test.ts` exists (missing `calendarExcluded` field) — unrelated to this task
+
+## Iteration 31 — Task 2.1: Add dark mode CSS overrides and fix hardcoded colors in globals.css
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**File modified:**
+- `apps/web/src/app/globals.css` — Added complete dark mode support:
+  1. `@media (prefers-color-scheme: dark) { :root { ... } }` block with all 35+ color variable overrides using "Night Travel" warm charcoal palette (background `#1a1814`, foreground `#e8dcc8`, primary `#5a9fd4`, accent `#d4613e`)
+  2. Replaced all 12 hardcoded `#faf5e8` in `.airmail-stripe`, `.airmail-border-top::before`, `.airmail-border-bottom::after` with `var(--color-card)`
+  3. Dark variant for `.gradient-mesh` with adjusted rgba values (slightly higher opacity, brighter tints)
+  4. Dark variant for `.card-noise::after` — opacity reduced from 0.03 to 0.015
+  5. Dark variant for `.linen-texture::before` — opacity reduced from 0.045 to 0.025
+  6. Dark variant for `.postcard` and `.postcard:hover` shadows — uses `rgba(0,0,0,0.3)` with subtle white ring `rgba(255,255,255,0.06)` for edge definition on dark backgrounds
+
+### Dark Palette Design
+
+| Category | Light | Dark |
+|----------|-------|------|
+| Background | `#f5edd6` | `#1a1814` |
+| Foreground | `#2c2217` | `#e8dcc8` |
+| Card | `#faf5e8` | `#252018` |
+| Primary | `#2e5984` | `#5a9fd4` |
+| Accent | `#b8432e` | `#d4613e` |
+| Border | `#d4c9b5` | `#3a3530` |
+| Muted fg | `#5c4e3e` | `#9a8e7f` |
+| Event colors | Desaturated | Brighter variants of same hues |
+| Overlay colors | Unchanged (already used on dark overlays) |
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in calendar.service.test.ts, unrelated)
+- **Unit Tests**: 306/307 pass; 1 pre-existing failure in `invitation-schemas.test.ts` (unrelated)
+- **Grep**: Zero hardcoded `#faf5e8` in utility classes (only in `@theme` and dark `:root` variable definitions)
+- **Dark variants present**: gradient-mesh, card-noise, linen-texture, postcard, postcard:hover — all confirmed
+- **Reviewer**: APPROVED — complete coverage, correct placement outside `@theme`, all hex values, proper contrast ratios
+
+### Learnings
+- The `@media (prefers-color-scheme: dark) { :root { ... } }` block must go OUTSIDE `@theme` — Tailwind v4's `@theme` is a compilation directive, not a standard CSS block, so it cannot contain media queries
+- Dark mode `@media` blocks can use any CSS color format (rgba, hex, etc.) since the Tailwind v4 hsl-stripping bug only affects `@theme` blocks, but hex was used for consistency
+- Postcard shadows on dark backgrounds need a two-part approach: dark shadow for depth + subtle white ring for edge definition — pure dark shadows are invisible on dark backgrounds
+- Texture opacity (card-noise, linen-texture) should be roughly halved in dark mode to avoid appearing too harsh
+- Overlay colors (success/warning/muted) don't need dark variants since they're already designed for use on dark overlay backgrounds like `bg-black/50`

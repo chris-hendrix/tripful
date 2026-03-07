@@ -11,7 +11,7 @@
 
 ## Phase 2: Dark Mode
 
-- [ ] Task 2.1: Add dark mode CSS overrides and fix hardcoded colors in globals.css
+- [x] Task 2.1: Add dark mode CSS overrides and fix hardcoded colors in globals.css
   - Implement: Add `@media (prefers-color-scheme: dark) { :root { ... } }` block with full dark palette to `apps/web/src/app/globals.css`
   - Implement: Replace hardcoded `#faf5e8` in `.airmail-stripe`, `.airmail-border-top`, `.airmail-border-bottom` with `var(--color-card)`
   - Implement: Add dark variant for `.gradient-mesh` with adjusted rgba values for dark backgrounds
