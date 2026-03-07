@@ -6,6 +6,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   useNotifications,
   useMarkAsRead,
@@ -94,10 +95,11 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
 
   if (notifications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-10">
-        <Bell className="mb-2 size-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">No notifications yet</p>
-      </div>
+      <EmptyState
+        variant="inline"
+        icon={Bell}
+        title="No notifications yet"
+      />
     );
   }
 

@@ -1836,3 +1836,44 @@ Trip card mat uses hardcoded `#ffffff` in `trip-card.tsx:57` for unthemed cards.
 - `@view-transition { navigation: auto; }` is a top-level CSS at-rule that should go near the top of the stylesheet, before theme definitions
 - The `!important` on reduced-motion overrides is appropriate since it's an accessibility override that must win over any animation specificity
 - View transition pseudo-elements (`::view-transition-old`, `::view-transition-new`, `::view-transition-group`) are completely separate from regular DOM animations, so no conflicts with existing keyframes
+
+## Iteration 35 — Task 4.1: Create EmptyState component and refactor all empty state locations
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created:**
+- `apps/web/src/components/ui/empty-state.tsx` — Reusable EmptyState component with two variants ("card" and "inline"), supporting icon, title, description, action (onClick or href), children for complex action areas, and className overrides
+- `apps/web/src/components/ui/__tests__/empty-state.test.tsx` — 9 tests covering card variant, inline variant, optional description, onClick action, href action, children rendering, className passthrough, and data-slot attribute
+
+**Files modified:**
+- `apps/web/src/app/(app)/trips/trips-content.tsx` — Refactored search "no results" empty state to use `<EmptyState icon={Search} title="No trips found" description="..." />`
+- `apps/web/src/components/messaging/trip-messages.tsx` — Refactored empty messages to use `<EmptyState icon={MessageCircle} title="No messages yet" description="Start the conversation!" />`
+- `apps/web/src/components/itinerary/itinerary-view.tsx` — Refactored empty itinerary to use `<EmptyState>` with children for conditional locked-state banner and organizer action buttons
+- `apps/web/src/components/notifications/notification-dropdown.tsx` — Refactored empty notifications to use `<EmptyState variant="inline" icon={Bell} title="No notifications yet" />`
+- `apps/web/src/app/(app)/mutuals/mutuals-content.tsx` — Refactored empty mutuals to use `<EmptyState>` with className overrides for rounded-2xl and p-12
+- `apps/web/src/components/messaging/__tests__/trip-messages.test.tsx` — Updated test assertion for split title/description (was single string)
+
+### Design Decisions
+
+- **Two variants**: "card" (default) has bg-card, border, card-noise, TopoPattern background, size-12 icon, font-accent heading. "inline" is minimal flexbox layout for dropdowns with size-8 icon and smaller text.
+- **Trips PostmarkStamp empty state kept bespoke**: The primary trips empty state has unique PostmarkStamp decoration, linen-texture, and script font tagline that don't fit a generic component. Only the search "no results" state was refactored.
+- **Discriminated union for action type**: Used `{ label; onClick; href?: never } | { label; href; onClick?: never }` for compile-time safety preventing both onClick and href from being passed.
+- **Children prop for complex actions**: The itinerary empty state uses children to pass conditional locked-state banner and multiple organizer action buttons.
+- **className overrides**: Mutuals uses `className="rounded-2xl p-12"` to override defaults, messages uses `className="rounded-2xl"`.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in calendar.service.test.ts)
+- **EmptyState tests**: PASS (9/9)
+- **All consumer tests**: PASS (74/74 across 5 test files)
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- Task file paths in TASKS.md were incorrect — trips-content.tsx is at `apps/web/src/app/(app)/trips/` not `components/trip/`, and mutuals-content.tsx is at `apps/web/src/app/(app)/mutuals/` not `components/trip/`
+- Use `import type { ReactNode } from "react"` instead of `React.ReactNode` to avoid lint `no-undef` errors in files without explicit React import (React 19 JSX transform doesn't require importing React)
+- The `contents` CSS display value works well for the inline variant wrapper to avoid adding an extra layout layer
+- Pre-existing test failures exist in invitation-schemas, upload routes, notification-preferences, trip-card, and trip-detail-content tests — all unrelated to this task

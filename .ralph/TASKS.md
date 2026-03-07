@@ -47,7 +47,7 @@
 
 ## Phase 4: Empty States & Success Animations
 
-- [ ] Task 4.1: Create EmptyState component and refactor all empty state locations
+- [x] Task 4.1: Create EmptyState component and refactor all empty state locations
   - Implement: Create `apps/web/src/components/ui/empty-state.tsx` with `EmptyStateProps` (icon, title, description, optional action)
   - Implement: Refactor `apps/web/src/components/trip/trips-content.tsx` — replace existing empty state with `<EmptyState>`
   - Implement: Refactor `apps/web/src/components/messaging/trip-messages.tsx` — replace with `<EmptyState>`
