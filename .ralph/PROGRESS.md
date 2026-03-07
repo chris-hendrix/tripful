@@ -1728,3 +1728,24 @@ All 28 tasks across 10 phases have been completed:
 - Postcard shadows on dark backgrounds need a two-part approach: dark shadow for depth + subtle white ring for edge definition — pure dark shadows are invisible on dark backgrounds
 - Texture opacity (card-noise, linen-texture) should be roughly halved in dark mode to avoid appearing too harsh
 - Overlay colors (success/warning/muted) don't need dark variants since they're already designed for use on dark overlay backgrounds like `bg-black/50`
+
+## Iteration 32 — Task 2.2: Update Sonner theme and global-error.tsx for dark mode
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/src/components/ui/sonner.tsx` — Changed `theme="light"` to `theme="system"` so Sonner toasts auto-detect the user's OS color scheme preference via `prefers-color-scheme`
+- `apps/web/src/app/global-error.tsx` — Added `className="bg-background text-foreground antialiased"` to `<body>` tag so the global error boundary page uses dark-mode-aware CSS custom properties and matches root layout font smoothing
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in calendar.service.test.ts, unrelated)
+- **Sonner Unit Tests**: PASS (2/2)
+- **Reviewer**: APPROVED after adding `antialiased` class (initial review flagged missing `antialiased` as MEDIUM severity)
+
+### Learnings
+- global-error.tsx replaces the entire HTML document (including `<html>` and `<body>`) so it must explicitly set all body classes that the root layout provides — it cannot inherit from layout.tsx
+- Sonner's `theme="system"` uses `prefers-color-scheme` media query internally, matching the app's CSS-only dark mode strategy (no class toggle)
+- The Sonner component's inline style already uses CSS custom properties (`--color-popover`, etc.) that switch automatically via the dark mode media query in globals.css, so `theme="system"` is all that's needed

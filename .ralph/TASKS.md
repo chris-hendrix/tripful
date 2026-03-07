@@ -20,7 +20,7 @@
   - Test: run `pnpm typecheck` — no errors
   - Verify: run full test suite
 
-- [ ] Task 2.2: Update Sonner theme and global-error.tsx for dark mode
+- [x] Task 2.2: Update Sonner theme and global-error.tsx for dark mode
   - Implement: Change `theme="light"` to `theme="system"` in `apps/web/src/components/ui/sonner.tsx`
   - Implement: Update `apps/web/src/app/global-error.tsx` body to use `bg-background text-foreground` classes
   - Test: run existing sonner tests — ensure they still pass
