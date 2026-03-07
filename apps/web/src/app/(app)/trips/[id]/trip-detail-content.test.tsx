@@ -223,11 +223,11 @@ vi.mock("@/components/trip/members-list", () => ({
   ),
 }));
 
-// Mock TripSettingsButton component
-vi.mock("@/components/notifications", () => ({
-  TripSettingsButton: ({ tripId }: { tripId: string }) => (
-    <div data-testid="trip-settings-button" data-trip-id={tripId}>
-      Trip Settings
+// Mock NotificationPreferences component
+vi.mock("@/components/notifications/notification-preferences", () => ({
+  NotificationPreferences: ({ tripId }: { tripId: string }) => (
+    <div data-testid="notification-preferences" data-trip-id={tripId}>
+      Notification Preferences
     </div>
   ),
 }));
@@ -795,7 +795,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Edit trip")).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
       });
     });
 
@@ -817,7 +817,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Edit trip")).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
       });
     });
 
@@ -844,10 +844,10 @@ describe("TripDetailContent", () => {
         ).toBeDefined();
       });
 
-      expect(screen.queryByText("Edit trip")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Edit trip" })).toBeNull();
     });
 
-    it("shows organizer badge for organizers only", async () => {
+    it("shows organizer action icons for organizers only", async () => {
       mockUseAuth.mockReturnValue({ user: mockUser });
       mockUseTripDetail.mockReturnValue({
         data: mockTripDetail,
@@ -864,11 +864,16 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Organizing")).toBeDefined();
+        expect(
+          screen.getByRole("button", { name: "Edit trip" }),
+        ).toBeDefined();
+        expect(
+          screen.getByRole("button", { name: "Invite members" }),
+        ).toBeDefined();
       });
     });
 
-    it("hides organizer badge for non-organizers", async () => {
+    it("hides organizer action icons for non-organizers", async () => {
       const regularUser = { ...mockUser, id: "user-789" };
       mockUseAuth.mockReturnValue({ user: regularUser });
       mockUseTripDetail.mockReturnValue({
@@ -891,7 +896,10 @@ describe("TripDetailContent", () => {
         ).toBeDefined();
       });
 
-      expect(screen.queryByText("Organizing")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Edit trip" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Invite members" }),
+      ).toBeNull();
     });
 
     it("renders Invite button for organizer", async () => {
@@ -911,7 +919,9 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Invite")).toBeDefined();
+        expect(
+          screen.getByRole("button", { name: "Invite members" }),
+        ).toBeDefined();
       });
     });
 
@@ -938,7 +948,9 @@ describe("TripDetailContent", () => {
         ).toBeDefined();
       });
 
-      expect(screen.queryByText("Invite")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Invite members" }),
+      ).toBeNull();
     });
   });
 
@@ -1032,7 +1044,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Edit trip")).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
       });
 
       const editButton = screen.getByText("Edit trip");
@@ -1063,7 +1075,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Edit trip")).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
       });
 
       // Open dialog
@@ -1111,7 +1123,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText("Edit trip")).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
       });
 
       // Get the EditTripDialog mock and trigger its onSuccess
