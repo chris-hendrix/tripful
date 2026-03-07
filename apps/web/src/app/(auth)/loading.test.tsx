@@ -18,7 +18,7 @@ describe("AuthLoading", () => {
 
     const card = outer.firstElementChild as HTMLElement;
     expect(card.className).toContain("bg-card");
-    expect(card.className).toContain("rounded-3xl");
+    expect(card.className).toContain("rounded-md");
     expect(card.className).toContain("shadow-2xl");
   });
 

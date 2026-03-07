@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AuthLoading() {
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-3xl shadow-2xl p-8 lg:p-12 border border-border/50">
+      <div className="bg-card rounded-md shadow-2xl p-8 lg:p-12 border border-border/50">
         <div className="space-y-6">
           {/* Title and description */}
           <div className="space-y-2">
