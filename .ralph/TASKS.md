@@ -72,7 +72,7 @@
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
 
-- [ ] Task 5.2: Fix test failures — missing QueryClientProvider wrapping (68 failures)
+- [x] Task 5.2: Fix test failures — missing QueryClientProvider wrapping (68 failures)
   - Fix: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` (54 failures) — RsvpBadgeDropdown uses useQuery but tests don't wrap in QueryClientProvider
   - Fix: `apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx` (14 failures) — CalendarTripSection uses useQuery but tests don't wrap in QueryClientProvider
   - Implement: Add QueryClientProvider wrapper to test setup for both files

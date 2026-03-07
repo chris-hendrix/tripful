@@ -1960,3 +1960,40 @@ Systematic triage of all PROGRESS.md entries from iterations 30-36 (Frontend Des
 - Web tests in this codebase use co-located `__tests__` directories next to source files, NOT a centralized `tests/unit/` directory — always verify paths with Glob before writing task descriptions
 - The jump from "1 pre-existing failure" (iteration 30) to "85 pre-existing failures" (iteration 36) indicates features were added to the codebase outside the design polish branch that broke tests — these accumulated silently because each iteration only verified its own changes passed
 - Triage tasks should group failures by ROOT CAUSE, not by file — the 68 QueryClientProvider failures span 2 files but share one fix (adding the provider wrapper), making them a single task
+
+## Iteration 38 — Task 5.2: Fix test failures — missing QueryClientProvider wrapping (68 failures)
+
+**Status**: COMPLETE
+
+### Changes Made
+
+**Files modified:**
+
+1. **`apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx`** — Added `vi.mock("@/components/trip/rsvp-badge-dropdown", ...)` that renders a simple div with `data-testid="rsvp-badge-dropdown"` and a `rsvpLabels` map mirroring the real component's status-to-label conversion. This follows the exact same pattern as the adjacent `MembersList`, `ItineraryView`, `TripNotificationBell`, and other component mocks already in the file.
+
+2. **`apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx`** — Added `vi.mock("@/hooks/use-calendar", ...)` providing stubs for `useCalendarStatus` (returns `{ data: null, isLoading: false }`) and `useUpdateTripCalendarExclusion` (returns `{ mutate: vi.fn(), isPending: false }`). Also fixed a pre-existing bug where `mockUseMySettings` returned `data: true` instead of `data: { sharePhone: true }` to match the component's `mySettings?.sharePhone` access pattern.
+
+### Root Cause Analysis
+
+- **trip-detail-content.test.tsx (54 failures)**: `RsvpBadgeDropdown` was the only child component with TanStack Query dependencies (`useUpdateRsvp` → `useMutation`/`useQueryClient`) that was NOT mocked. All other child components (ItineraryView, TripMessages, MembersList, etc.) were already mocked. The `@tanstack/react-query` mock spread the actual module but didn't override `useMutation`/`useQueryClient`, so the real hooks ran without a QueryClient context.
+
+- **notification-preferences.test.tsx (14 failures)**: `@/hooks/use-calendar` was NOT mocked. The `CalendarTripSection` sub-component called `useCalendarStatus()` and `useUpdateTripCalendarExclusion()`, which use real `useQuery`/`useMutation` without a QueryClient context. Other hooks (`use-notifications`, `use-invitations`) were already mocked.
+
+### Fix Approach
+
+Rather than adding a QueryClientProvider wrapper (which would change the testing approach), the fix adds mocks consistent with existing patterns in each file — mock the unmocked dependencies so no real TanStack Query hooks execute.
+
+### Verification
+
+- **trip-detail-content.test.tsx**: PASS — 66/66 tests pass
+- **notification-preferences.test.tsx**: PASS — 15/15 tests pass
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in calendar.service.test.ts)
+- **Full web test suite**: 1223/1239 tests pass — 16 failures in 6 unrelated files (all pre-existing, tracked in Tasks 5.3-5.6)
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- When a test file mocks `@tanstack/react-query` with `...actual` spread, any un-mocked child component that calls real hooks (`useMutation`, `useQueryClient`) will fail because the real implementations require a QueryClient context — the spread doesn't auto-mock them
+- The fix for "missing QueryClientProvider" can be either adding the provider OR mocking the offending components — mocking is more consistent when the file already follows a heavy-mocking pattern
+- Pre-existing mock data shape bugs (like `data: true` instead of `data: { sharePhone: true }`) can be masked when the component uses optional chaining (`mySettings?.sharePhone`) — `false?.sharePhone` evaluates to `undefined` which happens to be falsy, passing some assertions by coincidence
