@@ -8,12 +8,15 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { resolvedTheme } = useTheme();
+
   return (
     <Sonner
-      theme="system"
+      theme={(resolvedTheme as "light" | "dark") ?? "light"}
       className="toaster group z-[60]"
       position="bottom-right"
       icons={{
