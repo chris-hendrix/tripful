@@ -58,7 +58,7 @@
   - Verify: Open browser with Playwright, verify empty state rendering in both light and dark modes
   - Verify: run full test suite
 
-- [ ] Task 4.2: Add success toast animation
+- [x] Task 4.2: Add success toast animation
   - Implement: Add `@keyframes checkPop` animation to `apps/web/src/app/globals.css`
   - Implement: Update Sonner `toastOptions.classNames` in `apps/web/src/components/ui/sonner.tsx` to apply checkPop animation to success icons
   - Test: Trigger a success toast via Playwright, verify animation renders

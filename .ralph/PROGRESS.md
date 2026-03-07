@@ -1877,3 +1877,37 @@ Trip card mat uses hardcoded `#ffffff` in `trip-card.tsx:57` for unthemed cards.
 - Use `import type { ReactNode } from "react"` instead of `React.ReactNode` to avoid lint `no-undef` errors in files without explicit React import (React 19 JSX transform doesn't require importing React)
 - The `contents` CSS display value works well for the inline variant wrapper to avoid adding an extra layout layer
 - Pre-existing test failures exist in invitation-schemas, upload routes, notification-preferences, trip-card, and trip-detail-content tests — all unrelated to this task
+
+## Iteration 36 — Task 4.2: Add success toast animation
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/src/app/globals.css` — Added `@keyframes checkPop` animation (scale 0.8→1.15→1 with opacity 0→1) after existing keyframes block, following camelCase naming convention
+- `apps/web/src/components/ui/sonner.tsx` — Added `toastOptions={{ classNames: { success: "motion-safe:[&_[data-icon]]:animate-[checkPop_400ms_ease-out]" } }}` to apply the pop animation to success toast icons
+- `apps/web/src/components/ui/__tests__/sonner.test.tsx` — Added test verifying the checkPop animation class is applied to success toast elements
+
+### Design Decisions
+
+- **CSS keyframe + Tailwind arbitrary animation**: Keyframe defined in globals.css (where all keyframes live), applied via Tailwind arbitrary animation syntax in sonner.tsx's `toastOptions.classNames.success` (as architecture specifies)
+- **`[&_[data-icon]]` selector**: Targets Sonner's icon wrapper within success toasts only, so error/info/warning icons are not animated
+- **`motion-safe:` prefix**: Handles `prefers-reduced-motion` per codebase convention — no animation for users who prefer reduced motion
+- **Subtle overshoot**: Scale goes to 1.15 (smaller than `reactionPop`'s 1.3) for a refined micro-interaction feel
+- **No CSS selector rules in globals.css**: Animation targeting handled entirely through Sonner's `toastOptions.classNames` API, keeping the concern in the component
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in calendar.service.test.ts)
+- **Sonner tests**: PASS (3/3 — original 2 + new animation test)
+- **Pre-existing failures**: 85 test failures across web/api/shared — all pre-existing, unrelated to toast changes
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- Sonner v2 `toastOptions.classNames` supports per-type class overrides via keys like `success`, `error`, `info`, `warning`
+- The `[&_[data-icon]]` Tailwind arbitrary selector targets Sonner's icon wrapper element (which has a `data-icon` attribute)
+- JSDOM cannot verify CSS animations actually run — test verifies the class is applied (integration plumbing), visual verification covers actual animation
+- Sonner renders `[data-sonner-toast][data-type="success"]` attributes that can be CSS-targeted, but using `toastOptions.classNames` is cleaner and keeps the concern in the component file
