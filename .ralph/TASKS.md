@@ -26,7 +26,7 @@
   - Test: run existing sonner tests — ensure they still pass
   - Verify: run full test suite
 
-- [ ] Task 2.3: Manual dark mode visual verification
+- [x] Task 2.3: Manual dark mode visual verification
   - Seed: Ensure test data exists (trips, messages, itinerary, notifications)
   - Verify: Open browser with Playwright, emulate `prefers-color-scheme: dark`
   - Verify: Screenshot trips list, trip detail, itinerary, messages, notifications, auth pages, global error

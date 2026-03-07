@@ -1749,3 +1749,57 @@ All 28 tasks across 10 phases have been completed:
 - global-error.tsx replaces the entire HTML document (including `<html>` and `<body>`) so it must explicitly set all body classes that the root layout provides — it cannot inherit from layout.tsx
 - Sonner's `theme="system"` uses `prefers-color-scheme` media query internally, matching the app's CSS-only dark mode strategy (no class toggle)
 - The Sonner component's inline style already uses CSS custom properties (`--color-popover`, etc.) that switch automatically via the dark mode media query in globals.css, so `theme="system"` is all that's needed
+
+## Iteration 33 — Task 2.3: Manual dark mode visual verification
+
+**Status**: ✅ COMPLETE
+
+### What Was Done
+
+Visual verification of the dark mode implementation (Tasks 2.1 and 2.2) using Playwright CLI inside the devcontainer. Screenshots taken of key pages in both light and dark modes.
+
+### Screenshots Captured (`.ralph/screenshots/`)
+
+| File | Description |
+|------|-------------|
+| `task-2.3-login-light.png` | Login page — warm beige background, white card, gradient button |
+| `task-2.3-login-dark.png` | Login page — charcoal background, dark card surface, adapted text |
+| `task-2.3-trips-light.png` | Trips list — beige background, postcard trip card with gradient mesh |
+| `task-2.3-trips-dark.png` | Trips list — dark background, trip card with adapted colors |
+| `task-2.3-trip-detail-light.png` | Trip detail — gradient mesh header, beige content area |
+| `task-2.3-trip-detail-dark.png` | Trip detail — adapted gradient mesh, dark content area |
+
+### Visual Verification Results
+
+| Element | Status | Notes |
+|---------|--------|-------|
+| PostmarkStamp SVG | PASS | Uses `text-foreground` + `currentColor`, adapts correctly |
+| Trip card scrims | PASS | Mode-agnostic (`bg-black/50`, `text-white`) |
+| Airmail stripes | PASS | Uses `var(--color-card)`, `var(--color-airmail-red/blue)` — auto-adapts |
+| Gradient mesh | PASS | Dark variant has adjusted rgba values, looks good |
+| Linen texture | PASS | Opacity halved in dark mode, subtle and appropriate |
+| Card noise | PASS | Opacity halved in dark mode |
+| Postcard shadow | PASS | Dark variant uses dark shadow + subtle white ring |
+| Login card | PASS | Proper contrast, readable text |
+| Navigation/header | PASS | Adapts correctly with semantic tokens |
+| Sonner theme | PASS | Set to "system", uses CSS variables |
+| Global error page | PASS | Uses `bg-background text-foreground` classes |
+
+### Known Design Note
+
+Trip card mat uses hardcoded `#ffffff` in `trip-card.tsx:57` for unthemed cards. This creates a white border in dark mode — intentional to preserve the physical postcard metaphor. Not a bug.
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in calendar.service.test.ts)
+- **Unit Tests**: Pre-existing failure in `invitation-schemas.test.ts` (missing `calendarExcluded` field in fixture) — unrelated to this branch
+- **Screenshots**: 6/6 captured and verified
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- Playwright CLI's `evaluate 'await page.emulateMedia({ colorScheme: "dark" })'` works well for testing dark mode without OS-level changes
+- The devcontainer maps host port 6925→3000 (web) and 6924→8000 (api) — use localhost:3000 inside the container
+- PostmarkStamp SVG is fully dark-mode-safe thanks to `currentColor` pattern
+- Trip card mat `#ffffff` is the only hardcoded non-semantic color in the visible UI — a deliberate design choice for the postcard aesthetic
