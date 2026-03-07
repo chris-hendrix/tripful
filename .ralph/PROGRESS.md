@@ -2181,3 +2181,41 @@ The devcontainer sets `STORAGE_PROVIDER=s3` in its `.env` file. When `STORAGE_PR
 - The `theme_font` column has no DB-level constraint (plain varchar) — validation is application-level only via Zod schema
 - All 2281 dev trips have NULL theme_font, meaning the default font behavior applies everywhere
 - psql is not available in the app container; DB queries must go through the `db` service container directly
+
+## Iteration 45 — Task 6.1: Full regression check
+
+**Status**: COMPLETE
+
+### Verification Results
+
+| Check | Result | Details |
+|-------|--------|---------|
+| **Lint** | PASS | 3/3 packages, 0 errors, 0 warnings |
+| **TypeCheck** | PASS | 3/3 packages (shared, api, web) |
+| **Shared Tests** | PASS | 15 files, 308 tests, 0 failures |
+| **Web Tests** | PASS | 73 files, 1231 tests, 0 failures |
+| **API Tests** | PASS* | 60 files, 1143 tests; 6 transient MinIO/S3 upload failures on first run (passed on retry) |
+| **E2E Tests** | PASS | 44 tests (22 chromium + 22 iphone), 42 passed initially, 2 fixed |
+| **Visual (light)** | PASS | Fresh screenshot: task-6.1-login-light.png |
+| **Visual (dark)** | PASS | Existing screenshots from Task 2.3 still valid (no dark mode changes since) |
+
+### Fix Applied
+
+**E2E messaging test** (`apps/web/tests/e2e/messaging.spec.ts` lines 92, 108):
+- The EmptyState component refactoring (Task 4.1) split "No messages yet. Start the conversation!" into separate title/description elements
+- E2E test was looking for the combined string via `getByText`, which failed because the text spans two elements
+- Fixed by matching only the title "No messages yet" — sufficient to verify empty state presence/absence
+- Both chromium and iphone variants now pass
+
+### Pre-existing Issues (not caused by this branch)
+
+- **6 API MinIO/S3 upload tests** (`user.routes.test.ts`, `trip.routes.test.ts`): Transient 500 errors due to MinIO container connectivity. These passed on retry and have been documented as pre-existing across iterations 17, 33, 42, etc.
+
+### Reviewer Feedback
+
+APPROVED — Fix is minimal and correct. No other E2E tests have the same issue (only other sentence-like assertion is in `trip-journey.spec.ts` which uses a plain `<div>`, not EmptyState).
+
+### Learnings
+
+- The `playwright-cli` tool's `run-code` and `eval` commands have severe shell quoting limitations when passing strings containing quotes through `make test-exec CMD="..."` — string values like `"dark"` get unquoted by intermediate shell layers. Use `String.fromCharCode()` for `eval` or pre-existing screenshots for dark mode verification.
+- E2E tests that assert on combined text strings are brittle when component refactoring splits text into separate elements — prefer asserting on the most stable single text element (e.g., the title) rather than concatenated title+description.
