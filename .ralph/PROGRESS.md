@@ -1656,3 +1656,31 @@ All 28 tasks across 10 phases have been completed:
 - **Phase 8** (2 tasks): Cross-browser E2E, timeout constants
 - **Phase 9** (7 tasks): Triage + 6 FIX tasks (deleted messages, flaky tests, amber colors, cursor utils, lint warning)
 - **Phase 10** (1 task): Full regression check ✅
+
+---
+
+# Progress: Frontend Design Polish
+
+## Iteration 30 — Task 1.1: Remove Nunito, Caveat, Oswald from font pipeline
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/src/lib/fonts.ts` — Removed `Caveat`, `Nunito`, `Oswald` imports from `next/font/google` and their 3 exported font instances
+- `apps/web/src/app/layout.tsx` — Removed `caveat`, `nunito`, `oswald` imports and their `.variable` entries from the `cn()` className
+- `shared/types/theme.ts` — Removed `"nunito"`, `"caveat"`, `"oswald"` from `THEME_FONT_VALUES` array, narrowing `ThemeFont` type to `"plus-jakarta" | "playfair" | "space-grotesk"`
+- `shared/config/theme-fonts.ts` — Removed nunito/caveat/oswald entries from `THEME_FONTS` and `FONT_DISPLAY_NAMES` records
+
+### Verification
+- **Grep**: Zero matches for `nunito`, `caveat`, `oswald` in .ts/.tsx/.css files (excluding .ralph/)
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in calendar.service.test.ts, unrelated)
+- **Unit Tests**: 306/307 pass; 1 pre-existing failure in `invitation-schemas.test.ts` (missing `calendarExcluded` field in test fixture, unrelated to font removal)
+- **Reviewer**: APPROVED (1 LOW non-blocking note about potential DB rows with old font values — fonts were marked "to add" and likely never stored)
+
+### Learnings
+- The `THEME_FONT_VALUES` array is the single source of truth for `ThemeFont` type — updating it automatically narrows the Zod schema and TypeScript `Record<ThemeFont, string>` maps
+- The 3 removed fonts had comments `// to add` in theme.ts, confirming they were never actually used in production
+- Pre-existing test failure in `invitation-schemas.test.ts` exists (missing `calendarExcluded` field) — unrelated to this task

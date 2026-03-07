@@ -2,7 +2,7 @@
 
 ## Phase 1: Trim Unused Fonts
 
-- [ ] Task 1.1: Remove Nunito, Caveat, Oswald from font pipeline
+- [x] Task 1.1: Remove Nunito, Caveat, Oswald from font pipeline
   - Implement: Remove `nunito`, `caveat`, `oswald` declarations and imports from `apps/web/src/lib/fonts.ts`
   - Implement: Remove `nunito`, `caveat`, `oswald` imports and `.variable` entries from `apps/web/src/app/layout.tsx`
   - Test: Grep codebase for `--font-nunito`, `--font-caveat`, `--font-oswald`, `nunito.variable`, `caveat.variable`, `oswald.variable` to confirm zero references
