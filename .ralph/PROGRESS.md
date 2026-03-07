@@ -1997,3 +1997,51 @@ Rather than adding a QueryClientProvider wrapper (which would change the testing
 - When a test file mocks `@tanstack/react-query` with `...actual` spread, any un-mocked child component that calls real hooks (`useMutation`, `useQueryClient`) will fail because the real implementations require a QueryClient context — the spread doesn't auto-mock them
 - The fix for "missing QueryClientProvider" can be either adding the provider OR mocking the offending components — mocking is more consistent when the file already follows a heavy-mocking pattern
 - Pre-existing mock data shape bugs (like `data: true` instead of `data: { sharePhone: true }`) can be masked when the component uses optional chaining (`mySettings?.sharePhone`) — `false?.sharePhone` evaluates to `undefined` which happens to be falsy, passing some assertions by coincidence
+
+## Iteration 39 — Task 5.3: Fix test failures — outdated assertions after component changes (11 failures)
+
+**Status**: COMPLETE
+
+### Changes Made
+
+**Files modified:**
+
+1. **`apps/web/src/components/trip/__tests__/trip-card.test.tsx`** — Updated test assertions to match redesigned postcard-style TripCard component
+
+### What Changed
+
+**Added mocks (4):**
+- `@/components/trip/trip-theme-provider` — passthrough fragment (component uses `useLayoutEffect`/DOM manipulation)
+- `@/lib/theme-styles` — stub `buildBackground` returning `#ffffff`
+- `@tripful/shared/config` — stub `THEME_PRESETS: []` and `THEME_FONTS: {}`
+- `@/lib/api` — stub `getUploadUrl` returning the input URL
+
+**Removed tests (8):** All tested features that no longer exist in the component:
+- "displays organizer profile photos when provided" — organizer avatars removed from component
+- "displays up to 3 organizer avatars" — organizer section removed
+- "limits to 3 organizer avatars even when more exist" — organizer section removed
+- "shows organizer count when multiple organizers" — organizer section removed
+- 'shows "No events yet" when eventCount is 0' — event count display removed
+- "shows singular event text for 1 event" — event count display removed
+- "shows plural events text for multiple events" — event count display removed
+- "shows initials when organizer has no profile photo" — organizer section removed
+
+**Updated tests (3):**
+- "renders all trip information correctly" — removed assertions for `"John Doe"` and `"3 events"` (no longer rendered)
+- "applies hover and active transition classes" → renamed to "applies postcard class for hover and transition styles" — checks for `postcard` CSS class instead of individual Tailwind utilities (`hover:shadow-lg`, `motion-safe:active:scale-[0.98]`, `transition-all`)
+- "applies motion-safe animation classes" — removed assertion for `motion-safe:hover:-translate-y-1` (now in `.postcard` CSS)
+
+**Cleanup:** Removed unused `container` destructuring in destination truncation test
+
+### Verification
+
+- **trip-card.test.tsx**: PASS — 25/25 tests pass (was 36 tests, 11 removed/updated)
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 1 pre-existing warning in calendar.service.test.ts)
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- When a component is redesigned, tests for removed features should be deleted entirely rather than rewritten — they test behavior that no longer exists and have no value
+- The `.postcard` CSS class pattern (hover/transition in stylesheet instead of Tailwind utilities) means tests should verify the class is applied, not the individual visual effects — CSS behavior is the stylesheet's responsibility
+- `TripThemeProvider` uses `useLayoutEffect` and DOM manipulation for theme CSS variables, so mocking it as a passthrough fragment is the correct unit test approach — isolates TripCard from theme system side effects

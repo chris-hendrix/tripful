@@ -78,7 +78,7 @@
   - Implement: Add QueryClientProvider wrapper to test setup for both files
   - Verify: run affected tests and confirm they pass
 
-- [ ] Task 5.3: Fix test failures — outdated assertions after component changes (11 failures)
+- [x] Task 5.3: Fix test failures — outdated assertions after component changes (11 failures)
   - Fix: `apps/web/src/components/trip/__tests__/trip-card.test.tsx` (11 failures) — component rendering changed but test assertions not updated
   - Implement: Update test assertions to match current component output
   - Verify: run affected tests and confirm they pass
