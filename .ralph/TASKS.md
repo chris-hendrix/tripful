@@ -66,11 +66,52 @@
 
 ## Phase 5: Cleanup
 
-- [ ] Task 5.1: Triage PROGRESS.md for unaddressed items
+- [x] Task 5.1: Triage PROGRESS.md for unaddressed items
   - Review: Read entire PROGRESS.md
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: run full test suite
+
+- [ ] Task 5.2: Fix test failures — missing QueryClientProvider wrapping (68 failures)
+  - Fix: `apps/web/src/app/(app)/trips/[id]/trip-detail-content.test.tsx` (54 failures) — RsvpBadgeDropdown uses useQuery but tests don't wrap in QueryClientProvider
+  - Fix: `apps/web/src/components/notifications/__tests__/notification-preferences.test.tsx` (14 failures) — CalendarTripSection uses useQuery but tests don't wrap in QueryClientProvider
+  - Implement: Add QueryClientProvider wrapper to test setup for both files
+  - Verify: run affected tests and confirm they pass
+
+- [ ] Task 5.3: Fix test failures — outdated assertions after component changes (11 failures)
+  - Fix: `apps/web/src/components/trip/__tests__/trip-card.test.tsx` (11 failures) — component rendering changed but test assertions not updated
+  - Implement: Update test assertions to match current component output
+  - Verify: run affected tests and confirm they pass
+
+- [ ] Task 5.4: Fix test failures — missing schema field in fixture (1 failure)
+  - Fix: `shared/__tests__/invitation-schemas.test.ts` (1 failure) — test fixture missing `calendarExcluded` field
+  - Implement: Add `calendarExcluded` to the test fixture object
+  - Verify: run affected test and confirm it passes
+
+- [ ] Task 5.5: Fix test failure — upload route 404 (1 failure)
+  - Fix: `apps/api/tests/integration/trip.routes.test.ts` (1 failure) — upload route returns 404 but test expects 200
+  - Investigate: Determine if the route was removed/renamed or if the test needs updating
+  - Verify: run affected test and confirm it passes
+
+- [ ] Task 5.6: Fix remaining scattered test failures (5 failures)
+  - Fix: `apps/web/src/hooks/__tests__/use-invitations.test.tsx` (1 failure)
+  - Fix: `apps/web/src/components/ui/__tests__/button.test.tsx` (1 failure) — class name changed to rounded-xl
+  - Fix: `apps/web/src/components/ui/__tests__/input.test.tsx` (1 failure)
+  - Fix: `apps/web/src/components/__tests__/app-header.test.tsx` (1 failure)
+  - Fix: `apps/web/src/components/itinerary/__tests__/itinerary-header.test.tsx` (1 failure)
+  - Implement: Update assertions to match current component output
+  - Verify: run affected tests and confirm they pass
+
+- [ ] Task 5.7: Fix lint warning — no-explicit-any in calendar.service.test.ts
+  - Fix: `apps/api/tests/unit/calendar.service.test.ts` line 7 — `const service = new CalendarService(null as any)`
+  - Implement: Use the same pattern applied to verification.service.test.ts in iteration 28
+  - Verify: run `pnpm lint` with no warnings on that file
+
+- [ ] Task 5.8: Verify no DB rows reference removed fonts (nunito/caveat/oswald)
+  - Investigate: Query the database for any trip/theme rows where the font column contains `nunito`, `caveat`, or `oswald`
+  - If rows exist: Write and apply a migration to update them to a valid ThemeFont value
+  - If no rows exist: Document the result and close
+  - Verify: run `pnpm typecheck` to confirm schema consistency
 
 ## Phase 6: Final Verification
 

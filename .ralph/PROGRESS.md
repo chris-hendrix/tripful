@@ -1911,3 +1911,52 @@ Trip card mat uses hardcoded `#ffffff` in `trip-card.tsx:57` for unthemed cards.
 - The `[&_[data-icon]]` Tailwind arbitrary selector targets Sonner's icon wrapper element (which has a `data-icon` attribute)
 - JSDOM cannot verify CSS animations actually run — test verifies the class is applied (integration plumbing), visual verification covers actual animation
 - Sonner renders `[data-sonner-toast][data-type="success"]` attributes that can be CSS-targeted, but using `toastOptions.classNames` is cleaner and keeps the concern in the component file
+
+## Iteration 37 — Task 5.1: Triage PROGRESS.md for unaddressed items
+
+**Status**: ✅ COMPLETE
+
+### What Was Done
+
+Systematic triage of all PROGRESS.md entries from iterations 30-36 (Frontend Design Polish) to identify FAILURE, BLOCKED, reviewer caveats, and deferred items. Created 7 fix sub-tasks in TASKS.md (5.2-5.8) covering all actionable issues.
+
+### Issues Found and Categorized
+
+**ACTIONABLE — Created fix tasks (7 tasks):**
+
+| Task | Severity | Failures | Description |
+|------|----------|----------|-------------|
+| 5.2 | HIGH | 68 | Missing QueryClientProvider in trip-detail-content (54) and notification-preferences (14) tests |
+| 5.3 | MEDIUM | 11 | Outdated assertions in trip-card tests after component changes |
+| 5.4 | LOW | 1 | Missing `calendarExcluded` field in invitation-schemas test fixture |
+| 5.5 | LOW | 1 | Upload route returns 404 in trip.routes integration test |
+| 5.6 | LOW | 5 | Scattered single failures in button, input, app-header, itinerary-header, use-invitations tests |
+| 5.7 | LOW | 0 | Lint warning `@typescript-eslint/no-explicit-any` in calendar.service.test.ts |
+| 5.8 | LOW | 0 | Verify no DB rows reference removed fonts (nunito/caveat/oswald) |
+
+**Total test failures documented: 86** (68 + 11 + 1 + 1 + 5)
+
+**INTENTIONAL — No action needed (5 items):**
+- Trip card mat `#ffffff` — deliberate postcard aesthetic (iteration 33)
+- PostmarkStamp empty state kept bespoke — deliberate design (iteration 35)
+- CSS-only dark mode with no manual toggle (iterations 31-33)
+- Google brand colors in calendar-sync-section.tsx — mandated by brand guidelines
+- Static metadata colors in manifest/layout — not user-facing UI
+
+**NON-ISSUE — Already resolved (3 items):**
+- `verification.service.test.ts` lint warning — fixed in iteration 28
+- Hardcoded `#faf5e8` in utility classes — all replaced in Task 2.1
+- Sonner missing `antialiased` class — fixed in iteration 32
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (1 pre-existing warning in calendar.service.test.ts — now tracked as Task 5.7)
+- **Unit/Integration Tests**: 86 pre-existing failures confirmed — all accounted for by Tasks 5.2-5.6
+- **Reviewer**: APPROVED (round 2 — after correcting file paths from `apps/web/tests/unit/` to actual co-located `__tests__/` paths)
+
+### Learnings
+
+- Web tests in this codebase use co-located `__tests__` directories next to source files, NOT a centralized `tests/unit/` directory — always verify paths with Glob before writing task descriptions
+- The jump from "1 pre-existing failure" (iteration 30) to "85 pre-existing failures" (iteration 36) indicates features were added to the codebase outside the design polish branch that broke tests — these accumulated silently because each iteration only verified its own changes passed
+- Triage tasks should group failures by ROOT CAUSE, not by file — the 68 QueryClientProvider failures span 2 files but share one fix (adding the provider wrapper), making them a single task
