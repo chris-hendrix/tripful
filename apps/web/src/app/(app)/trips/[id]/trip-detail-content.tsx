@@ -50,10 +50,7 @@ import {
 } from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
-import {
-  TripNotificationBell,
-  TripSettingsButton,
-} from "@/components/notifications";
+import { TripSettingsButton } from "@/components/notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
 import { TripPreview } from "@/components/trip/trip-preview";
@@ -243,12 +240,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         )}
 
-        {/* Top-right: notification + settings */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-          <TripNotificationBell
-            tripId={tripId}
-            className={heroTextLight ? "text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50" : "text-foreground/80 hover:text-foreground hover:bg-foreground/10 focus-visible:ring-foreground/50"}
-          />
+        {/* Top-right: settings */}
+        <div className="absolute top-4 right-4 z-10">
           <TripSettingsButton
             tripId={tripId}
             className={heroTextLight ? "text-white/80 hover:text-white hover:bg-white/10 focus-visible:ring-white/50" : "text-foreground/80 hover:text-foreground hover:bg-foreground/10 focus-visible:ring-foreground/50"}
