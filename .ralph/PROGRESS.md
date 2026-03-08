@@ -2622,3 +2622,36 @@ Read the entire PROGRESS.md (54 iterations) with 3 parallel researchers:
 - When `next/dynamic` is mocked with `React.lazy`, ALL dynamically imported components must also be mocked or they'll resolve to real implementations with their full dependency trees
 - Accessible name computation in testing-library concatenates text content of child elements — `"Label" + <span>1</span>` produces "Label 1" (with space from whitespace nodes), not "Label (1)"
 - Deleting tests that no longer apply (co-organizer UI removed) is the correct approach rather than trying to adapt them to test something different
+
+## Iteration 57 — Task 5.1.2: Fix 1 pre-existing shared test failure (theme-config kebab-case regex) — MEDIUM
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**File modified:**
+- `shared/__tests__/theme-config.test.ts` — Line 27: Updated kebab-case regex from `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/` to `/^[a-z0-9]+(-[a-z0-9]+)*$/`
+
+### Root Cause
+
+The theme preset ID `80s-pop-art-ski-slope` (defined in `shared/config/themes.ts`) starts with a digit. The test's kebab-case regex required the first character to be `[a-z]` (lowercase letter only), rejecting valid IDs starting with digits.
+
+### Fix Rationale
+
+Updated the regex to allow `[a-z0-9]` as the first character rather than renaming the theme ID because:
+1. The regex exists only in the test file — production code uses `z.enum(THEME_IDS)` for exact-match validation
+2. Renaming would require updating the cover image URL and potentially a database migration for existing rows
+3. `80s-pop-art-ski-slope` is a natural, readable identifier — "eighties" would be less intuitive
+
+### Verification
+
+- **Shared Tests**: PASS — 16 files, 321 tests, 0 failures
+- **TypeCheck**: PASS — all 3 packages
+- **Lint**: PASS — all 3 packages
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- The kebab-case regex in the test was stricter than necessary — traditional kebab-case doesn't inherently forbid leading digits, it just means lowercase-words-separated-by-hyphens
+- This was a true pre-existing failure (the theme ID was added with this name from the start) — the test regex was simply not updated to match
+- When a test-only convention check conflicts with a valid data entry, prefer relaxing the convention check over renaming production data

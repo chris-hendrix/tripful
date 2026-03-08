@@ -100,7 +100,7 @@
   - Fix: Fix tab count assertion mismatch in `members-list.test.tsx` (2 failures) — expected "Invited (3)" but rendered count differs
   - Verify: `pnpm --filter @tripful/web test` passes with 0 failures
 
-- [ ] Task 5.1.2: Fix 1 pre-existing shared test failure (theme-config kebab-case regex) — MEDIUM
+- [x] Task 5.1.2: Fix 1 pre-existing shared test failure (theme-config kebab-case regex) — MEDIUM
   - Root cause: Theme preset ID `80s-pop-art-ski-slope` starts with a digit; regex `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/` rejects leading digits
   - Fix: Update regex in `shared/__tests__/theme-config.test.ts` to `/^[a-z0-9][a-z0-9]*(-[a-z0-9]+)*$/` OR rename the theme ID to start with a letter
   - Verify: `pnpm --filter @tripful/shared test` passes with 0 failures
