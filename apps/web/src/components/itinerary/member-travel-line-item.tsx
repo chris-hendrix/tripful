@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { ChevronRight, PlaneLanding, PlaneTakeoff } from "lucide-react";
 import type { MemberTravel } from "@tripful/shared/types";
 import { formatInTimezone } from "@/lib/utils/timezone";
