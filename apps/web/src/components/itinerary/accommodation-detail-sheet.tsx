@@ -85,7 +85,8 @@ export const AccommodationDetailSheet = memo(
 
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent showCloseButton={false}>
+        <SheetContent showCloseButton={false} className="bg-accommodation-light">
+          <div className="h-1.5 w-full bg-accommodation" />
           <VisuallyHidden.Root>
             <SheetTitle>Accommodation details</SheetTitle>
           </VisuallyHidden.Root>
@@ -98,7 +99,7 @@ export const AccommodationDetailSheet = memo(
                   onOpenChange(false);
                   onEdit(accommodation);
                 }}
-                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                 title="Edit"
               >
                 <Pencil className="w-4 h-4" />
@@ -108,7 +109,7 @@ export const AccommodationDetailSheet = memo(
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button
-                    className="rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    className="rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -140,17 +141,20 @@ export const AccommodationDetailSheet = memo(
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            <SheetClose className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <SheetClose className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
               <XIcon className="w-4 h-4" />
             </SheetClose>
           </div>
 
           <SheetBody className="space-y-4">
+            {/* Type chip */}
+            <span className="inline-flex items-center gap-1 w-fit text-xs font-medium px-2 py-0.5 rounded-full bg-background/60 backdrop-blur-sm text-foreground">
+              <Building2 className="w-3 h-3" />
+              Accommodation
+            </span>
+
             {/* Accommodation name */}
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-accommodation shrink-0" />
-              <h2 className="font-semibold text-lg">{accommodation.name}</h2>
-            </div>
+            <h2 className="font-semibold text-lg">{accommodation.name}</h2>
 
             {/* Address */}
             {accommodation.address && (

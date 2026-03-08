@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MapPin, Pencil, Trash2, XIcon } from "lucide-react";
+import { Loader2, MapPin, Pencil, PlaneLanding, PlaneTakeoff, Trash2, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { VisuallyHidden } from "radix-ui";
 import type { MemberTravel } from "@tripful/shared/types";
@@ -90,7 +90,8 @@ export function MemberTravelDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent showCloseButton={false}>
+      <SheetContent showCloseButton={false} className="bg-member-travel-light">
+        <div className="h-1.5 w-full bg-member-travel" />
         <VisuallyHidden.Root>
           <SheetTitle>Travel details</SheetTitle>
         </VisuallyHidden.Root>
@@ -101,7 +102,7 @@ export function MemberTravelDetailSheet({
             <button
               type="button"
               onClick={handleEdit}
-              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
               aria-label="Edit travel details"
             >
               <Pencil className="w-4 h-4" />
@@ -113,7 +114,7 @@ export function MemberTravelDetailSheet({
                 <button
                   type="button"
                   disabled={isDeleting}
-                  className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Delete travel details"
                 >
                   {isDeleting ? (
@@ -152,7 +153,7 @@ export function MemberTravelDetailSheet({
           <SheetClose asChild>
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <XIcon className="w-4 h-4" />
@@ -161,6 +162,16 @@ export function MemberTravelDetailSheet({
         </div>
 
         <SheetBody>
+          {/* Type chip */}
+          <span className="inline-flex items-center gap-1 w-fit text-xs font-medium px-2 py-0.5 rounded-full bg-background/60 backdrop-blur-sm text-foreground mb-2">
+            {memberTravel.travelType === "arrival" ? (
+              <PlaneLanding className="w-3 h-3" />
+            ) : (
+              <PlaneTakeoff className="w-3 h-3" />
+            )}
+            {memberTravel.travelType === "arrival" ? "Arrival" : "Departure"}
+          </span>
+
           {/* Title */}
           <h2 className="font-semibold text-lg">{title}</h2>
 

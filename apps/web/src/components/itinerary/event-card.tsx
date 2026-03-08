@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { MapPin } from "lucide-react";
+import { Calendar, Car, ExternalLink, MapPin, Utensils } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
 import { formatInTimezone, getDayInTimezone } from "@/lib/utils/timezone";
@@ -18,16 +18,19 @@ export const EVENT_TYPE_CONFIG = {
     color: "text-event-travel",
     accent: "border-l-event-travel",
     bg: "bg-event-travel-light",
+    icon: Car,
   },
   meal: {
     color: "text-event-meal",
     accent: "border-l-event-meal",
     bg: "bg-event-meal-light",
+    icon: Utensils,
   },
   activity: {
     color: "text-event-activity",
     accent: "border-l-event-activity",
     bg: "bg-event-activity-light",
+    icon: Calendar,
   },
 } as const;
 
@@ -92,15 +95,7 @@ export const EventCard = memo(function EventCard({
         <span className="font-semibold text-foreground text-sm truncate">
           {event.name}
         </span>
-        {event.creatorAttending === false && (
-          <Badge
-            variant="outline"
-            className="text-xs bg-warning/15 text-warning border-warning/30 shrink-0"
-          >
-            Member no longer attending
-          </Badge>
-        )}
-        {event.isOptional && (
+{event.isOptional && (
           <Badge
             variant="outline"
             className="text-xs bg-background/50 border-border shrink-0"
@@ -110,18 +105,22 @@ export const EventCard = memo(function EventCard({
         )}
       </div>
 
-      {/* Line 3: Location (Google Maps link) */}
+      {/* Line 3: Location with link icon */}
       {event.location && (
-        <a
-          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary truncate"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{event.location}</span>
-        </a>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`${event.location} on Google Maps`}
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
       )}
     </div>
   );

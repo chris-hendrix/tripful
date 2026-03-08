@@ -48,20 +48,6 @@ export const MemberTravelLineItem = memo(function MemberTravelLineItem({
       <PlaneIcon className="w-3.5 h-3.5 text-member-travel shrink-0" />
       <span className="font-semibold text-sm truncate">{memberName}</span>
       <span className="text-xs text-muted-foreground">· {time}</span>
-      {memberTravel.location && (
-        <>
-          <span className="text-xs text-muted-foreground">&middot;</span>
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-primary truncate"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {memberTravel.location}
-          </a>
-        </>
-      )}
       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 ml-auto shrink-0" />
     </div>
   );

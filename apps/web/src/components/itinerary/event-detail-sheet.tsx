@@ -27,6 +27,7 @@ import {
   useDeleteEvent,
   getDeleteEventErrorMessage,
 } from "@/hooks/use-events";
+import { cn } from "@/lib/utils";
 import { formatInTimezone, getDayInTimezone } from "@/lib/utils/timezone";
 import { EVENT_TYPE_CONFIG } from "./event-card";
 
@@ -68,12 +69,27 @@ export function EventDetailSheet({
     });
   };
 
+  const config = event ? EVENT_TYPE_CONFIG[event.eventType] : null;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent showCloseButton={false}>
+      <SheetContent
+        showCloseButton={false}
+        className={cn(config?.bg)}
+      >
         <VisuallyHidden.Root>
           <SheetTitle>Event details</SheetTitle>
         </VisuallyHidden.Root>
+
+        {/* Accent bar */}
+        {config && (
+          <div
+            className={cn(
+              "h-1.5 w-full",
+              config.color.replace("text-", "bg-"),
+            )}
+          />
+        )}
 
         {/* Header actions */}
         <div className="flex items-center justify-end gap-1 px-4 pt-4">
@@ -83,7 +99,7 @@ export function EventDetailSheet({
                 onEdit(event);
                 onOpenChange(false);
               }}
-              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               title="Edit"
             >
               <Pencil className="w-4 h-4" />
@@ -93,7 +109,7 @@ export function EventDetailSheet({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
-                  className="rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  className="rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
                   title="Delete"
                   disabled={isDeleting}
                 >
@@ -125,7 +141,7 @@ export function EventDetailSheet({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <SheetClose className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+          <SheetClose className="rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
             <XIcon className="w-4 h-4" />
             <span className="sr-only">Close</span>
           </SheetClose>
@@ -149,6 +165,7 @@ function EventDetailBody({
   createdByName?: string | undefined;
 }) {
   const config = EVENT_TYPE_CONFIG[event.eventType];
+  const TypeIcon = config.icon;
 
   const startTime = event.allDay
     ? "All day"
@@ -172,13 +189,11 @@ function EventDetailBody({
 
   return (
     <div className="space-y-4">
-      {/* Event type indicator */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <div
-          className={`w-2 h-2 rounded-full ${config.color.replace("text-", "bg-")}`}
-        />
-        <span>{typeLabel}</span>
-      </div>
+      {/* Event type chip */}
+      <span className="inline-flex items-center gap-1 w-fit text-xs font-medium px-2 py-0.5 rounded-full bg-background/60 backdrop-blur-sm text-foreground">
+        <TypeIcon className="w-3 h-3" />
+        {typeLabel}
+      </span>
 
       {/* Time display */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -194,9 +209,17 @@ function EventDetailBody({
         )}
       </div>
 
-      {/* Event name */}
-      <div className="flex items-center gap-2">
+      {/* Event name + warnings */}
+      <div className="flex items-center gap-2 flex-wrap">
         <h3 className="font-semibold text-lg">{event.name}</h3>
+        {event.creatorAttending === false && (
+          <Badge
+            variant="outline"
+            className="text-xs bg-warning/15 text-warning border-warning/30 shrink-0"
+          >
+            Member no longer attending
+          </Badge>
+        )}
         {event.isOptional && (
           <Badge
             variant="outline"

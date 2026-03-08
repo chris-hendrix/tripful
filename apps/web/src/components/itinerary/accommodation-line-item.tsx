@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Building2, ChevronRight } from "lucide-react";
+import { Building2, ChevronRight, ExternalLink } from "lucide-react";
 import type { Accommodation } from "@tripful/shared/types";
 
 interface AccommodationLineItemProps {
@@ -13,11 +13,6 @@ export const AccommodationLineItem = memo(function AccommodationLineItem({
   accommodation,
   onClick,
 }: AccommodationLineItemProps) {
-  const truncatedAddress =
-    accommodation.address && accommodation.address.length > 25
-      ? accommodation.address.slice(0, 25) + "\u2026"
-      : accommodation.address;
-
   return (
     <div
       role="button"
@@ -32,20 +27,23 @@ export const AccommodationLineItem = memo(function AccommodationLineItem({
       }}
     >
       <Building2 className="w-3.5 h-3.5 text-accommodation shrink-0" />
-      <span className="font-semibold text-sm truncate">
+      <span className="font-semibold text-sm truncate min-w-0">
         {accommodation.name}
       </span>
-      {truncatedAddress && accommodation.address && (
+      {accommodation.address && (
         <>
-          <span className="text-xs text-muted-foreground">&middot;</span>
+          <span className="text-xs text-muted-foreground truncate min-w-0 hidden sm:inline">
+            {accommodation.address}
+          </span>
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-muted-foreground hover:text-primary truncate"
+            className="text-muted-foreground hover:text-primary transition-colors shrink-0"
             onClick={(e) => e.stopPropagation()}
+            aria-label={`${accommodation.name} on Google Maps`}
           >
-            {truncatedAddress}
+            <ExternalLink className="w-3 h-3" />
           </a>
         </>
       )}

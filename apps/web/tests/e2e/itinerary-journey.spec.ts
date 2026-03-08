@@ -55,9 +55,10 @@ test.describe("Itinerary Journey", () => {
         await expect(page.getByText(/Dinner at Harbor/)).toBeVisible();
         await expect.soft(page.getByText(/6:30 PM/)).toBeVisible();
 
-        // Location should be a Google Maps link
+        // Location text visible with link icon to Google Maps
+        await expect.soft(page.getByText("Harbor Drive Seafood")).toBeVisible();
         const locationLink = page.getByRole("link", {
-          name: "Harbor Drive Seafood",
+          name: /Harbor Drive Seafood.*Google Maps/,
         });
         await expect.soft(locationLink).toBeVisible();
         await expect
@@ -107,10 +108,9 @@ test.describe("Itinerary Journey", () => {
           .first();
         await expect(accommodationCard).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
-        // Address should be a Google Maps link (scoped to first card instance)
-        // Compact view truncates addresses > 20 chars: "123 Main St, San Die…"
+        // Location pin + link icon visible (address details in detail sheet)
         const addressLink = accommodationCard.getByRole("link", {
-          name: /123 Main St/,
+          name: /Google Maps/,
         });
         await expect(addressLink).toBeVisible();
         await expect(addressLink).toHaveAttribute(
@@ -140,21 +140,8 @@ test.describe("Itinerary Journey", () => {
           .fill("Arriving from Chicago");
         await page.getByRole("button", { name: "Add travel details" }).click();
 
-        // Travel card shows member name
+        // Travel card shows member name (location details in detail sheet)
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
-
-        // Location should be a Google Maps link (may take extra time on iPhone
-        // as the refetch after travel creation needs to complete with JOIN data).
-        const travelLocationLink = page.getByRole("link", {
-          name: "San Diego Airport",
-        });
-        await expect(travelLocationLink).toBeVisible({
-          timeout: ELEMENT_TIMEOUT,
-        });
-        await expect(travelLocationLink).toHaveAttribute(
-          "href",
-          /google\.com\/maps\/search/,
-        );
 
         // Expand travel card to see details — use getByRole to target
         // the travel card button, not the "Itinerary Tester" text in Organizers
@@ -191,9 +178,10 @@ test.describe("Itinerary Journey", () => {
         ).not.toBeVisible();
 
         await expect(page.getByText(/Updated Dinner/)).toBeVisible();
-        // Updated location should also be a Google Maps link
+        // Updated location text visible with link icon
+        await expect(page.getByText("Gaslamp Quarter")).toBeVisible();
         const updatedLocationLink = page.getByRole("link", {
-          name: "Gaslamp Quarter",
+          name: /Gaslamp Quarter.*Google Maps/,
         });
         await expect(updatedLocationLink).toBeVisible();
         await expect(updatedLocationLink).toHaveAttribute(
@@ -305,9 +293,10 @@ test.describe("Itinerary Journey", () => {
           timeout: NAVIGATION_TIMEOUT,
         });
 
-        // Location is a Google Maps link
+        // Location text visible with link icon
+        await expect(page.getByText("Las Vegas Airport")).toBeVisible();
         const airportLink = page.getByRole("link", {
-          name: "Las Vegas Airport",
+          name: /Las Vegas Airport.*Google Maps/,
         });
         await expect(airportLink).toBeVisible();
         await expect(airportLink).toHaveAttribute(
@@ -340,11 +329,8 @@ test.describe("Itinerary Journey", () => {
         await expect.soft(page.locator('[title="Arrivals"]')).toBeVisible();
         await expect.soft(page.getByText(/Lunch/)).toBeVisible();
         await expect.soft(page.getByText(/Show/)).toBeVisible();
-        // Location is still a Google Maps link in group-by-type view
-        const airportLinkGrouped = page.getByRole("link", {
-          name: "Las Vegas Airport",
-        });
-        await expect.soft(airportLinkGrouped).toBeVisible();
+        // Location still visible in group-by-type view
+        await expect.soft(page.getByText("Las Vegas Airport").first()).toBeVisible();
         // Verify date labels appear on cards in group-by-type view
         await expect.soft(page.getByText(/Mar 10/).first()).toBeVisible();
         await snap(page, "11-itinerary-group-by-type");
