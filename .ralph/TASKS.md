@@ -45,7 +45,7 @@
 
 ## Phase 3: Backend Weather
 
-- [ ] Task 3.1: Create weather service with caching and plugin registration
+- [x] Task 3.1: Create weather service with caching and plugin registration
   - Implement: Create `apps/api/src/services/weather.service.ts` with `IWeatherService` interface and `WeatherService` class
   - Implement: `getForecast(tripId, userId)` with full logic: check coords, check dates, check >16 days, check cache freshness, fetch Open-Meteo, upsert cache, parse parallel arrays to DailyForecast[], filter to trip date range
   - Implement: Return `{ available: false, message: "Weather temporarily unavailable" }` on API errors

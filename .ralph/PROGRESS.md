@@ -2357,3 +2357,44 @@ APPROVED — Fix is minimal and correct. No other E2E tests have the same issue 
 - `data.destination !== undefined` is the correct check for "field is present in partial update" — `undefined` means "not included in update payload"
 - Drizzle's `min()` and `max()` aggregate functions work with `sql` template literals for `COALESCE` expressions
 - Trip `startDate`/`endDate` are `date` type (string like "2026-06-01") while event `startTime`/`endTime` are `timestamp with tz` — `new Date()` constructor handles both correctly for comparison
+
+## Iteration 50 — Task 3.1: Create weather service with caching and plugin registration
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files created:**
+- `apps/api/src/services/weather.service.ts` — `IWeatherService` interface and `WeatherService` class with `getForecast(tripId, userId)` method implementing full flow: check coords → check dates → check past → check 16 days → check cache (3h TTL) → fetch Open-Meteo → upsert cache → parse parallel arrays → filter to date range
+- `apps/api/src/plugins/weather-service.ts` — Fastify plugin using `fp()`, instantiates `WeatherService(fastify.db, fastify.tripService)`, dependencies: `["database", "config", "trip-service"]`
+- `apps/api/tests/unit/weather.service.test.ts` — 9 unit tests with real DB for cache operations, mocked `fetch` for Open-Meteo API
+
+**Files modified:**
+- `apps/api/src/types/index.ts` — Added `IWeatherService` import and `weatherService: IWeatherService` to FastifyInstance augmentation
+- `apps/api/src/app.ts` — Added import and registration of `weatherServicePlugin` (after calendarServicePlugin, before queueWorkersPlugin)
+
+### Tests Written (9 tests)
+1. Cache hit — fresh cache returns data without calling fetch
+2. Cache miss — no cache, fetches from API, stores result
+3. Stale cache — 4-hour-old cache triggers re-fetch
+4. No coordinates — returns `{ available: false, message: "Set a destination to see weather" }`
+5. No dates — returns `{ available: false, message: "Set trip dates to see weather" }`
+6. Past trip — returns `{ available: false }` with no message
+7. >16 days away — returns unavailable with 16-day message
+8. API error — returns `{ available: false, message: "Weather temporarily unavailable" }`
+9. Parallel array parsing — verifies correct zipping of Open-Meteo arrays into DailyForecast objects
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (all 3 packages)
+- **Weather Tests**: PASS — 9 tests, 0 failures
+- **API Tests**: PASS — 62 files, 1167 tests, 0 failures
+- **Shared Tests**: 320 passed, 1 pre-existing failure (theme-config kebab-case ID — unrelated)
+- **Reviewer**: APPROVED (3 LOW items: unused userId param is by design for controller-level auth, UTC date comparison is consistent, parsing test date range is fragile but functional)
+
+### Learnings
+- Drizzle's `onConflictDoUpdate` with `target` on the PK column is the correct upsert pattern for the weather cache
+- TypeScript may not narrow `array[0]` inside an `if` block — use `array.length > 0` + non-null assertion `array[0]!` for strictness
+- When mocking `ITripService`, cast via `as unknown as ITripService` since only `getEffectiveDateRange` is needed
+- Open-Meteo forecast API returns parallel arrays under `daily` key — zip by index to create typed objects
+- The `_userId` prefix convention signals intentionally unused parameters in TypeScript strict mode

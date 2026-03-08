@@ -20,6 +20,7 @@ import type { INotificationService } from "@/services/notification.service.js";
 import type { IMutualsService } from "@/services/mutuals.service.js";
 import type { ICalendarService } from "@/services/calendar.service.js";
 import type { IGeocodingService } from "@/services/geocoding.service.js";
+import type { IWeatherService } from "@/services/weather.service.js";
 
 export type FullSchema = typeof schema & typeof relations;
 export type AppDatabase = NodePgDatabase<FullSchema>;
@@ -69,6 +70,7 @@ declare module "fastify" {
     mutualsService: IMutualsService;
     calendarService: ICalendarService;
     geocodingService: IGeocodingService;
+    weatherService: IWeatherService;
     healthService: { getStatus(): Promise<HealthCheckResponse> };
   }
 }

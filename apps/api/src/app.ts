@@ -36,6 +36,7 @@ import notificationServicePlugin from "./plugins/notification-service.js";
 import mutualsServicePlugin from "./plugins/mutuals-service.js";
 import calendarServicePlugin from "./plugins/calendar-service.js";
 import geocodingServicePlugin from "./plugins/geocoding-service.js";
+import weatherServicePlugin from "./plugins/weather-service.js";
 import queueWorkersPlugin from "./queues/index.js";
 
 // Middleware
@@ -208,6 +209,7 @@ export async function buildApp(
   await app.register(invitationServicePlugin);
   await app.register(messageServicePlugin);
   await app.register(calendarServicePlugin);
+  await app.register(weatherServicePlugin);
   await app.register(queueWorkersPlugin);
 
   // Register Swagger/OpenAPI documentation (non-production only)
