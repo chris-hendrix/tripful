@@ -2736,3 +2736,36 @@ Pure refactor: the manual `.select({ id: users.id, phoneNumber: users.phoneNumbe
 - Services use optional logger as last constructor param with optional chaining — consistent pattern across message, invitation, SMS, and verification services
 - The extra SELECT in updateTrip (primary key lookup) is negligible cost vs saving an external HTTP geocoding call + weather cache DELETE
 - `fastify.log` conforms to the custom `Logger` interface and is the standard way to pass a logger to services via plugins
+
+## Iteration 61 — Task 6.1: Full regression check
+
+**Status**: ✅ COMPLETE
+
+### Verification Results
+
+**TypeCheck**: PASS — all 3 packages (shared, api, web)
+**Lint**: PASS — all 3 packages (1 pre-existing non-blocking warning in geocoding.service.test.ts)
+**Shared Tests**: PASS — 16 files, 321 tests, 0 failures
+**API Tests**: PASS — 63 files, 1174 tests, 0 failures
+**Web Tests**: PASS — 71 files, 1164 tests, 0 failures
+**E2E Tests**: PASS — 44 tests passed across chromium and iphone projects
+
+### Manual Testing
+
+Performed manual testing via Playwright CLI inside the devcontainer:
+1. Created user account via phone auth flow (+15559990001, code 123456)
+2. Completed profile as "Weather Tester"
+3. Created trip "Weather Test Trip" with destination "San Diego, CA", dates Mar 12-15, 2026
+4. Added event "Beach Day" on Mar 12 at 12:00 PM
+5. Verified itinerary day-by-day view renders correctly with calendar/list toggle
+6. Weather forecast card appears showing "Set a destination to see weather" — this is the correct graceful degradation because the devcontainer lacks external network access to Open-Meteo's geocoding API, so destination coordinates are null
+7. Screenshots saved to `.ralph/screenshots/task-6.1-trip-detail-overview.png` and `.ralph/screenshots/task-6.1-itinerary-weather-card.png`
+
+### Reviewer: APPROVED
+
+### Learnings
+
+- Manual testing that creates DB records can contaminate subsequent test runs (daily-itineraries.worker.test.ts queries all trips). Always clean up manual test data before re-running automated tests.
+- The devcontainer does not have external network access to Open-Meteo APIs, so geocoding always returns null in the test environment. This is an infrastructure limitation, not a code bug — the weather service gracefully degrades with informative messages.
+- The auth verify-code endpoint returns `{ success, user, requiresProfile }` — tokens are set as HTTP-only cookies, not in the response body. This means curl-based API testing requires cookie jar support.
+- All weather feature code (phases 1-5) passes full regression with zero failures across 2659 total tests (321 shared + 1174 API + 1164 web) plus 44 E2E tests.
