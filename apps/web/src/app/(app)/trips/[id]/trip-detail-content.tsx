@@ -168,7 +168,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
     : null;
   const heroTextLight =
-    trip?.coverImageUrl || !preset || preset.background.isDark;
+    trip?.coverImageUrl || preset?.defaultCoverUrl || !preset || preset.background.isDark;
 
   // Loading state
   if (isPending) {
@@ -214,11 +214,20 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       >
       {/* Hero section with cover image + overlay */}
       <div className="relative h-64 sm:h-80 overflow-hidden">
-        {/* Background: cover photo or default pattern */}
+        {/* Background: cover photo → theme cover → theme gradient → default */}
         {trip.coverImageUrl ? (
           <Image
             src={getUploadUrl(trip.coverImageUrl)!}
             alt={trip.name}
+            fill
+            priority
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            className="object-cover"
+          />
+        ) : preset?.defaultCoverUrl ? (
+          <Image
+            src={preset.defaultCoverUrl}
+            alt={preset.name}
             fill
             priority
             sizes="(min-width: 1024px) 1024px, 100vw"
@@ -236,7 +245,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         )}
 
         {/* Gradient scrim for text readability */}
-        {trip.coverImageUrl && (
+        {(trip.coverImageUrl || preset?.defaultCoverUrl) && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         )}
 

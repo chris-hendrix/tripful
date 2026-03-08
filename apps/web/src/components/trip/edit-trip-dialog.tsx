@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
+import { THEME_PRESETS } from "@tripful/shared/config";
 import { toast } from "sonner";
 import {
   useUpdateTrip,
@@ -129,6 +130,21 @@ export function EditTripDialog({
       });
     }
   }, [open, trip, form]);
+
+  // Auto-suggest font when theme changes and no font is set yet
+  const prevThemeId = useRef(watchedThemeId);
+  useEffect(() => {
+    if (isInitializing.current) return;
+    if (watchedThemeId !== prevThemeId.current) {
+      prevThemeId.current = watchedThemeId;
+      if (watchedThemeId && !form.getValues("themeFont")) {
+        const preset = THEME_PRESETS.find((p) => p.id === watchedThemeId);
+        if (preset?.suggestedFont) {
+          form.setValue("themeFont", preset.suggestedFont);
+        }
+      }
+    }
+  }, [watchedThemeId, form]);
 
   // Auto-fill endDate when startDate is set and endDate is empty
   const startDateValue = form.watch("startDate");

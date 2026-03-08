@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -8,6 +8,7 @@ import {
   PHONE_REGEX,
   type CreateTripInput,
 } from "@tripful/shared";
+import { THEME_PRESETS } from "@tripful/shared/config";
 import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import { mapServerErrors } from "@/lib/form-errors";
@@ -89,6 +90,20 @@ export function CreateTripDialog({
     initialThemeFont: null,
     enabled: open,
   });
+
+  // Auto-suggest font when theme changes and no font is set yet
+  const prevThemeId = useRef(watchedThemeId);
+  useEffect(() => {
+    if (watchedThemeId !== prevThemeId.current) {
+      prevThemeId.current = watchedThemeId;
+      if (watchedThemeId && !form.getValues("themeFont")) {
+        const preset = THEME_PRESETS.find((p) => p.id === watchedThemeId);
+        if (preset?.suggestedFont) {
+          form.setValue("themeFont", preset.suggestedFont);
+        }
+      }
+    }
+  }, [watchedThemeId, form]);
 
   const handleContinue = async () => {
     // Validate Step 1 fields before proceeding
