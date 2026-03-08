@@ -196,8 +196,8 @@ describe("EventCard", () => {
     });
   });
 
-  describe("Multi-day badge", () => {
-    it("shows multi-day badge when endTime is on a different day than startTime", () => {
+  describe("Multi-day time display", () => {
+    it("shows date with time for multi-day events", () => {
       const event = {
         ...baseEvent,
         startTime: new Date("2026-02-10T10:00:00Z"),
@@ -207,11 +207,27 @@ describe("EventCard", () => {
         <EventCard event={event} timezone="UTC" onClick={onClick} />,
       );
 
+      // Should show month in the time display for multi-day events
       expect(screen.getByText(/Feb 10/)).toBeDefined();
       expect(screen.getByText(/Feb 12/)).toBeDefined();
     });
 
-    it("does not show multi-day badge when endTime is on the same day as startTime", () => {
+    it("treats midnight end time as same-day event", () => {
+      const event = {
+        ...baseEvent,
+        // 8 PM to midnight — should be treated as single-day, not multi-day
+        startTime: new Date("2026-02-10T20:00:00Z"),
+        endTime: new Date("2026-02-11T00:00:00Z"),
+      };
+      render(
+        <EventCard event={event} timezone="UTC" onClick={onClick} />,
+      );
+
+      // Should show normal time range, not multi-day format
+      expect(screen.getByText(/8:00 PM - 12:00 AM/)).toBeDefined();
+    });
+
+    it("shows normal time range for same-day events", () => {
       const event = {
         ...baseEvent,
         startTime: new Date("2026-02-10T10:00:00Z"),
@@ -221,45 +237,8 @@ describe("EventCard", () => {
         <EventCard event={event} timezone="UTC" onClick={onClick} />,
       );
 
-      const badges = document.querySelectorAll('[data-slot="badge"]');
-      const multiDayBadge = Array.from(badges).find((badge) =>
-        badge.textContent?.includes("\u2013"),
-      );
-      expect(multiDayBadge).toBeUndefined();
-    });
-
-    it("does not show multi-day badge when endTime is null", () => {
-      const event = {
-        ...baseEvent,
-        endTime: null,
-      };
-      render(
-        <EventCard event={event} timezone="UTC" onClick={onClick} />,
-      );
-
-      const badges = document.querySelectorAll('[data-slot="badge"]');
-      const multiDayBadge = Array.from(badges).find((badge) =>
-        badge.textContent?.includes("\u2013"),
-      );
-      expect(multiDayBadge).toBeUndefined();
-    });
-
-    it("shows correct date range format in the badge", () => {
-      const event = {
-        ...baseEvent,
-        startTime: new Date("2026-02-10T10:00:00Z"),
-        endTime: new Date("2026-02-12T18:00:00Z"),
-      };
-      render(
-        <EventCard event={event} timezone="UTC" onClick={onClick} />,
-      );
-
-      const badges = document.querySelectorAll('[data-slot="badge"]');
-      const multiDayBadge = Array.from(badges).find((badge) =>
-        badge.textContent?.includes("\u2013"),
-      );
-      expect(multiDayBadge).not.toBeUndefined();
-      expect(multiDayBadge?.textContent).toBe("Feb 10\u2013Feb 12");
+      // Should not include month in single-day time display
+      expect(screen.getByText(/10:00 AM - 6:00 PM/)).toBeDefined();
     });
   });
 });

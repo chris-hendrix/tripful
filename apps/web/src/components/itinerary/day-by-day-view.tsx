@@ -17,6 +17,7 @@ import {
   getDayNumber,
   getMonthAbbrev,
   getWeekdayAbbrev,
+  utcToLocalParts,
 } from "@/lib/utils/timezone";
 import { cn } from "@/lib/utils";
 import { CalendarOff } from "lucide-react";
@@ -100,11 +101,39 @@ export function DayByDayView({
       }
     };
 
-    // Add events to days
+    // Add events to days (multi-day events appear on all spanned days)
     events.forEach((event) => {
-      const day = getDayInTimezone(event.startTime, timezone);
-      ensureDay(day);
-      days.get(day)!.events.push(event);
+      const startDay = getDayInTimezone(event.startTime, timezone);
+
+      // Midnight end times don't count as a separate day (e.g. 8 PM–12 AM is single-day)
+      const endIsMidnight = event.endTime
+        ? utcToLocalParts(
+            typeof event.endTime === "string" ? event.endTime : event.endTime.toISOString(),
+            timezone,
+          ).time === "00:00"
+        : false;
+      const endDay =
+        event.endTime && !endIsMidnight
+          ? getDayInTimezone(event.endTime, timezone)
+          : startDay;
+
+      if (startDay === endDay || !event.endTime) {
+        // Single-day event
+        ensureDay(startDay);
+        days.get(startDay)!.events.push(event);
+      } else {
+        // Multi-day event: add to every day from start through end
+        const current = new Date(startDay + "T00:00:00");
+        const end = new Date(endDay + "T00:00:00");
+        while (current <= end) {
+          const dateString = current.toISOString().split("T")[0] || "";
+          if (dateString) {
+            ensureDay(dateString);
+            days.get(dateString)!.events.push(event);
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      }
     });
 
     // Add accommodations to all spanned days (check-in through day before check-out)

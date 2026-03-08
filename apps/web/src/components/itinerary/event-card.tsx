@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Calendar, Car, ExternalLink, MapPin, Utensils } from "lucide-react";
 import type { Event } from "@tripful/shared/types";
 import { Badge } from "@/components/ui/badge";
-import { formatInTimezone, getDayInTimezone } from "@/lib/utils/timezone";
+import { formatInTimezone, getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
 
 interface EventCardProps {
   event: Event;
@@ -42,25 +42,40 @@ export const EventCard = memo(function EventCard({
 }: EventCardProps) {
   const config = EVENT_TYPE_CONFIG[event.eventType];
 
-  // Format time
-  const startTime = event.allDay
-    ? "All day"
-    : formatInTimezone(event.startTime, timezone, "time");
-  const endTime = event.endTime
-    ? formatInTimezone(event.endTime, timezone, "time")
-    : null;
-  const timeDisplay = event.allDay
-    ? "All day"
-    : endTime
-      ? `${startTime} - ${endTime}`
-      : startTime;
+  // Midnight end times don't count as a separate day (e.g. 8 PM–12 AM is single-day)
+  const endIsMidnight = event.endTime
+    ? utcToLocalParts(
+        typeof event.endTime === "string" ? event.endTime : event.endTime.toISOString(),
+        timezone,
+      ).time === "00:00"
+    : false;
+
+  const isMultiDay = event.endTime
+    ? !endIsMidnight &&
+      getDayInTimezone(event.startTime, timezone) !==
+        getDayInTimezone(event.endTime, timezone)
+    : false;
+
+  let timeDisplay: string;
+  if (event.allDay) {
+    timeDisplay = "All day";
+  } else if (isMultiDay) {
+    const startPart = `${formatInTimezone(event.startTime, timezone, "short-date")}, ${formatInTimezone(event.startTime, timezone, "time")}`;
+    const endPart = event.endTime
+      ? `${formatInTimezone(event.endTime, timezone, "short-date")}, ${formatInTimezone(event.endTime, timezone, "time")}`
+      : null;
+
+    timeDisplay = endPart ? `${startPart} - ${endPart}` : startPart;
+  } else {
+    const startTime = formatInTimezone(event.startTime, timezone, "time");
+    const endTime = event.endTime
+      ? formatInTimezone(event.endTime, timezone, "time")
+      : null;
+    timeDisplay = endTime ? `${startTime} - ${endTime}` : startTime;
+  }
   const datePrefix = showDate
     ? formatInTimezone(event.startTime, timezone, "date")
     : null;
-  const isMultiDay = event.endTime
-    ? getDayInTimezone(event.startTime, timezone) !==
-      getDayInTimezone(event.endTime, timezone)
-    : false;
 
   return (
     <div
@@ -81,13 +96,6 @@ export const EventCard = memo(function EventCard({
           {datePrefix ? `${datePrefix} · ` : ""}
           {timeDisplay}
         </span>
-        {isMultiDay && (
-          <Badge variant="outline" className="text-xs">
-            {formatInTimezone(event.startTime, timezone, "short-date")}
-            {"\u2013"}
-            {formatInTimezone(event.endTime!, timezone, "short-date")}
-          </Badge>
-        )}
       </div>
 
       {/* Line 2: Name + Optional badge + Member warning */}

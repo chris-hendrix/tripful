@@ -28,7 +28,7 @@ import {
   getDeleteEventErrorMessage,
 } from "@/hooks/use-events";
 import { cn } from "@/lib/utils";
-import { formatInTimezone, getDayInTimezone } from "@/lib/utils/timezone";
+import { formatInTimezone, getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
 import { EVENT_TYPE_CONFIG } from "./event-card";
 
 interface EventDetailSheetProps {
@@ -167,22 +167,38 @@ function EventDetailBody({
   const config = EVENT_TYPE_CONFIG[event.eventType];
   const TypeIcon = config.icon;
 
-  const startTime = event.allDay
-    ? "All day"
-    : formatInTimezone(event.startTime, timezone, "time");
-  const endTime = event.endTime
-    ? formatInTimezone(event.endTime, timezone, "time")
-    : null;
-  const timeDisplay = event.allDay
-    ? "All day"
-    : endTime
-      ? `${startTime} - ${endTime}`
-      : startTime;
-  const startDate = formatInTimezone(event.startTime, timezone, "date");
-  const isMultiDay = event.endTime
-    ? getDayInTimezone(event.startTime, timezone) !==
-      getDayInTimezone(event.endTime, timezone)
+  // Midnight end times don't count as a separate day (e.g. 8 PM–12 AM is single-day)
+  const endIsMidnight = event.endTime
+    ? utcToLocalParts(
+        typeof event.endTime === "string" ? event.endTime : event.endTime.toISOString(),
+        timezone,
+      ).time === "00:00"
     : false;
+
+  const isMultiDay = event.endTime
+    ? !endIsMidnight &&
+      getDayInTimezone(event.startTime, timezone) !==
+        getDayInTimezone(event.endTime, timezone)
+    : false;
+
+  let timeDisplay: string;
+  if (event.allDay) {
+    timeDisplay = "All day";
+  } else if (isMultiDay) {
+    const startPart = `${formatInTimezone(event.startTime, timezone, "short-date")}, ${formatInTimezone(event.startTime, timezone, "time")}`;
+    const endPart = event.endTime
+      ? `${formatInTimezone(event.endTime, timezone, "short-date")}, ${formatInTimezone(event.endTime, timezone, "time")}`
+      : null;
+
+    timeDisplay = endPart ? `${startPart} - ${endPart}` : startPart;
+  } else {
+    const st = formatInTimezone(event.startTime, timezone, "time");
+    const et = event.endTime
+      ? formatInTimezone(event.endTime, timezone, "time")
+      : null;
+    timeDisplay = et ? `${st} - ${et}` : st;
+  }
+  const startDate = formatInTimezone(event.startTime, timezone, "date");
 
   const typeLabel =
     event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1);
@@ -198,15 +214,8 @@ function EventDetailBody({
       {/* Time display */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
-          {startDate} · {timeDisplay}
+          {isMultiDay ? timeDisplay : `${startDate} · ${timeDisplay}`}
         </span>
-        {isMultiDay && (
-          <Badge variant="outline" className="text-xs">
-            {formatInTimezone(event.startTime, timezone, "short-date")}
-            {"\u2013"}
-            {formatInTimezone(event.endTime!, timezone, "short-date")}
-          </Badge>
-        )}
       </div>
 
       {/* Event name + warnings */}
