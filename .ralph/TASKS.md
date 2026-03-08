@@ -110,7 +110,7 @@
   - Fix: Move `toDisplayTemp` to `apps/web/src/lib/weather-codes.ts` and import from both components
   - Verify: Typecheck passes, no behavior change
 
-- [ ] Task 5.1.4: Use getTableColumns(users) in getCoOrganizers — LOW
+- [x] Task 5.1.4: Use getTableColumns(users) in getCoOrganizers — LOW
   - Root cause: `apps/api/src/services/trip.service.ts` `getCoOrganizers` method uses manual column listing instead of `getTableColumns(users)` like other service methods
   - Fix: Replace manual column selection with `getTableColumns(users)` and exclude `passwordHash`
   - Verify: API tests pass, no behavior change

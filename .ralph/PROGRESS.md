@@ -2682,3 +2682,29 @@ Updated the regex to allow `[a-z0-9]` as the first character rather than renamin
 - Pure refactors (moving code without logic changes) are low-risk — the key verification is typecheck + existing tests still passing
 - `weather-codes.ts` is the natural home for `toDisplayTemp` since it's already the weather utility module imported by both components
 - Co-located test files (`.test.ts` next to source) are the preferred pattern for simple utility modules in this codebase
+
+## Iteration 59 — Task 5.1.4: Use getTableColumns(users) in getCoOrganizers — LOW
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/services/trip.service.ts` — Replaced 10-line manual column listing in `getCoOrganizers` with `getTableColumns(users)`, matching the pattern used in `auth.service.ts` and elsewhere
+
+### Details
+
+Pure refactor: the manual `.select({ id: users.id, phoneNumber: users.phoneNumber, ... })` enumeration was replaced with `.select(getTableColumns(users))`. No behavioral change — the users table has no `passwordHash` column (phone-based OTP auth), so no exclusion is needed. `getTableColumns` was already imported on line 19.
+
+### Verification
+
+- **TypeCheck**: PASS — all 3 packages
+- **Lint**: PASS — all 3 packages
+- **API Tests**: PASS — 63 files, 1172 tests, 0 failures
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- The task description mentioned excluding `passwordHash`, but the users table has no such column — this is a phone-based auth system with no passwords
+- `getTableColumns` is the standard Drizzle pattern in this codebase for selecting all columns from a table, especially useful in JOIN queries to avoid ambiguity
+- When refactoring column selections, existing tests that verify returned object shapes are sufficient validation

@@ -1007,18 +1007,7 @@ export class TripService implements ITripService {
   async getCoOrganizers(tripId: string): Promise<User[]> {
     // Single JOIN query: get members with isOrganizer=true and their user info
     const results = await this.db
-      .select({
-        id: users.id,
-        phoneNumber: users.phoneNumber,
-        displayName: users.displayName,
-        profilePhotoUrl: users.profilePhotoUrl,
-        handles: users.handles,
-        timezone: users.timezone,
-        temperatureUnit: users.temperatureUnit,
-        calendarToken: users.calendarToken,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      })
+      .select(getTableColumns(users))
       .from(members)
       .innerJoin(users, eq(members.userId, users.id))
       .where(and(eq(members.tripId, tripId), eq(members.isOrganizer, true)));
