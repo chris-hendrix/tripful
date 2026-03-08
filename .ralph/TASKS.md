@@ -77,7 +77,7 @@
   - Test: Verify typecheck passes
   - Verify: Run full test suite
 
-- [ ] Task 4.3: Integrate weather into itinerary views and add temperature unit to profile
+- [x] Task 4.3: Integrate weather into itinerary views and add temperature unit to profile
   - Implement: In `itinerary-view.tsx` — add `useWeatherForecast(tripId)`, get user temperatureUnit from auth, render `<WeatherForecastCard>` above main content, pass forecasts + unit to DayByDayView
   - Implement: In `day-by-day-view.tsx` — accept `forecasts` and `temperatureUnit` props, render `<WeatherDayBadge>` in day header sticky column below weekday
   - Implement: In `profile-dialog.tsx` — add °C/°F toggle after timezone field, wire to `temperatureUnit` in form

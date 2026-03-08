@@ -1,7 +1,14 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import type { Event, Accommodation, MemberTravel } from "@tripful/shared/types";
+import type {
+  Event,
+  Accommodation,
+  MemberTravel,
+  DailyForecast,
+  TemperatureUnit,
+} from "@tripful/shared/types";
+import { WeatherDayBadge } from "./weather-day-badge";
 import { EventCard } from "./event-card";
 import { AccommodationLineItem } from "./accommodation-line-item";
 import { MemberTravelLineItem } from "./member-travel-line-item";
@@ -39,6 +46,8 @@ interface DayByDayViewProps {
   userId: string;
   userNameMap: Map<string, string>;
   isLocked?: boolean;
+  forecasts?: DailyForecast[];
+  temperatureUnit?: TemperatureUnit;
 }
 
 interface DayData {
@@ -70,6 +79,8 @@ export function DayByDayView({
   userId,
   userNameMap,
   isLocked,
+  forecasts,
+  temperatureUnit,
 }: DayByDayViewProps) {
   // Track current time for the "now" indicator
   const [now, setNow] = useState(() => Date.now());
@@ -83,6 +94,17 @@ export function DayByDayView({
     () => getDayInTimezone(new Date(now), timezone),
     [now, timezone],
   );
+
+  // Build forecast lookup by date
+  const forecastMap = useMemo(() => {
+    const map = new Map<string, DailyForecast>();
+    if (forecasts) {
+      for (const f of forecasts) {
+        map.set(f.date, f);
+      }
+    }
+    return map;
+  }, [forecasts]);
 
   // Group data by day
   const dayData = useMemo(() => {
@@ -376,6 +398,10 @@ export function DayByDayView({
                 >
                   {getWeekdayAbbrev(day.date, timezone)}
                 </span>
+                <WeatherDayBadge
+                  forecast={forecastMap.get(day.date)}
+                  temperatureUnit={temperatureUnit || "celsius"}
+                />
               </div>
             </div>
 

@@ -2488,3 +2488,39 @@ APPROVED — Fix is minimal and correct. No other E2E tests have the same issue 
 - `new Date("2026-03-15")` parses as UTC midnight, which can shift the day-of-week backward in western timezones — always parse date-only strings via component parts for local display
 - shadcn Card component had not been used in itinerary components before this task — first usage establishes the pattern for future cards
 - Pre-existing web test failures (64 tests) are caused by CustomizeThemeSheet using `useQueryClient()` without provider in test context — unrelated to weather feature
+
+## Iteration 54 — Task 4.3: Integrate weather into itinerary views and add temperature unit to profile
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/api/src/controllers/user.controller.ts` — Added `temperatureUnit` to destructuring of request body and to `updateData` object in `updateProfile` handler
+- `apps/api/src/services/auth.service.ts` — Added `temperatureUnit?: string` to both `IAuthService.updateProfile` interface and `AuthService` implementation data parameter types
+- `apps/web/src/components/profile/profile-dialog.tsx` — Added temperature unit Select field (°C Celsius / °F Fahrenheit) after timezone field, wired to react-hook-form with `temperatureUnit` default value, reset, and submit
+- `apps/web/src/components/itinerary/itinerary-view.tsx` — Added `useWeatherForecast(tripId)` hook, derived `temperatureUnit` from user preferences with "celsius" default, rendered `WeatherForecastCard` above itinerary content, passed `forecasts` and `temperatureUnit` props to `DayByDayView`
+- `apps/web/src/components/itinerary/day-by-day-view.tsx` — Added `forecasts` and `temperatureUnit` to props interface, built `forecastMap` (Map by date) via useMemo, rendered `WeatherDayBadge` in date gutter below weekday abbreviation
+- `apps/web/src/components/itinerary/weather-forecast-card.tsx` — Added `mb-4` spacing to all Card render variants (loading, unavailable, available)
+- `apps/web/src/components/itinerary/__tests__/itinerary-view.test.tsx` — Added `vi.mock` for `@/hooks/use-weather`, added missing `meetupLocation`/`meetupTime` to mock Event, removed unused `MemberTravel` import
+
+### Key Design Decisions
+1. **Weather card placement** — Rendered above all itinerary content (between header and day-by-day/group-by-type views) so it's visible regardless of scroll position
+2. **Per-day badges in date gutter** — `WeatherDayBadge` placed below weekday abbreviation in the sticky date column, using a Map for O(1) date lookup
+3. **Profile form integration** — Temperature unit uses a `<Select>` (not Switch) following the existing timezone pattern, integrated with react-hook-form
+4. **Backend pass-through** — `temperatureUnit` flows through controller → service → Drizzle spread update, requiring only type additions to the service interface
+5. **GroupByTypeView** — Does not receive per-day badges (intentional — groups by type, not by day), but the WeatherForecastCard is visible above both views
+
+### Verification
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (all 3 packages)
+- **API Tests**: PASS (63 files, 1172 tests)
+- **Web Tests**: 64 failures — all pre-existing (trip-detail-content, create-trip-dialog, members-list)
+- **Shared Tests**: 1 failure — pre-existing (theme-config kebab-case)
+- **Reviewer**: APPROVED (3 LOW items: duplicated toDisplayTemp, spacing addressed, GroupByTypeView intentionally excluded)
+
+### Learnings
+- `exactOptionalPropertyTypes: true` in tsconfig means optional props (`forecasts?: DailyForecast[]`) cannot receive `undefined` explicitly — use nullish coalescing (`?? []`) to provide a concrete value
+- The auth service uses `...data` spread in the Drizzle update call, so adding new fields to the type signature is sufficient for them to flow through to the DB
+- Weather components returning `null` means wrapper divs with margin would leave empty space — better to add margin directly to the Card's className in the component
+- The Event type was updated with `meetupLocation`/`meetupTime` fields in a prior iteration but test mocks were not updated — fixed as part of this task

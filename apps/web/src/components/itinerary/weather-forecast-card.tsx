@@ -43,7 +43,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
 }: WeatherForecastCardProps) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="mb-4">
         <CardHeader>
           <CardTitle>
             <Skeleton className="h-5 w-32" />
@@ -68,7 +68,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
   if (!weather || !weather.available) {
     if (weather?.message) {
       return (
-        <Card className="border-dashed">
+        <Card className="border-dashed mb-4">
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">{weather.message}</p>
           </CardContent>
@@ -81,7 +81,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
   const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
 
   return (
-    <Card>
+    <Card className="mb-4">
       <CardHeader>
         <CardTitle className="text-sm">Weather Forecast</CardTitle>
       </CardHeader>
