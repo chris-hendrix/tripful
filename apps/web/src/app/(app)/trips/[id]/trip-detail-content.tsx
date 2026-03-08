@@ -13,6 +13,7 @@ import {
   AlertCircle,
   UserPlus,
   Pencil,
+  Paintbrush,
   ChevronDown,
   Settings,
 } from "lucide-react";
@@ -68,6 +69,15 @@ const EditTripDialog = dynamic(() =>
 const preloadEditTripDialog = () =>
   void import("@/components/trip/edit-trip-dialog");
 
+const CustomizeThemeSheet = dynamic(() =>
+  import("@/components/trip/customize-theme-sheet").then((mod) => ({
+    default: mod.CustomizeThemeSheet,
+  })),
+);
+
+const preloadCustomizeThemeSheet = () =>
+  void import("@/components/trip/customize-theme-sheet");
+
 const InviteMembersDialog = dynamic(() =>
   import("@/components/trip/invite-members-dialog").then((mod) => ({
     default: mod.InviteMembersDialog,
@@ -109,6 +119,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: events } = useEvents(tripId);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -309,6 +320,16 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   >
                     <Pencil className="w-5 h-5" />
                   </button>
+                  <button
+                    onClick={() => setIsCustomizeOpen(true)}
+                    onMouseEnter={supportsHover ? preloadCustomizeThemeSheet : undefined}
+                    onTouchStart={preloadCustomizeThemeSheet}
+                    onFocus={preloadCustomizeThemeSheet}
+                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    aria-label="Customize theme"
+                  >
+                    <Paintbrush className="w-5 h-5" />
+                  </button>
                 </>
               )}
               <button
@@ -433,6 +454,15 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </ErrorBoundary>
         </div>
       </div>
+
+      {/* Customize Theme Sheet */}
+      {isOrganizer && trip && (
+        <CustomizeThemeSheet
+          trip={trip}
+          open={isCustomizeOpen}
+          onOpenChange={setIsCustomizeOpen}
+        />
+      )}
 
       {/* Edit Trip Dialog */}
       {isOrganizer && trip && (
