@@ -57,12 +57,12 @@ test.describe("Trip Journey", () => {
       await tripDetail.destinationInput.fill(tripDestination);
       await pickDate(page, tripDetail.startDateButton, "2026-10-12");
       await pickDate(page, tripDetail.endDateButton, "2026-10-14");
+      await tripDetail.descriptionInput.fill(tripDescription);
       await snap(page, "05-create-trip-step1");
       await tripDetail.continueButton.click();
 
       await expect(tripDetail.step2Indicator).toBeVisible();
       await expect(page.getByText("Customize")).toBeVisible();
-      await tripDetail.descriptionInput.fill(tripDescription);
       await snap(page, "06-create-trip-step2");
       await tripDetail.createTripButton.click();
 
