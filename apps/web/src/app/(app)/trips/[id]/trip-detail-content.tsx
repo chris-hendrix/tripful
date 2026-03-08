@@ -450,7 +450,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       </div>
 
       {/* Discussion */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="border-t border-border mt-6 pt-6">
           <ErrorBoundary>
             <TripMessages
