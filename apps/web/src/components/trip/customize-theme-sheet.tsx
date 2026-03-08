@@ -15,8 +15,10 @@ import { apiRequest } from "@/lib/api";
 import {
   Sheet,
   SheetBody,
+  SheetClose,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -241,7 +243,13 @@ export function CustomizeThemeSheet({
               <FontPicker value={themeFont} onChange={handleFontChange} />
             </div>
           </div>
+
         </SheetBody>
+        <SheetFooter>
+          <SheetClose asChild>
+            <Button>Done</Button>
+          </SheetClose>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
