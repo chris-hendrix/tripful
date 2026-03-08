@@ -35,10 +35,19 @@ export const AccommodationLineItem = memo(function AccommodationLineItem({
       <span className="font-semibold text-sm truncate">
         {accommodation.name}
       </span>
-      {truncatedAddress && (
-        <span className="text-xs text-muted-foreground truncate">
-          &middot; {truncatedAddress}
-        </span>
+      {truncatedAddress && accommodation.address && (
+        <>
+          <span className="text-xs text-muted-foreground">&middot;</span>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-primary truncate"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {truncatedAddress}
+          </a>
+        </>
       )}
       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 ml-auto shrink-0" />
     </div>

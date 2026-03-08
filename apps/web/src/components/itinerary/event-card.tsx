@@ -87,11 +87,19 @@ export const EventCard = memo(function EventCard({
         )}
       </div>
 
-      {/* Line 2: Name + Optional badge */}
+      {/* Line 2: Name + Optional badge + Member warning */}
       <div className="flex items-center gap-2 min-w-0">
         <span className="font-semibold text-foreground text-sm truncate">
           {event.name}
         </span>
+        {event.creatorAttending === false && (
+          <Badge
+            variant="outline"
+            className="text-xs bg-warning/15 text-warning border-warning/30 shrink-0"
+          >
+            Member no longer attending
+          </Badge>
+        )}
         {event.isOptional && (
           <Badge
             variant="outline"
@@ -102,12 +110,18 @@ export const EventCard = memo(function EventCard({
         )}
       </div>
 
-      {/* Line 3: Location */}
+      {/* Line 3: Location (Google Maps link) */}
       {event.location && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary truncate"
+          onClick={(e) => e.stopPropagation()}
+        >
           <MapPin className="w-3 h-3 shrink-0" />
           <span className="truncate">{event.location}</span>
-        </div>
+        </a>
       )}
     </div>
   );

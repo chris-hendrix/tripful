@@ -98,9 +98,9 @@ test.describe("Itinerary Journey", () => {
           .getByRole("button", { name: "Create accommodation" })
           .click();
 
-        // Address link is visible in the compact card header (no expand needed)
+        // Address link is visible in the compact line-item (click opens detail sheet)
         const accommodationCard = page
-          .locator('[role="button"][aria-expanded]')
+          .locator('[role="button"]')
           .filter({
             hasText: new RegExp(accommodationName.replace(/\d+/g, "\\d+")),
           })
@@ -464,27 +464,21 @@ test.describe("Itinerary Journey", () => {
         });
       });
 
-      await test.step("expand event card and delete via edit dialog", async () => {
-        // Click on the event card to expand it
+      await test.step("open event detail sheet and delete via dialog", async () => {
+        // Click on the event card to open the detail sheet
         const card = page
-          .locator('[role="button"][aria-expanded]')
+          .locator('[role="button"]')
           .filter({ hasText: /Dinner at Joe's/ })
           .first();
-        const expanded = await card.getAttribute("aria-expanded");
-        if (expanded !== "true") {
-          await card.click();
-        }
+        await card.click();
 
-        // Click the Edit button, then Delete event in the edit dialog
+        // Click the Delete button (trash icon) in the detail sheet
         await expect(
-          page.locator('button[title="Edit event"]').first(),
+          page.locator('button[title="Delete"]').first(),
         ).toBeVisible({ timeout: DIALOG_TIMEOUT });
-        await page.locator('button[title="Edit event"]').first().click();
-        await expect(
-          page.getByRole("heading", { name: "Edit event" }),
-        ).toBeVisible();
+        await page.locator('button[title="Delete"]').first().click();
 
-        await page.getByRole("button", { name: "Delete event" }).click();
+        // Confirm deletion in the alert dialog
         await expect(page.getByText("Are you sure?")).toBeVisible();
         await page.getByRole("button", { name: "Yes, delete" }).click();
       });
