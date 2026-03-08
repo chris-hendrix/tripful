@@ -105,7 +105,7 @@
   - Fix: Update regex in `shared/__tests__/theme-config.test.ts` to `/^[a-z0-9][a-z0-9]*(-[a-z0-9]+)*$/` OR rename the theme ID to start with a letter
   - Verify: `pnpm --filter @tripful/shared test` passes with 0 failures
 
-- [ ] Task 5.1.3: Extract duplicated toDisplayTemp utility — LOW
+- [x] Task 5.1.3: Extract duplicated toDisplayTemp utility — LOW
   - Root cause: `weather-day-badge.tsx` and `weather-forecast-card.tsx` both define identical `toDisplayTemp` function inline
   - Fix: Move `toDisplayTemp` to `apps/web/src/lib/weather-codes.ts` and import from both components
   - Verify: Typecheck passes, no behavior change

@@ -2655,3 +2655,30 @@ Updated the regex to allow `[a-z0-9]` as the first character rather than renamin
 - The kebab-case regex in the test was stricter than necessary — traditional kebab-case doesn't inherently forbid leading digits, it just means lowercase-words-separated-by-hyphens
 - This was a true pre-existing failure (the theme ID was added with this name from the start) — the test regex was simply not updated to match
 - When a test-only convention check conflicts with a valid data entry, prefer relaxing the convention check over renaming production data
+
+## Iteration 58 — Task 5.1.3: Extract duplicated toDisplayTemp utility — LOW
+
+**Status**: ✅ COMPLETE
+
+### Changes Made
+
+**Files modified:**
+- `apps/web/src/lib/weather-codes.ts` — Added `import type { TemperatureUnit }` from shared types; added exported `toDisplayTemp(celsius, unit)` function with JSDoc
+- `apps/web/src/components/itinerary/weather-day-badge.tsx` — Removed local `toDisplayTemp` definition; added `toDisplayTemp` to existing import from `@/lib/weather-codes`
+- `apps/web/src/components/itinerary/weather-forecast-card.tsx` — Removed local `toDisplayTemp` definition; added `toDisplayTemp` to existing import from `@/lib/weather-codes`
+
+**Files created:**
+- `apps/web/src/lib/weather-codes.test.ts` — 7 unit tests for `toDisplayTemp`: celsius rounding, integer passthrough, 0°C→32°F, 100°C→212°F, -40 crossover, fahrenheit rounding, negative celsius
+
+### Verification
+
+- **TypeCheck**: PASS — all 3 packages
+- **Lint**: PASS — all 3 packages
+- **Web Tests**: PASS — 71 files, 1164 tests, 0 failures
+- **Reviewer**: APPROVED
+
+### Learnings
+
+- Pure refactors (moving code without logic changes) are low-risk — the key verification is typecheck + existing tests still passing
+- `weather-codes.ts` is the natural home for `toDisplayTemp` since it's already the weather utility module imported by both components
+- Co-located test files (`.test.ts` next to source) are the preferred pattern for simple utility modules in this codebase

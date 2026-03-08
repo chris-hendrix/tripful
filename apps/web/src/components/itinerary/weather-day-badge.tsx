@@ -2,18 +2,11 @@
 
 import { memo } from "react";
 import type { DailyForecast, TemperatureUnit } from "@tripful/shared/types";
-import { getWeatherInfo } from "@/lib/weather-codes";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 
 interface WeatherDayBadgeProps {
   forecast: DailyForecast | undefined;
   temperatureUnit: TemperatureUnit;
-}
-
-function toDisplayTemp(celsius: number, unit: TemperatureUnit): number {
-  if (unit === "fahrenheit") {
-    return Math.round(celsius * (9 / 5) + 32);
-  }
-  return Math.round(celsius);
 }
 
 export const WeatherDayBadge = memo(function WeatherDayBadge({

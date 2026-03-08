@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Droplets } from "lucide-react";
 import type { TripWeatherResponse, TemperatureUnit } from "@tripful/shared/types";
-import { getWeatherInfo } from "@/lib/weather-codes";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 import {
   Card,
   CardContent,
@@ -16,13 +16,6 @@ interface WeatherForecastCardProps {
   weather: TripWeatherResponse | undefined;
   isLoading: boolean;
   temperatureUnit: TemperatureUnit;
-}
-
-function toDisplayTemp(celsius: number, unit: TemperatureUnit): number {
-  if (unit === "fahrenheit") {
-    return Math.round(celsius * (9 / 5) + 32);
-  }
-  return Math.round(celsius);
 }
 
 function formatDayOfWeek(dateStr: string): string {

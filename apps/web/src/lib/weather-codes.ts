@@ -1,3 +1,4 @@
+import type { TemperatureUnit } from "@tripful/shared/types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sun,
@@ -70,4 +71,15 @@ const UNKNOWN_WEATHER: WeatherInfo = { label: "Unknown", icon: Cloud };
  */
 export function getWeatherInfo(code: number): WeatherInfo {
   return WMO_CODE_MAP[code] ?? UNKNOWN_WEATHER;
+}
+
+/**
+ * Convert a Celsius temperature to the requested unit and round to the
+ * nearest integer for display.
+ */
+export function toDisplayTemp(celsius: number, unit: TemperatureUnit): number {
+  if (unit === "fahrenheit") {
+    return Math.round(celsius * (9 / 5) + 32);
+  }
+  return Math.round(celsius);
 }
