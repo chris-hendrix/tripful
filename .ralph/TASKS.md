@@ -88,11 +88,38 @@
 
 ## Phase 5: Cleanup
 
-- [ ] Task 5.1: Triage PROGRESS.md for unaddressed items
+- [x] Task 5.1: Triage PROGRESS.md for unaddressed items
   - Review: Read entire PROGRESS.md
   - Identify: Find FAILURE, BLOCKED, reviewer caveats, or deferred items across ALL phases
   - Fix: Create individual fix tasks in TASKS.md for each outstanding issue
   - Verify: Run full test suite
+
+- [ ] Task 5.1.1: Fix 64 pre-existing web test failures (CustomizeThemeSheet QueryClientProvider) — HIGH
+  - Root cause: `CustomizeThemeSheet` component calls `useQueryClient()` without a `QueryClientProvider` in the test render tree
+  - Fix: Mock `CustomizeThemeSheet` in `trip-detail-content.test.tsx` (38 failures) and `create-trip-dialog.test.tsx` (24 failures)
+  - Fix: Fix tab count assertion mismatch in `members-list.test.tsx` (2 failures) — expected "Invited (3)" but rendered count differs
+  - Verify: `pnpm --filter @tripful/web test` passes with 0 failures
+
+- [ ] Task 5.1.2: Fix 1 pre-existing shared test failure (theme-config kebab-case regex) — MEDIUM
+  - Root cause: Theme preset ID `80s-pop-art-ski-slope` starts with a digit; regex `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/` rejects leading digits
+  - Fix: Update regex in `shared/__tests__/theme-config.test.ts` to `/^[a-z0-9][a-z0-9]*(-[a-z0-9]+)*$/` OR rename the theme ID to start with a letter
+  - Verify: `pnpm --filter @tripful/shared test` passes with 0 failures
+
+- [ ] Task 5.1.3: Extract duplicated toDisplayTemp utility — LOW
+  - Root cause: `weather-day-badge.tsx` and `weather-forecast-card.tsx` both define identical `toDisplayTemp` function inline
+  - Fix: Move `toDisplayTemp` to `apps/web/src/lib/weather-codes.ts` and import from both components
+  - Verify: Typecheck passes, no behavior change
+
+- [ ] Task 5.1.4: Use getTableColumns(users) in getCoOrganizers — LOW
+  - Root cause: `apps/api/src/services/trip.service.ts` `getCoOrganizers` method uses manual column listing instead of `getTableColumns(users)` like other service methods
+  - Fix: Replace manual column selection with `getTableColumns(users)` and exclude `passwordHash`
+  - Verify: API tests pass, no behavior change
+
+- [ ] Task 5.1.5: Geocoding service improvements — LOW
+  - Fix: Add logger parameter to geocoding service for production debugging
+  - Fix: Add empty-string guard to `geocode()` to avoid wasting HTTP calls on empty destinations
+  - Fix: Skip redundant geocoding in `updateTrip` when destination has not changed
+  - Verify: API tests pass, geocoding unit tests updated
 
 ## Phase 6: Final Verification
 

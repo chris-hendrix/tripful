@@ -2524,3 +2524,57 @@ APPROVED — Fix is minimal and correct. No other E2E tests have the same issue 
 - The auth service uses `...data` spread in the Drizzle update call, so adding new fields to the type signature is sufficient for them to flow through to the DB
 - Weather components returning `null` means wrapper divs with margin would leave empty space — better to add margin directly to the Card's className in the component
 - The Event type was updated with `meetupLocation`/`meetupTime` fields in a prior iteration but test mocks were not updated — fixed as part of this task
+
+## Iteration 55 — Task 5.1: Triage PROGRESS.md for unaddressed items
+
+**Status**: ✅ COMPLETE
+
+### Triage Methodology
+
+Read the entire PROGRESS.md (54 iterations) with 3 parallel researchers:
+1. **Researcher 1 (LOCATING)**: Ran test suites to confirm all pre-existing failures — 64 web failures (38 trip-detail-content, 24 create-trip-dialog, 2 members-list) + 1 shared failure (theme-config)
+2. **Researcher 2 (ANALYZING)**: Categorized all reviewer feedback from iterations 46-54 into ACTIONABLE / INTENTIONAL / NON-ISSUE
+3. **Researcher 3 (PATTERNS)**: Searched for TODO/FIXME/HACK comments (none found), verified toDisplayTemp duplication, checked previous triage format
+
+### Issues Found and Categorized
+
+**ACTIONABLE — Created fix tasks (5 tasks):**
+
+| Task | Severity | Failures | Description |
+|------|----------|----------|-------------|
+| 5.1.1 | HIGH | 64 | CustomizeThemeSheet QueryClientProvider missing in trip-detail-content (38), create-trip-dialog (24), members-list tab count (2) |
+| 5.1.2 | MEDIUM | 1 | Theme preset ID "80s-pop-art-ski-slope" starts with digit, rejected by kebab-case regex |
+| 5.1.3 | LOW | 0 | Duplicated `toDisplayTemp` in weather-day-badge.tsx and weather-forecast-card.tsx |
+| 5.1.4 | LOW | 0 | Manual column listing in `getCoOrganizers` instead of `getTableColumns(users)` |
+| 5.1.5 | LOW | 0 | Geocoding service missing logger, empty-string guard, redundant geocoding prevention |
+
+**Total test failures documented: 65** (64 web + 1 shared)
+
+**INTENTIONAL — No action needed (7 items):**
+- `_userId` param in weather service — intentionally unused for future use
+- No membership check in `getEffectiveDateRange` — auth handled at controller layer
+- GroupByTypeView excluded from per-day weather badges — groups by type, not by day
+- `temperatureUnit` nullable for existing DB rows — downstream code has "celsius" default
+- Inline vs destructured service access — style choice
+- Function declaration vs arrow function — cosmetic
+- UTC date comparison pattern — reviewer confirmed consistent
+
+**NON-ISSUE — Already resolved (2 items):**
+- Spacing on WeatherForecastCard — fixed in iteration 54 with `mb-4`
+- Fragile test date range — functional, not failing
+
+### Verification
+
+- **TypeCheck**: PASS (all 3 packages)
+- **Lint**: PASS (all 3 packages)
+- **API Tests**: PASS — 63 files, 1172 tests, 0 failures
+- **Shared Tests**: 1 failure — tracked in Task 5.1.2
+- **Web Tests**: 64 failures — tracked in Task 5.1.1
+- **Reviewer**: APPROVED (1 LOW note: missing test for non-existent tripId in getEffectiveDateRange is redundant with existing null-return test)
+
+### Learnings
+
+- The 64 web test failures appeared between iterations 45 and 46, likely caused by the weather feature's schema/type changes affecting CustomizeThemeSheet's QueryClientProvider dependency — they were labeled "pre-existing" across all weather iterations but are actually caused by changes in the same branch
+- Triage tasks should group failures by ROOT CAUSE: the 64 QueryClientProvider failures span 3 files but share one fix (mocking CustomizeThemeSheet), making them a single task
+- No TODO/FIXME/HACK comments exist in any weather feature files — all deferred work was captured in PROGRESS.md reviewer notes
+- The reviewer LOW items from weather iterations fall cleanly into two categories: code quality improvements (actionable) and design decisions (intentional) — distinguishing between these is the core skill of triage
