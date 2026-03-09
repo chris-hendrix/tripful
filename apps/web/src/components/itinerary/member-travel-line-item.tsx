@@ -3,6 +3,7 @@
 import React, { memo, useCallback } from "react";
 import {
   ChevronRight,
+  ExternalLink,
   PlaneLanding,
   PlaneTakeoff,
 } from "lucide-react";
@@ -52,6 +53,23 @@ export const MemberTravelLineItem = memo(function MemberTravelLineItem({
       <PlaneIcon className="w-3 h-3 text-member-travel shrink-0" />
       <span className="font-medium text-xs truncate">{memberName}</span>
       <span className="text-[11px] text-muted-foreground">· {time}</span>
+      {memberTravel.location && (
+        <>
+          <span className="text-[11px] text-muted-foreground truncate min-w-0">
+            {memberTravel.location}
+          </span>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(memberTravel.location)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-primary transition-colors shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`${memberTravel.location} on Google Maps`}
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </>
+      )}
       <ChevronRight className="w-3 h-3 text-muted-foreground/60 ml-auto shrink-0" />
     </div>
   );
