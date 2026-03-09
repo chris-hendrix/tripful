@@ -33,10 +33,7 @@ export const weatherController = {
       }
 
       // Get weather forecast via service
-      const result = await request.server.weatherService.getForecast(
-        tripId,
-        userId,
-      );
+      const result = await request.server.weatherService.getForecast(tripId);
 
       return reply.send({ success: true, weather: result });
     } catch (error) {

@@ -773,6 +773,13 @@ export class TripService implements ITripService {
       }
     }
 
+    // Clear weather cache if trip dates changed (cached forecast may not cover new range)
+    if (data.startDate !== undefined || data.endDate !== undefined) {
+      await this.db
+        .delete(weatherCache)
+        .where(eq(weatherCache.tripId, tripId));
+    }
+
     // Perform update
     const result = await this.db
       .update(trips)

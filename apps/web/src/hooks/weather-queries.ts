@@ -17,6 +17,7 @@ export function weatherForecastQueryOptions(tripId: string) {
   return queryOptions({
     queryKey: weatherKeys.forecast(tripId),
     staleTime: 30 * 60 * 1000, // 30 min client-side (server caches 3h)
+    enabled: !!tripId,
     queryFn: async ({ signal }) => {
       const response = await apiRequest<{
         success: true;

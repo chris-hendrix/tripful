@@ -116,7 +116,7 @@ describe("WeatherService", () => {
     const mockFetch = vi.fn();
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(true);
     expect(result.forecasts.length).toBeGreaterThan(0);
@@ -143,7 +143,7 @@ describe("WeatherService", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(true);
     expect(result.fetchedAt).not.toBeNull();
@@ -178,7 +178,7 @@ describe("WeatherService", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(true);
     expect(mockFetch).toHaveBeenCalledOnce();
@@ -196,7 +196,7 @@ describe("WeatherService", () => {
       })
       .returning();
 
-    const result = await service.getForecast(noCoordTrip.id, testUserId);
+    const result = await service.getForecast(noCoordTrip.id);
 
     expect(result.available).toBe(false);
     expect(result.message).toBe("Set a destination to see weather");
@@ -213,7 +213,7 @@ describe("WeatherService", () => {
       end: null,
     });
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(false);
     expect(result.message).toBe("Set trip dates to see weather");
@@ -227,7 +227,7 @@ describe("WeatherService", () => {
       end: new Date("2024-01-05"),
     });
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(false);
     expect(result.message).toBeUndefined();
@@ -246,7 +246,7 @@ describe("WeatherService", () => {
       end: farFutureEnd,
     });
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(false);
     expect(result.message).toBe(
@@ -272,7 +272,7 @@ describe("WeatherService", () => {
       vi.fn().mockRejectedValue(new Error("Network error")),
     );
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(false);
     expect(result.message).toBe("Weather temporarily unavailable");
@@ -309,7 +309,7 @@ describe("WeatherService", () => {
       }),
     );
 
-    const result = await service.getForecast(testTripId, testUserId);
+    const result = await service.getForecast(testTripId);
 
     expect(result.available).toBe(true);
     expect(result.forecasts).toHaveLength(2);

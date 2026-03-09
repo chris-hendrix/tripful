@@ -13,7 +13,7 @@ const MAX_FORECAST_DAYS = 16;
  * Defines the contract for fetching weather forecasts for trips.
  */
 export interface IWeatherService {
-  getForecast(tripId: string, userId: string): Promise<TripWeatherResponse>;
+  getForecast(tripId: string): Promise<TripWeatherResponse>;
 }
 
 interface OpenMeteoDaily {
@@ -35,10 +35,7 @@ export class WeatherService implements IWeatherService {
     private tripService: ITripService,
   ) {}
 
-  async getForecast(
-    tripId: string,
-    _userId: string,
-  ): Promise<TripWeatherResponse> {
+  async getForecast(tripId: string): Promise<TripWeatherResponse> {
     // 1. Query trip for coordinates and timezone
     const [trip] = await this.db
       .select({

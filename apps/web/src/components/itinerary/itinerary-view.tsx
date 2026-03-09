@@ -25,15 +25,16 @@ import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { DeletedItemsDialog } from "./deleted-items-dialog";
 import { TravelReminderBanner } from "@/components/trip/travel-reminder-banner";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useWeatherForecast } from "@/hooks/use-weather";
-import type { TemperatureUnit } from "@tripful/shared/types";
+import type { DailyForecast, TemperatureUnit } from "@tripful/shared/types";
 
 interface ItineraryViewProps {
   tripId: string;
   onAddTravel?: () => void;
+  forecasts?: DailyForecast[] | undefined;
+  temperatureUnit?: TemperatureUnit | undefined;
 }
 
-export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
+export function ItineraryView({ tripId, onAddTravel, forecasts, temperatureUnit }: ItineraryViewProps) {
   const { user } = useAuth();
 
   // Fetch data
@@ -71,11 +72,6 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
         displayName: m.displayName,
       })),
   });
-
-  // Fetch weather forecast
-  const { data: weather } = useWeatherForecast(tripId);
-  const temperatureUnit: TemperatureUnit =
-    (user?.temperatureUnit as TemperatureUnit) || "celsius";
 
   // Fetch all items (including deleted) to check if deleted items exist
   const { data: allEvents = [] } = useEventsWithDeleted(tripId);
@@ -322,8 +318,8 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
             userId={user?.id || ""}
             userNameMap={userNameMap}
             isLocked={isLocked}
-            forecasts={weather?.forecasts ?? []}
-            temperatureUnit={temperatureUnit}
+            forecasts={forecasts ?? []}
+            temperatureUnit={temperatureUnit ?? "celsius"}
           />
         ) : (
           <GroupByTypeView

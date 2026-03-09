@@ -145,7 +145,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: weather, isLoading: weatherLoading } =
     useWeatherForecast(tripId);
   const temperatureUnit: TemperatureUnit =
-    (user?.temperatureUnit as TemperatureUnit) || "celsius";
+    user?.temperatureUnit === "fahrenheit" ? "fahrenheit" : "celsius";
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -461,6 +461,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         <ItineraryView
           tripId={tripId}
           onAddTravel={() => setShowOnboarding(true)}
+          forecasts={weather?.forecasts}
+          temperatureUnit={temperatureUnit}
         />
       </div>
 

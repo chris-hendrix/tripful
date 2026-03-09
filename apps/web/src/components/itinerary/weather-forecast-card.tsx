@@ -123,14 +123,16 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
   }
 
   const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Use local date (not UTC) so "today" matches the user's wall clock
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const upcomingForecasts = weather.forecasts.filter((f) => f.date >= todayStr);
 
   if (upcomingForecasts.length === 0) return null;
 
   return (
     <div className="space-y-1.5">
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5" role="region" aria-label="Weather forecast" tabIndex={0}>
           {upcomingForecasts.map((day) => {
             const { icon: Icon, label, tone } = getWeatherInfo(day.weatherCode);
             const high = toDisplayTemp(day.temperatureMax, temperatureUnit);
@@ -144,6 +146,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
                 key={day.date}
                 className={`flex min-w-[6rem] flex-1 flex-col items-center rounded-md px-1.5 py-2 ${tileBg}`}
                 title={label}
+                aria-label={`${formatDayOfWeek(day.date)}: ${label}, high ${high}, low ${low}${day.precipitationProbability > 5 ? `, ${day.precipitationProbability}% rain` : ""}`}
               >
                 {/* Day + date */}
                 <span className={`text-[0.625rem] font-semibold uppercase tracking-wide ${isDark ? "text-foreground" : "text-foreground/70"}`}>
@@ -154,7 +157,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
                 </span>
 
                 {/* Icon */}
-                <Icon className={`my-1 h-5 w-5 ${iconColor}`} />
+                <Icon className={`my-1 h-5 w-5 ${iconColor}`} aria-hidden="true" />
 
                 {/* Temperatures */}
                 <div className="flex items-baseline gap-0.5">
@@ -167,7 +170,7 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
                 </div>
 
                 {/* Precipitation */}
-                {day.precipitationProbability > 0 && (
+                {day.precipitationProbability > 5 && (
                   <span className={`mt-0.5 inline-flex items-center gap-0.5 text-[0.5625rem] ${isDark ? "text-blue-300" : "text-blue-500/80"}`}>
                     <Droplets className="h-2.5 w-2.5" />
                     {day.precipitationProbability}%
