@@ -316,7 +316,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
         <div className="mb-8">
           {/* RSVP + action icons */}
           <div className="flex items-center mb-6">
@@ -423,7 +423,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </div>
 
           {/* About this trip */}
-          <Collapsible defaultOpen className="mb-6">
+          <Collapsible defaultOpen className="mb-2">
             <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
               <ChevronDown
                 className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"

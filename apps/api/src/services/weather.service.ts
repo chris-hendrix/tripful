@@ -42,9 +42,9 @@ export class WeatherService implements IWeatherService {
     // 1. Query trip for coordinates and timezone
     const [trip] = await this.db
       .select({
-        destination: trips.destination,
         destinationLat: trips.destinationLat,
         destinationLon: trips.destinationLon,
+        destinationDisplayName: trips.destinationDisplayName,
         preferredTimezone: trips.preferredTimezone,
       })
       .from(trips)
@@ -122,7 +122,7 @@ export class WeatherService implements IWeatherService {
       const forecasts = this.parseForecasts(cached.response);
       return {
         available: true,
-        location: trip.destination,
+        ...(trip.destinationDisplayName ? { location: trip.destinationDisplayName } : {}),
         forecasts: this.filterToDateRange(forecasts, start, end),
         fetchedAt: cached.fetchedAt.toISOString(),
       };
@@ -172,7 +172,7 @@ export class WeatherService implements IWeatherService {
 
     return {
       available: true,
-      location: trip.destination,
+      ...(trip.destinationDisplayName ? { location: trip.destinationDisplayName } : {}),
       forecasts: this.filterToDateRange(forecasts, start, end),
       fetchedAt: now.toISOString(),
     };

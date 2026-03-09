@@ -295,12 +295,14 @@ export class TripService implements ITripService {
     // Geocode destination if provided (best-effort, failure does not block creation)
     let destinationLat: number | null = null;
     let destinationLon: number | null = null;
+    let destinationDisplayName: string | null = null;
     if (data.destination) {
       try {
         const coords = await this.geocodingService.geocode(data.destination);
         if (coords) {
           destinationLat = coords.lat;
           destinationLon = coords.lon;
+          destinationDisplayName = coords.displayName;
         }
       } catch {
         // Geocoding failure is non-blocking
@@ -317,6 +319,7 @@ export class TripService implements ITripService {
           destination: data.destination,
           destinationLat,
           destinationLon,
+          destinationDisplayName,
           startDate: data.startDate || null,
           endDate: data.endDate || null,
           preferredTimezone: data.timezone,
@@ -748,17 +751,20 @@ export class TripService implements ITripService {
       if (data.destination !== currentTrip?.destination) {
         let newLat: number | null = null;
         let newLon: number | null = null;
+        let newDisplayName: string | null = null;
         try {
           const coords = await this.geocodingService.geocode(data.destination);
           if (coords) {
             newLat = coords.lat;
             newLon = coords.lon;
+            newDisplayName = coords.displayName;
           }
         } catch {
           // Geocoding failure is non-blocking
         }
         updateData.destinationLat = newLat;
         updateData.destinationLon = newLon;
+        updateData.destinationDisplayName = newDisplayName;
 
         // Delete weather cache when destination changes (regardless of geocoding result)
         await this.db

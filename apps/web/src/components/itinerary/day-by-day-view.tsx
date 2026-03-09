@@ -364,7 +364,7 @@ export function DayByDayView({
             key={day.date}
             id={isToday ? "day-today" : undefined}
             className={cn(
-              "grid grid-cols-[3.5rem_1fr] sm:grid-cols-[4rem_1fr] gap-x-3 py-4",
+              "grid grid-cols-[4.5rem_1fr] sm:grid-cols-[5rem_1fr] gap-x-3 py-4",
               isToday && "scroll-mt-28",
             )}
           >
@@ -405,16 +405,17 @@ export function DayByDayView({
             </div>
 
             {/* Content column */}
-            <div className="min-w-0">
-              <div className="space-y-2">
-                {cardElements}
-                {!hasContent && !isToday && (
-                  <div className="flex items-center gap-2 min-h-[4.5rem] pl-5 text-muted-foreground">
-                    <CalendarOff className="size-5 shrink-0" />
-                    <span className="text-sm">No events scheduled</span>
-                  </div>
-                )}
-              </div>
+            <div className={cn("min-w-0", !hasContent && !isToday && "flex items-center")}>
+              {hasContent || isToday ? (
+                <div className="space-y-2">
+                  {cardElements}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 min-h-[4.5rem] pl-5 text-muted-foreground">
+                  <CalendarOff className="size-5 shrink-0" />
+                  <span className="text-sm">No events scheduled</span>
+                </div>
+              )}
             </div>
           </div>
         );

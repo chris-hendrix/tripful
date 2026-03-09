@@ -178,15 +178,14 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
           })}
       </div>
       {(weather.location || weather.fetchedAt) && (
-        <p className={`text-[0.6875rem] ${isDark ? "text-foreground/50" : "text-muted-foreground/70"}`}>
-          {weather.location && <span>{weather.location}</span>}
-          {weather.location && weather.fetchedAt && <span> · </span>}
-          {weather.fetchedAt && (
-            <span>
-              Updated {formatRelativeTime(weather.fetchedAt)}
-            </span>
+        <div className={`text-[0.6875rem] ${isDark ? "text-foreground/50" : "text-muted-foreground/70"}`}>
+          {weather.location && (
+            <p className="truncate">{weather.location}</p>
           )}
-        </p>
+          {weather.fetchedAt && (
+            <p>Updated {formatRelativeTime(weather.fetchedAt)}</p>
+          )}
+        </div>
       )}
     </div>
   );

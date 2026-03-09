@@ -82,6 +82,7 @@ export const trips = pgTable(
     destination: text("destination").notNull(),
     destinationLat: doublePrecision("destination_lat"),
     destinationLon: doublePrecision("destination_lon"),
+    destinationDisplayName: text("destination_display_name"),
     startDate: date("start_date"),
     endDate: date("end_date"),
     preferredTimezone: varchar("preferred_timezone", { length: 100 }).notNull(),
