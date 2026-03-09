@@ -138,10 +138,9 @@ vi.mock("@/hooks/invitation-queries", () => ({
 
 // Mock useQuery from @tanstack/react-query for direct usage in the component
 vi.mock("@tanstack/react-query", async () => {
-  const actual =
-    await vi.importActual<typeof import("@tanstack/react-query")>(
-      "@tanstack/react-query",
-    );
+  const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
+    "@tanstack/react-query",
+  );
   return {
     ...actual,
     useQuery: (options: any) => {
@@ -336,7 +335,10 @@ vi.mock("@/components/trip/customize-theme-sheet", () => ({
     open ? (
       <div data-testid="customize-theme-sheet">
         Customize Theme
-        <button data-testid="theme-sheet-close" onClick={() => onOpenChange(false)}>
+        <button
+          data-testid="theme-sheet-close"
+          onClick={() => onOpenChange(false)}
+        >
           Close Theme Sheet
         </button>
       </div>
@@ -883,9 +885,7 @@ describe("TripDetailContent", () => {
       );
 
       await waitFor(() => {
-        expect(
-          screen.getByRole("button", { name: "Edit trip" }),
-        ).toBeDefined();
+        expect(screen.getByRole("button", { name: "Edit trip" })).toBeDefined();
         expect(
           screen.getByRole("button", { name: "Invite members" }),
         ).toBeDefined();
@@ -2045,5 +2045,4 @@ describe("TripDetailContent", () => {
       });
     });
   });
-
 });

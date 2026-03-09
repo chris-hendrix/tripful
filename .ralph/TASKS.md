@@ -2,7 +2,7 @@
 
 ## Phase 1: Database & Shared Types
 
-- [ ] Task 1.1: Add trip_photos table and shared types/schemas
+- [x] Task 1.1: Add trip_photos table and shared types/schemas
   - Implement: Add `photoStatusEnum` and `tripPhotos` table to `apps/api/src/db/schema/index.ts`
   - Implement: Add `tripPhotosRelations` to `apps/api/src/db/schema/relations.ts`, add `photos: many(tripPhotos)` to `tripsRelations`
   - Implement: Generate migration with `cd apps/api && pnpm db:generate`

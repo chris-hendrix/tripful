@@ -85,13 +85,13 @@ make test-exec CMD="$PW_CLI state-load auth.json"
 
 ## Ports
 
-| Service | Port |
-|---------|------|
-| Frontend (Next.js) | 3000 |
-| Backend (Fastify) | 8000 |
-| PostgreSQL | 5433 (host) → 5432 (container) |
-| MinIO API | 9000 |
-| MinIO Console | 9001 |
+| Service            | Port                           |
+| ------------------ | ------------------------------ |
+| Frontend (Next.js) | 3000                           |
+| Backend (Fastify)  | 8000                           |
+| PostgreSQL         | 5433 (host) → 5432 (container) |
+| MinIO API          | 9000                           |
+| MinIO Console      | 9001                           |
 
 ## Test Credentials
 

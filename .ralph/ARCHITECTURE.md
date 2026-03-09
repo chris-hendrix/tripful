@@ -45,6 +45,7 @@ export type NewTripPhoto = typeof tripPhotos.$inferInsert;
 ```
 
 Add relations in `apps/api/src/db/schema/relations.ts`:
+
 - `tripPhotosRelations`: belongs to trip, belongs to user (uploader)
 - Add `photos: many(tripPhotos)` to existing `tripsRelations`
 
@@ -118,6 +119,7 @@ Registered with existing pg-boss instance (`fastify.boss`).
 Follows existing controller pattern (see `trip.controller.ts`). Uses `req.files()` iterator for multi-file multipart parsing.
 
 Upload flow per file:
+
 1. `await part.toBuffer()`
 2. `uploadService.validateImage(buffer, mimetype)` — reuse existing validation
 3. `storage.upload(buffer, rawKey, mimetype)` — upload raw temporarily
@@ -127,6 +129,7 @@ Upload flow per file:
 ## Routes (`apps/api/src/routes/photo.routes.ts`)
 
 Register in `apps/api/src/app.ts`:
+
 ```typescript
 app.register(photoRoutes, { prefix: "/api/trips/:id/photos" });
 ```
@@ -134,6 +137,7 @@ app.register(photoRoutes, { prefix: "/api/trips/:id/photos" });
 Update multipart config in `app.ts`: change `files: 1` to `files: 5`.
 
 Permission checks:
+
 - All routes: `authenticate` + verify trip membership via `permissionsService.isMember()`
 - Write routes: also `requireCompleteProfile`
 - PATCH/DELETE: verify photo uploader OR `permissionsService.isOrganizer()`
@@ -241,6 +245,7 @@ apps/web/src/app/(app)/trips/[id]/trip-detail-content.tsx
 ### TanStack Query Hooks
 
 `apps/web/src/hooks/photo-queries.ts`:
+
 ```typescript
 export const photoKeys = {
   all: (tripId: string) => ["trips", tripId, "photos"] as const,
@@ -256,6 +261,7 @@ export const photosQueryOptions = (tripId: string) =>
 ```
 
 `apps/web/src/hooks/use-photos.ts`:
+
 - `usePhotos(tripId)` — query hook
 - `useUploadPhotos(tripId)` — mutation, invalidates list on success
 - `useUpdatePhotoCaption(tripId)` — mutation with optimistic caption update
@@ -268,9 +274,11 @@ Single variant only. Raw upload → re-encode to WebP q85 at original dimensions
 ## Dependencies
 
 ### New (install in apps/api)
+
 - `sharp` — image processing
 
 ### Existing (no changes)
+
 - `pg-boss` — already integrated via `apps/api/src/plugins/queue.ts`
 - `@fastify/multipart` — already configured
 - `@aws-sdk/client-s3` — already configured
@@ -278,14 +286,14 @@ Single variant only. Raw upload → re-encode to WebP q85 at original dimensions
 
 ## Limits
 
-| Constraint | Value |
-|-----------|-------|
-| Photos per trip | 20 |
-| File size | 5MB |
-| Files per request | 5 |
-| Allowed types | JPEG, PNG, WebP |
-| Caption length | 200 chars |
-| Stored format | Original dimensions, WebP q85 |
+| Constraint        | Value                         |
+| ----------------- | ----------------------------- |
+| Photos per trip   | 20                            |
+| File size         | 5MB                           |
+| Files per request | 5                             |
+| Allowed types     | JPEG, PNG, WebP               |
+| Caption length    | 200 chars                     |
+| Stored format     | Original dimensions, WebP q85 |
 
 ## Testing Strategy
 

@@ -158,9 +158,7 @@ export class S3StorageService implements IStorageService {
     );
   }
 
-  async getObject(
-    key: string,
-  ): Promise<{
+  async getObject(key: string): Promise<{
     body: NonNullable<GetObjectCommandOutput["Body"]>;
     contentType: string | undefined;
   }> {
