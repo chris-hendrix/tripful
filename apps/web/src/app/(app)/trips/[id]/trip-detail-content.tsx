@@ -145,7 +145,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const { data: weather, isLoading: weatherLoading } =
     useWeatherForecast(tripId);
   const temperatureUnit: TemperatureUnit =
-    user?.temperatureUnit === "fahrenheit" ? "fahrenheit" : "celsius";
+    user?.temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
 
   const handleUpdateRole = (
     member: MemberWithProfile,
