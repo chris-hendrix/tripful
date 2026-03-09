@@ -5,6 +5,7 @@ import type {
   TouchEvent as ReactTouchEvent,
 } from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { getUploadUrl } from "@/lib/api";
@@ -154,7 +155,7 @@ export function PhotoLightbox({
   const imageUrl = getUploadUrl(currentPhoto.url);
   const isModifiable = canModify(currentPhoto);
 
-  return (
+  return createPortal(
     <div
       ref={containerRef}
       role="dialog"
@@ -175,7 +176,7 @@ export function PhotoLightbox({
             <button
               type="button"
               onClick={handleDelete}
-              className="p-2 rounded-full bg-black/50 hover:bg-destructive transition-colors text-white"
+              className="p-2 rounded-full bg-black/50 hover:bg-destructive transition-colors text-white cursor-pointer"
               aria-label="Delete photo"
             >
               <Trash2 className="w-5 h-5" />
@@ -184,7 +185,7 @@ export function PhotoLightbox({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white"
+            className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white cursor-pointer"
             aria-label="Close lightbox"
           >
             <X className="w-5 h-5" />
@@ -253,6 +254,7 @@ export function PhotoLightbox({
           <p className="text-white/80 text-sm">{currentPhoto.caption}</p>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

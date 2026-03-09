@@ -58,40 +58,42 @@ export function PhotosSection({
   };
 
   return (
-    <Collapsible defaultOpen className="mb-2">
-      <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
-        <ChevronDown
-          className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
-          aria-hidden="true"
-        />
-        Photos ({photos.length}/{MAX_PHOTOS_PER_TRIP})
-      </CollapsibleTrigger>
-      <CollapsibleContent
-        forceMount
-        className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0"
-      >
-        <div className="space-y-4 pt-2">
-          {!disabled && (
-            <PhotoUploadDropzone tripId={tripId} currentCount={photos.length} />
-          )}
-          <PhotoGrid
-            photos={photos}
-            onPhotoClick={handlePhotoClick}
-            canModify={canModify}
-            onDelete={handleDelete}
+    <>
+      <Collapsible defaultOpen className="mb-2">
+        <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
+          <ChevronDown
+            className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+            aria-hidden="true"
           />
-          {selectedPhotoIndex !== null && readyPhotos.length > 0 && (
-            <PhotoLightbox
-              photos={readyPhotos}
-              currentIndex={selectedPhotoIndex}
-              onClose={() => setSelectedPhotoIndex(null)}
-              onNavigate={setSelectedPhotoIndex}
+          Photos ({photos.length}/{MAX_PHOTOS_PER_TRIP})
+        </CollapsibleTrigger>
+        <CollapsibleContent
+          forceMount
+          className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0"
+        >
+          <div className="space-y-4 pt-2">
+            {!disabled && (
+              <PhotoUploadDropzone tripId={tripId} currentCount={photos.length} />
+            )}
+            <PhotoGrid
+              photos={photos}
+              onPhotoClick={handlePhotoClick}
               canModify={canModify}
-              tripId={tripId}
+              onDelete={handleDelete}
             />
-          )}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+      {selectedPhotoIndex !== null && readyPhotos.length > 0 && (
+        <PhotoLightbox
+          photos={readyPhotos}
+          currentIndex={selectedPhotoIndex}
+          onClose={() => setSelectedPhotoIndex(null)}
+          onNavigate={setSelectedPhotoIndex}
+          canModify={canModify}
+          tripId={tripId}
+        />
+      )}
+    </>
   );
 }
