@@ -26,7 +26,6 @@ import { DeletedItemsDialog } from "./deleted-items-dialog";
 import { TravelReminderBanner } from "@/components/trip/travel-reminder-banner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useWeatherForecast } from "@/hooks/use-weather";
-import { WeatherForecastCard } from "./weather-forecast-card";
 import type { TemperatureUnit } from "@tripful/shared/types";
 
 interface ItineraryViewProps {
@@ -74,8 +73,7 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
   });
 
   // Fetch weather forecast
-  const { data: weather, isLoading: weatherLoading } =
-    useWeatherForecast(tripId);
+  const { data: weather } = useWeatherForecast(tripId);
   const temperatureUnit: TemperatureUnit =
     (user?.temperatureUnit as TemperatureUnit) || "celsius";
 
@@ -296,11 +294,6 @@ export function ItineraryView({ tripId, onAddTravel }: ItineraryViewProps) {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 pt-4 pb-24">
-        <WeatherForecastCard
-          weather={weather}
-          isLoading={weatherLoading}
-          temperatureUnit={temperatureUnit}
-        />
         {onAddTravel &&
           !isLocked &&
           currentMember &&

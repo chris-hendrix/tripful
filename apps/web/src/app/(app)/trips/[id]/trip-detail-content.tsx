@@ -49,6 +49,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { WeatherForecastCard } from "@/components/itinerary/weather-forecast-card";
+import { useWeatherForecast } from "@/hooks/use-weather";
+import type { TemperatureUnit } from "@tripful/shared/types";
 import { TripMessages, MessageCountIndicator } from "@/components/messaging";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -139,6 +142,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   });
   const currentMember = members?.find((m) => m.userId === user?.id);
   const { ref: itineraryRef } = useScrollReveal();
+  const { data: weather, isLoading: weatherLoading } =
+    useWeatherForecast(tripId);
+  const temperatureUnit: TemperatureUnit =
+    (user?.temperatureUnit as TemperatureUnit) || "celsius";
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -415,25 +422,33 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             <MessageCountIndicator tripId={tripId} />
           </div>
 
-          {/* Description */}
-          {trip.description ? (
-            <Collapsible defaultOpen className="mb-6">
-              <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
-                <ChevronDown
-                  className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
-                  aria-hidden="true"
+          {/* About this trip */}
+          <Collapsible defaultOpen className="mb-6">
+            <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
+              <ChevronDown
+                className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+                aria-hidden="true"
+              />
+              About this trip
+            </CollapsibleTrigger>
+            <CollapsibleContent forceMount className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0">
+              <div className="mt-3 space-y-3">
+                {trip.description && (
+                  <div className="bg-card rounded-md border border-border p-6 linen-texture">
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {trip.description}
+                    </p>
+                  </div>
+                )}
+                <WeatherForecastCard
+                  weather={weather}
+                  isLoading={weatherLoading}
+                  temperatureUnit={temperatureUnit}
+                  isDark={preset?.background.isDark ?? false}
                 />
-                About this trip
-              </CollapsibleTrigger>
-              <CollapsibleContent forceMount className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0">
-                <div className="mt-3 bg-card rounded-md border border-border p-6 linen-texture">
-                  <p className="text-muted-foreground whitespace-pre-wrap">
-                    {trip.description}
-                  </p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ) : null}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
 
