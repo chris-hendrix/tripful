@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { OpenMeteoGeocodingService } from "@/services/geocoding.service.js";
+import { NominatimGeocodingService } from "@/services/geocoding.service.js";
 
-describe("OpenMeteoGeocodingService", () => {
-  let service: OpenMeteoGeocodingService;
+describe("NominatimGeocodingService", () => {
+  let service: NominatimGeocodingService;
   const mockLogger = { info: vi.fn(), error: vi.fn() };
 
   beforeEach(() => {
-    service = new OpenMeteoGeocodingService(mockLogger as any);
+    service = new NominatimGeocodingService(mockLogger as any);
   });
 
   afterEach(() => {
@@ -18,18 +18,19 @@ describe("OpenMeteoGeocodingService", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
-          Promise.resolve({
-            results: [
-              { latitude: 32.7157, longitude: -117.1611, name: "San Diego" },
-            ],
-          }),
+          Promise.resolve([
+            { lat: "-33.8679", lon: "151.2073", display_name: "Sydney" },
+          ]),
       });
       vi.stubGlobal("fetch", mockFetch);
 
-      const result = await service.geocode("San Diego");
-      expect(result).toEqual({ lat: 32.7157, lon: -117.1611 });
+      const result = await service.geocode("Sydney Australia");
+      expect(result).toEqual({ lat: -33.8679, lon: 151.2073 });
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("geocoding-api.open-meteo.com"),
+        expect.stringContaining("nominatim.openstreetmap.org"),
+        expect.objectContaining({
+          headers: { "User-Agent": "tripful-app" },
+        }),
       );
     });
 
@@ -38,20 +39,7 @@ describe("OpenMeteoGeocodingService", () => {
         "fetch",
         vi.fn().mockResolvedValue({
           ok: true,
-          json: () => Promise.resolve({}),
-        }),
-      );
-
-      const result = await service.geocode("xyznonexistent");
-      expect(result).toBeNull();
-    });
-
-    it("should return null when results array is empty", async () => {
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockResolvedValue({
-          ok: true,
-          json: () => Promise.resolve({ results: [] }),
+          json: () => Promise.resolve([]),
         }),
       );
 
@@ -61,10 +49,7 @@ describe("OpenMeteoGeocodingService", () => {
 
     it("should return null on network error and log the error", async () => {
       const networkError = new Error("Network error");
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockRejectedValue(networkError),
-      );
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(networkError));
 
       const result = await service.geocode("San Diego");
       expect(result).toBeNull();
@@ -91,17 +76,14 @@ describe("OpenMeteoGeocodingService", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
-          Promise.resolve({
-            results: [
-              { latitude: 48.8566, longitude: 2.3522, name: "Paris" },
-            ],
-          }),
+          Promise.resolve([{ lat: "9.9281", lon: "-84.0907" }]),
       });
       vi.stubGlobal("fetch", mockFetch);
 
       await service.geocode("San José, Costa Rica");
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("San%20Jos%C3%A9%2C%20Costa%20Rica"),
+        expect.anything(),
       );
     });
 
@@ -121,6 +103,22 @@ describe("OpenMeteoGeocodingService", () => {
       const result = await service.geocode("   ");
       expect(result).toBeNull();
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should parse string lat/lon to numbers", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve([{ lat: "25.7907", lon: "-80.1300" }]),
+        }),
+      );
+
+      const result = await service.geocode("Miami Beach FL");
+      expect(result).toEqual({ lat: 25.7907, lon: -80.13 });
+      expect(typeof result!.lat).toBe("number");
+      expect(typeof result!.lon).toBe("number");
     });
   });
 });

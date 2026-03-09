@@ -28,7 +28,6 @@ import {
 } from "@/lib/utils/timezone";
 import { cn } from "@/lib/utils";
 import { CalendarOff } from "lucide-react";
-import { EmptyState } from "@/components/ui/empty-state";
 import {
   canModifyEvent,
   canModifyAccommodation,
@@ -410,12 +409,10 @@ export function DayByDayView({
               <div className="space-y-2">
                 {cardElements}
                 {!hasContent && !isToday && (
-                  <EmptyState
-                    icon={CalendarOff}
-                    title="No events scheduled"
-                    variant="inline"
-                    className="min-h-[4.5rem] pl-5 py-0 items-start justify-center"
-                  />
+                  <div className="flex items-center gap-2 min-h-[4.5rem] pl-5 text-muted-foreground">
+                    <CalendarOff className="size-5 shrink-0" />
+                    <span className="text-sm">No events scheduled</span>
+                  </div>
                 )}
               </div>
             </div>

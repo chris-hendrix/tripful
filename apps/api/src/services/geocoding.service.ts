@@ -13,15 +13,15 @@ export interface IGeocodingService {
   geocode(query: string): Promise<{ lat: number; lon: number } | null>;
 }
 
-const GEOCODING_API_BASE =
-  "https://geocoding-api.open-meteo.com/v1/search";
+const NOMINATIM_API_BASE = "https://nominatim.openstreetmap.org/search";
 
 /**
- * Open-Meteo Geocoding Service Implementation
- * Uses the free Open-Meteo Geocoding API to resolve location names to coordinates.
- * No API key required.
+ * Nominatim (OpenStreetMap) Geocoding Service Implementation
+ * Uses the free Nominatim API to resolve location names to coordinates.
+ * No API key required. Handles flexible input formats like
+ * "Sydney Australia", "Miami Beach FL", "Tokyo, Japan", etc.
  */
-export class OpenMeteoGeocodingService implements IGeocodingService {
+export class NominatimGeocodingService implements IGeocodingService {
   constructor(private logger?: Logger) {}
 
   async geocode(query: string): Promise<{ lat: number; lon: number } | null> {
@@ -30,29 +30,30 @@ export class OpenMeteoGeocodingService implements IGeocodingService {
     this.logger?.info({ query }, "Geocoding query");
 
     try {
-      const url = `${GEOCODING_API_BASE}?name=${encodeURIComponent(query)}&count=1&language=en`;
-      const response = await fetch(url);
+      const url = `${NOMINATIM_API_BASE}?q=${encodeURIComponent(query.trim())}&format=json&limit=1`;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "tripful-app" },
+      });
 
-      if (!response.ok) {
-        return null;
-      }
+      if (!response.ok) return null;
 
-      const data = (await response.json()) as {
-        results?: Array<{ latitude: number; longitude: number }>;
-      };
+      const data = (await response.json()) as Array<{
+        lat: string;
+        lon: string;
+      }>;
 
-      const first = data.results?.[0];
-      if (!first) {
-        return null;
-      }
+      const first = data[0];
+      if (!first) return null;
 
-      return {
-        lat: first.latitude,
-        lon: first.longitude,
-      };
+      return { lat: parseFloat(first.lat), lon: parseFloat(first.lon) };
     } catch (err) {
       this.logger?.error(err, "Geocoding failed");
       return null;
     }
   }
 }
+
+/**
+ * @deprecated Use NominatimGeocodingService instead.
+ */
+export const OpenMeteoGeocodingService = NominatimGeocodingService;

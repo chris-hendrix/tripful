@@ -1,15 +1,15 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
-import { OpenMeteoGeocodingService } from "@/services/geocoding.service.js";
+import { NominatimGeocodingService } from "@/services/geocoding.service.js";
 
 /**
  * Geocoding service plugin
- * Creates an OpenMeteoGeocodingService instance and decorates it
+ * Creates a NominatimGeocodingService instance and decorates it
  * on the Fastify instance for use by route handlers.
  */
 export default fp(
   async function geocodingServicePlugin(fastify: FastifyInstance) {
-    const geocodingService = new OpenMeteoGeocodingService(fastify.log);
+    const geocodingService = new NominatimGeocodingService(fastify.log);
     fastify.decorate("geocodingService", geocodingService);
   },
   {
