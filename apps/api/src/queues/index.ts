@@ -27,6 +27,7 @@ import { S3StorageService } from "@/services/storage.service.js";
  * Queue workers plugin
  * Creates queues, registers workers, and sets up cron schedules for pg-boss.
  * Skipped in test environment to avoid interference with test execution.
+ * Set ENABLE_QUEUE_WORKERS=true to override this (e.g. for E2E tests).
  *
  * @depends queue - pg-boss instance
  * @depends database - Drizzle ORM instance
@@ -34,7 +35,7 @@ import { S3StorageService } from "@/services/storage.service.js";
  */
 export default fp(
   async function queueWorkersPlugin(fastify: FastifyInstance) {
-    if (fastify.config.NODE_ENV === "test") {
+    if (fastify.config.NODE_ENV === "test" && !process.env.ENABLE_QUEUE_WORKERS) {
       fastify.log.debug("queue workers skipped in test environment");
       return;
     }

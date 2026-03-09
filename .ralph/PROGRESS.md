@@ -219,3 +219,44 @@ Reviewed all 5 iterations of PROGRESS.md to identify FAILURE, BLOCKED, reviewer 
 - `LocalStorageService.delete()` must handle two caller patterns: controller passes URL (`/uploads/photos/tripId/uuid.webp`) while worker passes bare key (`photos/tripId/uuid_raw.jpg`) — the `startsWith("/uploads/")` check correctly handles both
 - `mkdirSync(dirname(filePath), { recursive: true })` is idempotent and also creates the root uploads dir, making the explicit `ensureUploadsDirExists()` in the constructor redundant (but harmlessly kept)
 - Test files in this project use `process.cwd()` for temp directories, not `__dirname` (ESM compatibility)
+
+## Iteration 8 — Task 6.3: Write E2E tests for photo feature
+
+**Status**: ✅ COMPLETE
+
+### What was done
+- Created `apps/web/tests/e2e/photos.spec.ts` — full E2E journey test covering the photo lifecycle:
+  - Empty state verification ("No photos yet", "Photos (0/20)")
+  - Upload first photo via filechooser event, wait for pg-boss processing, verify grid card and counter (1/20)
+  - Upload second photo, verify both cards and counter (2/20)
+  - Open lightbox by clicking photo card, verify dialog and counter
+  - Navigate between photos (Next/Previous arrows, counter updates)
+  - Edit caption inline (click "Add a caption..." → fill → Enter → verify text)
+  - Close lightbox with Escape key
+  - Delete photo via lightbox, verify removal and counter (1/20)
+- Added `ENABLE_QUEUE_WORKERS` env var override to `apps/api/src/plugins/queue.ts` and `apps/api/src/queues/index.ts` — allows pg-boss and workers to run when `NODE_ENV=test` with `ENABLE_QUEUE_WORKERS=true`
+- Updated `apps/web/playwright.config.ts` to pass `ENABLE_QUEUE_WORKERS=true` in the API webServer command
+
+### Key implementation details
+- `waitForPhotoProcessing()` helper polls `GET /api/trips/:id/photos` via `page.request` with `expect().toPass()` at intervals [1s, 2s, 3s] until photos are "ready", then reloads the page — decouples wait from TanStack Query staleTime
+- `readyPhotoCards()` uses `[role="button"]` filtered by `img[src]` to distinguish ready cards from processing skeletons
+- All selectors scoped to lightbox dialog when appropriate (caption text, counter)
+- Temp JPEG files created in `/tmp/tripful-test-photos-{timestamp}/` and cleaned up via `try/finally`
+- Uses lightbox delete (not hover-based card delete) for mobile viewport compatibility
+
+### Verification
+- **Typecheck**: PASS (all 3 packages)
+- **Lint**: PASS (all 3 packages)
+- **E2E (chromium)**: PASS
+- **E2E (iPhone)**: PASS
+- **Full E2E suite**: 46/46 PASS
+- **Unit tests**: Pre-existing failures only (8 API S3/MinIO concurrency, 3 web FAB) — no new failures
+- **Reviewer**: APPROVED — pattern consistency, robust selectors, clean infrastructure change
+
+### Learnings
+- `NODE_ENV=test` disables BOTH the pg-boss instance (`plugins/queue.ts`) AND worker registration (`queues/index.ts`) — both must be overridden for E2E tests that depend on async queue processing
+- Using `process.env.ENABLE_QUEUE_WORKERS` (not `fastify.config`) avoids needing to modify the config schema — clean escape hatch for E2E
+- Photo processing is async via pg-boss worker; E2E tests cannot rely on TanStack Query's staleTime/refetch to pick up status changes — direct API polling + page reload is the reliable pattern
+- `PhotoCard` uses `alt={photo.caption || "Trip photo"}` — selectors that match alt text will break after caption edits; use `img[src]` instead
+- When deleting first of two photos in lightbox, `handleDelete` calls `onNavigate(currentIndex - 1)` = `onNavigate(-1)`, which causes the lightbox to close (return null) — this is existing component behavior, not a bug in the test
+- `page.getByText()` in Playwright strict mode fails when text appears in multiple elements — always scope assertions to the correct container (e.g., `lightbox.getByText()` instead of `page.getByText()`)

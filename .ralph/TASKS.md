@@ -85,7 +85,7 @@
   - Test: Write unit tests verifying upload and delete work with nested paths
   - Verify: Run full test suite
 
-- [ ] Task 6.3: Write E2E tests for photo feature
+- [x] Task 6.3: Write E2E tests for photo feature
   - Implement: Create `apps/web/tests/e2e/photos.spec.ts` following existing E2E patterns (see `itinerary-journey.spec.ts`)
   - Test: Upload photo to trip, verify grid display, open lightbox, navigate, edit caption, delete photo
   - Verify: Run E2E test suite
