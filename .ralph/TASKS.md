@@ -14,7 +14,7 @@
 
 ## Phase 2: Backend — Image Processing & Photo Service
 
-- [ ] Task 2.1: Create ImageProcessingService and PhotoService with worker
+- [x] Task 2.1: Create ImageProcessingService and PhotoService with worker
   - Implement: `pnpm --filter @tripful/api add sharp && pnpm --filter @tripful/api add -D @types/sharp`
   - Implement: Create `apps/api/src/services/image-processing.service.ts` with `processPhoto(buffer): Promise<Buffer>` — re-encodes to WebP q85 at original dimensions
   - Implement: Create `apps/api/src/services/photo.service.ts` as Fastify plugin with CRUD methods (`getPhotosByTripId`, `getPhotoCount`, `createPhotoRecord`, `updatePhotoUrl`, `updateCaption`, `setPhotoFailed`, `deletePhoto`)

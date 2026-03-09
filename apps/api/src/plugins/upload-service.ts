@@ -79,6 +79,7 @@ export default fp(
     }
 
     const uploadService = new UploadService(storage);
+    fastify.decorate("storage", storage);
     fastify.decorate("uploadService", uploadService);
   },
   {
