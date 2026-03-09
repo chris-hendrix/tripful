@@ -130,3 +130,37 @@
 - `apiRequest()` from `@/lib/api` auto-sets `Content-Type: application/json` when body is present — file uploads MUST use raw `fetch()` with `FormData` and `credentials: "include"` (matching `use-user.ts` pattern)
 - Upload mutation intentionally has no optimistic update — photos start as `status: "processing"` with `url: null`, so there's nothing meaningful to show optimistically. Just invalidate on settle.
 - The two-file pattern (`*-queries.ts` for server-safe options + `use-*.ts` for client hooks) is strictly followed throughout the codebase
+
+## Iteration 5 — Task 5.1: Create PhotoGrid, PhotoCard, PhotoLightbox, and PhotosSection
+
+**Status**: ✅ COMPLETE
+
+### What was done
+- Created `apps/web/src/components/photos/photo-card.tsx` — 3 visual states (processing skeleton, ready with image + hover overlay, failed with error icon), `next/image` with responsive `sizes`, delete button with `stopPropagation`, keyboard accessible (`role="button"`, `tabIndex`, Enter/Space)
+- Created `apps/web/src/components/photos/photo-grid.tsx` — responsive CSS grid (2/3/4 cols at mobile/tablet/desktop), `EmptyState` component with Camera icon for empty state
+- Created `apps/web/src/components/photos/photo-lightbox.tsx` — full-screen overlay (`role="dialog"`, `aria-modal`), keyboard navigation (Escape/ArrowLeft/ArrowRight), touch swipe with 50px threshold, inline caption editing (Enter to save, Escape to cancel, blur to save), delete with smart navigation (goes to previous when deleting last photo, closes when deleting only photo), body scroll lock, `aria-live="polite"` counter
+- Created `apps/web/src/components/photos/photos-section.tsx` — collapsible section matching existing pattern, header with count "Photos (N/20)", integrates PhotoUploadDropzone + PhotoGrid + PhotoLightbox, `useAuth()` for permission checks, maps grid indices to ready-photo indices for lightbox
+- Created `apps/web/src/components/photos/index.ts` — barrel export for all photo components
+- Added `PhotosSection` to `trip-detail-content.tsx` via dynamic import (`ssr: false`), placed between itinerary and discussion sections with border-top separator
+
+### Tests written
+- `apps/web/src/components/photos/__tests__/photo-card.test.tsx` (9 tests): processing skeleton state, non-clickable processing/failed states, image src resolution, click/delete handlers, canModify visibility, delete stopPropagation
+- `apps/web/src/components/photos/__tests__/photo-grid.test.tsx` (4 tests): grid rendering, empty state, click index passing, canModify propagation per card
+- Updated `trip-detail-content.test.tsx` — added `PhotosSection` mock to prevent QueryClientProvider errors from dynamic import
+
+### Verification
+- **Typecheck**: PASS (all 3 packages)
+- **Lint**: PASS (all 3 packages)
+- **New tests**: 13/13 passed (9 photo-card + 4 photo-grid)
+- **Trip-detail-content tests**: 61/61 passed (41 previously broken tests now fixed via mock)
+- **Full frontend suite**: 1218/1221 passed (3 pre-existing FAB failures in trips-content.test.tsx)
+- **Full API suite**: 1209/1217 passed (8 pre-existing MinIO/S3 flaky failures)
+- **Reviewer**: APPROVED after one round of fixes (hooks ordering, onBlur save, delete stale closure, aria attributes, constant extraction)
+
+### Learnings
+- Dynamic imports with `ssr: false` that use TanStack Query hooks will crash tests that don't provide QueryClientProvider — mock the dynamically imported component in test files
+- React Rules of Hooks: never place hooks after early returns — move all hooks above any conditional returns and guard inside the hook callbacks instead
+- `vi.fn()` in strict TypeScript returns `Mock<Procedure | Constructable>` which doesn't assign to typed function props — use `vi.fn() as unknown as () => void` pattern
+- Caption input `onBlur` should save (not cancel) for better UX — Escape key handler cancels before blur fires since React batches state updates and unmounts the input
+- Delete in lightbox needs pre-mutation snapshot of `photos.length - 2` for boundary check since optimistic updates may change the array before `onSuccess` fires
+- Pre-existing diagnostics in trip-detail-content.test.tsx (cannot find module `@/hooks/use-trips`, `require` type, `Date` not assignable to `string`) are from the existing test file and unrelated to this task

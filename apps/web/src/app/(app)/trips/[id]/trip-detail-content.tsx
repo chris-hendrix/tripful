@@ -96,6 +96,14 @@ const MemberOnboardingWizard = dynamic(() =>
   })),
 );
 
+const PhotosSection = dynamic(
+  () =>
+    import("@/components/photos/photos-section").then((mod) => ({
+      default: mod.PhotosSection,
+    })),
+  { ssr: false },
+);
+
 function SkeletonDetail() {
   return (
     <div>
@@ -492,6 +500,17 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             forecasts={weather?.forecasts}
             temperatureUnit={temperatureUnit}
           />
+        </div>
+
+        {/* Photos Section */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="border-t border-border mt-6 pt-6">
+            <PhotosSection
+              tripId={trip.id}
+              isOrganizer={isOrganizer}
+              disabled={isLocked}
+            />
+          </div>
         </div>
 
         {/* Discussion */}

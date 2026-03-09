@@ -54,7 +54,7 @@
 
 ## Phase 5: Frontend — Gallery, Lightbox & Integration
 
-- [ ] Task 5.1: Create PhotoGrid, PhotoCard, PhotoLightbox, and PhotosSection
+- [x] Task 5.1: Create PhotoGrid, PhotoCard, PhotoLightbox, and PhotosSection
   - Implement: Create `apps/web/src/components/photos/photo-card.tsx` — processing/ready/failed states, hover overlay, click to open lightbox
   - Implement: Create `apps/web/src/components/photos/photo-grid.tsx` — responsive grid (2/3/4 cols), empty state, uses `next/image` with `url` and `sizes` prop
   - Implement: Create `apps/web/src/components/photos/photo-lightbox.tsx` — full-screen overlay, displays photo `url`, arrow/swipe navigation, caption edit, delete, keyboard nav, focus trap
