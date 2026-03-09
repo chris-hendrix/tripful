@@ -30,6 +30,17 @@ function formatDayOfWeek(dateStr: string): string {
   return date.toLocaleDateString("en-US", { weekday: "short" });
 }
 
+function formatRelativeTime(isoStr: string): string {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 function formatDate(dateStr: string): string {
   const [yearStr, monthStr, dayStr] = dateStr.split("-");
   const date = new Date(
@@ -118,7 +129,8 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
   if (upcomingForecasts.length === 0) return null;
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+    <div className="space-y-1.5">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {upcomingForecasts.map((day) => {
             const { icon: Icon, label, tone } = getWeatherInfo(day.weatherCode);
             const high = toDisplayTemp(day.temperatureMax, temperatureUnit);
@@ -164,6 +176,18 @@ export const WeatherForecastCard = memo(function WeatherForecastCard({
               </div>
             );
           })}
+      </div>
+      {(weather.location || weather.fetchedAt) && (
+        <p className={`text-[0.6875rem] ${isDark ? "text-foreground/50" : "text-muted-foreground/70"}`}>
+          {weather.location && <span>{weather.location}</span>}
+          {weather.location && weather.fetchedAt && <span> · </span>}
+          {weather.fetchedAt && (
+            <span>
+              Updated {formatRelativeTime(weather.fetchedAt)}
+            </span>
+          )}
+        </p>
+      )}
     </div>
   );
 });

@@ -11,6 +11,7 @@ export interface DailyForecast {
 export interface TripWeatherResponse {
   available: boolean;
   message?: string;
+  location?: string;
   forecasts: DailyForecast[];
   fetchedAt: string | null;
 }

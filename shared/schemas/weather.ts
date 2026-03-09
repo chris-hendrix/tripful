@@ -11,6 +11,7 @@ export const dailyForecastSchema = z.object({
 export const tripWeatherResponseSchema = z.object({
   available: z.boolean(),
   message: z.string().optional(),
+  location: z.string().optional(),
   forecasts: z.array(dailyForecastSchema),
   fetchedAt: z.string().nullable(),
 });
