@@ -44,7 +44,7 @@
 
 ## Phase 4: Frontend — Query Hooks & Upload
 
-- [ ] Task 4.1: Create TanStack Query hooks and PhotoUploadDropzone
+- [x] Task 4.1: Create TanStack Query hooks and PhotoUploadDropzone
   - Implement: Create `apps/web/src/hooks/photo-queries.ts` with `photoKeys` factory and `photosQueryOptions`
   - Implement: Create `apps/web/src/hooks/use-photos.ts` with `usePhotos`, `useUploadPhotos`, `useUpdatePhotoCaption`, `useDeletePhoto` hooks (optimistic updates for caption and delete)
   - Implement: Create `apps/web/src/components/photos/photo-upload-dropzone.tsx` — multi-file drag-drop, client-side validation, per-file progress, remaining count display

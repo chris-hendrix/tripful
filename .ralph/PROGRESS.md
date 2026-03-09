@@ -94,3 +94,39 @@
 - File upload integration tests that touch storage (S3/MinIO) fail in full suite due to concurrency/ordering but pass in isolation — this is a pre-existing environment issue affecting all upload tests
 - The `assertUploaderOrOrganizer` pattern with a parameterized `action` string provides contextual error messages while keeping DRY code
 - Empty string caption is intentional — allows clearing captions via PATCH
+
+## Iteration 4 — Task 4.1: Create TanStack Query hooks and PhotoUploadDropzone
+
+**Status**: ✅ COMPLETE
+
+### What was done
+- Created `apps/web/src/hooks/photo-queries.ts` — query key factory (`photoKeys`) with `all: (tripId) => ["trips", tripId, "photos"]` and `photosQueryOptions` with 30s staleTime using `apiRequest<GetPhotosResponse>`
+- Created `apps/web/src/hooks/use-photos.ts` — 4 hooks:
+  - `usePhotos(tripId)` — query hook with `enabled: !!tripId`
+  - `useUploadPhotos(tripId)` — mutation using raw `fetch()` with `FormData` (not `apiRequest`, since it force-sets JSON content type). Invalidates query on settle.
+  - `useUpdatePhotoCaption(tripId)` — mutation with optimistic caption update (cancel queries → snapshot → setQueryData → rollback on error → invalidate on settle)
+  - `useDeletePhoto(tripId)` — mutation with optimistic removal from cache
+- Created `apps/web/src/components/photos/photo-upload-dropzone.tsx` — multi-file drag-drop upload component with:
+  - Client-side validation: file type (JPEG/PNG/WebP), size (5MB), batch limit (5), remaining capacity
+  - Per-file progress tracking with blob URL previews
+  - Remaining count display ("X photos remaining")
+  - Disabled state when limit reached
+  - Keyboard accessibility (Enter/Space to open file picker, role="button", aria-label)
+- Exported companion error message helpers: `getUploadPhotosErrorMessage`, `getUpdatePhotoCaptionErrorMessage`, `getDeletePhotoErrorMessage`
+
+### Tests written
+- `apps/web/src/hooks/__tests__/use-photos.test.tsx` (19 tests): query fetch (success/empty/error), upload mutation (FormData via fetch, cache invalidation, error handling), caption update (optimistic + rollback), delete (optimistic removal + rollback), all error message helpers
+- `apps/web/src/components/photos/__tests__/photo-upload-dropzone.test.tsx` (25 tests): rendering, disabled state, file validation (type/size/capacity/batch), drag-and-drop, file selection, upload progress, multi-file, accessibility
+
+### Verification
+- **Typecheck**: PASS (all 3 packages)
+- **Lint**: PASS (0 errors, 0 warnings — removed unnecessary eslint-disable comments for non-existent rules)
+- **New tests**: 44/44 passed (19 hook + 25 component)
+- **Full suite**: All pre-existing failures only (same as iteration 3)
+- **Reviewer**: APPROVED — excellent pattern consistency, correct use of raw fetch for multipart, proper optimistic updates with rollback
+
+### Learnings
+- ESLint config in this project uses flat config and does NOT include `react-hooks` or `@next/next` plugins — eslint-disable comments referencing these non-existent rules cause lint errors ("Definition for rule X was not found")
+- `apiRequest()` from `@/lib/api` auto-sets `Content-Type: application/json` when body is present — file uploads MUST use raw `fetch()` with `FormData` and `credentials: "include"` (matching `use-user.ts` pattern)
+- Upload mutation intentionally has no optimistic update — photos start as `status: "processing"` with `url: null`, so there's nothing meaningful to show optimistically. Just invalidate on settle.
+- The two-file pattern (`*-queries.ts` for server-safe options + `use-*.ts` for client hooks) is strictly followed throughout the codebase
