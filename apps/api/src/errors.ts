@@ -80,6 +80,11 @@ export const PhotoNotFoundError = createError(
   "Photo not found",
   404,
 );
+export const PhotoLimitExceededError = createError(
+  "PHOTO_LIMIT_EXCEEDED",
+  "%s",
+  400,
+);
 
 // Invitation errors
 export const InvitationNotFoundError = createError(

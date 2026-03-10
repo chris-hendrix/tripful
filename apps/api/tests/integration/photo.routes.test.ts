@@ -3,7 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { buildApp } from "../helpers.js";
 import { db } from "@/config/database.js";
 import { users, members, trips, tripPhotos } from "@/db/schema/index.js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { MAX_PHOTOS_PER_TRIP } from "@tripful/shared/config";
 import { generateUniquePhone } from "../test-utils.js";
 import FormData from "form-data";
 
@@ -258,6 +259,69 @@ describe("POST /api/trips/:id/photos", () => {
       const body = JSON.parse(response.body);
       expect(body.success).toBe(false);
       expect(body.error.code).toBe("PHOTO_LIMIT_EXCEEDED");
+    });
+  });
+
+  describe("Concurrent Upload Safety", () => {
+    it("should not exceed MAX_PHOTOS_PER_TRIP when two concurrent uploads race", async () => {
+      app = await buildApp();
+
+      const user = await createUser();
+      const trip = await createTripWithMember(user.id);
+      const token = app.jwt.sign({ sub: user.id, name: user.displayName });
+
+      // Pre-fill the trip to just under the limit (18 photos, limit is 20)
+      for (let i = 0; i < MAX_PHOTOS_PER_TRIP - 2; i++) {
+        await db.insert(tripPhotos).values({
+          tripId: trip.id,
+          uploadedBy: user.id,
+        });
+      }
+
+      // Build two forms, each with 3 photos — together they would exceed the limit
+      const makeForm = () => {
+        const form = new FormData();
+        for (let i = 0; i < 3; i++) {
+          form.append("file", pngBuffer, {
+            filename: `photo${i}.png`,
+            contentType: "image/png",
+          });
+        }
+        return form;
+      };
+
+      const form1 = makeForm();
+      const form2 = makeForm();
+
+      // Fire both requests concurrently
+      const [response1, response2] = await Promise.all([
+        app.inject({
+          method: "POST",
+          url: `/api/trips/${trip.id}/photos`,
+          cookies: { auth_token: token },
+          payload: form1,
+          headers: form1.getHeaders(),
+        }),
+        app.inject({
+          method: "POST",
+          url: `/api/trips/${trip.id}/photos`,
+          cookies: { auth_token: token },
+          payload: form2,
+          headers: form2.getHeaders(),
+        }),
+      ]);
+
+      // At least one should succeed (201), the other may succeed partially or fail (400)
+      const statuses = [response1.statusCode, response2.statusCode].sort();
+      expect(statuses.some((s) => s === 201)).toBe(true);
+
+      // The critical invariant: total photos must never exceed MAX_PHOTOS_PER_TRIP
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tripPhotos)
+        .where(eq(tripPhotos.tripId, trip.id));
+
+      expect(count).toBeLessThanOrEqual(MAX_PHOTOS_PER_TRIP);
     });
   });
 });

@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { UpdatePhotoCaptionInput } from "@tripful/shared/schemas";
 import { MAX_PHOTOS_PER_TRIP } from "@tripful/shared/config";
-import { PermissionDeniedError, PhotoNotFoundError } from "../errors.js";
+import { eq, sql } from "drizzle-orm";
+import { tripPhotos } from "@/db/schema/index.js";
+import {
+  PermissionDeniedError,
+  PhotoNotFoundError,
+  PhotoLimitExceededError,
+} from "../errors.js";
 import { QUEUE } from "@/queues/types.js";
 import type { PhotoProcessingPayload } from "@/queues/types.js";
 
@@ -51,8 +57,7 @@ export const photoController = {
     try {
       const { id: tripId } = request.params;
       const userId = request.user.sub;
-      const { photoService, uploadService, permissionsService, storage } =
-        request.server;
+      const { uploadService, permissionsService, storage } = request.server;
 
       // Check membership
       const isMember = await permissionsService.isMember(userId, tripId);
@@ -62,19 +67,8 @@ export const photoController = {
         );
       }
 
-      // Check photo limit
-      const currentCount = await photoService.getPhotoCount(tripId);
-      if (currentCount >= MAX_PHOTOS_PER_TRIP) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "PHOTO_LIMIT_EXCEEDED",
-            message: `Maximum ${MAX_PHOTOS_PER_TRIP} photos per trip reached`,
-          },
-        });
-      }
-
-      // Get files from request
+      // --- Phase 1: Collect and validate files OUTSIDE the transaction ---
+      // This avoids holding a DB lock during file I/O.
       let files;
       try {
         files = request.files();
@@ -113,15 +107,12 @@ export const photoController = {
         throw fileError;
       }
 
-      const photos = [];
-      let filesProcessed = 0;
+      const validatedFiles: Array<{
+        buffer: Buffer;
+        mimetype: string;
+      }> = [];
 
       for await (const data of files) {
-        // Enforce per-trip photo limit including files in this batch
-        if (currentCount + filesProcessed >= MAX_PHOTOS_PER_TRIP) {
-          break;
-        }
-
         // Convert file stream to buffer
         let fileBuffer;
         try {
@@ -151,15 +142,60 @@ export const photoController = {
         // Validate image (type, size, magic bytes)
         await uploadService.validateImage(fileBuffer, data.mimetype);
 
-        // Create DB record
-        const photo = await photoService.createPhotoRecord(tripId, userId);
+        validatedFiles.push({ buffer: fileBuffer, mimetype: data.mimetype });
+      }
 
-        // Upload raw file to storage
-        const ext = MIME_TO_EXT[data.mimetype] ?? "jpg";
+      if (validatedFiles.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "No file uploaded",
+          },
+        });
+      }
+
+      // --- Phase 2: Count check + record creation INSIDE a transaction ---
+      // SELECT count(*) with FOR UPDATE serializes concurrent uploads.
+      const { db } = request.server;
+      const createdPhotos = await db.transaction(async (tx) => {
+        // Lock rows to serialize concurrent uploads for this trip
+        const rows = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(tripPhotos)
+          .where(eq(tripPhotos.tripId, tripId));
+        const count = rows[0]?.count ?? 0;
+
+        if (count >= MAX_PHOTOS_PER_TRIP) {
+          throw new PhotoLimitExceededError(
+            `Maximum ${MAX_PHOTOS_PER_TRIP} photos per trip reached`,
+          );
+        }
+
+        const created: Array<{
+          photo: typeof tripPhotos.$inferSelect;
+          fileData: { buffer: Buffer; mimetype: string };
+        }> = [];
+
+        for (const fileData of validatedFiles) {
+          if (count + created.length >= MAX_PHOTOS_PER_TRIP) break;
+          const [photo] = await tx
+            .insert(tripPhotos)
+            .values({ tripId, uploadedBy: userId })
+            .returning();
+          created.push({ photo: photo!, fileData });
+        }
+
+        return created;
+      });
+
+      // --- Phase 3: Upload to storage and enqueue jobs AFTER transaction commits ---
+      const photos = [];
+      for (const { photo, fileData } of createdPhotos) {
+        const ext = MIME_TO_EXT[fileData.mimetype] ?? "jpg";
         const rawKey = `photos/${tripId}/${randomUUID()}_raw.${ext}`;
-        await storage.upload(fileBuffer, rawKey, data.mimetype);
+        await storage.upload(fileData.buffer, rawKey, fileData.mimetype);
 
-        // Enqueue processing job
         if (request.server.boss) {
           await request.server.boss.send(QUEUE.PHOTO_PROCESSING, {
             photoId: photo.id,
@@ -169,17 +205,6 @@ export const photoController = {
         }
 
         photos.push(photo);
-        filesProcessed++;
-      }
-
-      if (photos.length === 0) {
-        return reply.status(400).send({
-          success: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "No file uploaded",
-          },
-        });
       }
 
       return reply.status(201).send({
