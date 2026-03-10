@@ -90,7 +90,8 @@ export function TripsContent() {
     );
   }, [trips, searchQuery]);
 
-  // Split trips into upcoming and past based on start date
+  // Split trips into upcoming and past based on end date (or start date)
+  // Trips stay "upcoming" until one day after their end date
   const { upcomingTrips, pastTrips } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -101,8 +102,10 @@ export function TripsContent() {
         upcoming.push(trip);
         continue;
       }
-      const startDate = new Date(trip.startDate);
-      if (startDate >= today) {
+      const effectiveEnd = new Date(trip.endDate ?? trip.startDate);
+      effectiveEnd.setDate(effectiveEnd.getDate() + 1);
+      effectiveEnd.setHours(23, 59, 59, 999);
+      if (effectiveEnd >= today) {
         upcoming.push(trip);
       } else {
         past.push(trip);

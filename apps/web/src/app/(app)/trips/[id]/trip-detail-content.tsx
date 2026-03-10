@@ -183,9 +183,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   // Determine if user is an organizer (from API response metadata)
   const isOrganizer = trip?.isOrganizer ?? false;
 
-  // Check if trip is locked (past end date)
+  // Check if trip is locked (one day after end date)
   const isLocked = trip?.endDate
-    ? new Date(`${trip.endDate}T23:59:59.999Z`) < new Date()
+    ? (() => {
+        const end = new Date(trip.endDate);
+        end.setDate(end.getDate() + 1);
+        end.setHours(23, 59, 59, 999);
+        return end < new Date();
+      })()
     : false;
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
