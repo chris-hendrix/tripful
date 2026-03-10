@@ -265,8 +265,11 @@ test.describe("Photos Journey", () => {
           );
           await expect(lightbox).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
-          // Click delete button inside lightbox
+          // Click delete button inside lightbox (opens confirmation dialog)
           await lightbox.locator('[aria-label="Delete photo"]').click();
+
+          // Confirm deletion in the AlertDialog
+          await page.getByRole("button", { name: "Delete" }).click();
 
           // Wait for deletion to process
           await dismissToast(page);

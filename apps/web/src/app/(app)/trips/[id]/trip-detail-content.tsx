@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
@@ -184,14 +184,13 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   const isOrganizer = trip?.isOrganizer ?? false;
 
   // Check if trip is locked (one day after end date)
-  const isLocked = trip?.endDate
-    ? (() => {
-        const end = new Date(trip.endDate);
-        end.setDate(end.getDate() + 1);
-        end.setHours(23, 59, 59, 999);
-        return end < new Date();
-      })()
-    : false;
+  const isLocked = useMemo(() => {
+    if (!trip?.endDate) return false;
+    const end = new Date(trip.endDate);
+    end.setDate(end.getDate() + 1);
+    end.setHours(23, 59, 59, 999);
+    return end < new Date();
+  }, [trip?.endDate]);
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
 

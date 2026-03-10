@@ -10,6 +10,17 @@ import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { getUploadUrl } from "@/lib/api";
 import { useUpdatePhotoCaption, useDeletePhoto } from "@/hooks/use-photos";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Photo } from "@tripful/shared/types";
 
 interface PhotoLightboxProps {
@@ -173,14 +184,31 @@ export function PhotoLightbox({
         </span>
         <div className="flex items-center gap-2">
           {isModifiable && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="p-2 rounded-full bg-black/50 hover:bg-destructive transition-colors text-white cursor-pointer"
-              aria-label="Delete photo"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 rounded-full bg-black/50 hover:bg-destructive transition-colors text-white cursor-pointer"
+                  aria-label="Delete photo"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete photo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           <button
             type="button"

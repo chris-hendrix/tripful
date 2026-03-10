@@ -63,14 +63,17 @@ export function PhotoUploadDropzone({
   const remaining = maxCount - currentCount;
   const isDisabled = remaining <= 0;
 
+  // Keep a ref to fileEntries so the unmount cleanup always sees the latest value
+  const fileEntriesRef = useRef<FileEntry[]>([]);
+  fileEntriesRef.current = fileEntries;
+
   // Cleanup blob URLs on unmount
   useEffect(() => {
     return () => {
-      for (const entry of fileEntries) {
+      for (const entry of fileEntriesRef.current) {
         URL.revokeObjectURL(entry.previewUrl);
       }
     };
-    // Only run on unmount
   }, []);
 
   const handleFiles = async (files: FileList | File[]) => {
