@@ -118,7 +118,7 @@ export function MobileTripLayout({
       themeFont={trip.themeFont}
       scope="page"
     >
-      <div className="h-dvh flex flex-col bg-background overflow-hidden">
+      <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-hidden">
         <IconStrip activeIndex={activeIndex} onIconClick={handleIconClick} />
 
         <AnimatedHero
