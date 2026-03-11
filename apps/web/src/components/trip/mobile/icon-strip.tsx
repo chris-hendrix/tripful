@@ -1,9 +1,9 @@
 "use client";
 
-import { Info, CalendarDays, MessageCircle, Camera } from "lucide-react";
+import { Home, CalendarDays, MessageCircle, Camera } from "lucide-react";
 
 const ICONS = [
-  { icon: Info, label: "Info" },
+  { icon: Home, label: "Home" },
   { icon: CalendarDays, label: "Itinerary" },
   { icon: MessageCircle, label: "Messages" },
   { icon: Camera, label: "Photos" },
@@ -28,8 +28,8 @@ export function IconStrip({ activeIndex, onIconClick }: IconStripProps) {
             aria-current={isActive ? "true" : undefined}
             className={`flex items-center justify-center w-10 h-10 transition-all ${
               isActive
-                ? "text-accent-foreground scale-110"
-                : "text-muted-foreground"
+                ? "text-primary scale-110"
+                : "text-foreground/50"
             }`}
           >
             <Icon
