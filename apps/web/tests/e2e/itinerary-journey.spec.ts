@@ -371,6 +371,17 @@ test.describe("Itinerary Journey", () => {
       await test.step("mobile viewport", async () => {
         await page.setViewportSize({ width: 375, height: 667 });
 
+        // On mobile the trip detail renders a swiper layout starting on the
+        // Info panel (index 0).  Navigate to the Itinerary panel (index 1)
+        // via the icon strip so the itinerary header and FAB become visible.
+        const itineraryIcon = page.getByRole("button", {
+          name: "Itinerary",
+        });
+        await itineraryIcon.waitFor({ state: "visible", timeout: 5_000 });
+        await itineraryIcon.click();
+        // Allow swiper transition to settle
+        await page.waitForTimeout(400);
+
         const header = page.getByTestId("itinerary-header");
         await expect(header).toBeVisible();
 

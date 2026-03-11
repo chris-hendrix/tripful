@@ -9,6 +9,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
+import { navigateToMobilePanel } from "./helpers/mobile-panels";
 import { dismissToast } from "./helpers/toast";
 import {
   NAVIGATION_TIMEOUT,
@@ -803,6 +804,8 @@ test.describe("Trip Journey", () => {
       });
 
       await test.step("open My Travel dialog via FAB", async () => {
+        // On mobile the FAB is only visible on the Itinerary panel.
+        await navigateToMobilePanel(page, "Itinerary");
         await dismissToast(page);
 
         const fab = page.getByRole("button", { name: "Add to itinerary" });

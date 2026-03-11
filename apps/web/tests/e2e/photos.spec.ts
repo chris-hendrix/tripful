@@ -4,6 +4,7 @@ import fs from "fs";
 import { authenticateViaAPI } from "./helpers/auth";
 import { createTrip } from "./helpers/trips";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
+import { navigateToMobilePanel } from "./helpers/mobile-panels";
 import { dismissToast } from "./helpers/toast";
 import { snap } from "./helpers/screenshots";
 import { API_BASE, ELEMENT_TIMEOUT } from "./helpers/timeouts";
@@ -135,6 +136,9 @@ test.describe("Photos Journey", () => {
         // Extract tripId from URL for API polling
         const tripId = page.url().split("/trips/")[1];
 
+        // On mobile the photos section is in the Photos panel.
+        await navigateToMobilePanel(page, "Photos");
+
         await test.step("verify empty state", async () => {
           // Photos section header shows 0/20 count
           await expect(page.getByText(/Photos \(0\/20\)/)).toBeVisible({
@@ -156,6 +160,8 @@ test.describe("Photos Journey", () => {
 
           // Poll the API until the worker finishes processing, then reload
           await waitForPhotoProcessing(page, tripId, 1);
+          // Reload resets mobile layout to Info panel — navigate back to Photos.
+          await navigateToMobilePanel(page, "Photos");
 
           // After reload, verify the ready photo card is visible
           await expect(readyPhotoCards(page).first()).toBeVisible({
@@ -178,6 +184,7 @@ test.describe("Photos Journey", () => {
 
           // Poll the API until both photos are ready, then reload
           await waitForPhotoProcessing(page, tripId, 2);
+          await navigateToMobilePanel(page, "Photos");
 
           // After reload, verify both photo cards are visible
           await expect(readyPhotoCards(page)).toHaveCount(2, {

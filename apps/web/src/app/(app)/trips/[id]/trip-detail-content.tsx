@@ -257,6 +257,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
         user={user}
         removeMember={removeMember}
         handleUpdateRole={handleUpdateRole}
+        initialShowOnboarding={showOnboarding}
       />
     );
   }

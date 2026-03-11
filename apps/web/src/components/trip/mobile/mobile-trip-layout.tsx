@@ -70,6 +70,7 @@ interface MobileTripLayoutProps {
     isPending: boolean;
   };
   handleUpdateRole: (member: MemberWithProfile, isOrganizer: boolean) => void;
+  initialShowOnboarding?: boolean;
 }
 
 export function MobileTripLayout({
@@ -85,6 +86,7 @@ export function MobileTripLayout({
   user,
   removeMember,
   handleUpdateRole,
+  initialShowOnboarding,
 }: MobileTripLayoutProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -93,7 +95,7 @@ export function MobileTripLayout({
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(initialShowOnboarding ?? false);
   const [removingMember, setRemovingMember] = useState<{
     member: MemberWithProfile;
   } | null>(null);
