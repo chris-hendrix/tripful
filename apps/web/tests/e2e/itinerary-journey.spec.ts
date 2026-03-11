@@ -376,6 +376,7 @@ test.describe("Itinerary Journey", () => {
         // via the icon strip so the itinerary header and FAB become visible.
         const itineraryIcon = page.getByRole("button", {
           name: "Itinerary",
+          exact: true,
         });
         await itineraryIcon.waitFor({ state: "visible", timeout: 5_000 });
         await itineraryIcon.click();

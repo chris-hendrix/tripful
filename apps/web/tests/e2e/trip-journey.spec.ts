@@ -879,7 +879,7 @@ test.describe("Trip Journey", () => {
         await page.getByText("Delegated Member").first().click();
         const locationLink = page.getByRole("link", {
           name: /Seattle-Tacoma/,
-        });
+        }).first();
         await expect(locationLink).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
         await snap(page, "30-member-travel-delegation");
