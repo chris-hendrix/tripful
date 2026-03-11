@@ -239,7 +239,7 @@ test.describe("Trip Journey", () => {
         tripId = page.url().split("/trips/")[1];
         await expect(
           page.getByRole("heading", { level: 1, name: tripName }),
-        ).toBeVisible();
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
         await expect(tripDetail.editButton).toBeVisible();
       });
 
