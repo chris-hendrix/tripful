@@ -9,6 +9,7 @@ import { snap } from "./helpers/screenshots";
 import { removeNextjsDevOverlay } from "./helpers/nextjs-dev";
 import { pickDate, pickDateTime } from "./helpers/date-pickers";
 import { createTripViaAPI, inviteAndAcceptViaAPI } from "./helpers/invitations";
+import { navigateToMobilePanel } from "./helpers/mobile-panels";
 import { dismissToast } from "./helpers/toast";
 import {
   NAVIGATION_TIMEOUT,
@@ -238,7 +239,7 @@ test.describe("Trip Journey", () => {
         tripId = page.url().split("/trips/")[1];
         await expect(
           page.getByRole("heading", { level: 1, name: tripName }),
-        ).toBeVisible();
+        ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
         await expect(tripDetail.editButton).toBeVisible();
       });
 
@@ -803,6 +804,8 @@ test.describe("Trip Journey", () => {
       });
 
       await test.step("open My Travel dialog via FAB", async () => {
+        // On mobile the FAB is only visible on the Itinerary panel.
+        await navigateToMobilePanel(page, "Itinerary");
         await dismissToast(page);
 
         const fab = page.getByRole("button", { name: "Add to itinerary" });
@@ -857,7 +860,7 @@ test.describe("Trip Journey", () => {
         await page
           .locator('textarea[name="details"]')
           .fill("Arriving on behalf of member");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Wait for success toast
         await expect(
@@ -876,7 +879,7 @@ test.describe("Trip Journey", () => {
         await page.getByText("Delegated Member").first().click();
         const locationLink = page.getByRole("link", {
           name: /Seattle-Tacoma/,
-        });
+        }).first();
         await expect(locationLink).toBeVisible({ timeout: ELEMENT_TIMEOUT });
 
         await snap(page, "30-member-travel-delegation");

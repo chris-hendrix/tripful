@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { dismissToast } from "./toast";
 import { pickDateTime } from "./date-pickers";
+import { navigateToMobilePanel } from "./mobile-panels";
 import { ELEMENT_TIMEOUT, SLOW_NAVIGATION_TIMEOUT } from "./timeouts";
 
 /**
@@ -27,6 +28,9 @@ async function hideToasts(page: Page): Promise<void> {
 
 /** Helper: open the FAB dropdown and click a menu item, or fall back to empty-state button. */
 export async function clickFabAction(page: Page, actionName: string) {
+  // On mobile the FAB is only visible when the Itinerary panel is active.
+  await navigateToMobilePanel(page, "Itinerary");
+
   // Dismiss any Sonner toast so it doesn't intercept the click.
   await dismissToast(page);
 

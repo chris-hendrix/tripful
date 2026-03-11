@@ -538,3 +538,8 @@
   overflow: hidden;
   border-radius: 2px;
 }
+
+/* Swiper: ensure slides fill available height */
+.swiper-slide {
+  height: auto !important;
+}

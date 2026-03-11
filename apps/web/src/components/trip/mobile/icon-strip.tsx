@@ -1,0 +1,44 @@
+"use client";
+
+import { Home, CalendarDays, MessageCircle, Camera } from "lucide-react";
+
+const ICONS = [
+  { icon: Home, label: "Home" },
+  { icon: CalendarDays, label: "Itinerary" },
+  { icon: MessageCircle, label: "Messages" },
+  { icon: Camera, label: "Photos" },
+] as const;
+
+interface IconStripProps {
+  activeIndex: number;
+  onIconClick: (index: number) => void;
+}
+
+export function IconStrip({ activeIndex, onIconClick }: IconStripProps) {
+  return (
+    <div className="shrink-0 flex items-center justify-around bg-background/90 backdrop-blur-sm pt-safe h-[44px] z-40">
+      {ICONS.map(({ icon: Icon, label }, index) => {
+        const isActive = index === activeIndex;
+        return (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onIconClick(index)}
+            aria-label={label}
+            aria-current={isActive ? "true" : undefined}
+            className={`flex items-center justify-center w-10 h-10 transition-all ${
+              isActive
+                ? "text-primary scale-110"
+                : "text-foreground/50"
+            }`}
+          >
+            <Icon
+              className="w-5 h-5"
+              strokeWidth={isActive ? 2.5 : 2}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}

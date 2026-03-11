@@ -140,7 +140,7 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('textarea[name="details"]')
           .fill("Arriving from Chicago");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Travel card shows member name (location details in detail sheet)
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
@@ -274,7 +274,7 @@ test.describe("Itinerary Journey", () => {
         await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
 
         await page.locator('input[name="location"]').fill("Las Vegas Airport");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Wait for success toast confirming API call completed (refetch follows)
         await expect(page.getByText(/travel details added/i)).toBeVisible({
@@ -370,6 +370,18 @@ test.describe("Itinerary Journey", () => {
 
       await test.step("mobile viewport", async () => {
         await page.setViewportSize({ width: 375, height: 667 });
+
+        // On mobile the trip detail renders a swiper layout starting on the
+        // Info panel (index 0).  Navigate to the Itinerary panel (index 1)
+        // via the icon strip so the itinerary header and FAB become visible.
+        const itineraryIcon = page.getByRole("button", {
+          name: "Itinerary",
+          exact: true,
+        });
+        await itineraryIcon.waitFor({ state: "visible", timeout: 5_000 });
+        await itineraryIcon.click();
+        // Allow swiper transition to settle
+        await page.waitForTimeout(400);
 
         const header = page.getByTestId("itinerary-header");
         await expect(header).toBeVisible();
