@@ -121,14 +121,12 @@ export function MobileTripLayout({
       <div className="h-dvh flex flex-col bg-background overflow-hidden">
         <IconStrip activeIndex={activeIndex} onIconClick={handleIconClick} />
 
-        <div className="mt-[44px]">
-          <AnimatedHero
-            trip={trip}
-            collapseProgress={collapseT}
-            isOrganizer={isOrganizer}
-            onCustomize={() => setIsCustomizeOpen(true)}
-          />
-        </div>
+        <AnimatedHero
+          trip={trip}
+          collapseProgress={collapseT}
+          isOrganizer={isOrganizer}
+          onCustomize={() => setIsCustomizeOpen(true)}
+        />
 
         <div className="flex-1 min-h-0">
           <MobileTripSwiper

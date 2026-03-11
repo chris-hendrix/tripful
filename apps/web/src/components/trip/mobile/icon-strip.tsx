@@ -16,7 +16,7 @@ interface IconStripProps {
 
 export function IconStrip({ activeIndex, onIconClick }: IconStripProps) {
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-around bg-background/90 backdrop-blur-sm pt-safe h-[44px]">
+    <div className="shrink-0 flex items-center justify-around bg-background/90 backdrop-blur-sm pt-safe h-[44px] z-40">
       {ICONS.map(({ icon: Icon, label }, index) => {
         const isActive = index === activeIndex;
         return (

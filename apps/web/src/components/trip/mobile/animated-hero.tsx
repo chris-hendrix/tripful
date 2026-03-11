@@ -37,16 +37,22 @@ export function AnimatedHero({
   const dateRange = formatDateRange(trip.startDate, trip.endDate);
   const heroHeight = HERO_FULL - (HERO_FULL - HERO_COMPACT) * collapseProgress;
 
+  // The inner content stays full height and slides up as the container shrinks,
+  // revealing only the bottom portion (title/metadata area) when collapsed.
+  const translateY = -(HERO_FULL - heroHeight);
+
   return (
     <div
-      className="relative w-full overflow-hidden"
+      className="relative w-full overflow-hidden shrink-0"
       style={{ height: `${heroHeight}px` }}
     >
-      {/* Full hero layer */}
+      {/* Full-height inner that slides upward as container shrinks */}
       <div
-        className="absolute inset-0"
-        style={{ opacity: 1 - collapseProgress }}
-        aria-hidden={collapseProgress === 1}
+        className="relative w-full"
+        style={{
+          height: `${HERO_FULL}px`,
+          transform: `translateY(${translateY}px)`,
+        }}
       >
         {/* Background: cover photo -> theme cover -> theme gradient -> default */}
         {trip.coverImageUrl ? (
@@ -83,8 +89,8 @@ export function AnimatedHero({
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         )}
 
-        {/* Title + metadata */}
-        <div className="absolute bottom-0 left-0 right-0 pb-4">
+        {/* Title + metadata — pinned to bottom */}
+        <div className="absolute bottom-0 left-0 right-0 pb-3">
           <div className="px-4 flex items-end">
             <div className="flex-1 min-w-0">
               <h1
@@ -123,7 +129,7 @@ export function AnimatedHero({
               </div>
             </div>
 
-            {/* Customize button */}
+            {/* Customize button — fades out as hero collapses */}
             {isOrganizer && (
               <button
                 onClick={onCustomize}
@@ -132,6 +138,7 @@ export function AnimatedHero({
                     ? "bg-white/20 text-white hover:bg-white/30"
                     : "bg-black/10 text-foreground hover:bg-black/20"
                 }`}
+                style={{ opacity: 1 - collapseProgress }}
                 aria-label="Customize theme"
               >
                 <Paintbrush className="w-3.5 h-3.5" />
@@ -139,42 +146,6 @@ export function AnimatedHero({
             )}
           </div>
         </div>
-      </div>
-
-      {/* Compact hero layer */}
-      <div
-        className="absolute inset-0 flex items-center px-4 gap-3"
-        style={{ opacity: collapseProgress }}
-        aria-hidden={collapseProgress === 0}
-      >
-        {/* Small thumbnail */}
-        <div className="relative w-8 h-8 rounded-md overflow-hidden shrink-0">
-          {trip.coverImageUrl ? (
-            <Image
-              src={getUploadUrl(trip.coverImageUrl)!}
-              alt={trip.name}
-              fill
-              sizes="32px"
-              className="object-cover"
-            />
-          ) : preset?.defaultCoverUrl ? (
-            <Image
-              src={preset.defaultCoverUrl}
-              alt={preset.name}
-              fill
-              sizes="32px"
-              className="object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/30" />
-          )}
-        </div>
-
-        {/* One-liner: "Japan · Mar 15-22" */}
-        <span className="text-sm font-medium text-foreground truncate">
-          {trip.destination}
-          <span className="text-muted-foreground"> &middot; {dateRange}</span>
-        </span>
       </div>
     </div>
   );
