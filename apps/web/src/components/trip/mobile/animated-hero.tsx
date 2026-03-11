@@ -9,7 +9,7 @@ import { getUploadUrl } from "@/lib/api";
 import type { TripDetailWithMeta } from "@/hooks/trip-queries";
 
 const HERO_FULL = 200;
-const HERO_COMPACT = 48;
+const HERO_COMPACT = 80;
 
 interface AnimatedHeroProps {
   trip: TripDetailWithMeta;
