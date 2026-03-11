@@ -860,7 +860,7 @@ test.describe("Trip Journey", () => {
         await page
           .locator('textarea[name="details"]')
           .fill("Arriving on behalf of member");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Wait for success toast
         await expect(

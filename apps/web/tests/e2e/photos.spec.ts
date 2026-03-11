@@ -287,7 +287,7 @@ test.describe("Photos Journey", () => {
           await lightbox.locator('[aria-label="Delete photo"]').click();
 
           // Confirm deletion in the AlertDialog
-          await page.getByRole("button", { name: "Delete" }).click();
+          await page.locator('[data-slot="alert-dialog-action"]', { hasText: "Delete" }).click();
 
           // Wait for deletion to process
           await dismissToast(page);

@@ -140,7 +140,7 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('textarea[name="details"]')
           .fill("Arriving from Chicago");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Travel card shows member name (location details in detail sheet)
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
@@ -274,7 +274,7 @@ test.describe("Itinerary Journey", () => {
         await pickDateTime(page, travelTimeTrigger, "2027-03-10T09:00");
 
         await page.locator('input[name="location"]').fill("Las Vegas Airport");
-        await page.getByRole("button", { name: "Add travel details" }).click();
+        await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
         // Wait for success toast confirming API call completed (refetch follows)
         await expect(page.getByText(/travel details added/i)).toBeVisible({
