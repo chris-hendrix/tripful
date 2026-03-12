@@ -107,12 +107,16 @@ export function TodaySection({
     todayAccommodations.length === 0 &&
     sortedEvents.length === 0;
 
-  const todayLabel = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  }).format(new Date());
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      }).format(new Date()),
+    [timezone],
+  );
 
   return (
     <div className="mb-6">

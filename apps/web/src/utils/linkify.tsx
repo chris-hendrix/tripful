@@ -17,6 +17,9 @@ export function linkifyText(text: string): ReactNode[] {
   const matches: UrlMatch[] = [];
   let match: RegExpExecArray | null;
 
+  // Reset lastIndex — the /g flag makes exec() stateful across calls
+  URL_REGEX.lastIndex = 0;
+
   while ((match = URL_REGEX.exec(text)) !== null) {
     let url = match[0];
     const index = match.index;
