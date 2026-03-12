@@ -84,6 +84,34 @@ describe("linkifyText", () => {
     );
   });
 
+  it("linkifies bare domain with common TLD", () => {
+    const result = linkifyText("Check google.com for info");
+    expect(result).toHaveLength(3);
+    expect(result[0]).toBe("Check ");
+    const anchor = result[1] as React.ReactElement;
+    expect(anchor.props.href).toBe("https://google.com");
+    expect(anchor.props.children).toBe("google.com");
+    expect(result[2]).toBe(" for info");
+  });
+
+  it("linkifies bare domain with path", () => {
+    const result = linkifyText("See docs.google.com/spreadsheets for details");
+    expect(result).toHaveLength(3);
+    const anchor = result[1] as React.ReactElement;
+    expect(anchor.props.href).toBe("https://docs.google.com/spreadsheets");
+    expect(anchor.props.children).toBe("docs.google.com/spreadsheets");
+  });
+
+  it("does not linkify words that look like domains but have unknown TLDs", () => {
+    const result = linkifyText("file.txt is not a URL");
+    expect(result).toEqual(["file.txt is not a URL"]);
+  });
+
+  it("does not linkify email-like patterns", () => {
+    const result = linkifyText("Email user@example.com for help");
+    expect(result).toEqual(["Email user@example.com for help"]);
+  });
+
   it("returns single-element array for empty string", () => {
     const result = linkifyText("");
     expect(result).toEqual([""]);
