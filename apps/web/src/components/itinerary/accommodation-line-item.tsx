@@ -17,7 +17,7 @@ export const AccommodationLineItem = memo(function AccommodationLineItem({
     <div
       role="button"
       tabIndex={0}
-      className="flex items-center gap-2 py-2 px-3 border-b border-border/40 hover:bg-muted/50 cursor-pointer transition-colors"
+      className="flex items-center gap-2 py-2 px-3 rounded-md border border-border/60 border-l-4 border-l-accommodation bg-accommodation-light transition-all hover:shadow-lg motion-safe:hover:-translate-y-1 motion-safe:active:scale-[0.98] cursor-pointer"
       onClick={() => onClick(accommodation)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
