@@ -270,7 +270,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     >
       <div
         className="min-h-screen bg-background motion-safe:animate-[revealUp_400ms_ease-out_both]"
-        style={preset ? { background: "var(--theme-background)" } : undefined}
+        style={{
+          viewTransitionName: "trip-detail",
+          ...(preset ? { background: "var(--theme-background)" } : {}),
+        }}
       >
         {/* Hero section with cover image + overlay */}
         <div className="relative h-64 sm:h-80 overflow-hidden">

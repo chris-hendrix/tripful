@@ -133,7 +133,10 @@ export function MobileTripLayout({
       themeFont={trip.themeFont}
       scope="page"
     >
-      <div className="h-[calc(100dvh-3.5rem)] flex flex-col bg-background overflow-hidden">
+      <div
+        className="h-[calc(100dvh-3.5rem)] flex flex-col bg-background overflow-hidden"
+        style={{ viewTransitionName: "trip-detail" }}
+      >
         <IconStrip activeIndex={activeIndex} onIconClick={handleIconClick} />
 
         <AnimatedHero

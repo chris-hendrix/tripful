@@ -318,6 +318,37 @@
   }
 }
 
+/* Trip detail page slide transitions */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30%);
+  }
+}
+
+::view-transition-old(trip-detail) {
+  animation: slideOutToRight 300ms ease-out forwards;
+}
+
+::view-transition-new(trip-detail) {
+  animation: slideInFromRight 300ms ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
