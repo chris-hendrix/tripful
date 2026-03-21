@@ -372,7 +372,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           <div className="lg:flex lg:gap-8">
             {/* Sidebar — reuses mobile InfoPanel */}
             <aside className="hidden lg:block lg:w-[340px] lg:shrink-0">
-              <div className="lg:sticky lg:top-16">
+              <div className="lg:sticky lg:top-16 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto lg:scrollbar-none">
                 <InfoPanel
                   trip={trip}
                   tripId={tripId}

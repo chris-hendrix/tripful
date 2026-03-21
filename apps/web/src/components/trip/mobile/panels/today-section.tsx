@@ -1,30 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Event, DailyForecast, TemperatureUnit } from "@journiful/shared/types";
+import type { Event } from "@journiful/shared/types";
 import { useEvents } from "@/hooks/use-events";
 import { getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
-import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 import { EventCard } from "@/components/itinerary/event-card";
 import { EventDetailSheet } from "@/components/itinerary/event-detail-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const MAX_VISIBLE_EVENTS = 4;
-
 interface TodaySectionProps {
   tripId: string;
   timezone: string;
-  onNavigateToItinerary: () => void;
-  weather?: DailyForecast;
-  temperatureUnit?: TemperatureUnit;
 }
 
 export function TodaySection({
   tripId,
   timezone,
-  onNavigateToItinerary,
-  weather,
-  temperatureUnit = "fahrenheit",
 }: TodaySectionProps) {
   const { data: events, isPending: eventsLoading } = useEvents(tripId);
 
@@ -79,8 +70,6 @@ export function TodaySection({
     });
   }, [todayEvents]);
 
-  const visibleEvents = sortedEvents.slice(0, MAX_VISIBLE_EVENTS);
-  const hasMoreEvents = sortedEvents.length > MAX_VISIBLE_EVENTS;
 
   // Detail sheet state
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -88,46 +77,11 @@ export function TodaySection({
   const isLoading = eventsLoading;
   const isEmpty = !isLoading && sortedEvents.length === 0;
 
-  const todayLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: timezone,
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }).format(new Date()),
-    [timezone],
-  );
-
-  // Weather badge text
-  const weatherBadge = useMemo(() => {
-    if (!weather) return null;
-    const info = getWeatherInfo(weather.weatherCode);
-    const Icon = info.icon;
-    const temp = toDisplayTemp(weather.temperatureMax, temperatureUnit);
-    const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
-    return { Icon, temp, unit };
-  }, [weather, temperatureUnit]);
-
   // Return null if no events today (parent handles conditional rendering)
   if (!isLoading && isEmpty) return null;
 
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-        <span>Today</span>
-        <span className="font-normal text-muted-foreground">
-          {todayLabel}
-        </span>
-        {weatherBadge && (
-          <span className="inline-flex items-center gap-1 font-normal text-muted-foreground">
-            <span>·</span>
-            <weatherBadge.Icon className="size-3.5" />
-            <span>{weatherBadge.temp}°{weatherBadge.unit}</span>
-          </span>
-        )}
-      </h3>
-
+    <div>
       {isLoading && (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full rounded-md" />
@@ -137,7 +91,7 @@ export function TodaySection({
 
       {!isLoading && !isEmpty && (
         <div className="space-y-2">
-          {visibleEvents.map((event) => (
+          {sortedEvents.map((event) => (
             <EventCard
               key={event.id}
               event={event}
@@ -145,22 +99,6 @@ export function TodaySection({
               onClick={setSelectedEvent}
             />
           ))}
-
-          {hasMoreEvents && (
-            <button
-              onClick={() => {
-                const todayEl = document.getElementById("day-today");
-                if (todayEl) {
-                  todayEl.scrollIntoView({ behavior: "smooth" });
-                } else {
-                  onNavigateToItinerary();
-                }
-              }}
-              className="w-full text-center text-sm text-primary hover:text-primary/80 py-2 transition-colors cursor-pointer"
-            >
-              View all in itinerary
-            </button>
-          )}
         </div>
       )}
 

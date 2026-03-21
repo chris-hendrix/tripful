@@ -104,15 +104,6 @@ export function InfoPanel({
   const goingCount = trip.memberCount;
   const organizerNames = trip.organizers.map((o) => o.displayName).join(", ");
 
-  // Today's forecast for inline weather in TodaySection
-  const todayString = useMemo(
-    () => getDayInTimezone(new Date(), timezone),
-    [timezone],
-  );
-  const todayForecast = useMemo(() => {
-    if (!weather?.forecasts) return undefined;
-    return weather.forecasts.find((f) => f.date === todayString);
-  }, [weather, todayString]);
 
   return (
     <div
@@ -234,13 +225,12 @@ export function InfoPanel({
 
         {/* 4. Today section (only during trip) */}
         {phase === "duringTrip" && (
-          <TodaySection
-            tripId={tripId}
-            timezone={timezone}
-            onNavigateToItinerary={onNavigateToItinerary}
-            {...(todayForecast ? { weather: todayForecast } : {})}
-            temperatureUnit={temperatureUnit}
-          />
+          <CollapsibleSection label="Today" defaultOpen>
+            <TodaySection
+              tripId={tripId}
+              timezone={timezone}
+            />
+          </CollapsibleSection>
         )}
 
         {/* 5. About this trip */}
