@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateTripSchema, type UpdateTripInput } from "@tripful/shared";
+import { updateTripSchema, type UpdateTripInput } from "@journiful/shared";
 import { toast } from "sonner";
 import {
   useUpdateTrip,
@@ -417,7 +417,7 @@ export function EditTripDialog({
                   type="submit"
                   disabled={isPending || isDeleting}
                   variant="gradient"
-                  className="h-12 px-8 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  size="lg"
                 >
                   {isPending && (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />

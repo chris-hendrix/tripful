@@ -27,7 +27,7 @@ import {
   useMarkAllAsRead,
 } from "@/hooks/use-notifications";
 import { ErrorBoundary } from "@/components/error-boundary";
-import type { Notification } from "@tripful/shared/types";
+import type { Notification } from "@journiful/shared/types";
 import { NotificationItem } from "./notification-item";
 
 export function NotificationBell() {
@@ -65,7 +65,7 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative rounded-lg"
+            className="relative rounded-full hover:bg-transparent text-muted-foreground hover:text-foreground"
             aria-label={ariaLabel}
           >
             <Bell />

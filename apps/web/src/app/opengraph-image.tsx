@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Tripful - Group Trip Planner";
+export const alt = "Journiful - Group Trip Planner";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -51,10 +51,23 @@ export default async function OGImage() {
           display: "flex",
         }}
       >
-        Tripful
+        Journiful
       </div>
 
       {/* Tagline */}
+      <div
+        style={{
+          fontSize: 32,
+          fontFamily: "DM Sans",
+          color: "#a09080",
+          display: "flex",
+          marginBottom: 12,
+        }}
+      >
+        Memories & Itineraries
+      </div>
+
+      {/* Subtitle */}
       <div
         style={{
           fontSize: 28,

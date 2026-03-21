@@ -17,8 +17,8 @@ import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
 import { supportsHover } from "@/lib/supports-hover";
 import type { TripDetailWithMeta } from "@/hooks/trip-queries";
-import type { TripWeatherResponse, TemperatureUnit } from "@tripful/shared/types";
-import { THEME_PRESETS } from "@tripful/shared/config";
+import type { TripWeatherResponse, TemperatureUnit } from "@journiful/shared/types";
+import { THEME_PRESETS } from "@journiful/shared/config";
 
 const preloadInviteMembersDialog = () =>
   void import("@/components/trip/invite-members-dialog");
@@ -40,6 +40,7 @@ interface InfoPanelProps {
   onOpenSettings: () => void;
   onOpenMembers: () => void;
   onNavigateToItinerary: () => void;
+  onScroll?: (scrollTop: number) => void;
 }
 
 export function InfoPanel({
@@ -55,13 +56,17 @@ export function InfoPanel({
   onOpenSettings,
   onOpenMembers,
   onNavigateToItinerary,
+  onScroll,
 }: InfoPanelProps) {
   const preset = trip.themeId
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
     : null;
 
   return (
-    <div className="px-4 pt-8 pb-2">
+    <div
+      className="px-4 pt-8 pb-2 h-full overflow-y-auto"
+      onScroll={onScroll ? (e) => onScroll(e.currentTarget.scrollTop) : undefined}
+    >
       <div className="mb-8">
         {/* RSVP + action icons */}
         <div className="flex items-center mb-6">

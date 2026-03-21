@@ -22,7 +22,7 @@ import {
   getRevokeInvitationErrorMessage,
 } from "@/hooks/use-invitations";
 import type { MemberWithProfile } from "@/hooks/use-invitations";
-import type { Invitation } from "@tripful/shared/types";
+import type { Invitation } from "@journiful/shared/types";
 import {
   useMuteMember,
   useUnmuteMember,
@@ -195,7 +195,7 @@ function MemberRow({
               className="text-muted-foreground"
               aria-label={`Actions for ${member.displayName}`}
             >
-              <EllipsisVertical className="w-4 h-4" />
+              <EllipsisVertical />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -290,7 +290,7 @@ function PendingInvitationRow({
         disabled={isRevoking}
         aria-label={`Revoke invitation to ${invitation.inviteePhone}`}
       >
-        <X className="w-4 h-4" />
+        <X />
       </Button>
     </div>
   );
@@ -368,7 +368,6 @@ export function MembersList({
               onClick={onInvite}
               variant="outline"
               size="sm"
-              className="h-10 px-4 rounded-md border-input hover:bg-secondary"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Invite members
@@ -511,7 +510,6 @@ export function MembersList({
             onClick={onInvite}
             variant="outline"
             size="sm"
-            className="h-10 px-4 rounded-md border-input hover:bg-secondary"
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Invite

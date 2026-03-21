@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createTripSchema, type CreateTripInput } from "@tripful/shared";
-import { THEME_PRESETS } from "@tripful/shared/config";
+import { createTripSchema, type CreateTripInput } from "@journiful/shared";
+import { THEME_PRESETS } from "@journiful/shared/config";
 import { toast } from "sonner";
 import { useCreateTrip, getCreateTripErrorMessage } from "@/hooks/use-trips";
 import { mapServerErrors } from "@/lib/form-errors";
@@ -414,7 +414,7 @@ export function CreateTripDialog({
                       type="button"
                       onClick={handleContinue}
                       variant="gradient"
-                      className="h-12 px-8 rounded-md"
+                      size="lg"
                     >
                       Continue
                     </Button>
@@ -499,7 +499,8 @@ export function CreateTripDialog({
                       variant="outline"
                       onClick={handleBack}
                       disabled={isPending}
-                      className="flex-1 h-12 rounded-md border-input"
+                      size="lg"
+                      className="flex-1"
                     >
                       Back
                     </Button>
@@ -507,7 +508,8 @@ export function CreateTripDialog({
                       type="submit"
                       disabled={isPending}
                       variant="gradient"
-                      className="flex-1 h-12 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      size="lg"
+                      className="flex-1"
                     >
                       {isPending && (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
