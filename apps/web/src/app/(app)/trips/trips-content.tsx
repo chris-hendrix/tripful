@@ -162,7 +162,7 @@ export function TripsContent() {
               onClick={toggleSearch}
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-md text-muted-foreground hover:text-foreground"
+              className="h-10 w-10 rounded-md text-muted-foreground hover:text-foreground hover:bg-transparent"
               aria-label={searchOpen ? "Close search" : "Search trips"}
             >
               <Search className="w-4 h-4" />
@@ -191,7 +191,7 @@ export function TripsContent() {
                 placeholder="Search by name or destination..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 pl-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-md"
+                className="h-12 pl-12 text-base border-border/50 bg-background/50 focus-visible:border-ring focus-visible:ring-ring rounded-md"
               />
             </div>
           </div>
