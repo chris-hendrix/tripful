@@ -65,7 +65,7 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative rounded-full"
+            className="relative rounded-full hover:bg-transparent text-muted-foreground hover:text-foreground"
             aria-label={ariaLabel}
           >
             <Bell />
