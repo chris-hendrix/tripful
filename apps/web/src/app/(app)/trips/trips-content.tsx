@@ -158,7 +158,7 @@ export function TripsContent() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search trips..."
+            placeholder="Search by name or destination..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-12 pl-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-md"
@@ -204,13 +204,13 @@ export function TripsContent() {
             </div>
             <div className="relative max-w-md mx-auto">
               <p className="text-2xl text-accent mb-2 font-script">
-                No postcards yet...
+                No trips yet...
               </p>
               <h2 className="text-xl font-semibold text-foreground mb-2 font-playfair">
                 Your adventures await
               </h2>
               <p className="text-muted-foreground mb-6">
-                Start planning your next adventure by creating your first trip.
+                Invite friends, plan together, and keep everything in one place.
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
@@ -244,7 +244,7 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Current trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
+                  <span className="block text-xs font-normal text-muted-foreground mt-1">
                     In progress
                   </span>
                 </h2>
@@ -264,7 +264,7 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Upcoming trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
+                  <span className="block text-xs font-normal text-muted-foreground mt-1">
                     Departures
                   </span>
                 </h2>
@@ -288,7 +288,7 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Past trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
+                  <span className="block text-xs font-normal text-muted-foreground mt-1">
                     Memories
                   </span>
                 </h2>
