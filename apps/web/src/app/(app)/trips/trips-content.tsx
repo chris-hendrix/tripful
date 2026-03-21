@@ -191,7 +191,7 @@ export function TripsContent() {
                 placeholder="Search by name or destination..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 pl-12 text-base border-border/50 bg-background/50 focus-visible:border-ring focus-visible:ring-ring rounded-md"
+                className="h-12 pl-12 text-base rounded-md"
               />
             </div>
           </div>
