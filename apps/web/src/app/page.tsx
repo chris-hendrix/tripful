@@ -33,7 +33,7 @@ const features = [
     icon: PartyPopper,
     title: "Event Planning",
     description:
-      "Create events with RSVP tracking so everyone knows what's happening and when.",
+      "Create events and schedule activities so everyone knows what's happening and when.",
   },
   {
     icon: Plane,
