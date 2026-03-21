@@ -116,7 +116,7 @@ export function ItineraryHeader({
                   type="button"
                   onClick={() => onFilterChange(opt.value)}
                   className={cn(
-                    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
+                    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer",
                     filter === opt.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
