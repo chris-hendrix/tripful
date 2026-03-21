@@ -35,20 +35,18 @@ export async function clickFabAction(page: Page, actionName: string) {
   await dismissToast(page);
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
-  const emptyStateBtn = page.getByRole("button", {
-    name: `Add ${actionName}`,
-  });
 
-  // Wait for either the FAB (non-empty itinerary) or the empty-state button
-  // to appear. locator.isVisible() returns immediately (timeout is deprecated
-  // and ignored), so we must use .or() + waitFor to properly wait for the
-  // component to finish transitioning between empty and non-empty states.
-  await fab.or(emptyStateBtn).waitFor({
-    state: "visible",
-    timeout: SLOW_NAVIGATION_TIMEOUT,
-  });
+  // Wait for either the FAB or the itinerary content to load.
+  // We cannot use fab.or(emptyStateBtn) because the InfoPanel sidebar also has
+  // an "Add Event" button, causing a strict mode violation when both are in the DOM.
+  // Instead, poll for the FAB first; if it doesn't appear, fall back to the
+  // empty-state button scoped to the itinerary area.
+  const fabVisible = await fab
+    .waitFor({ state: "visible", timeout: SLOW_NAVIGATION_TIMEOUT })
+    .then(() => true)
+    .catch(() => false);
 
-  if (await fab.isVisible()) {
+  if (fabVisible) {
     // Retry: a late-arriving success toast from the previous action can
     // appear after dismissToast returns and intercept the FAB click.
     // Quick-dismiss on each attempt to clear any new toasts.
@@ -61,7 +59,12 @@ export async function clickFabAction(page: Page, actionName: string) {
     }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {
-    // Empty state has direct buttons like "Add Event", "Add Accommodation"
+    // Empty state has direct buttons like "Add Event", "Add Accommodation".
+    // Use a broad locator but pick .first() in case the InfoPanel sidebar
+    // also has a matching button in the DOM (hidden via CSS on mobile).
+    const emptyStateBtn = page
+      .getByRole("button", { name: `Add ${actionName}` })
+      .first();
     await emptyStateBtn.click();
   }
 }

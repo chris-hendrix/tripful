@@ -81,8 +81,15 @@ test.describe("Trip Journey", () => {
       ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
       await expect.soft(page.getByText(tripDestination)).toBeVisible();
       await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
-      await expect.soft(page.getByText(tripDescription)).toBeVisible();
-      await expect.soft(page.getByText("Going")).toBeVisible();
+      await expect
+        .soft(page.getByText(tripDescription).first())
+        .toBeVisible();
+      // RsvpPills renders "Going" in the InfoPanel (which may appear twice in
+      // the DOM on desktop — one hidden via CSS). Use .first() to avoid strict
+      // mode violations.
+      await expect
+        .soft(page.getByRole("button", { name: "Going" }).first())
+        .toBeVisible();
       await expect(
         page.getByRole("button", { name: "Edit trip" }),
       ).toBeVisible();
@@ -146,7 +153,9 @@ test.describe("Trip Journey", () => {
 
       await expect.soft(page.getByText(updatedDestination)).toBeVisible();
       await expect.soft(page.getByText("Oct 12 - 14, 2026")).toBeVisible();
-      await expect.soft(page.getByText(updatedDescription)).toBeVisible();
+      await expect
+        .soft(page.getByText(updatedDescription).first())
+        .toBeVisible();
     });
 
     await test.step("changes persist in trips list", async () => {
@@ -528,12 +537,12 @@ test.describe("Trip Journey", () => {
       });
 
       await test.step("verify 2 members and open members dialog", async () => {
-        await expect(page.getByText(/2 going/)).toBeVisible();
+        await expect(page.getByText(/2 going/).first()).toBeVisible();
 
         // Retry click — SSR text may be visible before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
         await expect(async () => {
-          await page.getByText(/2 going/).click();
+          await page.getByText(/2 going/).first().click();
           await expect(
             dialog.getByRole("heading", { name: "Members" }),
           ).toBeVisible({ timeout: RETRY_INTERVAL });
@@ -580,7 +589,7 @@ test.describe("Trip Journey", () => {
 
         await page.keyboard.press("Escape");
 
-        await expect(page.getByText(/1 going/)).toBeVisible({
+        await expect(page.getByText(/1 going/).first()).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
       });
@@ -656,12 +665,12 @@ test.describe("Trip Journey", () => {
           }),
         ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
-        await expect(page.getByText(/2 going/)).toBeVisible();
+        await expect(page.getByText(/2 going/).first()).toBeVisible();
 
         // Retry click — heading may be server-rendered before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
         await expect(async () => {
-          await page.getByText(/2 going/).click();
+          await page.getByText(/2 going/).first().click();
           await expect(
             dialog.getByRole("heading", { name: "Members" }),
           ).toBeVisible({ timeout: RETRY_INTERVAL });
@@ -812,7 +821,10 @@ test.describe("Trip Journey", () => {
         await dismissToast(page);
 
         const fab = page.getByRole("button", { name: "Add to itinerary" });
-        await expect(fab).toBeVisible({ timeout: ELEMENT_TIMEOUT });
+        // The FAB is portaled to body after React hydration and only renders
+        // when the Itinerary panel is active. Use SLOW_NAVIGATION_TIMEOUT to
+        // allow time for hydration + data fetch + portal mount.
+        await expect(fab).toBeVisible({ timeout: SLOW_NAVIGATION_TIMEOUT });
         await fab.click();
         await page.getByRole("menuitem", { name: "My Travel" }).click();
 

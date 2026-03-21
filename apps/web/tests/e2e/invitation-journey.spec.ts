@@ -193,7 +193,7 @@ test.describe("Invitation Journey", () => {
 
         // Full trip view should show destination and member summary
         await expect(page.getByText("Honolulu, HI")).toBeVisible();
-        await expect(page.getByText(/\d+ going/)).toBeVisible();
+        await expect(page.getByText(/\d+ going/).first()).toBeVisible();
         await snap(page, "14-rsvp-going-full-view");
       });
     },
@@ -701,7 +701,7 @@ test.describe("Invitation Journey", () => {
         await expect(page.getByText("Portland, OR")).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
-        await expect(page.getByText(/\d+ going/)).toBeVisible();
+        await expect(page.getByText(/\d+ going/).first()).toBeVisible();
 
         // Preview should not be visible
         await expect(
