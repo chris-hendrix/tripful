@@ -414,8 +414,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               />
             </div>
 
-            {/* Main content — itinerary */}
-            <div className="lg:flex-1 lg:min-w-0">
+            {/* Main content — itinerary, photos, discussion */}
+            <div className="lg:flex-1 lg:min-w-0 pb-16">
               <div id="itinerary" ref={itineraryRef} className="scroll-mt-14">
                 <ItineraryView
                   tripId={tripId}
@@ -424,32 +424,28 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   temperatureUnit={temperatureUnit}
                 />
               </div>
+
+              {/* Photos */}
+              <div className="border-t border-border mt-6 pt-6 px-4 sm:px-6 lg:px-0">
+                <PhotosSection
+                  tripId={trip.id}
+                  isOrganizer={isOrganizer}
+                  disabled={isLocked}
+                />
+              </div>
+
+              {/* Discussion */}
+              <div className="border-t border-border mt-6 pt-6 px-4 sm:px-6 lg:px-0">
+                <ErrorBoundary>
+                  <TripMessages
+                    tripId={tripId}
+                    isOrganizer={isOrganizer}
+                    disabled={isLocked}
+                    isMuted={currentMember?.isMuted}
+                  />
+                </ErrorBoundary>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Photos Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="border-t border-border mt-6 pt-6">
-            <PhotosSection
-              tripId={trip.id}
-              isOrganizer={isOrganizer}
-              disabled={isLocked}
-            />
-          </div>
-        </div>
-
-        {/* Discussion */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="border-t border-border mt-6 pt-6">
-            <ErrorBoundary>
-              <TripMessages
-                tripId={tripId}
-                isOrganizer={isOrganizer}
-                disabled={isLocked}
-                isMuted={currentMember?.isMuted}
-              />
-            </ErrorBoundary>
           </div>
         </div>
 
