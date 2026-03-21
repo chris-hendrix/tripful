@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
+import { Plus, Building2, Plane, Settings } from "lucide-react";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -28,9 +27,12 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { TIMEZONES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { CreateMemberTravelDialog } from "./create-member-travel-dialog";
+
+export type ItineraryFilter = "all" | "activity" | "meal" | "travel" | "members";
 
 function getTimezoneLabel(tz: string): string {
   const match = TIMEZONES.find((t) => t.value === tz);
@@ -40,9 +42,17 @@ function getTimezoneLabel(tz: string): string {
   return lastPart ? lastPart.replace(/_/g, " ") : tz;
 }
 
+const FILTER_OPTIONS: { value: ItineraryFilter; label: string; icon?: string }[] = [
+  { value: "all", label: "All" },
+  { value: "activity", label: "Activity", icon: "\uD83C\uDFAF" },
+  { value: "meal", label: "Meal", icon: "\uD83C\uDF7D" },
+  { value: "travel", label: "Travel", icon: "\u2708\uFE0F" },
+  { value: "members", label: "Members", icon: "\uD83D\uDC64" },
+];
+
 interface ItineraryHeaderProps {
-  viewMode: "day-by-day" | "group-by-type";
-  onViewModeChange: (mode: "day-by-day" | "group-by-type") => void;
+  filter: ItineraryFilter;
+  onFilterChange: (filter: ItineraryFilter) => void;
   selectedTimezone: string;
   onTimezoneChange: (tz: string) => void;
   tripTimezone: string;
@@ -58,8 +68,8 @@ interface ItineraryHeaderProps {
 }
 
 export function ItineraryHeader({
-  viewMode,
-  onViewModeChange,
+  filter,
+  onFilterChange,
   selectedTimezone,
   onTimezoneChange,
   tripTimezone,
@@ -97,79 +107,80 @@ export function ItineraryHeader({
         className="sticky top-0 z-30 bg-background border-b border-border py-2 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            {/* Left: View mode toggle + timezone */}
-            <TooltipProvider>
-              <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-md border border-border">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon-xs"
-                      variant={viewMode === "day-by-day" ? "default" : "ghost"}
-                      onClick={() => onViewModeChange("day-by-day")}
-                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
-                      aria-label="Day by Day"
-                    >
-                      <Calendar className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Day by Day</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon-xs"
-                      variant={
-                        viewMode === "group-by-type" ? "default" : "ghost"
-                      }
-                      onClick={() => onViewModeChange("group-by-type")}
-                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
-                      aria-label="Group by Type"
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Group by Type</TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-
-            <div className="min-w-0">
-              <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
-                <SelectTrigger
-                  size="sm"
-                  className="text-xs"
-                  aria-label="Timezone"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={tripTimezone}>
-                      {getTimezoneLabel(tripTimezone)} (Trip)
-                    </SelectItem>
-                    {tripTimezone !== userTimezone && (
-                      <SelectItem value={userTimezone}>
-                        {getTimezoneLabel(userTimezone)} (Current)
-                      </SelectItem>
-                    )}
-                  </SelectGroup>
-                  {otherTimezones.length > 0 && (
-                    <>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>All timezones</SelectLabel>
-                        {otherTimezones.map((tz) => (
-                          <SelectItem key={tz.value} value={tz.value}>
-                            {tz.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </>
+          <div className="flex items-center justify-between gap-3">
+            {/* Filter pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onFilterChange(opt.value)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
+                    filter === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                   )}
-                </SelectContent>
-              </Select>
+                >
+                  {opt.icon ? (
+                    <span className="text-sm leading-none">{opt.icon}</span>
+                  ) : (
+                    opt.label
+                  )}
+                </button>
+              ))}
             </div>
+
+            {/* Timezone behind gear icon */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="shrink-0"
+                  aria-label="Timezone settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3" align="end">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Timezone
+                  </label>
+                  <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
+                    <SelectTrigger size="sm" className="text-xs" aria-label="Timezone">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value={tripTimezone}>
+                          {getTimezoneLabel(tripTimezone)} (Trip)
+                        </SelectItem>
+                        {tripTimezone !== userTimezone && (
+                          <SelectItem value={userTimezone}>
+                            {getTimezoneLabel(userTimezone)} (Current)
+                          </SelectItem>
+                        )}
+                      </SelectGroup>
+                      {otherTimezones.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel>All timezones</SelectLabel>
+                            {otherTimezones.map((tz) => (
+                              <SelectItem key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </div>
