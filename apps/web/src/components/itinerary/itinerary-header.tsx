@@ -1,32 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Car, PlaneLanding, Plus, Building2, Plane, Settings, Utensils, type LucideIcon } from "lucide-react";
+import { Calendar, Car, Globe, PlaneLanding, Plus, Building2, Plane, Utensils, type LucideIcon } from "lucide-react";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { TIMEZONES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
@@ -34,12 +18,16 @@ import { CreateMemberTravelDialog } from "./create-member-travel-dialog";
 
 export type ItineraryFilter = "all" | "activity" | "meal" | "travel" | "members";
 
-function getTimezoneLabel(tz: string): string {
-  const match = TIMEZONES.find((t) => t.value === tz);
-  if (match) return match.label;
-  const parts = tz.split("/");
-  const lastPart = parts[parts.length - 1];
-  return lastPart ? lastPart.replace(/_/g, " ") : tz;
+function getTimezoneAbbr(tz: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "short",
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === "timeZoneName")?.value || tz;
+  } catch {
+    return tz;
+  }
 }
 
 const FILTER_OPTIONS: { value: ItineraryFilter; label: string; icon?: LucideIcon }[] = [
@@ -92,9 +80,9 @@ export function ItineraryHeader({
   const [fabOpen, setFabOpen] = useState(false);
   const mounted = useMounted();
 
-  // Build timezone options: trip first, then user (if different), then all others
-  const pinnedValues = new Set([tripTimezone, userTimezone]);
-  const otherTimezones = TIMEZONES.filter((tz) => !pinnedValues.has(tz.value));
+  const showTzToggle = tripTimezone !== userTimezone;
+  const isTripTz = selectedTimezone === tripTimezone;
+  const tzAbbr = useMemo(() => getTimezoneAbbr(selectedTimezone), [selectedTimezone]);
 
   // Permission checks
   const canAddEvent = isOrganizer || (isMember && allowMembersToAddEvents);
@@ -131,56 +119,20 @@ export function ItineraryHeader({
               ))}
             </div>
 
-            {/* Timezone behind gear icon */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="shrink-0"
-                  aria-label="Timezone settings"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-3" align="end">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Timezone
-                  </label>
-                  <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
-                    <SelectTrigger size="sm" className="text-xs" aria-label="Timezone">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value={tripTimezone}>
-                          {getTimezoneLabel(tripTimezone)} (Trip)
-                        </SelectItem>
-                        {tripTimezone !== userTimezone && (
-                          <SelectItem value={userTimezone}>
-                            {getTimezoneLabel(userTimezone)} (Current)
-                          </SelectItem>
-                        )}
-                      </SelectGroup>
-                      {otherTimezones.length > 0 && (
-                        <>
-                          <SelectSeparator />
-                          <SelectGroup>
-                            <SelectLabel>All timezones</SelectLabel>
-                            {otherTimezones.map((tz) => (
-                              <SelectItem key={tz.value} value={tz.value}>
-                                {tz.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Timezone toggle */}
+            {showTzToggle && (
+              <button
+                type="button"
+                onClick={() =>
+                  onTimezoneChange(isTripTz ? userTimezone : tripTimezone)
+                }
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
+                aria-label={`Switch to ${isTripTz ? "your" : "trip"} timezone`}
+              >
+                <Globe className="w-3 h-3" />
+                <span className="tabular-nums">{tzAbbr}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
