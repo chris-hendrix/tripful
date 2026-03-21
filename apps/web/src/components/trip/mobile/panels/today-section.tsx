@@ -148,7 +148,14 @@ export function TodaySection({
 
           {hasMoreEvents && (
             <button
-              onClick={onNavigateToItinerary}
+              onClick={() => {
+                const todayEl = document.getElementById("day-today");
+                if (todayEl) {
+                  todayEl.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  onNavigateToItinerary();
+                }
+              }}
               className="w-full text-center text-sm text-primary hover:text-primary/80 py-2 transition-colors cursor-pointer"
             >
               View all in itinerary

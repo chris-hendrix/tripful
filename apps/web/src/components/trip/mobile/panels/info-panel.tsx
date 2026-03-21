@@ -5,11 +5,11 @@ import Image from "next/image";
 import {
   Building2,
   CalendarPlus,
+  Pencil,
   Settings,
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { RsvpPills } from "@/components/trip/rsvp-pills";
 import { WeatherForecastCard } from "@/components/itinerary/weather-forecast-card";
 import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
@@ -27,6 +27,9 @@ import { THEME_PRESETS } from "@journiful/shared/config";
 
 const preloadInviteMembersDialog = () =>
   void import("@/components/trip/invite-members-dialog");
+
+const preloadEditTripDialog = () =>
+  void import("@/components/trip/edit-trip-dialog");
 
 type TripPhase = "beforeTrip" | "duringTrip" | "afterTrip";
 
@@ -48,6 +51,15 @@ function formatDateRange(checkIn: string, checkOut: string, timezone: string): s
     day: "numeric",
   });
   return `${fmt.format(new Date(checkIn))} – ${fmt.format(new Date(checkOut))}`;
+}
+
+/** Consistent section header used across all info panel sections */
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+      {children}
+    </h3>
+  );
 }
 
 interface InfoPanelProps {
@@ -75,6 +87,7 @@ export function InfoPanel({
   weatherLoading,
   temperatureUnit,
   onOpenInvite,
+  onOpenEdit,
   onOpenSettings,
   onOpenMembers,
   onNavigateToItinerary,
@@ -132,18 +145,32 @@ export function InfoPanel({
               Add Event
             </Button>
             {isOrganizer && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9"
-                onClick={onOpenInvite}
-                onMouseEnter={supportsHover ? preloadInviteMembersDialog : undefined}
-                onTouchStart={preloadInviteMembersDialog}
-                onFocus={preloadInviteMembersDialog}
-              >
-                <UserPlus className="size-4" />
-                Invite
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9"
+                  onClick={onOpenInvite}
+                  onMouseEnter={supportsHover ? preloadInviteMembersDialog : undefined}
+                  onTouchStart={preloadInviteMembersDialog}
+                  onFocus={preloadInviteMembersDialog}
+                >
+                  <UserPlus className="size-4" />
+                  Invite
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={onOpenEdit}
+                  onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
+                  onTouchStart={preloadEditTripDialog}
+                  onFocus={preloadEditTripDialog}
+                  aria-label="Edit trip"
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </>
             )}
             <Button
               variant="outline"
@@ -188,25 +215,28 @@ export function InfoPanel({
           </span>
         </button>
 
-        {/* 3. Accommodations (always visible) */}
+        {/* 3. Accommodations */}
         {accommodations && accommodations.length > 0 && (
-          <div className="space-y-2">
-            {accommodations.map((acc) => (
-              <button
-                key={acc.id}
-                onClick={() => setSelectedAccommodation(acc)}
-                className="w-full text-left border border-border rounded-md p-3 hover:bg-accent/50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Building2 className="size-4 text-muted-foreground shrink-0" />
-                  <span className="font-medium text-sm truncate">{acc.name}</span>
-                </div>
-                <div className="text-sm text-muted-foreground truncate mt-0.5 pl-6">
-                  {formatDateRange(acc.checkIn, acc.checkOut, timezone)}
-                  {acc.address ? ` · ${acc.address}` : ""}
-                </div>
-              </button>
-            ))}
+          <div>
+            <SectionHeader>Accommodations</SectionHeader>
+            <div className="space-y-2">
+              {accommodations.map((acc) => (
+                <button
+                  key={acc.id}
+                  onClick={() => setSelectedAccommodation(acc)}
+                  className="w-full text-left border border-border rounded-md p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-sm truncate">{acc.name}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate mt-0.5 pl-6">
+                    {formatDateRange(acc.checkIn, acc.checkOut, timezone)}
+                    {acc.address ? ` · ${acc.address}` : ""}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -221,34 +251,28 @@ export function InfoPanel({
           />
         )}
 
-        {/* 5. About this trip (collapsible) */}
+        {/* 5. About this trip */}
         {trip.description && (
-          <CollapsibleSection
-            label="About this trip"
-            defaultOpen={phase === "beforeTrip"}
-          >
-            <div className="bg-card rounded-md border border-border p-6 linen-texture">
+          <div>
+            <SectionHeader>About this trip</SectionHeader>
+            <div className="bg-card rounded-md border border-border p-4 linen-texture">
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {linkifyText(trip.description)}
               </p>
             </div>
-          </CollapsibleSection>
+          </div>
         )}
 
-        {/* 6. Weather forecast (collapsible) */}
-        {phase !== "duringTrip" && (
-          <CollapsibleSection
-            label="Weather forecast"
-            defaultOpen={phase === "beforeTrip"}
-          >
-            <WeatherForecastCard
-              weather={weather}
-              isLoading={weatherLoading}
-              temperatureUnit={temperatureUnit}
-              isDark={preset?.background.isDark ?? false}
-            />
-          </CollapsibleSection>
-        )}
+        {/* 6. Weather */}
+        <div>
+          <SectionHeader>Weather</SectionHeader>
+          <WeatherForecastCard
+            weather={weather}
+            isLoading={weatherLoading}
+            temperatureUnit={temperatureUnit}
+            isDark={preset?.background.isDark ?? false}
+          />
+        </div>
       </div>
 
       {/* Accommodation detail sheet */}
