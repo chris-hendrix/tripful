@@ -58,6 +58,8 @@ test.describe("Trip Journey", () => {
       await tripDetail.destinationInput.fill(tripDestination);
       await pickDate(page, tripDetail.startDateButton, "2026-10-12");
       await pickDate(page, tripDetail.endDateButton, "2026-10-14");
+      // Description is inside collapsed "More options" section
+      await page.getByText("More options").click();
       await tripDetail.descriptionInput.fill(tripDescription);
       await snap(page, "05-create-trip-step1");
       await tripDetail.continueButton.click();
@@ -419,10 +421,11 @@ test.describe("Trip Journey", () => {
         ).not.toBeVisible();
       });
 
-      await test.step("verify empty state has no add buttons", async () => {
-        await expect(
-          page.getByRole("button", { name: "Add Event" }),
-        ).not.toBeVisible();
+      await test.step("verify itinerary empty state has no create buttons", async () => {
+        // For locked trips, the itinerary empty state shows a read-only message
+        // instead of "Add Event" / "Add Accommodation" buttons. The InfoPanel
+        // sidebar has an "Add Event" navigation button, so check that
+        // "Add Accommodation" (only in the empty state) is not visible.
         await expect(
           page.getByRole("button", { name: "Add Accommodation" }),
         ).not.toBeVisible();
@@ -525,12 +528,12 @@ test.describe("Trip Journey", () => {
       });
 
       await test.step("verify 2 members and open members dialog", async () => {
-        await expect(page.getByText(/2 members?/)).toBeVisible();
+        await expect(page.getByText(/2 going/)).toBeVisible();
 
         // Retry click — SSR text may be visible before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
         await expect(async () => {
-          await page.getByText(/2 members?/).click();
+          await page.getByText(/2 going/).click();
           await expect(
             dialog.getByRole("heading", { name: "Members" }),
           ).toBeVisible({ timeout: RETRY_INTERVAL });
@@ -577,7 +580,7 @@ test.describe("Trip Journey", () => {
 
         await page.keyboard.press("Escape");
 
-        await expect(page.getByText(/1 member(?!s)/)).toBeVisible({
+        await expect(page.getByText(/1 going/)).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
       });
@@ -653,12 +656,12 @@ test.describe("Trip Journey", () => {
           }),
         ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
-        await expect(page.getByText(/2 members?/)).toBeVisible();
+        await expect(page.getByText(/2 going/)).toBeVisible();
 
         // Retry click — heading may be server-rendered before React hydrates the onClick handler
         const dialog = page.getByRole("dialog");
         await expect(async () => {
-          await page.getByText(/2 members?/).click();
+          await page.getByText(/2 going/).click();
           await expect(
             dialog.getByRole("heading", { name: "Members" }),
           ).toBeVisible({ timeout: RETRY_INTERVAL });

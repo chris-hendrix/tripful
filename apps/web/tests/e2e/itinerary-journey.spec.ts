@@ -77,6 +77,9 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('input[name="address"]')
           .fill("123 Main St, San Diego");
+        // Description and links are inside collapsed "More details" section
+        const accommDialog = page.getByRole("dialog");
+        await accommDialog.getByText("More details").click();
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
@@ -172,6 +175,9 @@ test.describe("Itinerary Journey", () => {
         const nameInput = page.locator('input[name="name"]');
         await nameInput.clear();
         await nameInput.fill(updatedEventName);
+        // Location is inside collapsed "More details" section
+        const editDialog = page.getByRole("dialog");
+        await editDialog.getByText("More details").click();
         await page.locator('input[name="location"]').fill("Gaslamp Quarter");
         await page.getByRole("button", { name: "Update event" }).click();
 
@@ -310,62 +316,30 @@ test.describe("Itinerary Journey", () => {
 
       await snap(page, "10-itinerary-day-by-day");
 
-      await test.step("toggle day-by-day to group-by-type", async () => {
-        const dayByDayButton = page
-          .getByRole("button", { name: "Day by Day" })
-          .first();
-        await expect(dayByDayButton).toBeVisible();
+      await test.step("filter by type using pills", async () => {
+        // The itinerary header now uses filter pills instead of view toggle.
+        // Pills: All (text) | Activity (icon) | Meal (icon) | Travel (icon) | Members (icon)
+        const header = page.getByTestId("itinerary-header");
+        await expect(header).toBeVisible();
 
-        await page.getByRole("button", { name: "Group by Type" }).click();
+        // Click the Meal filter pill (3rd pill, index 2)
+        const pills = header.locator("button");
+        await pills.nth(2).click();
 
-        // Section icons have title tooltips
-        await expect.soft(page.locator('[title="Meals"]')).toBeVisible();
-        await expect.soft(page.locator('[title="Activities"]')).toBeVisible();
-        await expect.soft(page.locator('[title="Arrivals"]')).toBeVisible();
-        await expect.soft(page.getByText(/Lunch/)).toBeVisible();
-        await expect.soft(page.getByText(/Show/)).toBeVisible();
-        // Location still visible in group-by-type view
-        await expect
-          .soft(page.getByText("Las Vegas Airport").first())
-          .toBeVisible();
-        // Verify date labels appear on cards in group-by-type view
-        await expect.soft(page.getByText(/Mar 10/).first()).toBeVisible();
-        await snap(page, "11-itinerary-group-by-type");
+        // Should still show meal events
+        await expect(page.getByText(/Lunch/)).toBeVisible();
+        // Activity events should be hidden
+        await expect(page.getByText(/Show/)).not.toBeVisible();
+
+        await snap(page, "11-itinerary-filtered-meals");
       });
 
-      await test.step("toggle back to day-by-day", async () => {
-        await page.getByRole("button", { name: "Day by Day" }).click();
+      await test.step("reset filter to all", async () => {
+        const header = page.getByTestId("itinerary-header");
+        // Click "All" pill (first pill, shows text)
+        await header.locator("button").filter({ hasText: "All" }).click();
         await expect(page.getByText(/Lunch/)).toBeVisible();
         await expect(page.getByText(/Show/)).toBeVisible();
-      });
-
-      await test.step("change timezone via dropdown", async () => {
-        // Open timezone selector and pick user timezone
-        const tzTrigger = page.getByRole("combobox", { name: "Timezone" });
-        await expect(tzTrigger).toBeVisible();
-        await expect(tzTrigger).toContainText("Trip");
-
-        // Radix Select on mobile WebKit can be slow to position the listbox.
-        // Wait for the option to be visible before clicking.
-        await tzTrigger.click();
-        const currentOption = page.getByRole("option", { name: /Current/ });
-        await currentOption.waitFor({
-          state: "visible",
-          timeout: ELEMENT_TIMEOUT,
-        });
-        await currentOption.click();
-        await expect(tzTrigger).toContainText("Current");
-        await expect(page.getByText(/Lunch/)).toBeVisible();
-
-        // Switch back to trip timezone
-        await tzTrigger.click();
-        const tripOption = page.getByRole("option", { name: /Trip/ });
-        await tripOption.waitFor({
-          state: "visible",
-          timeout: ELEMENT_TIMEOUT,
-        });
-        await tripOption.click();
-        await expect(tzTrigger).toContainText("Trip");
       });
 
       await test.step("mobile viewport", async () => {
@@ -386,14 +360,9 @@ test.describe("Itinerary Journey", () => {
         const header = page.getByTestId("itinerary-header");
         await expect(header).toBeVisible();
 
+        // Filter pills should be visible on mobile too
         await expect(
-          page.getByRole("button", { name: "Day by Day" }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("button", { name: "Group by Type" }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("combobox", { name: "Timezone" }),
+          header.locator("button").filter({ hasText: "All" }),
         ).toBeVisible();
         await expect(page.getByText(/Lunch/)).toBeVisible();
         await expect(

@@ -85,25 +85,31 @@ export async function createEvent(
 
   await page.getByLabel(/event name/i).fill(name);
 
-  if (options?.description) {
-    await page.getByLabel(/description/i).fill(options.description);
-  }
-
   if (options?.type) {
+    // Event type is selected via icon card grid buttons
     const dialog = page.getByRole("dialog");
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .locator(`div[role="option"]`)
+    await dialog
+      .locator(".grid button")
       .filter({ hasText: options.type })
       .click();
+  }
+
+  const startTrigger = page.getByRole("button", { name: "Start time" });
+  await pickDateTime(page, startTrigger, startDateTime);
+
+  // Location, description, end time are inside a collapsed "More details" section
+  if (options?.location || options?.description || options?.endDateTime) {
+    const dialog = page.getByRole("dialog");
+    await dialog.getByText("More details").click();
+  }
+
+  if (options?.description) {
+    await page.getByLabel(/description/i).fill(options.description);
   }
 
   if (options?.location) {
     await page.locator('input[name="location"]').fill(options.location);
   }
-
-  const startTrigger = page.getByRole("button", { name: "Start time" });
-  await pickDateTime(page, startTrigger, startDateTime);
 
   if (options?.endDateTime) {
     const endTrigger = page.getByRole("button", { name: "End time" });

@@ -191,9 +191,9 @@ test.describe("Invitation Journey", () => {
           timeout: ELEMENT_TIMEOUT,
         });
 
-        // Full trip view should show destination and member count
+        // Full trip view should show destination and member summary
         await expect(page.getByText("Honolulu, HI")).toBeVisible();
-        await expect(page.getByText(/\d+ members?/)).toBeVisible();
+        await expect(page.getByText(/\d+ going/)).toBeVisible();
         await snap(page, "14-rsvp-going-full-view");
       });
     },
@@ -313,21 +313,15 @@ test.describe("Invitation Journey", () => {
         await page.keyboard.press("Escape");
       });
 
-      await test.step("organizer changes own RSVP via dropdown", async () => {
+      await test.step("organizer changes own RSVP via pills", async () => {
         // The organizer is already on the trip detail page from the previous step.
-        // Click the RSVP dropdown (organizer is "Going" by default)
-        const rsvpButton = page.getByRole("button", { name: "Going" });
-        await rsvpButton.waitFor({
+        // Click the "Maybe" RSVP pill to change status (pills are direct-action buttons)
+        const maybePill = page.getByRole("button", { name: "Maybe", exact: true });
+        await maybePill.waitFor({
           state: "visible",
           timeout: ELEMENT_TIMEOUT,
         });
-        await rsvpButton.click();
-
-        // Select "Maybe" from the dropdown
-        await page.getByRole("menuitem", { name: "Maybe" }).click();
-
-        // Wait for dropdown to close
-        await expect(page.getByRole("menu")).not.toBeVisible();
+        await maybePill.click();
 
         // Verify toast confirms the change
         await expect(page.getByText('RSVP updated to "Maybe"')).toBeVisible({
@@ -335,30 +329,16 @@ test.describe("Invitation Journey", () => {
         });
         await dismissToast(page);
 
-        // Trigger button should now show "Maybe"
-        const maybeButton = page.getByRole("button", { name: "Maybe" });
-        await maybeButton.waitFor({
-          state: "visible",
-          timeout: ELEMENT_TIMEOUT,
-        });
-
-        // Change back to "Going" via dropdown
-        await maybeButton.click();
-        await page.getByRole("menuitem", { name: "Going" }).first().click();
-
-        // Wait for dropdown to close
-        await expect(page.getByRole("menu")).not.toBeVisible();
+        // Change back to "Going" via pill
+        const goingPill = page.getByRole("button", { name: "Going", exact: true });
+        await goingPill.click();
 
         await expect(page.getByText('RSVP updated to "Going"')).toBeVisible({
           timeout: TOAST_TIMEOUT,
         });
         await dismissToast(page);
 
-        await expect(page.getByRole("button", { name: "Going" })).toBeVisible({
-          timeout: ELEMENT_TIMEOUT,
-        });
-
-        await snap(page, "16b-organizer-rsvp-dropdown");
+        await snap(page, "16b-organizer-rsvp-pills");
       });
 
       await test.step("member RSVPs Going again, indicator removed", async () => {
@@ -496,11 +476,11 @@ test.describe("Invitation Journey", () => {
         }),
       ).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
 
-      // Click member count button to open members sheet
+      // Click member summary button to open members sheet
       // Retry click — on cold CI the first click can be swallowed during React hydration
       const memberCountBtn = page
         .getByRole("button")
-        .filter({ hasText: /\d+ members?/ });
+        .filter({ hasText: /\d+ going/ });
       await memberCountBtn.waitFor({
         state: "visible",
         timeout: ELEMENT_TIMEOUT,
@@ -721,7 +701,7 @@ test.describe("Invitation Journey", () => {
         await expect(page.getByText("Portland, OR")).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
-        await expect(page.getByText(/\d+ members?/)).toBeVisible();
+        await expect(page.getByText(/\d+ going/)).toBeVisible();
 
         // Preview should not be visible
         await expect(

@@ -407,7 +407,7 @@ test.describe("Messaging Journey", () => {
         await navigateToMobilePanel(page, "Home");
 
         // Open members dialog
-        await page.getByText(/\d+ members?/).click();
+        await page.getByText(/\d+ going/).click();
 
         const dialog = page.getByRole("dialog");
         await expect(
