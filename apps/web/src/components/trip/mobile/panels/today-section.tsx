@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar } from "lucide-react";
-import type { Accommodation, Event } from "@journiful/shared/types";
+import type { Accommodation, Event, DailyForecast, TemperatureUnit } from "@journiful/shared/types";
 import { useAccommodations } from "@/hooks/use-accommodations";
 import { useEvents } from "@/hooks/use-events";
 import { getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 import { AccommodationLineItem } from "@/components/itinerary/accommodation-line-item";
 import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
 import { EventCard } from "@/components/itinerary/event-card";
@@ -18,12 +18,16 @@ interface TodaySectionProps {
   tripId: string;
   timezone: string;
   onNavigateToItinerary: () => void;
+  weather?: DailyForecast;
+  temperatureUnit?: TemperatureUnit;
 }
 
 export function TodaySection({
   tripId,
   timezone,
   onNavigateToItinerary,
+  weather,
+  temperatureUnit = "fahrenheit",
 }: TodaySectionProps) {
   const { data: accommodations, isPending: accLoading } =
     useAccommodations(tripId);
@@ -111,31 +115,46 @@ export function TodaySection({
     () =>
       new Intl.DateTimeFormat("en-US", {
         timeZone: timezone,
-        weekday: "long",
+        weekday: "short",
         month: "short",
         day: "numeric",
       }).format(new Date()),
     [timezone],
   );
 
+  // Weather badge text
+  const weatherBadge = useMemo(() => {
+    if (!weather) return null;
+    const info = getWeatherInfo(weather.weatherCode);
+    const Icon = info.icon;
+    const temp = toDisplayTemp(weather.temperatureMax, temperatureUnit);
+    const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
+    return { Icon, temp, unit };
+  }, [weather, temperatureUnit]);
+
+  // Return null if no events today (parent handles conditional rendering)
+  if (!isLoading && isEmpty) return null;
+
   return (
     <div className="mb-6">
-      <h3 className="text-sm font-semibold text-foreground mb-2">
-        Today{" "}
-        <span className="font-normal text-muted-foreground">{todayLabel}</span>
+      <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+        <span>Today</span>
+        <span className="font-normal text-muted-foreground">
+          {todayLabel}
+        </span>
+        {weatherBadge && (
+          <span className="inline-flex items-center gap-1 font-normal text-muted-foreground">
+            <span>·</span>
+            <weatherBadge.Icon className="size-3.5" />
+            <span>{weatherBadge.temp}°{weatherBadge.unit}</span>
+          </span>
+        )}
       </h3>
 
       {isLoading && (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full rounded-md" />
           <Skeleton className="h-16 w-full rounded-md" />
-        </div>
-      )}
-
-      {isEmpty && (
-        <div className="flex items-center gap-2 py-4 text-muted-foreground">
-          <Calendar className="w-4 h-4" />
-          <span className="text-sm">Nothing planned for today</span>
         </div>
       )}
 

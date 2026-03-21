@@ -6,15 +6,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import {
+  Building2,
   Calendar,
   MapPin,
-  Users,
-  ClipboardList,
   AlertCircle,
   UserPlus,
   Pencil,
   Paintbrush,
-  ChevronDown,
   Settings,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
@@ -32,13 +30,9 @@ import { useAuth } from "@/app/providers/auth-provider";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { MobileTripLayout } from "@/components/trip/mobile/mobile-trip-layout";
 import { Button } from "@/components/ui/button";
-import { RsvpBadgeDropdown } from "@/components/trip/rsvp-badge-dropdown";
+import { RsvpPills } from "@/components/trip/rsvp-pills";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { TopoPattern } from "@/components/ui/topo-pattern";
 import { formatDateRange, getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
@@ -52,9 +46,13 @@ import {
 } from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
 import { WeatherForecastCard } from "@/components/itinerary/weather-forecast-card";
+import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
+import { useAccommodations } from "@/hooks/use-accommodations";
+import { canModifyAccommodation } from "@/components/itinerary/utils/permissions";
 import { useWeatherForecast } from "@/hooks/use-weather";
 import type { TemperatureUnit } from "@journiful/shared/types";
-import { TripMessages, MessageCountIndicator } from "@/components/messaging";
+import type { Accommodation } from "@journiful/shared/types";
+import { TripMessages } from "@/components/messaging";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
@@ -64,6 +62,7 @@ import { THEME_PRESETS } from "@journiful/shared/config";
 import { THEME_FONTS } from "@journiful/shared/config";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { supportsHover } from "@/lib/supports-hover";
+import { formatInTimezone } from "@/lib/utils/timezone";
 
 const EditTripDialog = dynamic(() =>
   import("@/components/trip/edit-trip-dialog").then((mod) => ({
@@ -95,6 +94,12 @@ const preloadInviteMembersDialog = () =>
 const MemberOnboardingWizard = dynamic(() =>
   import("@/components/trip/member-onboarding-wizard").then((mod) => ({
     default: mod.MemberOnboardingWizard,
+  })),
+);
+
+const EditAccommodationDialog = dynamic(() =>
+  import("@/components/itinerary/edit-accommodation-dialog").then((mod) => ({
+    default: mod.EditAccommodationDialog,
   })),
 );
 
@@ -140,6 +145,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     member: MemberWithProfile;
   } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [selectedAccommodation, setSelectedAccommodation] =
+    useState<Accommodation | null>(null);
+  const [editingAccommodation, setEditingAccommodation] =
+    useState<Accommodation | null>(null);
 
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
@@ -157,6 +166,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     useWeatherForecast(tripId);
   const temperatureUnit: TemperatureUnit =
     user?.temperatureUnit === "celsius" ? "celsius" : "fahrenheit";
+  const { data: accommodations } = useAccommodations(tripId);
 
   const handleUpdateRole = (
     member: MemberWithProfile,
@@ -196,6 +206,14 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
   }, [trip?.endDate]);
 
   const dateRange = trip ? formatDateRange(trip.startDate, trip.endDate) : "";
+
+  // Trip phase logic
+  const tripPhase = useMemo(() => {
+    const now = new Date();
+    if (!trip?.startDate || now < new Date(trip.startDate)) return "before";
+    if (!trip?.endDate || now <= new Date(trip.endDate)) return "during";
+    return "after";
+  }, [trip?.startDate, trip?.endDate]);
 
   const preset = trip?.themeId
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
@@ -374,10 +392,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
 
         {/* Content */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
-          <div className="mb-8">
-            {/* RSVP + action icons */}
-            <div className="flex items-center mb-6">
-              <RsvpBadgeDropdown
+          <div className="mb-8 space-y-5">
+            {/* Action bar: RsvpPills (left) + buttons (right) */}
+            <div className="flex items-center">
+              <RsvpPills
                 tripId={trip.id}
                 status={trip.userRsvpStatus}
               />
@@ -424,85 +442,81 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </div>
             </div>
 
-            {/* Organizers */}
-            {trip.organizers.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-foreground mb-2">
-                  Organizers
-                </h3>
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2">
-                    {trip.organizers.map((org) =>
-                      org.profilePhotoUrl ? (
-                        <Image
-                          key={org.id}
-                          src={getUploadUrl(org.profilePhotoUrl)!}
-                          alt={org.displayName}
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-full ring-2 ring-white object-cover"
-                        />
-                      ) : (
-                        <div
-                          key={org.id}
-                          className="w-8 h-8 rounded-full ring-2 ring-white bg-muted flex items-center justify-center text-xs font-medium text-foreground"
-                        >
-                          {getInitials(org.displayName)}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
+            {/* Summary: avatar stack + going count + organized by */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMembersOpen(true)}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <div className="flex -space-x-2">
+                  {trip.organizers.slice(0, 5).map((org) =>
+                    org.profilePhotoUrl ? (
+                      <Image
+                        key={org.id}
+                        src={getUploadUrl(org.profilePhotoUrl)!}
+                        alt={org.displayName}
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
+                      />
+                    ) : (
+                      <div
+                        key={org.id}
+                        className="w-7 h-7 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-xs font-medium text-foreground"
+                      >
+                        {getInitials(org.displayName)}
+                      </div>
+                    ),
+                  )}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  +{trip.memberCount} going
+                </span>
+              </button>
+              {trip.organizers.length > 0 && (
+                <>
+                  <span className="text-muted-foreground" aria-hidden="true">
+                    &middot;
+                  </span>
+                  <span className="text-sm text-muted-foreground truncate">
+                    Organized by{" "}
                     {trip.organizers.map((org) => org.displayName).join(", ")}
                   </span>
-                </div>
+                </>
+              )}
+            </div>
+
+            {/* Accommodations: compact always-visible cards */}
+            {accommodations && accommodations.length > 0 && (
+              <div className="space-y-2">
+                {accommodations.map((acc) => (
+                  <button
+                    key={acc.id}
+                    onClick={() => setSelectedAccommodation(acc)}
+                    className="w-full text-left border border-border rounded-md p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      <Building2 className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      {acc.name}
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate mt-0.5">
+                      {formatInTimezone(acc.checkIn, trip.preferredTimezone, "short-date")}
+                      {" \u2013 "}
+                      {formatInTimezone(acc.checkOut, trip.preferredTimezone, "short-date")}
+                      {acc.address && ` \u00B7 ${acc.address}`}
+                    </p>
+                  </button>
+                ))}
               </div>
             )}
 
-            {/* Stats */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
-              <button
-                onClick={() => setIsMembersOpen(true)}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            {/* About this trip + Weather */}
+            {(trip.description || weather) && (
+              <CollapsibleSection
+                label="About this trip"
+                defaultOpen={tripPhase === "before"}
               >
-                <Users className="w-5 h-5" />
-                <span className="text-sm">
-                  {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  const target =
-                    document.getElementById("day-today") ??
-                    document.getElementById("itinerary");
-                  target?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <ClipboardList className="w-5 h-5" />
-                <span className="text-sm">
-                  {activeEventCount === 0
-                    ? "No events yet"
-                    : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
-                </span>
-              </button>
-              <MessageCountIndicator tripId={tripId} />
-            </div>
-
-            {/* About this trip */}
-            <Collapsible defaultOpen className="mb-2">
-              <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
-                <ChevronDown
-                  className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
-                  aria-hidden="true"
-                />
-                About this trip
-              </CollapsibleTrigger>
-              <CollapsibleContent
-                forceMount
-                className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0"
-              >
-                <div className="mt-3 space-y-3">
+                <div className="space-y-3">
                   {trip.description && (
                     <div className="bg-card rounded-md border border-border p-6 linen-texture">
                       <p className="text-muted-foreground whitespace-pre-wrap">
@@ -517,8 +531,8 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                     isDark={preset?.background.isDark ?? false}
                   />
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </CollapsibleSection>
+            )}
           </div>
         </div>
 
@@ -686,6 +700,53 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </SheetBody>
           </SheetContent>
         </Sheet>
+
+        {/* Accommodation Detail Sheet */}
+        <AccommodationDetailSheet
+          accommodation={selectedAccommodation}
+          open={!!selectedAccommodation}
+          onOpenChange={(open) => {
+            if (!open) setSelectedAccommodation(null);
+          }}
+          timezone={trip.preferredTimezone}
+          canEdit={
+            selectedAccommodation
+              ? canModifyAccommodation(
+                  selectedAccommodation,
+                  user?.id ?? "",
+                  isOrganizer,
+                  isLocked,
+                )
+              : false
+          }
+          canDelete={
+            selectedAccommodation
+              ? canModifyAccommodation(
+                  selectedAccommodation,
+                  user?.id ?? "",
+                  isOrganizer,
+                  isLocked,
+                )
+              : false
+          }
+          onEdit={(acc) => {
+            setSelectedAccommodation(null);
+            setEditingAccommodation(acc);
+          }}
+          onDelete={() => setSelectedAccommodation(null)}
+        />
+
+        {/* Edit Accommodation Dialog */}
+        {editingAccommodation && (
+          <EditAccommodationDialog
+            open={!!editingAccommodation}
+            onOpenChange={(open) => {
+              if (!open) setEditingAccommodation(null);
+            }}
+            accommodation={editingAccommodation}
+            timezone={trip.preferredTimezone}
+          />
+        )}
 
         {showOnboarding && (
           <MemberOnboardingWizard
