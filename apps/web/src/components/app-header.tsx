@@ -84,7 +84,7 @@ export function AppHeader() {
                   <UserAvatar user={user} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-[380px]">
                 {user && (
                   <>
                     <DropdownMenuItem
