@@ -244,9 +244,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Current trips
-                  <span className="block text-xs font-normal text-muted-foreground mt-1">
-                    In progress
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {currentTrips.map((trip, index) => (
@@ -264,9 +261,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Upcoming trips
-                  <span className="block text-xs font-normal text-muted-foreground mt-1">
-                    Departures
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {upcomingTrips.map((trip, index) => (
@@ -288,9 +282,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Past trips
-                  <span className="block text-xs font-normal text-muted-foreground mt-1">
-                    Memories
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {pastTrips.map((trip, index) => (
