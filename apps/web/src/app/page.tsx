@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Building2, PartyPopper, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PostmarkStamp } from "@/components/ui/postmark-stamp";
 import { JsonLd } from "@/components/json-ld";
 
 export const metadata: Metadata = {
@@ -89,10 +88,6 @@ export default async function Home() {
 
         {/* Hero Section */}
         <section className="relative flex flex-col items-center justify-center px-4 pt-12 pb-20 text-center sm:pt-20 sm:pb-28">
-          {/* Postmark decoration */}
-          <div className="absolute top-8 right-8 sm:top-12 sm:right-16 hidden sm:block">
-            <PostmarkStamp date="EST. 2026" city="JOURNIFUL" size="lg" />
-          </div>
           <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-playfair">
             Plan Group Trips Together
           </h1>
