@@ -1,13 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Accommodation, Event, DailyForecast, TemperatureUnit } from "@journiful/shared/types";
-import { useAccommodations } from "@/hooks/use-accommodations";
+import type { Event, DailyForecast, TemperatureUnit } from "@journiful/shared/types";
 import { useEvents } from "@/hooks/use-events";
 import { getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
 import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
-import { AccommodationLineItem } from "@/components/itinerary/accommodation-line-item";
-import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
 import { EventCard } from "@/components/itinerary/event-card";
 import { EventDetailSheet } from "@/components/itinerary/event-detail-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,27 +26,12 @@ export function TodaySection({
   weather,
   temperatureUnit = "fahrenheit",
 }: TodaySectionProps) {
-  const { data: accommodations, isPending: accLoading } =
-    useAccommodations(tripId);
   const { data: events, isPending: eventsLoading } = useEvents(tripId);
 
   const todayString = useMemo(
     () => getDayInTimezone(new Date(), timezone),
     [timezone],
   );
-
-  // Filter accommodations to today: checkIn <= today < checkOut
-  const todayAccommodations = useMemo(() => {
-    if (!accommodations) return [];
-    return accommodations.filter((acc) => {
-      const startDay = getDayInTimezone(acc.checkIn, timezone);
-      const endDay = getDayInTimezone(acc.checkOut, timezone);
-      const current = new Date(startDay + "T00:00:00");
-      const end = new Date(endDay + "T00:00:00");
-      const today = new Date(todayString + "T00:00:00");
-      return current <= today && today < end;
-    });
-  }, [accommodations, timezone, todayString]);
 
   // Filter events to today
   const todayEvents = useMemo(() => {
@@ -101,15 +83,10 @@ export function TodaySection({
   const hasMoreEvents = sortedEvents.length > MAX_VISIBLE_EVENTS;
 
   // Detail sheet state
-  const [selectedAccommodation, setSelectedAccommodation] =
-    useState<Accommodation | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const isLoading = accLoading || eventsLoading;
-  const isEmpty =
-    !isLoading &&
-    todayAccommodations.length === 0 &&
-    sortedEvents.length === 0;
+  const isLoading = eventsLoading;
+  const isEmpty = !isLoading && sortedEvents.length === 0;
 
   const todayLabel = useMemo(
     () =>
@@ -160,14 +137,6 @@ export function TodaySection({
 
       {!isLoading && !isEmpty && (
         <div className="space-y-2">
-          {todayAccommodations.map((acc) => (
-            <AccommodationLineItem
-              key={acc.id}
-              accommodation={acc}
-              onClick={setSelectedAccommodation}
-            />
-          ))}
-
           {visibleEvents.map((event) => (
             <EventCard
               key={event.id}
@@ -188,20 +157,7 @@ export function TodaySection({
         </div>
       )}
 
-      {/* Detail sheets */}
-      <AccommodationDetailSheet
-        accommodation={selectedAccommodation}
-        open={!!selectedAccommodation}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAccommodation(null);
-        }}
-        timezone={timezone}
-        canEdit={false}
-        canDelete={false}
-        onEdit={() => {}}
-        onDelete={() => setSelectedAccommodation(null)}
-      />
-
+      {/* Detail sheet */}
       <EventDetailSheet
         event={selectedEvent}
         open={!!selectedEvent}
