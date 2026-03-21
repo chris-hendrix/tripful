@@ -92,12 +92,9 @@ export default async function Home() {
           <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-playfair">
             Plan Group Trips Together
           </h1>
-          <p className="mb-3 max-w-lg text-center text-lg text-muted-foreground sm:text-xl">
+          <p className="mb-10 max-w-lg text-center text-lg text-muted-foreground sm:text-xl">
             The trip planning app that brings your travel group together.
             Coordinate everything in one place.
-          </p>
-          <p className="mb-10 text-xl text-accent font-script">
-            Wish you were here...
           </p>
           <Button
             variant="gradient"
