@@ -319,7 +319,7 @@ export function EditEventDialog({
                           type="button"
                           disabled={isPending || isDeleting}
                           onClick={() => field.onChange(type.value)}
-                          className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-colors ${
+                          className={`p-3 rounded-lg border-2 flex flex-col items-center cursor-pointer transition-colors ${
                             field.value === type.value
                               ? "border-primary bg-primary/10"
                               : "border-border hover:border-muted-foreground"

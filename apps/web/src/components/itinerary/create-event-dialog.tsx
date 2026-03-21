@@ -263,7 +263,7 @@ export function CreateEventDialog({
                           type="button"
                           disabled={isPending}
                           onClick={() => field.onChange(type.value)}
-                          className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-colors ${
+                          className={`p-3 rounded-lg border-2 flex flex-col items-center cursor-pointer transition-colors ${
                             field.value === type.value
                               ? "border-primary bg-primary/10"
                               : "border-border hover:border-muted-foreground"
