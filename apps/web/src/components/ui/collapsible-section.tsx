@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible";
 
 interface CollapsibleSectionProps {
-  label: string;
+  label: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }

@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import type { Event } from "@journiful/shared/types";
 import { useEvents } from "@/hooks/use-events";
-import { getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
-import { EventCard } from "@/components/itinerary/event-card";
+import { getDayInTimezone, formatInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
+import { EVENT_TYPE_CONFIG } from "@/components/itinerary/event-card";
 import { EventDetailSheet } from "@/components/itinerary/event-detail-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -90,15 +90,29 @@ export function TodaySection({
       )}
 
       {!isLoading && !isEmpty && (
-        <div className="space-y-2">
-          {sortedEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              timezone={timezone}
-              onClick={setSelectedEvent}
-            />
-          ))}
+        <div className="rounded-md border border-border divide-y divide-border">
+          {sortedEvents.map((event) => {
+            const config = EVENT_TYPE_CONFIG[event.eventType];
+            const Icon = config.icon;
+            const time = event.allDay
+              ? "All day"
+              : formatInTimezone(event.startTime, timezone, "time");
+            return (
+              <button
+                key={event.id}
+                onClick={() => setSelectedEvent(event)}
+                className="flex items-center gap-2.5 w-full text-left py-2 px-3 hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {time}
+                </span>
+                <span className="text-sm text-foreground truncate">
+                  {event.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

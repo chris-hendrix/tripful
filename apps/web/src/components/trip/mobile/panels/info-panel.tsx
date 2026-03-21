@@ -19,8 +19,10 @@ import { TodaySection } from "./today-section";
 import { linkifyText } from "@/utils/linkify";
 import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { supportsHover } from "@/lib/supports-hover";
 import { getDayInTimezone } from "@/lib/utils/timezone";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 import type { TripDetailWithMeta } from "@/hooks/trip-queries";
 import type { Accommodation } from "@journiful/shared/types";
 import type { TripWeatherResponse, TemperatureUnit } from "@journiful/shared/types";
@@ -70,6 +72,7 @@ interface InfoPanelProps {
   onOpenMembers: () => void;
   onNavigateToItinerary: () => void;
   onScroll?: (scrollTop: number) => void;
+  className?: string;
 }
 
 export function InfoPanel({
@@ -85,6 +88,7 @@ export function InfoPanel({
   onOpenMembers,
   onNavigateToItinerary,
   onScroll,
+  className,
 }: InfoPanelProps) {
   const preset = trip.themeId
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
@@ -104,10 +108,51 @@ export function InfoPanel({
   const goingCount = trip.memberCount;
   const organizerNames = trip.organizers.map((o) => o.displayName).join(", ");
 
+  // Today's forecast for inline label
+  const todayString = useMemo(
+    () => getDayInTimezone(new Date(), timezone),
+    [timezone],
+  );
+  const todayForecast = useMemo(() => {
+    if (!weather?.forecasts) return undefined;
+    return weather.forecasts.find((f) => f.date === todayString);
+  }, [weather, todayString]);
+
+  const todayDateStr = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }).format(new Date()),
+    [timezone],
+  );
+
+  const todayLabelNode = useMemo(() => {
+    const base = (
+      <>
+        Today{" "}
+        <span className="font-normal text-muted-foreground">{todayDateStr}</span>
+      </>
+    );
+    if (!todayForecast) return base;
+    const { icon: WIcon } = getWeatherInfo(todayForecast.weatherCode);
+    const temp = toDisplayTemp(todayForecast.temperatureMax, temperatureUnit);
+    const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
+    return (
+      <>
+        {base}{" "}
+        <span className="inline-flex items-center gap-1 font-normal text-muted-foreground">
+          · <WIcon className="size-3.5" /> {temp}°{unit}
+        </span>
+      </>
+    );
+  }, [todayDateStr, todayForecast, temperatureUnit]);
 
   return (
     <div
-      className="px-4 pt-8 pb-2 h-full overflow-y-auto"
+      className={cn("px-4 pt-8 pb-2 h-full overflow-y-auto", className)}
       onScroll={onScroll ? (e) => onScroll(e.currentTarget.scrollTop) : undefined}
     >
       <div className="mb-8 space-y-5">
@@ -225,7 +270,7 @@ export function InfoPanel({
 
         {/* 4. Today section (only during trip) */}
         {phase === "duringTrip" && (
-          <CollapsibleSection label="Today" defaultOpen>
+          <CollapsibleSection label={todayLabelNode} defaultOpen>
             <TodaySection
               tripId={tripId}
               timezone={timezone}

@@ -389,6 +389,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
                   onNavigateToItinerary={() =>
                     document.getElementById("itinerary")?.scrollIntoView({ behavior: "smooth" })
                   }
+                  className="px-0 pt-0"
                 />
               </div>
             </aside>
