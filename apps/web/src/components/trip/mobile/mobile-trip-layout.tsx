@@ -102,9 +102,14 @@ export function MobileTripLayout({
 
   const swiperRef = useRef<MobileTripSwiperRef>(null);
 
-  // Hero collapse: 0 on Info panel, 1 on all other panels
-  // CSS transition handles the smooth animation
-  const collapseT = activeIndex === 0 ? 0 : 1;
+  // Hero collapse: scroll-driven on Info panel, fully collapsed on other panels
+  const [infoScrollCollapse, setInfoScrollCollapse] = useState(0);
+
+  const handleInfoScroll = useCallback((scrollTop: number) => {
+    setInfoScrollCollapse(Math.min(1, scrollTop / 120));
+  }, []);
+
+  const collapseT = activeIndex === 0 ? infoScrollCollapse : 1;
 
   // Scroll itinerary to today's date when switching to itinerary panel
   useEffect(() => {
@@ -139,6 +144,7 @@ export function MobileTripLayout({
         <AnimatedHero
           trip={trip}
           collapseProgress={collapseT}
+          disableTransition={activeIndex === 0}
           isOrganizer={isOrganizer}
           onCustomize={() => setIsCustomizeOpen(true)}
         />
@@ -163,6 +169,7 @@ export function MobileTripLayout({
               onOpenSettings={() => setIsSettingsOpen(true)}
               onOpenMembers={() => setIsMembersOpen(true)}
               onNavigateToItinerary={handleNavigateToItinerary}
+              onScroll={handleInfoScroll}
             />
             <ItineraryPanel
               tripId={tripId}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import { useTrips, type TripSummary } from "@/hooks/use-trips";
@@ -31,7 +31,10 @@ export function TripsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const initialQuery = searchParams.get("q") ?? "";
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [searchOpen, setSearchOpen] = useState(initialQuery.length > 0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { ref: currentSectionRef, isRevealed: currentRevealed } =
     useScrollReveal();
   const { ref: upcomingSectionRef, isRevealed: upcomingRevealed } =
@@ -123,6 +126,17 @@ export function TripsContent() {
     return { currentTrips: current, upcomingTrips: upcoming, pastTrips: past };
   }, [filteredTrips]);
 
+  const toggleSearch = useCallback(() => {
+    setSearchOpen((prev) => {
+      if (prev) {
+        setSearchQuery("");
+      } else {
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+      return !prev;
+    });
+  }, []);
+
   const tripCount = data?.pages[0]?.meta?.total ?? trips.length;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const noResults = filteredTrips.length === 0 && hasSearchQuery;
@@ -143,26 +157,42 @@ export function TripsContent() {
               </p>
             )}
           </div>
-          <Button
-            onClick={() => setCreateDialogOpen(true)}
-            variant="outline"
-            className="h-10 px-4 rounded-md"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2.5} />
-            New Trip
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleSearch}
+              variant="outline"
+              size="icon"
+              aria-label={searchOpen ? "Close search" : "Search trips"}
+            >
+              <Search />
+            </Button>
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              variant="outline"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              New Trip
+            </Button>
+          </div>
         </header>
 
         {/* Search Bar */}
-        <div className="relative mb-8">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search trips..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 pl-12 text-base border-input focus-visible:border-ring focus-visible:ring-ring rounded-md"
-          />
+        <div
+          className={`grid transition-all duration-200 ease-out ${searchOpen ? "grid-rows-[1fr] opacity-100 mb-8" : "grid-rows-[0fr] opacity-0 mb-0"}`}
+        >
+          <div className="overflow-hidden">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search by name or destination..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 pl-12 text-base rounded-md"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -188,7 +218,7 @@ export function TripsContent() {
               onClick={() => refetch()}
               disabled={isFetching}
               variant="gradient"
-              className="h-12 px-8 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              size="lg"
             >
               {isFetching && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {isFetching ? "Loading..." : "Try again"}
@@ -204,18 +234,18 @@ export function TripsContent() {
             </div>
             <div className="relative max-w-md mx-auto">
               <p className="text-2xl text-accent mb-2 font-script">
-                No postcards yet...
+                No trips yet...
               </p>
               <h2 className="text-xl font-semibold text-foreground mb-2 font-playfair">
                 Your adventures await
               </h2>
               <p className="text-muted-foreground mb-6">
-                Start planning your next adventure by creating your first trip.
+                Invite friends, plan together, and keep everything in one place.
               </p>
               <Button
                 onClick={() => setCreateDialogOpen(true)}
                 variant="gradient"
-                className="h-12 px-8"
+                size="lg"
               >
                 <Plus className="w-5 h-5 mr-2" strokeWidth={2.5} />
                 Create your first trip
@@ -244,9 +274,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Current trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
-                    In progress
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {currentTrips.map((trip, index) => (
@@ -264,9 +291,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Upcoming trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
-                    Departures
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {upcomingTrips.map((trip, index) => (
@@ -288,9 +312,6 @@ export function TripsContent() {
               >
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4 font-playfair">
                   Past trips
-                  <span className="block text-xs font-normal text-muted-foreground font-accent tracking-wider uppercase mt-1">
-                    Memories
-                  </span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {pastTrips.map((trip, index) => (

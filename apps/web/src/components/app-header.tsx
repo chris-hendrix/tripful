@@ -3,14 +3,13 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { LogOut, Menu, Users } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { useAuth } from "@/app/providers/auth-provider";
 import { getInitials } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import { supportsHover } from "@/lib/supports-hover";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications";
-import { MobileNav } from "@/components/mobile-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -54,43 +53,27 @@ function UserAvatar({
 export function AppHeader() {
   const { user, logout } = useAuth();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
       <header className="sticky top-0 z-40 w-full bg-background border-b border-border linen-texture">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            {/* Mobile hamburger button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              aria-label="Open menu"
-              onClick={() => setMobileMenuOpen(true)}
-              data-testid="mobile-menu-button"
-            >
-              <Menu className="size-5" />
-            </Button>
-
-            <Link
-              href="/trips"
-              className="font-display text-xl font-bold tracking-tight"
-            >
-              Journiful
-            </Link>
-          </div>
+          <Link
+            href="/trips"
+            className="font-display text-xl font-bold tracking-tight"
+          >
+            Journiful
+          </Link>
 
           <div className="flex items-center gap-2">
             <NotificationBell />
 
-            {/* Desktop dropdown menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hidden md:flex rounded-full"
+                  className="rounded-full hover:bg-transparent text-muted-foreground hover:text-foreground"
                   aria-label="User menu"
                   onMouseEnter={
                     supportsHover ? preloadProfileDialog : undefined
@@ -101,7 +84,7 @@ export function AppHeader() {
                   <UserAvatar user={user} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-[380px]">
                 {user && (
                   <>
                     <DropdownMenuItem
@@ -111,7 +94,7 @@ export function AppHeader() {
                       }
                       onTouchStart={preloadProfileDialog}
                       onFocus={preloadProfileDialog}
-                      className="flex flex-col items-start gap-0 font-accent"
+                      className="flex flex-col items-start gap-0"
                       data-testid="profile-menu-item"
                     >
                       <p className="text-sm font-medium">{user.displayName}</p>
@@ -120,7 +103,7 @@ export function AppHeader() {
                       </p>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild data-testid="mutuals-menu-item">
-                      <Link href="/mutuals" className="font-accent">
+                      <Link href="/mutuals">
                         <Users />
                         My Mutuals
                       </Link>
@@ -128,7 +111,7 @@ export function AppHeader() {
                     <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuItem onClick={logout} className="font-accent">
+                <DropdownMenuItem onClick={logout}>
                   <LogOut />
                   Log out
                 </DropdownMenuItem>
@@ -137,15 +120,6 @@ export function AppHeader() {
           </div>
         </div>
       </header>
-
-      {/* Mobile navigation sheet */}
-      <MobileNav
-        open={mobileMenuOpen}
-        onOpenChange={setMobileMenuOpen}
-        user={user}
-        onLogout={logout}
-        onProfileOpen={() => setProfileDialogOpen(true)}
-      />
 
       <ProfileDialog
         open={profileDialogOpen}

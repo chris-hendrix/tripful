@@ -26,15 +26,15 @@ export function IconStrip({ activeIndex, onIconClick }: IconStripProps) {
             onClick={() => onIconClick(index)}
             aria-label={label}
             aria-current={isActive ? "true" : undefined}
-            className={`flex items-center justify-center w-10 h-10 transition-all ${
+            className={`flex items-center justify-center w-10 h-10 transition-colors ${
               isActive
-                ? "text-primary scale-110"
+                ? "text-primary"
                 : "text-foreground/50"
             }`}
           >
             <Icon
               className="w-5 h-5"
-              strokeWidth={isActive ? 2.5 : 2}
+              strokeWidth={isActive ? 2 : 1.5}
             />
           </button>
         );

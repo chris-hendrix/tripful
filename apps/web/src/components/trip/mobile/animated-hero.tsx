@@ -14,6 +14,8 @@ const HERO_COMPACT = 80;
 interface AnimatedHeroProps {
   trip: TripDetailWithMeta;
   collapseProgress: number;
+  /** When true, skip CSS transitions (used for scroll-driven collapse). */
+  disableTransition?: boolean;
   isOrganizer: boolean;
   onCustomize: () => void;
 }
@@ -21,6 +23,7 @@ interface AnimatedHeroProps {
 export function AnimatedHero({
   trip,
   collapseProgress,
+  disableTransition,
   isOrganizer,
   onCustomize,
 }: AnimatedHeroProps) {
@@ -43,12 +46,12 @@ export function AnimatedHero({
 
   return (
     <div
-      className="relative w-full overflow-hidden shrink-0 transition-[height] duration-300 ease-out"
+      className={`relative w-full overflow-hidden shrink-0${disableTransition ? "" : " transition-[height] duration-300 ease-out"}`}
       style={{ height: `${heroHeight}px` }}
     >
       {/* Full-height inner that slides upward as container shrinks */}
       <div
-        className="relative w-full transition-transform duration-300 ease-out"
+        className={`relative w-full${disableTransition ? "" : " transition-transform duration-300 ease-out"}`}
         style={{
           height: `${HERO_FULL}px`,
           transform: `translateY(${translateY}px)`,

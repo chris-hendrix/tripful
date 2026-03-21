@@ -4,13 +4,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar, Building2, PartyPopper, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PostmarkStamp } from "@/components/ui/postmark-stamp";
 import { JsonLd } from "@/components/json-ld";
 
 export const metadata: Metadata = {
   title: "Journiful - Group Trip Planner | Plan Travel Together",
   description:
-    "The group trip planner that makes collaborative travel planning easy. Coordinate itineraries, accommodations, events, and member logistics all in one place.",
+    "Journiful — memories & itineraries. The group trip planner that makes collaborative travel planning easy. Coordinate itineraries, accommodations, events, and member logistics all in one place.",
   alternates: { canonical: "/" },
 };
 
@@ -33,7 +32,7 @@ const features = [
     icon: PartyPopper,
     title: "Event Planning",
     description:
-      "Create events with RSVP tracking so everyone knows what's happening and when.",
+      "Create events and schedule activities so everyone knows what's happening and when.",
   },
   {
     icon: Plane,
@@ -72,26 +71,34 @@ export default async function Home() {
   return (
     <>
       <main className="flex min-h-screen flex-col bg-background linen-texture">
-        {/* Hero Section */}
-        <section className="relative flex flex-col items-center justify-center px-4 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
-          {/* Postmark decoration */}
-          <div className="absolute top-8 right-8 sm:top-12 sm:right-16 hidden sm:block">
-            <PostmarkStamp date="EST. 2026" city="JOURNIFUL" size="lg" />
+        {/* Header */}
+        <header className="sticky top-0 z-40 w-full bg-background border-b border-border linen-texture">
+          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+            <Link
+              href="/"
+              className="font-display text-2xl font-bold tracking-tight"
+            >
+              Journiful
+            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/login">Sign in</Link>
+            </Button>
           </div>
-          <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-display">
+        </header>
+
+        {/* Hero Section */}
+        <section className="relative flex flex-col items-center justify-center px-4 pt-12 pb-20 text-center sm:pt-20 sm:pb-28">
+          <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl font-playfair motion-safe:animate-[revealUp_600ms_ease-out_both]">
             Plan Group Trips Together
           </h1>
-          <p className="mb-3 max-w-lg text-center text-lg text-muted-foreground sm:text-xl">
+          <p className="mb-10 max-w-lg text-center text-lg text-muted-foreground sm:text-xl motion-safe:animate-[revealUp_600ms_ease-out_200ms_both]">
             The trip planning app that brings your travel group together.
             Coordinate everything in one place.
-          </p>
-          <p className="mb-10 text-xl text-accent font-script">
-            Wish you were here...
           </p>
           <Button
             variant="gradient"
             size="lg"
-            className="px-10 font-accent"
+            className="px-10 font-accent motion-safe:animate-[revealUp_600ms_ease-out_400ms_both]"
             asChild
           >
             <Link href="/login">Get started</Link>
@@ -101,14 +108,14 @@ export default async function Home() {
         {/* Features Section */}
         <section className="px-4 py-20 sm:py-28">
           <div className="mx-auto max-w-5xl">
-            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-playfair">
+            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-playfair scroll-reveal">
               Everything your group needs to plan the perfect trip
             </h2>
             <div className="grid gap-8 sm:grid-cols-2">
               {features.map((feature) => (
                 <div
                   key={feature.title}
-                  className="rounded-md border border-border bg-card p-6 linen-texture"
+                  className="rounded-md border border-border bg-card p-6 linen-texture scroll-reveal"
                 >
                   <feature.icon className="mb-3 h-6 w-6 text-accent" />
                   <h3 className="mb-2 text-lg font-semibold text-foreground font-accent">
@@ -126,12 +133,12 @@ export default async function Home() {
         {/* How It Works Section */}
         <section className="px-4 py-20 sm:py-28">
           <div className="mx-auto max-w-3xl">
-            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-playfair">
+            <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-playfair scroll-reveal">
               How Journiful works
             </h2>
             <div className="grid gap-8 sm:grid-cols-3">
               {steps.map((step) => (
-                <div key={step.number} className="text-center">
+                <div key={step.number} className="text-center scroll-reveal">
                   <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-sm border-2 border-dashed border-accent text-sm font-bold text-accent font-accent">
                     {step.number}
                   </div>
@@ -148,10 +155,7 @@ export default async function Home() {
         </section>
 
         {/* Bottom CTA Section */}
-        <section className="flex flex-col items-center px-4 pt-12 pb-24 text-center sm:pb-32">
-          <p className="mb-2 text-lg text-accent font-script">
-            Wish you were here?
-          </p>
+        <section className="flex flex-col items-center px-4 pt-12 pb-24 text-center sm:pb-32 scroll-reveal">
           <h2 className="mb-6 text-2xl font-bold tracking-tight text-foreground sm:text-3xl font-playfair">
             Ready to plan your next adventure?
           </h2>
