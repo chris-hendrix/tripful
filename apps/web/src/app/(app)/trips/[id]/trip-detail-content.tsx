@@ -427,7 +427,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </div>
 
               {/* Photos */}
-              <div className="border-t border-border mt-6 pt-6 px-4 sm:px-6 lg:px-0">
+              <div className="border-t border-border mt-4 pt-4 px-4 sm:px-6 lg:px-0">
                 <PhotosSection
                   tripId={trip.id}
                   isOrganizer={isOrganizer}
@@ -436,7 +436,7 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
               </div>
 
               {/* Discussion */}
-              <div className="border-t border-border mt-6 pt-6 px-4 sm:px-6 lg:px-0">
+              <div className="border-t border-border mt-4 pt-4 px-4 sm:px-6 lg:px-0">
                 <ErrorBoundary>
                   <TripMessages
                     tripId={tripId}
