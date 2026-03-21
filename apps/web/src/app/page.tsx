@@ -76,7 +76,7 @@ export default async function Home() {
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <Link
               href="/"
-              className="font-display text-xl font-bold tracking-tight"
+              className="font-display text-2xl font-bold tracking-tight"
             >
               Journiful
             </Link>
