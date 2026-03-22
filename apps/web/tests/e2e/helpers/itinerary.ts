@@ -60,11 +60,17 @@ export async function clickFabAction(page: Page, actionName: string) {
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {
     // Empty state has direct buttons like "Add Event", "Add Accommodation".
-    // Use a broad locator but pick .first() in case the InfoPanel sidebar
-    // also has a matching button in the DOM (hidden via CSS on mobile).
-    const emptyStateBtn = page
-      .getByRole("button", { name: `Add ${actionName}` })
-      .first();
+    // Scope to the itinerary empty-state container to avoid matching the
+    // InfoPanel sidebar's "Add Event" button which navigates/scrolls instead
+    // of opening the create dialog.  The InfoPanel button appears first in
+    // DOM order on both desktop (hidden lg:block sidebar) and mobile (swiper
+    // slide 0), so a naive .first() picks the wrong element.
+    const emptyState = page
+      .locator('[data-slot="empty-state"]')
+      .filter({ hasText: "No itinerary yet" });
+    const emptyStateBtn = emptyState.getByRole("button", {
+      name: `Add ${actionName}`,
+    });
     await emptyStateBtn.click();
   }
 }

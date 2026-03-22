@@ -483,7 +483,11 @@ test.describe("Itinerary Journey", () => {
       });
 
       await test.step("restore the event", async () => {
-        const restoreButton = page
+        // Scope to the dialog to avoid matching buttons outside the sheet
+        // whose accessible name happens to contain "Restore" (e.g. the
+        // InfoPanel member button when the organizer is "Delete Restore User").
+        const dialog = page.getByRole("dialog");
+        const restoreButton = dialog
           .getByRole("button", { name: "Restore" })
           .first();
         await restoreButton.click();
