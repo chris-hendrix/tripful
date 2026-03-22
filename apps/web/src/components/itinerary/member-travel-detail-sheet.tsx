@@ -198,6 +198,7 @@ export function MemberTravelDetailSheet({
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span>{memberTravel.location}</span>
+              <span className="text-xs opacity-60">Google Maps</span>
             </a>
           )}
 

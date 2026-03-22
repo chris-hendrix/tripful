@@ -165,6 +165,7 @@ export const AccommodationDetailSheet = memo(function AccommodationDetailSheet({
             >
               <MapPin className="w-4 h-4 shrink-0" />
               <span>{accommodation.address}</span>
+              <span className="text-xs opacity-60">Google Maps</span>
             </a>
           )}
 
