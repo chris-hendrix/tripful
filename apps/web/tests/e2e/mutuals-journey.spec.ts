@@ -148,8 +148,8 @@ test.describe("Mutuals Journey", () => {
           timeout: DIALOG_TIMEOUT,
         });
 
-        // Verify the member count increased (should show "2 members")
-        await expect(page.getByText(/2 members/)).toBeVisible({
+        // Verify the member count increased (should show "2 going")
+        await expect(page.getByText(/2 going/).first()).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
 

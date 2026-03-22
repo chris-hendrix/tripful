@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItineraryHeader } from "./itinerary-header";
 import { DayByDayView } from "./day-by-day-view";
-import { GroupByTypeView } from "./group-by-type-view";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { DeletedItemsDialog } from "./deleted-items-dialog";
@@ -89,10 +88,8 @@ export function ItineraryView({
     allAccommodations.some((a) => a.deletedAt !== null) ||
     allMemberTravels.some((t) => t.deletedAt !== null);
 
-  // View state
-  const [viewMode, setViewMode] = useState<"day-by-day" | "group-by-type">(
-    "day-by-day",
-  );
+  // Filter state
+  const [filter, setFilter] = useState<"all" | "activity" | "meal" | "travel" | "members">("all");
   const tripTimezone = trip?.preferredTimezone || "UTC";
   const userTimezone =
     user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -278,10 +275,10 @@ export function ItineraryView({
 
   return (
     <div>
-      {/* Header with toggles */}
+      {/* Header with filter pills + timezone */}
       <ItineraryHeader
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        filter={filter}
+        onFilterChange={setFilter}
         selectedTimezone={selectedTimezone}
         onTimezoneChange={setSelectedTimezone}
         tripTimezone={tripTimezone}
@@ -314,35 +311,20 @@ export function ItineraryView({
             This trip has ended. The itinerary is read-only.
           </div>
         )}
-        {viewMode === "day-by-day" ? (
-          <DayByDayView
-            events={events}
-            accommodations={accommodations}
-            memberTravels={memberTravels}
-            timezone={timezone}
-            tripStartDate={trip?.startDate || null}
-            tripEndDate={trip?.endDate || null}
-            isOrganizer={!!isOrganizer}
-            userId={user?.id || ""}
-            userNameMap={userNameMap}
-            isLocked={isLocked}
-            forecasts={forecasts ?? []}
-            temperatureUnit={temperatureUnit ?? "fahrenheit"}
-          />
-        ) : (
-          <GroupByTypeView
-            events={events}
-            accommodations={accommodations}
-            memberTravels={memberTravels}
-            timezone={timezone}
-            isOrganizer={!!isOrganizer}
-            userId={user?.id || ""}
-            userNameMap={userNameMap}
-            isLocked={isLocked}
-            tripStartDate={trip?.startDate || null}
-            tripEndDate={trip?.endDate || null}
-          />
-        )}
+        <DayByDayView
+          events={events}
+          memberTravels={memberTravels}
+          timezone={timezone}
+          tripStartDate={trip?.startDate || null}
+          tripEndDate={trip?.endDate || null}
+          isOrganizer={!!isOrganizer}
+          userId={user?.id || ""}
+          userNameMap={userNameMap}
+          isLocked={isLocked}
+          forecasts={forecasts ?? []}
+          temperatureUnit={temperatureUnit ?? "fahrenheit"}
+          filter={filter}
+        />
         {isOrganizer && hasDeletedItems && (
           <Button
             variant="ghost"

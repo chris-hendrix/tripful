@@ -3,40 +3,38 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import type {
   Event,
-  Accommodation,
   MemberTravel,
   DailyForecast,
   TemperatureUnit,
 } from "@journiful/shared/types";
-import { WeatherDayBadge } from "./weather-day-badge";
 import { EventCard } from "./event-card";
-import { AccommodationLineItem } from "./accommodation-line-item";
 import { MemberTravelLineItem } from "./member-travel-line-item";
 import { EventDetailSheet } from "./event-detail-sheet";
-import { AccommodationDetailSheet } from "./accommodation-detail-sheet";
 import { MemberTravelDetailSheet } from "./member-travel-detail-sheet";
 import { EditEventDialog } from "./edit-event-dialog";
-import { EditAccommodationDialog } from "./edit-accommodation-dialog";
 import { EditMemberTravelDialog } from "./edit-member-travel-dialog";
 import {
   getDayInTimezone,
   getDayLabel,
-  getDayNumber,
-  getMonthAbbrev,
-  getWeekdayAbbrev,
   utcToLocalParts,
 } from "@/lib/utils/timezone";
 import { cn } from "@/lib/utils";
 import { CalendarOff } from "lucide-react";
 import {
   canModifyEvent,
-  canModifyAccommodation,
   canModifyMemberTravel,
 } from "./utils/permissions";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+
+export type ItineraryFilter = "all" | "activity" | "meal" | "travel" | "members";
 
 interface DayByDayViewProps {
   events: Event[];
-  accommodations: Accommodation[];
   memberTravels: MemberTravel[];
   timezone: string;
   tripStartDate: string | null;
@@ -47,13 +45,13 @@ interface DayByDayViewProps {
   isLocked?: boolean;
   forecasts?: DailyForecast[];
   temperatureUnit?: TemperatureUnit;
+  filter?: ItineraryFilter;
 }
 
 interface DayData {
   date: string;
   label: string;
   events: Event[];
-  accommodations: Accommodation[];
   arrivals: MemberTravel[];
   departures: MemberTravel[];
 }
@@ -69,7 +67,6 @@ function NowIndicator() {
 
 export function DayByDayView({
   events,
-  accommodations,
   memberTravels,
   timezone,
   tripStartDate,
@@ -80,6 +77,7 @@ export function DayByDayView({
   isLocked,
   forecasts,
   temperatureUnit,
+  filter = "all",
 }: DayByDayViewProps) {
   // Track current time for the "now" indicator
   const [now, setNow] = useState(() => Date.now());
@@ -115,7 +113,6 @@ export function DayByDayView({
           date: dateString,
           label: getDayLabel(dateString, timezone),
           events: [],
-          accommodations: [],
           arrivals: [],
           departures: [],
         });
@@ -156,22 +153,6 @@ export function DayByDayView({
           }
           current.setDate(current.getDate() + 1);
         }
-      }
-    });
-
-    // Add accommodations to all spanned days (check-in through day before check-out)
-    accommodations.forEach((acc) => {
-      const startDay = getDayInTimezone(acc.checkIn, timezone);
-      const endDay = getDayInTimezone(acc.checkOut, timezone);
-      const current = new Date(startDay + "T00:00:00");
-      const end = new Date(endDay + "T00:00:00");
-      while (current < end) {
-        const dateString = current.toISOString().split("T")[0] || "";
-        if (dateString) {
-          ensureDay(dateString);
-          days.get(dateString)!.accommodations.push(acc);
-        }
-        current.setDate(current.getDate() + 1);
       }
     });
 
@@ -232,34 +213,59 @@ export function DayByDayView({
     return sortedDays;
   }, [
     events,
-    accommodations,
     memberTravels,
     timezone,
     tripStartDate,
     tripEndDate,
   ]);
 
+  // Apply filter to day data
+  const filteredDayData = useMemo(() => {
+    if (filter === "all") return dayData;
+
+    return dayData
+      .map((day) => {
+        if (filter === "members") {
+          // Show only member travels
+          return {
+            ...day,
+            events: [],
+            arrivals: day.arrivals,
+            departures: day.departures,
+          };
+        }
+        // Filter events by type, hide member travels
+        return {
+          ...day,
+          events: day.events.filter((e) => e.eventType === filter),
+          arrivals: [],
+          departures: [],
+        };
+      })
+      .filter(
+        (day) =>
+          day.events.length > 0 ||
+          day.arrivals.length > 0 ||
+          day.departures.length > 0,
+      );
+  }, [dayData, filter]);
+
   // Detail sheet state
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedAccommodation, setSelectedAccommodation] =
-    useState<Accommodation | null>(null);
   const [selectedMemberTravel, setSelectedMemberTravel] =
     useState<MemberTravel | null>(null);
 
   // Edit dialog state
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [editingAccommodation, setEditingAccommodation] =
-    useState<Accommodation | null>(null);
   const [editingMemberTravel, setEditingMemberTravel] =
     useState<MemberTravel | null>(null);
 
   return (
-    <div className="divide-y divide-border">
-      {dayData.map((day) => {
+    <div>
+      {filteredDayData.map((day) => {
         const isToday = day.date === todayString;
         const hasContent =
           day.events.length > 0 ||
-          day.accommodations.length > 0 ||
           day.arrivals.length > 0 ||
           day.departures.length > 0;
 
@@ -279,17 +285,6 @@ export function DayByDayView({
             nowInserted = true;
           }
         };
-
-        // Accommodations (no specific time, show first)
-        day.accommodations.forEach((acc) => {
-          cardElements.push(
-            <AccommodationLineItem
-              key={`acc-${acc.id}-${day.date}`}
-              accommodation={acc}
-              onClick={setSelectedAccommodation}
-            />,
-          );
-        });
 
         // All-day events first
         day.events
@@ -363,63 +358,80 @@ export function DayByDayView({
           cardElements.push(<NowIndicator key="now-line" />);
         }
 
+        const forecast = forecastMap.get(day.date);
+        const unit = (temperatureUnit || "fahrenheit") === "fahrenheit" ? "F" : "C";
+
         return (
           <div
             key={day.date}
             id={isToday ? "day-today" : undefined}
-            className={cn(
-              "grid grid-cols-[3.5rem_1fr] sm:grid-cols-[4.5rem_1fr] gap-x-2 sm:gap-x-3 py-4",
-              isToday && "scroll-mt-28",
-            )}
+            className={isToday ? "scroll-mt-28" : undefined}
           >
-            {/* Date gutter — outer cell stretches to row height so sticky works */}
-            <div className="relative">
-              <div className="sticky top-[7.75rem] z-10 flex flex-col items-center pt-3">
-                <span
-                  className={cn(
-                    "text-xs font-medium uppercase",
-                    isToday ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {getMonthAbbrev(day.date, timezone)}
-                </span>
-                <span
-                  className={cn(
-                    "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full text-xl sm:text-2xl font-bold leading-none",
-                    isToday
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground",
-                  )}
-                >
-                  {getDayNumber(day.date)}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs font-medium uppercase",
-                    isToday ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {getWeekdayAbbrev(day.date, timezone)}
-                </span>
-                <WeatherDayBadge
-                  forecast={forecastMap.get(day.date)}
-                  temperatureUnit={temperatureUnit || "fahrenheit"}
-                />
-              </div>
-            </div>
-
-            {/* Content column */}
+            {/* Sticky date header */}
             <div
               className={cn(
-                "min-w-0",
-                !hasContent && !isToday && "flex items-center",
+                "sticky top-0 z-10 flex items-center gap-1.5 px-1 py-2 bg-background/95 backdrop-blur-sm border-b border-border",
+                isToday && "scroll-mt-28",
               )}
             >
+              {isToday && (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+              )}
+              <span
+                className={cn(
+                  "text-sm font-semibold",
+                  isToday ? "text-primary" : "text-foreground",
+                )}
+              >
+                {day.label}
+              </span>
+              {forecast && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      aria-label={`Weather for ${day.label}`}
+                    >
+                      <span className="text-muted-foreground" aria-hidden="true">&middot;</span>
+                      {(() => {
+                        const { icon: Icon } = getWeatherInfo(forecast.weatherCode);
+                        return <Icon className="h-3.5 w-3.5" aria-hidden="true" />;
+                      })()}
+                      <span className="text-xs tabular-nums">
+                        {toDisplayTemp(forecast.temperatureMax, temperatureUnit || "fahrenheit")}&deg;
+                      </span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-3" align="start">
+                    {(() => {
+                      const { icon: Icon, label } = getWeatherInfo(forecast.weatherCode);
+                      const high = toDisplayTemp(forecast.temperatureMax, temperatureUnit || "fahrenheit");
+                      const low = toDisplayTemp(forecast.temperatureMin, temperatureUnit || "fahrenheit");
+                      return (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium">{label}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            High {high}&deg;{unit} / Low {low}&deg;{unit}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+
+            {/* Event cards */}
+            <div className="py-2">
               {hasContent || isToday ? (
                 <div className="space-y-2">{cardElements}</div>
               ) : (
-                <div className="flex items-center gap-2 min-h-[4.5rem] pl-5 text-muted-foreground">
-                  <CalendarOff className="size-5 shrink-0" />
+                <div className="flex items-center gap-2 py-3 px-1 text-muted-foreground">
+                  <CalendarOff className="size-4 shrink-0" />
                   <span className="text-sm">No events scheduled</span>
                 </div>
               )}
@@ -428,10 +440,12 @@ export function DayByDayView({
         );
       })}
 
-      {dayData.length === 0 && (
+      {filteredDayData.length === 0 && (
         <div className="bg-card rounded-md border border-border p-8 text-center">
           <p className="text-muted-foreground">
-            No trip dates set. Set trip dates to see a day-by-day view.
+            {filter !== "all"
+              ? "No matching items for this filter."
+              : "No trip dates set. Set trip dates to see a day-by-day view."}
           </p>
         </div>
       )}
@@ -444,18 +458,6 @@ export function DayByDayView({
             if (!open) setEditingEvent(null);
           }}
           event={editingEvent}
-          timezone={timezone}
-          tripStartDate={tripStartDate}
-          tripEndDate={tripEndDate}
-        />
-      )}
-      {editingAccommodation && (
-        <EditAccommodationDialog
-          open={!!editingAccommodation}
-          onOpenChange={(open) => {
-            if (!open) setEditingAccommodation(null);
-          }}
-          accommodation={editingAccommodation}
           timezone={timezone}
           tripStartDate={tripStartDate}
           tripEndDate={tripEndDate}
@@ -498,45 +500,6 @@ export function DayByDayView({
         }}
         createdByName={
           selectedEvent ? userNameMap.get(selectedEvent.createdBy) : undefined
-        }
-      />
-
-      <AccommodationDetailSheet
-        accommodation={selectedAccommodation}
-        open={!!selectedAccommodation}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAccommodation(null);
-        }}
-        timezone={timezone}
-        canEdit={
-          selectedAccommodation
-            ? canModifyAccommodation(
-                selectedAccommodation,
-                userId,
-                isOrganizer,
-                isLocked,
-              )
-            : false
-        }
-        canDelete={
-          selectedAccommodation
-            ? canModifyAccommodation(
-                selectedAccommodation,
-                userId,
-                isOrganizer,
-                isLocked,
-              )
-            : false
-        }
-        onEdit={(acc) => {
-          setSelectedAccommodation(null);
-          setEditingAccommodation(acc);
-        }}
-        onDelete={() => setSelectedAccommodation(null)}
-        createdByName={
-          selectedAccommodation
-            ? userNameMap.get(selectedAccommodation.createdBy)
-            : undefined
         }
       />
 

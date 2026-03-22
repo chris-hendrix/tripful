@@ -118,7 +118,7 @@ test.describe("Photos Journey", () => {
 
       const tmpDir = path.join("/tmp", `journiful-test-photos-${Date.now()}`);
       fs.mkdirSync(tmpDir, { recursive: true });
-      // Mobile Photos panel has no "Photos (n/20)" header — only desktop uses PhotosSection
+      // Mobile Photos panel has no "Photos n/20" header — only desktop uses PhotosSection
       const vp = page.viewportSize();
       const isMobile = vp ? vp.width < 768 : false;
 
@@ -145,7 +145,7 @@ test.describe("Photos Journey", () => {
         await test.step("verify empty state", async () => {
           // Photos section header shows 0/20 count (desktop only — mobile panel has no header)
           if (!isMobile) {
-            await expect(page.getByText(/Photos \(0\/20\)/)).toBeVisible({
+            await expect(page.getByText(/Photos\s*0\/20/)).toBeVisible({
               timeout: ELEMENT_TIMEOUT,
             });
           }
@@ -177,7 +177,7 @@ test.describe("Photos Journey", () => {
 
           // Counter should update to 1/20 (desktop only)
           if (!isMobile) {
-            await expect(page.getByText(/Photos \(1\/20\)/)).toBeVisible({
+            await expect(page.getByText(/Photos\s*1\/20/)).toBeVisible({
               timeout: ELEMENT_TIMEOUT,
             });
           }
@@ -202,7 +202,7 @@ test.describe("Photos Journey", () => {
 
           // Counter should update to 2/20 (desktop only)
           if (!isMobile) {
-            await expect(page.getByText(/Photos \(2\/20\)/)).toBeVisible({
+            await expect(page.getByText(/Photos\s*2\/20/)).toBeVisible({
               timeout: ELEMENT_TIMEOUT,
             });
           }
@@ -298,7 +298,7 @@ test.describe("Photos Journey", () => {
 
           // Counter should decrement to 1/20 (desktop only)
           if (!isMobile) {
-            await expect(page.getByText(/Photos \(1\/20\)/)).toBeVisible({
+            await expect(page.getByText(/Photos\s*1\/20/)).toBeVisible({
               timeout: ELEMENT_TIMEOUT,
             });
           }

@@ -114,24 +114,25 @@ async function main() {
     (typeof userRows)[0],
   ];
 
-  // Trips — one upcoming, one future, one in-progress
+  // Trips — one in-progress (centered on today), one upcoming, one past
   const tripRows = await db
     .insert(schema.trips)
     .values([
       {
         name: "Tokyo Adventure",
         destination: "Tokyo, Japan",
-        startDate: toDateStr(daysFromNow(3)),
-        endDate: toDateStr(daysFromNow(10)),
+        startDate: toDateStr(daysFromNow(-3)),
+        endDate: toDateStr(daysFromNow(4)),
         preferredTimezone: "Asia/Tokyo",
-        description: "A week exploring Tokyo — temples, food, and nightlife.",
+        description:
+          "A week exploring Tokyo — temples, food, and nightlife. Door code for Airbnb is 4821. Wifi: TokyoStay / password: sakura2026",
         createdBy: alice.id,
       },
       {
         name: "Barcelona Beach Week",
         destination: "Barcelona, Spain",
-        startDate: toDateStr(daysFromNow(18)),
-        endDate: toDateStr(daysFromNow(25)),
+        startDate: toDateStr(daysFromNow(14)),
+        endDate: toDateStr(daysFromNow(21)),
         preferredTimezone: "Europe/Madrid",
         description: "Sun, tapas, and Gaudi architecture.",
         createdBy: bob.id,
@@ -139,8 +140,8 @@ async function main() {
       {
         name: "NYC Weekend",
         destination: "New York City, USA",
-        startDate: toDateStr(daysFromNow(-2)),
-        endDate: toDateStr(daysFromNow(1)),
+        startDate: toDateStr(daysFromNow(-10)),
+        endDate: toDateStr(daysFromNow(-7)),
         preferredTimezone: "America/New_York",
         description: "Quick weekend getaway to the city.",
         createdBy: carol.id,
@@ -154,7 +155,7 @@ async function main() {
     (typeof tripRows)[0],
   ];
 
-  // Members
+  // Members — Alice is on all 3 trips, Tokyo has all 5 members
   const memberRows = await db
     .insert(schema.members)
     .values([
@@ -165,8 +166,9 @@ async function main() {
         isOrganizer: true,
       },
       { tripId: tokyo.id, userId: bob.id, status: "going" as const },
-      { tripId: tokyo.id, userId: carol.id, status: "maybe" as const },
-      { tripId: tokyo.id, userId: david.id, status: "no_response" as const },
+      { tripId: tokyo.id, userId: carol.id, status: "going" as const },
+      { tripId: tokyo.id, userId: david.id, status: "maybe" as const },
+      { tripId: tokyo.id, userId: eve.id, status: "going" as const },
       {
         tripId: barcelona.id,
         userId: bob.id,
@@ -182,6 +184,7 @@ async function main() {
         status: "going" as const,
         isOrganizer: true,
       },
+      { tripId: nyc.id, userId: alice.id, status: "going" as const },
       { tripId: nyc.id, userId: david.id, status: "maybe" as const },
       { tripId: nyc.id, userId: eve.id, status: "going" as const },
     ])
@@ -189,9 +192,9 @@ async function main() {
 
   // Events — randomly generated per trip
   const trips = [
-    { trip: tokyo, startDay: 3, days: 7, creators: [alice, bob, carol] },
-    { trip: barcelona, startDay: 18, days: 7, creators: [bob, alice, eve] },
-    { trip: nyc, startDay: -2, days: 3, creators: [carol, david, eve] },
+    { trip: tokyo, startDay: -3, days: 7, creators: [alice, bob, carol, eve] },
+    { trip: barcelona, startDay: 14, days: 7, creators: [bob, alice, eve] },
+    { trip: nyc, startDay: -10, days: 3, creators: [carol, david, eve] },
   ];
 
   for (const { trip, startDay, days, creators } of trips) {
@@ -296,31 +299,43 @@ async function main() {
 
   await db.insert(schema.memberTravel).values(travelValues);
 
-  // Accommodations
+  // Accommodations — Tokyo has two (hotel swap mid-trip)
   await db.insert(schema.accommodations).values([
     {
       tripId: tokyo.id,
       createdBy: alice.id,
       name: "Hotel Sunroute Plaza Shinjuku",
       address: "2-3-1 Yoyogi, Shibuya-ku, Tokyo",
-      checkIn: daysFromNow(3, 15),
-      checkOut: daysFromNow(10, 11),
+      checkIn: daysFromNow(-3, 15),
+      checkOut: daysFromNow(0, 11),
+      description:
+        "Door code: 4821. Wifi: SunrouteGuest / pass: tokyo2026. Checkout by 11am — leave bags at front desk.",
+    },
+    {
+      tripId: tokyo.id,
+      createdBy: alice.id,
+      name: "Airbnb in Shibuya",
+      address: "15-8 Udagawacho, Shibuya-ku, Tokyo",
+      checkIn: daysFromNow(0, 15),
+      checkOut: daysFromNow(4, 10),
+      description:
+        "Lockbox code: 7734. Wifi: ShibuyaFlat / pass: guest2026. Washer in unit. Trash goes out Tue/Fri mornings.",
     },
     {
       tripId: barcelona.id,
       createdBy: bob.id,
       name: "Airbnb near La Rambla",
       address: "Carrer de Ferran 28, Barcelona",
-      checkIn: daysFromNow(18, 14),
-      checkOut: daysFromNow(25, 10),
+      checkIn: daysFromNow(14, 14),
+      checkOut: daysFromNow(21, 10),
     },
     {
       tripId: nyc.id,
       createdBy: carol.id,
       name: "The NoMad Hotel",
       address: "1170 Broadway, New York",
-      checkIn: daysFromNow(-2, 15),
-      checkOut: daysFromNow(1, 12),
+      checkIn: daysFromNow(-10, 15),
+      checkOut: daysFromNow(-7, 12),
     },
   ]);
 

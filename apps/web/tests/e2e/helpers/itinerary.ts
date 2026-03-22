@@ -35,20 +35,18 @@ export async function clickFabAction(page: Page, actionName: string) {
   await dismissToast(page);
 
   const fab = page.getByRole("button", { name: "Add to itinerary" });
-  const emptyStateBtn = page.getByRole("button", {
-    name: `Add ${actionName}`,
-  });
 
-  // Wait for either the FAB (non-empty itinerary) or the empty-state button
-  // to appear. locator.isVisible() returns immediately (timeout is deprecated
-  // and ignored), so we must use .or() + waitFor to properly wait for the
-  // component to finish transitioning between empty and non-empty states.
-  await fab.or(emptyStateBtn).waitFor({
-    state: "visible",
-    timeout: SLOW_NAVIGATION_TIMEOUT,
-  });
+  // Wait for either the FAB or the itinerary content to load.
+  // We cannot use fab.or(emptyStateBtn) because the InfoPanel sidebar also has
+  // an "Add Event" button, causing a strict mode violation when both are in the DOM.
+  // Instead, poll for the FAB first; if it doesn't appear, fall back to the
+  // empty-state button scoped to the itinerary area.
+  const fabVisible = await fab
+    .waitFor({ state: "visible", timeout: SLOW_NAVIGATION_TIMEOUT })
+    .then(() => true)
+    .catch(() => false);
 
-  if (await fab.isVisible()) {
+  if (fabVisible) {
     // Retry: a late-arriving success toast from the previous action can
     // appear after dismissToast returns and intercept the FAB click.
     // Quick-dismiss on each attempt to clear any new toasts.
@@ -61,7 +59,18 @@ export async function clickFabAction(page: Page, actionName: string) {
     }).toPass({ timeout: SLOW_NAVIGATION_TIMEOUT });
     await page.getByRole("menuitem", { name: actionName }).click();
   } else {
-    // Empty state has direct buttons like "Add Event", "Add Accommodation"
+    // Empty state has direct buttons like "Add Event", "Add Accommodation".
+    // Scope to the itinerary empty-state container to avoid matching the
+    // InfoPanel sidebar's "Add Event" button which navigates/scrolls instead
+    // of opening the create dialog.  The InfoPanel button appears first in
+    // DOM order on both desktop (hidden lg:block sidebar) and mobile (swiper
+    // slide 0), so a naive .first() picks the wrong element.
+    const emptyState = page
+      .locator('[data-slot="empty-state"]')
+      .filter({ hasText: "No itinerary yet" });
+    const emptyStateBtn = emptyState.getByRole("button", {
+      name: `Add ${actionName}`,
+    });
     await emptyStateBtn.click();
   }
 }
@@ -85,25 +94,31 @@ export async function createEvent(
 
   await page.getByLabel(/event name/i).fill(name);
 
-  if (options?.description) {
-    await page.getByLabel(/description/i).fill(options.description);
-  }
-
   if (options?.type) {
+    // Event type is selected via icon card grid buttons
     const dialog = page.getByRole("dialog");
-    await dialog.locator('button[role="combobox"]').first().click();
-    await page
-      .locator(`div[role="option"]`)
+    await dialog
+      .locator(".grid button")
       .filter({ hasText: options.type })
       .click();
+  }
+
+  const startTrigger = page.getByRole("button", { name: "Start time" });
+  await pickDateTime(page, startTrigger, startDateTime);
+
+  // Location, description, end time are inside a collapsed "More details" section
+  if (options?.location || options?.description || options?.endDateTime) {
+    const dialog = page.getByRole("dialog");
+    await dialog.getByText("More details").click();
+  }
+
+  if (options?.description) {
+    await page.getByLabel(/description/i).fill(options.description);
   }
 
   if (options?.location) {
     await page.locator('input[name="location"]').fill(options.location);
   }
-
-  const startTrigger = page.getByRole("button", { name: "Start time" });
-  await pickDateTime(page, startTrigger, startDateTime);
 
   if (options?.endDateTime) {
     const endTrigger = page.getByRole("button", { name: "End time" });

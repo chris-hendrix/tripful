@@ -406,8 +406,9 @@ test.describe("Messaging Journey", () => {
         // On mobile the members count is in the Home/Info panel, not the Messages panel.
         await navigateToMobilePanel(page, "Home");
 
-        // Open members dialog
-        await page.getByText(/\d+ members?/).click();
+        // Open members dialog — use .first() because on desktop both the
+        // lg:hidden and hidden lg:block InfoPanels contain "N going" text.
+        await page.getByText(/\d+ going/).first().click();
 
         const dialog = page.getByRole("dialog");
         await expect(

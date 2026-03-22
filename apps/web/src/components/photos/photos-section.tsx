@@ -58,13 +58,16 @@ export function PhotosSection({
 
   return (
     <>
-      <Collapsible defaultOpen className="mb-2">
-        <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center gap-2 px-0 text-2xl font-semibold font-playfair text-foreground hover:text-foreground/80 cursor-pointer">
           <ChevronDown
-            className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+            className="w-5 h-5 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
             aria-hidden="true"
           />
-          Photos ({photos.length}/{MAX_PHOTOS_PER_TRIP})
+          Photos
+          <span className="text-base font-normal text-muted-foreground">
+            {photos.length}/{MAX_PHOTOS_PER_TRIP}
+          </span>
         </CollapsibleTrigger>
         <CollapsibleContent
           forceMount

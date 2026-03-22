@@ -1,51 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar } from "lucide-react";
-import type { Accommodation, Event } from "@journiful/shared/types";
-import { useAccommodations } from "@/hooks/use-accommodations";
+import type { Event } from "@journiful/shared/types";
 import { useEvents } from "@/hooks/use-events";
-import { getDayInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
-import { AccommodationLineItem } from "@/components/itinerary/accommodation-line-item";
-import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
-import { EventCard } from "@/components/itinerary/event-card";
+import { getDayInTimezone, formatInTimezone, utcToLocalParts } from "@/lib/utils/timezone";
+import { EVENT_TYPE_CONFIG } from "@/components/itinerary/event-card";
 import { EventDetailSheet } from "@/components/itinerary/event-detail-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const MAX_VISIBLE_EVENTS = 4;
 
 interface TodaySectionProps {
   tripId: string;
   timezone: string;
-  onNavigateToItinerary: () => void;
 }
 
 export function TodaySection({
   tripId,
   timezone,
-  onNavigateToItinerary,
 }: TodaySectionProps) {
-  const { data: accommodations, isPending: accLoading } =
-    useAccommodations(tripId);
   const { data: events, isPending: eventsLoading } = useEvents(tripId);
 
   const todayString = useMemo(
     () => getDayInTimezone(new Date(), timezone),
     [timezone],
   );
-
-  // Filter accommodations to today: checkIn <= today < checkOut
-  const todayAccommodations = useMemo(() => {
-    if (!accommodations) return [];
-    return accommodations.filter((acc) => {
-      const startDay = getDayInTimezone(acc.checkIn, timezone);
-      const endDay = getDayInTimezone(acc.checkOut, timezone);
-      const current = new Date(startDay + "T00:00:00");
-      const end = new Date(endDay + "T00:00:00");
-      const today = new Date(todayString + "T00:00:00");
-      return current <= today && today < end;
-    });
-  }, [accommodations, timezone, todayString]);
 
   // Filter events to today
   const todayEvents = useMemo(() => {
@@ -93,38 +70,18 @@ export function TodaySection({
     });
   }, [todayEvents]);
 
-  const visibleEvents = sortedEvents.slice(0, MAX_VISIBLE_EVENTS);
-  const hasMoreEvents = sortedEvents.length > MAX_VISIBLE_EVENTS;
 
   // Detail sheet state
-  const [selectedAccommodation, setSelectedAccommodation] =
-    useState<Accommodation | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const isLoading = accLoading || eventsLoading;
-  const isEmpty =
-    !isLoading &&
-    todayAccommodations.length === 0 &&
-    sortedEvents.length === 0;
+  const isLoading = eventsLoading;
+  const isEmpty = !isLoading && sortedEvents.length === 0;
 
-  const todayLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-US", {
-        timeZone: timezone,
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      }).format(new Date()),
-    [timezone],
-  );
+  // Return null if no events today (parent handles conditional rendering)
+  if (!isLoading && isEmpty) return null;
 
   return (
-    <div className="mb-6">
-      <h3 className="text-sm font-semibold text-foreground mb-2">
-        Today{" "}
-        <span className="font-normal text-muted-foreground">{todayLabel}</span>
-      </h3>
-
+    <div>
       {isLoading && (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full rounded-md" />
@@ -132,57 +89,34 @@ export function TodaySection({
         </div>
       )}
 
-      {isEmpty && (
-        <div className="flex items-center gap-2 py-4 text-muted-foreground">
-          <Calendar className="w-4 h-4" />
-          <span className="text-sm">Nothing planned for today</span>
-        </div>
-      )}
-
       {!isLoading && !isEmpty && (
-        <div className="space-y-2">
-          {todayAccommodations.map((acc) => (
-            <AccommodationLineItem
-              key={acc.id}
-              accommodation={acc}
-              onClick={setSelectedAccommodation}
-            />
-          ))}
-
-          {visibleEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              timezone={timezone}
-              onClick={setSelectedEvent}
-            />
-          ))}
-
-          {hasMoreEvents && (
-            <button
-              onClick={onNavigateToItinerary}
-              className="w-full text-center text-sm text-primary hover:text-primary/80 py-2 transition-colors cursor-pointer"
-            >
-              View all in itinerary
-            </button>
-          )}
+        <div className="rounded-md border border-border divide-y divide-border">
+          {sortedEvents.map((event) => {
+            const config = EVENT_TYPE_CONFIG[event.eventType];
+            const Icon = config.icon;
+            const time = event.allDay
+              ? "All day"
+              : formatInTimezone(event.startTime, timezone, "time");
+            return (
+              <button
+                key={event.id}
+                onClick={() => setSelectedEvent(event)}
+                className="flex items-center gap-2.5 w-full text-left py-2 px-3 hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  {time}
+                </span>
+                <span className="text-sm text-foreground truncate">
+                  {event.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Detail sheets */}
-      <AccommodationDetailSheet
-        accommodation={selectedAccommodation}
-        open={!!selectedAccommodation}
-        onOpenChange={(open) => {
-          if (!open) setSelectedAccommodation(null);
-        }}
-        timezone={timezone}
-        canEdit={false}
-        canDelete={false}
-        onEdit={() => {}}
-        onDelete={() => setSelectedAccommodation(null)}
-      />
-
+      {/* Detail sheet */}
       <EventDetailSheet
         event={selectedEvent}
         open={!!selectedEvent}

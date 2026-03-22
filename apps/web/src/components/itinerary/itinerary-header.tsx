@@ -1,48 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, List, Plus, Building2, Plane } from "lucide-react";
+import { Calendar, Car, Globe, PlaneLanding, Plus, Building2, Plane, Utensils, type LucideIcon } from "lucide-react";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { TIMEZONES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { CreateEventDialog } from "./create-event-dialog";
 import { CreateAccommodationDialog } from "./create-accommodation-dialog";
 import { CreateMemberTravelDialog } from "./create-member-travel-dialog";
 
-function getTimezoneLabel(tz: string): string {
-  const match = TIMEZONES.find((t) => t.value === tz);
-  if (match) return match.label;
-  const parts = tz.split("/");
-  const lastPart = parts[parts.length - 1];
-  return lastPart ? lastPart.replace(/_/g, " ") : tz;
+export type ItineraryFilter = "all" | "activity" | "meal" | "travel" | "members";
+
+function getTimezoneAbbr(tz: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "short",
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === "timeZoneName")?.value || tz;
+  } catch {
+    return tz;
+  }
 }
 
+const FILTER_OPTIONS: { value: ItineraryFilter; label: string; icon?: LucideIcon }[] = [
+  { value: "all", label: "All" },
+  { value: "activity", label: "Activity", icon: Calendar },
+  { value: "meal", label: "Meal", icon: Utensils },
+  { value: "travel", label: "Travel", icon: Car },
+  { value: "members", label: "Members", icon: PlaneLanding },
+];
+
 interface ItineraryHeaderProps {
-  viewMode: "day-by-day" | "group-by-type";
-  onViewModeChange: (mode: "day-by-day" | "group-by-type") => void;
+  filter: ItineraryFilter;
+  onFilterChange: (filter: ItineraryFilter) => void;
   selectedTimezone: string;
   onTimezoneChange: (tz: string) => void;
   tripTimezone: string;
@@ -58,8 +56,8 @@ interface ItineraryHeaderProps {
 }
 
 export function ItineraryHeader({
-  viewMode,
-  onViewModeChange,
+  filter,
+  onFilterChange,
   selectedTimezone,
   onTimezoneChange,
   tripTimezone,
@@ -82,9 +80,9 @@ export function ItineraryHeader({
   const [fabOpen, setFabOpen] = useState(false);
   const mounted = useMounted();
 
-  // Build timezone options: trip first, then user (if different), then all others
-  const pinnedValues = new Set([tripTimezone, userTimezone]);
-  const otherTimezones = TIMEZONES.filter((tz) => !pinnedValues.has(tz.value));
+  const showTzToggle = tripTimezone !== userTimezone;
+  const isTripTz = selectedTimezone === tripTimezone;
+  const tzAbbr = useMemo(() => getTimezoneAbbr(selectedTimezone), [selectedTimezone]);
 
   // Permission checks
   const canAddEvent = isOrganizer || (isMember && allowMembersToAddEvents);
@@ -94,82 +92,47 @@ export function ItineraryHeader({
     <>
       <div
         data-testid="itinerary-header"
-        className="sticky top-0 z-30 bg-background border-b border-border py-2 px-4 sm:px-6 lg:px-8"
+        className="bg-background border-b border-border py-2 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            {/* Left: View mode toggle + timezone */}
-            <TooltipProvider>
-              <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-md border border-border">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon-xs"
-                      variant={viewMode === "day-by-day" ? "default" : "ghost"}
-                      onClick={() => onViewModeChange("day-by-day")}
-                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
-                      aria-label="Day by Day"
-                    >
-                      <Calendar className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Day by Day</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon-xs"
-                      variant={
-                        viewMode === "group-by-type" ? "default" : "ghost"
-                      }
-                      onClick={() => onViewModeChange("group-by-type")}
-                      className="relative after:absolute after:content-[''] after:-inset-[4px] rounded-lg"
-                      aria-label="Group by Type"
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Group by Type</TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
-
-            <div className="min-w-0">
-              <Select value={selectedTimezone} onValueChange={onTimezoneChange}>
-                <SelectTrigger
-                  size="sm"
-                  className="text-xs"
-                  aria-label="Timezone"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={tripTimezone}>
-                      {getTimezoneLabel(tripTimezone)} (Trip)
-                    </SelectItem>
-                    {tripTimezone !== userTimezone && (
-                      <SelectItem value={userTimezone}>
-                        {getTimezoneLabel(userTimezone)} (Current)
-                      </SelectItem>
-                    )}
-                  </SelectGroup>
-                  {otherTimezones.length > 0 && (
-                    <>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>All timezones</SelectLabel>
-                        {otherTimezones.map((tz) => (
-                          <SelectItem key={tz.value} value={tz.value}>
-                            {tz.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </>
+          <div className="flex items-center justify-between gap-3">
+            {/* Filter pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onFilterChange(opt.value)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer",
+                    filter === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                   )}
-                </SelectContent>
-              </Select>
+                >
+                  {opt.icon ? (
+                    <opt.icon className="w-3.5 h-3.5" />
+                  ) : (
+                    opt.label
+                  )}
+                </button>
+              ))}
             </div>
+
+            {/* Timezone toggle */}
+            {showTzToggle && (
+              <button
+                type="button"
+                onClick={() =>
+                  onTimezoneChange(isTripTz ? userTimezone : tripTimezone)
+                }
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
+                aria-label={`Switch to ${isTripTz ? "your" : "trip"} timezone`}
+              >
+                <Globe className="w-3 h-3" />
+                <span className="tabular-nums">{tzAbbr}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

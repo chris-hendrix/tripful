@@ -55,15 +55,18 @@ test.describe("Itinerary Journey", () => {
         await expect(page.getByText(/Dinner at Harbor/)).toBeVisible();
         await expect.soft(page.getByText(/6:30 PM/)).toBeVisible();
 
-        // Location text visible with link icon to Google Maps
-        await expect.soft(page.getByText("Harbor Drive Seafood")).toBeVisible();
+        // Location details are in the detail sheet (decluttered card view)
+        await page.getByText(/Dinner at Harbor/).first().click();
         const locationLink = page.getByRole("link", {
           name: /Harbor Drive Seafood.*Google Maps/,
         });
+        await expect.soft(page.getByText("Harbor Drive Seafood")).toBeVisible();
         await expect.soft(locationLink).toBeVisible();
         await expect
           .soft(locationLink)
           .toHaveAttribute("href", /google\.com\/maps\/search/);
+        // Close the detail sheet
+        await page.keyboard.press("Escape");
       });
 
       await test.step("create accommodation", async () => {
@@ -77,6 +80,9 @@ test.describe("Itinerary Journey", () => {
         await page
           .locator('input[name="address"]')
           .fill("123 Main St, San Diego");
+        // Description and links are inside collapsed "More details" section
+        const accommDialog = page.getByRole("dialog");
+        await accommDialog.getByText("More details").click();
         await page
           .locator('textarea[name="description"]')
           .fill("Modern hotel in the heart of downtown");
@@ -99,26 +105,20 @@ test.describe("Itinerary Journey", () => {
           .getByRole("button", { name: "Create accommodation" })
           .click();
 
-        // Address link is visible in the compact line-item (click opens detail sheet)
-        const accommodationCard = page
-          .locator('[role="button"]')
+        // Accommodation appears in the InfoPanel sidebar (not the day-by-day itinerary)
+        await expect(page.getByText("Accommodation created successfully")).toBeVisible({
+          timeout: TOAST_TIMEOUT,
+        });
+        // Verify the accommodation name appears in the Accommodations section
+        const accommodationButton = page
+          .getByRole("button")
           .filter({
             hasText: new RegExp(accommodationName.replace(/\d+/g, "\\d+")),
           })
           .first();
-        await expect(accommodationCard).toBeVisible({
+        await expect(accommodationButton).toBeVisible({
           timeout: ELEMENT_TIMEOUT,
         });
-
-        // Location pin + link icon visible (address details in detail sheet)
-        const addressLink = accommodationCard.getByRole("link", {
-          name: /Google Maps/,
-        });
-        await expect(addressLink).toBeVisible();
-        await expect(addressLink).toHaveAttribute(
-          "href",
-          /google\.com\/maps\/search/,
-        );
       });
 
       await snap(page, "09-itinerary-with-events");
@@ -142,18 +142,22 @@ test.describe("Itinerary Journey", () => {
           .fill("Arriving from Chicago");
         await page.locator('button[type="submit"]', { hasText: "Add travel details" }).click();
 
-        // Travel card shows member name (location details in detail sheet)
+        // Travel card shows member name (location is in the detail sheet)
         await expect(page.getByText(/Itinerary Tester/).first()).toBeVisible();
 
-        // Expand travel card to see details — use getByRole to target
-        // the travel card button, not the "Itinerary Tester" text in Organizers
-        const travelCard = page.getByRole("button", {
-          name: /Itinerary Tester.*San Diego Airport/,
-        });
+        // Click the travel line-item card to open the detail sheet
+        // The card only shows member name, so match on that
+        const travelCard = page
+          .locator('[role="button"]')
+          .filter({ hasText: /Itinerary Tester/ })
+          .first();
         await travelCard.click();
+
+        // Verify location and details in the detail sheet
+        await expect(page.getByText("San Diego Airport")).toBeVisible();
         await expect(page.getByText("Arriving from Chicago")).toBeVisible();
 
-        // Close the edit travel dialog so it doesn't block subsequent steps
+        // Close the detail sheet so it doesn't block subsequent steps
         await page.keyboard.press("Escape");
       });
 
@@ -172,6 +176,9 @@ test.describe("Itinerary Journey", () => {
         const nameInput = page.locator('input[name="name"]');
         await nameInput.clear();
         await nameInput.fill(updatedEventName);
+        // Location is inside collapsed "More details" section
+        const editDialog = page.getByRole("dialog");
+        await editDialog.getByText("More details").click();
         await page.locator('input[name="location"]').fill("Gaslamp Quarter");
         await page.getByRole("button", { name: "Update event" }).click();
 
@@ -181,17 +188,21 @@ test.describe("Itinerary Journey", () => {
         ).not.toBeVisible();
 
         await expect(page.getByText(/Updated Dinner/)).toBeVisible();
-        // Updated location text visible with link icon
-        await expect(page.getByText("Gaslamp Quarter")).toBeVisible();
+        await expect(page.getByText(/Dinner at Harbor/)).not.toBeVisible();
+
+        // Verify updated location in detail sheet
+        await page.getByText(/Updated Dinner/).first().click();
         const updatedLocationLink = page.getByRole("link", {
           name: /Gaslamp Quarter.*Google Maps/,
         });
+        await expect(page.getByText("Gaslamp Quarter")).toBeVisible();
         await expect(updatedLocationLink).toBeVisible();
         await expect(updatedLocationLink).toHaveAttribute(
           "href",
           /google\.com\/maps\/search/,
         );
-        await expect(page.getByText(/Dinner at Harbor/)).not.toBeVisible();
+        // Close detail sheet
+        await page.keyboard.press("Escape");
       });
 
       await test.step("delete event with cancel then confirm", async () => {
@@ -288,7 +299,12 @@ test.describe("Itinerary Journey", () => {
           timeout: NAVIGATION_TIMEOUT,
         });
 
-        // Location text visible with link icon
+        // Location details are in the detail sheet (decluttered card view)
+        const travelCard = page
+          .locator('[role="button"]')
+          .filter({ hasText: /View Mode User/ })
+          .first();
+        await travelCard.click();
         await expect(page.getByText("Las Vegas Airport")).toBeVisible();
         const airportLink = page.getByRole("link", {
           name: /Las Vegas Airport.*Google Maps/,
@@ -298,6 +314,8 @@ test.describe("Itinerary Journey", () => {
           "href",
           /google\.com\/maps\/search/,
         );
+        // Close the detail sheet
+        await page.keyboard.press("Escape");
       });
 
       await test.step("verify date gutter in day-by-day view", async () => {
@@ -310,62 +328,30 @@ test.describe("Itinerary Journey", () => {
 
       await snap(page, "10-itinerary-day-by-day");
 
-      await test.step("toggle day-by-day to group-by-type", async () => {
-        const dayByDayButton = page
-          .getByRole("button", { name: "Day by Day" })
-          .first();
-        await expect(dayByDayButton).toBeVisible();
+      await test.step("filter by type using pills", async () => {
+        // The itinerary header now uses filter pills instead of view toggle.
+        // Pills: All (text) | Activity (icon) | Meal (icon) | Travel (icon) | Members (icon)
+        const header = page.getByTestId("itinerary-header");
+        await expect(header).toBeVisible();
 
-        await page.getByRole("button", { name: "Group by Type" }).click();
+        // Click the Meal filter pill (3rd pill, index 2)
+        const pills = header.locator("button");
+        await pills.nth(2).click();
 
-        // Section icons have title tooltips
-        await expect.soft(page.locator('[title="Meals"]')).toBeVisible();
-        await expect.soft(page.locator('[title="Activities"]')).toBeVisible();
-        await expect.soft(page.locator('[title="Arrivals"]')).toBeVisible();
-        await expect.soft(page.getByText(/Lunch/)).toBeVisible();
-        await expect.soft(page.getByText(/Show/)).toBeVisible();
-        // Location still visible in group-by-type view
-        await expect
-          .soft(page.getByText("Las Vegas Airport").first())
-          .toBeVisible();
-        // Verify date labels appear on cards in group-by-type view
-        await expect.soft(page.getByText(/Mar 10/).first()).toBeVisible();
-        await snap(page, "11-itinerary-group-by-type");
+        // Should still show meal events
+        await expect(page.getByText(/Lunch/)).toBeVisible();
+        // Activity events should be hidden
+        await expect(page.getByText(/Show/)).not.toBeVisible();
+
+        await snap(page, "11-itinerary-filtered-meals");
       });
 
-      await test.step("toggle back to day-by-day", async () => {
-        await page.getByRole("button", { name: "Day by Day" }).click();
+      await test.step("reset filter to all", async () => {
+        const header = page.getByTestId("itinerary-header");
+        // Click "All" pill (first pill, shows text)
+        await header.locator("button").filter({ hasText: "All" }).click();
         await expect(page.getByText(/Lunch/)).toBeVisible();
         await expect(page.getByText(/Show/)).toBeVisible();
-      });
-
-      await test.step("change timezone via dropdown", async () => {
-        // Open timezone selector and pick user timezone
-        const tzTrigger = page.getByRole("combobox", { name: "Timezone" });
-        await expect(tzTrigger).toBeVisible();
-        await expect(tzTrigger).toContainText("Trip");
-
-        // Radix Select on mobile WebKit can be slow to position the listbox.
-        // Wait for the option to be visible before clicking.
-        await tzTrigger.click();
-        const currentOption = page.getByRole("option", { name: /Current/ });
-        await currentOption.waitFor({
-          state: "visible",
-          timeout: ELEMENT_TIMEOUT,
-        });
-        await currentOption.click();
-        await expect(tzTrigger).toContainText("Current");
-        await expect(page.getByText(/Lunch/)).toBeVisible();
-
-        // Switch back to trip timezone
-        await tzTrigger.click();
-        const tripOption = page.getByRole("option", { name: /Trip/ });
-        await tripOption.waitFor({
-          state: "visible",
-          timeout: ELEMENT_TIMEOUT,
-        });
-        await tripOption.click();
-        await expect(tzTrigger).toContainText("Trip");
       });
 
       await test.step("mobile viewport", async () => {
@@ -386,14 +372,9 @@ test.describe("Itinerary Journey", () => {
         const header = page.getByTestId("itinerary-header");
         await expect(header).toBeVisible();
 
+        // Filter pills should be visible on mobile too
         await expect(
-          page.getByRole("button", { name: "Day by Day" }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("button", { name: "Group by Type" }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("combobox", { name: "Timezone" }),
+          header.locator("button").filter({ hasText: "All" }),
         ).toBeVisible();
         await expect(page.getByText(/Lunch/)).toBeVisible();
         await expect(
@@ -514,7 +495,11 @@ test.describe("Itinerary Journey", () => {
       });
 
       await test.step("restore the event", async () => {
-        const restoreButton = page
+        // Scope to the dialog to avoid matching buttons outside the sheet
+        // whose accessible name happens to contain "Restore" (e.g. the
+        // InfoPanel member button when the organizer is "Delete Restore User").
+        const dialog = page.getByRole("dialog");
+        const restoreButton = dialog
           .getByRole("button", { name: "Restore" })
           .first();
         await restoreButton.click();

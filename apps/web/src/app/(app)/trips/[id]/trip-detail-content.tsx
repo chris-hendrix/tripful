@@ -8,14 +8,8 @@ import { toast } from "sonner";
 import {
   Calendar,
   MapPin,
-  Users,
-  ClipboardList,
   AlertCircle,
-  UserPlus,
-  Pencil,
   Paintbrush,
-  ChevronDown,
-  Settings,
 } from "lucide-react";
 import { useTripDetail } from "@/hooks/use-trips";
 import { useEvents } from "@/hooks/use-events";
@@ -31,16 +25,11 @@ import type { MemberWithProfile } from "@/hooks/use-invitations";
 import { useAuth } from "@/app/providers/auth-provider";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { MobileTripLayout } from "@/components/trip/mobile/mobile-trip-layout";
+import { InfoPanel } from "@/components/trip/mobile/panels/info-panel";
 import { Button } from "@/components/ui/button";
-import { RsvpBadgeDropdown } from "@/components/trip/rsvp-badge-dropdown";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
 import { TopoPattern } from "@/components/ui/topo-pattern";
-import { formatDateRange, getInitials } from "@/lib/format";
+import { formatDateRange } from "@/lib/format";
 import { getUploadUrl } from "@/lib/api";
 import {
   Sheet,
@@ -51,10 +40,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
-import { WeatherForecastCard } from "@/components/itinerary/weather-forecast-card";
+import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
+import { canModifyAccommodation } from "@/components/itinerary/utils/permissions";
 import { useWeatherForecast } from "@/hooks/use-weather";
 import type { TemperatureUnit } from "@journiful/shared/types";
-import { TripMessages, MessageCountIndicator } from "@/components/messaging";
+import type { Accommodation } from "@journiful/shared/types";
+import { TripMessages } from "@/components/messaging";
 import { NotificationPreferences } from "@/components/notifications/notification-preferences";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { MembersList } from "@/components/trip/members-list";
@@ -71,9 +62,6 @@ const EditTripDialog = dynamic(() =>
   })),
 );
 
-const preloadEditTripDialog = () =>
-  void import("@/components/trip/edit-trip-dialog");
-
 const CustomizeThemeSheet = dynamic(() =>
   import("@/components/trip/customize-theme-sheet").then((mod) => ({
     default: mod.CustomizeThemeSheet,
@@ -89,12 +77,15 @@ const InviteMembersDialog = dynamic(() =>
   })),
 );
 
-const preloadInviteMembersDialog = () =>
-  void import("@/components/trip/invite-members-dialog");
-
 const MemberOnboardingWizard = dynamic(() =>
   import("@/components/trip/member-onboarding-wizard").then((mod) => ({
     default: mod.MemberOnboardingWizard,
+  })),
+);
+
+const EditAccommodationDialog = dynamic(() =>
+  import("@/components/itinerary/edit-accommodation-dialog").then((mod) => ({
+    default: mod.EditAccommodationDialog,
   })),
 );
 
@@ -140,6 +131,10 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
     member: MemberWithProfile;
   } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [selectedAccommodation, setSelectedAccommodation] =
+    useState<Accommodation | null>(null);
+  const [editingAccommodation, setEditingAccommodation] =
+    useState<Accommodation | null>(null);
 
   const removeMember = useRemoveMember(tripId);
   const updateRole = useUpdateMemberRole(tripId);
@@ -372,188 +367,86 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
-          <div className="mb-8">
-            {/* RSVP + action icons */}
-            <div className="flex items-center mb-6">
-              <RsvpBadgeDropdown
-                tripId={trip.id}
-                status={trip.userRsvpStatus}
-              />
-              <span className="flex-1" aria-hidden="true" />
-              <div className="flex items-center gap-3">
-                {isOrganizer && (
-                  <>
-                    <Button
-                      onClick={() => setIsInviteOpen(true)}
-                      onMouseEnter={
-                        supportsHover ? preloadInviteMembersDialog : undefined
-                      }
-                      onTouchStart={preloadInviteMembersDialog}
-                      onFocus={preloadInviteMembersDialog}
-                      variant="outline"
-                      size="icon"
-                      aria-label="Invite members"
-                    >
-                      <UserPlus />
-                    </Button>
-                    <Button
-                      onClick={() => setIsEditOpen(true)}
-                      onMouseEnter={
-                        supportsHover ? preloadEditTripDialog : undefined
-                      }
-                      onTouchStart={preloadEditTripDialog}
-                      onFocus={preloadEditTripDialog}
-                      variant="outline"
-                      size="icon"
-                      aria-label="Edit trip"
-                    >
-                      <Pencil />
-                    </Button>
-                  </>
-                )}
-                <Button
-                  onClick={() => setIsSettingsOpen(true)}
-                  variant="outline"
-                  size="icon"
-                  aria-label="Settings"
-                >
-                  <Settings />
-                </Button>
-              </div>
-            </div>
-
-            {/* Organizers */}
-            {trip.organizers.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-foreground mb-2">
-                  Organizers
-                </h3>
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2">
-                    {trip.organizers.map((org) =>
-                      org.profilePhotoUrl ? (
-                        <Image
-                          key={org.id}
-                          src={getUploadUrl(org.profilePhotoUrl)!}
-                          alt={org.displayName}
-                          width={32}
-                          height={32}
-                          className="w-8 h-8 rounded-full ring-2 ring-white object-cover"
-                        />
-                      ) : (
-                        <div
-                          key={org.id}
-                          className="w-8 h-8 rounded-full ring-2 ring-white bg-muted flex items-center justify-center text-xs font-medium text-foreground"
-                        >
-                          {getInitials(org.displayName)}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {trip.organizers.map((org) => org.displayName).join(", ")}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Stats */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
-              <button
-                onClick={() => setIsMembersOpen(true)}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <Users className="w-5 h-5" />
-                <span className="text-sm">
-                  {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  const target =
-                    document.getElementById("day-today") ??
-                    document.getElementById("itinerary");
-                  target?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <ClipboardList className="w-5 h-5" />
-                <span className="text-sm">
-                  {activeEventCount === 0
-                    ? "No events yet"
-                    : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
-                </span>
-              </button>
-              <MessageCountIndicator tripId={tripId} />
-            </div>
-
-            {/* About this trip */}
-            <Collapsible defaultOpen className="mb-2">
-              <CollapsibleTrigger className="flex items-center gap-2 px-0 text-sm font-semibold text-foreground hover:text-foreground/80 min-h-[44px] cursor-pointer">
-                <ChevronDown
-                  className="w-4 h-4 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
-                  aria-hidden="true"
+        {/* Content — two-column on lg+ */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <div className="lg:flex lg:gap-8">
+            {/* Sidebar — reuses mobile InfoPanel */}
+            <aside className="hidden lg:block lg:w-[340px] lg:shrink-0">
+              <div className="lg:sticky lg:top-16 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto lg:scrollbar-none">
+                <InfoPanel
+                  trip={trip}
+                  tripId={tripId}
+                  isOrganizer={isOrganizer}
+                  activeEventCount={0}
+                  weather={weather}
+                  weatherLoading={weatherLoading}
+                  temperatureUnit={temperatureUnit}
+                  currentMember={currentMember}
+                  onOpenInvite={() => setIsInviteOpen(true)}
+                  onOpenEdit={() => setIsEditOpen(true)}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
+                  onOpenMembers={() => setIsMembersOpen(true)}
+                  onNavigateToItinerary={() =>
+                    document.getElementById("itinerary")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className="px-0 pt-0"
                 />
-                About this trip
-              </CollapsibleTrigger>
-              <CollapsibleContent
-                forceMount
-                className="overflow-hidden data-[state=open]:animate-[collapsible-down_200ms_ease-out] data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=closed]:h-0"
-              >
-                <div className="mt-3 space-y-3">
-                  {trip.description && (
-                    <div className="bg-card rounded-md border border-border p-6 linen-texture">
-                      <p className="text-muted-foreground whitespace-pre-wrap">
-                        {trip.description}
-                      </p>
-                    </div>
-                  )}
-                  <WeatherForecastCard
-                    weather={weather}
-                    isLoading={weatherLoading}
-                    temperatureUnit={temperatureUnit}
-                    isDark={preset?.background.isDark ?? false}
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </div>
+              </div>
+            </aside>
 
-        {/* Itinerary — outside padded container so sticky header works */}
-        <div id="itinerary" ref={itineraryRef} className="scroll-mt-14">
-          <ItineraryView
-            tripId={tripId}
-            onAddTravel={() => setShowOnboarding(true)}
-            forecasts={weather?.forecasts}
-            temperatureUnit={temperatureUnit}
-          />
-        </div>
-
-        {/* Photos Section */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="border-t border-border mt-6 pt-6">
-            <PhotosSection
-              tripId={trip.id}
-              isOrganizer={isOrganizer}
-              disabled={isLocked}
-            />
-          </div>
-        </div>
-
-        {/* Discussion */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          <div className="border-t border-border mt-6 pt-6">
-            <ErrorBoundary>
-              <TripMessages
+            {/* Non-lg: inline info above itinerary */}
+            <div className="lg:hidden mb-6">
+              <InfoPanel
+                trip={trip}
                 tripId={tripId}
                 isOrganizer={isOrganizer}
-                disabled={isLocked}
-                isMuted={currentMember?.isMuted}
+                activeEventCount={0}
+                weather={weather}
+                weatherLoading={weatherLoading}
+                temperatureUnit={temperatureUnit}
+                currentMember={currentMember}
+                onOpenInvite={() => setIsInviteOpen(true)}
+                onOpenEdit={() => setIsEditOpen(true)}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenMembers={() => setIsMembersOpen(true)}
+                onNavigateToItinerary={() =>
+                  document.getElementById("itinerary")?.scrollIntoView({ behavior: "smooth" })
+                }
               />
-            </ErrorBoundary>
+            </div>
+
+            {/* Main content — itinerary, photos, discussion */}
+            <div className="lg:flex-1 lg:min-w-0 pb-16">
+              <div id="itinerary" ref={itineraryRef} className="scroll-mt-14">
+                <ItineraryView
+                  tripId={tripId}
+                  onAddTravel={() => setShowOnboarding(true)}
+                  forecasts={weather?.forecasts}
+                  temperatureUnit={temperatureUnit}
+                />
+              </div>
+
+              {/* Photos */}
+              <div className="border-t border-border mt-4 pt-4 px-4 sm:px-6 lg:px-0">
+                <PhotosSection
+                  tripId={trip.id}
+                  isOrganizer={isOrganizer}
+                  disabled={isLocked}
+                />
+              </div>
+
+              {/* Discussion */}
+              <div className="border-t border-border mt-4 pt-4 px-4 sm:px-6 lg:px-0">
+                <ErrorBoundary>
+                  <TripMessages
+                    tripId={tripId}
+                    isOrganizer={isOrganizer}
+                    disabled={isLocked}
+                    isMuted={currentMember?.isMuted}
+                  />
+                </ErrorBoundary>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -686,6 +579,53 @@ export function TripDetailContent({ tripId }: { tripId: string }) {
             </SheetBody>
           </SheetContent>
         </Sheet>
+
+        {/* Accommodation Detail Sheet */}
+        <AccommodationDetailSheet
+          accommodation={selectedAccommodation}
+          open={!!selectedAccommodation}
+          onOpenChange={(open) => {
+            if (!open) setSelectedAccommodation(null);
+          }}
+          timezone={trip.preferredTimezone}
+          canEdit={
+            selectedAccommodation
+              ? canModifyAccommodation(
+                  selectedAccommodation,
+                  user?.id ?? "",
+                  isOrganizer,
+                  isLocked,
+                )
+              : false
+          }
+          canDelete={
+            selectedAccommodation
+              ? canModifyAccommodation(
+                  selectedAccommodation,
+                  user?.id ?? "",
+                  isOrganizer,
+                  isLocked,
+                )
+              : false
+          }
+          onEdit={(acc) => {
+            setSelectedAccommodation(null);
+            setEditingAccommodation(acc);
+          }}
+          onDelete={() => setSelectedAccommodation(null)}
+        />
+
+        {/* Edit Accommodation Dialog */}
+        {editingAccommodation && (
+          <EditAccommodationDialog
+            open={!!editingAccommodation}
+            onOpenChange={(open) => {
+              if (!open) setEditingAccommodation(null);
+            }}
+            accommodation={editingAccommodation}
+            timezone={trip.preferredTimezone}
+          />
+        )}
 
         {showOnboarding && (
           <MemberOnboardingWizard

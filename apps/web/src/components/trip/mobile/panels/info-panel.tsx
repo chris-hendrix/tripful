@@ -1,22 +1,30 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import {
-  Users,
-  ClipboardList,
-  UserPlus,
+  Building2,
+  CalendarPlus,
   Pencil,
   Settings,
+  UserPlus,
 } from "lucide-react";
-import { RsvpBadgeDropdown } from "@/components/trip/rsvp-badge-dropdown";
+import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { RsvpPills } from "@/components/trip/rsvp-pills";
 import { WeatherForecastCard } from "@/components/itinerary/weather-forecast-card";
-import { MessageCountIndicator } from "@/components/messaging";
+import { AccommodationDetailSheet } from "@/components/itinerary/accommodation-detail-sheet";
+import { useAccommodations } from "@/hooks/use-accommodations";
 import { TodaySection } from "./today-section";
 import { linkifyText } from "@/utils/linkify";
 import { getUploadUrl } from "@/lib/api";
 import { getInitials } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { supportsHover } from "@/lib/supports-hover";
+import { getDayInTimezone } from "@/lib/utils/timezone";
+import { getWeatherInfo, toDisplayTemp } from "@/lib/weather-codes";
 import type { TripDetailWithMeta } from "@/hooks/trip-queries";
+import type { Accommodation } from "@journiful/shared/types";
 import type { TripWeatherResponse, TemperatureUnit } from "@journiful/shared/types";
 import { THEME_PRESETS } from "@journiful/shared/config";
 
@@ -25,6 +33,29 @@ const preloadInviteMembersDialog = () =>
 
 const preloadEditTripDialog = () =>
   void import("@/components/trip/edit-trip-dialog");
+
+type TripPhase = "beforeTrip" | "duringTrip" | "afterTrip";
+
+function getTripPhase(startDate: string | null, endDate: string | null, timezone: string): TripPhase {
+  if (!startDate) return "beforeTrip";
+  const now = getDayInTimezone(new Date(), timezone);
+  const start = getDayInTimezone(startDate, timezone);
+  if (now < start) return "beforeTrip";
+  if (!endDate) return "duringTrip";
+  const end = getDayInTimezone(endDate, timezone);
+  if (now > end) return "afterTrip";
+  return "duringTrip";
+}
+
+function formatDateRange(checkIn: string, checkOut: string, timezone: string): string {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    month: "short",
+    day: "numeric",
+  });
+  return `${fmt.format(new Date(checkIn))} – ${fmt.format(new Date(checkOut))}`;
+}
+
 
 interface InfoPanelProps {
   trip: TripDetailWithMeta;
@@ -41,13 +72,13 @@ interface InfoPanelProps {
   onOpenMembers: () => void;
   onNavigateToItinerary: () => void;
   onScroll?: (scrollTop: number) => void;
+  className?: string;
 }
 
 export function InfoPanel({
   trip,
   tripId,
   isOrganizer,
-  activeEventCount,
   weather,
   weatherLoading,
   temperatureUnit,
@@ -57,147 +88,231 @@ export function InfoPanel({
   onOpenMembers,
   onNavigateToItinerary,
   onScroll,
+  className,
 }: InfoPanelProps) {
   const preset = trip.themeId
     ? (THEME_PRESETS.find((p) => p.id === trip.themeId) ?? null)
     : null;
 
+  const timezone = trip.preferredTimezone || "UTC";
+
+  const phase = useMemo(
+    () => getTripPhase(trip.startDate, trip.endDate, timezone),
+    [trip.startDate, trip.endDate, timezone],
+  );
+
+  const { data: accommodations } = useAccommodations(tripId);
+  const [selectedAccommodation, setSelectedAccommodation] = useState<Accommodation | null>(null);
+
+  // Summary line: "+N going · Organized by X, Y"
+  const goingCount = trip.memberCount;
+  const organizerNames = trip.organizers.map((o) => o.displayName).join(", ");
+
+  // Today's forecast for inline label
+  const todayString = useMemo(
+    () => getDayInTimezone(new Date(), timezone),
+    [timezone],
+  );
+  const todayForecast = useMemo(() => {
+    if (!weather?.forecasts) return undefined;
+    return weather.forecasts.find((f) => f.date === todayString);
+  }, [weather, todayString]);
+
+  const todayDateStr = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }).format(new Date()),
+    [timezone],
+  );
+
+  const todayLabelNode = useMemo(() => {
+    const base = (
+      <>
+        Today{" "}
+        <span className="font-normal text-muted-foreground">{todayDateStr}</span>
+      </>
+    );
+    if (!todayForecast) return base;
+    const { icon: WIcon } = getWeatherInfo(todayForecast.weatherCode);
+    const temp = toDisplayTemp(todayForecast.temperatureMax, temperatureUnit);
+    const unit = temperatureUnit === "fahrenheit" ? "F" : "C";
+    return (
+      <>
+        {base}{" "}
+        <span className="inline-flex items-center gap-1 font-normal text-muted-foreground">
+          · <WIcon className="size-3.5" /> {temp}°{unit}
+        </span>
+      </>
+    );
+  }, [todayDateStr, todayForecast, temperatureUnit]);
+
   return (
     <div
-      className="px-4 pt-8 pb-2 h-full overflow-y-auto"
+      className={cn("px-4 pt-8 pb-2 h-full overflow-y-auto", className)}
       onScroll={onScroll ? (e) => onScroll(e.currentTarget.scrollTop) : undefined}
     >
-      <div className="mb-8">
-        {/* RSVP + action icons */}
-        <div className="flex items-center mb-6">
-          <RsvpBadgeDropdown
-            tripId={trip.id}
-            status={trip.userRsvpStatus}
-          />
-          <span className="flex-1" aria-hidden="true" />
-          <div className="flex items-center gap-3">
+      <div className="mb-8 space-y-5">
+        {/* 1. Action bar */}
+        <div className="space-y-3">
+          {/* RSVP pills — full width, equal sizing */}
+          <div className="[&>div]:flex [&>div]:gap-2 [&>div>button]:flex-1">
+            <RsvpPills tripId={trip.id} status={trip.userRsvpStatus} />
+          </div>
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-9"
+              onClick={onNavigateToItinerary}
+            >
+              <CalendarPlus className="size-4" />
+              Add Event
+            </Button>
             {isOrganizer && (
               <>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9"
                   onClick={onOpenInvite}
-                  onMouseEnter={
-                    supportsHover ? preloadInviteMembersDialog : undefined
-                  }
+                  onMouseEnter={supportsHover ? preloadInviteMembersDialog : undefined}
                   onTouchStart={preloadInviteMembersDialog}
                   onFocus={preloadInviteMembersDialog}
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  aria-label="Invite members"
                 >
-                  <UserPlus className="w-5 h-5" />
-                </button>
-                <button
+                  <UserPlus className="size-4" />
+                  Invite
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
                   onClick={onOpenEdit}
-                  onMouseEnter={
-                    supportsHover ? preloadEditTripDialog : undefined
-                  }
+                  onMouseEnter={supportsHover ? preloadEditTripDialog : undefined}
                   onTouchStart={preloadEditTripDialog}
                   onFocus={preloadEditTripDialog}
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   aria-label="Edit trip"
                 >
-                  <Pencil className="w-5 h-5" />
-                </button>
+                  <Pencil className="size-4" />
+                </Button>
               </>
             )}
-            <button
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
               onClick={onOpenSettings}
-              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               aria-label="Settings"
             >
-              <Settings className="w-5 h-5" />
-            </button>
+              <Settings className="size-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Organizers */}
-        {trip.organizers.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-2">
-              Organizers
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {trip.organizers.map((org) =>
-                  org.profilePhotoUrl ? (
-                    <Image
-                      key={org.id}
-                      src={getUploadUrl(org.profilePhotoUrl)!}
-                      alt={org.displayName}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full ring-2 ring-white object-cover"
-                    />
-                  ) : (
-                    <div
-                      key={org.id}
-                      className="w-8 h-8 rounded-full ring-2 ring-white bg-muted flex items-center justify-center text-xs font-medium text-foreground"
-                    >
-                      {getInitials(org.displayName)}
-                    </div>
-                  ),
-                )}
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {trip.organizers.map((org) => org.displayName).join(", ")}
-              </span>
-            </div>
+        {/* 2. Summary: Avatar stack + "+N going · Organized by X, Y" */}
+        <button
+          onClick={onOpenMembers}
+          className="flex items-center gap-3 w-full text-left cursor-pointer"
+        >
+          <div className="flex -space-x-2 shrink-0">
+            {trip.organizers.slice(0, 4).map((org) =>
+              org.profilePhotoUrl ? (
+                <Image
+                  key={org.id}
+                  src={getUploadUrl(org.profilePhotoUrl)!}
+                  alt={org.displayName}
+                  width={28}
+                  height={28}
+                  className="w-7 h-7 rounded-full ring-2 ring-background object-cover"
+                />
+              ) : (
+                <div
+                  key={org.id}
+                  className="w-7 h-7 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-xs font-medium text-foreground"
+                >
+                  {getInitials(org.displayName)}
+                </div>
+              ),
+            )}
           </div>
+          <span className="text-sm text-muted-foreground truncate">
+            {goingCount} going{organizerNames ? ` · Organized by ${organizerNames}` : ""}
+          </span>
+        </button>
+
+        {/* 3. Accommodations */}
+        {accommodations && accommodations.length > 0 && (
+          <CollapsibleSection label="Accommodations" defaultOpen>
+            <div className="space-y-2">
+              {accommodations.map((acc) => (
+                <button
+                  key={acc.id}
+                  onClick={() => setSelectedAccommodation(acc)}
+                  className="w-full text-left border border-border rounded-md p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-sm truncate">{acc.name}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate mt-0.5 pl-6">
+                    {formatDateRange(acc.checkIn, acc.checkOut, timezone)}
+                    {acc.address ? ` · ${acc.address}` : ""}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </CollapsibleSection>
         )}
 
-        {/* Stats */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
-          <button
-            onClick={onOpenMembers}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <Users className="w-5 h-5" />
-            <span className="text-sm">
-              {trip.memberCount} member{trip.memberCount !== 1 ? "s" : ""}
-            </span>
-          </button>
-          <button
-            onClick={onNavigateToItinerary}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <ClipboardList className="w-5 h-5" />
-            <span className="text-sm">
-              {activeEventCount === 0
-                ? "No events yet"
-                : `${activeEventCount} event${activeEventCount === 1 ? "" : "s"}`}
-            </span>
-          </button>
-          <MessageCountIndicator tripId={tripId} />
-        </div>
+        {/* 4. Today section (only during trip) */}
+        {phase === "duringTrip" && (
+          <CollapsibleSection label={todayLabelNode} defaultOpen>
+            <TodaySection
+              tripId={tripId}
+              timezone={timezone}
+            />
+          </CollapsibleSection>
+        )}
 
-        {/* Today's schedule */}
-        <TodaySection
-          tripId={tripId}
-          timezone={trip.preferredTimezone || "UTC"}
-          onNavigateToItinerary={onNavigateToItinerary}
-        />
-
-        {/* About this trip */}
-        <div className="mb-2 space-y-3">
-          {trip.description && (
-            <div className="bg-card rounded-md border border-border p-6 linen-texture">
+        {/* 5. About this trip */}
+        {trip.description && (
+          <CollapsibleSection label="About this trip" defaultOpen>
+            <div className="bg-card rounded-md border border-border p-4 linen-texture">
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {linkifyText(trip.description)}
               </p>
             </div>
-          )}
+          </CollapsibleSection>
+        )}
+
+        {/* 6. Weather */}
+        <CollapsibleSection label="Weather" defaultOpen>
           <WeatherForecastCard
             weather={weather}
             isLoading={weatherLoading}
             temperatureUnit={temperatureUnit}
             isDark={preset?.background.isDark ?? false}
           />
-        </div>
+        </CollapsibleSection>
       </div>
+
+      {/* Accommodation detail sheet */}
+      <AccommodationDetailSheet
+        accommodation={selectedAccommodation}
+        open={!!selectedAccommodation}
+        onOpenChange={(open) => {
+          if (!open) setSelectedAccommodation(null);
+        }}
+        timezone={timezone}
+        canEdit={false}
+        canDelete={false}
+        onEdit={() => {}}
+        onDelete={() => setSelectedAccommodation(null)}
+      />
     </div>
   );
 }

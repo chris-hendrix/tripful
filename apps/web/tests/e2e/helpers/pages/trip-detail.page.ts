@@ -37,8 +37,8 @@ export class TripDetailPage {
     this.createTripButton = page.getByRole("button", { name: "Create trip" });
     this.updateTripButton = page.getByRole("button", { name: "Update trip" });
     this.deleteTripButton = page.getByRole("button", { name: "Delete trip" });
-    this.step1Indicator = page.getByText("Step 1 of 2");
-    this.step2Indicator = page.getByText("Step 2 of 2");
+    this.step1Indicator = page.getByText("Trip details");
+    this.step2Indicator = page.getByText("Customize");
   }
 
   async goto(tripId: string) {
